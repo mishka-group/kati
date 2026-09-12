@@ -119,6 +119,7 @@ defmodule Kati.Screens.YearShareBooks do
   """
 
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Design.Images
   alias Kati.Screens.YearShare
@@ -152,10 +153,10 @@ defmodule Kati.Screens.YearShareBooks do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Your year, shared", ShareSample.subtitle())}
+        {SettingsList.title(gettext("Your year, shared"), ShareSample.subtitle())}
         {Kati.Screens.YearShare.scopes(assigns.scope)}
         {Kati.Screens.YearShareBooks.card()}
-        {Kati.UI.eyebrow("Aspect")}
+        {Kati.UI.eyebrow(gettext("Aspect"))}
         {Kati.UI.Segmented.plain(Kati.Screens.YearShare.aspects(), assigns.aspect)}
         <Spacer size={16} />
         {Kati.Screens.YearShare.privacy_row(assigns.hide_private)}
@@ -173,25 +174,47 @@ defmodule Kati.Screens.YearShareBooks do
   The pages face, in `Kati.Stats.ShareSample.hours/0`'s shape.
 
   `:direction` is carried and unread HERE, where screen 98's hours face now
-  reads it: board 99's pages figure is this module's own — `pages_face/0` is a
-  literal — and rises by construction, so `card/0` draws `arrow_drop_up`
-  outright rather than asking `Kati.Screens.Stats.arrow/2` a question with one
-  answer. The day 99 reads a real shelf, that outright glyph is the second copy
-  of the decision and goes the way 98's went. The key is present so that these
-  figures are the same map the moment they move into `ShareSample`, rather than
-  a map that has to be reshaped on the way. `:denominator` is the one key the hours face has no use
+  reads it: board 99's pages figure is this module's own — the three figures
+  below are literals — and rises by construction, so `card/0` draws
+  `arrow_drop_up` outright rather than asking `Kati.Screens.Stats.arrow/2` a
+  question with one answer. The day 99 reads a real shelf, that outright glyph
+  is the second copy of the decision and goes the way 98's went. The key is
+  present so that these figures are the same map the moment they move into
+  `ShareSample`, rather than a map that has to be reshaped on the way.
+  `:denominator` is the one key the hours face has no use
   for; see the moduledoc on why a page count needs one and an hour count does
   not.
+
+  ## The figures are the drawing's; the digits are the reader's
+
+  `11,480`, `31%` and `34` stay the numbers board 99 was captured with. What
+  the locale touches is how they are SET: the figure is drawn sans at 34 (see
+  the moduledoc on the three places 98 wins), so it takes the reader's own
+  numerals — `Kati.Locale.number/1`'s doc is where the split is written down,
+  and it is a mono figure that would have to keep Latin digits because
+  `kati_mono.ttf` carries none of U+06F0–U+06F9. The change reuses screen 07's
+  own `%{n}%` msgid, so `۳۱٪` is punctuated once for both pages rather than
+  twice with two answers about which mark Persian ends a percentage with.
   """
   @spec pages_face() :: map()
   def pages_face do
+    # The YEAR is not a figure of the drawing's and was the one frozen thing on
+    # this face that claims to be the reader's own — a card watermarked `2026`
+    # for the rest of its life is the defect `Kati.Screens.YearShare.year/0`
+    # was written for (*"a card with no year on it is a card nobody can
+    # date"*), and under `:fa` it was also the wrong CALENDAR: the subtitle two
+    # rows above it already reads فروردین تا مرداد ۱۴۰۵, so the watermark said
+    # 2026 under a heading that said 1405. `year_of/1` answers the year the
+    # reader is in, in the reader's own calendar and digits — the opposite
+    # number of `Kati.Locale.year/1`, which is for a year printed on an object.
     %{
-      label: "Pages read",
-      figure: "11,480",
+      label: gettext("Pages read"),
+      figure: Kati.Locale.number("11,480"),
       direction: :up,
-      change: "31%",
-      denominator: "Across 34 books",
-      year: "2026"
+      change: gettext("%{n}%", n: Kati.Locale.number(31)),
+      denominator:
+        ngettext("Across %{n} book", "Across %{n} books", 34, n: Kati.Locale.number(34)),
+      year: Kati.Locale.year_of(Kati.Time.today())
     }
   end
 
@@ -212,6 +235,28 @@ defmodule Kati.Screens.YearShareBooks do
   restated rather than called, and for the one shape that is not shared. The
   second face ends at the covers because the drawing does, so 98's `ranks/0`
   never appears here.
+
+  ## Two of those measurements are a script's rather than the design's
+
+  The face label was `String.upcase/1` and both mono labels carried a literal
+  `letter_spacing={0.14}`, and neither survives the fold intact:
+
+    * **The case.** Persian has no case, so `String.upcase/1` on
+      صفحه‌های خوانده‌شده returns it unchanged — a transform that reads in the
+      source as though the label were being styled and does nothing at all.
+      `Kati.UI.eyebrow_label/1` is the same upcasing in Latin and an honest
+      no-op in Persian, and it is what `Kati.UI.eyebrow/2` already calls for
+      the `Aspect` label one row below this card.
+    * **The tracking.** Letter-spacing pulls the joins apart between Persian
+      letters, which is a different kind of damage from a Latin word set
+      loosely: the word stops being one word. `Kati.Locale.tracking/1` answers
+      the design's own number in Latin and `0` in Persian, so the English card
+      measures exactly as it did — `tracking(0.14)` IS `0.14` here — and the
+      Persian one joins. The same call takes the figure's `-0.035`.
+
+  Screen 98's `card/2` still writes both by hand. That is a disagreement
+  between the two frames of the kind this module's own doc says is a bug, and
+  it is one this side cannot fix from here.
   """
   @spec card() :: map()
   def card do
@@ -227,10 +272,10 @@ defmodule Kati.Screens.YearShareBooks do
         shadow={Kati.Theme.shadow_card()}
       >
         <Text
-          text={String.upcase(@face.label)}
+          text={Kati.UI.eyebrow_label(@face.label)}
           font_family={Kati.Locale.mono_face()}
           text_size={10}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.muted()}
         />
         <Spacer size={9} />
@@ -239,7 +284,7 @@ defmodule Kati.Screens.YearShareBooks do
             text={@face.figure}
             text_size={34}
             font_weight="extrabold"
-            letter_spacing={-0.035}
+            letter_spacing={Kati.Locale.tracking(-0.035)}
             text_color={:on_surface}
           />
           <Spacer size={10} />
@@ -262,10 +307,10 @@ defmodule Kati.Screens.YearShareBooks do
         <Text text={@face.denominator} text_size={12.5} text_color={Palette.sub()} />
         <Spacer size={20} />
         <Text
-          text="Top books"
+          text={gettext("Top books")}
           font_family={Kati.Locale.mono_face()}
           text_size={10}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.muted()}
         />
         <Spacer size={11} />
@@ -358,9 +403,18 @@ defmodule Kati.Screens.YearShareBooks do
   def unit_note do
     SettingsList.note(
       "info",
-      "The section chip changes the unit, not the layout: hours become pages, " <>
-        "posters become covers, and the aspect ratio holds. Music would read " <>
-        "minutes listened; Meals, meals cooked."
+      # One msgid rather than four clauses joined at render: the sentence turns
+      # on `unit`/`layout` and on the two sections it names, and a translator
+      # handed the halves separately cannot see which noun the colon governs.
+      # `Music` and `Meals` are the CHIP words two rows up — موسیقی and
+      # وعده‌ها — so the sentence has to be translated beside them rather than
+      # interpolated from `Kati.Stats.ShareSample.scopes/0`, whose labels are
+      # drawn as chips and read here as prose.
+      gettext(
+        "The section chip changes the unit, not the layout: hours become pages, " <>
+          "posters become covers, and the aspect ratio holds. Music would read " <>
+          "minutes listened; Meals, meals cooked."
+      )
     )
   end
 

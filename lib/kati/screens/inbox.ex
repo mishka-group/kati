@@ -140,6 +140,7 @@ defmodule Kati.Screens.Inbox do
 
   """
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -258,8 +259,35 @@ defmodule Kati.Screens.Inbox do
   @spec watcher_line() :: String.t()
   def watcher_line do
     Watcher.checked_line(Watcher.last_checked(), false) <>
-      " · " <> String.downcase(Watcher.cadence())
+      " · " <> cadence_label(Watcher.cadence())
   end
+
+  # The stored cadence, in the reader's own words.
+  #
+  # `Kati.Settings.Watcher.cadence/0` answers one of three ENGLISH labels and
+  # has to: they are the keys `put_cadence/1` matches on and `Mob.State` holds,
+  # so the store cannot be translated where it lives. A msgid must be a literal
+  # at the call site, so the three are written out here rather than handed to
+  # `gettext/1` as a variable — which does not compile.
+  #
+  # The drawing lowercases it — `every 6h`, in the same breath as `last checked
+  # 18:02` — and that is Latin typography: `String.downcase/1` on Persian is a
+  # no-op, so under `:fa` this card ended its one mono line with a Latin label
+  # beside a Persian sentence. The case therefore lives inside the English
+  # msgid instead of being applied to the result of one.
+  #
+  # Contexts, because `hourly` and `daily` are one word each and
+  # `mix gettext.merge` fuzzy-matches anything that short onto any sentence it
+  # resembles.
+  defp cadence_label("Hourly"), do: pgettext("watcher cadence", "hourly")
+  defp cadence_label("Every 6h"), do: pgettext("watcher cadence", "every 6h")
+  defp cadence_label("Daily"), do: pgettext("watcher cadence", "daily")
+
+  # A cadence this screen does not know, drawn as it is stored. `cadence/0`
+  # answers one of the three above today, but it reads a store screen 25 writes
+  # and a fourth interval added there must not take this whole card down with a
+  # `FunctionClauseError`.
+  defp cadence_label(other), do: String.downcase(other)
 
   @doc """
   The user's own releases, or `nil` when they follow nothing.
@@ -343,10 +371,21 @@ defmodule Kati.Screens.Inbox do
 
   It said *1 titles* until the card could be read on a device at all — which is
   the small thing that a defect hiding a whole card also hides.
+
+  One clause rather than two now, because the plural is `ngettext/4`'s question
+  and not this screen's: Persian does not inflect a noun after a numeral —
+  *۲۴ عنوان* takes the same word as *۱ عنوان* — so a screen that picks the
+  form itself has picked it for one language.
   """
   @spec watching_line(non_neg_integer()) :: String.t()
-  def watching_line(1), do: "Watching for 1 title"
-  def watching_line(count), do: "Watching for #{count} titles"
+  def watching_line(count) do
+    ngettext(
+      "Watching for %{n} title",
+      "Watching for %{n} titles",
+      count,
+      n: Kati.Locale.number(count)
+    )
+  end
 
   @doc false
   def watcher_gear do
@@ -601,26 +640,53 @@ defmodule Kati.Screens.Inbox do
     |> Enum.join(" — ")
   end
 
+  # `S2 E6`, and `ف۲ ق۶` under `:fa` — `Kati.Screens.Library`'s own compact
+  # pair, minus the middot this board does not draw between them.
+  #
+  # Both carry a context: they are two tokens each, and `mix gettext.merge`
+  # would fuzzy-match either onto the library's `S%{s} · E%{e}`, which is a
+  # different separator for a different row.
   defp number_label(%CachedEpisode{season_number: s, episode_number: e})
-       when is_integer(s) and is_integer(e),
-       do: "S#{s} E#{e}"
+       when is_integer(s) and is_integer(e) do
+    pgettext("episode number", "S%{s} E%{e}",
+      s: Kati.Locale.number(s),
+      e: Kati.Locale.number(e)
+    )
+  end
 
-  defp number_label(%CachedEpisode{episode_number: e}) when is_integer(e), do: "E#{e}"
+  defp number_label(%CachedEpisode{episode_number: e}) when is_integer(e),
+    do: pgettext("episode number", "E%{e}", e: Kati.Locale.number(e))
+
   defp number_label(%CachedEpisode{}), do: nil
 
-  # `48 min`, the drawing's own unit for an episode.
+  # `48 min`, the drawing's own unit for an episode —
+  # `Kati.Screens.Series.runtime_label/1`'s msgid rather than a second one,
+  # because an episode's length is the same sentence on both screens and two
+  # spellings of it is how the two screens come to disagree.
   defp episode_runtime(%CachedEpisode{runtime_minutes: m}) when is_integer(m) and m > 0 do
-    "#{m} min"
+    gettext("%{n} min", n: Kati.Locale.number(m))
   end
 
   defp episode_runtime(%CachedEpisode{}), do: nil
 
   # `aired 20:00` for something that went out today, `aired 6 Aug` for anything
   # older: an hour with no day is only a useful answer while the day is obvious.
+  #
+  # `Kati.Locale.date/2` and `Kati.Locale.time/1` rather than
+  # `Calendar.strftime/2`, and that is a calendar rather than a format: the day
+  # an episode went out is a day in the reader's own life, so under `:fa` it is
+  # ۱۵ مرداد and not 6 Aug, and the hour's digits are the reader's too.
+  #
+  # Two msgids rather than one taking a `%{when}`, because the word order
+  # differs between the scripts — English leads with the verb, Persian ends
+  # with it — and a translator who can only move a placeholder inside one
+  # sentence cannot say that. Both take a context: `aired %{date}` is one short
+  # step from the `Airs %{date}` screen 04 already has, and the two are
+  # opposite tenses of one word.
   defp aired_label(air, now) do
     case air do
       {:exact, at, _origin} -> exact_aired(at, now)
-      {:day, date, _origin} -> "aired " <> Calendar.strftime(date, "%-d %b")
+      {:day, date, _origin} -> aired_on(date)
       _coarse -> nil
     end
   end
@@ -629,11 +695,14 @@ defmodule Kati.Screens.Inbox do
     local = Kati.Time.in_zone(at, Kati.Time.device_zone())
 
     if DateTime.to_date(local) == DateTime.to_date(now) do
-      "aired " <> Calendar.strftime(local, "%H:%M")
+      pgettext("out now row", "aired %{time}", time: Kati.Locale.time(local))
     else
-      "aired " <> Calendar.strftime(local, "%-d %b")
+      aired_on(DateTime.to_date(local))
     end
   end
+
+  defp aired_on(date),
+    do: pgettext("out now row", "aired %{date}", date: Kati.Locale.date(date, :short))
 
   # ── Coming up ──────────────────────────────────────────────────────────────
 
@@ -679,8 +748,18 @@ defmodule Kati.Screens.Inbox do
     date = resolved_date(air)
 
     %{
-      month: date |> Calendar.strftime("%b") |> String.upcase(),
-      day: Calendar.strftime(date, "%d"),
+      # The card's whole left edge is a month and a day, and under `:fa` both
+      # are Shamsi: 20 August 2026 is ۲۹ مرداد, and no upcasing or padding of
+      # the Gregorian pair produces it. `Kati.UI.eyebrow_label/1` carries the
+      # case, which Persian does not have at all — `String.upcase/1` on مرداد
+      # is a no-op that reads as one.
+      #
+      # The leading zero is the other half of the same argument, and
+      # `Kati.Locale.date/2` makes it for `:short_padded` in as many words: a
+      # zero is a Latin typographic device for lining a column of dates up, and
+      # Persian numerals are already even-width, so the Shamsi day takes none.
+      month: UI.eyebrow_label(Kati.Locale.month_name(date, :short)),
+      day: Kati.Locale.pick(Calendar.strftime(date, "%d"), Kati.Locale.day_of_month(date)),
       title: upcoming_title(show_title(cached), airing),
       line: upcoming_line(airing, air),
       armed: armed?(tracked_row, airing, cached)
@@ -692,8 +771,15 @@ defmodule Kati.Screens.Inbox do
   # the drawing's own typography rather than a second numbering scheme.
   defp upcoming_title(title, %CachedEpisode{} = episode) do
     case number_label(episode) do
-      nil -> title
-      label -> title <> " — " <> String.replace(label, " ", "")
+      nil ->
+        title
+
+      label ->
+        # The tightening is the DRAWING's typography and it is Latin-only.
+        # `S2 E6` closes up to `S2E6` because the two halves read as one token
+        # to an English eye; `ف۲ ق۶` is two Persian words, and closing the gap
+        # runs them into a third word that is neither of them.
+        title <> " — " <> Kati.Locale.pick(String.replace(label, " ", ""), label)
     end
   end
 
@@ -703,9 +789,15 @@ defmodule Kati.Screens.Inbox do
 
   defp upcoming_title(title, :title), do: title
 
+  # The provider's own name where it gave one — that is content and arrives in
+  # whatever language the provider holds it in — and
+  # `Kati.Screens.Series.season_view/2`'s msgid where it did not, so one season
+  # is spelled one way wherever the app has to name it itself.
   defp season_label(%CachedSeason{name: name}) when is_binary(name) and name != "", do: name
-  defp season_label(%CachedSeason{season_number: 0}), do: "Specials"
-  defp season_label(%CachedSeason{season_number: n}), do: "Season #{n}"
+  defp season_label(%CachedSeason{season_number: 0}), do: gettext("Specials")
+
+  defp season_label(%CachedSeason{season_number: n}),
+    do: gettext("Season %{n}", n: Kati.Locale.number(n))
 
   # The drawing puts a service and an hour here and there is no service, so what
   # is left is the hour — plus, for an episode, its own name, which is the one
@@ -717,8 +809,11 @@ defmodule Kati.Screens.Inbox do
 
   defp upcoming_line(_airing, air), do: join([time_label(air)])
 
+  # 24-hour in both scripts — `Kati.Locale.time/1`'s own choice, and the
+  # design's — with the reader's numerals. `Calendar.strftime/2` gave Latin
+  # digits beside a Persian episode name on the same line.
   defp time_label({:exact, at, _origin}) do
-    at |> Kati.Time.in_zone(Kati.Time.device_zone()) |> Calendar.strftime("%H:%M")
+    at |> Kati.Time.in_zone(Kati.Time.device_zone()) |> Kati.Locale.time()
   end
 
   defp time_label(_resolution), do: nil
@@ -747,7 +842,7 @@ defmodule Kati.Screens.Inbox do
   # ones says nothing; here the row still carries the episode number, its name
   # and its hour, which is most of the news.
   defp show_title(%CachedTitle{title: title}) when is_binary(title) and title != "", do: title
-  defp show_title(_cached), do: "Untitled"
+  defp show_title(_cached), do: gettext("Untitled")
 
   defp resolved_date({:exact, at, _origin}) do
     at |> Kati.Time.in_zone(Kati.Time.device_zone()) |> DateTime.to_date()
@@ -795,7 +890,7 @@ defmodule Kati.Screens.Inbox do
   def body(%{nothing_followed?: true}, _save_error) do
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Nothing followed yet")}
+      {UI.eyebrow(gettext("Nothing followed yet"))}
       {Kati.Screens.Inbox.watcher_idle()}
       <Spacer size={13} />
       {Kati.Screens.Inbox.offer()}
@@ -804,13 +899,20 @@ defmodule Kati.Screens.Inbox do
   end
 
   def body(inbox, save_error) do
+    # The count goes through `Kati.Locale.number/1` and into the label rather
+    # than being interpolated onto the end of it: an eyebrow is one translated
+    # phrase, and `"Out now · " <> n` is a sentence a translator cannot move
+    # the number inside of. Hoisted out of the sigil only to keep the line
+    # readable — `Kati.UI.eyebrow/2` does the case and the face itself.
+    out_now = gettext("Out now · %{count}", count: Kati.Locale.number(length(inbox.out_now)))
+
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.Inbox.watcher(inbox)}
       {Kati.Screens.Inbox.refusal(save_error)}
-      {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
+      {UI.eyebrow(out_now)}
       {Kati.Screens.Inbox.out_now(inbox)}
-      {Kati.UI.eyebrow("Coming up", dash: Palette.rail_idle(), gap: 12)}
+      {Kati.UI.eyebrow(gettext("Coming up"), dash: Palette.rail_idle(), gap: 12)}
       {Kati.Screens.Inbox.coming_up(inbox)}
     </Column>
     """
@@ -834,16 +936,16 @@ defmodule Kati.Screens.Inbox do
       <Spacer size={13} />
       <Column weight={1.0}>
         <Text
-          text="The watcher is running"
+          text={gettext("The watcher is running")}
           text_size={13.5}
           font_weight="bold"
           text_color={:on_surface}
         />
         <Spacer size={4} />
         <Text
-          text="It has nothing to watch yet. Follow a show and it starts here."
+          text={gettext("It has nothing to watch yet. Follow a show and it starts here.")}
           text_size={12}
-          line_height={1.5}
+          line_height={Kati.Locale.leading(1.5)}
           text_color={Palette.sub()}
         />
       </Column>
@@ -891,18 +993,18 @@ defmodule Kati.Screens.Inbox do
       </Row>
       <Spacer size={13} />
       <Text
-        text="Nothing new, because nothing is followed"
+        text={gettext("Nothing new, because nothing is followed")}
         text_size={14.5}
         font_weight="bold"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={:on_surface}
         text_align="center"
       />
       <Spacer size={7} />
       <Text
-        text="This page is the watcher's output. Add a show or a film to your library and every new episode lands here first."
+        text={gettext("This page is the watcher's output. Add a show or a film to your library and every new episode lands here first.")}
         text_size={12.5}
-        line_height={1.55}
+        line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.sub()}
         text_align="center"
       />
@@ -921,7 +1023,7 @@ defmodule Kati.Screens.Inbox do
           {UI.symbol("add", size: 18, color: Palette.on_ink())}
           <Spacer size={7} />
           <Text
-            text="Add a title"
+            text={gettext("Add a title")}
             text_size={13}
             font_weight="bold"
             text_color={Palette.on_ink()}
@@ -934,7 +1036,7 @@ defmodule Kati.Screens.Inbox do
       <Row fill_width={true} align="center" on_tap={{self(), :open_shelf}}>
         <Spacer weight={1.0} />
         <Text
-          text="or open the shelf"
+          text={gettext("or open the shelf")}
           text_size={12.5}
           font_weight="semibold"
           text_color={Palette.sub()}
@@ -962,6 +1064,12 @@ defmodule Kati.Screens.Inbox do
   Drawn without a tap when the list is empty, and that is not the same as
   inert: there is nothing to mark all OF. Over the board it is likewise a
   picture, because the drawing's rows have no episode behind them.
+
+  **Two words, so it is `pgettext/2`.** *Mark all* is one Jaro step from the
+  *Mark eaten* screen 33 already has, and `mix gettext.merge` would hand this
+  pill that translation with a `fuzzy` flag nobody reads. The Persian is the
+  same first-person the rest of the app ticks things with — screen 04 says
+  *قسمت بعدی را دیده‌ام* for the identical write.
   """
   @spec mark_all(map()) :: map()
   def mark_all(inbox \\ %{}) do
@@ -981,7 +1089,7 @@ defmodule Kati.Screens.Inbox do
           on_tap={@tap}
         >
           <Text
-            text="Mark all"
+            text={pgettext("inbox", "Mark all")}
             text_size={12.5}
             font_weight="semibold"
             text_color={:on_surface}
@@ -1035,15 +1143,23 @@ defmodule Kati.Screens.Inbox do
     # page is no longer drawing, so it reads as a report on a search that ran
     # rather than as the fact that nothing is being watched for. The eyebrow
     # under it says that instead.
+    #
+    # `max_lines={1}` on the heading in both clauses, which the board did not
+    # need and this one does: انتشارهای تازه is a longer run than *New
+    # releases* at the same 28pt, and a display heading that wraps to two lines
+    # pushes the card under it off the fold. The tracking goes the other way —
+    # `Kati.Locale.tracking/1` drops it, because Arabic script joins and a
+    # negative letter_spacing pulls the joins apart.
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="New releases"
+        text={gettext("New releases")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={20} />
     </Column>
@@ -1051,22 +1167,31 @@ defmodule Kati.Screens.Inbox do
   end
 
   def title(inbox) do
-    subtitle = "#{length(inbox.out_now)} out now · #{length(inbox.coming_up)} coming up"
+    # Both numbers through `Kati.Locale.number/1`, and the sentence around them
+    # through one msgid rather than two halves joined by a middot here: the
+    # Persian for *out now* and *coming up* has to be able to sit either side
+    # of that mark, and a screen that concatenates has already decided.
+    subtitle =
+      gettext("%{out} out now · %{up} coming up",
+        out: Kati.Locale.number(length(inbox.out_now)),
+        up: Kati.Locale.number(length(inbox.coming_up))
+      )
 
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="New releases"
+        text={gettext("New releases")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
       <Text
         text={subtitle}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(subtitle)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -1081,6 +1206,11 @@ defmodule Kati.Screens.Inbox do
     # Both glyphs are boxed at their own size, and the trailing one is why this
     # card was blank on a device for as long as it existed — see
     # `watcher_gear/0`, which carries the finding.
+    #
+    # The mono line is `Kati.Locale.mono_face/0` and not `"mono"`, asked of the
+    # READER rather than of the string: `watcher_line/0` is translated end to
+    # end — *هرگز بررسی نشده · هر ۶ ساعت* — so under `:fa` there is never a
+    # Latin run in it, and `kati_mono.ttf` carries no Persian glyph at all.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -1108,7 +1238,7 @@ defmodule Kati.Screens.Inbox do
           <Spacer size={4} />
           <Text
             text={inbox.last_checked}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.cream_meta()}
             max_lines={1}
@@ -1167,6 +1297,15 @@ defmodule Kati.Screens.Inbox do
     """
   end
 
+  # The pill says *Watch* and writes a tick — see `watch_tap/1` — so the
+  # Persian is the app's own word for that write rather than a word for
+  # playing something: *دیده‌ام*, which is what screen 04's primary says for
+  # the identical `Kati.Media.Watch` row. A pill that offered to PLAY an
+  # episode and instead marked it seen would be a worse lie in Persian than the
+  # English is, because Persian has to pick a verb.
+  #
+  # `pgettext/2` for the same reason *Mark all* takes one: `Watch` is one word
+  # and `Watching` — the shelf status — is already in the catalogue.
   @doc false
   def release_row(row) do
     ~MOB"""
@@ -1192,7 +1331,7 @@ defmodule Kati.Screens.Inbox do
               text={row.title}
               text_size={14}
               font_weight="bold"
-              letter_spacing={-0.015}
+              letter_spacing={Kati.Locale.tracking(-0.015)}
               text_color={:on_surface}
               max_lines={1}
             />
@@ -1202,7 +1341,7 @@ defmodule Kati.Screens.Inbox do
           <Spacer size={4} />
           <Text
             text={row.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.meta)}
             text_size={10.5}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -1219,7 +1358,7 @@ defmodule Kati.Screens.Inbox do
           on_tap={Kati.Screens.Inbox.watch_tap(row)}
         >
           <Text
-            text="Watch"
+            text={pgettext("inbox", "Watch")}
             text_size={12}
             font_weight="semibold"
             text_color={Palette.on_ink()}
@@ -1275,6 +1414,11 @@ defmodule Kati.Screens.Inbox do
     """
   end
 
+  # `Kati.Locale.mono_face/1` on the month and not `mono_face/0`, because this
+  # slot holds both scripts at once: a real row draws مرداد and the drawn rows
+  # `coming_up_rows/0` still carry `AUG`, which is the board's own Latin and
+  # belongs in DM Mono. Asking the STRING is the only question that answers
+  # both — `Kati.Screens.DataSources` makes the same call for provider names.
   @doc false
   def upcoming_row(row, rule?) do
     ~MOB"""
@@ -1283,9 +1427,9 @@ defmodule Kati.Screens.Inbox do
         <Column width={42} align="center">
           <Text
             text={row.month}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.month)}
             text_size={10}
-            letter_spacing={0.1}
+            letter_spacing={Kati.Locale.tracking(0.1)}
             text_color={Palette.muted()}
             text_align="center"
           />
@@ -1293,7 +1437,7 @@ defmodule Kati.Screens.Inbox do
             text={row.day}
             text_size={17}
             font_weight="bold"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={:on_surface}
             text_align="center"
           />

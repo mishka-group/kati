@@ -81,6 +81,7 @@ defmodule Kati.Screens.Lists do
   reporting a change nothing kept.
   """
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
@@ -166,7 +167,7 @@ defmodule Kati.Screens.Lists do
         {Kati.Screens.Lists.header(l)}
         {Kati.Screens.Lists.name_field(assigns)}
         {Kati.Screens.Lists.made(l)}
-        {UI.eyebrow("Kept automatically")}
+        {UI.eyebrow(gettext("Kept automatically"))}
         {Kati.Screens.Lists.kept(l)}
       </Column>
     </Scroll>
@@ -191,16 +192,25 @@ defmodule Kati.Screens.Lists do
     # `handle_tap/2` and the moduledoc's own account of the missing resource.
     tap = {self(), :new_list}
 
+    # The 28pt title is `Kati.Locale.tracking/1` rather than a flat `-0.03`, and
+    # it carries `max_lines` where it carried none. Both are mishka-group/kati#103
+    # rules and both are about the same word: `فهرست‌ها` is one Arabic-script
+    # word, tracking prises apart the joins that make it one, and a heading with
+    # no line cap wraps under the 44pt disc the moment the Persian runs longer
+    # than the English. The subtitle beside it was already asking
+    # `Kati.Locale.mono_face/0`, because `kati_mono.ttf` has no Persian glyph and
+    # `7 lists · 2 ranked` comes off `Kati.Lists.Shelf.subtitle/1` translated.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Lists"
+            text={gettext("Lists")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
+            max_lines={1}
             text_color={:on_surface}
           />
           <Spacer size={5} />
@@ -235,7 +245,22 @@ defmodule Kati.Screens.Lists do
     # `:name_this_one`, not the disc's own `:new_list`: two nodes may not share
     # an `accessibility_id` — `onNodeWithTag` throws on the second match — and
     # both are drawn at once on an empty page. One action, two doors, two names.
-    assigns = %{tap: {self(), :name_this_one}}
+    #
+    # The copy comes in as assigns rather than inline in the sigil so the body
+    # sentence can be wrapped and read: a sigil's contents are opaque to
+    # `mix format`, so a `gettext/1` around a 90-character line stays one
+    # 120-character line forever. The heading is deliberately the SAME msgid
+    # `Kati.Lists.Shelf.subtitle/1` answers an empty shelf with — one card and
+    # one header line saying one thing, and one entry in the catalogue.
+    assigns = %{
+      tap: {self(), :name_this_one},
+      heading: gettext("No lists yet"),
+      body:
+        gettext(
+          "A list is yours to name — press + and call it something. " <>
+            "Titles go in from your shelf."
+        )
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -256,18 +281,18 @@ defmodule Kati.Screens.Lists do
         </Row>
         <Spacer size={13} />
         <Text
-          text="No lists yet"
+          text={@heading}
           text_size={14.5}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
-          text="A list is yours to name — press + and call it something. Titles go in from your shelf."
+          text={@body}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -301,6 +326,13 @@ defmodule Kati.Screens.Lists do
 
     assigns = %{tap: tap}
 
+    # `Kati.Locale.tracking/1` on the name and not a flat `-0.015`. A list's name
+    # is the one string on this page the READER wrote, so it is the one most
+    # likely to be Persian whatever the interface language is — and tracking
+    # prises apart the joins that make an Arabic-script word one word. The count
+    # under it was already asking `Kati.Locale.mono_face/0`, which is the arity-0
+    # one on purpose: `14 titles` is always in the reader's own script, so the
+    # question is the READER's language and not this string's.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -319,7 +351,7 @@ defmodule Kati.Screens.Lists do
             text={row.title}
             text_size={14}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -391,8 +423,15 @@ defmodule Kati.Screens.Lists do
   # No badge means the list is neither ranked nor shared, and the drawing ends
   # that row with a chevron instead — the badge slot and the affordance slot
   # are the same slot.
+  #
+  # `Kati.Locale.forward_chevron/0` and not the literal `chevron_right`: this row
+  # OPENS `Kati.Screens.ListDetail`, the chevron is the picture of that, and a
+  # picture is the one thing `layout_direction` cannot mirror — Material Symbols
+  # are text in a font. It points `chevron_left` under `:fa`, which reads wrong
+  # in a diff and right on a phone.
   @doc false
-  def badge(nil), do: Kati.UI.symbol("chevron_right", size: 19, color: Palette.rail_idle())
+  def badge(nil),
+    do: Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 19, color: Palette.rail_idle())
 
   def badge(label) do
     # Mishka's Pill. A pill and not a chip: `RANKED` / `SHARED` is a fact about
@@ -407,7 +446,7 @@ defmodule Kati.Screens.Lists do
     # where `align="center"` centred the lone Text. `max_lines: 1` is the pill's
     # own default and is what this Text already carried.
     MishkaPill.pill(
-      label: label,
+      label: Kati.Screens.Lists.badge_word(label),
       background: Palette.cream(),
       color: Palette.gold_text(),
       corner_radius: 11,
@@ -420,6 +459,37 @@ defmodule Kati.Screens.Lists do
       font_weight: :semibold
     )
   end
+
+  @doc """
+  A badge as the word the pill prints.
+
+      iex> Kati.Screens.Lists.badge_word("ranked")
+      "ranked"
+
+  **The pill was drawing a key.** `Kati.Lists.Shelf.badge/1` answers the strings
+  `"ranked"` and `"shared"`, and they are identifiers rather than copy —
+  `Kati.Lists.Shelf.subtitle/1` counts the ranked lists by comparing against
+  `"ranked"`, so translating them at the source would make that comparison fail
+  under `:fa` and report `0 ranked` on a shelf that has two. Board 12's badge
+  therefore read `ranked` in Latin on a Persian page — and the `:fa` audit did
+  not see it, because a badge is only drawn for a list somebody has made and the
+  audit renders an empty store. A pill that draws a key is exactly the thing a
+  sweep over rendered text cannot find.
+
+  So the key is translated where it is DRAWN and not where it is decided, which
+  is the rule `Kati.Screens.AddToList.count_line/1` already states one screen
+  over. `badge_word/1` is deliberately a second copy of
+  `Kati.Screens.AddToList.badge_word/1` rather than a call into it: an index and
+  a sheet over some other page share a vocabulary, not a dependency, and both
+  call sites point at the same two msgids either way.
+
+  An unknown key answers itself, so a badge `Kati.Lists.Shelf` learns to emit
+  tomorrow draws its own word rather than nothing.
+  """
+  @spec badge_word(String.t()) :: String.t()
+  def badge_word("ranked"), do: gettext("ranked")
+  def badge_word("shared"), do: gettext("shared")
+  def badge_word(other), do: other
 
   @doc false
   def kept(l) do
@@ -528,6 +598,13 @@ defmodule Kati.Screens.Lists do
         on_change: {self(), :list_name},
         on_submit: {self(), :save_list},
         save: {self(), :save_list},
+        placeholder: gettext("Name this list"),
+        # `pgettext/2` for two words. `mix gettext.merge` fuzzy-matches a new
+        # msgid against the catalogue, and `Make it and add` — board 333's own
+        # pill, three words longer — is close enough to claim it and arrive
+        # already translated to the wrong sentence. A context is the only thing
+        # that makes the two entries separate rows rather than one guess.
+        make: pgettext("make a list", "Make it"),
         error: Kati.UI.notice(Map.get(assigns, :save_error))
       }
 
@@ -549,7 +626,7 @@ defmodule Kati.Screens.Lists do
           >
             <TextField
               value={@name}
-              placeholder="Name this list"
+              placeholder={@placeholder}
               return_key="done"
               weight={1.0}
               accessibility_id="list_name"
@@ -559,7 +636,7 @@ defmodule Kati.Screens.Lists do
             />
           </Row>
           <Spacer size={9} />
-          {Kati.UI.SettingsList.action_pill("Make it", @save)}
+          {Kati.UI.SettingsList.action_pill(@make, @save)}
         </Row>
         <Spacer size={18} />
       </Column>
@@ -642,10 +719,22 @@ defmodule Kati.Screens.Lists do
 
       iex> Kati.Screens.Lists.taken_line(%{name: "Rainy Sunday", id: nil})
       "Rainy Sunday already exists. Nothing was made — open it from the list above."
+
+  One msgid with the name interpolated, where this was a concatenation. A
+  sentence assembled with `<>` is a sentence whose word order is English's, and
+  Persian puts the verb last — the catalogue cannot move a fragment it never
+  sees. The name is the reader's own and goes in unwrapped, which is the same
+  answer `Kati.Screens.ListDetail` gives for `Delete %{title}?`: a list called
+  `Rainy Sunday` and one called `یکشنبه بارانی` are both names somebody typed,
+  and neither is a Latin RUN inside a Persian sentence in the sense
+  `Kati.Locale.ltr/1` exists for.
   """
   @spec taken_line(map()) :: String.t()
-  def taken_line(list),
-    do: list.name <> " already exists. Nothing was made — open it from the list above."
+  def taken_line(list) do
+    gettext("%{name} already exists. Nothing was made — open it from the list above.",
+      name: list.name
+    )
+  end
 
   @doc false
   @spec named(Mob.Socket.t()) :: Mob.Socket.t()

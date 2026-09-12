@@ -35,9 +35,21 @@ defmodule Kati.Screens.LogWeight do
   `{:error, reason}`, never a bare `:ok`. On a failure the sheet stays where it
   is, with your grams still in the stepper, and says so in red above the button
   you just pressed — the one place you are already looking.
+
+  ## Two scripts, one sheet
+
+  mishka-group/kati#103 folded the Persian mirrors away, so this module is the
+  page in both scripts and every value on it has to ask `Kati.Locale` rather
+  than `Calendar`: the hero's figure and its separator (board 115 writes
+  `۷۶٫۰`, with U+066B), the clock line's CALENDAR — ۲۱ شهریور is not a
+  translation of 12 September, it is a different arithmetic — and the row labels
+  this screen reads back out of `Kati.Screens.Weight.entries/1`, which is where
+  the fold actually broke something. `previous/0` and `days_since/1` carry that
+  one between them.
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Health
@@ -49,10 +61,16 @@ defmodule Kati.Screens.LogWeight do
   alias Kati.UI.Sheet
   alias Kati.Write
 
-  @units [{"kg", :unit_kg}, {"lb", :unit_lb}, {"st", :unit_st}]
-
-  # A tenth of a kilogram, in grams. The step is a tenth of the DISPLAY unit,
-  # which is why this is derived per unit rather than being one constant.
+  # The three units were `@units`, a module attribute, and cannot be one any
+  # more: `gettext/1` inside a module attribute is evaluated at COMPILE time,
+  # so the words would freeze in whichever locale the compiler happened to be
+  # in. They are `units/0` now, built from `unit_word/1` — the same function the
+  # hero's own label calls — so a segment and the figure beside it cannot spell
+  # one unit two ways.
+  #
+  # The comment that sat here described `step/1` rather than `mount/3`: a tenth
+  # of the DISPLAY unit, derived per unit rather than kept as one constant. That
+  # argument is in `step/1`'s own @doc, which is where it is read.
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
     Kati.Locale.activate()
@@ -79,7 +97,7 @@ defmodule Kati.Screens.LogWeight do
   end
 
   def render(assigns),
-    do: Sheet.sheet("Log weight", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    do: Sheet.sheet(gettext("Log weight"), body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do
@@ -94,7 +112,7 @@ defmodule Kati.Screens.LogWeight do
       {Kati.Screens.LogWeight.confirmation(assigns.grams)}
       <Spacer size={14} />
       {Kati.Screens.LogWeight.save_notice(assigns.save_error)}
-      {Sheet.commit("Save reading", :save)}
+      {Sheet.commit(gettext("Save reading"), :save)}
     </Column>
     """
   end
@@ -118,14 +136,77 @@ defmodule Kati.Screens.LogWeight do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={@message} text_size={12.5} line_height={1.45} text_color={Palette.red()} />
+      {# The message is `Kati.Write.message/1`'s, already translated, so this
+       # `Text` can hold a Persian sentence — and Vazirmatn's metrics are not
+       # Plus Jakarta's, which is what `Kati.Locale.leading/1` carries.}
+      <Text
+        text={@message}
+        text_size={12.5}
+        line_height={Kati.Locale.leading(1.45)}
+        text_color={Palette.red()}
+      />
       <Spacer size={12} />
     </Column>
     """
   end
 
-  @doc false
-  def units, do: @units
+  @doc """
+  The three units the switch offers, as `{label, tag}`.
+
+  The TAG is what the segment answers to and the word beside it is what the
+  reader sees — the arrangement every folded segmented control in
+  mishka-group/kati#103 ends up with, because a tag built from the label would
+  be a different atom in each script.
+  """
+  @spec units() :: [{String.t(), atom()}]
+  def units,
+    do: [
+      {Kati.Screens.LogWeight.unit_word(:kg), :unit_kg},
+      {Kati.Screens.LogWeight.unit_word(:lb), :unit_lb},
+      {Kati.Screens.LogWeight.unit_word(:st), :unit_st}
+    ]
+
+  @doc """
+  A unit's own word, as the reader writes it.
+
+  `Kati.Health.Reading.unit_label/1` is the Latin half of this and stays where
+  it is — it is what the resource and the log rows are written in — but a word
+  on a control is copy, and board 115 draws the hero's unit as **کیلوگرم**
+  rather than as `kg`. The catalogue already holds that one from screen 109, so
+  this reuses the msgid rather than inventing a second word for it; `lb` takes a
+  context because a two-letter msgid is exactly what `mix gettext.merge` will
+  fuzzy-match against the first sentence that happens to contain it.
+
+  **`st` stays Latin**, and that is `Kati.Health.Reading`'s doing rather than a
+  decision about Persian: `figure/2` writes a stone as `12st 0.4`, with the unit
+  inside the numeral, and no msgid reaches that file. A segment reading سنگ over
+  a figure reading `12st` would spell one unit two ways on one card — the rule
+  the service names follow, one board over. The day the figure folds, this
+  clause is the one line to change.
+  """
+  @spec unit_word(:kg | :lb | :st) :: String.t()
+  def unit_word(:lb), do: pgettext("weight unit", "lb")
+  def unit_word(:st), do: "st"
+  def unit_word(_kg), do: gettext("kg")
+
+  @doc """
+  A weight with its unit, in the reader's own digits and words.
+
+  `Kati.Health.Reading.display/2` is the Latin form of this — `0.4 kg` — and it
+  cannot answer under `:fa`, where the digits are Persian, the decimal mark is
+  U+066B and the unit is a word. The figure still comes from `Reading`, so the
+  arithmetic stays in one place and only the typography is composed here.
+
+  Stones carry their unit inside the figure, so that clause adds none — see
+  `unit_word/1`.
+  """
+  @spec amount(integer(), :kg | :lb | :st) :: String.t()
+  def amount(grams, :st), do: Kati.Locale.number(Reading.figure(grams, :st))
+
+  def amount(grams, unit),
+    do:
+      Kati.Locale.number(Reading.figure(grams, unit)) <>
+        " " <> Kati.Screens.LogWeight.unit_word(unit)
 
   @doc false
   def unit_tag(:lb), do: :unit_lb
@@ -157,10 +238,23 @@ defmodule Kati.Screens.LogWeight do
   """
   @spec stepper(integer(), atom()) :: map()
   def stepper(grams, unit) do
+    figure = Kati.Locale.number(Reading.figure(grams, unit))
+
+    step =
+      pgettext("the amount one press of the stepper moves", "%{n} steps",
+        n: Kati.Locale.number("0.1")
+      )
+
     assigns = %{
-      figure: Reading.figure(grams, unit),
-      unit: Reading.unit_label(unit),
-      step: "0.1 steps"
+      figure: figure,
+      # `kati_mono.ttf` carries none of U+06F0–U+06F9, so `۷۶٫۰` in DM Mono is
+      # handed to Android's own substitute face — it renders, in a typeface that
+      # is not Kati's, on the biggest number on the sheet. Latin digits keep DM
+      # Mono, which is what the drawing sets them in. `Kati.PersianFontTest`.
+      figure_face: Kati.Locale.mono_face(figure),
+      unit: Kati.Screens.LogWeight.unit_word(unit),
+      step: step,
+      step_face: Kati.Locale.mono_face(step)
     }
 
     ~MOB"""
@@ -180,22 +274,23 @@ defmodule Kati.Screens.LogWeight do
           <Spacer weight={1.0} />
           <Text
             text={@figure}
-            font_family="mono"
+            font_family={@figure_face}
             text_size={30}
             font_weight="medium"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={:on_surface}
+            max_lines={1}
           />
           <Spacer size={5} />
-          <Text text={@unit} text_size={14} text_color={Palette.muted()} />
+          <Text text={@unit} text_size={14} text_color={Palette.muted()} max_lines={1} />
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={5} />
         <Text
           text={@step}
-          font_family="mono"
+          font_family={@step_face}
           text_size={9.5}
-          letter_spacing={0.1}
+          letter_spacing={Kati.Locale.tracking(0.1)}
           text_align="center"
           text_color={Palette.muted()}
         />
@@ -216,6 +311,8 @@ defmodule Kati.Screens.LogWeight do
   """
   @spec when_and_note() :: map()
   def when_and_note do
+    taken = Kati.Screens.LogWeight.taken_line()
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -231,11 +328,20 @@ defmodule Kati.Screens.LogWeight do
         </Box>
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text="Today" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
-          <Spacer size={3} />
           <Text
-            text={Kati.Screens.LogWeight.taken_line()}
-            font_family="mono"
+            text={gettext("Today")}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
+          <Spacer size={3} />
+          {# The clock line is Persian under `:fa` — a Shamsi month name, not a
+           # numeral — and `kati_mono.ttf` has no Arabic-script glyph at all.
+           # `Kati.Locale.mono_face/1` asks the STRING which face it needs.}
+          <Text
+            text={taken}
+            font_family={Kati.Locale.mono_face(taken)}
             text_size={11}
             text_color={Palette.sub()}
             max_lines={1}
@@ -251,7 +357,7 @@ defmodule Kati.Screens.LogWeight do
           on_tap={{self(), :now}}
         >
           <Text
-            text="now"
+            text={pgettext("the chip that dates a reading to the current clock", "now")}
             text_size={11.5}
             font_weight="semibold"
             text_color={Palette.ink_soft()}
@@ -266,10 +372,16 @@ defmodule Kati.Screens.LogWeight do
         </Box>
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text="Note" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+          <Text
+            text={gettext("Note")}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text
-            text="Optional — after a run, before breakfast…"
+            text={gettext("Optional — after a run, before breakfast…")}
             text_size={11.5}
             text_color={Palette.sub()}
             max_lines={1}
@@ -281,9 +393,33 @@ defmodule Kati.Screens.LogWeight do
     """
   end
 
-  @doc "`16 August, 07:42` — the device's own clock, not the drawing's."
+  @doc """
+  `16 August, 07:42` — the device's own clock, not the drawing's, in the
+  reader's own calendar.
+
+  Composed from `Kati.Locale.day_of_month/1` and `month_name/2` rather than
+  formatted with one `strftime`: `%-d %B` is a GREGORIAN instruction, and under
+  `:fa` this row has to read ۲۱ شهریور — the same instant, counted in the
+  calendar the reader keeps. `Kati.Locale.date/2` has no style with a full month
+  name and no weekday, which is the shape this row wants, so the two halves are
+  asked for separately and the comma between them is part of the msgid: Persian
+  writes U+060C, not `,`.
+
+  The time is `Kati.Locale.time/1` for its digits. Both scripts read the clock
+  in 24 hours — `Kati.Screens.Settings` draws that as a setting of its own
+  rather than as a consequence of the language.
+  """
   @spec taken_line() :: String.t()
-  def taken_line, do: Calendar.strftime(Kati.Time.now(), "%-d %B, %H:%M")
+  def taken_line do
+    now = Kati.Time.now()
+    date = DateTime.to_date(now)
+
+    gettext("%{day} %{month}, %{time}",
+      day: Kati.Locale.day_of_month(date),
+      month: Kati.Locale.month_name(date),
+      time: Kati.Locale.time(now)
+    )
+  end
 
   @doc """
   The cream line: how far this is from your last reading, and how long ago.
@@ -293,7 +429,12 @@ defmodule Kati.Screens.LogWeight do
   """
   @spec confirmation(integer()) :: map()
   def confirmation(grams) do
-    body = [text_size: 13, line_height: 1.55, text_color: Palette.cream_body()]
+    body = [
+      text_size: 13,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.cream_ink(), text_size: 13]
     {icon, lead, tail} = Kati.Screens.LogWeight.change(grams)
 
@@ -325,18 +466,31 @@ defmodule Kati.Screens.LogWeight do
 
         cond do
           diff == 0 ->
-            {"lightbulb", "No change", "from your last reading, #{ago}."}
+            {"lightbulb", gettext("No change"), Kati.Screens.LogWeight.since_line(ago)}
 
           diff < 0 ->
-            {"arrow_downward", Reading.display(abs(diff), unit) <> " down",
-             "from your last reading, #{ago}."}
+            {"arrow_downward",
+             gettext("%{amount} down", amount: Kati.Screens.LogWeight.amount(abs(diff), unit)),
+             Kati.Screens.LogWeight.since_line(ago)}
 
           true ->
-            {"trending_up", Reading.display(diff, unit) <> " up",
-             "from your last reading, #{ago}."}
+            {"trending_up",
+             gettext("%{amount} up", amount: Kati.Screens.LogWeight.amount(diff, unit)),
+             Kati.Screens.LogWeight.since_line(ago)}
         end
     end
   end
+
+  @doc """
+  The tail all four leads share: what the reading is being compared with.
+
+  One function rather than the same sentence written four times, because it is
+  one sentence — and a msgid repeated at four call sites is four chances for a
+  translator to be handed the same words twice with a space in a different
+  place.
+  """
+  @spec since_line(String.t()) :: String.t()
+  def since_line(ago), do: gettext("from your last reading, %{ago}.", ago: ago)
 
   @doc """
   The reading this one is being compared with: the newest that is not today's.
@@ -346,13 +500,27 @@ defmodule Kati.Screens.LogWeight do
   no change on every single entry. What you want to know is how today differs
   from the last time you stood on the scale, which is a different day by
   definition.
+
+  ## Today's label is built, not formatted a second time
+
+  A row carries its date as the string it is DRAWN as, so *is this one today's*
+  is asked by comparing two labels — and this end of the comparison used to
+  build its own with `strftime("%d %b")` while `Kati.Screens.Weight.entries/1`
+  built the other with `Kati.Locale.date/2`. Two formatters, two answers:
+  padded against unpadded meant nothing matched on the first nine days of any
+  month, and after mishka-group/kati#103 a Persian reader's rows say ۲۱ شهریور
+  while this said `12 SEP`, so *every* day missed. The sheet then compared the
+  weight you are typing with itself and said `No change` under it.
+
+  So the label comes out of the same two functions the row's did, and
+  `label_key/1` is the one difference they are allowed to have.
   """
   @spec previous() :: map() | nil
   def previous do
-    today = String.upcase(Calendar.strftime(Kati.Time.today(), "%d %b"))
+    today = label_key(Kati.UI.eyebrow_label(Kati.Locale.date(Kati.Time.today(), :short)))
 
     Kati.Screens.Weight.entries()
-    |> Enum.reject(&(&1.date == today))
+    |> Enum.reject(&(label_key(&1.date) == today))
     |> List.first()
   end
 
@@ -383,44 +551,105 @@ defmodule Kati.Screens.LogWeight do
 
   `three days ago` rather than `3 days ago`: the sentence is prose and the
   figure is small, and a numeral inside a sentence reads as data. Past ten it
-  becomes a numeral, because `seventeen days ago` does not.
+  becomes a numeral, because `seventeen days ago` does not — see `days_ago/1`,
+  which is also where that convention stops at the script boundary.
   """
   @spec ago(map()) :: String.t()
   def ago(%{date: date}) do
     case Kati.Screens.LogWeight.days_since(date) do
       nil ->
-        "last time"
+        # A row whose label names no day this year. See `days_since/1`: a date
+        # with no year in it stops being answerable somewhere, and a vague
+        # phrase is the honest end of it rather than a guessed number.
+        pgettext("how long ago a reading was, when its day cannot be read", "last time")
 
       0 ->
-        "earlier today"
+        gettext("earlier today")
 
       1 ->
-        "yesterday"
-
-      n when n <= 10 ->
-        Enum.at(~w(zero one two three four five six seven eight nine ten), n) <> " days ago"
+        gettext("yesterday")
 
       n ->
-        "#{n} days ago"
+        Kati.Screens.LogWeight.days_ago(n)
     end
   end
 
-  @doc false
-  def days_since(date) do
-    with [day, month] <- String.split(date, " "),
-         {day, ""} <- Integer.parse(day),
-         index when not is_nil(index) <-
-           Enum.find_index(
-             ~w(JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC),
-             &(&1 == String.upcase(month))
-           ),
-         today <- Kati.Time.today(),
-         {:ok, then} <- Date.new(today.year, index + 1, day) do
-      Date.diff(today, then)
-    else
-      _other -> nil
-    end
+  @doc """
+  `three days ago`, `17 days ago`, `۳ روز پیش`.
+
+  The spelled-out form is a LATIN convention and stops at the script boundary:
+  Persian writes the numeral inside a sentence — board 115's own `۲ ماه` is the
+  nearest example — and has no word form to mirror, so `Kati.Locale.pick/2` is
+  where the two answers meet and only the English one is ever spelled.
+
+  `ngettext/4` over a msgid the catalogue already carries from
+  `Kati.Settings.Watcher`. Persian does not inflect a noun after a numeral, so
+  its two plural forms are the same words; English needs both because this is
+  also what a one-day gap would say if `ago/1` did not answer that with
+  *yesterday*.
+  """
+  @spec days_ago(pos_integer()) :: String.t()
+  def days_ago(n) when is_integer(n) and n > 0 do
+    ngettext("%{n} day ago", "%{n} days ago", n,
+      n: Kati.Locale.pick(spelled(n), Kati.Locale.number(n))
+    )
   end
+
+  defp spelled(n) when n <= 10,
+    do: Enum.at(~w(zero one two three four five six seven eight nine ten), n)
+
+  defp spelled(n), do: Integer.to_string(n)
+
+  @doc """
+  How many days ago the reading behind this row label was taken, or `nil`.
+
+  ## Why it formats rather than parses
+
+  `Kati.Screens.Weight.entries/1` formats each row's date for READING —
+  `Kati.UI.eyebrow_label/1` over `Kati.Locale.date/2` — so the string handed
+  here is `9 SEP` for one reader and `۱۸ شهریور` for another, of the same day.
+  This used to split it on a space, `Integer.parse/1` the first half and look
+  the second up in `~w(JAN FEB MAR …)`, which can only answer in one language
+  and one calendar: after mishka-group/kati#103 every Persian row fell through
+  to `nil`, and the sheet told that reader *دفعه پیش* whatever the date was.
+
+  It cannot parse its way out of that, because a Shamsi month name is not a
+  translation of a Gregorian one — it is a different month, and ۲۱ شهریور is
+  arithmetic rather than vocabulary. So it goes the other way and formats
+  instead: each of the last 366 days, in the reader's own calendar, through the
+  same two functions the label came out of. The first match is the day, in any
+  locale, with no second copy of the formatting rule to keep in step.
+
+  It also answers the year boundary the parser got wrong. `Date.new(today.year,
+  …)` dated a December row into THIS year, so in January the difference came
+  out negative and `Enum.at/2` read the word list from its end — `-20` fell off
+  it entirely and the sentence was built out of `nil`. Nothing here can be
+  negative: it only ever walks backwards from today.
+
+  Past a year, `nil`. A label with no year in it cannot tell this September
+  from the last one, so answering at all beyond that is a guess, and `ago/1`
+  says *last time* instead.
+  """
+  @spec days_since(String.t()) :: non_neg_integer() | nil
+  def days_since(label) when is_binary(label) do
+    today = Kati.Time.today()
+    wanted = label_key(label)
+
+    Enum.find_value(0..366, fn n ->
+      day = Date.add(today, -n)
+      if label_key(Kati.UI.eyebrow_label(Kati.Locale.date(day, :short))) == wanted, do: n
+    end)
+  end
+
+  def days_since(_other), do: nil
+
+  # `09 SEP` and `9 SEP` are the same day. The stored rows are formatted
+  # `:short` and the drawing's own `:short_padded`, and a leading zero is a
+  # column-alignment choice rather than a different date — Persian pads nothing,
+  # because its numerals are already even-width, which is why
+  # `Kati.Locale.date/2` maps `:short_padded` onto `:short` under `:fa`.
+  defp label_key(label) when is_binary(label), do: String.replace_prefix(label, "0", "")
+  defp label_key(_other), do: nil
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
@@ -487,14 +716,33 @@ defmodule Kati.Screens.LogWeight do
   series there is a change to state and it is the drawing's; with nothing at
   all there is nothing to compare and the sheet says so rather than inventing a
   delta.
+
+  ## The drawing's sentence is built here, not quoted from the fixture
+
+  `Kati.Health.WeightSample.confirmation/0` holds it as two frozen English
+  strings — *0.4 kg down* and *from your last reading, three days ago.* — and
+  a fixture cannot be translated: no msgid reaches a literal, so this was the
+  one sentence on the sheet a Persian reader met in Latin. It is composed here
+  instead, out of the msgids the live path already uses, with the drawing's own
+  figures in them — so board 111 reads word for word what it always did in
+  Latin, and reads as a sentence in Persian.
+
+  Board 111 is the source for both, not one for the other: the fixture quotes it
+  in English for the screens that want it as data, and this quotes it in the
+  reader's own language for the one place it is read as prose. The fixture keeps
+  `direction`, which is the half of it that is not copy, and
+  `drawn_confirmation/0` still hands the whole thing over untouched.
   """
   @spec drawn_change() :: {String.t(), String.t(), String.t()}
   def drawn_change do
     if Kati.Screens.Weight.entries() == Kati.Screens.Weight.drawn_entries() do
-      c = WeightSample.confirmation()
-      {"arrow_downward", c.lead, c.tail}
+      drawn = Kati.Locale.number("0.4") <> " " <> Kati.Screens.LogWeight.unit_word(:kg)
+
+      {"arrow_downward", gettext("%{amount} down", amount: drawn),
+       Kati.Screens.LogWeight.since_line(Kati.Screens.LogWeight.days_ago(3))}
     else
-      {"lightbulb", "Your first reading", "— there is nothing to compare it with yet."}
+      {"lightbulb", gettext("Your first reading"),
+       gettext("— there is nothing to compare it with yet.")}
     end
   end
 

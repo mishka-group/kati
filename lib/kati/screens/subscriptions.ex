@@ -114,6 +114,7 @@ defmodule Kati.Screens.Subscriptions do
   # caller's own word ahead of this one, so a door that opens it from anywhere
   # else says so without touching this line.
   use Kati.Screens.Pushed, back: "My services"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Subscriptions.Sample
   alias Kati.Theme.Palette
@@ -200,7 +201,7 @@ defmodule Kati.Screens.Subscriptions do
       [
         Kati.Screens.Subscriptions.title(ledger),
         Kati.Screens.Subscriptions.monthly(ledger),
-        UI.eyebrow("Services"),
+        UI.eyebrow(gettext("Services")),
         Kati.Screens.Subscriptions.services(ledger),
         Kati.Screens.Subscriptions.suggestion(ledger.suggestion, shown?, reminded?)
       ]
@@ -210,8 +211,15 @@ defmodule Kati.Screens.Subscriptions do
       # its header — 23 still has a page — and what goes is the ledger under it:
       # the monthly total, the services and the Worth-a-look card, all three of
       # which would otherwise report a change of nothing against nothing.
+      #
+      # The msgid keeps the board's capitals and the Persian does not try to
+      # carry them: this line is drawn by `title/1` rather than passed through
+      # `Kati.UI.eyebrow_label/1`, so what the catalogue answers is what is
+      # drawn, and Arabic script has no case to shout in. `Kati.Money.Sample`'s
+      # `SCREEN` / `BOOKS` / `MEALS` are the same shape — an all-caps msgid
+      # against a natural Persian word.
       [
-        Kati.Screens.Subscriptions.title(%{ledger | active_line: "NONE YET"}),
+        Kati.Screens.Subscriptions.title(%{ledger | active_line: gettext("NONE YET")}),
         Kati.Screens.NothingSetUpKnockOn.ledger()
       ]
     end
@@ -267,24 +275,43 @@ defmodule Kati.Screens.Subscriptions do
     )
   end
 
-  @doc false
+  @doc """
+  The page's name and, under it, how many services are on the account.
+
+  `mono_face/1` on the second line rather than `mono_face/0`, because this one
+  slot holds two different kinds of string. `Kati.Subscriptions.active_line/1`
+  counts the reader's services and `Kati.Subscriptions.Sample.active_line/0`
+  draws the board's `5 active`, both of which are figures the design sets in
+  DM Mono; `body/4` puts the ledger's empty-state word here instead, which is
+  the reader's own language and which
+  `kati_mono.ttf` has no glyph for. Asking the STRING means the answer stays
+  right when the ledger's own copy folds — see `Kati.Locale.mono_face/1`.
+
+  The 28pt heading loses its tracking under `:fa` and gains `max_lines={1}`:
+  a fraction of an em taken out between letters breaks the joins Arabic script
+  is written with, and a heading that is one word in English can be two in
+  Persian, which at 28pt on a 1.6 font scale would wrap into the mono line
+  underneath it rather than under the pill.
+  """
+  @spec title(map()) :: map()
   def title(ledger) do
-    assigns = %{active_line: ledger.active_line}
+    assigns = %{active_line: ledger.active_line, title: gettext("Subscriptions")}
 
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Subscriptions"
+        text={@title}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
       <Text
         text={@active_line}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@active_line)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -294,7 +321,20 @@ defmodule Kati.Screens.Subscriptions do
     """
   end
 
-  @doc false
+  @doc """
+  The cream hero: what leaves the account every month, and what changed.
+
+  `Kati.UI.eyebrow_label/1` in place of `String.upcase/1` on the label. Arabic
+  script has no case, so the upcasing was a no-op that still *read* as one —
+  a Persian eyebrow beside an English one looked like the catalogue had been
+  given the wrong word rather than like a script that does not shout. The
+  helper upcases in Latin and leaves the Persian alone, which is what screen
+  122 does with the same label on the same card (`Kati.Screens.Money.hero/0`).
+
+  The label's face follows its own string for the reason `title/1` gives, and
+  its tracking goes with the script.
+  """
+  @spec monthly(map()) :: map()
   def monthly(ledger) do
     m = ledger.monthly
 
@@ -308,10 +348,10 @@ defmodule Kati.Screens.Subscriptions do
         padding={19}
       >
         <Text
-          text={String.upcase(m.label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(m.label)}
+          font_family={Kati.Locale.mono_face(m.label)}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.cream_meta()}
         />
         <Spacer size={7} />
@@ -319,8 +359,9 @@ defmodule Kati.Screens.Subscriptions do
           text={m.total}
           text_size={36}
           font_weight="extrabold"
-          letter_spacing={-0.04}
+          letter_spacing={Kati.Locale.tracking(-0.04)}
           text_color={:on_surface}
+          max_lines={1}
         />
         {Kati.Screens.Subscriptions.change_line(m)}
       </Column>
@@ -474,13 +515,27 @@ defmodule Kati.Screens.Subscriptions do
   The letter goes in as a **child** rather than as `initials`, and that is the
   reason the pixels are unchanged: `initials` is drawn by the component's own
   `Text`, which carries no `font_family`, and this badge is mono. A child
-  replaces that `Text` wholesale, so the drawing's `font_family="mono"` at 13
-  survives. An `initials_font_family` prop upstream would let this be one line
-  instead of two; until there is one, the child is what keeps the mono.
+  replaces that `Text` wholesale, so the drawing's mono at 13 survives. An
+  `initials_font_family` prop upstream would let this be one line instead of
+  two; until there is one, the child is what keeps the mono — and, since
+  mishka-group/kati#103, what lets the face follow the letter rather than be
+  fixed at a typeface that has no Persian in it.
   """
   def badge(letter) do
+    # The face follows the LETTER, not the reader. `Kati.Services.Service.badge/1`
+    # takes the first character of the service's own name, so a service the
+    # reader typed in Persian — the `Something else` row on screen 92 — gives a
+    # Persian initial, and DM Mono has no glyph for it. `Lumen+` still gives
+    # `L` and still sets in DM Mono on a Persian page, which is the same
+    # decision the brand names themselves get on board 127.
     glyph = ~MOB"""
-    <Text text={letter} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
+    <Text
+      text={letter}
+      font_family={Kati.Locale.mono_face(letter)}
+      text_size={13}
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
 
     Kati.Components.MishkaAvatar.avatar(
@@ -499,7 +554,7 @@ defmodule Kati.Screens.Subscriptions do
     ~MOB"""
     <Text
       text={row.price}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(row.price)}
       text_size={12}
       text_color={Palette.tertiary()}
       max_lines={1}
@@ -512,11 +567,21 @@ defmodule Kati.Screens.Subscriptions do
   # only behaves inside a column of declared width. 46 clears the widest value
   # the drawing carries (`£13.99` at mono 12).
   def money(row, false) do
+    # Two faces asked separately, because these two slots are not the same kind
+    # of string. A price is a figure the design sets in DM Mono and keeps in
+    # Latin digits in both scripts — `Kati.Locale.number/1`'s own note — so it
+    # stays in DM Mono. The rate is a figure OR a sentence:
+    # `Kati.Subscriptions.rate/2` answers `Not used yet` for a service with no
+    # hours on it, which is copy and which folds to Persian, and DM Mono would
+    # hand that to Android's substitute face. `mono_face/1` asks the string
+    # rather than the reader, so each slot gets the right one on one page.
+    rate = row.rate || ""
+
     ~MOB"""
     <Column width={46}>
       <Text
         text={row.price}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(row.price)}
         text_size={12}
         font_weight="medium"
         text_color={:on_surface}
@@ -525,8 +590,8 @@ defmodule Kati.Screens.Subscriptions do
       />
       <Spacer size={3} />
       <Text
-        text={row.rate || ""}
-        font_family="mono"
+        text={rate}
+        font_family={Kati.Locale.mono_face(rate)}
         text_size={10}
         text_color={row.rate_tone}
         text_align="right"
@@ -554,10 +619,25 @@ defmodule Kati.Screens.Subscriptions do
   def suggestion(_advice, false, _reminded?), do: ~MOB"<Spacer size={0} />"
 
   def suggestion(advice, true, reminded?) do
-    [Kati.UI.Eyebrow.quiet("Worth a look"), Kati.Screens.Subscriptions.advice(advice, reminded?)]
+    [
+      Kati.UI.Eyebrow.quiet(gettext("Worth a look")),
+      Kati.Screens.Subscriptions.advice(advice, reminded?)
+    ]
   end
 
-  @doc false
+  @doc """
+  The suggestion card: one wrapping paragraph, and the two buttons under it.
+
+  The body takes `Kati.Locale.leading/1` rather than the drawing's flat 1.55.
+  It is the only paragraph on this screen that wraps — the moduledoc records
+  why it is one run rather than the drawing's three bolded ones — and
+  Vazirmatn's ascenders and descenders are not Plus Jakarta's, so 1.55 set on
+  the Latin card crowds the Persian one. `Kati.Locale.leading/1` carries the
+  Persian number and keeps the drawing's own beside it at the call site, which
+  is the point of that helper: a card that differs by a leading should say so
+  where it differs.
+  """
+  @spec advice(map(), boolean()) :: map()
   def advice(s, reminded?) do
     ~MOB"""
     <Column
@@ -573,7 +653,7 @@ defmodule Kati.Screens.Subscriptions do
         <Text
           text={s.body}
           text_size={13}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.cream_body()}
           weight={1.0}
         />

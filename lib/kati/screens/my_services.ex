@@ -428,10 +428,14 @@ defmodule Kati.Screens.MyServices do
   def no_match(services, query) do
     if Kati.Screens.MyServices.searched_name(query) != "" and services.subscribed == [] and
          services.free == [] do
+      # One literal rather than the two this was concatenated from: a msgid has
+      # to be whole at the call site, and `"a" <> "b"` is two strings rather
+      # than one. Board 95's sentence is not shortened to fit the line.
       Kati.UI.SettingsList.note(
         "search",
-        "No service called that. Kati uses JustWatch’s list through TMDB. " <>
-          "If it is a real service they do not track, add it as Something else."
+        gettext(
+          "No service called that. Kati uses JustWatch’s list through TMDB. If it is a real service they do not track, add it as Something else."
+        )
       )
     else
       ~MOB"<Spacer size={0} />"
@@ -460,6 +464,12 @@ defmodule Kati.Screens.MyServices do
   """
   @spec page_for(map(), map(), String.t(), String.t() | nil) :: map()
   def page_for(assigns, services, query, save_error) do
+    # The *Money* eyebrow handed `UI.eyebrow/2` a label it had already run
+    # through `Kati.UI.eyebrow_label/1`, and `UI.eyebrow/2` runs it through the
+    # same helper itself. Harmless twice over — upcasing an upcased word is the
+    # word, and in Persian both calls are no-ops — but it reads as though the
+    # helper did not already do it, and the four other eyebrows on this page
+    # hand it the bare `gettext/1`. Now this one does too.
     ~MOB"""
     <Scroll>
       <Column
@@ -481,7 +491,7 @@ defmodule Kati.Screens.MyServices do
         {Kati.Screens.MyServices.catalogue_group(services, save_error)}
         {UI.eyebrow(gettext("Rules"))}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
-        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Money")))}
+        {UI.eyebrow(gettext("Money"))}
         {Kati.Screens.MyServices.money_group(services)}
         {Kati.Screens.MyServices.credit()}
       </Column>
@@ -967,6 +977,16 @@ defmodule Kati.Screens.MyServices do
   """
   @spec catalogue_group(map(), String.t() | nil) :: map()
   def catalogue_group(services, save_error \\ nil) do
+    # `Netflix 10.99` stays in Latin letters AND Latin digits, and it is the one
+    # figure on this page that does not go through `Kati.Locale.number/1`. It is
+    # not a number the page is telling the reader — it is a specimen of what to
+    # TYPE, and `split_price/1`'s `\d` matches U+0030–U+0039 only, so a Persian
+    # reader who copied `۱۰٫۹۹` out of this sentence would have the whole line
+    # read as the service's name. Printing an example the field cannot parse is
+    # the promise `create_service/2`'s comment is about, broken by the copy
+    # instead of by the write. `Kati.Locale.ltr/1` around it so the full stop
+    # after it stays on the right of the Persian sentence rather than jumping to
+    # the left edge — screen 83's five licence notices, one row down.
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.eyebrow_muted(gettext("Not mine"))}
@@ -975,7 +995,14 @@ defmodule Kati.Screens.MyServices do
         [
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("add"),
-          Kati.UI.SettingsList.body(gettext("Something else"), "Type its name, and its price after it — Netflix 10.99. Kati remembers both for your subscription total.", lines: 3),
+          Kati.UI.SettingsList.body(
+            gettext("Something else"),
+            gettext(
+              "Type its name, and its price after it — %{example}. Kati remembers both for your subscription total.",
+              example: Kati.Locale.ltr("Netflix 10.99")
+            ),
+            lines: 3
+          ),
           Kati.UI.SettingsList.trailing(nil),
           on_tap: {self(), :add_service}
         )
@@ -1072,10 +1099,20 @@ defmodule Kati.Screens.MyServices do
   def save_notice(message) do
     assigns = %{message: message}
 
+    # `Kati.Locale.leading/1`, because `Kati.Write.message/1` answers in the
+    # reader's own script — *Nothing to save yet.* is `gettext/1` there — and
+    # Vazirmatn's ascenders do not fit the design's 1.5. It is the same call
+    # `Kati.UI.SettingsList.note_text/1` makes one row up, so a refusal and the
+    # note it appears under are set to the same rhythm.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={10} />
-      <Text text={@message} text_size={13} line_height={1.5} text_color={Palette.red()} />
+      <Text
+        text={@message}
+        text_size={13}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.red()}
+      />
     </Column>
     """
   end
@@ -1146,13 +1183,18 @@ defmodule Kati.Screens.MyServices do
   def total_trailing(total) do
     assigns = %{total: total}
 
+    # `Kati.Locale.tracking/1` rather than the flat `0.1`. This `Text` holds
+    # `money_line/2`'s second element — `£46.47 A MONTH` in Latin and
+    # `۴۶٫۴۷ £ در ماه` in Persian — so it is a node that can hold Arabic script,
+    # and tracking pulls the joins apart between `د` and `ر`. Latin keeps the
+    # design's tenth of a pixel.
     ~MOB"""
     <Row align="center">
       <Text
         text={@total}
         font_family={Kati.Locale.mono_face()}
         text_size={11}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Kati.Theme.Palette.sub()}
         max_lines={1}
       />
@@ -1165,10 +1207,16 @@ defmodule Kati.Screens.MyServices do
   @doc "Where the availability data comes from, pointing at screen 83."
   @spec credit() :: map()
   def credit do
+    # One literal, for `no_match/2`'s reason. `83` is written into the Persian
+    # rather than interpolated through `Kati.Locale.number/1`, which is what
+    # `ownership_note/1` already does with its `23`: a board number inside a
+    # sentence is part of the sentence, and two ways of writing one would be two
+    # things to keep in step.
     SettingsList.note(
       "info",
-      "Which service carries what comes from JustWatch, through TMDB. " <>
-        "Both are credited on 83."
+      gettext(
+        "Which service carries what comes from JustWatch, through TMDB. Both are credited on 83."
+      )
     )
   end
 

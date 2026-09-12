@@ -316,9 +316,34 @@ defmodule Kati.Screens.SearchIdle do
   """
   @spec try_group([String.t()]) :: map()
   def try_group([]) do
+    # `pgettext/2` and not `gettext/1` for a one-word eyebrow: *Try* is three
+    # letters and `mix gettext.merge` fuzzy-matches a msgid that short against
+    # anything that resembles it — the first *Try again* on a future failure
+    # card would be one word away from claiming this entry's translation, and
+    # it means something else entirely. The context names this board's own
+    # section, so the word cannot be picked up by another page's.
+    #
+    # The Persian is a NOUN — «پیشنهادها» — where the English is an
+    # imperative. An eyebrow in this design is a section label and every other
+    # one in the app names its section with a noun («اخیر» for Recent, «ادامه
+    # تماشا» for Continue watching); a bare imperative sitting over a list of
+    # tappable lines reads in Persian as a control that has lost its pill
+    # rather than as the heading it is. The card's own two lines use the same
+    # word, so the section keeps one name in both of its states.
+    # mishka-group/kati#103.
+    #
+    # `Kati.Locale.leading/1` on the body rather than the drawing's 1.55:
+    # Vazirmatn's metrics are not Plus Jakarta's and this paragraph wraps to
+    # two lines in both scripts, so the Latin figure sets Persian descenders
+    # into the line below it. Board 87's twin card
+    # (`Kati.Screens.SearchTyping.nothing_yet/0`) still writes 1.55 by hand and
+    # wants the same change — it is another screen's file, so it is reported
+    # rather than edited here.
+    eyebrow = pgettext("the suggestions section on the search page", "Try")
+
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.eyebrow("Try", dash: Palette.rail_idle())}
+      {Kati.UI.eyebrow(eyebrow, dash: Palette.rail_idle())}
       <Column
         fill_width={true}
         background={Palette.card()}
@@ -336,7 +361,7 @@ defmodule Kati.Screens.SearchIdle do
         </Row>
         <Spacer size={12} />
         <Text
-          text="Nothing to suggest from yet"
+          text={gettext("Nothing to suggest from yet")}
           text_size={13.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -344,9 +369,9 @@ defmodule Kati.Screens.SearchIdle do
         />
         <Spacer size={6} />
         <Text
-          text="Try lines are built from what you keep. Add a title and they appear."
+          text={gettext("Try lines are built from what you keep. Add a title and they appear.")}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Kati.Theme.Palette.sub()}
           text_align="center"
         />
@@ -369,9 +394,15 @@ defmodule Kati.Screens.SearchIdle do
         )
       end)
 
+    # The same msgid and the same context as the empty clause above, so the two
+    # states of one section cannot come out under two different words — which
+    # is what a second, uncontexted `gettext("Try")` here would eventually do
+    # the first time a translator saw one of them without the other.
+    eyebrow = pgettext("the suggestions section on the search page", "Try")
+
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.eyebrow("Try", dash: Palette.rail_idle())}
+      {Kati.UI.eyebrow(eyebrow, dash: Palette.rail_idle())}
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={22} />
     </Column>

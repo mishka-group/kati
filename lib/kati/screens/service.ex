@@ -45,7 +45,14 @@ defmodule Kati.Screens.Service do
   shelf.
   """
 
+  # `back: "My services"` stays an English literal on purpose. The pill's word
+  # is a RUNTIME value to `Kati.Screens.Pushed.back_label/2` — a `use` option
+  # lands in a module attribute and a push can override it — so the extractor
+  # never sees it here, and `Kati.Screens.Pushed.back_vocabulary/0` is where it
+  # is declared for `mix gettext.extract`. It is already on that list, and its
+  # Persian is already in the catalogue.
   use Kati.Screens.Pushed, back: "My services"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Media.Watch
   alias Kati.Services.Service
@@ -108,7 +115,12 @@ defmodule Kati.Screens.Service do
         SettingsList.card([
           SettingsList.row(
             SettingsList.icon_tile("subscriptions"),
-            SettingsList.body("My services", "Every service you have told Kati about"),
+            SettingsList.body(
+              # The same msgid screen 92's own title uses, so the row that
+              # points at that page and the page it arrives at say one word.
+              gettext("My services"),
+              gettext("Every service you have told Kati about")
+            ),
             SettingsList.trailing(SettingsList.chevron()),
             rule: false,
             on_tap: {self(), :edit_price}
@@ -118,18 +130,22 @@ defmodule Kati.Screens.Service do
 
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.title("No service named", "Nothing to show", nil, :name)}
+      {SettingsList.title(gettext("No service named"), gettext("Nothing to show"), nil, :name)}
       {SettingsList.note(
         "info",
-        "This page is about one service, and the push that opened it named none. It does not pick one: a page that pauses a subscription and takes it off your shelf must be told which."
+        gettext(
+          "This page is about one service, and the push that opened it named none. It does not pick one: a page that pauses a subscription and takes it off your shelf must be told which."
+        )
       )}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Where they are")}
+      {SettingsList.eyebrow_muted(gettext("Where they are"))}
       {@card}
       <Spacer size={14} />
       {SettingsList.note(
         "history",
-        "Open a service from there and this page is about that one — its price, the day it renews, whether it is paused, and what you have watched on it."
+        gettext(
+          "Open a service from there and this page is about that one — its price, the day it renews, whether it is paused, and what you have watched on it."
+        )
       )}
     </Column>
     """
@@ -138,7 +154,19 @@ defmodule Kati.Screens.Service do
   def body(service) do
     assigns = %{
       title:
-        SettingsList.title(service.name, Kati.Screens.Service.tier_line(service), nil, :name),
+        SettingsList.title(
+          # The name is a REAL service off `Kati.Services.Service` and stays in
+          # its own script — board 127 draws `Lumen+` in Latin on a Persian
+          # page — but it is isolated, because several of them end in a
+          # character the bidi algorithm calls neutral. `+` between a Latin run
+          # and the end of an rtl paragraph resolves to the paragraph's
+          # direction and is laid out at the LEFT of the word, so the 28pt
+          # heading draws **+Lumen**. `Kati.Locale.ltr/1` is a no-op in English.
+          Kati.Locale.ltr(service.name),
+          Kati.Screens.Service.tier_line(service),
+          nil,
+          :name
+        ),
       pay: Kati.Screens.Service.pay_group(service),
       renewal: Kati.Screens.Service.renewal_group(service),
       watched: Kati.Screens.Service.watched_group(service),
@@ -148,13 +176,13 @@ defmodule Kati.Screens.Service do
     ~MOB"""
     <Column fill_width={true}>
       {@title}
-      {SettingsList.eyebrow_muted("What you pay")}
+      {SettingsList.eyebrow_muted(gettext("What you pay"))}
       {@pay}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Renewal")}
+      {SettingsList.eyebrow_muted(gettext("Renewal"))}
       {@renewal}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Watched here")}
+      {SettingsList.eyebrow_muted(gettext("Watched here"))}
       {@watched}
       <Spacer size={16} />
       {@danger}
@@ -171,17 +199,25 @@ defmodule Kati.Screens.Service do
 
       iex> Kati.Screens.Service.tier_line(%Kati.Services.Service{tier: :subscribed, paused: true})
       "Subscribed · paused"
+
+  `Free with ads` and `Not mine` are screen 92's own msgids — the two words
+  head its bands — so this line and that list cannot come to name the same
+  shelf differently.
   """
   @spec tier_line(Service.t()) :: String.t()
   def tier_line(%Service{tier: tier, paused: paused?}) do
     word =
       case tier do
-        :subscribed -> "Subscribed"
-        :free_with_ads -> "Free with ads"
-        _other -> "Not mine"
+        :subscribed -> gettext("Subscribed")
+        :free_with_ads -> gettext("Free with ads")
+        _other -> gettext("Not mine")
       end
 
-    if paused?, do: word <> " · paused", else: word
+    # One msgid for the whole line rather than `word <> " · paused"`. A bare
+    # `" · paused"` is a fragment with no sentence around it, and a language
+    # that puts the state first — or that joins the two with something other
+    # than a bullet — has nowhere to say so when the join is Elixir's `<>`.
+    if paused?, do: gettext("%{tier} · paused", tier: word), else: word
   end
 
   @doc """
@@ -200,7 +236,7 @@ defmodule Kati.Screens.Service do
         SettingsList.icon_tile("payments"),
         SettingsList.body(
           Kati.Screens.Service.price_line(service),
-          "Edit it where you typed it — My services"
+          gettext("Edit it where you typed it — My services")
         ),
         SettingsList.trailing(SettingsList.chevron()),
         rule: false,
@@ -219,11 +255,26 @@ defmodule Kati.Screens.Service do
       "No price yet"
   """
   @spec price_line(Service.t()) :: String.t()
-  def price_line(service) do
-    case Service.price(service) do
-      nil -> "No price yet"
-      price -> price <> " a month"
-    end
+  def price_line(%Service{monthly_pence: nil}), do: gettext("No price yet")
+
+  def price_line(%Service{monthly_pence: pence, currency: currency}) do
+    # `Service.format/2` rather than `Service.price/1`, and the swap is the
+    # whole of the Persian case rather than a preference. `price/1` builds
+    # `symbol(currency) <> figure` itself and asks the locale nothing, so a
+    # Persian page drew `£8.99` in Latin digits with the sign leading, beside
+    # sentences that were neither; `format/2` is the same arithmetic with the
+    # locale's answer on top — `۸٫۹۹ £`, which is how board 97 writes money.
+    # The two should be one function. `price/1` is read by `Kati.Subscriptions`
+    # as well, so that fix belongs in `Kati.Services.Service` rather than here;
+    # this screen takes the correct one meanwhile.
+    #
+    # `Kati.Locale.ltr/1` around the run for the reason
+    # `Kati.Screens.Stats.money_line/0` records against the same msgid: a
+    # currency mark is neutral to the bidi algorithm, so inside a Persian
+    # sentence it resolves right-to-left and ends up on the wrong side of its
+    # own figure. Same msgid as that line and as screen 92's total, so what a
+    # month costs is worded once.
+    gettext("%{total} a month", total: Kati.Locale.ltr(Service.format(pence, currency)))
   end
 
   @doc """
@@ -248,7 +299,17 @@ defmodule Kati.Screens.Service do
       ),
       SettingsList.row(
         SettingsList.icon_tile("pause_circle"),
-        SettingsList.body("Paused", "Keeps its row, leaves the monthly total"),
+        SettingsList.body(
+          # `pgettext/2`, because the catalogue already holds two other
+          # `Paused`es — `book status` and `shelf status`, both of them a shelf
+          # a title is sitting on — and this one is the label on a SWITCH that
+          # stops a subscription. They happen to be the same word in Persian
+          # today; a context is what keeps that a coincidence rather than a
+          # constraint, and stops `mix gettext.merge` fuzzy-matching a one-word
+          # msgid onto whichever of the three it met first.
+          pgettext("service switch", "Paused"),
+          gettext("Keeps its row, leaves the monthly total")
+        ),
         SettingsList.trailing(SettingsList.switch(service.paused)),
         rule: false,
         on_tap: {self(), :toggle_paused}
@@ -257,17 +318,18 @@ defmodule Kati.Screens.Service do
   end
 
   @doc false
-  def renewal_line(%Service{renews_on: nil}), do: "No renewal day yet"
+  def renewal_line(%Service{renews_on: nil}), do: gettext("No renewal day yet")
 
   def renewal_line(%Service{renews_on: date}),
-    do: "Renews " <> Kati.Screens.Service.ordinal(date.day)
+    do: gettext("Renews %{day}", day: Kati.Screens.Service.ordinal(date.day))
 
   @doc false
-  def renewal_sub(%Service{renews_on: nil}), do: "Tap to set the day it comes out"
-  def renewal_sub(%Service{}), do: "Every month, on that day"
+  def renewal_sub(%Service{renews_on: nil}), do: gettext("Tap to set the day it comes out")
+  def renewal_sub(%Service{}), do: gettext("Every month, on that day")
 
   @doc """
-  `1st`, `2nd`, `3rd`, `18th` — the form board 302 prints.
+  `1st`, `2nd`, `3rd`, `18th` — the form board 302 prints, in the reader's own
+  numerals.
 
       iex> Kati.Screens.Service.ordinal(1)
       "1st"
@@ -277,6 +339,32 @@ defmodule Kati.Screens.Service do
 
       iex> Kati.Screens.Service.ordinal(22)
       "22nd"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.Service.ordinal(18) end)
+      "۱۸"
+
+  ## Persian gets the digits and no suffix
+
+  `st`/`nd`/`rd`/`th` is a mark English writes on a numeral and Persian has no
+  equivalent of: the ordinal is a whole word — هجدهم — and the day of a month
+  is written as the bare number, `هر ماه، روز ۱۸`. Transliterating the suffix
+  would put two letters on the end of a number that mean nothing.
+
+  ## And the number is **not** converted to Shamsi
+
+  The same rule `Kati.Locale.year/1` keeps, for a different reason with the
+  same shape. `renews_on` is read everywhere as *the day of the month the money
+  comes out* — `Kati.Subscriptions.renewal/1` prints it, screen 47 puts it on
+  the money day, `Kati.Notifications.Sources.Money` fires on it, and
+  `next_day/1` below wraps it at 28 — and that recurrence is a Gregorian one.
+  `Kati.Locale.day_of_month/1` would answer the Shamsi day this month's
+  renewal happens to land on, which is a different number next month: right
+  once and wrong eleven times, and wrong in the way this fold keeps meeting,
+  where the figure looks like the reader's own and is not.
+
+  So the digits follow the reader and the calendar does not, and the honest
+  reading of `تمدید روز ۱۸` is the one the English page gives too — the 18th of
+  whatever month the bill falls in.
   """
   @spec ordinal(pos_integer()) :: String.t()
   def ordinal(day) do
@@ -289,7 +377,7 @@ defmodule Kati.Screens.Service do
         true -> "th"
       end
 
-    Integer.to_string(day) <> suffix
+    Kati.Locale.pick(Integer.to_string(day) <> suffix, Kati.Locale.number(day))
   end
 
   @doc """
@@ -333,15 +421,31 @@ defmodule Kati.Screens.Service do
     _error -> %{logs: 0, titles: 0}
   end
 
+  # The nought clause stays its own sentence: `0 titles on this service` is a
+  # measurement and *Nothing logged here yet* is the answer board 302 wants at
+  # that end, which is screen 93's argument about a total of zero — a figure
+  # reads as an account that was added up and came to nothing.
+  #
+  # The other two fold into `ngettext/4`, which is not the same thing as the
+  # two clauses they were: Persian does not inflect a noun after a numeral, so
+  # its singular and plural are one string, and a language with three forms
+  # gets three. The count goes in twice on purpose — as the integer gettext
+  # picks the form with, and as `Kati.Locale.number/1` for the digits that are
+  # actually drawn.
   @doc false
-  def watched_line(0), do: "Nothing logged here yet"
-  def watched_line(1), do: "1 title on this service"
-  def watched_line(n), do: "#{n} titles on this service"
+  def watched_line(0), do: gettext("Nothing logged here yet")
+
+  def watched_line(n) do
+    ngettext("%{n} title on this service", "%{n} titles on this service", n,
+      n: Kati.Locale.number(n)
+    )
+  end
 
   @doc false
-  def watched_sub(0), do: "A watch says where it was watched — that is what counts one here"
-  def watched_sub(1), do: "1 watch"
-  def watched_sub(n), do: "#{n} watches"
+  def watched_sub(0),
+    do: gettext("A watch says where it was watched — that is what counts one here")
+
+  def watched_sub(n), do: ngettext("%{n} watch", "%{n} watches", n, n: Kati.Locale.number(n))
 
   @doc """
   Off the shelf, and what that does not take with it.
@@ -375,7 +479,9 @@ defmodule Kati.Screens.Service do
       <Spacer size={14} />
       {SettingsList.note(
         "info",
-        "Removing it leaves the monthly total and stops it counting as somewhere you can watch. Every watch you logged here stays."
+        gettext(
+          "Removing it leaves the monthly total and stops it counting as somewhere you can watch. Every watch you logged here stays."
+        )
       )}
     </Column>
     """
@@ -383,7 +489,16 @@ defmodule Kati.Screens.Service do
 
   @doc false
   def remove_label(service) do
-    assigns = %{text: "Remove " <> service.name}
+    # Interpolated rather than `"Remove " <> service.name`: a bare `Remove `
+    # with a space on the end is not a sentence any catalogue can be asked to
+    # translate, and Persian puts the verb where it puts it.
+    #
+    # `Kati.Locale.ltr/1` around the name for the reason the title gives — the
+    # `+` on `Lumen+` is neutral to the bidi algorithm and jumps to the left of
+    # its own word inside a Persian sentence — and the name itself stays Latin,
+    # because it is a real service off `Kati.Services.Service` and no msgid
+    # reaches it.
+    assigns = %{text: gettext("Remove %{service}", service: Kati.Locale.ltr(service.name))}
 
     ~MOB"""
     <Text

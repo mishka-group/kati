@@ -19,18 +19,35 @@ defmodule Kati.Screens.LanguagePick do
   screen exists to prevent, and the app ships the face already — see
   `Kati.Theme`'s substrate table.
 
-  The drawing marks the Persian blocks `direction:rtl`. The container stays
-  `Kati.Locale.direction_prop()`, which is still `ltr` at this point in the
-  flow — the whole interface flips only once the choice is *made*, which is
-  what the cream note promises. Bidi resolution puts the Arabic script the
-  right way round inside an LTR paragraph on its own.
+  The drawing marks the Persian blocks `direction:rtl`. The container reads
+  `Kati.Locale.direction_prop()`, which is `ltr` on a first run and `rtl` for
+  an install that already has an answer stored; inside an LTR paragraph, bidi
+  resolution puts the Arabic script the right way round on its own.
+
+  ## What mishka-group/kati#103 translated here, and what it left alone
+
+  Everything on this screen that is ordinary copy — the sentence under the
+  question, the cream note, **Continue** — goes through `Kati.Gettext` now,
+  because a reader who arrives with `:fa` already stored is a reader the app
+  should be speaking to in Persian. `mount/3` has resolved the locale into this
+  process since before the fold, so the catalogue is already answering by the
+  time `render/1` runs.
+
+  What stayed literal is the **question itself** and the **two option rows**. A
+  catalogue answers in the locale the reader came in with, and this is the one
+  screen whose whole job is to let them leave it: the question is asked in both
+  scripts and each option states its three consequences in its own, so neither
+  depends on the reader already being able to read the other. The only thing
+  the locale moves there is which of the two questions LEADS — `question/1`
+  carries that argument, and `name/2` carries the one about the face a specimen
+  has to keep.
 
   ## The ticked row is the app's own locale
 
-  Everything else on this screen is drawn copy — the question, the two `meta`
-  specifications, the cream note — but **which row carries the tick is a
-  setting the app already holds**, and until this round it was a `chosen: true`
-  frozen onto English in `Kati.Onboarding.LanguageSample`. That module's own
+  Everything else on this screen is copy, drawn or translated — the question,
+  the two `meta` specifications, the cream note — but **which row carries the
+  tick is a setting the app already holds**, and until this round it was a
+  `chosen: true` frozen onto English in `Kati.Onboarding.LanguageSample`. That module's own
   doc had already written the change down: *"when the choice becomes real it
   goes through `Kati.Locale.put/1` … only `chosen` moves."* So only `chosen`
   moved. `pick/0` re-answers it from `Kati.Locale.current/0` at mount, and
@@ -71,6 +88,7 @@ defmodule Kati.Screens.LanguagePick do
   the direction of everything downstream.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Onboarding.LanguageSample
@@ -151,8 +169,8 @@ defmodule Kati.Screens.LanguagePick do
             {Kati.Screens.LanguagePick.mark()}
             {Kati.Screens.LanguagePick.question(pick)}
             {Kati.Screens.LanguagePick.options(pick)}
-            {Kati.Screens.LanguagePick.note(pick)}
-            {Kati.Screens.LanguagePick.cta(pick)}
+            {Kati.Screens.LanguagePick.note()}
+            {Kati.Screens.LanguagePick.cta()}
           </Column>
         </Column>
       </Scroll>
@@ -224,29 +242,78 @@ defmodule Kati.Screens.LanguagePick do
     )
   end
 
-  @doc false
+  @doc """
+  The question, asked twice — once in each script — and the sentence under it.
+
+  The two questions are the one block of copy on this screen that does **not**
+  go through `Kati.Gettext`, and that is the screen's premise rather than an
+  omission: a catalogue answers in the locale the reader arrived with, and this
+  is the screen they are here to leave it from. Somebody who cannot read the
+  leading line has to find the same question underneath it in the script they
+  can read, which is why `Kati.Onboarding.LanguageSample` holds both sentences
+  literally and why neither is a msgid.
+
+  What mishka-group/kati#103 moves is only **which of the two leads**. The 32pt
+  line is the reader's own script and the 26pt line is the other one, so an
+  install already holding `:fa` asks in Persian first and still asks in English
+  under it — where before it drew a right-to-left page whose question was in
+  Latin, the same contradiction the frozen tick used to draw one row down. At
+  `:en`, the default and what `53.html` draws, the pair is the drawing's,
+  unchanged.
+
+  The second line is the one `Text` on the page whose script is deliberately
+  *not* the reader's, so it names its own face instead of inheriting the root's
+  `Kati.Locale.face_prop/0`. Both directions of that matter: Plus Jakarta Sans
+  carries no Arabic glyph at all, and Vazirmatn would set the English question
+  in the face of the language being offered as the alternative to it.
+
+  The sentence below them is ordinary copy — it says what the choice does, and
+  a reader with a locale stored should read it in theirs — so it is a msgid
+  like every other paragraph in the app.
+  """
   def question(pick) do
+    lead = Kati.Locale.pick(pick.title, pick.title_fa)
+
+    # The face of the script the reader did NOT choose. The lead needs none:
+    # the root already declares theirs.
+    other_face = Kati.Locale.pick("fa", "sans")
+
+    # The hard break is a typographic decision about a 32pt DISPLAY heading —
+    # `53.html` draws `Choose your<br>language` — and not part of the sentence,
+    # so the question that is no longer the display heading sets as one line,
+    # which is how the drawing sets the second question. A no-op at `:en`,
+    # where the second line is the Persian one and has no break in it.
+    second = String.replace(Kati.Locale.pick(pick.title_fa, pick.title), "\n", " ")
+
+    # 1.12 is the drawing's Latin display leading and 1.4 is the leading the
+    # same drawing gives its Persian block. Vazirmatn's ascenders need the
+    # second: a 32pt Persian question at 1.12 closes on the line above it.
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={pick.title}
+        text={lead}
         text_size={32}
         font_weight="extrabold"
-        letter_spacing={-0.035}
-        line_height={1.12}
+        letter_spacing={Kati.Locale.tracking(-0.035)}
+        line_height={Kati.Locale.pick(1.12, 1.4)}
         text_color={:on_surface}
       />
       <Spacer size={10} />
       <Text
-        text={pick.title_fa}
-        font_family="fa"
+        text={second}
+        font_family={other_face}
         text_size={26}
         font_weight="bold"
         line_height={1.4}
         text_color={Palette.sub()}
       />
       <Spacer size={14} />
-      <Text text={pick.body} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
+      <Text
+        text={gettext("This sets the writing direction, the calendar and the number style. You can change it any time in Settings.")}
+        text_size={14.5}
+        line_height={Kati.Locale.leading(1.6)}
+        text_color={Palette.ink_soft()}
+      />
       <Spacer size={24} />
     </Column>
     """
@@ -456,10 +523,21 @@ defmodule Kati.Screens.LanguagePick do
     """
   end
 
+  # The Latin name pins `sans` rather than inheriting the root's face, and
+  # keeps the drawing's Latin tracking with it. Every other string in an option
+  # row already names its own face — the two badges take `mono` and `fa`, the
+  # Persian name takes `fa` — and this one could not, so under `:fa` the word
+  # **English** was set in Vazirmatn: a specimen of the typography a reader is
+  # choosing between, drawn in the typeface of the language they would be
+  # choosing instead. An explicit prop beats the root's default, which is the
+  # branch `Kati.PersianFontTest` describes as "a Latin title inside a Persian
+  # page is still one prop away"; `Kati.Locale.tracking/1` is deliberately NOT
+  # used here for the same reason — the row is Latin whatever the reader is.
   def name(option, color) do
     ~MOB"""
     <Text
       text={option.name}
+      font_family="sans"
       text_size={16}
       font_weight="bold"
       letter_spacing={-0.02}
@@ -471,8 +549,14 @@ defmodule Kati.Screens.LanguagePick do
 
   # Cream, and filled rather than outlined: this is the consequence of the
   # choice above it, not an aside about the screen.
+  #
+  # The English msgid names فارسی in Latin copy and keeps the Latin face with
+  # it — one `Text` gets one face, and setting the whole sentence in Vazirmatn
+  # to fix one word is the worse trade. `Kati.PersianFontTest`'s `@mixed`
+  # inventory carries it under `en` with that reason, and not under `fa`, where
+  # the translation is Persian throughout and the root's face draws all of it.
   @doc false
-  def note(pick) do
+  def note do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={18} />
@@ -480,9 +564,9 @@ defmodule Kati.Screens.LanguagePick do
         {Kati.UI.symbol("info", size: 17, color: Palette.gold_icon())}
         <Spacer size={11} />
         <Text
-          text={pick.note}
+          text={gettext("Picking فارسی flips the whole interface, not just the words — navigation, progress bars, charts and the week all run right to left.")}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.cream_body()}
           weight={1.0}
         />
@@ -491,8 +575,13 @@ defmodule Kati.Screens.LanguagePick do
     """
   end
 
+  # `Kati.Locale.forward_glyph/0` rather than the drawing's literal
+  # `arrow_forward`: `layout_direction` mirrors a LAYOUT and cannot mirror a
+  # picture, and an arrow is a picture, so the glyph is `arrow_back` under
+  # `rtl` — wrong in a diff and right on a phone. Screen 161's step button is
+  # built the same way and board 164's caption is where the rule is written.
   @doc false
-  def cta(pick) do
+  def cta do
     tap = {self(), :continue}
 
     ~MOB"""
@@ -508,14 +597,14 @@ defmodule Kati.Screens.LanguagePick do
       >
         <Row align="center">
           <Text
-            text={pick.cta}
+            text={gettext("Continue")}
             text_size={14.5}
             font_weight="bold"
             text_color={Palette.on_ink()}
             max_lines={1}
           />
           <Spacer size={9} />
-          {Kati.UI.symbol("arrow_forward", size: 19, color: Palette.on_ink())}
+          {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 19, color: Palette.on_ink())}
         </Row>
       </Box>
     </Column>

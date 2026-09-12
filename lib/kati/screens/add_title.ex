@@ -81,6 +81,7 @@ defmodule Kati.Screens.AddTitle do
   # header, and the pushed chrome would draw a second back affordance over the
   # title. The drawing has one dismissal, so the build has one.
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
@@ -166,9 +167,18 @@ defmodule Kati.Screens.AddTitle do
     # happened. `Kati.Search.long_enough?/1` is the same seam the search itself
     # gates on, so the eyebrow and the query cannot disagree.
     count =
-      if Kati.Search.long_enough?(assigns.query),
-        do: "#{length(shown)} results",
-        else: "SEARCH"
+      if Kati.Search.long_enough?(assigns.query) do
+        found = length(shown)
+        ngettext("%{n} result", "%{n} results", found, n: Kati.Locale.number(found))
+      else
+        # Sentence case, and the drawing's `SEARCH` still comes out of it:
+        # `Kati.UI.eyebrow/2` upcases through `Kati.UI.eyebrow_label/1`, which
+        # upcases in Latin and leaves Persian alone because Persian has no
+        # case. The msgid is therefore the word the catalogue already carries —
+        # `Kati.Screens.Pushed`'s back-pill table is the other caller — rather
+        # than a shouted second copy of it needing an entry of its own.
+        gettext("Search")
+      end
 
     ~MOB"""
     <Box
@@ -468,38 +478,83 @@ defmodule Kati.Screens.AddTitle do
   @doc false
   @spec meta_line(map()) :: String.t()
   def meta_line(result) do
-    kind = if result.kind == :movie, do: "FILM", else: "SERIES"
+    # `FILM` and `SERIES` are `Kati.Lists.Shelf`'s own two msgids, reused rather
+    # than restated. The shelf tag and this meta line name one thing, and a
+    # second pair of entries is how one thing ends up with two Persian words
+    # for it — which is the whole failure mishka-group/kati#103 folded the
+    # mirrors away to stop.
+    kind = if result.kind == :movie, do: gettext("FILM"), else: gettext("SERIES")
 
     case result.year do
-      nil -> kind
-      year -> year <> " · " <> kind
+      nil ->
+        kind
+
+      year ->
+        # `Kati.Locale.number/1` and not `Kati.Locale.year/1`, for a reason that
+        # is about types rather than about calendars: a TMDB `year` is the four
+        # CHARACTERS `Kati.Media.Tmdb.year_of/1` slices off a release date, and
+        # `year/1` takes an integer. Both end at the same place — `year/1` is
+        # `number/1` — and the rule they share still holds: a release year is a
+        # fact printed on the film, so the digits change and the calendar does
+        # not.
+        #
+        # Concatenated, with no msgid of its own. `·` is a bidi NEUTRAL sitting
+        # between a number and a word, so it takes the paragraph's direction
+        # and `۲۰۱۶ · فیلم` lays out right-to-left in the order it was written.
+        # There is nothing here for a translator to reorder, and a msgid that
+        # is two interpolations and a separator is the kind of thing
+        # `mix gettext.merge` fuzzy-matches against every other `·` line in the
+        # catalogue.
+        Kati.Locale.number(year) <> " · " <> kind
     end
   end
 
   @doc """
   The results a chip leaves visible.
 
-  Read off the result's own `meta` — `2019 · FILM · 1h 48m` — rather than a
-  second `:kind` field, so the row and the chip are answering one question
-  from one source. The design's note says the type is inferred from what you
-  searched, and this is that inference in the one place it exists.
+  Asked of `kind_of/1`, which reads the row's own `:kind` and falls back to the
+  `meta` line only for a row that has none. It matched on `meta` alone until
+  this round — `String.contains?(meta, "FILM")` — and `meta_line/1` is written
+  in the reader's language now: `۲۰۱۶ · فیلم` contains neither `FILM` nor
+  `SERIES`, so a Persian reader who tapped **Films** over a page of films got
+  an empty list from a chip that works perfectly in English. A chip that
+  silently filters everything away is the worst shape this defect could take,
+  because it reads as *there are none* rather than as *this is broken*.
+
+  The design's note still holds — the type is inferred from what you searched —
+  and what it is inferred FROM is now a field instead of a sentence, because a
+  sentence changes with the locale and a field does not.
   """
   @spec visible([map()], String.t()) :: [map()]
-  def visible(results, "Films"), do: Enum.filter(results, &String.contains?(&1.meta, "FILM"))
-  def visible(results, "Series"), do: Enum.filter(results, &String.contains?(&1.meta, "SERIES"))
+  def visible(results, "Films"),
+    do: Enum.filter(results, &(Kati.Screens.AddTitle.kind_of(&1) == :movie))
+
+  def visible(results, "Series"),
+    do: Enum.filter(results, &(Kati.Screens.AddTitle.kind_of(&1) == :tv))
+
   def visible(results, _filter), do: results
 
   @doc false
   def header do
+    # `Kati.Locale.tracking/1` rather than the drawing's flat `-0.03`: the
+    # design tightens its 26pt heading by a fraction of an em, and negative
+    # tracking on Arabic script pulls the letters apart at the joins — the
+    # kerning the design wants is the thing that breaks the word. Zero under
+    # `:fa`, the drawing's own number under `:en`.
+    #
+    # `max_lines={1}` with it. `افزودن عنوان` is two words where `Add a title`
+    # is three, but a display heading that wraps pushes the close disc down the
+    # page, and the disc is this sheet's only dismissal.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Text
-          text="Add a title"
+          text={gettext("Add a title")}
           text_size={26}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
+          max_lines={1}
         />
         <Spacer weight={1.0} />
         {Kati.Screens.AddTitle.close_disc()}
@@ -551,7 +606,18 @@ defmodule Kati.Screens.AddTitle do
   """
   @spec field(String.t()) :: map()
   def field(query, epoch \\ 0) do
-    assigns = %{query: query, epoch: epoch, on_change: {self(), :title_query}}
+    # The placeholder is a SPECIMEN QUERY — board 06 is drawn mid-query on
+    # "quiet" and the resting field shows the same word greyed — so it is copy
+    # and it translates. `pgettext/2` and not `gettext/1` because a bare
+    # five-letter msgid is exactly what `mix gettext.merge`'s fuzzy matcher
+    # takes for a near-miss of some other short string; the context says which
+    # slot it belongs to and cannot be matched against an entry that has none.
+    assigns = %{
+      query: query,
+      epoch: epoch,
+      placeholder: pgettext("search field placeholder", "quiet"),
+      on_change: {self(), :title_query}
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -572,7 +638,7 @@ defmodule Kati.Screens.AddTitle do
         <TextField
           value={@query}
           value_epoch={@epoch}
-          placeholder="quiet"
+          placeholder={@placeholder}
           return_key="search"
           weight={1.0}
           accessibility_id="title_query"
@@ -846,14 +912,26 @@ defmodule Kati.Screens.AddTitle do
   def tracked_key(title, _row), do: {:manual, title}
 
   @doc """
-  What a result row is, read off the `meta` line the drawing writes.
+  What a result row is: its own `:kind` first, and the `meta` line after.
 
-  `"2019 · FILM · 1h 48m"` is a film; `"2023 · SERIES · 2 SEASONS"` is tv.
-  Parsed rather than stored because the sample rows carry no kind of their own,
-  and a title typed by hand carries none either — a guess that reads the words
-  already on screen is better than a default nobody chose.
+  `"2019 · FILM · 1h 48m"` is a film; `"2023 · SERIES · 2 SEASONS"` is tv. The
+  parse was the whole answer and is now the fallback, because `meta_line/1`
+  writes that sentence in the reader's language and `فیلم` is not `FILM` and
+  never will be. `row/1` has carried `:kind` straight off TMDB since the write
+  path landed, so the question already had a locale-proof answer sitting on the
+  row — reading the words back out of a rendered line was only ever right while
+  there was one language to render it in.
+
+  The fallback stays, and stays English, because the rows that reach it are
+  English: board 06's four fixtures come from `Kati.Library.Sample`, which
+  writes their `meta` in Latin under both scripts, and a title typed by hand
+  carries no kind of its own either. A guess that reads the words already on
+  screen is still better than a default nobody chose.
   """
   @spec kind_of(map() | nil) :: :movie | :tv
+  def kind_of(%{kind: :tv}), do: :tv
+  def kind_of(%{kind: :movie}), do: :movie
+
   def kind_of(%{meta: meta}) when is_binary(meta) do
     if String.contains?(String.upcase(meta), "SERIES"), do: :tv, else: :movie
   end
@@ -867,11 +945,63 @@ defmodule Kati.Screens.AddTitle do
     end)
   end
 
+  @doc """
+  The three filter VALUES, which are not the three labels.
+
+  They were one string until this round: the list below was the label list,
+  `filter: "Everything"` put that label on the socket, `visible/2` matched on
+  it and `chip/2` built `filter_Films` out of it. Translating the chip would
+  have translated all four at once — the socket would hold `فیلم`, the tap
+  would arrive as `:"filter_فیلم"`, and `handle_info/2`'s `"filter_" <> label`
+  clause would set a filter that `visible/2` has no clause for, so every chip
+  but **Everything** would empty the list.
+
+  That is not a hypothetical. `Kati.Screens.Books.chip_counts/1` records it
+  happening on the shelf, in its own words: the Persian filter was «همه», every
+  clause of that screen's `visible/2` fell through to `_all`, and the chips drew
+  correctly while tapping any of the four showed everything.
+
+  So the value is English and stays English — it is a key, and a key the
+  `Kati.ScreenTapSweepTest` inventory names as `:filter_Everything` — and
+  `filter_label/1` is the only part in the reader's language. Strings rather
+  than the atoms `chip_counts/1` uses, because `visible/2` and the socket's
+  `:filter` already speak in these three words and `Kati.AddTitleRemoveTest`
+  assigns `filter: "Everything"` by hand.
+  """
+  @spec filters() :: [String.t()]
+  def filters, do: ["Everything", "Films", "Series"]
+
+  @doc """
+  The word a filter chip shows for the value it carries.
+
+  A literal per clause, because a msgid has to be a literal at the call site —
+  `gettext(value)` does not compile — and because three chips are three
+  decisions rather than one table.
+
+  `pgettext/2` on all three, which is `Kati.Screens.Books.chip_counts/1`'s own
+  choice for the same control and made for the same reason: a chip is a surface
+  and its word can differ from the same word elsewhere. `Everything` needs the
+  context outright — the catalogue already holds *Everything else* and
+  *Everything here is started*, and a bare one-word msgid beside two long
+  sentences that open on that word is exactly what `mix gettext.merge`'s fuzzy
+  matcher gets wrong. `Films` and `Series` take it too, because a row of three
+  chips keyed three different ways is a row somebody edits half of.
+
+  The WORDS are not new even though the entries are: `فیلم` and `سریال` are
+  what `Kati.Lists.Shelf`'s `FILM` / `SERIES` tags and `Kati.Screens.Stats`'
+  categories already say, so the chip agrees with the meta line under it.
+  """
+  @spec filter_label(String.t()) :: String.t()
+  def filter_label("Everything"), do: pgettext("add-title filter", "Everything")
+  def filter_label("Films"), do: pgettext("add-title filter", "Films")
+  def filter_label("Series"), do: pgettext("add-title filter", "Series")
+  def filter_label(other), do: other
+
   @doc false
   def chips(active) do
     children =
-      ["Everything", "Films", "Series"]
-      |> Enum.map(fn label -> Kati.Screens.AddTitle.chip(label, label == active) end)
+      Kati.Screens.AddTitle.filters()
+      |> Enum.map(fn value -> Kati.Screens.AddTitle.chip(value, value == active) end)
       |> Enum.intersperse(Kati.Screens.AddTitle.chip_gap())
 
     ~MOB"""
@@ -903,13 +1033,16 @@ defmodule Kati.Screens.AddTitle do
   # edges are what `nodeModifier`'s `pad(v) = v ?: uniform ?: 0` already
   # substituted for the Row's absent ones.
   @doc false
-  def chip(label, on?) do
-    # The tag carries the label, so the day the sheet grows a Books chip is a
-    # change to one list and `visible/2`, not to the handler.
+  def chip(value, on?) do
+    # The tag carries the VALUE and the chip shows the LABEL, so the day the
+    # sheet grows a Books chip is a change to `filters/0`, `filter_label/1` and
+    # `visible/2`, not to the handler — and the tag stays `filter_Films` in
+    # every locale, which is the name `Kati.ScreenTapSweepTest` knows it by and
+    # the only reason `String.to_atom/1` here is safe.
     MishkaChip.chip(
-      label: label,
+      label: Kati.Screens.AddTitle.filter_label(value),
       checked: on?,
-      on_toggle: String.to_atom("filter_" <> label),
+      on_toggle: String.to_atom("filter_" <> value),
       height: 32,
       padding_x: 15,
       padding_y: 0,
@@ -944,6 +1077,30 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   def result_row(r) do
+    # Two of this row's three lines can hold Arabic script, and neither could
+    # say so before.
+    #
+    # The TITLE is a provider's. TMDB answers `فروشنده` for the Farhadi film as
+    # readily as it answers `Arrival`, so the drawing's -0.015 goes through
+    # `Kati.Locale.tracking/1`: negative tracking pulls Arabic letters apart at
+    # the joins, which breaks the word rather than tightening it. The helper
+    # asks the READER's direction and not this string's, which is the coarser
+    # answer and the right one — a Persian page with one Latin title on it
+    # should set that title like the page, not like the board it came from.
+    #
+    # The META is this screen's own sentence and `meta_line/1` translates it
+    # now, so the hardcoded `font_family="mono"` had to go: `kati_mono.ttf`
+    # carries no Persian glyph at all, and `فیلم` set in it falls through to
+    # whatever face Android substitutes — legible, and in a typeface that is
+    # not Kati's, beside rows that are.
+    #
+    # `Kati.Locale.mono_face/1` asks the STRING here rather than the reader,
+    # which is the finer question and the right one for a slot that holds a
+    # provider's words. Note where it lands: the `·` is already outside ASCII,
+    # so under `:fa` the whole line takes Vazirmatn whether its words are
+    # Persian or the fixtures' Latin `2023 · SERIES · 2 SEASONS`. That is the
+    # safe direction of the two — Vazirmatn has every glyph the fixture needs
+    # and DM Mono has none of the ones `فیلم` needs.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -964,14 +1121,14 @@ defmodule Kati.Screens.AddTitle do
             text={r.title}
             text_size={14}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={r.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(r.meta)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -1080,15 +1237,24 @@ defmodule Kati.Screens.AddTitle do
       typed == "" ->
         card(
           "search",
-          "Search for something to add",
-          "Type a film or a show and Kati looks it up."
+          gettext("Search for something to add"),
+          gettext("Type a film or a show and Kati looks it up.")
         )
 
       not Kati.Search.long_enough?(typed) ->
+        # The msgid keeps the four script names it already carried — they are
+        # the specimen, and a Persian reader needs `العربية` and `日本語` to
+        # stay themselves as much as an English one does. What changes is the
+        # sentence around them, and `Kati.Search`'s own two notes are where its
+        # Persian comes from: *جست‌وجو از ۲ نویسه آغاز می‌شود* is already in the
+        # catalogue, so the floor is described in one vocabulary rather than
+        # two.
         card(
           "search",
-          "Keep typing",
-          "Two characters to start — one in فارسی, العربية, 中文, 日本語, where one is a word."
+          gettext("Keep typing"),
+          gettext(
+            "Two characters to start — one in فارسی, العربية, 中文, 日本語, where one is a word."
+          )
         )
 
       true ->
@@ -1100,7 +1266,22 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   def found_nothing(typed) do
-    card("search", "Nothing here for \u201C" <> typed <> "\u201D", nil)
+    # The quotation marks stay INSIDE the msgid rather than going out through
+    # `Kati.Locale.quoted/1`. The sentence is quoted character for character
+    # from `Kati.Screens.AddTitleMusic.nothing_card/1` \u2014 the moduledoc above
+    # says so \u2014 and one msgid is what keeps the two sheets saying one thing;
+    # splitting the marks off would leave them with a shared stem and two
+    # different punctuations. A Persian translator swaps `\u201C\u2026\u201D` for the
+    # guillemets `\u00AB\u2026\u00BB` in the same edit that writes the words, which is where
+    # that decision belongs.
+    #
+    # `typed` is deliberately NOT wrapped in `Kati.Locale.ltr/1`. It is the
+    # reader's own text and can be in either script, and isolating a Persian
+    # query as a left-to-right run would mirror the exact defect that helper
+    # exists to fix. A Latin query needs no isolate here anyway: it is bounded
+    # by the sentence's own quotation marks on both sides, so it has no
+    # trailing neutral to strand at the wrong edge.
+    card("search", gettext("Nothing here for \u201C%{query}\u201D", query: typed), nil)
   end
 
   # Board 87's card at this screen's size, which is what board 06's own
@@ -1139,13 +1320,19 @@ defmodule Kati.Screens.AddTitle do
   def card_body(body) do
     assigns = %{body: body}
 
+    # `Kati.Locale.leading/1` and not the drawing's flat 1.55. Vazirmatn's
+    # metrics are not Plus Jakarta's — its ascenders carry the marks Arabic
+    # script sets above the line — so a paragraph measured against the Latin
+    # board sets its Persian twin solid. `Kati.Theme.fa_line_height/0` is the
+    # constant and this is it applied per paragraph, with the design's own
+    # number still visible at the call site.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={6} />
       <Text
         text={@body}
         text_size={12}
-        line_height={1.55}
+        line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.sub()}
         text_align="center"
       />
@@ -1187,17 +1374,30 @@ defmodule Kati.Screens.AddTitle do
   reader to retype what they have just typed; `Add "vellichor" by hand` is the
   same control having read the field.
 
-      iex> Kati.Screens.AddTitle.by_hand_label("")
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.AddTitle.by_hand_label("") end)
       nil
 
-      iex> Kati.Screens.AddTitle.by_hand_label("vellichor")
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.AddTitle.by_hand_label("vellichor") end)
       "Add “vellichor” by hand"
+
+  The examples name their language now, which `Kati.Screens.Medication`'s own
+  doctests already do: the sentence comes out of `Kati.Gettext`, and an example
+  that did not say which locale it expected would be asserting the English copy
+  while quietly depending on nothing having set a locale in that process first.
   """
   @spec by_hand_label(String.t()) :: String.t() | nil
   def by_hand_label(query) do
     case String.trim(query) do
-      "" -> nil
-      typed -> "Add \u201C" <> typed <> "\u201D by hand"
+      "" ->
+        nil
+
+      # One msgid for the whole label rather than a stem with two marks glued
+      # around the query. Persian puts the verb first and its object after \u2014
+      # \u00AB\u0627\u0641\u0632\u0648\u062F\u0646 \u062F\u0633\u062A\u06CC \u00ABvellichor\u00BB\u00BB \u2014 so the query does not sit where `<>` leaves
+      # it, and a sentence handed to a translator in three pieces is a sentence
+      # they cannot reorder.
+      typed ->
+        gettext("Add \u201C%{query}\u201D by hand", query: typed)
     end
   end
 

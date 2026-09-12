@@ -91,7 +91,7 @@ defmodule Kati.Screens.RetiredTile do
 
   Screen 36's **Browser extension** row is the second entry point and the
   reason this sheet is keyed on a *subject* rather than on a Health section.
-  See `@offsite`.
+  See `offsite/1`.
 
   ## The explainer card is hand-rolled, and `SettingsList.body/3` is why
 
@@ -118,6 +118,14 @@ defmodule Kati.Screens.RetiredTile do
       a device — but the drawing's sentence is the drawing's sentence, and the
       destination it points at is the row directly beneath it, tappable. The
       reference is inert and its route is not.
+
+      It stays a numeral in Persian too, as **۲۲**, and it gets there through
+      the translation rather than through `Kati.Locale.number/1`: the figure is
+      four words into a sentence that is one msgid, and splitting a paragraph
+      at a numeral to interpolate it would hand a translator two fragments that
+      cannot be reordered. Every digit Kati sets inside prose converts this way
+      — `"«۵۲ کتاب بخوان» هدف است."` on the habits-versus-goals card is the
+      same decision.
     * **The commit button has no shadow.** The drawing lifts it with
       `0 14px 28px -12px rgba(26,25,23,.5)`, and `Kati.UI.Sheet.commit/2` draws
       the flat pill every other sheet ends with. Adding the lift here would fork
@@ -149,6 +157,7 @@ defmodule Kati.Screens.RetiredTile do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Health.Sample
@@ -161,25 +170,46 @@ defmodule Kati.Screens.RetiredTile do
   # The subject the design drew, and the one every other entry point falls back
   # to. Sleep is in `Kati.Health.Sample.sections/0` unconditionally, so this
   # fallback always resolves to a real tile rather than to nothing.
+  #
+  # A KEY and not a label. It is compared against the untranslated names
+  # `Kati.Health.Sample.sections/0` stores and against the `:section` every
+  # caller pushes, so it stays Latin and stays an attribute — the word a reader
+  # sees comes off `label/1` instead. `Kati.Retired`'s moduledoc is where the
+  # long version of that distinction lives.
   @drawn "Sleep"
 
   # The paragraph is per-section copy in the design's own words, so it lives as
-  # data rather than as markup — a second subject is an entry here, not a second
+  # data rather than as markup — a second subject is a clause here, not a second
   # sheet. It would sit in `Kati.Health.Sample` beside the tiles it explains if
   # this round were allowed to touch a second file.
-  @why %{
-    "Sleep" =>
+  #
+  # A function and no longer `@why`, for the reason `Kati.Retired`'s moduledoc
+  # gives about its own entries: **`gettext/1` inside a module attribute is
+  # evaluated at COMPILE time**, so a table of translated copy freezes in
+  # whichever locale the compiler happened to be in and every reader after that
+  # gets that one. Asked per call instead. The key is still the untranslated
+  # section name, which is what `Kati.Health.Sample.sections/0` stores.
+  defp why_for("Sleep") do
+    gettext(
       "It was designed, and the design is good. It is not built because sleep " <>
         "data worth having comes from a device Kati cannot read yet, and typing " <>
         "a bedtime by hand every night is a habit, not a health record — 22 " <>
         "already does that better."
-  }
+    )
+  end
+
+  defp why_for(_no_paragraph_written), do: nil
 
   # `section` rather than a screen module: the destination is looked up through
   # `Kati.Screens.Health.tile_tap/1`, which is 42's own map of where a tile goes.
-  @instead %{
-    "Sleep" => %{icon: "bolt", title: "Track a bedtime as a habit", section: "Habits"}
-  }
+  # `icon` and `section` are keys into that map and into the glyph set, so both
+  # stay Latin; `title` is the only half of this that a reader reads. A function
+  # rather than `@instead` for the compile-time reason above.
+  defp instead_for("Sleep") do
+    %{icon: "bolt", title: gettext("Track a bedtime as a habit"), section: "Habits"}
+  end
+
+  defp instead_for(_no_row_written), do: nil
 
   # Subjects that are not Health sections at all.
   #
@@ -197,22 +227,70 @@ defmodule Kati.Screens.RetiredTile do
   # them from, and no `instead`: the row a browser extension would send you to
   # is the one directly under it on the screen you came from, and a card
   # pointing back at the row below is worse than no card.
-  @offsite %{
-    "Browser extension" => %{
-      name: "Browser extension",
+  #
+  # The head is the key `Kati.Screens.AutoDetect` pushes and the `name:` is the
+  # word drawn in the header — the same string in English and two different
+  # jobs, which is exactly why one of them is translated and the other cannot
+  # be. A function rather than `@offsite` for the compile-time reason above,
+  # and `nil` rather than `:error` because one lookup that answers *not one of
+  # these* reads better at the call site than a two-tag tuple.
+  defp offsite("Browser extension") do
+    %{
+      name: gettext("Browser extension"),
       icon: "computer",
       why:
-        "It was designed, and the design is good. It is not built because an " <>
-          "extension is a second program on a second platform — its own store " <>
-          "listing, its own updates, and a way to reach this phone that Kati has " <>
-          "no server to carry. This phone already detects audio from any app on " <>
-          "its own, which is the row under this one."
+        gettext(
+          "It was designed, and the design is good. It is not built because an " <>
+            "extension is a second program on a second platform — its own store " <>
+            "listing, its own updates, and a way to reach this phone that Kati has " <>
+            "no server to carry. This phone already detects audio from any app on " <>
+            "its own, which is the row under this one."
+        )
     }
-  }
+  end
+
+  defp offsite(_health_section), do: nil
 
   # The label of the slot, not of the destination — it says what the row is for,
   # and it would be the same sentence above any other section's closing row.
-  @today_line "What Kati can do today"
+  # A function for the compile-time reason above.
+  defp today_line, do: gettext("What Kati can do today")
+
+  # The tile's own label, in the reader's own script.
+  #
+  # Keyed on `id` and never on `name`. That is the defect mishka-group/kati#103
+  # is about and `Kati.Retired`'s moduledoc states it in full: a name is a drawn
+  # string, a drawn string is translated, and a lookup keyed on one stops
+  # matching the day the app is read in Persian — silently, because a miss here
+  # is indistinguishable from a section nobody wrote copy for.
+  # `Kati.Health.Sample.sections/0` carries `id` for exactly this purpose.
+  #
+  # All six of screen 42's sections and not only the two that are unbuilt today.
+  # `Kati.Screens.Health.built?/1` is a hand-kept list of four names, so which
+  # sections can reach this sheet is a thing that moves; a section that flips
+  # off would otherwise arrive here in Latin on a Persian page, and the tile's
+  # name is the one word on the sheet answering *which tile did I press*.
+  defp label(%{id: :sleep}), do: gettext("Sleep")
+  defp label(%{id: :workouts}), do: gettext("Workouts")
+  defp label(%{id: :meals}), do: gettext("Meals")
+  defp label(%{id: :habits}), do: gettext("Habits")
+  defp label(%{id: :weight}), do: gettext("Weight")
+  defp label(%{id: :medication}), do: gettext("Medication")
+
+  # A section added to the grid after this list draws under its English name
+  # rather than under nothing: wrong in one word beats blank in the place the
+  # header is answering a question.
+  defp label(%{name: name}), do: name
+
+  # What the subject IS on the screen you came from — see `no_date/1` for why
+  # the sentence has to name it correctly rather than always saying *tile*.
+  #
+  # `pgettext/2` and not `gettext/1`: each of these is a single word, and
+  # `mix gettext.merge` fuzzy-matches a msgid that short against any longer
+  # entry that happens to contain it. The context is also the only thing that
+  # tells a translator this is a thing on a screen rather than a row of a table.
+  defp noun(:tile), do: pgettext("the thing the sheet was opened from", "tile")
+  defp noun(:row), do: pgettext("the thing the sheet was opened from", "row")
 
   @doc """
   Which tile the sheet is standing behind, taken from the push that opened it.
@@ -258,7 +336,7 @@ defmodule Kati.Screens.RetiredTile do
       {Kati.Screens.RetiredTile.hero(subject)}
       {Kati.Screens.RetiredTile.explainer(subject.why, subject.noun)}
       {Kati.Screens.RetiredTile.instead(subject.instead)}
-      {Kati.UI.Sheet.commit("Fair enough", :close_acknowledged)}
+      {Kati.UI.Sheet.commit(gettext("Fair enough"), :close_acknowledged)}
     </Column>
     """
   end
@@ -287,7 +365,7 @@ defmodule Kati.Screens.RetiredTile do
   subject needs no new sentence; `why` and `instead` are copy, and a section
   without them draws neither rather than something written to fill the gap.
 
-  `@offsite` is checked first, for the subjects that are not sections of screen
+  `offsite/1` is checked first, for the subjects that are not sections of screen
   42 at all — see its own comment. A name that is neither offsite nor an
   unbuilt section — a built one, or a typo — falls back to the drawn subject. The alternative is a sheet telling you that Meals is
   not in this version, and a wrong answer delivered confidently is worse here
@@ -295,12 +373,12 @@ defmodule Kati.Screens.RetiredTile do
   """
   @spec subject(String.t()) :: map()
   def subject(name) do
-    case Map.fetch(@offsite, name) do
-      {:ok, offsite} ->
-        Map.merge(offsite, %{headline: headline(offsite.name), instead: nil, noun: "row"})
-
-      :error ->
+    case offsite(name) do
+      nil ->
         section_subject(name)
+
+      offsite ->
+        Map.merge(offsite, %{headline: headline(offsite.name), instead: nil, noun: noun(:row)})
     end
   end
 
@@ -309,17 +387,26 @@ defmodule Kati.Screens.RetiredTile do
       Enum.find(unbuilt(), &(&1.name == name)) ||
         Enum.find(Sample.sections(), &(&1.name == @drawn))
 
+    # Bound once and read twice, because the name is drawn twice — in the
+    # sheet's header and again inside the headline — and `label/1` asks gettext
+    # each time it is called. The lookups below keep taking `section.name`: that
+    # is the key half of the same string and it must not follow the label into
+    # Persian, or a Persian reader gets the sheet with no paragraph on it.
+    label = label(section)
+
     %{
-      name: section.name,
+      name: label,
       icon: section.icon,
-      headline: headline(section.name),
-      noun: "tile",
-      why: Map.get(@why, section.name),
-      instead: Map.get(@instead, section.name)
+      headline: headline(label),
+      noun: noun(:tile),
+      why: why_for(section.name),
+      instead: instead_for(section.name)
     }
   end
 
-  defp headline(name), do: "#{name} isn’t in this version"
+  # A frame around a name that is already in the reader's script by the time it
+  # arrives — see `label/1` — rather than a sentence with a Latin hole in it.
+  defp headline(name), do: gettext("%{name} isn’t in this version", name: name)
 
   @doc """
   The tile's own glyph at 58, and the sentence that says what happened to it.
@@ -332,6 +419,16 @@ defmodule Kati.Screens.RetiredTile do
   to deliver, and a heading that drops its last word to fit is a worse failure
   than a heading that runs to three lines at a large font scale — the same
   choice `Kati.Screens.NothingSetUpKnockOn.prompt/2` makes about its own title.
+  That decision is what keeps this heading off the usual `max_lines={1}` a
+  display line takes when it learns to hold Persian: the Persian headline is
+  the longer of the two and the answer here is to let it wrap, not to cut it.
+
+  `Kati.Locale.tracking/1` rather than the drawing's flat `-0.025`. Negative
+  tracking pulls apart the joins between Arabic letters, so the one sentence
+  this sheet exists to deliver would be the sentence it breaks; Persian has no
+  tradition of tightening a heading in any case and Vazirmatn is not drawn for
+  it. The Latin value stays visible at the call site, which is the whole reason
+  the helper takes it as an argument.
   """
   @spec hero(map()) :: map()
   def hero(subject) do
@@ -356,7 +453,7 @@ defmodule Kati.Screens.RetiredTile do
         text={subject.headline}
         text_size={19}
         font_weight="bold"
-        letter_spacing={-0.025}
+        letter_spacing={Kati.Locale.tracking(-0.025)}
         text_color={:on_surface}
         text_align="center"
       />
@@ -402,6 +499,13 @@ defmodule Kati.Screens.RetiredTile do
 
   No `max_lines`: this is the explanation, and the whole sheet is here to
   deliver it.
+
+  `Kati.Locale.leading/1` rather than the drawing's flat 1.65. Vazirmatn's
+  ascenders and its descenders are not Plus Jakarta's and its diacritics sit
+  above both, so the Latin figure collides the lines of the longest paragraph
+  on the sheet — `Kati.Theme.fa_line_height/0` carries the measurement. The
+  paragraph grows taller in Persian and nothing here is a fixed height, so it
+  costs only the air it needs.
   """
   @spec why(String.t() | nil) :: map()
   def why(nil), do: ~MOB"<Spacer size={0} />"
@@ -409,7 +513,12 @@ defmodule Kati.Screens.RetiredTile do
   def why(text) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={text} text_size={13.5} line_height={1.65} text_color={Palette.cream_body()} />
+      <Text
+        text={text}
+        text_size={13.5}
+        line_height={Kati.Locale.leading(1.65)}
+        text_color={Palette.cream_body()}
+      />
       <Spacer size={13} />
     </Column>
     """
@@ -434,15 +543,41 @@ defmodule Kati.Screens.RetiredTile do
   The body run is marked `base: true` even though it is already the longer of
   the two: `rich_text/1` resolves an unmarked list by length, and the copy here
   is short enough that an edit to either clause could flip which style the
-  whole paragraph takes.
+  whole paragraph takes. It is load-bearing a second time now that the two runs
+  are two msgids — *which run is longer* is a fact about English and not about
+  the sentence, and a translation that inverts it would silently restyle the
+  whole paragraph.
+
+  **The full stop lives at the head of the second msgid, not at the tail of the
+  first.** It looks wrong written down and it is the only split that keeps the
+  emphasis honest: the drawing bolds *There is no date for it* and leaves the
+  stop in the body ink, so a msgid that swallowed it would hand a translator a
+  sentence and bold one character more than the design does — on the day
+  `MobText` learns `runs` and the weight actually renders. The runs are
+  concatenated in order either way, and a stop between two Persian runs sits
+  where the bidi algorithm already wants it.
+
+  `noun` reaches the sentence through `noun/1` rather than as a bare word, so
+  the clause that exists to name the right thing names it in the reader's own
+  script too.
   """
   @spec no_date(String.t()) :: map()
   def no_date(noun) do
     UI.rich_text([
-      {"There is no date for it",
-       [text_size: 13, line_height: 1.65, font_weight: "semibold", text_color: Palette.ink()]},
-      {". When Kati can read the data properly, this #{noun} turns on.",
-       [text_size: 13, line_height: 1.65, text_color: Palette.ink_soft(), base: true]}
+      {gettext("There is no date for it"),
+       [
+         text_size: 13,
+         line_height: Kati.Locale.leading(1.65),
+         font_weight: "semibold",
+         text_color: Palette.ink()
+       ]},
+      {gettext(". When Kati can read the data properly, this %{noun} turns on.", noun: noun),
+       [
+         text_size: 13,
+         line_height: Kati.Locale.leading(1.65),
+         text_color: Palette.ink_soft(),
+         base: true
+       ]}
     ])
   end
 
@@ -475,7 +610,7 @@ defmodule Kati.Screens.RetiredTile do
       SettingsList.card([
         SettingsList.row(
           SettingsList.icon_tile(row.icon),
-          SettingsList.body(row.title, @today_line),
+          SettingsList.body(row.title, today_line()),
           SettingsList.chevron(),
           on_tap: Health.tile_tap(row.section),
           rule: false

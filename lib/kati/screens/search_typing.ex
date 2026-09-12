@@ -158,6 +158,36 @@ defmodule Kati.Screens.SearchTyping do
   The board's own 1.55 line height wins over `Kati.Theme.fa_line_height/0`,
   which is documented as the default for a drawing that says nothing.
 
+  ## What the board says in the reader's own script, and what it refuses to
+
+  Every sentence, eyebrow, digit and unit on this page is a msgid since
+  mishka-group/kati#103 folded the mirrors away and left the English module
+  rendering under `:fa`. Three runs are deliberately still Latin, and each is a
+  refusal rather than a string somebody missed:
+
+    * **`hollow`.** It is the specimen the whole board is built on, and the
+      minimum card MEASURES it: `Kati.Search.minimum/1` asked of `h` is what
+      prints the `2`, and asked of a Persian word is what prints the `1`. Put a
+      Persian query in the field and `minimum(first_letter())` answers 1, so
+      the card reads *1 minimum in Latin* — a sentence about scripts that has
+      stopped being true about its own example. `Kati.Search`'s moduledoc, its
+      `@tiers` examples and `Kati.Search.Query`'s tests all name the same word,
+      so it is the app's example rather than this screen's.
+    * **The six keystroke cells**, for the same reason and out of the same
+      string — `debounce/0` chunks `query/0`.
+    * **`فارسی, العربية, 中文, 日本語`** inside the minimum card, which are the
+      subject of the sentence rather than copy in it and are already written in
+      the scripts they name.
+
+  The two long sentences went from five runs and three runs to ONE run each,
+  and that is a translation decision rather than a layout one. `Kati.UI.rich_text/1`
+  joins its runs and sets the whole string in the base run's style — the bridge
+  has no spans, so the emphasis on `2`, `1` and `one` was already being
+  dropped — but a translator handed the runs as separate msgids cannot move them,
+  and Persian does move them: «حداقل» goes before the numeral, and *would run
+  forty-two* lands at the end of its clause rather than after *undebounced*.
+  One msgid per sentence is what puts the word order where the translator is.
+
   ## Nothing here reads a store
 
   27's argument applies unchanged: each band is a picture of a state, not a
@@ -199,9 +229,17 @@ defmodule Kati.Screens.SearchTyping do
   Starts on `All`, which is the chip the board fills and the chip 86 opens on.
 
   The assign exists because the reused chip row is wired — see `handle_tap/2`.
+
+  The KEY and not the label, and that is a fix rather than a tidy-up.
+  `Kati.Screens.SearchIdle.chips/1` lights a chip on `key == active` and its
+  keys have been atoms since mishka-group/kati#103 — `Kati.Search.built?/1` and
+  `Kati.Search.kept?/1` both record the same move one level further in — so
+  `"All"` matched no key in any language and the board drew seven grey chips
+  under a drawing whose first chip is ink. It failed silently in English too;
+  the fold is only what made somebody look.
   """
   @spec load(term()) :: term()
-  def load(socket), do: Mob.Socket.assign(socket, :scope, "All")
+  def load(socket), do: Mob.Socket.assign(socket, :scope, :all)
 
   @doc """
   The three states in the order the board stacks them, then the debounce card.
@@ -222,17 +260,17 @@ defmodule Kati.Screens.SearchTyping do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {UI.eyebrow("First-run idle — Recent is empty by definition")}
+        {UI.eyebrow(gettext("First-run idle — Recent is empty by definition"))}
         {Kati.Screens.SearchTyping.field(nil)}
         {Kati.Screens.SearchTyping.nothing_yet()}
-        {SettingsList.eyebrow_muted("One character — under the minimum")}
+        {SettingsList.eyebrow_muted(gettext("One character — under the minimum"))}
         {Kati.Screens.SearchTyping.field(Kati.Screens.SearchTyping.first_letter())}
         {Kati.Screens.SearchTyping.under_minimum()}
-        {SettingsList.eyebrow_muted("Searching — skeleton, never a spinner")}
+        {SettingsList.eyebrow_muted(gettext("Searching — skeleton, never a spinner"))}
         {Kati.Screens.SearchTyping.field(Kati.Screens.SearchTyping.query())}
         {SearchIdle.chips(assigns.scope)}
         {Kati.Screens.SearchTyping.skeletons()}
-        {SettingsList.eyebrow_muted("Debounce")}
+        {SettingsList.eyebrow_muted(pgettext("eyebrow", "Debounce"))}
         {Kati.Screens.SearchTyping.debounce()}
       </Column>
     </Scroll>
@@ -433,9 +471,27 @@ defmodule Kati.Screens.SearchTyping do
   the right one here, because a bold that came out regular reads as plain
   typography while an orphaned digit reads as a broken layout.
 
-  `font_family: "fa"` on every run, and the moduledoc says why: Plus Jakarta has
-  no Arabic-script glyphs, so `فارسی` and `العربية` would be empty boxes in the
-  one sentence whose subject is scripts.
+  One run rather than five, since the fold. The five were `One more character. `
+  · `2` · ` minimum in Latin, ` · `1` · ` in فارسی…`, and `rich_text/1` joins
+  them and sets the join in the base run's style — so the two `strong` runs had
+  been drawing as body text for as long as this board has existed, and losing
+  them costs the page nothing it was getting. What the split DID cost is the
+  word order: Persian puts «حداقل» in front of the numeral rather than behind
+  it, and a translator handed five fragments has no way to move one past
+  another. So both numbers are named in one msgid and the sentence is the
+  translator's to arrange. See the moduledoc.
+
+  Both digits go through `Kati.Locale.number/1` on the way in. They are
+  numerals inside a sentence rather than a figure the design sets in DM Mono,
+  which is the division that function's own doc draws — so `۲` and `۱` under
+  `:fa`, in the same face as the words around them.
+
+  `font_family: "fa"`, and the moduledoc says why: Plus Jakarta has no
+  Arabic-script glyphs, so `فارسی` and `العربية` would be empty boxes in the one
+  sentence whose subject is scripts. It stays pinned after the fold rather than
+  falling through to `Kati.Locale.face_prop/0`, because under `:en` the root
+  still declares `sans` and the sentence names those two scripts in both
+  languages.
   """
   @spec under_minimum() :: map()
   def under_minimum do
@@ -447,21 +503,14 @@ defmodule Kati.Screens.SearchTyping do
       base: true
     ]
 
-    strong = [
-      text_size: 12.5,
-      font_weight: "bold",
-      text_color: Palette.ink(),
-      font_family: "fa"
-    ]
+    line =
+      gettext(
+        "One more character. %{latin} minimum in Latin, %{other} in فارسی, العربية, 中文, 日本語.",
+        latin: Kati.Locale.number(Search.minimum(first_letter())),
+        other: Kati.Locale.number(Search.minimum("فارسی"))
+      )
 
-    sentence =
-      UI.rich_text([
-        {"One more character. ", body},
-        {to_string(Search.minimum(first_letter())), strong},
-        {" minimum in Latin, ", Keyword.delete(body, :base)},
-        {to_string(Search.minimum("فارسی")), strong},
-        {" in فارسی, العربية, 中文, 日本語.", Keyword.delete(body, :base)}
-      ])
+    sentence = UI.rich_text([{line, body}])
 
     assigns = %{sentence: sentence}
 
@@ -521,6 +570,12 @@ defmodule Kati.Screens.SearchTyping do
   The bar goes inside a weighted `Column` because `render: :box` fills whatever
   width it is given and would otherwise take the whole row and squash the
   `180 ms` off the end.
+
+  That arrangement is what makes the label safe to translate: a `Row` measures
+  its unweighted children first and gives the weighted one what is left, so
+  «۱۸۰ میلی‌ثانیه» — three times the width of `180 ms` — takes its width from
+  the bar rather than being clipped by it. A fixed width on the label, or a
+  weight on it, would have had to be re-guessed per language.
   """
   @spec debounce() :: map()
   def debounce do
@@ -550,23 +605,42 @@ defmodule Kati.Screens.SearchTyping do
       base: true
     ]
 
-    strong = [text_size: 12.5, font_weight: "bold", text_color: Palette.ink()]
-
     # Typed rather than composed — see the moduledoc. `forty-two` is `six`
     # times `seven` and `Kati.Screens.SearchSpec.word/1` will not spell it, so
-    # all three words are typed together and go stale together.
-    sentence =
-      UI.rich_text([
-        {"Six keystrokes, ", body},
-        {"one", strong},
-        {" search. Scope counts mean seven counted queries per fire, so an undebounced " <>
-           "field would run forty-two.", Keyword.delete(body, :base)}
-      ])
+    # all three words are typed together and go stale together. Typed INSIDE
+    # the msgid, which is the only place they can be: a number spelled as a
+    # word is a number a translator has to re-spell, and `word/1` stops at ten
+    # in English and knows nothing about Persian at all.
+    #
+    # One run rather than three, for `under_minimum/0`'s reason — the emphasis
+    # on `one` was already being dropped by `Kati.UI.rich_text/1`, and *would
+    # run forty-two* sits at the end of its clause in Persian rather than after
+    # *undebounced*, which no split into fragments can express.
+    line =
+      gettext(
+        "Six keystrokes, one search. Scope counts mean seven counted queries per fire, " <>
+          "so an undebounced field would run forty-two."
+      )
+
+    sentence = UI.rich_text([{line, body}])
+
+    # The figure in the reader's own digits and the unit in the reader's own
+    # word. `Kati.Locale.number/1` is normally the wrong tool for a mono slot —
+    # `kati_mono.ttf` has none of U+06F0–U+06F9 — but the FACE moves with it at
+    # the `Text` below, which is the pairing `Kati.Screens.Fa` set and
+    # `Kati.PersianFontTest` keeps: Persian numerals are Vazirmatn at the
+    # design's mono size rather than Latin digits in a face that has no Persian.
+    #
+    # `pgettext/3` rather than `gettext/2`: `%{n} ms` is two tokens long, and
+    # `mix gettext.merge` fuzzy-matches a msgid that short against anything it
+    # resembles. The context is what stops `ms` acquiring somebody else's
+    # translation on a merge nobody reads.
+    window = pgettext("debounce window", "%{n} ms", n: Kati.Locale.number(Search.debounce_ms()))
 
     assigns = %{
       strip: UI.even_row(cells, gap: 6),
       bar: bar,
-      window: "#{Search.debounce_ms()} ms",
+      window: window,
       sentence: sentence
     }
 
@@ -587,7 +661,7 @@ defmodule Kati.Screens.SearchTyping do
         <Spacer size={9} />
         <Text
           text={@window}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(@window)}
           text_size={11}
           text_color={Palette.sub()}
           max_lines={1}
@@ -606,18 +680,27 @@ defmodule Kati.Screens.SearchTyping do
   not where it sits but what it did — and the ink pair is the design's own for a
   filled control, `ink_fill/0` under `on_ink/0`, which inverts in dark rather
   than following the ground.
+
+  `Kati.Locale.mono_face/1` and not a hardcoded `"mono"`: the one-argument form
+  asks the CELL's own script rather than the reader's, which is the right
+  question for a cell holding one keystroke. `h` is ASCII and DM Mono has it, so
+  the board keeps its own face in both languages — and a query that ever stopped
+  being Latin would take Vazirmatn at the mono size instead of falling through
+  to whatever Android substitutes, which is the failure `Kati.PersianFontTest`
+  exists for and the one nobody sees.
   """
   @spec keystroke(String.t(), boolean()) :: map()
   def keystroke(letter, fired?) do
     assigns = %{
       letter: letter,
+      face: Kati.Locale.mono_face(letter),
       ground: if(fired?, do: Palette.ink_fill(), else: Palette.paper()),
       ink: if(fired?, do: Palette.on_ink(), else: Palette.sub())
     }
 
     ~MOB"""
     <Box fill_width={true} height={26} corner_radius={7} background={@ground} align="center">
-      <Text text={@letter} font_family="mono" text_size={11} text_color={@ink} max_lines={1} />
+      <Text text={@letter} font_family={@face} text_size={11} text_color={@ink} max_lines={1} />
     </Box>
     """
   end
@@ -631,10 +714,20 @@ defmodule Kati.Screens.SearchTyping do
   gets it logged by `Kati.Screens.Root.rescue_tap/3` instead of silently
   answered with `{:noreply, socket}`. A clause that swallowed it would leave the
   dead control dead and stop the only thing that was reporting it.
+
+  The tag carries a KEY, so a key is what goes into the assign —
+  `Kati.Screens.SearchIdle.chips/1` compares against `Kati.Search.chip_keys/0`
+  and those are atoms. This stored the bare string and no chip ever lit; see
+  `load/1`. `String.to_existing_atom/1` rather than `String.to_atom/1` for the
+  same reason the match above has no catch-all: every key it can be handed is
+  one `chip_keys/0` has already named, so a key that does not exist as an atom
+  is a tag nobody drew, and raising hands it to `Kati.Screens.Root.rescue_tap/3`
+  with the rest instead of minting an atom for a mistake.
+  `Kati.Screens.SearchIdle.handle_tap/2` reads its own chips the same way.
   """
   @spec handle_tap(atom(), term()) :: {:noreply, term()}
   def handle_tap(tag, socket) do
-    "scope_" <> label = Atom.to_string(tag)
-    {:noreply, Mob.Socket.assign(socket, :scope, label)}
+    "scope_" <> key = Atom.to_string(tag)
+    {:noreply, Mob.Socket.assign(socket, :scope, String.to_existing_atom(key))}
   end
 end
