@@ -50,7 +50,6 @@ defmodule Kati.BooksByHandTest do
   alias Kati.Screens.AddByHandBook
   alias Kati.Screens.BookDetail
   alias Kati.Screens.Books
-  alias Kati.Screens.LibraryFa
 
   @prefix "books-by-hand-test-"
 
@@ -69,13 +68,20 @@ defmodule Kati.BooksByHandTest do
   end
 
   describe "the door" do
-    test "57's کتاب‌ها segment opens the Persian shelf, not one fixture book" do
+    test "board 57's کتاب‌ها segment opens the Persian shelf, not one fixture book" do
       # The defect `D-38` names in its first paragraph: the segment pushed
       # screen 69 because no Persian shelf had been drawn.
+      #
+      # Board 57 is screen 03 read under `:fa` since mishka-group/kati#103, and
+      # the segment is `:shelf_books` — the key rather than the index the
+      # mirror had to use, because the folded screen's segments are keyed on
+      # ids and not on the word they draw.
       view =
-        LibraryFa
-        |> mount_screen()
-        |> render_info({:tap, :shelf_1})
+        Kati.Locale.as(:fa, fn ->
+          Kati.Screens.Library
+          |> mount_screen()
+          |> render_info({:tap, :shelf_books})
+        end)
 
       assert pushed(view) == {:push, Books, %{}}
     end

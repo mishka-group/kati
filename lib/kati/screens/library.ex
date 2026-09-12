@@ -166,7 +166,7 @@ defmodule Kati.Screens.Library do
   # of its own, which could never match: `use Kati.Screens.Root` injects its
   # catch-all at the top of this module, so any later clause is unreachable.
   def handle_kati(:open_added, %{id: id, screen: screen}, socket) do
-    {:noreply, Mob.Socket.push_screen(socket, screen, %{id: id, back: "Library"})}
+    {:noreply, Mob.Socket.push_screen(socket, screen, %{id: id, back: gettext("Library")})}
   end
 
   @doc """
@@ -345,14 +345,14 @@ defmodule Kati.Screens.Library do
   say, which is what it is.
 
       iex> Kati.Screens.Library.name_of(nil)
-      "Untitled"
+      gettext("Untitled")
 
       iex> Kati.Screens.Library.name_of(%{title: "Severance"})
       "Severance"
   """
   @spec name_of(map() | nil) :: String.t()
   def name_of(%{title: title}) when is_binary(title) and title != "", do: title
-  def name_of(_evicted), do: "Untitled"
+  def name_of(_evicted), do: gettext("Untitled")
 
   @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer(), non_neg_integer()) ::
           map()
@@ -453,10 +453,10 @@ defmodule Kati.Screens.Library do
     cond do
       is_integer(minutes) and minutes > 0 and is_integer(seconds) and seconds > 0 ->
         left = max(minutes - div(seconds, 60), 0)
-        "#{left}m left"
+        gettext("%{n}m left", n: Kati.Locale.number(left))
 
       seen > 0 and is_integer(minutes) and minutes > 0 ->
-        "Watched · " <> Kati.Screens.Library.runtime_line(minutes)
+        gettext("Watched · %{runtime}", runtime: Kati.Screens.Library.runtime_line(minutes))
 
       is_integer(minutes) and minutes > 0 ->
         Kati.Screens.Library.runtime_line(minutes)
@@ -471,7 +471,11 @@ defmodule Kati.Screens.Library do
 
     if is_integer(total) and total > 0 do
       done = min(ticks, total)
-      "S1 · E#{min(done + 1, total)}"
+
+      gettext("S%{s} · E%{e}",
+        s: Kati.Locale.number(1),
+        e: Kati.Locale.number(min(done + 1, total))
+      )
     end
   end
 
@@ -490,12 +494,18 @@ defmodule Kati.Screens.Library do
   @spec runtime_line(pos_integer()) :: String.t()
   def runtime_line(minutes) when minutes >= 60 do
     case rem(minutes, 60) do
-      0 -> "#{div(minutes, 60)}h"
-      rest -> "#{div(minutes, 60)}h #{rest}m"
+      0 ->
+        gettext("%{n}h", n: Kati.Locale.number(div(minutes, 60)))
+
+      rest ->
+        gettext("%{h}h %{m}m",
+          h: Kati.Locale.number(div(minutes, 60)),
+          m: Kati.Locale.number(rest)
+        )
     end
   end
 
-  def runtime_line(minutes), do: "#{minutes}m"
+  def runtime_line(minutes), do: gettext("%{n}m", n: Kati.Locale.number(minutes))
 
   # A series divides ticks by the episode total; a film divides its resume point
   # by its runtime. Anything either half cannot answer is nil, never a guess.
@@ -576,7 +586,7 @@ defmodule Kati.Screens.Library do
         padding_bottom={132}
       >
         {Kati.Screens.Library.header(titles, assigns.menu?)}
-        {Kati.Screens.Library.segments("Screen")}
+        {Kati.Screens.Library.segments(:screen)}
         {Kati.Screens.Library.quick_tiles(Map.get(assigns, :queued, length(titles)))}
         {Kati.Screens.Library.shelf_body(filter, titles)}
       </Column>
@@ -742,7 +752,16 @@ defmodule Kati.Screens.Library do
   """
   @spec subtitle([map()]) :: String.t()
   def subtitle(titles) do
-    "#{length(titles)} titles · #{Enum.count(titles, &(&1.status == :watching))} in progress"
+    gettext("%{titles} · %{watching}",
+      titles:
+        ngettext("%{n} title", "%{n} titles", length(titles),
+          n: Kati.Locale.number(length(titles))
+        ),
+      watching:
+        gettext("%{n} in progress",
+          n: Kati.Locale.number(Enum.count(titles, &(&1.status == :watching)))
+        )
+    )
   end
 
   @doc """
@@ -771,7 +790,7 @@ defmodule Kati.Screens.Library do
       ~MOB"""
       <Text
         text={subtitle}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(subtitle)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -791,8 +810,9 @@ defmodule Kati.Screens.Library do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           {Kati.Screens.Library.subtitle_line(titles)}
         </Column>
@@ -862,9 +882,9 @@ defmodule Kati.Screens.Library do
       Kati.Screens.Library.disc("more_horiz", :toggle_menu),
       open?,
       [
-        Kati.UI.Menu.item("inbox", "New releases", :open_new_releases),
-        Kati.UI.Menu.item("schedule", "What fits?", :open_what_fits),
-        Kati.UI.Menu.item("checklist", "Select titles", :open_shelf_selection)
+        Kati.UI.Menu.item("inbox", gettext("New releases"), :open_new_releases),
+        Kati.UI.Menu.item("schedule", gettext("What fits?"), :open_what_fits),
+        Kati.UI.Menu.item("checklist", gettext("Select titles"), :open_shelf_selection)
       ],
       dismiss: :close_menu
     )
@@ -937,26 +957,40 @@ defmodule Kati.Screens.Library do
   because with one section kept there is no gap to draw and with three there
   are two.
   """
-  @spec kept_segments(String.t()) :: [map()]
+  @spec kept_segments(atom()) :: [map()]
   def kept_segments(active) do
-    [
-      {"screen", "movie", "Screen"},
-      {"books", "menu_book", "Books"},
-      {"music", "graphic_eq", "Music"}
-    ]
-    |> Enum.filter(fn {id, _icon, _label} -> Kati.Sections.on?(id) end)
-    |> Enum.map(fn {_id, icon, label} ->
-      Kati.Screens.Library.segment(icon, label, active == label)
+    Kati.Screens.Library.segments_of()
+    |> Enum.filter(fn {id, _icon, _label} -> Kati.Sections.on?(Atom.to_string(id)) end)
+    |> Enum.map(fn {id, icon, label} ->
+      Kati.Screens.Library.segment(id, icon, label, active == id)
     end)
     |> Enum.intersperse(Kati.Screens.Library.segment_gap())
+  end
+
+  @doc """
+  The three shelf segments, `{key, icon, label}`.
+
+  The KEY is what a tap is named after and what `Kati.Sections.on?/1` and the
+  active comparison read; the label is copy. They were one string — the tag was
+  `String.to_atom("shelf_" <> label)` and the active test was `active == label`
+  — which is why `Kati.Screens.LibraryFa` tagged its own by INDEX instead and
+  said so in its moduledoc. mishka-group/kati#103.
+  """
+  @spec segments_of() :: [{atom(), String.t(), String.t()}]
+  def segments_of do
+    [
+      {:screen, "movie", gettext("Screen")},
+      {:books, "menu_book", gettext("Books")},
+      {:music, "graphic_eq", gettext("Music")}
+    ]
   end
 
   @doc false
   def segment_gap, do: ~MOB"<Spacer size={4} />"
 
   @doc false
-  def segment(icon, label, on?) do
-    tap = {self(), String.to_atom("shelf_" <> label)}
+  def segment(key, icon, label, on?) do
+    tap = {self(), String.to_atom("shelf_" <> Atom.to_string(key))}
     bg = if on?, do: Palette.card(), else: Palette.transparent()
     fg = if on?, do: Palette.ink(), else: Palette.segment_idle()
     weight = if on?, do: "bold", else: "semibold"
@@ -986,11 +1020,11 @@ defmodule Kati.Screens.Library do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.Library.quick_tile("playlist_play", "Up next", Kati.Screens.Library.up_next_badge(queued), :open_up_next)}
+        {Kati.Screens.Library.quick_tile("playlist_play", gettext("Up next"), Kati.Screens.Library.up_next_badge(queued), :open_up_next)}
         <Spacer size={9} />
-        {Kati.Screens.Library.quick_tile("explore", "Discover", nil, :open_discover)}
+        {Kati.Screens.Library.quick_tile("explore", gettext("Discover"), nil, :open_discover)}
         <Spacer size={9} />
-        {Kati.Screens.Library.quick_tile("bookmarks", "Lists", nil, :open_lists)}
+        {Kati.Screens.Library.quick_tile("bookmarks", gettext("Lists"), nil, :open_lists)}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -1029,7 +1063,7 @@ defmodule Kati.Screens.Library do
   """
   @spec up_next_badge([map()]) :: String.t() | nil
   def up_next_badge(queued) when is_integer(queued) do
-    if queued == 0, do: nil, else: Integer.to_string(queued)
+    if queued == 0, do: nil, else: Kati.Locale.number(queued)
   end
 
   def up_next_badge(titles) when is_list(titles),
@@ -1077,7 +1111,7 @@ defmodule Kati.Screens.Library do
     ~MOB"""
     <Text
       text={count}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(count)}
       text_size={10}
       text_color={Palette.rail_idle()}
       max_lines={1}
@@ -1246,8 +1280,16 @@ defmodule Kati.Screens.Library do
   # drawing sets this line in DM Mono at 10.5.
   @doc false
   def chip_count(count, color) do
+    assigns = %{count: Kati.Locale.number(count)}
+
     ~MOB"""
-    <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={color} max_lines={1} />
+    <Text
+      text={@count}
+      font_family={Kati.Locale.mono_face(@count)}
+      text_size={10.5}
+      text_color={color}
+      max_lines={1}
+    />
     """
   end
 
@@ -1531,8 +1573,8 @@ defmodule Kati.Screens.Library do
     # See `Kati.Screens.Pushed.back_label/2`: a film opened from here used to
     # offer to take somebody back to the Library.
     case row && Map.get(row, :id) do
-      nil -> Mob.Socket.push_screen(socket, module, %{back: "Library"})
-      id -> Mob.Socket.push_screen(socket, module, %{id: id, back: "Library"})
+      nil -> Mob.Socket.push_screen(socket, module, %{back: gettext("Library")})
+      id -> Mob.Socket.push_screen(socket, module, %{id: id, back: gettext("Library")})
     end
   end
 
@@ -1570,14 +1612,14 @@ defmodule Kati.Screens.Library do
         text={item.title}
         text_size={12.5}
         font_weight="bold"
-        letter_spacing={-0.01}
+        letter_spacing={Kati.Locale.tracking(-0.01)}
         text_color={:on_surface}
         max_lines={1}
       />
       <Spacer size={3} />
       <Text
         text={Kati.Screens.Library.tile_meta(item)}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(Kati.Screens.Library.tile_meta(item))}
         text_size={10.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -1605,12 +1647,15 @@ defmodule Kati.Screens.Library do
   names the status instead of printing a percentage of an unknown total.
   """
   @spec tile_meta(map()) :: String.t()
-  def tile_meta(%{status: :not_started}), do: "not started"
-  def tile_meta(%{status: :finished}), do: "finished"
-  def tile_meta(%{progress: p}) when is_float(p) and p > 0.0, do: "#{round(p * 100)}% watched"
-  def tile_meta(%{status: :paused}), do: "paused"
-  def tile_meta(%{status: :dropped}), do: "dropped"
-  def tile_meta(_item), do: "watching"
+  def tile_meta(%{status: :not_started}), do: gettext("not started")
+  def tile_meta(%{status: :finished}), do: gettext("finished")
+
+  def tile_meta(%{progress: p}) when is_float(p) and p > 0.0,
+    do: gettext("%{n}% watched", n: Kati.Locale.number(round(p * 100)))
+
+  def tile_meta(%{status: :paused}), do: gettext("paused")
+  def tile_meta(%{status: :dropped}), do: gettext("dropped")
+  def tile_meta(_item), do: gettext("watching")
 
   @doc """
   The `0.0..1.0` the rail burnt into a poster's bottom edge sweeps.
@@ -1689,7 +1734,7 @@ defmodule Kati.Screens.Library do
   def handle_tap(:open_search, socket),
     do:
       {:noreply,
-       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Library"})}
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: gettext("Library")})}
 
   def handle_tap(:open_up_next, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNext)}
@@ -1715,7 +1760,8 @@ defmodule Kati.Screens.Library do
   # and how loudly it says so, which is exactly what a setting is. The two rows
   # sounded like each other and were not the same thing at all.
   def handle_tap(:open_new_releases, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox, %{back: "Library"})}
+    do:
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox, %{back: gettext("Library")})}
 
   def handle_tap(:open_lists, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
@@ -1794,6 +1840,19 @@ defmodule Kati.Screens.Library do
       # `shelf_Screen`, and only ever that: the other two segments have clauses
       # of their own that push. Pressing the segment you are on is how you
       # check you are on it, so it keeps its tap and changes nothing (#122).
+      # The Books and Music segments open the shelves they name. They were
+      # inert — every `shelf_*` tag answered `{:noreply, socket}` — and
+      # `Kati.Screens.LibraryFa` was the page that wired them, after a device
+      # reported pressing *Music* and landing on one album. The mirror's
+      # ruling survives the fold; the Screen segment stays inert because it is
+      # the shelf the reader is already looking at, which is what
+      # `Kati.ScreenTapSweepTest` files it as.
+      "shelf_books" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+
+      "shelf_music" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+
       "shelf_" <> _screen ->
         {:noreply, socket}
 

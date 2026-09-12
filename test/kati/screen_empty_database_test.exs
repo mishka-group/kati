@@ -370,7 +370,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # mirror away. Board 56 is screen 02 under `:fa` now — hence its number on
     # `@fa_numbers` below.
     {"56", Kati.Screens.Calendar},
-    {"57", Kati.Screens.LibraryFa},
+    # 57 was `Kati.Screens.LibraryFa` until mishka-group/kati#103 folded that
+    # mirror away. Board 57 is screen 03 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"57", Kati.Screens.Library},
     # 58 is 04 in Persian and reads through 04 — see the note above.
     # 58 was `Kati.Screens.Series` until mishka-group/kati#103 folded that
     # mirror away. It is screen 04 under `:fa` now — hence its number on
@@ -889,6 +892,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 07's answer whole: no board draws the year card with no year behind it in
     # either script, and the page a Persian reader gets with nothing watched is
     # the same card, translated. `Kati.ScreenStatsEmptyTest` holds it.
+    # 57 is 03 read under `:fa` since mishka-group/kati#103. Screen 03's empty
+    # shelf is board 27's card — an English reference sheet with no Persian
+    # twin anywhere in the 152 — so a Persian reader with nothing shelved gets
+    # that card translated, and no board in the set draws it.
+    {"57",
+     "57 is board 03 under `:fa`, and 03's empty shelf is board 27's *Empty — nothing added " <>
+       "yet* card. 27 is a reference sheet drawn in English and nothing in the 152 mirrors " <>
+       "it, so there is no Persian board of a shelf with nothing on it. What the page draws " <>
+       "instead is 27's own card read in the other script, and " <>
+       "`Kati.ScreenLibraryEmptyTest` holds which of its two states a shelf is in",
+     Kati.ScreenLibraryEmptyTest},
     {"61",
      "61 is board 07 under `:fa` and no board draws the stats page with nothing watched in " <>
        "either script. The card it draws instead is 07's — 101's *Not enough data* wording " <>
@@ -1037,6 +1051,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"56", "56", "برنامه"},
     {"56", "56", "همه"},
     {"56", "56", "نمایش"},
+    # 57's four. Board 27 is English, so what constrains an empty Persian shelf
+    # is the chrome board 57 draws itself and no empty store can take away: the
+    # page's own name, and the three shelf segments, which are `Kati.Sections`'
+    # answer rather than the shelf's.
+    {"57", "57", "کتابخانه"},
+    {"57", "57", "نمایش"},
+    {"57", "57", "کتاب‌ها"},
+    {"57", "57", "موسیقی"},
     {"07", "101", "Not much to show yet"},
     # 61's three, and the reason they are three where 07 has one: 07 borrows its
     # empty sentence from board 101, which is an English board with no Persian
@@ -2391,8 +2413,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.Nutrition.drawn_figures/0},
       {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
        &Kati.Meals.SampleShopping.list/0},
-      {"57", Kati.Screens.LibraryFa, &Kati.Screens.LibraryFa.titles/0,
-       &Kati.Screens.LibraryFa.drawn_titles/0},
       # 58 is 04's gate reached through 04's read, so this pair fails for two
       # different defects: a lost Persian fallback, and an English one — the
       # mirror cannot keep drawing its drawing if `tracked_series/0` stops
@@ -2606,6 +2626,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"56", Kati.Screens.Calendar, fn -> Kati.Screens.Calendar.day_rows(today) end, [],
        &Kati.Screens.Calendar.drawn_rows/0},
       {"03", Kati.Screens.Library, &Kati.Screens.Library.titles/0, [],
+       &Kati.Screens.Library.drawn_titles/0},
+      # 57 is 03 read under `:fa` since mishka-group/kati#103, so it gates on
+      # 03's own pair — the same read, and the same drawing to fall back to.
+      {"57", Kati.Screens.Library, &Kati.Screens.Library.titles/0, [],
        &Kati.Screens.Library.drawn_titles/0},
       # 07 has no single accessor: `figures/0` answers a keyword list whose third
       # element is a real read either way. The two the branch turns on are taken,
@@ -3073,7 +3097,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(56 58 60 61 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
+  @fa_numbers ~w(56 57 58 60 61 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

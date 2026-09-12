@@ -115,7 +115,7 @@ defmodule Kati.LocaleFaceTest do
       # right to. The list shrinks with every fold and goes with the last
       # mirror.
       ScreenSweep.with_locale(:en, fn ->
-        for module <- [Kati.Screens.HomeFa, Kati.Screens.LibraryFa] do
+        for module <- [Kati.Screens.HomeFa] do
           root = safe_root(module)
           assert root, "#{inspect(module)} did not render"
 

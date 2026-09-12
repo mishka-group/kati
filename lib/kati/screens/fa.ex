@@ -121,7 +121,7 @@ defmodule Kati.Screens.Fa do
     * `MishkaSeparator` with `render: :box` — every hairline in a card:
       `Kati.Screens.SettingsFa.hairline/1`, `Kati.Screens.MealsMatrixFa`'s row
       rule and legend rule.
-    * `MishkaScrollArea` — `Kati.Screens.LibraryFa.chips/1`.
+    * `MishkaScrollArea` — board 57's chip rail, now `Kati.Screens.Library`'s.
 
   `MishkaThemeIcon` also carries the one *labelled* adoption on these screens,
   `Kati.Screens.SettingsFa.leading/1`'s فا badge tile, and it carries it only
@@ -146,7 +146,9 @@ defmodule Kati.Screens.Fa do
     # board 56's mirror away: the screen takes its script from `Kati.Locale`,
     # so naming it here carries no reader out of Persian.
     %{id: :calendar, icon: "calendar_month", screen: Kati.Screens.Calendar},
-    %{id: :library, icon: "grid_view", screen: Kati.Screens.LibraryFa},
+    # کتابخانه is `Kati.Screens.Library` since mishka-group/kati#103 folded
+    # board 57's mirror away.
+    %{id: :library, icon: "grid_view", screen: Kati.Screens.Library},
     # آمار is `Kati.Screens.Stats` again, and this time it is not a stand-in:
     # mishka-group/kati#103 folded the mirror away, so board 61 IS screen 07
     # read under `:fa`. The stand-in that used to sit here changed the app's

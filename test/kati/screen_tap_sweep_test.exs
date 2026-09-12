@@ -160,17 +160,21 @@ defmodule Kati.ScreenTapSweepTest do
   @locales [:en, :fa]
 
   # Tags whose non-ASCII comes from a ROW and not from a label — see the test
-  # that reads this. Screen 03's Persian mirror draws six sample series with no
-  # id, so `Kati.Screens.LibraryFa.poster_tag/1` falls back to the caption for
-  # every one. `Kati.ScreenParamsSweepTest` carries the same six by name.
-  # mishka-group/kati#103 deletes the mirror and the list with it.
+  # that reads this. `Kati.Library.Sample.titles/0` is nine titles with no id,
+  # so `Kati.Screens.Library.poster_tag/1` falls back to the caption for every
+  # one — and since mishka-group/kati#103 folded board 57's mirror away, the
+  # caption is Persian when the reader is. The mirror's own six are gone with
+  # it; these are the same shelf read in the other script.
   @from_the_data [
-    {Kati.Screens.LibraryFa, :open_series_بارش_خاکستر},
-    {Kati.Screens.LibraryFa, :open_series_بندر_آرام},
-    {Kati.Screens.LibraryFa, :open_series_ساعت_آبی},
-    {Kati.Screens.LibraryFa, :open_series_نمک_و_آهن},
-    {Kati.Screens.LibraryFa, :open_series_پرندگان_شب},
-    {Kati.Screens.LibraryFa, :open_series_گودال_بلند}
+    {Kati.Screens.Library, :open_series_بارش_خاکستر},
+    {Kati.Screens.Library, :open_film_بندر_آرام},
+    {Kati.Screens.Library, :open_film_ساعت_آبی},
+    {Kati.Screens.Library, :open_series_نمک_و_آهن},
+    {Kati.Screens.Library, :open_film_پرندگان_شب},
+    {Kati.Screens.Library, :open_series_گودال_بلند},
+    {Kati.Screens.Library, :open_series_مارام},
+    {Kati.Screens.Library, :open_film_ولوم},
+    {Kati.Screens.Library, :"open_series_نقشه‌کش"}
   ]
 
   # The remaining design- and capability-blocked groups are written up in
@@ -853,7 +857,7 @@ defmodule Kati.ScreenTapSweepTest do
     # of four readings has no month to narrow to. It narrows when there is
     # something to narrow.
     {Kati.Screens.Weight, :range_month},
-    {Kati.Screens.Library, :shelf_Screen},
+    {Kati.Screens.Library, :shelf_screen},
     # The same segment on the other two shelves. Screens 03, 20 and 21 draw one
     # control three times, and on each of them one segment is the shelf you are
     # already looking at. The other two now move — see
@@ -861,8 +865,6 @@ defmodule Kati.ScreenTapSweepTest do
     # resting member of a family rather than two more dead tabs.
     {Kati.Screens.Books, :open_books},
     {Kati.Screens.Music, :segment_music},
-    {Kati.Screens.LibraryFa, :filter_0},
-    {Kati.Screens.LibraryFa, :shelf_0},
     {Kati.Screens.MealsDay, :filter_All},
     {Kati.Screens.Nutrition, :period_Week},
     {Kati.Screens.ReleaseWatcher, :"cadence_Every 6h"},

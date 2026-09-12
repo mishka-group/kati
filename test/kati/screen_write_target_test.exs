@@ -593,7 +593,8 @@ defmodule Kati.ScreenWriteTargetTest do
   # and one of the thirteen is a control that GAINED a destination rather than
   # losing one — 07's numbers card grew board 61's Health row, which opens
   # screen 110.
-  # 159 since mishka-group/kati#103 folded `Kati.Screens.ScheduleFa` away. The
+  # 158 since mishka-group/kati#103 folded `Kati.Screens.ScheduleFa` and
+  # `Kati.Screens.LibraryFa` away. The
   # floor counts MODULES the pass can mount bare, and a fold removes one while
   # leaving every control it drew reachable on the screen it folded into — the
   # `@drawn_taps` floor beside this one is what says so.
@@ -603,8 +604,19 @@ defmodule Kati.ScreenWriteTargetTest do
   # overflow menu with four items, a seven-cell day strip, four filter chips,
   # five timeline rows, four dock tabs and a FAB. Screen 02 is swept in both
   # locales and answers for all of them, and the measured drop is nineteen.
-  @screens_swept 159
-  @drawn_taps 2065
+  #
+  # And a sixth time, to 2020. mishka-group/kati#103 folded
+  # `Kati.Screens.LibraryFa` into screen 03: board 57 drew a search disc, a
+  # sort disc, three shelf segments, three quick tiles, four filter chips, six
+  # grid tiles, four dock tabs and a FAB. Screen 03 is swept in both locales
+  # and answers for all of them, and the measured drop is thirty-four.
+  #
+  # Two of the thirty-four went the other way. The Books and Music segments on
+  # screen 03 were INERT — every `shelf_*` tag answered `{:noreply, socket}` —
+  # and they push screens 20 and 21 now, which is the ruling the mirror made
+  # after a device reported pressing *Music* and landing on one album.
+  @screens_swept 158
+  @drawn_taps 2020
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

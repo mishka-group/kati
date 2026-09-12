@@ -22,17 +22,23 @@ defmodule Kati.Library.Sample do
   # picsum seed the export uses for that title — `hollow71` is The Long
   # Hollow — so the app shows the exact picture the drawing shows rather than
   # something that merely occupies the same rectangle.
-  @titles [
-    %{title: "The Long Hollow", seed: "hollow71", progress: 0.62, kind: :series},
-    %{title: "Salt & Iron", seed: "saltiron33", progress: 0.24, kind: :series},
-    %{title: "Blue Hour", seed: "bluehour58", progress: 0.0, kind: :film},
-    %{title: "Ashfall", seed: "ashfall42", progress: 0.41, kind: :series},
-    %{title: "Marram", seed: "marram15", progress: 1.0, kind: :series},
-    %{title: "Harbour", seed: "harbour86", progress: 0.0, kind: :film},
-    %{title: "Nightbirds", seed: "nightbirds24", progress: 1.0, kind: :film},
-    %{title: "Vellum", seed: "vellum97", progress: 0.08, kind: :film},
-    %{title: "The Cartographer", seed: "cartog60", progress: 0.0, kind: :series}
-  ]
+  # A FUNCTION and not an attribute. `gettext/1` inside a module attribute is
+  # evaluated at COMPILE time, so nine titles would freeze in whichever locale
+  # the compiler happened to be in — the rule mishka-group/kati#103 has hit on
+  # every fixture it has folded. `titles/0` below is the reader.
+  defp drawn_titles do
+    [
+      %{title: gettext("The Long Hollow"), seed: "hollow71", progress: 0.62, kind: :series},
+      %{title: gettext("Salt & Iron"), seed: "saltiron33", progress: 0.24, kind: :series},
+      %{title: gettext("Blue Hour"), seed: "bluehour58", progress: 0.0, kind: :film},
+      %{title: gettext("Ashfall"), seed: "ashfall42", progress: 0.41, kind: :series},
+      %{title: gettext("Marram"), seed: "marram15", progress: 1.0, kind: :series},
+      %{title: gettext("Harbour"), seed: "harbour86", progress: 0.0, kind: :film},
+      %{title: gettext("Nightbirds"), seed: "nightbirds24", progress: 1.0, kind: :film},
+      %{title: gettext("Vellum"), seed: "vellum97", progress: 0.08, kind: :film},
+      %{title: gettext("The Cartographer"), seed: "cartog60", progress: 0.0, kind: :series}
+    ]
+  end
 
   @doc """
   Absolute path to a sample poster, or `nil` when there is none.
@@ -51,7 +57,7 @@ defmodule Kati.Library.Sample do
 
   @doc "Every title, in the order the grid draws them."
   @spec titles() :: [map()]
-  def titles, do: @titles
+  def titles, do: drawn_titles()
 
   # `test/design/reference/146.html`'s own three tiles, in its own words —
   # `S2 · 5/7` and `S1 · 3/8` are a season and an episode fraction, not the
@@ -127,20 +133,27 @@ defmodule Kati.Library.Sample do
   @doc "The header's mono subtitle: `9 titles · 4 in progress`."
   @spec subtitle() :: String.t()
   def subtitle do
-    total = length(@titles)
-    active = Enum.count(@titles, &(&1.progress > 0.0 and &1.progress < 1.0))
-    "#{total} titles · #{active} in progress"
+    # `Kati.Screens.Library.subtitle/1` and not a second composition of the
+    # same line: board 57 heads its shelf ۹ عنوان · ۴ در حال تماشا and board 03
+    # heads its own `9 titles · 4 in progress`, and those are one function over
+    # one list. Written out here it was two sentences that could disagree about
+    # what a shelf holds. mishka-group/kati#103.
+    Kati.Screens.Library.subtitle(
+      Enum.map(drawn_titles(), fn title ->
+        %{status: if(title.progress > 0.0 and title.progress < 1.0, do: :watching, else: :other)}
+      end)
+    )
   end
 
   @doc "Filter chips with their counts, the first one selected."
   @spec chips() :: [{String.t(), non_neg_integer()}]
   def chips do
     [
-      {:all, gettext("All"), length(@titles)},
+      {:all, gettext("All"), length(drawn_titles())},
       {:watching, gettext("Watching"),
-       Enum.count(@titles, &(&1.progress > 0.0 and &1.progress < 1.0))},
-      {:not_started, gettext("Not started"), Enum.count(@titles, &(&1.progress == 0.0))},
-      {:finished, gettext("Finished"), Enum.count(@titles, &(&1.progress == 1.0))}
+       Enum.count(drawn_titles(), &(&1.progress > 0.0 and &1.progress < 1.0))},
+      {:not_started, gettext("Not started"), Enum.count(drawn_titles(), &(&1.progress == 0.0))},
+      {:finished, gettext("Finished"), Enum.count(drawn_titles(), &(&1.progress == 1.0))}
     ]
   end
 

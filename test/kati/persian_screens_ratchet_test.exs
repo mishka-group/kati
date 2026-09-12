@@ -79,8 +79,7 @@ defmodule Kati.PersianScreensRatchetTest do
     Kati.Screens.HomeFa,
     Kati.Screens.HomeFaEmpty,
     Kati.Screens.HomeFaEmptyDark,
-    Kati.Screens.HomeFaOmittedSections,
-    Kati.Screens.LibraryFa
+    Kati.Screens.HomeFaOmittedSections
   ]
 
   describe "the Persian mirrors" do

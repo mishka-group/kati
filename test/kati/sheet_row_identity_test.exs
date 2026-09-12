@@ -1107,39 +1107,56 @@ defmodule Kati.SheetRowIdentityTest do
       assert unknown.__mob__.nav_action == {:push, Kati.Screens.Series, %{back: "Library"}}
     end
 
-    test "screen 57's Persian grid names the same row" do
+    test "board 57's Persian grid names the same row" do
+      # Board 57 is screen 03 read under `:fa` since mishka-group/kati#103, so
+      # the tile whose caption is Persian is the same tile — `poster_tag/1`
+      # falls back to the caption for a row with no id, and the caption is in
+      # whichever script the reader is.
       row = %{id: "row-identity-title-three", title: "گودال بلند"}
-      socket = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.LibraryFa), :titles, [row])
+      socket = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.Library), :titles, [row])
 
       {:noreply, moved} =
-        Kati.Screens.LibraryFa.handle_info(
-          {:tap, Kati.Screens.LibraryFa.poster_tag(row)},
-          socket
-        )
+        Kati.Locale.as(:fa, fn ->
+          Kati.Screens.Library.handle_tap(Kati.Screens.Library.poster_tag(row), socket)
+        end)
 
+      # کتابخانه and not `Library`: the pill names the screen the reader is ON,
+      # and under `:fa` that screen calls itself کتابخانه. It was a literal
+      # `"Library"` on every push out of this shelf, so a Persian reader's back
+      # pill read the English word.
       assert moved.__mob__.nav_action ==
-               {:push, Kati.Screens.Series, %{id: "row-identity-title-three"}}
+               {:push, Kati.Screens.Series, %{id: "row-identity-title-three", back: "کتابخانه"}}
 
       # The untitled tile is one tile like any other: `poster_tag/1` falls back
-      # to `:open_series` for a row whose cache row lost its name, and a tag
-      # that matches nothing still pushes bare.
-      bare = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.LibraryFa), :titles, [])
-      {:noreply, nothing} = Kati.Screens.LibraryFa.handle_info({:tap, :open_series}, bare)
+      # to `:open_series` for a row whose cache row lost its name, and the bare
+      # tag is the drawing's own single-tile state, which names nothing at all
+      # — `Kati.ScreenParamsSweepTest`'s `@bare_pushes` is where that is written
+      # down.
+      bare = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.Library), :titles, [])
+      {:noreply, nothing} = Kati.Screens.Library.handle_tap(:open_series, bare)
 
       assert nothing.__mob__.nav_action == {:push, Kati.Screens.Series, %{}}
     end
 
     test "the drawn shelf names nothing, which is what every capture was taken from" do
-      for row <- Kati.Screens.LibraryFa.drawn_titles() do
+      for row <- Kati.Screens.Library.drawn_titles() do
         assert Kati.Screens.Series.params_for(row) == %{}
       end
 
       assert Kati.Screens.Series.params_for(nil) == %{}
 
-      assert Kati.Screens.LibraryFa.tapped(
-               :open_series_nobody,
-               Kati.Screens.LibraryFa.drawn_titles()
-             ) == nil
+      # A tag matching no row on the shelf pushes with the origin alone, which
+      # is `open_tile/3`'s `nil` branch — the mirror spelled the same answer as
+      # a `tapped/2` of its own.
+      socket =
+        Mob.Socket.assign(
+          Mob.Socket.new(Kati.Screens.Library),
+          :titles,
+          Kati.Screens.Library.drawn_titles()
+        )
+
+      {:noreply, nobody} = Kati.Screens.Library.handle_tap(:open_series_nobody, socket)
+      assert nobody.__mob__.nav_action == {:push, Kati.Screens.Series, %{back: "Library"}}
     end
 
     test "the two ⋯ rows name their subject, and the drawing's name nothing" do

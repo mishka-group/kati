@@ -86,7 +86,10 @@ defmodule Kati.Screens.Gallery do
     # mirror away. It is screen 02 read under `:fa`, with "56" on
     # `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
     {"56", "برنامه", Kati.Screens.Calendar, :push},
-    {"57", "کتابخانه", Kati.Screens.LibraryFa, :push},
+    # 57 was `Kati.Screens.LibraryFa` until mishka-group/kati#103 folded that
+    # mirror away. It is screen 03 read under `:fa`, with "57" on
+    # `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"57", "کتابخانه", Kati.Screens.Library, :push},
     # mishka-group/kati#103's fold of screen 58. Board 58 is screen 04 under
     # `:fa`, with "58" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
     {"58", "سریال", Kati.Screens.Series, :push},

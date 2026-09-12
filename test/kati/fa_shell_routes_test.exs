@@ -19,14 +19,11 @@ defmodule Kati.FaShellRoutesTest do
   # under `:fa`, so the آمار tab names an English MODULE and a Persian PAGE, and
   # the two are no longer the same question. The list shrinks by one per fold
   # and the last fold empties it.
-  @persian_roots [
-    Kati.Screens.HomeFa,
-    Kati.Screens.LibraryFa
-  ]
+  @persian_roots [Kati.Screens.HomeFa]
 
   # A folded root: still on the Persian dock, and Persian because
   # `Kati.Locale` says so rather than because the module's name ends in `Fa`.
-  @folded_roots [Kati.Screens.Stats, Kati.Screens.Calendar]
+  @folded_roots [Kati.Screens.Stats, Kati.Screens.Calendar, Kati.Screens.Library]
 
   describe "the Persian dock names Persian screens" do
     test "every root in Kati.Screens.Fa.roots/0 is a Persian screen" do
@@ -59,7 +56,7 @@ defmodule Kati.FaShellRoutesTest do
     for {tag, expected} <- [
           {:root_home, Kati.Screens.HomeFa},
           {:root_calendar, Kati.Screens.Calendar},
-          {:root_library, Kati.Screens.LibraryFa}
+          {:root_library, Kati.Screens.Library}
         ] do
       test "#{tag} from آمار lands on #{inspect(expected)}", %{socket: socket} do
         # Screen 07 under `:fa` — `Kati.Screens.Root`'s shared `root_*` clause

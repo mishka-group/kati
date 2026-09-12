@@ -1507,6 +1507,11 @@ defmodule Kati.ScreenDesignLiteralTest do
          end)
        )},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
+      # 57 is the same screen and the same state read under `:fa` since
+      # mishka-group/kati#103. One entry, because `Kati.Library.Sample.titles/0`
+      # is a FUNCTION over `gettext/1` rather than nine frozen strings — board
+      # 57's گودال بلند and board 03's The Long Hollow are one msgid.
+      {"57", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so
       # its state is 01's with one entry fewer: board 28 has no Watching row and
       # no Sections band. `:moment` is deliberately NOT replaced — the date line

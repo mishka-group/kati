@@ -560,6 +560,34 @@ defmodule Kati.DesignLiterals do
       {"176", "از راست پر می‌شود"},
       {"176", "، جلدها هرگز آینه نمی‌شوند، و ترتیب عمودی برعکس نمی‌شود."},
       {"176", "همان واژه‌ای است که ۱۵۶ به کار می‌برد — یک ثبت، در هر دو جا."},
+      # ── Board 57's Wishlist chip and its four grid sub-lines.
+      #
+      # **آرزو and فهرست آرزو.** Board 57's fourth chip is *wish list* where
+      # board 03's is *Not started*, and the tile under it says فهرست آرزو
+      # where 03's says `not started`. They are the same state given a
+      # different name, and the name board 57 gives it is the one
+      # MOVIES-AND-TV.md #106 retired app-wide: board 12's *Wishlist* row went
+      # with `bookmark` and `inventory_2` because a wish is an assertion a
+      # reader makes about a title and no column in Kati holds it. A chip that
+      # counts *not started* and calls it *wished for* would put the retired
+      # claim back, one screen along.
+      {"57", "آرزو"},
+      {"57", "فهرست آرزو"},
+      #
+      # **فصل ۲ · ۵ از ۷, فصل ۱ · ۳ از ۸, فصل ۳ · ۱ از ۶, فیلم · ۲۰۲۵.** The
+      # grid's sub-line is templated on board 03 — `{{ it.meta }}` in the export
+      # — and board 57 fills it in with a season and an episode fraction, and
+      # for the film with a kind and a year. `Kati.Screens.Library.tile_meta/1`
+      # derives its line from the two facts a shelf row actually knows: the
+      # status the user set, and how far in they are. A season NUMBER and an
+      # episode TOTAL live on `Kati.Media.CachedTitle` and a release year on the
+      # cache row beside them; the shelf carries a fraction, and the tile that
+      # printed a season would be printing one it had inferred from a
+      # percentage. Board 146's own grid makes the same trade and says so.
+      {"57", "فصل ۲ · ۵ از ۷"},
+      {"57", "فصل ۱ · ۳ از ۸"},
+      {"57", "فصل ۳ · ۱ از ۶"},
+      {"57", "فیلم · ۲۰۲۵"},
       # ── Board 56's annotation aside.
       #
       # *هفته از شنبه آغاز می‌شود* — *the week starts on Saturday.* The board's

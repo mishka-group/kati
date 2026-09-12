@@ -255,7 +255,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # empty inbox has no word to search for. It is an invitation to type rather
     # than a search somebody started.
     {Kati.Screens.Inbox, :add_title, Kati.Screens.AddTitle},
-    {Kati.Screens.LibraryFa, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.MonthGrid, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Stats, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Week, :fab, Kati.Screens.AddTitle},
@@ -537,22 +536,13 @@ defmodule Kati.ScreenParamsSweepTest do
 
     # ── Screen 57's six grid tiles.
     #
-    # `library_fa.ex:926-934` looks the tile back up by its poster tag and
-    # pushes `Kati.Screens.Series.params_for/1` over it, so the Persian grid
-    # and the English one spell `:id` once between them. The empty shelf falls
-    # back to `Kati.Screens.LibraryFa.Sample.titles/0`
-    # (`library_fa/sample.ex:53-62`), six literals whose only unique field is a
-    # `seed` for the artwork, so `series.ex:258-259` answers `%{}`.
-    #
-    # The tags are the titles with their spaces replaced (`poster_tag/1`,
-    # `library_fa.ex:744-753`), which is also why they are the tiles' identity
-    # in this list and not in the push.
-    {Kati.Screens.LibraryFa, :open_series_بارش_خاکستر, Kati.Screens.Series},
-    {Kati.Screens.LibraryFa, :open_series_بندر_آرام, Kati.Screens.Series},
-    {Kati.Screens.LibraryFa, :open_series_ساعت_آبی, Kati.Screens.Series},
-    {Kati.Screens.LibraryFa, :open_series_نمک_و_آهن, Kati.Screens.Series},
-    {Kati.Screens.LibraryFa, :open_series_پرندگان_شب, Kati.Screens.Series},
-    {Kati.Screens.LibraryFa, :open_series_گودال_بلند, Kati.Screens.Series},
+    # Board 57's six tiles used to be listed here under
+    # `Kati.Screens.LibraryFa`. mishka-group/kati#103 folded that mirror away
+    # and this sweep walks `:en` only, so the Persian spellings are drawn by
+    # nothing it renders — the same nine tiles are already named above by their
+    # English captions, which is the list this sweep can see.
+    # `Kati.ScreenTapSweepTest` walks both locales and carries the Persian nine
+    # in its own `@from_the_data`.
 
     # ── Screen 77's four album rows.
     #

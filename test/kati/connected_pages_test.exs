@@ -26,7 +26,6 @@ defmodule Kati.ConnectedPagesTest do
   alias Kati.Music.Album
   alias Kati.Screens.AddTitle
   alias Kati.Screens.AlbumDetail
-  alias Kati.Screens.LibraryFa
 
   @prefix "connected-test-"
 
@@ -87,13 +86,19 @@ defmodule Kati.ConnectedPagesTest do
     end
   end
 
-  describe "screen 57's music segment opens a shelf" do
+  # Board 57 is screen 03 read under `:fa` since mishka-group/kati#103, and the
+  # segments the mirror wired are the folded screen's — they were inert on 03,
+  # which is the whole finding this block records.
+  describe "board 57's music segment opens a shelf" do
     test "موسیقی reaches the music shelf and not one album" do
       # It pushed `Kati.Screens.AlbumDetail` — a page about ONE record, with
       # no list, no `+` and nothing to come back to. Screen 21 is in English
       # because no board draws a Persian music shelf, which is the trade
       # `Kati.Screens.HealthFa` already makes for screen 111 and states.
-      view = render_info(mount_screen(LibraryFa), {:tap, :shelf_2})
+      view =
+        Kati.Locale.as(:fa, fn ->
+          render_info(mount_screen(Kati.Screens.Library), {:tap, :shelf_music})
+        end)
 
       assert navigated_to(view) == Kati.Screens.Music,
              "the Music segment does not open the music shelf"
@@ -104,7 +109,10 @@ defmodule Kati.ConnectedPagesTest do
     test "and the books segment still opens the books shelf" do
       # The pair is asserted together because they were one mistake made
       # twice, fixed a fortnight apart.
-      view = render_info(mount_screen(LibraryFa), {:tap, :shelf_1})
+      view =
+        Kati.Locale.as(:fa, fn ->
+          render_info(mount_screen(Kati.Screens.Library), {:tap, :shelf_books})
+        end)
 
       assert navigated_to(view) == Kati.Screens.Books
     end

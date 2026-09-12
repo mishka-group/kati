@@ -270,7 +270,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
                "#{inspect(literal)} is drawn over a shelf that has a title on it"
       end
 
-      assert "1 titles · 1 in progress" in drawn,
+      assert "1 title · 1 in progress" in drawn,
              "the mono subtitle is withheld only while there is nothing to count"
 
       for chip <- ["All", "Watching", "Not started", "Finished"] do
@@ -299,7 +299,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
       refute Kati.Screens.Library.empty_state() |> inspect() =~ "Everything here is started",
              "screen 27's card is for an empty library and this is not one"
 
-      assert "1 titles · 1 in progress" in drawn
+      assert "1 title · 1 in progress" in drawn
     end
 
     test "and a chip that leaves nothing says which chip, not that the shelf is empty" do
