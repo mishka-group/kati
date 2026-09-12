@@ -24,6 +24,8 @@ defmodule Kati.Screens.AddByHandStates do
   """
   use Kati.Screens.Pushed, back: "Settings"
 
+  use Gettext, backend: Kati.Gettext
+
   alias Kati.Screens.AddByHand
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
@@ -34,19 +36,31 @@ defmodule Kati.Screens.AddByHandStates do
     # at 54, 42 tall, so the content that follows starts at `content_top/0`
     # to clear it. Before this the column had no padding at all and the
     # form ran to the pixel with its heading under the pill.
+    #
+    # The eyebrow is `Kati.UI.eyebrow_label/1` around a normal-case msgid
+    # rather than a shouted literal: `String.upcase/1` is a Latin operation, so
+    # a `TWO STATES` msgid would have asked a translator for a raised form the
+    # Arabic script does not have. English still renders TWO STATES, which is
+    # what board 155 draws. mishka-group/kati#103.
     Kati.Screens.Pushed.page(
       ~MOB"""
       <Column fill_width={true}>
         <Text
-          text="Add by hand"
+          text={gettext("Add by hand")}
           text_size={28}
           max_font_scale={1.6}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
+          max_lines={1}
         />
         <Spacer size={7} />
-        <Text text="TWO STATES" text_size={13} line_height={1.55} text_color={Palette.sub()} />
+        <Text
+          text={Kati.UI.eyebrow_label(gettext("Two states"))}
+          text_size={13}
+          line_height={1.55}
+          text_color={Palette.sub()}
+        />
         <Spacer size={20} />
         {Kati.Screens.AddByHandStates.resting()}
         {Kati.Screens.AddByHandStates.refused()}
@@ -57,24 +71,36 @@ defmodule Kati.Screens.AddByHandStates do
     )
   end
 
-  @doc "The first band: the form as it opens, with nothing assumed."
+  @doc """
+  The first band: the form as it opens, with nothing assumed.
+
+  The Year specimen is a `pgettext/2` and not a bare `2026`, for the reason
+  `Kati.Screens.AddByHand` already settled on the live field: its placeholder
+  is `gettext("2024")` and Persian reads **۱۴۰۳**, not ۲۰۲۴. A placeholder is
+  not a citation — `Kati.Locale.year/1`'s rule about a publication year being a
+  fact printed on the object does not reach it, because nothing is being
+  quoted. It is an example of what the READER would type, and a Persian reader
+  types the year they are in. The context is there because a bare four-digit
+  msgid is exactly what `mix gettext.merge` fuzzy-matches against the other
+  one, and inheriting ۱۴۰۳ for 2026 would be wrong in a way nobody would see.
+  """
   @spec resting() :: map()
   def resting do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Resting — empty, Film, nothing assumed"
+        text={gettext("Resting — empty, Film, nothing assumed")}
         text_size={13.5}
         font_weight="semibold"
         text_color={:on_surface}
       />
       <Spacer size={12} />
-      {AddByHand.labelled("Title", Kati.Screens.AddByHandStates.specimen("e.g. The Long Hollow"))}
-      {AddByHand.labelled("Kind", Kati.Screens.AddByHandStates.drawn_kinds())}
-      {AddByHand.labelled("Year", Kati.Screens.AddByHandStates.specimen("2026"))}
+      {AddByHand.labelled(gettext("Title"), Kati.Screens.AddByHandStates.specimen(gettext("e.g. The Long Hollow")))}
+      {AddByHand.labelled(gettext("Kind"), Kati.Screens.AddByHandStates.drawn_kinds())}
+      {AddByHand.labelled(gettext("Year"), Kati.Screens.AddByHandStates.specimen(pgettext("year placeholder", "2026")))}
       {Kati.Screens.AddByHandStates.drawn_statuses()}
       <Spacer size={14} />
-      {Kati.Screens.AddByHandStates.two_term_note("Film is the default", " and ", "Not started", " the default status — the commonest thing a person adds by hand is a film they have not seen yet. Year is blank, not this year: a guessed year is a wrong year.")}
+      {Kati.Screens.AddByHandStates.two_term_note(gettext("Film is the default"), pgettext("note joiner", " and "), gettext("Not started"), gettext(" the default status — the commonest thing a person adds by hand is a film they have not seen yet. Year is blank, not this year: a guessed year is a wrong year."))}
       <Spacer size={26} />
     </Column>
     """
@@ -93,58 +119,77 @@ defmodule Kati.Screens.AddByHandStates do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="The save that refuses"
+        text={gettext("The save that refuses")}
         text_size={13.5}
         font_weight="semibold"
         text_color={:on_surface}
       />
       <Spacer size={12} />
-      {SettingsList.note("error", "A title is needed")}
+      {SettingsList.note("error", gettext("A title is needed"))}
       <Spacer size={9} />
       <Text
-        text="Kati cannot keep a thing with no name."
+        text={gettext("Kati cannot keep a thing with no name.")}
         text_size={12.5}
-        line_height={1.55}
+        line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.ink_soft()}
       />
       <Spacer size={9} />
-      {Kati.Screens.AddByHandStates.two_term_note("95’s empty-save sentence, same shape: name what is missing, then say", "nothing was written", "— this form is still open and your other answers are intact.", ". The field takes the red inset ring and keeps its caret; the button is never disabled, because a dead button explains nothing.")}
+      {Kati.Screens.AddByHandStates.two_term_note(gettext("95’s empty-save sentence, same shape: name what is missing, then say"), gettext("nothing was written"), gettext("— this form is still open and your other answers are intact."), gettext(". The field takes the red inset ring and keeps its caret; the button is never disabled, because a dead button explains nothing."))}
       <Spacer size={26} />
     </Column>
     """
   end
 
-  @doc false
+  @doc """
+  The third band: where Save lands, and the board numbers that say so.
+
+  The arrow is `Kati.Locale.forward_glyph/0` and not a hardcoded
+  `arrow_forward`. This one points at a DESTINATION — it is the picture of
+  going somewhere, and `layout_direction` mirrors a layout but never a
+  picture, so under `:fa` the row's arrow has to be the one that points the way
+  Persian reads.
+
+  The three board numbers stay inside their sentence rather than being
+  interpolated through `Kati.Locale.number/1`: they are part of a running
+  argument about screens 04, 08 and 89, and the catalogue already carries that
+  shape — `Kati.Screens.Series`' own long note about *04's one primary slot*
+  reads **صفحهٔ ۰۴** in the translation. A `%{n}` per board number would buy
+  nothing and cost the translator the sentence.
+  """
   def destination do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Where Add to library goes"
+        text={gettext("Where Add to library goes")}
         text_size={13.5}
         font_weight="semibold"
         text_color={:on_surface}
       />
       <Spacer size={12} />
       <Row fill_width={true} align="center">
-        {Kati.UI.symbol("arrow_forward", size: 17, color: Palette.sub())}
+        {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 17, color: Palette.sub())}
         <Spacer size={9} />
         <Column weight={1.0}>
-          <Text text="Straight to" text_size={12.5} text_color={Palette.ink_soft()} />
           <Text
-            text="the new title’s detail screen"
+            text={pgettext("destination note", "Straight to")}
+            text_size={12.5}
+            text_color={Palette.ink_soft()}
+          />
+          <Text
+            text={gettext("the new title’s detail screen")}
             text_size={12.5}
             font_weight="semibold"
             text_color={Palette.ink()}
           />
           <Text
-            text=", with Year deliberately blank."
+            text={gettext(", with Year deliberately blank.")}
             text_size={12.5}
             text_color={Palette.ink_soft()}
           />
           <Text
-            text="— 04 for a series, 08 for a film. Returning to 89 would leave the person on a search results page for a title they just finished typing; the detail screen is where the next thing they want to do lives."
+            text={gettext("— 04 for a series, 08 for a film. Returning to 89 would leave the person on a search results page for a title they just finished typing; the detail screen is where the next thing they want to do lives.")}
             text_size={12.5}
-            line_height={1.55}
+            line_height={Kati.Locale.leading(1.55)}
             text_color={Palette.ink_soft()}
           />
         </Column>
@@ -174,19 +219,29 @@ defmodule Kati.Screens.AddByHandStates do
         <Text
           text={@lead}
           text_size={12}
-          line_height={1.5}
+          line_height={Kati.Locale.leading(1.5)}
           font_weight="semibold"
           text_color={Palette.ink()}
         />
-        <Text text={@mid} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+        <Text
+          text={@mid}
+          text_size={12}
+          line_height={Kati.Locale.leading(1.5)}
+          text_color={Palette.ink_soft()}
+        />
         <Text
           text={@emphasis}
           text_size={12}
-          line_height={1.5}
+          line_height={Kati.Locale.leading(1.5)}
           font_weight="semibold"
           text_color={Palette.ink()}
         />
-        <Text text={@tail} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+        <Text
+          text={@tail}
+          text_size={12}
+          line_height={Kati.Locale.leading(1.5)}
+          text_color={Palette.ink_soft()}
+        />
       </Column>
     </Row>
     """
@@ -205,21 +260,46 @@ defmodule Kati.Screens.AddByHandStates do
   def drawn_kinds do
     ~MOB"""
     <Row fill_width={true} align="center">
-      {Kati.Screens.AddByHandStates.drawn_chip("movie", "Film", true)}
+      {Kati.Screens.AddByHandStates.drawn_chip("movie", gettext("Film"), true)}
       <Spacer size={7} />
-      {Kati.Screens.AddByHandStates.drawn_chip("live_tv", "Series", false)}
+      {Kati.Screens.AddByHandStates.drawn_chip("live_tv", gettext("Series"), false)}
     </Row>
     """
   end
 
-  @doc false
+  @doc """
+  The three status chips, the first of them drawn as the chosen one.
+
+  Keyed by the STATUS and not by the LABEL, which is a fix and not a tidy-up.
+  The row used to read `label == "Not started"` — a drawn string compared
+  against an English literal. That is true while the label IS the literal and
+  false the moment `gettext/1` answers `شروع نشده`, so under `:fa` the band
+  drew three unfilled chips and the board lost the very default it exists to
+  state: *Resting — empty, Film, nothing assumed*. Nothing would have thrown.
+
+  `Kati.Screens.AddByHand` never had the bug because its `@statuses` are atoms
+  and the label is asked for at draw time; this sheet redraws the chips rather
+  than reusing `statuses/1` (see `drawn_kinds/0`) and copied the shape without
+  the key. mishka-group/kati#103.
+  """
   @spec drawn_statuses() :: map()
   def drawn_statuses do
+    chips =
+      [
+        {:not_started, gettext("Not started")},
+        {:watching, gettext("Watching")},
+        {:finished, gettext("Finished")}
+      ]
+      |> Enum.map(fn {status, label} ->
+        Kati.Screens.AddByHandStates.drawn_chip(nil, label, status == :not_started)
+      end)
+      |> Enum.intersperse(AddByHand.gap())
+
+    assigns = %{chips: chips}
+
     ~MOB"""
     <Row fill_width={true} align="center">
-      {["Not started", "Watching", "Finished"]
-       |> Enum.map(fn label -> Kati.Screens.AddByHandStates.drawn_chip(nil, label, label == "Not started") end)
-       |> Enum.intersperse(AddByHand.gap())}
+      {@chips}
     </Row>
     """
   end

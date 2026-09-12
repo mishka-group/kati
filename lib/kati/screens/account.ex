@@ -70,6 +70,7 @@ defmodule Kati.Screens.Account do
   It becomes worth reading when the permission it qualifies is real.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Account.Sample
   alias Kati.Components.MishkaPill
@@ -97,13 +98,13 @@ defmodule Kati.Screens.Account do
       >
         {Kati.Screens.Account.header()}
         {Kati.Screens.Account.title()}
-        {UI.eyebrow("Your data lives here")}
+        {UI.eyebrow(gettext("Your data lives here"))}
         {Kati.Screens.Account.storage(a.storage)}
-        {UI.eyebrow("What Kati is allowed to do")}
+        {UI.eyebrow(gettext("What Kati is allowed to do"))}
         {Kati.Screens.Account.list(Kati.Screens.Account.permission_rows(a.permissions), 22, "perm_")}
-        {Kati.Screens.Account.quiet_eyebrow("What it asks for by being installed")}
+        {Kati.Screens.Account.quiet_eyebrow(gettext("What it asks for by being installed"))}
         {Kati.Screens.Account.list(a.install, 22, "install_")}
-        {Kati.Screens.Account.quiet_eyebrow("Privacy")}
+        {Kati.Screens.Account.quiet_eyebrow(gettext("Privacy"))}
         {Kati.Screens.Account.privacy(a)}
         {Kati.Screens.Account.list(a.data, 0, "data_")}
       </Column>
@@ -174,22 +175,43 @@ defmodule Kati.Screens.Account do
     )
   end
 
-  @doc false
+  @doc """
+  The page's own title, and the mono line under it.
+
+  `gettext("This device")` is deliberately the msgid `Kati.Settings.Sample`
+  already carries for the settings row that pushes here — این دستگاه — so the
+  row a reader taps and the heading they land on are the same two words rather
+  than two translations of them.
+
+  Three things moved, and none of them moves for an English reader:
+
+    * `Kati.Locale.tracking/1`, because -0.03em pulls Persian letters out of
+      their joins — the one typographic setting that does not merely look
+      wrong in the Arabic script but stops the word being one word;
+    * `max_lines={1}`, which this display heading had none of. A 28pt title
+      given a longer word should truncate rather than wrap a second line down
+      into the storage card;
+    * `Kati.Locale.mono_face/0` for the strap, because `kati_mono.ttf` carries
+      no Persian glyph at all. Set in `mono`, the Persian sentence is handed to
+      Android's own substitute face and renders in a typeface that is not
+      Kati's, beside a heading that is.
+  """
   def title do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="This device"
+        text={gettext("This device")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
       <Text
-        text="nothing leaves it unless you send it"
-        font_family="mono"
+        text={gettext("nothing leaves it unless you send it")}
+        font_family={Kati.Locale.mono_face()}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -199,7 +221,28 @@ defmodule Kati.Screens.Account do
     """
   end
 
-  @doc "The muted eyebrow: the design's `#C4BDB3` dash instead of the accent."
+  @doc """
+  The muted eyebrow: the design's `#C4BDB3` dash instead of the accent.
+
+  This page draws four section labels — two accent, two muted — and only the
+  dash is supposed to tell the kinds apart. So everything here that is not the
+  dash now follows `Kati.UI.eyebrow/1` exactly, and every one of those calls
+  answers the value this wrote by hand when the reader is English:
+
+    * `Kati.UI.eyebrow_label/1` in place of `String.upcase/1`. Persian has no
+      letter case, so upcasing a Persian label is a no-op — one that still
+      *reads* as one beside the two accent eyebrows above it, which is why the
+      call has to be the shared one rather than a conditional here;
+    * `Kati.Locale.mono_face/0`, since `kati_mono.ttf` has no Persian glyph.
+      The arity-0 form and not `mono_face/1`, matching `Kati.UI.eyebrow/1`:
+      every label this screen passes is product copy in the reader's own
+      script, never a provider's ASCII name;
+    * Vazirmatn at 11/semibold rather than DM Mono at 10.5/normal, which is
+      what the mirrored boards drew — the Persian face reads thin at an eyebrow
+      size that suits DM Mono;
+    * no tracking at all under `:fa`. 0.16em between Persian letters breaks the
+      joins that make them one word.
+  """
   def quiet_eyebrow(label) do
     ~MOB"""
     <Column fill_width={true}>
@@ -207,10 +250,11 @@ defmodule Kati.Screens.Account do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face()}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
           max_lines={1}
         />
@@ -227,6 +271,17 @@ defmodule Kati.Screens.Account do
   · no email shared"* above three syncing devices. Kati has no account, no
   server and nothing to sync with, so the card states the model positively
   rather than listing what is missing.
+
+  ## Both sentences are `Kati.Account.Sample`'s and neither is wrapped here
+
+  `storage.headline` and `storage.body` arrive as runtime values, and
+  `gettext/1` needs a literal at the call site — so the msgids for them belong
+  in the module that writes them, not in this one. What belongs here is the
+  typography that carries them, and it is set for Persian now rather than on
+  the day the sample folds: `Kati.Locale.tracking/1` so -0.02em does not pull
+  the headline's letters out of their joins, and `Kati.Locale.leading/1` so the
+  body paragraph is measured against Vazirmatn's metrics instead of Plus
+  Jakarta's. Both answer the drawing's own number in English.
   """
   def storage(storage) do
     ~MOB"""
@@ -242,14 +297,14 @@ defmodule Kati.Screens.Account do
           text={storage.headline}
           text_size={15}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
         />
         <Spacer size={7} />
         <Text
           text={storage.body}
           text_size={12.5}
-          line_height={1.5}
+          line_height={Kati.Locale.leading(1.5)}
           text_color={Palette.ink_soft()}
         />
       </Column>
@@ -291,14 +346,29 @@ defmodule Kati.Screens.Account do
       }
 
       case Kati.Permissions.affordance(state) do
-        :allow -> Map.put(base, :pill, "Allow")
-        :settings -> Map.put(base, :pill, "Settings")
+        # `pgettext/2` rather than a bare msgid: **Allow** is one word, and
+        # `mix gettext.merge` fuzzy-matches anything this short against any
+        # obsolete entry that resembles it. The context also keeps the verb on
+        # the button (اجازه) distinct from the state beside a granted row
+        # (مجاز) — see `state_label/1`.
+        :allow ->
+          Map.put(base, :pill, pgettext("permission", "Allow"))
+
+        # The msgid `Kati.Settings.Sample` and `Kati.Screens.Pushed` already
+        # carry, not one of this screen's own. The pill names the phone's
+        # Settings app and screen 24 names Kati's; Persian writes both
+        # تنظیمات, so a second msgid here would only be a second place for one
+        # word to drift.
+        :settings ->
+          Map.put(base, :pill, gettext("Settings"))
+
         # Not nothing, and specifically not a chevron: this screen's own rule
         # is that a chevron means *leads elsewhere*, and a granted permission
         # leads nowhere. D-06 asks for a trailing state of Allowed / Not
         # allowed / Not yet asked, so a granted row states it quietly rather
         # than borrowing a control's shape.
-        :none -> Map.put(base, :state, Kati.Screens.Account.state_label(state))
+        :none ->
+          Map.put(base, :state, Kati.Screens.Account.state_label(state))
       end
     end)
   end
@@ -344,6 +414,11 @@ defmodule Kati.Screens.Account do
   # the 30pt pill are both under the 44x44 screen 41 promises, and the row is
   # 56 tall. Compose's `clickable` paints only on press, so the resting
   # drawing is untouched.
+  #
+  # The second line takes `Kati.Locale.leading/1`, which is what
+  # `Kati.UI.SettingsList.body/3` — the canonical 13.5/11.5 settings row this
+  # one is a copy of — does with the same paragraph. Two lines of Vazirmatn
+  # measured at Plus Jakarta's 1.35 collide; 1.35 is still what English gets.
   @doc false
   def row(row, rule?, prefix, i) do
     tap = Kati.Screens.Account.row_tap(row, prefix, i)
@@ -365,7 +440,7 @@ defmodule Kati.Screens.Account do
           <Text
             text={row.sub}
             text_size={11.5}
-            line_height={1.35}
+            line_height={Kati.Locale.leading(1.35)}
             text_color={Palette.sub()}
             max_lines={2}
           />
@@ -414,8 +489,12 @@ defmodule Kati.Screens.Account do
       # `0xFFB3ACA2` and this chevron is `0xFFC4BDB3`. The design draws two
       # chevron greys and only one of them is `tertiary`; taking the better name
       # would move light mode eleven units, so the value wins. Same call as
-      # `Kati.UI.SettingsList.chevron/0`.
-      true -> Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
+      # `Kati.UI.SettingsList.chevron/0`, down to the glyph:
+      # `Kati.Locale.forward_chevron/0` and not the literal, because this
+      # chevron is the one that means *leads elsewhere* — Move to a new phone,
+      # Delete everything — and forward is leftward in Persian. Board 85 draws
+      # `chevron_left` for exactly this.
+      true -> Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())
     end
   end
 
@@ -437,15 +516,34 @@ defmodule Kati.Screens.Account do
     end
   end
 
-  @doc false
-  def state_label(:granted), do: "Allowed"
-  def state_label(:unknown), do: "Not available here"
+  @doc """
+  The word a row wears where a control would be.
+
+  `pgettext/2` for *Allowed* and not a bare msgid, for the reason
+  `permission_rows/1` gives about *Allow*. The two are two letters apart in
+  English and a different word in Persian — اجازه is what the button asks for,
+  مجاز is what the row then is — and `mix gettext.merge` fuzzy-matches msgids
+  this short, so a shared context is what keeps them from collapsing into each
+  other.
+
+  The `""` stays an empty binary and is not a msgid. It is the *absence* of a
+  label rather than a blank one, `state_mark/1` matches on it literally, and a
+  translated empty string would stop matching.
+  """
+  def state_label(:granted), do: pgettext("permission", "Allowed")
+  def state_label(:unknown), do: gettext("Not available here")
   def state_label(_state), do: ""
 
   @doc """
   A granted permission's trailing state: mono, quiet, and not a control.
 
   An empty label draws nothing at all rather than an empty pill.
+
+  `Kati.Locale.mono_face/1` and not the literal `"mono"`: `kati_mono.ttf`
+  carries no Persian glyph, so مجاز set in it reaches Android's substitute
+  face. The arity-1 form because the label arrives here as a value — the
+  question goes to the string's own script, which answers `"mono"` for both of
+  today's labels in English and Vazirmatn for both of them in Persian.
   """
   def state_mark(""), do: ~MOB"<Spacer size={0} />"
 
@@ -453,7 +551,7 @@ defmodule Kati.Screens.Account do
     ~MOB"""
     <Text
       text={label}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(label)}
       text_size={10.5}
       text_color={Palette.rail_idle()}
       max_lines={1}
@@ -559,7 +657,14 @@ defmodule Kati.Screens.Account do
     )
   end
 
-  @doc false
+  @doc """
+  The cream card claiming there is nothing to switch off.
+
+  The sentence is `Kati.Account.Sample.account/0`'s and arrives as a value, so
+  its msgid belongs to that module. The paragraph's measure is this one's:
+  `Kati.Locale.leading/1`, because three lines of Vazirmatn at Plus Jakarta's
+  1.55 touch, and the note is the longest paragraph on the page.
+  """
   def privacy(a) do
     ~MOB"""
     <Column fill_width={true}>
@@ -569,7 +674,7 @@ defmodule Kati.Screens.Account do
         <Text
           text={a.privacy_note}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.cream_body()}
           weight={1.0}
         />
@@ -665,30 +770,68 @@ defmodule Kati.Screens.Account do
   What one row becomes when it is tapped.
 
   Granting a never-asked permission turns the pill into the switch the drawing
-  gives an already-granted one — the moduledoc's rule run forwards. The
-  subtitle loses its "Not yet asked" half and keeps the rest, because that is
-  the only clause that stopped being true; the surviving sentence is the
-  design's own, in the shape the Photos row already uses.
+  gives an already-granted one — the moduledoc's rule run forwards.
 
-  "Share anonymous usage" prints its state as its subtitle, so the word has to
-  follow the switch or the row contradicts itself.
+  A row that prints its own state as its subtitle has to keep the two in step,
+  or the switch says one thing and the word under it says the other.
+
+  ## The subtitle is no longer rewritten, and the comparison is no longer a guard
+
+  Two defects, both of the same kind — a LABEL doing a key's work — and both
+  found while folding this screen for `:fa`:
+
+    * the pill clause used to overwrite the subtitle with a hardcoded *"Only
+      when you turn one on"*. That literal was the survivor of an older
+      Notifications row that read *"Not yet asked · Only when you turn one
+      on."*; `Kati.Account.Sample` dropped the first half some time ago, so the
+      rewrite's whole remaining effect was to delete the full stop from a
+      sentence the sample already says correctly — and to put a second English
+      copy of that sentence in a file that cannot translate it, since the
+      msgid belongs to the module that owns the words. The clause now changes
+      the control and leaves the copy alone;
+
+    * `when sub in ["On", "Off"]` was a guard, which `gettext/1` cannot live
+      in — it is a function call. It had to move for a reason that outlives
+      that one: a translated label stops being a key. Under `:fa` the row reads
+      روشن, the guard would never match, the switch would flip and the word
+      beneath it would not. That is mishka-group/kati#103's recurring defect,
+      the one `Kati.Settings.Sample`'s moduledoc names, and the comparison is
+      now against the same two msgids the row is drawn with.
   """
   @spec flipped(map()) :: map()
   def flipped(%{pill: _} = row) do
     row
     |> Map.delete(:pill)
     |> Map.put(:toggle, true)
-    |> Map.put(:sub, "Only when you turn one on")
   end
 
-  def flipped(%{toggle: on?, sub: sub} = row) when sub in ["On", "Off"] do
+  def flipped(%{toggle: on?, sub: sub} = row) do
     next = not on?
+    on = Kati.Screens.Account.switch_label(true)
+    off = Kati.Screens.Account.switch_label(false)
 
-    %{row | toggle: next, sub: if(next, do: "On", else: "Off")}
+    if sub in [on, off] do
+      %{row | toggle: next, sub: if(next, do: on, else: off)}
+    else
+      %{row | toggle: next}
+    end
   end
 
   def flipped(%{toggle: on?} = row), do: %{row | toggle: not on?}
   def flipped(row), do: row
+
+  @doc """
+  The word a row that states its own switch position wears.
+
+  `pgettext/2` and not two bare msgids: *On* and *Off* are two letters and
+  three, `mix gettext.merge` fuzzy-matches at that length, and روشن is already
+  the app's word for the **Light** theme in `Kati.Settings.Sample.theme_options/0`
+  — one Persian word for two unrelated English ones is exactly what a context
+  is for.
+  """
+  @spec switch_label(boolean()) :: String.t()
+  def switch_label(true), do: pgettext("switch", "On")
+  def switch_label(false), do: pgettext("switch", "Off")
 
   @doc """
   One clause per list rather than per row: the tag carries the index.

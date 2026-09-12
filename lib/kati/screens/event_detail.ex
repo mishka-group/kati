@@ -112,8 +112,29 @@ defmodule Kati.Screens.EventDetail do
 
   The drawn event keeps all four, because the drawing is where those values
   come from and it is the only thing they are true of.
+
+  ## Which words on this page are this file's
+
+  Only the ones it writes: the chrome (`Edit event`, `Save`, `Delete event`),
+  the two headings (`Clash`, `Invitees`), the `Add someone` row, and every
+  field a STORED event produces — `Timezone`, `Location`, `All day`, the three
+  travel behaviours, the date, the clock line and the duration. Those go
+  through `Kati.Gettext`, and the date, clock and duration go through
+  `Kati.Locale` as well, because a Gregorian date in Latin digits is not a
+  thing a catalogue can translate.
+
+  Everything the DRAWN event says is `Kati.Calendar.SampleEvent`'s — its title,
+  its two section chips, its five field rows, its clash line and its three
+  resolutions, its two invitees. That module is the one place those strings
+  exist and the only place they can be wrapped; this screen receives them
+  already rendered and `gettext/1` cannot take a variable. Until it is folded,
+  a Persian reader gets a Persian page around an English drawing, which is the
+  honest half-state rather than a second copy of the words.
+
+  mishka-group/kati#103.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Calendar.SampleEvent
@@ -190,7 +211,7 @@ defmodule Kati.Screens.EventDetail do
       # `nil` is what tells the two apart — and what keeps both controls
       # untapped on the page every sweep sees. See `save_pill/1`.
       id: event.id,
-      title: event.summary || "Untitled",
+      title: event.summary || gettext("Untitled"),
       sections: [],
       fields: stored_fields(event, zone),
       clash: nil,
@@ -208,7 +229,7 @@ defmodule Kati.Screens.EventDetail do
   # An all-day event is date-valued and has no clock — `dtstart_date` is the
   # column, and reading `dtstart_utc` for it would be reading a nil.
   defp when_field(%Event{is_all_day: true, dtstart_date: %Date{} = date}, _zone),
-    do: %{icon: "schedule", title: day_line(date), sub: "All day", trailing: nil}
+    do: %{icon: "schedule", title: day_line(date), sub: gettext("All day"), trailing: nil}
 
   defp when_field(%Event{dtstart_utc: %DateTime{} = starts} = event, zone) do
     local = Kati.Time.in_zone(starts, zone)
@@ -230,34 +251,78 @@ defmodule Kati.Screens.EventDetail do
        when is_binary(tzid) and tzid != "",
        do: %{
          icon: "public",
-         title: "Timezone",
-         sub: tzid <> " · " <> travel(behaviour),
+         title: gettext("Timezone"),
+         # The zone is an IANA identifier — `Europe/London` — and is never
+         # translated: it is the key the store holds and the name every other
+         # calendar on the device uses for the same zone. So under `:fa` it is a
+         # Latin run inside a Persian line, and it takes `Kati.Locale.ltr/1`:
+         # the solidus inside it is a bidi neutral and would otherwise resolve
+         # against the paragraph rather than against the name.
+         #
+         # The interpunct stays a literal rather than becoming a msgid of its
+         # own. Every `·` line in this app writes the separator identically in
+         # both scripts — the catalogue's `"%{date} · %{items}"` translates to
+         # itself — and the two sides read in source order on the page anyway,
+         # because a strong Latin run and a strong Persian run either side of a
+         # neutral are laid out in reading order by the bidi algorithm.
+         sub: Kati.Locale.ltr(tzid) <> " · " <> travel(behaviour),
          trailing: {:switch, behaviour == :device}
        }
 
   defp zone_field(_event), do: nil
 
-  defp travel(:device), do: "follows travel"
-  defp travel(:floating), do: "floats where you are"
-  defp travel(_fixed), do: "stays fixed"
+  # `pgettext/2` rather than `gettext/1` for all three: they are two- and
+  # three-word lowercase fragments, which is the length `mix gettext.merge`
+  # fuzzy-matches against any sentence that resembles them. A context costs
+  # nothing and "stays fixed" silently acquiring another row's Persian is the
+  # kind of failure nobody files.
+  defp travel(:device), do: pgettext("timezone behaviour", "follows travel")
+  defp travel(:floating), do: pgettext("timezone behaviour", "floats where you are")
+  defp travel(_fixed), do: pgettext("timezone behaviour", "stays fixed")
 
+  # The label is translated and the place is NOT: `location` is a column the
+  # user typed into, and translating what somebody wrote is the one thing a
+  # catalogue must never do.
   defp place_field(%Event{location: place}) when is_binary(place) and place != "",
-    do: %{icon: "place", title: "Location", sub: place, trailing: :chevron}
+    do: %{icon: "place", title: gettext("Location"), sub: place, trailing: :chevron}
 
   defp place_field(_event), do: nil
 
-  # `Thu 20 Aug` — the drawing's own line, three letters of the day and three of
-  # the month, so a real event and the drawn one read the same way.
-  defp day_line(date) do
-    day = Kati.Time.day_name(date) |> String.slice(0, 3)
-    month = Kati.Time.month_name(date.month) |> String.slice(0, 3)
-    "#{day} #{date.day} #{month}"
-  end
+  # `Thu 20 Aug` — the drawing's own line — and `پنج‌شنبه ۲۹ مرداد ۱۴۰۵` under
+  # `:fa`. `Kati.Locale.date/2` at `:long`, whose Latin form is exactly the
+  # `%a %-d %b` this built by hand, so the English page does not move.
+  #
+  # It was three letters of `Kati.Time.day_name/1` and three of
+  # `Kati.Time.month_name/1`, which is a Gregorian date in Latin abbreviations
+  # and stayed one under `:fa`: the reader was told their event fell in a month
+  # their calendar does not have. `String.slice(name, 0, 3)` is the other half
+  # of why this could not simply be translated in place — it cuts مرداد down to
+  # مرد, which is a different word.
+  #
+  # Shamsi's `:long` carries the year where Latin's does not. That is the
+  # calendar's own decision and not a divergence introduced here: a Gregorian
+  # year the reader lives in is inferable and a Shamsi one is the thing they
+  # count by. See `Kati.Calendar.Shamsi.format/2`.
+  defp day_line(date), do: Kati.Locale.date(date, :long)
 
   defp clock_line(local, nil), do: clock(local)
-  defp clock_line(local, ends), do: clock(local) <> " – " <> clock(ends)
 
-  defp clock(dt), do: Calendar.strftime(dt, "%H:%M")
+  # The catalogue's existing range msgid — the one `Kati.Screens.Calendar`'s
+  # event rows already draw — rather than a second one that would say the same
+  # thing. Two screens writing a span of clock two ways is how a Persian page
+  # starts reading as a translation.
+  #
+  # The en dash survives into Persian and needs no isolate around it: two runs
+  # of digits either side of a neutral both count as right-to-left when the
+  # neutral is resolved, so the pair is laid out in READING order and the start
+  # time lands on the side the reader begins at.
+  defp clock_line(local, ends),
+    do: gettext("%{from} – %{to}", from: clock(local), to: clock(ends))
+
+  # `Kati.Locale.time/1` is `%H:%M` in the reader's own digits — 24-hour in both
+  # scripts, which `Kati.Screens.Settings` draws as a setting of its own rather
+  # than as a consequence of the language.
+  defp clock(dt), do: Kati.Locale.time(dt)
 
   # The drawing's `1h`, read off the two times rather than stored: `dtend_utc`
   # is itself derived from `duration_iso` at write time, and an event with no
@@ -271,9 +336,16 @@ defmodule Kati.Screens.EventDetail do
     end
   end
 
-  defp span(0, minutes), do: "#{minutes}m"
-  defp span(hours, 0), do: "#{hours}h"
-  defp span(hours, minutes), do: "#{hours}h #{minutes}m"
+  # The catalogue's three duration forms, which `Kati.Screens.Library.runtime_line/1`
+  # and `Kati.Screens.Stats` already share: `1h 30m` in Latin, `۱ ساعت ۳۰ دقیقه`
+  # in Persian. Two Latin letters glued to a number is precisely the shape board
+  # 61's hero got wrong before the fold — it is legible enough that it reads as
+  # a deliberate abbreviation rather than as untranslated copy.
+  defp span(0, minutes), do: gettext("%{n}m", n: Kati.Locale.number(minutes))
+  defp span(hours, 0), do: gettext("%{n}h", n: Kati.Locale.number(hours))
+
+  defp span(hours, minutes),
+    do: gettext("%{h}h %{m}m", h: Kati.Locale.number(hours), m: Kati.Locale.number(minutes))
 
   def render(assigns) do
     event = assigns.event
@@ -299,7 +371,7 @@ defmodule Kati.Screens.EventDetail do
           {Kati.Screens.EventDetail.title_card(event)}
           {Kati.Screens.EventDetail.fields(event)}
           {Kati.Screens.EventDetail.clash(event)}
-          {Kati.Screens.EventDetail.muted_eyebrow("Invitees")}
+          {Kati.Screens.EventDetail.muted_eyebrow(gettext("Invitees"))}
           {Kati.Screens.EventDetail.invitees(event)}
           {Kati.Screens.EventDetail.delete(event)}
         </Column>
@@ -318,7 +390,7 @@ defmodule Kati.Screens.EventDetail do
         {Kati.Screens.EventDetail.close_disc(close)}
         <Spacer weight={1.0} />
         <Text
-          text="Edit event"
+          text={gettext("Edit event")}
           text_size={15}
           font_weight="bold"
           text_color={:on_surface}
@@ -391,7 +463,7 @@ defmodule Kati.Screens.EventDetail do
   """
   def save_pill(event) do
     MishkaPill.pill(
-      label: "Save",
+      label: gettext("Save"),
       on_tap: Kati.Screens.EventDetail.save_tap(event),
       background: Palette.ink_fill(),
       color: Palette.on_ink(),
@@ -406,6 +478,13 @@ defmodule Kati.Screens.EventDetail do
     )
   end
 
+  # The 22pt title is the event's own summary — a stored `summary` column, or
+  # the drawing's — so it can be Persian, and its tracking goes through
+  # `Kati.Locale.tracking/1`. A negative letter-spacing is a Latin display
+  # habit; in the Arabic script it pulls the letters apart at their JOINS, which
+  # is not tighter type but a word broken into letterforms. The `max_lines={1}`
+  # beside it was already here and is what keeps a longer Persian summary on the
+  # one line the caret rule is measured against.
   @doc false
   def title_card(event) do
     ~MOB"""
@@ -422,7 +501,7 @@ defmodule Kati.Screens.EventDetail do
             text={event.title}
             text_size={22}
             font_weight="bold"
-            letter_spacing={-0.025}
+            letter_spacing={Kati.Locale.tracking(-0.025)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -603,6 +682,20 @@ defmodule Kati.Screens.EventDetail do
 
   The tag carries the row's title, so the handler finds the row by name
   instead of by an index that a reordered `fields/0` would silently break.
+
+  **That title is now translated copy, and the tag moves with the reader's
+  language**: under `:fa` the switch is tagged `:"switch_منطقهٔ زمانی"` and
+  draws that as its `accessibility_id`. It is not a break — both halves read
+  the same `socket.assigns.event.fields`, so the atom `field_tap/1` mints and
+  the string `handle_info/2` matches are the same string in the same process —
+  but it is the shape of the defect `Kati.Screens.Calendar.chips/0` carries the
+  note for, where a chip drawn «نمایش» tagged `:"filter_نمایش"` and a `visible/2`
+  matching the literal `"Screen"` fell through. The difference is that nothing
+  here compares a translated label against a hardcoded English one. Giving each
+  row a key the way `chips/0` does would need a `:key` in the field maps, and
+  those are built in two places — here and `Kati.Calendar.SampleEvent.fields/0`
+  — so it is one change across two files rather than a wrap, and is left for
+  whoever folds that module.
   """
   @spec field_tap(map()) :: {pid(), atom()} | nil
   def field_tap(%{trailing: {:switch, _on?}, title: title}),
@@ -616,9 +709,22 @@ defmodule Kati.Screens.EventDetail do
   @doc false
   def trailing(nil), do: ~MOB"<Spacer size={0} />"
 
+  # DM Mono only while the value is ASCII. `kati_mono.ttf` carries no Persian
+  # glyph, so `۱ ساعت ۳۰ دقیقه` set in it is handed to Android's own substitute
+  # face — it renders, correctly shaped, in a typeface that is not Kati's, on
+  # the same row as text that is. `Kati.Locale.mono_face/1` asks the STRING's
+  # script rather than the reader's, which is the right question here: the
+  # drawing's Latin `1h` keeps the DM Mono it is drawn in, and only a duration
+  # that came back with Persian words in it moves to Vazirmatn.
   def trailing({:value, text}) do
     ~MOB"""
-    <Text text={text} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+    <Text
+      text={text}
+      font_family={Kati.Locale.mono_face(text)}
+      text_size={11}
+      text_color={Palette.muted()}
+      max_lines={1}
+    />
     """
   end
 
@@ -635,8 +741,14 @@ defmodule Kati.Screens.EventDetail do
   # value is `0xFFB3ACA2`, and this chevron is `0xFFC4BDB3`; the design draws two
   # chevron greys and only one of them is `tertiary`. Taking the better name
   # would have moved light mode by seventeen units, so the value wins.
+  #
+  # `Kati.Locale.forward_chevron/0` and not the literal `chevron_right`: this
+  # chevron means "this row opens onto its own screen", so it points the way the
+  # reader READS — left under `:fa`. Material Symbols are text in a font and
+  # auto-mirror nothing, and `layout_direction` mirrors the row's boxes but not
+  # the picture inside one, so nothing happens here unless it is asked for.
   def trailing(:chevron),
-    do: Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
+    do: Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())
 
   @doc """
   The rule between two rows — `Kati.Components.MishkaSeparator`, and it must be
@@ -675,7 +787,7 @@ defmodule Kati.Screens.EventDetail do
 
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Clash")}
+      {UI.eyebrow(pgettext("calendar clash", "Clash"))}
       <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
         <Row fill_width={true} align="center">
           {UI.symbol("call_split", size: 18, color: Palette.gold_icon())}
@@ -741,6 +853,16 @@ defmodule Kati.Screens.EventDetail do
   # how the design marks a section that lists rather than warns. That value is
   # `rail_idle` — the only token carrying it — and a 13x2 rule is a rail in all
   # but name; the label is `eyebrow`, which is what it is by both.
+  #
+  # The four locale calls are the recipe `Kati.UI.eyebrow/2` and
+  # `Kati.Screens.Meal.muted_eyebrow/1` already carry, and this node had none of
+  # them. `String.upcase/1` is a NO-OP on the Arabic script, which has no case
+  # at all, so under `:fa` it handed the label back unchanged while every other
+  # eyebrow on the page had visibly done something — `Kati.UI.eyebrow_label/1`
+  # is the function that knows an uppercase eyebrow is a Latin convention and
+  # not a rule. DM Mono carries no Persian glyph; `.16em` of tracking breaks the
+  # joins between Arabic letters; and Vazirmatn wants 11 semibold where DM Mono
+  # wants 10.5 normal to sit on the same line.
   @doc false
   def muted_eyebrow(label) do
     ~MOB"""
@@ -749,10 +871,11 @@ defmodule Kati.Screens.EventDetail do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face()}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
       </Row>
@@ -860,7 +983,7 @@ defmodule Kati.Screens.EventDetail do
       {Kati.Screens.EventDetail.add_ring()}
       <Spacer size={13} />
       <Text
-        text="Add someone"
+        text={gettext("Add someone")}
         text_size={13}
         font_weight="semibold"
         text_color={Palette.sub()}
@@ -935,7 +1058,7 @@ defmodule Kati.Screens.EventDetail do
         {UI.symbol("delete", size: 18, color: Palette.red())}
         <Spacer size={8} />
         <Text
-          text="Delete event"
+          text={gettext("Delete event")}
           text_size={13}
           font_weight="bold"
           text_color={Palette.red()}

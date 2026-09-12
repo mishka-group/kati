@@ -57,8 +57,33 @@ defmodule Kati.Screens.Import do
   What is still missing is the resource, and it is named above: a job holding
   the file, its column mapping, the counted outcome and a conflict queue, so
   that step 3 of 4 survives the screen popping.
+
+  ## What stays Latin when this page folds to Persian
+
+  mishka-group/kati#103, and the list is `Kati.Screens.ImportRecognised`'s own
+  — the two screens draw the same job and owe it the same treatment:
+
+    * **The file's own name, its own headers and the values sampled out of it.**
+      `trakt-backup.csv`, the column names down the left of the mapping card
+      and the first row's value under each are what the READER's file says, not
+      what Kati says. A msgid over any of them would translate somebody's
+      spreadsheet.
+    * **Everything `Kati.Import.Job` and `Kati.Import.Sample` write.** The
+      `Import 412` pill, `418 ROWS · 9 COLUMNS`, the `· step 3 of 4` subtitle,
+      the three outcome labels, the field name on the right of each arrow, the
+      conflict's own line and its `1 of 6 · apply to all` are those modules'
+      strings and fold there, not here. What this screen owes them is a
+      TYPEFACE and a CASE — `Kati.Locale.mono_face/1` asks each string what
+      script it is in rather than asking the reader, because DM Mono carries no
+      Persian glyph and half of them will never be Persian, and
+      `Kati.UI.eyebrow_label/1` upcases on one side of the fold only.
+
+  The third thing that is neither copy nor typeface is the arrow in the middle
+  of a mapping row: `map_glyph/1` answers it, and its own doc carries the
+  argument for why a mirrored row does not mirror the picture inside it.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaSeparator
   alias Kati.Import.Sample
@@ -230,20 +255,50 @@ defmodule Kati.Screens.Import do
   """
   @spec result_line(map()) :: String.t()
   def result_line(tally) do
+    # A NUMBER AND ITS WORD ARE ONE MSGID, NOT A TABLE OF WORDS.
+    #
+    # This was `{count, word}` pairs joined by `"#{n} #{word}"`, and that shape
+    # cannot be translated at all: a msgid has to be a literal at the call
+    # site, so `gettext(word)` does not compile and a catalogue of three bare
+    # words would give Persian no say in what order the number and the verb go
+    # in. Each clause is its own sentence now, built whether or not it will be
+    # shown — three catalogue lookups cost nothing against a write that has
+    # just walked the whole file.
+    #
+    # `pgettext/2` on the two that do not inflect, because `%{n} added` is two
+    # tokens and `mix gettext.merge` fuzzy-matches a msgid that short against
+    # any sentence that resembles it; the context also keeps `%{n} merged`
+    # clear of `Kati.Screens.Restore`'s bare `merged`, which is a fragment of a
+    # different sentence and takes a different Persian word-form.
     said =
       [
-        {tally.new, "added"},
-        {tally.merged, "merged"},
-        {tally.resolved, "conflicts settled"}
+        {tally.new, pgettext("import result", "%{n} added", n: Kati.Locale.number(tally.new))},
+        {tally.merged,
+         pgettext("import result", "%{n} merged", n: Kati.Locale.number(tally.merged))},
+        # `ngettext/4` rather than a third `pgettext/2`: the English read `1
+        # conflicts settled` whenever a single conflict was answered, which is
+        # the one count of the three whose noun inflects. Persian does not
+        # inflect a noun after a numeral, so its two forms are the same string.
+        {tally.resolved,
+         ngettext("%{n} conflict settled", "%{n} conflicts settled", tally.resolved,
+           n: Kati.Locale.number(tally.resolved)
+         )}
       ]
-      |> Enum.filter(fn {n, _word} -> n > 0 end)
-      |> Enum.map_join(" · ", fn {n, word} -> "#{n} #{word}" end)
+      |> Enum.filter(fn {n, _phrase} -> n > 0 end)
+      |> Enum.map_join(" · ", fn {_n, phrase} -> phrase end)
 
-    said = if said == "", do: "Nothing to import", else: said
+    said = if said == "", do: pgettext("import result", "Nothing to import"), else: said
 
     case tally.failed do
-      0 -> said <> "."
-      n -> said <> ". #{n} #{if n == 1, do: "row", else: "rows"} could not be written."
+      0 ->
+        said <> "."
+
+      n ->
+        said <>
+          ". " <>
+          ngettext("%{n} row could not be written.", "%{n} rows could not be written.", n,
+            n: Kati.Locale.number(n)
+          )
     end
   end
 
@@ -265,9 +320,9 @@ defmodule Kati.Screens.Import do
         {Kati.Screens.Import.title(job)}
         {Kati.Screens.Import.steps(job)}
         {Kati.Screens.Import.file_card(job)}
-        {UI.eyebrow("Match columns")}
+        {UI.eyebrow(gettext("Match columns"))}
         {Kati.Screens.Import.mapping(job)}
-        {UI.eyebrow("What will happen")}
+        {UI.eyebrow(gettext("What will happen"))}
         {Kati.Screens.Import.outcome(job)}
         {Kati.Screens.Import.conflicts_band(job)}
       </Column>
@@ -311,22 +366,40 @@ defmodule Kati.Screens.Import do
     )
   end
 
+  # The heading and the mono line under it, and the two ask different
+  # questions of the fold.
+  #
+  # The heading is this screen's own word, so it takes a msgid — and loses its
+  # tracking with it. `Kati.Locale.tracking/1`: Vazirmatn is not drawn to be
+  # tracked and negative spacing breaks the joins between Persian letters, so
+  # the drawing's -0.03em tightens `Import` and does nothing to «درون‌ریزی».
+  # `max_lines={1}` for the reason every other display heading in the app
+  # carries one — a longer translated word wraps a 28pt line rather than
+  # shrinking it.
+  #
+  # The subtitle is `Kati.Import.Job`'s string — a file name and ` · step 3 of
+  # 4` — and that module folds on its own schedule, so the face is asked of the
+  # STRING rather than hardcoded. `trakt-backup.csv · step 3 of 4` keeps DM
+  # Mono, and the day it reads «trakt-backup.csv · گام ۳ از ۴» it takes
+  # Vazirmatn instead of Android's substitute face. Board 141's `title/1` makes
+  # the same call for the same job's `step_label`.
   @doc false
   def title(job) do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Import"
+        text={gettext("Import")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
       <Text
         text={job.subtitle}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(job.subtitle)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -381,7 +454,7 @@ defmodule Kati.Screens.Import do
           <Spacer size={4} />
           <Text
             text={job.shape}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(job.shape)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -446,13 +519,17 @@ defmodule Kati.Screens.Import do
   def map_row(row, rule?) do
     field_color = if row.skipped?, do: Palette.tertiary(), else: Palette.ink()
 
+    # See `map_glyph/1`: the row mirrors under `rtl` and the arrow in it does
+    # not, so it has to be asked which way forward is.
+    icon = Kati.Screens.Import.map_glyph(row.icon)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column weight={1.0}>
           <Text
             text={row.column}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.column)}
             text_size={11}
             text_color={:on_surface}
             max_lines={1}
@@ -461,7 +538,7 @@ defmodule Kati.Screens.Import do
           <Text text={row.sample} text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         <Spacer size={11} />
-        {Kati.UI.symbol(row.icon, size: 15, color: Palette.rail_idle())}
+        {Kati.UI.symbol(icon, size: 15, color: Palette.rail_idle())}
         <Spacer size={11} />
         <Column width={106}>
           <Text
@@ -479,6 +556,41 @@ defmodule Kati.Screens.Import do
     </Column>
     """
   end
+
+  @doc """
+  The glyph between the file's column and Kati's field, pointing the way the
+  reader reads.
+
+  AN ARROW IS A PICTURE, AND `layout_direction` MIRRORS NEITHER PICTURES NOR
+  THE FONT THEY COME OUT OF.
+
+  The row itself mirrors under `rtl` — the file's column moves to the right and
+  Kati's field to the left — and an `arrow_forward` left alone in the middle of
+  it would then be pointing back at the column it came from.
+  `Kati.Locale.forward_glyph/0` is the answer `Kati.Screens.OnboardingWelcome`
+  takes for the arrow on its primary pill, and the glyph in the middle of this
+  row means the same word. `Kati.Screens.ImportRecognised.map_row/2` makes the
+  identical mapping over the identical rows.
+
+  Mapped here rather than in `Kati.Import.Mapping.columns/2`, which is where
+  the name is written: that module decides whether a column maps at all —
+  `arrow_forward` or `block` — and which way an arrow points on a page is this
+  screen's question, not the mapper's. Every other glyph the mapping carries
+  (`block` from `Kati.Import.Sample`, `close` from the real mapper) is not
+  directional and passes through untouched.
+
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.Import.map_glyph("arrow_forward") end)
+      "arrow_forward"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.Import.map_glyph("arrow_forward") end)
+      "arrow_back"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.Import.map_glyph("block") end)
+      "block"
+  """
+  @spec map_glyph(String.t()) :: String.t()
+  def map_glyph("arrow_forward"), do: Kati.Locale.forward_glyph()
+  def map_glyph(other), do: other
 
   @doc false
   def map_note(%{note: nil}), do: ~MOB"<Spacer size={0} />"
@@ -502,6 +614,16 @@ defmodule Kati.Screens.Import do
   face does not carry. Keeping the whole string as the data and splitting it
   here means the copy stays the design's own while the glyph comes from the
   font that actually has it.
+
+  **The `Row` is what makes this fold correctly, and it needs nothing added.**
+  A sentence broken into three nodes normally breaks under `rtl`, because the
+  pieces are then laid out by a container rather than by the bidi algorithm —
+  but `K-12 rtl-root` provides `LocalLayoutDirection` at the root, so this
+  `Row` reverses its own children and «شما ★۴ · فایل ★۵» comes out in the
+  order it is written. The star is a glyph in the Material font, not a letter,
+  and needs no mirroring of its own. Nothing here should be given an explicit
+  direction: an isolate around the parts would pin them left-to-right and undo
+  exactly the thing that is working.
   """
   def star_text(line, size, color) do
     parts = String.split(line, "★")
@@ -544,6 +666,29 @@ defmodule Kati.Screens.Import do
 
   @doc false
   def outcome_card(card) do
+    # `String.upcase/1` IS A NO-OP IN PERSIAN THAT READS AS ONE.
+    #
+    # Arabic script has no case, so upcasing `ادغام` returns `ادغام` — the
+    # label arrives at the eyebrow's size and tracking with none of the
+    # eyebrow's shouting, beside a Latin page where the same label is `MERGED`.
+    # `Kati.UI.eyebrow_label/1` is the app's answer: upcase on one side of the
+    # fold, leave alone on the other, and say so once.
+    #
+    # The label is `Kati.Import.Job.outcome/1`'s string and folds there; what
+    # this screen decides is the case and the FACE. `mono_face/1` asks the
+    # STRING rather than the reader, because the two paths answer differently:
+    # `Kati.Import.Job` has translated its three, so a Persian reader over a
+    # real file gets «ادغام» and needs Vazirmatn, while `Kati.Import.Sample`
+    # has not, so the board's own `MERGED` is still ASCII and keeps DM Mono.
+    # Asking the reader would set that one in a face it did not need.
+    #
+    # The figure above it takes no face at all and keeps none: board 37 sets
+    # its counts in Plus Jakarta `extrabold` where board 141 sets the same
+    # three in DM Mono, so the frame's own `font_family` is already the right
+    # answer in both scripts and the digits are `Kati.Import.Job.outcome/1`'s
+    # to convert. Its tracking still goes, for the reason `title/1` gives.
+    label = Kati.UI.eyebrow_label(card.label)
+
     ~MOB"""
     <Box weight={1.0}>
       <Column
@@ -557,16 +702,16 @@ defmodule Kati.Screens.Import do
           text={card.value}
           text_size={22}
           font_weight="extrabold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={card.color}
           text_align="center"
         />
         <Spacer size={5} />
         <Text
-          text={String.upcase(card.label)}
-          font_family="mono"
+          text={label}
+          font_family={Kati.Locale.mono_face(label)}
           text_size={10}
-          letter_spacing={0.1}
+          letter_spacing={Kati.Locale.tracking(0.1)}
           text_color={Palette.muted()}
           text_align="center"
           max_lines={1}
@@ -593,7 +738,7 @@ defmodule Kati.Screens.Import do
 
   def conflicts_band(job) do
     assigns = %{
-      eyebrow: UI.eyebrow("Conflicts · keep which?"),
+      eyebrow: UI.eyebrow(gettext("Conflicts · keep which?")),
       card: Kati.Screens.Import.conflict(job)
     }
 

@@ -94,6 +94,13 @@ defmodule Kati.Screens.Discover do
   both from the sample does.
   """
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
+
+  # `back: "Library"` stays an English literal on purpose: it is a KEY, and
+  # `Kati.Screens.Pushed.back_label/2` runs every pill's word through
+  # `Gettext.dgettext/3` with the `back pill` context before it draws. A
+  # `gettext/1` here would translate it twice and hand that function a Persian
+  # string it has no entry for.
 
   alias Kati.Components.MishkaAvatar
   alias Kati.Components.MishkaChip
@@ -182,6 +189,7 @@ defmodule Kati.Screens.Discover do
   def browse_feed(choice) do
     %{
       subtitle: nil,
+      # A KEY, not a word — `chip_label/1` is what turns it into one. See there.
       chips: [%{label: "For you", count: nil, selected: true}],
       because: Kati.Screens.Discover.asked_line(choice),
       seed_id: nil,
@@ -209,12 +217,33 @@ defmodule Kati.Screens.Discover do
   """
   @spec asked_line(map()) :: String.t()
   def asked_line(choice) do
-    noun = if Kati.Discover.Filters.endpoint(choice) == :tv, do: "series", else: "films"
+    # `pgettext/2` for the nouns rather than `gettext/1`: both are single words,
+    # and `mix gettext.merge` fuzzy-matches anything that short against whatever
+    # it resembles. `Films` and `series` are both in the catalogue already, from
+    # a totals tile and from a search scope, and neither means what a heading
+    # over a rail of twenty browse results means.
+    noun =
+      if Kati.Discover.Filters.endpoint(choice) == :tv,
+        do: pgettext("discover heading", "series"),
+        else: pgettext("discover heading", "films")
+
     {sort, _sub} = Kati.Discover.Filters.sort_label(Map.get(choice, :sort))
 
+    # The whole line is a TEMPLATE rather than an interpolation, so the word
+    # order and the comma belong to the translator. `"#{sort} #{noun}, #{…}"`
+    # froze both in Latin, and Persian writes a list comma as U+060C — a
+    # heading that reads correctly in one script and has a foreign mark in the
+    # other is the half of this fold that gettext is for.
     case Map.get(choice, :rating) do
-      nil -> "#{sort} #{noun}"
-      rating -> "#{sort} #{noun}, #{Kati.Discover.Filters.rating_label(rating)}"
+      nil ->
+        pgettext("discover heading", "%{sort} %{noun}", sort: sort, noun: noun)
+
+      rating ->
+        pgettext("discover heading", "%{sort} %{noun}, %{rating}",
+          sort: sort,
+          noun: noun,
+          rating: Kati.Discover.Filters.rating_label(rating)
+        )
     end
   end
 
@@ -227,6 +256,7 @@ defmodule Kati.Screens.Discover do
       # different number wearing this one's caption. So the line is absent, and
       # `header/1` closes the gap.
       subtitle: nil,
+      # A KEY, not a word — `chip_label/1` is what turns it into one. See there.
       chips: [%{label: "For you", count: nil, selected: true}],
       because: Recommendations.because(cached.title),
       seed_id: cached.source_id,
@@ -275,13 +305,20 @@ defmodule Kati.Screens.Discover do
         |> Enum.intersperse(~MOB"<Spacer size={7} />")
     }
 
+    # The label is hand-rolled rather than `Kati.UI.eyebrow/2` because this one
+    # carries no dash — but it is the same line of type, so it asks the reader
+    # the same four questions that function asks. `kati_mono.ttf` carries no
+    # Persian glyph; `String.upcase/1` is a Latin operation the Arabic script
+    # has no answer to; `.16em` of tracking breaks the joins between Persian
+    # letters; and Vazirmatn wants 11pt semibold where DM Mono wants 10.5 normal.
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="PICKS FROM"
-        font_family="mono"
-        text_size={10.5}
-        letter_spacing={0.16}
+        text={Kati.UI.eyebrow_label(gettext("Picks from"))}
+        font_family={Kati.Locale.mono_face()}
+        text_size={Kati.Locale.pick(10.5, 11)}
+        font_weight={Kati.Locale.pick("normal", "semibold")}
+        letter_spacing={Kati.Locale.tracking(0.16)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
@@ -466,6 +503,41 @@ defmodule Kati.Screens.Discover do
     end
   end
 
+  @doc """
+  What a chip SAYS, given the key it is.
+
+      iex> Kati.Screens.Discover.chip_label("Leaving")
+      "Leaving"
+
+  A chip's `label` is doing two jobs on this screen and they pull opposite ways
+  under `:fa`. It is the word on the chip — which must be Persian — and it is
+  also the identity every other part of the row keys off: `shows?/2` matches it
+  clause by clause, `default_chip/1` falls back to it, `chip/2` builds
+  `:filter_…` out of it and `handle_tap/2` reads that back into `:chip`.
+  Translating it in place would have left `shows?/2` falling through to `_ ->
+  false` for every section, so the rail would draw in Persian and every chip on
+  it would empty the page — `Kati.Screens.Library.chip_counts/0` records the
+  same defect as MOVIES-AND-TV.md #158, found four times.
+
+  So the key stays English and this is the translation, the way
+  `Kati.Screens.OnboardingFirstTitle.label_for/1` keeps its four suggestions.
+
+  `pgettext/2` for all four: *People*, *Leaving* and *Awards* are one word
+  each, and a one-word msgid is what `mix gettext.merge` fuzzy-matches against
+  any sentence that resembles it — the catalogue already holds *People you
+  follow*, *Leaving soon* and *Leaving this screen is safe …*.
+
+  A label this does not know answers itself. That is what keeps it safe over a
+  fixture that has not been folded yet and over one that has: a Persian label
+  arriving here passes straight through rather than being translated twice.
+  """
+  @spec chip_label(String.t()) :: String.t()
+  def chip_label("For you"), do: pgettext("discover chip", "For you")
+  def chip_label("People"), do: pgettext("discover chip", "People")
+  def chip_label("Leaving"), do: pgettext("discover chip", "Leaving")
+  def chip_label("Awards"), do: pgettext("discover chip", "Awards")
+  def chip_label(other), do: other
+
   @doc false
   def content(assigns) do
     f = assigns.feed
@@ -581,17 +653,24 @@ defmodule Kati.Screens.Discover do
       filters: Kati.Screens.Discover.filter_disc(choice)
     }
 
+    # `max_lines={1}` is new, and it is the Persian half of a 28pt display
+    # heading: the column it sits in is what is left of 370dp after two 44pt
+    # discs and their gaps, `کشف` is shorter than `Discover` but a longer word
+    # in another screen's position would wrap into the subtitle's 5pt gap.
+    # `Kati.Locale.tracking/1` for the same reason `Kati.UI.eyebrow/2` uses it —
+    # a fraction of an em pulled off a Latin heading unjoins an Arabic one.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Discover"
+            text={gettext("Discover")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           {Kati.Screens.Discover.subtitle(f.subtitle)}
         </Column>
@@ -633,12 +712,18 @@ defmodule Kati.Screens.Discover do
   def subtitle(line) do
     assigns = %{line: line}
 
+    # `Kati.Locale.mono_face/1` and not the literal `"mono"`: the line is a
+    # SENTENCE, and `kati_mono.ttf` carries no Persian glyph, so a folded
+    # `Tuned to …` set in DM Mono would be handed to Android's own substitute
+    # face beside sentences that are Kati's. The arity-1 form because the
+    # string's own script is the question here — a line that is still ASCII
+    # keeps DM Mono exactly as it has.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={5} />
       <Text
         text={@line}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@line)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -707,10 +792,15 @@ defmodule Kati.Screens.Discover do
   @spec chip(map(), boolean()) :: map()
   def chip(c, on?) do
     MishkaChip.chip(
-      label: c.label,
+      # The word, off the key. `chip_label/1` carries the argument.
+      label: Kati.Screens.Discover.chip_label(c.label),
       checked: on?,
-      # The tag carries the label, so one handler serves every chip and a new
-      # chip is a data change rather than a code change.
+      # The tag carries the KEY — `c.label`, never `chip_label/1`'s answer — so
+      # one handler serves every chip and a new chip is a data change rather
+      # than a code change. `handle_tap/2` reads the key back out of the atom
+      # and assigns it to `:chip`, which is what `shows?/2` then matches: put
+      # the translated word in here and the atom, the assign and every clause
+      # of `shows?/2` would be in a different language from each other.
       on_toggle: String.to_atom("filter_" <> c.label),
       color: Palette.ink_fill(),
       text_color: Palette.on_ink(),
@@ -735,11 +825,26 @@ defmodule Kati.Screens.Discover do
   @doc false
   def chip_count(nil, _selected), do: nil
 
+  # `Kati.Locale.number/1` first, then `Kati.Locale.mono_face/1` about the
+  # RESULT — the same pair in the same order as `Kati.Screens.Library.chip_count/2`
+  # on the other four-chip row, and for its reason. The badge is a numeral the
+  # reader reads rather than a token, so it converts: board 11's `5` is `۵` on a
+  # Persian page. But `kati_mono.ttf` carries none of U+06F0–U+06F9, so a
+  # converted numeral left in DM Mono draws as empty boxes — asking the string
+  # rather than the reader keeps `2` in DM Mono on an English page and `۲` in
+  # Vazirmatn on a Persian one with no second branch here.
   def chip_count(count, selected) do
     fg = if selected, do: Palette.on_ink_count(), else: Palette.count_idle()
+    n = Kati.Locale.number(count)
 
     ~MOB"""
-    <Text text={count} font_family="mono" text_size={10.5} text_color={fg} max_lines={1} />
+    <Text
+      text={n}
+      font_family={Kati.Locale.mono_face(n)}
+      text_size={10.5}
+      text_color={fg}
+      max_lines={1}
+    />
     """
   end
 
@@ -813,8 +918,8 @@ defmodule Kati.Screens.Discover do
     do:
       nothing_card(
         "sync",
-        "Looking for something",
-        "Checking what goes with what you last watched."
+        gettext("Looking for something"),
+        gettext("Checking what goes with what you last watched.")
       )
 
   # Three empty answers, three cards. A token nobody has entered is something
@@ -826,22 +931,33 @@ defmodule Kati.Screens.Discover do
   # `explore_off` and `vpn_key_off` — the obvious pairs for it and for the
   # token card — are not in Kati's Material subset (`mix kati.gen.icons`), so
   # the three take glyphs that are.
+  #
+  # `TMDB` stays Latin inside the Persian title and takes no `Kati.Locale.ltr/1`:
+  # it is a provider's name for itself, the run carries no punctuation of its
+  # own, and it sits between two Persian words where the bidi algorithm resolves
+  # it correctly unaided. Every TMDB sentence already in the catalogue is
+  # written that way.
   def picks_or_not(%{picks_error: :no_api_key}),
-    do: nothing_card("lock", "No TMDB token yet", Kati.Media.Tmdb.message(:no_api_key))
+    do: nothing_card("lock", gettext("No TMDB token yet"), Kati.Media.Tmdb.message(:no_api_key))
 
   # Every other reason takes the client's own sentence — the wording of a
   # provider failure belongs with the provider, and `Kati.Media.Tmdb.message/1`
   # already words all seven for screen 06. A card here that said *could not be
   # reached* over a rate limit would be a second, worse copy of it.
   def picks_or_not(%{picks_error: reason}) when not is_nil(reason),
-    do: nothing_card("cloud_off", "Could not look just now", Kati.Media.Tmdb.message(reason))
+    do:
+      nothing_card(
+        "cloud_off",
+        gettext("Could not look just now"),
+        Kati.Media.Tmdb.message(reason)
+      )
 
   def picks_or_not(_feed),
     do:
       nothing_card(
         "explore",
-        "Nothing to suggest yet",
-        "TMDB knows of nothing like it. Watch something else and this fills in."
+        gettext("Nothing to suggest yet"),
+        gettext("TMDB knows of nothing like it. Watch something else and this fills in.")
       )
 
   @doc """
@@ -904,13 +1020,26 @@ defmodule Kati.Screens.Discover do
     if Enum.any?([:because, :people, :leaving], &Kati.Screens.Discover.shows?(&1, chip)) do
       ~MOB"<Spacer size={0} />"
     else
+      # `chip` is the key and `label` is the word — the card names the chip the
+      # reader pressed, so it has to say it in their language. Both sentences
+      # are templates rather than `<>` chains: a concatenation is a word order
+      # frozen in Latin, and *Nothing under Awards* puts its subject where
+      # Persian would not.
+      label = Kati.Screens.Discover.chip_label(chip)
+
+      # `String.downcase/1` survives because the ENGLISH sentence wants a
+      # lower-case noun mid-clause and the Arabic script has no case to fold —
+      # so the Persian binding arrives exactly as `chip_label/1` answered it.
+      # The Latin twin of `Kati.UI.eyebrow_label/1`'s problem, and harmless
+      # where that one is not: a no-op only misleads when the design expected
+      # it to change something, and here nothing downstream reads the case.
       Kati.Screens.Discover.nothing_card(
         "auto_awesome",
-        "Nothing under " <> chip,
-        "Kati has no " <>
-          String.downcase(chip) <>
-          " to show from what you keep. " <>
-          Kati.Screens.Discover.other_chips(f, chip)
+        gettext("Nothing under %{chip}", chip: label),
+        gettext("Kati has no %{chip} to show from what you keep. %{rest}",
+          chip: String.downcase(label),
+          rest: Kati.Screens.Discover.other_chips(f, chip)
+        )
       )
     end
   end
@@ -926,10 +1055,26 @@ defmodule Kati.Screens.Discover do
   """
   @spec other_chips(map(), String.t()) :: String.t()
   def other_chips(f, chip) do
+    # Rejected on the KEY and named by the word: the card is pointing at chips
+    # the reader can press, so the two have to be the same list read twice.
     case f |> Map.get(:chips, []) |> Enum.map(& &1.label) |> Enum.reject(&(&1 == chip)) do
-      [] -> "Nothing else is offered either."
-      [one] -> one <> " has picks."
-      many -> Enum.join(many, ", ") <> " have picks."
+      [] ->
+        gettext("Nothing else is offered either.")
+
+      [one] ->
+        gettext("%{chip} has picks.", chip: Kati.Screens.Discover.chip_label(one))
+
+      many ->
+        # `Kati.Locale.pick/2` for the separator rather than a msgid of its own:
+        # `", "` is the exact shape the traps warn about — two characters that
+        # `mix gettext.merge` will fuzzy-match against any sentence carrying a
+        # comma. Persian's list comma is U+060C, and that is the whole of the
+        # difference.
+        joiner = Kati.Locale.pick(", ", "، ")
+
+        gettext("%{chips} have picks.",
+          chips: Enum.map_join(many, joiner, &Kati.Screens.Discover.chip_label/1)
+        )
     end
   end
 
@@ -937,6 +1082,11 @@ defmodule Kati.Screens.Discover do
   def nothing_card(icon, title, body) do
     assigns = %{icon: icon, title: title, body: body}
 
+    # `Kati.Locale.leading/1` on the body, because the body is a PARAGRAPH and
+    # this card is the widest one on the page: Vazirmatn's metrics are not Plus
+    # Jakarta's, and 1.55 measured against the Latin sentence sets the Persian
+    # one solid. Four of the five callers now hand this two or three lines of
+    # Persian, so it is the paragraph on screen 11 that needed it most.
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -966,7 +1116,7 @@ defmodule Kati.Screens.Discover do
         <Text
           text={@body}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -984,7 +1134,7 @@ defmodule Kati.Screens.Discover do
     if shows?(:people, chip) do
       ~MOB"""
       <Column fill_width={true}>
-        {UI.eyebrow("People you follow")}
+        {UI.eyebrow(gettext("People you follow"))}
         {Kati.Screens.Discover.people(f)}
       </Column>
       """
@@ -1009,19 +1159,25 @@ defmodule Kati.Screens.Discover do
   # *Because you watched* is not asking about leaving-soon at all.
   def leaving_section(%{leaving: []}, chip, _scheduled) do
     if shows?(:leaving, chip) and not Kati.Screens.NothingSetUpKnockOn.set_up?() do
+      # One literal rather than the `<>` pair it was: `gettext/1` extracts a
+      # msgid at compile time from a LITERAL at the call site, and a
+      # concatenation of two of them is an expression — it would not compile,
+      # and if it did it would have split one sentence into two catalogue
+      # entries a translator could not join.
       assigns = %{
         band:
           Kati.Screens.NothingSetUpKnockOn.prompt(
-            "Nothing to leave yet",
-            "Leaving-soon warnings need at least one subscribed service — there is " <>
-              "nothing to count down from.",
+            gettext("Nothing to leave yet"),
+            gettext(
+              "Leaving-soon warnings need at least one subscribed service — there is nothing to count down from."
+            ),
             :my_services_leaving_soon
           )
       }
 
       ~MOB"""
       <Column fill_width={true}>
-        {Kati.UI.Eyebrow.quiet("Leaving soon")}
+        {Kati.UI.Eyebrow.quiet(gettext("Leaving soon"))}
         {@band}
       </Column>
       """
@@ -1122,12 +1278,16 @@ defmodule Kati.Screens.Discover do
   def match(line) do
     assigns = %{line: line}
 
+    # `Kati.Locale.mono_face/1` about the LINE and not the reader: `94% match`
+    # is a figure with a word after it, and the word is the half DM Mono cannot
+    # set once it is Persian. Asking the string keeps an ASCII line in the face
+    # the drawing gives it and moves a folded one to Vazirmatn.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={3} />
       <Text
         text={@line}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@line)}
         text_size={10.5}
         text_color={Palette.accent()}
         max_lines={1}
@@ -1361,6 +1521,11 @@ defmodule Kati.Screens.Discover do
     """
   end
 
+  # `pgettext/2` and not `gettext/1`: *Scheduled* is one word, and the catalogue
+  # already holds *Schedule* and *Schedules* from screen 44's calendar — three
+  # msgids within one edit of each other is exactly what `mix gettext.merge`
+  # fuzzy-matches, and the state this button lands in is not the verb the other
+  # one asks. The context makes them three separate questions.
   def leaving_action(row, true) do
     tap = Kati.Screens.Discover.schedule_tap(row)
 
@@ -1375,7 +1540,7 @@ defmodule Kati.Screens.Discover do
       on_tap={tap}
     >
       <Text
-        text="Scheduled"
+        text={pgettext("leaving row", "Scheduled")}
         text_size={11.5}
         font_weight="semibold"
         text_color={Palette.ink_soft()}

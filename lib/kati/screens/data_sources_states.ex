@@ -140,6 +140,47 @@ defmodule Kati.Screens.DataSourcesStates do
       both record; the cost in dark is that the sentence comes back a shade
       warm.
 
+  ## Under `:fa` this is one screen and not two, and six choices follow
+
+  mishka-group/kati#103 folded the 33 Persian mirrors away, so every sentence
+  here reaches a Persian reader through `Kati.Gettext` and every figure through
+  `Kati.Locale`. Six of those are decisions rather than mechanics:
+
+    * **The frame's note stopped being `@note`.** `gettext/1` inside a module
+      attribute is evaluated when the MODULE compiles, so the footnote would
+      have frozen in whichever locale the compiler was in and been handed to
+      every reader afterwards. It is `note_body/0` now, evaluated per render,
+      which is the only moment `Kati.Locale.current/0` is known.
+    * **`18:02` is a `Time` and not a string.** `Kati.Locale.time/1` answers
+      ۱۸:۰۲ under `:fa`, and it is the same `~T[18:02:00]` screen 01's
+      *last check %{at}* takes — so the two boards cannot disagree about the
+      numerals. The bar's `3` and the cache's `61` are measurements and go
+      through `Kati.Locale.number/1` the same way.
+    * **`TVmaze` is interpolated, not translated.** A provider's name is what
+      the service calls itself; `Kati.Sources.tier0/0` writes it in Latin in
+      both scripts, and leaving it inside a msgid would invite a transliteration
+      that spells one service two ways on one page. `Kati.Locale.ltr/1` isolates
+      it so the `·` beside it stays on the correct edge — and the truncated key
+      in the bad-key field takes the same call, because an ellipsis is a neutral
+      character and an RTL page would lay it out in FRONT of the key.
+    * **`API Read Access Token` and `API key` stay Latin inside the refusal.**
+      Both name controls on TMDB's own settings page — the point of the sentence
+      is to send the reader back to find one and not the other — so a Persian
+      rendering would name labels that are not there. The catalogue's existing
+      translation of screen 80's version of this refusal made the identical
+      call. The field LABEL above them is Kati's own chrome over Kati's own
+      field, and that one is translated.
+    * **Every mono line asks `Kati.Locale.mono_face/1`.** `kati_mono.ttf`
+      carries no Persian glyph, so a line left in `mono` is handed to Android's
+      own substitute face and renders, correctly shaped, in a typeface that is
+      not Kati's. `/1` rather than `/0` so the answer follows the string: the
+      key specimen is ASCII and keeps DM Mono under both locales.
+    * **`Three accounts` is a word and `3 accounts disconnected` is a figure.**
+      The confirmation states its count for the reason above — a specimen on a
+      device with nothing connected would otherwise count to zero — so the
+      Persian spells it out too. The undo bar beneath it prints a number, so
+      that one goes through `Kati.Locale.number/1` and reads ۳.
+
   ## Nothing on this sheet taps
 
   `Retry`, `Wipe tokens`, `Keep them` and `Undo` are drawn and not wired, so
@@ -162,14 +203,10 @@ defmodule Kati.Screens.DataSourcesStates do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  @note "Rate-limited reads bronze, not red — it is Kati being polite, not " <>
-          "something breaking. The wipe confirmation is inline, not a modal: " <>
-          "it says what survives before it asks."
-
   @doc false
   @spec content(map()) :: map()
   def content(_assigns) do
-    note = SettingsList.note("info", @note)
+    note = SettingsList.note("info", note_body())
 
     ~MOB"""
     <Scroll>
@@ -181,23 +218,39 @@ defmodule Kati.Screens.DataSourcesStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Data sources", "seven states", nil, :name)}
-        {UI.eyebrow("Provider failing")}
+        {SettingsList.title(gettext("Data sources"), gettext("seven states"), nil, :name)}
+        {UI.eyebrow(gettext("Provider failing"))}
         {Kati.Screens.DataSourcesStates.failing()}
-        {SettingsList.eyebrow_muted("Rate-limited — not an error")}
+        {SettingsList.eyebrow_muted(gettext("Rate-limited — not an error"))}
         {Kati.Screens.DataSourcesStates.rate_limited()}
-        {SettingsList.eyebrow_muted("Offline")}
+        {SettingsList.eyebrow_muted(pgettext("the device has no network", "Offline"))}
         {Kati.Screens.DataSourcesStates.offline()}
-        {SettingsList.eyebrow_muted("Verifying a pasted key · bad key")}
+        {SettingsList.eyebrow_muted(gettext("Verifying a pasted key · bad key"))}
         {Kati.Screens.DataSourcesStates.key_checks()}
-        {SettingsList.eyebrow_muted("Cache near the ceiling")}
+        {SettingsList.eyebrow_muted(gettext("Cache near the ceiling"))}
         {Kati.Screens.DataSourcesStates.cache_ceiling()}
-        {SettingsList.eyebrow_muted("Wipe confirmation · after wiping")}
+        {SettingsList.eyebrow_muted(gettext("Wipe confirmation · after wiping"))}
         {Kati.Screens.DataSourcesStates.wipe()}
         {note}
       </Column>
     </Scroll>
     """
+  end
+
+  # THE FRAME'S NOTE IS A FUNCTION AND NOT `@note` ANY MORE.
+  #
+  # It was a module attribute, and `gettext/1` inside one is evaluated when the
+  # MODULE is compiled: the sentence would freeze in whichever locale the
+  # compiler happened to be in and every reader afterwards would get that one —
+  # an English footnote under a Persian page, or the reverse, with nothing in
+  # the render able to correct it. A function is evaluated per render, which is
+  # the only moment `Kati.Locale.current/0` is known. mishka-group/kati#103.
+  defp note_body do
+    gettext(
+      "Rate-limited reads bronze, not red — it is Kati being polite, not " <>
+        "something breaking. The wipe confirmation is inline, not a modal: " <>
+        "it says what survives before it asks."
+    )
   end
 
   @doc """
@@ -230,10 +283,34 @@ defmodule Kati.Screens.DataSourcesStates do
   def failing do
     source = Kati.Screens.DataSourcesStates.provider(:tvmaze)
 
+    # ONE MSGID, AND TWO THINGS TAKEN OUT OF IT.
+    #
+    # The clock is a rendered figure, so `18:02` goes through
+    # `Kati.Locale.time/1` and reads ۱۸:۰۲ under `:fa` — screen 01's own
+    # `last check %{at}` takes the same `~T[18:02:00]` the same way, so the two
+    # boards cannot disagree about the numerals.
+    #
+    # The provider's name is interpolated rather than left sitting inside the
+    # msgid. `TVmaze` is what the service calls itself, `Kati.Sources.tier0/0`
+    # writes it in Latin in both scripts for that reason, and a translator
+    # meeting it inside a sentence would be invited to transliterate it — which
+    # would spell one service two ways on one page. `Kati.Locale.ltr/1` then
+    # isolates the run so the `·` beside it resolves against the name rather
+    # than against an RTL paragraph and jumps to the wrong edge.
+    #
+    # The `·` itself stays inside the msgid rather than joining two translated
+    # halves, which is the call `Kati.Screens.BackupStates.recent/0` argues for:
+    # a Persian reader meets the whole line as one phrase.
+    sub =
+      gettext("last checked %{at} · couldn’t reach %{provider}",
+        at: Kati.Locale.time(~T[18:02:00]),
+        provider: Kati.Locale.ltr("TVmaze")
+      )
+
     row =
       SettingsList.row(
         SettingsList.icon_tile(source.icon),
-        SettingsList.body(source.name, "last checked 18:02 · couldn’t reach TVmaze", lines: 2),
+        SettingsList.body(source.name, sub, lines: 2),
         Kati.Screens.DataSourcesStates.retry_control(),
         rule: false
       )
@@ -260,7 +337,7 @@ defmodule Kati.Screens.DataSourcesStates do
     <Row align="center">
       {Kati.Screens.DataSourcesStates.dot(Kati.Theme.Palette.red())}
       <Spacer size={9} />
-      {Kati.UI.SettingsList.action_pill("Retry")}
+      {Kati.UI.SettingsList.action_pill(gettext("Retry"))}
     </Row>
     """
   end
@@ -276,10 +353,18 @@ defmodule Kati.Screens.DataSourcesStates do
   def rate_limited do
     source = Kati.Screens.DataSourcesStates.provider(:musicbrainz)
 
+    # `gettext/2` and not `ngettext/4`. One a second is MusicBrainz's PUBLISHED
+    # limit rather than a count this line could ever draw twice, so there is no
+    # second form for a plural to select — an `ngettext` here would invent a
+    # sentence the app cannot reach. The figure still goes through
+    # `Kati.Locale.number/1`: a Latin `1` sitting between Persian words is
+    # exactly the digit a reader notices.
+    sub = gettext("slowing down · %{n} request a second", n: Kati.Locale.number(1))
+
     row =
       SettingsList.row(
         SettingsList.icon_tile(source.icon),
-        SettingsList.body(source.name, "slowing down · 1 request a second", lines: 2),
+        SettingsList.body(source.name, sub, lines: 2),
         Kati.Screens.DataSourcesStates.polite_control(),
         rule: false
       )
@@ -302,13 +387,26 @@ defmodule Kati.Screens.DataSourcesStates do
   """
   @spec polite_control() :: map()
   def polite_control do
+    # `pgettext/2` for one word. A bare `normal` is exactly the size
+    # `mix gettext.merge` fuzzy-matches against any sentence that happens to
+    # contain it, and the context carries the distinction this whole card is
+    # about: it is the PROVIDER that is normal, while Kati is the one slowing
+    # down.
+    word = pgettext("the provider’s own state while Kati throttles itself", "normal")
+
+    # `kati_mono.ttf` carries no Persian glyph, so a hardcoded `mono` here would
+    # hand `عادی` to Android's own substitute face — legible, in a typeface that
+    # is not Kati's, beside a row set in Kati's. `mono_face/1` asks the STRING,
+    # so the English word keeps DM Mono and the Persian one does not.
+    assigns = %{word: word}
+
     ~MOB"""
     <Row align="center">
       {Kati.Screens.DataSourcesStates.dot(Kati.Theme.Palette.gold_icon())}
       <Spacer size={7} />
       <Text
-        text="normal"
-        font_family="mono"
+        text={@word}
+        font_family={Kati.Locale.mono_face(@word)}
         text_size={10.5}
         text_color={Kati.Theme.Palette.muted()}
         max_lines={1}
@@ -349,6 +447,17 @@ defmodule Kati.Screens.DataSourcesStates do
   """
   @spec offline() :: map()
   def offline do
+    # The badge's title and the eyebrow above it are ONE msgid on purpose: they
+    # are the same word about the same condition, and two entries would let a
+    # translator give the section and the card it introduces two different
+    # words. `pgettext/2` because a bare `Offline` is one word — the context
+    # names the radio rather than, say, a provider that is unreachable, which is
+    # the card two states above this one.
+    assigns = %{
+      title: pgettext("the device has no network", "Offline"),
+      line: gettext("Your library works exactly as it did a minute ago")
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -362,19 +471,14 @@ defmodule Kati.Screens.DataSourcesStates do
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text="Offline"
+            text={@title}
             text_size={13}
             font_weight="bold"
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text
-            text="Your library works exactly as it did a minute ago"
-            text_size={11.5}
-            text_color={Palette.cream_sub()}
-            max_lines={2}
-          />
+          <Text text={@line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={2} />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -412,13 +516,29 @@ defmodule Kati.Screens.DataSourcesStates do
   """
   @spec key_label() :: map()
   def key_label do
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` — the same swap
+    # `Kati.UI.eyebrow/2` made for the section labels. Arabic script has no case,
+    # so upcasing a Persian label is a no-op that LOOKS like one: the line comes
+    # out in the same letters it went in with, beside Latin labels that visibly
+    # changed. `eyebrow_label/1` keeps the capitals in Latin and leaves the
+    # Persian alone, which is what the drawing's `text-transform` does anyway.
+    #
+    # The label itself is Kati's own chrome over Kati's own field and is
+    # translated. `API key` INSIDE the refusal sentence below is not: there it
+    # names one of the two controls on TMDB's settings page, which is the whole
+    # point of the sentence. Two different things that happen to share a name in
+    # English, and only one of them is a word.
+    label = Kati.UI.eyebrow_label(gettext("API key"))
+
+    assigns = %{label: label}
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={String.upcase("API key")}
-        font_family="mono"
+        text={@label}
+        font_family={Kati.Locale.mono_face(@label)}
         text_size={10}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Palette.muted()}
       />
       <Spacer size={9} />
@@ -439,6 +559,15 @@ defmodule Kati.Screens.DataSourcesStates do
   """
   @spec checking() :: map()
   def checking do
+    # `pgettext/2` for one word, and the context names the slot. The catalogue
+    # already holds `never checked` and screen 01's `last check %{at}`, which
+    # are exactly what `mix gettext.merge` would fuzzy-match a bare `checking`
+    # against — and the answer that lands in this slot is a VERDICT, so the
+    # wrong word here would be the one thing the card is about.
+    word = pgettext("the verdict slot while a pasted key is being checked", "checking")
+
+    assigns = %{word: word}
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -460,8 +589,8 @@ defmodule Kati.Screens.DataSourcesStates do
         <Box weight={1.0} height={11} corner_radius={6} background={Palette.track()} />
         <Spacer size={11} />
         <Text
-          text="checking"
-          font_family="mono"
+          text={@word}
+          font_family={Kati.Locale.mono_face(@word)}
           text_size={10.5}
           text_color={Palette.sub()}
           max_lines={1}
@@ -488,16 +617,46 @@ defmodule Kati.Screens.DataSourcesStates do
   """
   @spec bad_key() :: map()
   def bad_key do
-    body = [text_size: 12.5, line_height: 1.55, text_color: Palette.cream_body()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # THREE RUNS AND TWO MSGIDS.
+    #
+    # `API Read Access Token` is the middle run and it is not translated. It is
+    # the name of a control on TMDB's own settings page — the thing the reader
+    # has to go back and find — so a Persian rendering of it would send them
+    # looking for a label that is not there. Screen 80's version of this same
+    # refusal already sits in the catalogue keeping it, and `API key` in the
+    # third run, in Latin for the same reason.
+    #
+    # Splitting a sentence across msgids is normally how a translation gets a
+    # word order it cannot fix, and it is safe here for a reason worth writing
+    # down: Persian is verb-final, so the object of *copied* lands before the
+    # verb — which is exactly where the emphasis already is. The run boundaries
+    # survive the fold without being resequenced, and `Kati.UI.rich_text/1`
+    # flattens them today regardless (see the moduledoc).
     message =
       UI.rich_text([
-        {"TMDB didn’t accept this key. Check you copied the ", body},
+        {gettext("TMDB didn’t accept this key. Check you copied the "), body},
         {"API Read Access Token", strong},
-        {", not the API key, and that it has no trailing space.", body}
+        {gettext(", not the API key, and that it has no trailing space."), body}
       ])
 
+    # THE KEY KEEPS DM MONO AND GAINS AN ISOLATE.
+    #
+    # A JWT fragment is ASCII and `kati_mono.ttf` has every glyph it needs, in
+    # both scripts, so `mono_face/1` would answer `mono` here and the hardcoded
+    # name is the honest one. Its ELLIPSIS is the problem: `…` is a neutral
+    # character in the Unicode bidi algorithm, so on an RTL page it resolves
+    # against the paragraph and is laid out at the left edge — `…eyJhbGciOiJIUzI1`,
+    # a truncation mark in front of the thing it truncates. `Kati.Locale.ltr/1`
+    # isolates the run so the mark resolves against the key instead. Screen 83's
+    # licence notices are where this was found.
     ~MOB"""
     <Column
       fill_width={true}
@@ -519,7 +678,7 @@ defmodule Kati.Screens.DataSourcesStates do
         align="center"
       >
         <Text
-          text="eyJhbGciOiJIUzI1…"
+          text={Kati.Locale.ltr("eyJhbGciOiJIUzI1…")}
           font_family="mono"
           text_size={12.5}
           text_color={Palette.red()}
@@ -576,7 +735,13 @@ defmodule Kati.Screens.DataSourcesStates do
         track_color: Palette.paper()
       )
 
-    assigns = %{oldest: oldest, bar: bar}
+    # The one line on this card that was still Latin. It is the page's own
+    # promise coming due — *Kati refreshes anything older than six months on its
+    # own* — rather than a figure, so it is a msgid, and its face follows the
+    # string for the reason `mono_face/1` exists: DM Mono carries no Persian.
+    soon = gettext("auto-refresh soon")
+
+    assigns = %{oldest: oldest, bar: bar, soon: soon}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -607,8 +772,8 @@ defmodule Kati.Screens.DataSourcesStates do
           </Column>
           <Spacer size={12} />
           <Text
-            text="auto-refresh soon"
-            font_family="mono"
+            text={@soon}
+            font_family={Kati.Locale.mono_face(@soon)}
             text_size={11}
             text_color={Palette.sub()}
             max_lines={1}
@@ -633,7 +798,25 @@ defmodule Kati.Screens.DataSourcesStates do
   """
   @spec wipe() :: map()
   def wipe do
-    undo = States.undo(%{icon: "undo", text: "3 accounts disconnected", action: "Undo"})
+    # `Kati.Sources.tier2/0` holds exactly three revocable-token providers, so
+    # the three is real — and unlike the *Three accounts* in the question above
+    # it, which is a word, this one is a FIGURE the bar prints. It goes through
+    # `Kati.Locale.number/1` and reads ۳. `ngettext/4` rather than `gettext/2`
+    # because English inflects the noun after it; Persian does not, so the two
+    # Persian forms are the same sentence and that is not a mistake in the
+    # catalogue.
+    disconnected =
+      ngettext(
+        "%{n} account disconnected",
+        "%{n} accounts disconnected",
+        3,
+        n: Kati.Locale.number(3)
+      )
+
+    # `Kati.Screens.States.undo/1` is borrowed unchanged and is another module's
+    # file, so the two words it draws are handed to it from here — which is what
+    # makes them this screen's to translate rather than 27's.
+    undo = States.undo(%{icon: "undo", text: disconnected, action: gettext("Undo")})
 
     ~MOB"""
     <Column fill_width={true}>
@@ -665,7 +848,7 @@ defmodule Kati.Screens.DataSourcesStates do
   def confirm do
     wipe =
       Kati.Screens.DataSourcesStates.answer(
-        "Wipe tokens",
+        gettext("Wipe tokens"),
         Palette.red(),
         Palette.on_ink(),
         :bold,
@@ -674,12 +857,32 @@ defmodule Kati.Screens.DataSourcesStates do
 
     keep =
       Kati.Screens.DataSourcesStates.answer(
-        "Keep them",
+        # `pgettext/2` for two words. The catalogue's register for a button is
+        # the verbal noun — `ذخیره`, `جایگزینی`, `پاک‌کردن` — and a bare
+        # `Keep them` gives a translator nothing to tell that from an
+        # imperative; the context says this is the SAFE answer to a destructive
+        # question, which is the only thing about it that has to survive.
+        pgettext("the safe answer to the wipe confirmation", "Keep them"),
         Palette.paper(),
         Palette.ink_soft(),
         :semibold,
         false
       )
+
+    # `Three accounts` is a WORD here and a figure in the undo bar below, and
+    # that difference is the moduledoc's argument rather than an oversight: the
+    # confirmation states the count because a specimen on a device with nothing
+    # connected would otherwise count to zero and ask about an event that cannot
+    # happen. A word does not go through `Kati.Locale.number/1`; the Persian
+    # spells it out the same way.
+    assigns = %{
+      question: gettext("Wipe all tokens?"),
+      paragraph:
+        gettext(
+          "Three accounts disconnect. Your library, ratings and history are " <>
+            "untouched — only the keys go."
+        )
+    }
 
     ~MOB"""
     <Column
@@ -694,7 +897,7 @@ defmodule Kati.Screens.DataSourcesStates do
         <Spacer size={11} />
         <Column weight={1.0}>
           <Text
-            text="Wipe all tokens?"
+            text={@question}
             text_size={13.5}
             font_weight="bold"
             text_color={:on_surface}
@@ -702,9 +905,9 @@ defmodule Kati.Screens.DataSourcesStates do
           />
           <Spacer size={6} />
           <Text
-            text="Three accounts disconnect. Your library, ratings and history are untouched — only the keys go."
+            text={@paragraph}
             text_size={12.5}
-            line_height={1.55}
+            line_height={Kati.Locale.leading(1.55)}
             text_color={Palette.ink_soft()}
           />
         </Column>

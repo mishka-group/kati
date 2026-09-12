@@ -34,12 +34,39 @@ defmodule Kati.Screens.SearchSpec do
   keeps a frame under 256 event handles — which is `Kati.TapHandleBudgetTest`'s
   ceiling and a real one, because a screen that exceeds it kills its own
   process.
+
+  ## Half this page's words are not this page's to translate
+
+  mishka-group/kati#103 folded board 88's Persian mirror away, so this module
+  draws both scripts and its own copy goes through `Kati.Gettext`. Its own copy
+  is the chrome: the title, the five eyebrows, the three notes, the caps card
+  and the `NOT YET` pill.
+
+  Everything the page is a specification OF belongs to `Kati.Search`, which is
+  the other half of the contract, and reaches here already answered or not at
+  all:
+
+    * **The scope names and their fields** are `Kati.Search.scopes/0` and are
+      already `pgettext("search scope", …)` — a function rather than an
+      attribute, and its own comment says why: `gettext/1` inside a `@foo`
+      freezes into whichever locale the compiler was in.
+    * **The four tier names and their examples** are `Kati.Search`'s `@tiers`,
+      which is exactly that attribute, so they are still English under `:fa`.
+    * **The folding table's own words** — `ZWNJ`, `harakat`, `folded`,
+      `stripped`, `Arabic-Indic` — are `Kati.Search.normalisation_table/0`'s.
+
+  Translating any of them means moving an attribute to a function in that file,
+  and a screen is not where that edit belongs: the same table is drawn by more
+  than this board. Board 90's Persian annotation already names three of the
+  five — نیم‌فاصله, اعراب, ارقام عربی — so the vocabulary is decided and only
+  the seam is missing.
   """
 
   # `Settings` is what board 88 draws, and it is the answer for a push that
   # names nowhere — the gallery's. The tune disc on 86, which is the only real
   # door, hands `Search` (#131).
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Search
   alias Kati.Theme.Palette
@@ -60,16 +87,16 @@ defmodule Kati.Screens.SearchSpec do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Scope & ranking", "What each scope searches, and in what order", nil, :name)}
-        {UI.eyebrow("Fields searched, per scope")}
+        {SettingsList.title(gettext("Scope & ranking"), gettext("What each scope searches, and in what order"), nil, :name)}
+        {UI.eyebrow(gettext("Fields searched, per scope"))}
         {Kati.Screens.SearchSpec.scopes()}
-        {UI.eyebrow("Group order — fixed, not relevance-sorted")}
+        {UI.eyebrow(gettext("Group order — fixed, not relevance-sorted"))}
         {Kati.Screens.SearchSpec.group_order()}
-        {UI.eyebrow("Within a group")}
+        {UI.eyebrow(gettext("Within a group"))}
         {Kati.Screens.SearchSpec.tiers()}
-        {UI.eyebrow("Caps, emphasis, retention")}
+        {UI.eyebrow(gettext("Caps, emphasis, retention"))}
         {Kati.Screens.SearchSpec.caps()}
-        {UI.eyebrow("Persian normalisation")}
+        {UI.eyebrow(gettext("Persian normalisation"))}
         {Kati.Screens.SearchSpec.normalisation()}
       </Column>
     </Scroll>
@@ -181,9 +208,31 @@ defmodule Kati.Screens.SearchSpec do
   The casing is the board's. `not yet` in lower case read as a footnote beside a
   bold label; the board sets it in the same mono capitals every other state mark
   on this screen uses.
+
+  ## The mark is the reader's words, so the typography is asked rather than typed
+
+  Persian has no case at all, so the mono-capitals treatment is three separate
+  decisions in `:fa` and only one of them survives. `Kati.UI.eyebrow_label/1`
+  already makes that argument for the eyebrows above; here it is the pill's own
+  three props:
+
+    * **The face.** `kati_mono.ttf` carries no Persian glyph, so «هنوز نه» set
+      in `mono` is handed to Android's own substitute face — legible, and not
+      Kati's. `Kati.Locale.mono_face/0` is Vazirmatn at the mono size.
+    * **The tracking.** `0.08em` is what makes a run of Latin capitals read as
+      a mark rather than a word. Arabic script JOINS, and tracking pulls the
+      joins apart, so `Kati.Locale.tracking/1` drops it.
+    * **The word.** The board's capitals cannot be produced from «هنوز نه» and
+      `String.upcase/1` on it is a no-op that reads as one.
+
+  `pgettext/2` rather than `gettext/1`: two words is short enough for
+  `mix gettext.merge` to fuzzy-match it onto some other sentence, and this one
+  is a state mark rather than a phrase.
   """
   @spec not_yet_pill() :: map()
   def not_yet_pill do
+    assigns = %{label: pgettext("state mark", "NOT YET")}
+
     ~MOB"""
     <Row
       height={22}
@@ -194,10 +243,10 @@ defmodule Kati.Screens.SearchSpec do
       align="center"
     >
       <Text
-        text="NOT YET"
-        font_family="mono"
+        text={@label}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
-        letter_spacing={0.08}
+        letter_spacing={Kati.Locale.tracking(0.08)}
         text_color={Palette.muted()}
         max_lines={1}
       />
@@ -322,7 +371,7 @@ defmodule Kati.Screens.SearchSpec do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={12} />
-      {Kati.UI.SettingsList.note("info", "Always this order. A user learns where to look; relevance-sorted groups move the target every keystroke.")}
+      {Kati.UI.SettingsList.note("info", gettext("Always this order. A user learns where to look; relevance-sorted groups move the target every keystroke."))}
       <Spacer size={24} />
     </Column>
     """
@@ -337,7 +386,11 @@ defmodule Kati.Screens.SearchSpec do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={12} />
-      <Text text="Ties break by recency." text_size={12.5} text_color={Palette.ink_soft()} />
+      <Text
+        text={gettext("Ties break by recency.")}
+        text_size={12.5}
+        text_color={Palette.ink_soft()}
+      />
       <Spacer size={24} />
     </Column>
     """
@@ -348,6 +401,19 @@ defmodule Kati.Screens.SearchSpec do
     numeral = Kati.Locale.number(rank)
     assigns = %{rank: numeral, face: Kati.Locale.mono_face(numeral), example: example}
 
+    # The tier's NAME and its EXAMPLE are `Kati.Search`'s — a `@tiers`
+    # attribute, which is where a `gettext/1` would freeze into whichever
+    # locale the compiler happened to be in — so they are still English under
+    # `:fa` and this screen is not the file that fixes it. The example's
+    # `font_family="mono"` is correct for exactly as long as that is true:
+    # `hollow → Hollow` is ASCII plus one arrow and DM Mono suits it, and the
+    # round that translates `@tiers` has to bring `Kati.Locale.mono_face/1`
+    # here with it or the Persian tier names arrive as empty boxes.
+    #
+    # The RANK does not wait on that. It is a rendered number, so it is already
+    # the reader's digits, and `mono_face/1` asks the numeral's own script —
+    # `kati_mono.ttf` carries none of U+06F0–U+06F9, so `۳` takes the Persian
+    # face and `3` keeps DM Mono without either being decided twice.
     SettingsList.row(
       ~MOB"""
       <Box width={26} height={26} corner_radius={13} background={Palette.paper()} align="center">
@@ -381,16 +447,47 @@ defmodule Kati.Screens.SearchSpec do
   """
   @spec caps() :: map()
   def caps do
+    rows_per_group = Search.rows_per_group()
+
+    # THE CAP AS EACH SCRIPT WRITES IT.
+    #
+    # The board spells the number out — `Three rows per group` — because it is a
+    # rule rather than a measurement, and a rule reads as prose. Persian sets
+    # the digit instead, which is `Kati.Locale`'s own division of labour and
+    # `Kati.Screens.SearchTyping.nothing_yet/0`'s already: the same cap, the
+    # same two answers, written the same way on both screens.
+    #
+    # `pick/2` here rather than a locale-aware `word/1`, and that is the whole
+    # reason this is three lines instead of one. `word/1` is documented — by
+    # `Kati.Screens.SearchTyping`'s moduledoc, which relies on it — as knowing
+    # nothing about Persian, and `Kati.Screens.MoreSources.heading/0`
+    # concatenates its result onto a bare English string and doctests the
+    # answer. Teaching it a second language would reach both of them and it is
+    # not this screen's file to do it in.
+    #
+    # The figure still comes from `Kati.Search` in both branches, so the word
+    # and the cap cannot drift.
+    cap =
+      Kati.Locale.pick(
+        Kati.Screens.SearchSpec.word(rows_per_group),
+        Kati.Locale.number(rows_per_group)
+      )
+
     rows = [
       SettingsList.row(
         SettingsList.icon_tile("checklist"),
         SettingsList.body(
-          # The board spells the number out — `Three rows per group` — because it
-          # is a rule rather than a measurement, and a rule reads as prose. The
-          # figure still comes from `Kati.Search`, so the word and the cap
-          # cannot drift: `word/1` is the one place they meet.
-          "#{Kati.Screens.SearchSpec.word(Search.rows_per_group())} rows per group",
-          "Then a “See all 12 →” row — also what keeps a frame under 256 event handles",
+          gettext("%{n} rows per group", n: cap),
+          # `12` and `256` stay INSIDE the msgid rather than being interpolated
+          # through `Kati.Locale.number/1`. Neither is read from anywhere —
+          # the first is a figure in a quoted example of another screen's row
+          # and the second is `Kati.TapHandleBudgetTest`'s ceiling typed by
+          # hand — so interpolating them would add a seam without adding a
+          # source of truth, and the Persian sentence has to be re-read anyway
+          # the day either moves. `Kati.Screens.SearchTyping`'s *forty-two*
+          # sentence is typed inside its msgid for the same reason; the fa
+          # entry carries ۱۲ and ۲۵۶ and the arrow the other way round.
+          gettext("Then a “See all 12 →” row — also what keeps a frame under 256 event handles"),
           lines: 3
         ),
         SettingsList.trailing(nil)
@@ -398,8 +495,8 @@ defmodule Kati.Screens.SearchSpec do
       SettingsList.row(
         SettingsList.icon_tile("format_bold"),
         SettingsList.body(
-          "Matches emphasise by weight",
-          "600 → 700 and ink. Never orange — orange only means new/now",
+          gettext("Matches emphasise by weight"),
+          gettext("600 → 700 and ink. Never orange — orange only means new/now"),
           lines: 3
         ),
         SettingsList.trailing(nil)
@@ -407,8 +504,11 @@ defmodule Kati.Screens.SearchSpec do
       SettingsList.row(
         SettingsList.icon_tile("history"),
         SettingsList.body(
-          "Recent keeps the last #{Search.recent_kept()}",
-          "Never translated, they are your words",
+          # Read, so it is interpolated and converted — the digit is the
+          # reader's. Board 90's *Recent · last %{n}* is the same figure on the
+          # same shelf and already reads `اخیر · ۸ تای آخر`.
+          gettext("Recent keeps the last %{n}", n: Kati.Locale.number(Search.recent_kept())),
+          gettext("Never translated, they are your words"),
           lines: 2
         ),
         SettingsList.trailing(nil)
@@ -443,6 +543,17 @@ defmodule Kati.Screens.SearchSpec do
   Read rather than typed for the reason the moduledoc gives: this board and the
   behaviour it specifies must be one thing, and a table transcribed into a
   screen is a table that can be wrong about the code beside it.
+
+  ## The note under it is the one msgid on this screen whose English is pinned
+
+  *Typing ي finds ی…* is a mostly-Latin sentence carrying two Persian letters,
+  so under `:en` it is set in a face that cannot draw them and
+  `Kati.PersianFontTest`'s `@mixed` inventory names it by its opening words to
+  say that is deliberate. The inventory matches on a PREFIX, and the msgid is
+  what `:en` renders — so rewording the first sentence fails that test rather
+  than this one, and the failure names a font rule rather than a catalogue.
+  Under `:fa` the question does not arise: the root declares `fa`, and the
+  Persian entry is Persian throughout.
   """
   @spec normalisation() :: map()
   def normalisation do
@@ -452,7 +563,7 @@ defmodule Kati.Screens.SearchSpec do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={12} />
-      {Kati.UI.SettingsList.note("info", "Typing ي finds ی. Both spellings of every affected word resolve to one form before matching, so a query typed on an Arabic keyboard finds a title typed on a Persian one.")}
+      {Kati.UI.SettingsList.note("info", gettext("Typing ي finds ی. Both spellings of every affected word resolve to one form before matching, so a query typed on an Arabic keyboard finds a title typed on a Persian one."))}
     </Column>
     """
   end
@@ -461,6 +572,20 @@ defmodule Kati.Screens.SearchSpec do
   def folding_row({from, from_code, to, to_code}) do
     assigns = %{from: from, from_code: from_code, to: to, to_code: to_code || ""}
 
+    # `Kati.Locale.forward_glyph/0` and not the literal `arrow_forward`. This
+    # row is a mapping — what you typed on one side, what it folds to on the
+    # other — and `layout_direction` mirrors the Row under `:fa`, so the typed
+    # form moves to the right and the folded form to the left. An arrow is a
+    # PICTURE and mirrors with nothing, which is the argument `forward_glyph/0`
+    # carries in full; left as the literal it went on pointing back at the form
+    # it came from, which is the one thing this row exists to say.
+    #
+    # The two mono code columns keep `font_family="mono"` rather than asking
+    # `Kati.Locale.mono_face/1`. `U+064A` is a machine's name for a character,
+    # ASCII in both scripts, and DM Mono has every glyph it needs — but one of
+    # the five rows is `U+064B–0652`, whose EN DASH is not ASCII, so asking by
+    # script would set that row alone in Vazirmatn and leave four in DM Mono.
+    # A table whose codes are in two faces reads as a mistake.
     SettingsList.row(
       nil,
       ~MOB"""
@@ -468,7 +593,7 @@ defmodule Kati.Screens.SearchSpec do
         <Text text={@from} font_family="fa" text_size={14} text_color={:on_surface} width={54} />
         <Text text={@from_code} font_family="mono" text_size={10.5} text_color={Palette.muted()} />
         <Spacer size={10} />
-        {Kati.UI.symbol("arrow_forward", size: 15, color: Palette.tertiary())}
+        {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 15, color: Palette.tertiary())}
         <Spacer size={10} />
         <Text text={@to} font_family="fa" text_size={14} text_color={:on_surface} />
         <Spacer weight={1.0} />

@@ -47,15 +47,66 @@ defmodule Kati.Screens.Shopping do
   crude-but-honest trick `Kati.UI.chip/2` uses for its own width. It
   deliberately undershoots, because a strike that stops inside the word reads
   as a strike, and one that overshoots reads as a layout bug.
+
+  ## Both scripts
+
+  `Kati.Meals.SampleShopping` holds the nine lines this board draws and
+  `Kati.Meals.Aisle` holds the headings over them, and this screen may edit
+  neither — so the copy is translated where it is DRAWN, matched on the
+  English the fixture ships. The `Copy` section near the bottom carries the
+  long version, and `Kati.Screens.PlanShare` is where the arrangement was
+  written out in full.
+
+  Two things on this page are not words and still change with the language.
+  The subtitle names a week, and 17 August 2026 is ۲۶ مرداد ۱۴۰۵ — a different
+  CALENDAR rather than the same date translated, which is the half of
+  mishka-group/kati#103 gettext cannot do. The estimate is a price, and board
+  127 writes a foreign currency as a word AFTER the figure. Both go through
+  `Kati.Locale`, the second by way of `Kati.Money.display/2`.
+
+  The mono sub-line and the mono amount both ask `Kati.Locale.mono_face/1`
+  rather than naming `mono`: `kati_mono.ttf` carries no Persian glyph, so a
+  Persian sub-line set in it is handed to Android's own substitute face and
+  renders — correctly shaped, in a typeface that is not Kati's — beside
+  sentences that are.
   """
   use Kati.Screens.Pushed, back: "Meals"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Meals.Aisle
   alias Kati.Meals.SampleShopping
   alias Kati.Meals.ShoppingListItem
+  alias Kati.Money
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
+
+  # ── The figures board 48 froze into prose ─────────────────────────────────
+  #
+  # `Kati.Meals.SampleShopping` writes its subtitle, its basket line and its
+  # estimate as finished sentences — `week of 17 Aug · 24 items` — so the
+  # drawn list carries no field to read the week, the count or the price out
+  # of. A msgid that swallowed them whole would freeze Latin digits, a
+  # Gregorian month and a leading `£` inside the Persian string, where no
+  # translator can convert them without freezing them again.
+  #
+  # Held here as plain data and rendered through `Kati.Locale` at draw time.
+  # Data, not `gettext/1` calls: a `gettext/1` inside a module attribute is
+  # evaluated at COMPILE time and freezes in whichever locale `mix compile`
+  # happened to be in.
+  #
+  # 17 August 2026 is the Monday board 48's `week of 17 Aug` names, and
+  # `Kati.Screens.PlanShare` dates the drawing's prose to the same year.
+  @drawn_week ~D[2026-08-17]
+  @drawn_items 24
+  @drawn_got 9
+  @drawn_estimate_minor 4120
+
+  # The three sentences the fixture ships, each one literal so a reader can
+  # compare it against `Kati.Meals.SampleShopping` by eye.
+  @drawn_subtitle "week of 17 Aug · 24 items"
+  @drawn_basket "9 of 24 in the basket"
+  @drawn_estimate "£41.20 est."
 
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :list, list(Kati.Time.today()))
@@ -91,8 +142,22 @@ defmodule Kati.Screens.Shopping do
     got = Enum.count(items, & &1.got)
 
     %{
-      subtitle: "week of #{Calendar.strftime(monday, "%-d %b")} · #{plural(count, "item")}",
-      basket: "#{got} of #{count} in the basket",
+      # `Kati.Locale.date/2` and not `Calendar.strftime/2`: a Persian reader
+      # keeps a different calendar, and `%-d %b` over a Gregorian date told
+      # them their shop was in a month their year does not contain. The count
+      # comes back in through `ngettext/4` for the same reason the numeral
+      # does — `۲۴` in Latin digits beside Persian words is what
+      # `Kati.Locale.number/1` exists to stop.
+      subtitle:
+        gettext("week of %{date} · %{items}",
+          date: Kati.Locale.date(monday, :short),
+          items: ngettext("%{n} item", "%{n} items", count, n: Kati.Locale.number(count))
+        ),
+      basket:
+        gettext("%{got} of %{count} in the basket",
+          got: Kati.Locale.number(got),
+          count: Kati.Locale.number(count)
+        ),
       estimate: estimate(items),
       progress: got / count,
       # The three groupings are a control, not data: nothing in
@@ -142,7 +207,7 @@ defmodule Kati.Screens.Shopping do
   # asking for it and says nothing rather than `0 meals`.
   defp meals_label(%{meals_label: label}) when is_binary(label) and label != "", do: label
   defp meals_label(%{meal_count: 0}), do: ""
-  defp meals_label(%{meal_count: count}), do: plural(count, "meal")
+  defp meals_label(%{meal_count: count}), do: Kati.Screens.Shopping.meal_count(count)
 
   # `price_source: :none` contributes nothing and invents nothing — the
   # resource's own rule. A week where no line carries a price therefore states
@@ -159,48 +224,47 @@ defmodule Kati.Screens.Shopping do
         # would print one anyway, which is the failure worth ten lines of
         # arithmetic to avoid.
         same = Enum.filter(priced, &(&1.price_currency == first.price_currency))
+        total = Enum.reduce(same, 0, &(&1.price_minor + &2))
 
-        "#{symbol(first.price_currency)}#{money(same)} est."
+        gettext("%{amount} est.", amount: money(total, first.price_currency))
     end
   end
 
-  defp money(priced) do
-    minor = Enum.reduce(priced, 0, &(&1.price_minor + &2))
-    :erlang.float_to_binary(minor / 100, decimals: 2)
-  end
+  # `Kati.Money.display/2` rather than a symbol glued to a figure. A price is
+  # the one number on this page whose digits, whose decimal mark AND whose
+  # unit's SIDE all follow the script: board 127 writes `۸٫۹۹ پوند`, the
+  # currency as a word after the figure, and that call is where the app
+  # already keeps the answer. Spelling a second form of it here is how one
+  # price ends up written two ways, which is the defect the provider-name rule
+  # exists to prevent.
+  #
+  # A row whose currency was never recorded still states a bare figure, which
+  # is what the old `symbol(nil)` clause answered and the only honest thing to
+  # answer: `Kati.Money.display/2` fills a missing code in from
+  # `Kati.Money.currency/0`, and that would print a total in pounds that
+  # nothing on the list was priced in.
+  defp money(minor, nil),
+    do: Kati.Locale.number(:erlang.float_to_binary(minor / 100, decimals: 2))
 
-  defp symbol("GBP"), do: "£"
-  defp symbol("EUR"), do: "€"
-  defp symbol("USD"), do: "$"
-  defp symbol(nil), do: ""
-  defp symbol(code), do: code <> " "
+  defp money(minor, currency), do: Money.display(minor, currency)
 
   # Thousandths of the unit, back into the shop's own words. `:piece` is the
   # drawing's `×7`; grams and millilitres climb to kg and l on the thousand so
   # a kilo of rice does not read as `1000 g`.
-  defp amount_line(%{unit: :piece, amount_mg: amount}), do: "×#{div(amount, 1000)}"
-  defp amount_line(%{unit: :g, amount_mg: amount}), do: scaled(div(amount, 1000), "g", "kg")
-  defp amount_line(%{unit: :ml, amount_mg: amount}), do: scaled(div(amount, 1000), "ml", "l")
+  #
+  # The unit travels as an ATOM now rather than as the word it prints, because
+  # the word is copy from here down — see `unit_amount/2`.
+  defp amount_line(%{unit: :g, amount_mg: amount}), do: scaled(div(amount, 1000), :g, :kg)
+  defp amount_line(%{unit: :ml, amount_mg: amount}), do: scaled(div(amount, 1000), :ml, :l)
 
-  defp amount_line(%{unit: unit, amount_mg: amount}) do
-    count = div(amount, 1000)
-    {one, many} = unit_words(unit)
-    if count == 1, do: "1 #{one}", else: "#{count} #{many}"
-  end
+  defp amount_line(%{unit: unit, amount_mg: amount}),
+    do: Kati.Screens.Shopping.unit_amount(unit, div(amount, 1000))
 
   defp scaled(amount, small, large) do
     if amount >= 1000 and rem(amount, 1000) == 0,
-      do: "#{div(amount, 1000)} #{large}",
-      else: "#{amount} #{small}"
+      do: Kati.Screens.Shopping.unit_amount(large, div(amount, 1000)),
+      else: Kati.Screens.Shopping.unit_amount(small, amount)
   end
-
-  defp unit_words(:tub), do: {"tub", "tubs"}
-  defp unit_words(:pack), do: {"pack", "packs"}
-  defp unit_words(:pinch), do: {"pinch", "pinches"}
-  defp unit_words(unit), do: {Atom.to_string(unit), Atom.to_string(unit)}
-
-  defp plural(1, word), do: "1 #{word}"
-  defp plural(count, word), do: "#{count} #{word}s"
 
   defp active_plan do
     case Kati.Meals.MealPlan |> Ash.Query.for_read(:active) |> Ash.read_one() do
@@ -222,6 +286,7 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def content(assigns) do
     list = assigns.list
+    subtitle = Kati.Screens.Shopping.subtitle(list.subtitle)
 
     ~MOB"""
     <Scroll>
@@ -233,7 +298,7 @@ defmodule Kati.Screens.Shopping do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Shopping", list.subtitle, nil, :meta_tight)}
+        {SettingsList.title(gettext("Shopping"), subtitle, nil, :meta_tight)}
         {Kati.Screens.Shopping.basket(list)}
         {Kati.Screens.Shopping.filters(list)}
         {Enum.map(list.aisles, fn aisle -> Kati.Screens.Shopping.aisle(aisle) end)}
@@ -243,8 +308,260 @@ defmodule Kati.Screens.Shopping do
     """
   end
 
+  # ── Copy ──────────────────────────────────────────────────────────────────
+  #
+  # `Kati.Meals.SampleShopping` holds this page's words and `Kati.Meals.Aisle`
+  # holds the headings over them; this screen may edit neither, so every
+  # string is translated where it is DRAWN — the fixture is matched on the
+  # English it ships and answered with the msgid for it. That is
+  # `Kati.Screens.PlanShare`'s arrangement over `Kati.Meals.SampleShare`, for
+  # the same reason and with the same two safeguards.
+  #
+  # Every function below ends in a clause that answers whatever it was handed.
+  # So copy someone rewords draws its new English instead of raising inside a
+  # render — the contract `Kati.Screens.MealEdit.slot_label/1` and
+  # `Kati.Screens.PlanShare.plan_name/1` already keep — and if
+  # `Kati.Meals.SampleShopping` is ever folded itself, the Persian it starts
+  # returning falls through that clause untouched rather than being looked up
+  # a second time.
+  #
+  # The aisle heading is matched on its LABEL rather than on the atom behind
+  # it, which is the opposite of what `tick_tap/1` further down does, and
+  # deliberately: a real group's name comes out of `Kati.Meals.Aisle.label/1`
+  # and the drawing writes the same words by hand, so one clause list answers
+  # both paths and one catalogue entry answers both spellings. The eyebrow is
+  # not a control and carries no tap, which is the only thing that makes
+  # matching on copy safe there.
+  #
+  # mishka-group/kati#103.
+
+  @doc """
+  The line under the title: the drawing's week, or the reader's own.
+
+  A real list arrives here already in the reader's language — `shopping_list/1`
+  builds it — and falls through untouched. Only the fixture's sentence is
+  taken apart and rebuilt, because 17 August 2026 is ۲۶ مرداد ۱۴۰۵ and no
+  translator can write that into a msgstr without freezing the week.
+  """
+  @spec subtitle(String.t()) :: String.t()
+  def subtitle(@drawn_subtitle) do
+    gettext("week of %{date} · %{items}",
+      date: Kati.Locale.date(@drawn_week, :short),
+      items:
+        ngettext("%{n} item", "%{n} items", @drawn_items, n: Kati.Locale.number(@drawn_items))
+    )
+  end
+
+  def subtitle(other), do: other
+
+  @doc "Progress in words: the drawing's nine of twenty-four, or the reader's own."
+  @spec basket_line(String.t()) :: String.t()
+  def basket_line(@drawn_basket) do
+    gettext("%{got} of %{count} in the basket",
+      got: Kati.Locale.number(@drawn_got),
+      count: Kati.Locale.number(@drawn_items)
+    )
+  end
+
+  def basket_line(other), do: other
+
+  @doc """
+  The estimate beside it.
+
+  `Kati.Money.display/2` over the drawing's own 4120 pence rather than its
+  `£41.20` re-spelled, so the drawn total and a real week's are built by one
+  call and cannot drift apart in either script.
+  """
+  @spec estimate_line(String.t()) :: String.t()
+  def estimate_line(@drawn_estimate),
+    do: gettext("%{amount} est.", amount: Money.display(@drawn_estimate_minor, "GBP"))
+
+  def estimate_line(other), do: other
+
+  @doc """
+  A grouping chip's label.
+
+  Three chips with nothing behind them — see `shopping_list/1` — and they are
+  translated all the same: a control that does not work yet still has to be
+  readable, and three English chips over a Persian card is exactly the kind of
+  half-folded page this is closing.
+
+  A context on each because all three are two words and `By meal` is one
+  substitution away from `By aisle`; `mix gettext.merge` offers a pair that
+  close as a fuzzy match, and a fuzzy entry does not render.
+  """
+  @spec filter_label(String.t()) :: String.t()
+  def filter_label("By aisle"), do: pgettext("shopping grouping", "By aisle")
+  def filter_label("By meal"), do: pgettext("shopping grouping", "By meal")
+  def filter_label("Missing only"), do: pgettext("shopping grouping", "Missing only")
+  def filter_label(other), do: other
+
+  @doc """
+  An aisle's heading.
+
+  All fourteen of `Kati.Meals.Aisle`'s values rather than the drawing's three:
+  a real week groups into whichever of them its rows carry, and an aisle with
+  no clause would print its English over a Persian card. The vocabulary is
+  closed and a test holds it at fourteen, so writing it out cannot fall behind
+  quietly.
+
+  `pgettext/2` throughout because most of them are one word — `Other`,
+  `Frozen`, `Snacks` — and a bare one-word msgid is both a fuzzy-match target
+  and a word another screen will want to say differently.
+  """
+  @spec aisle_name(String.t()) :: String.t()
+  def aisle_name("Produce"), do: pgettext("aisle", "Produce")
+  def aisle_name("Bakery"), do: pgettext("aisle", "Bakery")
+  def aisle_name("Fish & meat"), do: pgettext("aisle", "Fish & meat")
+  def aisle_name("Dairy & eggs"), do: pgettext("aisle", "Dairy & eggs")
+  def aisle_name("Chilled"), do: pgettext("aisle", "Chilled")
+  def aisle_name("Frozen"), do: pgettext("aisle", "Frozen")
+  def aisle_name("Cupboard"), do: pgettext("aisle", "Cupboard")
+  def aisle_name("Grains & pasta"), do: pgettext("aisle", "Grains & pasta")
+  def aisle_name("Tins & jars"), do: pgettext("aisle", "Tins & jars")
+  def aisle_name("Herbs & spices"), do: pgettext("aisle", "Herbs & spices")
+  def aisle_name("Drinks"), do: pgettext("aisle", "Drinks")
+  def aisle_name("Snacks"), do: pgettext("aisle", "Snacks")
+  def aisle_name("Household"), do: pgettext("aisle", "Household")
+  def aisle_name("Other"), do: pgettext("aisle", "Other")
+  def aisle_name(other), do: other
+
+  @doc """
+  A line's name.
+
+  The drawing's nine, and nothing else. A stored row carries whatever the food
+  catalogue or the user called it, which is content rather than copy, and it
+  falls through the last clause — the same line `Kati.Screens.PlanShare` draws
+  between a person's name and the words around it.
+
+  A context on each, because half of them are one or two words and `Apples`
+  sits one letter from the catalogue's existing `Apple`.
+  """
+  @spec item_name(String.t()) :: String.t()
+  def item_name("Tenderstem broccoli"), do: pgettext("shopping item", "Tenderstem broccoli")
+  def item_name("Baby spinach"), do: pgettext("shopping item", "Baby spinach")
+  def item_name("Apples"), do: pgettext("shopping item", "Apples")
+  def item_name("Avocado"), do: pgettext("shopping item", "Avocado")
+  def item_name("Salmon fillet"), do: pgettext("shopping item", "Salmon fillet")
+  def item_name("Chicken breast"), do: pgettext("shopping item", "Chicken breast")
+  def item_name("Jasmine rice"), do: pgettext("shopping item", "Jasmine rice")
+  def item_name("White miso"), do: pgettext("shopping item", "White miso")
+  def item_name("Rolled oats"), do: pgettext("shopping item", "Rolled oats")
+  def item_name(other), do: other
+
+  @doc """
+  What a line's sub-line says: which meals asked for it.
+
+  The drawing's eight phrasings. `meals_label/1`'s own answer for a stored row
+  arrives already in the reader's language and falls through — but a row whose
+  `meals_label` COLUMN the roll-up filled in is frozen English, and these
+  clauses catch it too. That is the one place where matching on copy does more
+  than the fixture needed, and it is worth having: the column is a rendering
+  the roll-up made once, in whatever language it was in that day.
+  """
+  @spec meals_line(String.t()) :: String.t()
+  def meals_line("7 meals"), do: Kati.Screens.Shopping.meal_count(7)
+  def meals_line("6 meals"), do: Kati.Screens.Shopping.meal_count(6)
+  def meals_line("3 meals"), do: Kati.Screens.Shopping.meal_count(3)
+
+  def meals_line("4 dinners"),
+    do: ngettext("%{n} dinner", "%{n} dinners", 4, n: Kati.Locale.number(4))
+
+  def meals_line("5 lunches"),
+    do: ngettext("%{n} lunch", "%{n} lunches", 5, n: Kati.Locale.number(5))
+
+  def meals_line("7 breakfasts"),
+    do: ngettext("%{n} breakfast", "%{n} breakfasts", 7, n: Kati.Locale.number(7))
+
+  # The two the drawing writes without a count in front of them. Both take a
+  # context: they are short, they are lower case where the catalogue's `Snack`
+  # and `Brunch` are title case, and `mix gettext.merge` would offer those
+  # title-case entries as a fuzzy match — which a sub-line must not borrow,
+  # because a fuzzy entry does not render at all.
+  #
+  # `snack ×7` keeps its multiplication sign in the English and lets Persian
+  # put the numeral first: `×` is a NEUTRAL in the bidirectional algorithm, so
+  # `میان‌وعده ×۷` resolves with the sign on the far side of the digit.
+  def meals_line("snack ×7"),
+    do: pgettext("shopping sub-line", "snack ×%{n}", n: Kati.Locale.number(7))
+
+  def meals_line("brunch"), do: pgettext("shopping sub-line", "brunch")
+  def meals_line(other), do: other
+
+  @doc false
+  @spec meal_count(non_neg_integer()) :: String.t()
+  def meal_count(n), do: ngettext("%{n} meal", "%{n} meals", n, n: Kati.Locale.number(n))
+
+  @doc """
+  What a line prints on its right.
+
+  The drawing's nine amounts, answered with the same msgids `amount_line/1`
+  builds a stored row's from — so `۸۴۰ گرم` is one string whether the list
+  came off board 48 or out of `Kati.Meals.ShoppingListItem`, and the catalogue
+  gains no second entry for any of them.
+  """
+  @spec amount_text(String.t()) :: String.t()
+  def amount_text("840 g"), do: Kati.Screens.Shopping.unit_amount(:g, 840)
+  def amount_text("750 g"), do: Kati.Screens.Shopping.unit_amount(:g, 750)
+  def amount_text("900 g"), do: Kati.Screens.Shopping.unit_amount(:g, 900)
+  def amount_text("600 g"), do: Kati.Screens.Shopping.unit_amount(:g, 600)
+  def amount_text("200 g"), do: Kati.Screens.Shopping.unit_amount(:g, 200)
+  def amount_text("1 kg"), do: Kati.Screens.Shopping.unit_amount(:kg, 1)
+  def amount_text("1 tub"), do: Kati.Screens.Shopping.unit_amount(:tub, 1)
+  def amount_text("×7"), do: Kati.Screens.Shopping.unit_amount(:piece, 7)
+  def amount_text("×2"), do: Kati.Screens.Shopping.unit_amount(:piece, 2)
+  def amount_text(other), do: other
+
+  @doc ~S"""
+  A number and its unit, in the reader's own digits and words.
+
+  Written out one unit at a time, which is
+  `Kati.Screens.MealEdit.unit_amount/2`'s argument stated once already:
+  `gettext/1` needs a literal at the call site and the unit here is an atom
+  read off the row, so `gettext("%{n} %{unit}")` would have localised the
+  number and left `tbsp` sitting in Latin in the middle of a Persian list.
+
+  The six msgids that screen already opened are reused rather than reopened —
+  one unit, one word, across both screens. `kg` and `l` are new because a
+  recipe line never climbs to them and a week's shopping does, and both take a
+  context: `%{n} l` is one letter from the existing `%{n} ml` and `%{n} kg`
+  one letter from `%{n} g`, which is exactly the distance `mix gettext.merge`
+  calls a fuzzy match.
+
+  `×%{n}` is board 48's own form for a count of things, and the msgstr is free
+  to drop the sign: `×` is a NEUTRAL in the bidirectional algorithm, so `×۷`
+  in a right-to-left line lays the sign out on the wrong side of the digit.
+  Persian says `۷ عدد` instead, which is the word `Kati.Screens.MealEdit`
+  already uses for a piece.
+  """
+  @spec unit_amount(atom(), integer()) :: String.t()
+  def unit_amount(:g, n), do: gettext("%{n} g", n: Kati.Locale.number(n))
+  def unit_amount(:kg, n), do: pgettext("shopping amount", "%{n} kg", n: Kati.Locale.number(n))
+  def unit_amount(:ml, n), do: gettext("%{n} ml", n: Kati.Locale.number(n))
+  def unit_amount(:l, n), do: pgettext("shopping amount", "%{n} l", n: Kati.Locale.number(n))
+  def unit_amount(:tsp, n), do: gettext("%{n} tsp", n: Kati.Locale.number(n))
+  def unit_amount(:tbsp, n), do: gettext("%{n} tbsp", n: Kati.Locale.number(n))
+
+  def unit_amount(:piece, n), do: pgettext("shopping amount", "×%{n}", n: Kati.Locale.number(n))
+
+  def unit_amount(:pinch, n),
+    do: ngettext("%{n} pinch", "%{n} pinches", n, n: Kati.Locale.number(n))
+
+  def unit_amount(:pack, n), do: ngettext("%{n} pack", "%{n} packs", n, n: Kati.Locale.number(n))
+  def unit_amount(:tub, n), do: ngettext("%{n} tub", "%{n} tubs", n, n: Kati.Locale.number(n))
+
+  # A unit outside the eight `Kati.Meals.ShoppingListItem` allows cannot be
+  # stored, so this is unreachable through the store — but a row shaped by
+  # hand (a test, a future importer) must print a number rather than raise
+  # inside a render, which is the one place in this app a raise costs the
+  # whole screen.
+  def unit_amount(unit, n), do: "#{Kati.Locale.number(n)} #{unit}"
+
   @doc false
   def basket(list) do
+    line = Kati.Screens.Shopping.basket_line(list.basket)
+    estimate = Kati.Screens.Shopping.estimate_line(list.estimate)
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -256,7 +573,7 @@ defmodule Kati.Screens.Shopping do
       >
         <Row fill_width={true} align="center">
           <Text
-            text={list.basket}
+            text={line}
             text_size={13.5}
             font_weight="bold"
             text_color={:on_surface}
@@ -264,8 +581,8 @@ defmodule Kati.Screens.Shopping do
           />
           <Spacer weight={1.0} />
           <Text
-            text={list.estimate}
-            font_family="mono"
+            text={estimate}
+            font_family={Kati.Locale.mono_face(estimate)}
             text_size={11.5}
             text_color={Palette.ink_soft()}
             max_lines={1}
@@ -295,6 +612,18 @@ defmodule Kati.Screens.Shopping do
     """
   end
 
+  # And the same question from the other end, which the clause above was
+  # written without: a finished list is `24 of 24`, and that hands the SPACER
+  # the share of zero instead of the bar. One filled Box and no Row, so
+  # neither child is asked for a share of a remainder that is not there.
+  # Found while folding the screen into Persian rather than by drawing it —
+  # board 48 is 9 of 24 and never finishes.
+  def progress(fraction) when fraction >= 1 do
+    ~MOB"""
+    <Box fill_width={true} height={6} corner_radius={3} background={Palette.ink()} />
+    """
+  end
+
   def progress(fraction) do
     ~MOB"""
     <Box fill_width={true} height={6} corner_radius={3} background={Palette.paper()}>
@@ -308,12 +637,17 @@ defmodule Kati.Screens.Shopping do
 
   @doc false
   def filters(list) do
+    chips =
+      list.filters
+      |> Enum.map(fn {label, on?} ->
+        Kati.Screens.Shopping.filter(Kati.Screens.Shopping.filter_label(label), on?)
+      end)
+      |> Enum.intersperse(Kati.Screens.Shopping.filter_gap())
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        {list.filters
-         |> Enum.map(fn {label, on?} -> Kati.Screens.Shopping.filter(label, on?) end)
-         |> Enum.intersperse(Kati.Screens.Shopping.filter_gap())}
+        {chips}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -386,6 +720,7 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def aisle(aisle) do
     last = length(aisle.items) - 1
+    name = Kati.Screens.Shopping.aisle_name(aisle.name)
 
     rows =
       aisle.items
@@ -394,7 +729,7 @@ defmodule Kati.Screens.Shopping do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.eyebrow_muted(aisle.name)}
+      {Kati.UI.SettingsList.eyebrow_muted(name)}
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={18} />
     </Column>
@@ -444,13 +779,15 @@ defmodule Kati.Screens.Shopping do
 
   @doc false
   def item_body(item) do
+    meals = Kati.Screens.Shopping.meals_line(item.meals)
+
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.Shopping.label(item)}
       <Spacer size={3} />
       <Text
-        text={item.meals}
-        font_family="mono"
+        text={meals}
+        font_family={Kati.Locale.mono_face(meals)}
         text_size={10}
         text_color={Palette.rail_idle()}
         max_lines={1}
@@ -462,9 +799,16 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def amount(item) do
     color = if item.got, do: Palette.rail_idle(), else: Palette.ink_soft()
+    text = Kati.Screens.Shopping.amount_text(item.amount)
 
     ~MOB"""
-    <Text text={item.amount} font_family="mono" text_size={11.5} text_color={color} max_lines={1} />
+    <Text
+      text={text}
+      font_family={Kati.Locale.mono_face(text)}
+      text_size={11.5}
+      text_color={color}
+      max_lines={1}
+    />
     """
   end
 
@@ -492,9 +836,11 @@ defmodule Kati.Screens.Shopping do
 
   @doc false
   def label(%{got: false} = item) do
+    name = Kati.Screens.Shopping.item_name(item.name)
+
     ~MOB"""
     <Text
-      text={item.name}
+      text={name}
       text_size={13.5}
       font_weight="semibold"
       text_color={:on_surface}
@@ -504,12 +850,17 @@ defmodule Kati.Screens.Shopping do
   end
 
   def label(%{got: true} = item) do
-    width = Kati.Screens.Shopping.strike_width(item.name)
+    # The rule is sized against the string actually DRAWN and not against the
+    # one the row stores: `سیب` is three characters and `Apples` is six, and a
+    # strike measured on the msgid would run most of the way across an empty
+    # row beside the Persian word it was meant to cross out.
+    name = Kati.Screens.Shopping.item_name(item.name)
+    width = Kati.Screens.Shopping.strike_width(name)
 
     ~MOB"""
     <Box fill_width={true} align="leading">
       <Text
-        text={item.name}
+        text={name}
         text_size={13.5}
         font_weight="semibold"
         text_color={Palette.tertiary()}
@@ -526,9 +877,18 @@ defmodule Kati.Screens.Shopping do
   Declared, never measured — Compose reports no geometry back to `render/1`.
   6.6 per character undershoots Plus Jakarta Sans SemiBold at 13.5pt for
   ordinary lower-case copy, which is the safe direction to be wrong in.
+
+  Per-character is a Latin measure, so Persian gets its own figure rather than
+  inheriting Latin's. Arabic script joins, and a joined medial form is
+  narrower than a Latin letter; `String.length/1` also counts the zero-width
+  ZWNJ inside a word like `میان‌وعده` as a character it will never be paid
+  for. Both push the same way, so 6.6 would OVERSHOOT a Persian label — and
+  the moduledoc's rule is that a strike stopping inside the word reads as a
+  strike while one running past it reads as a layout bug. 5.0 keeps the error
+  on the safe side of that in both scripts.
   """
   @spec strike_width(String.t()) :: non_neg_integer()
-  def strike_width(label), do: round(String.length(label) * 6.6)
+  def strike_width(label), do: round(String.length(label) * Kati.Locale.pick(6.6, 5.0))
 
   @doc false
   def actions do
@@ -546,7 +906,7 @@ defmodule Kati.Screens.Shopping do
             {Kati.UI.symbol("ios_share", size: 18, color: Palette.on_ink())}
             <Spacer size={8} />
             <Text
-              text="Send list"
+              text={gettext("Send list")}
               text_size={13.5}
               font_weight="bold"
               text_color={Palette.on_ink()}

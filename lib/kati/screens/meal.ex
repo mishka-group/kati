@@ -45,6 +45,7 @@ defmodule Kati.Screens.Meal do
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   require Ash.Query
@@ -262,7 +263,7 @@ defmodule Kati.Screens.Meal do
     figures = Nutrition.scale(recipe_figures(recipe), portion)
 
     %{
-      slot: "#{slot.slot_name} · #{clock(slot.slot_time)} · today",
+      slot: slot_line(slot),
       title: recipe.title,
       seed: recipe.photo_seed,
       portion: portion_label(portion / Nutrition.one_portion()),
@@ -284,8 +285,13 @@ defmodule Kati.Screens.Meal do
       # implementation of the format one line above.
       slot_name: slot.slot_name,
       slot_time: slot.slot_time,
-      calories: "#{figures.kcal}",
-      unit: " kcal",
+      calories: Kati.Locale.number(figures.kcal),
+      # The space belongs to the LAYOUT and not to the catalogue: `620` and the
+      # unit are one inline run in the drawing (see `portion_figure/1`), and a
+      # msgid with a leading space is a msgid a translator cannot see the edge
+      # of. `kcal` alone is the entry `Kati.Screens.MealEdit` already made, so
+      # the two screens cannot come to spell a calorie differently.
+      unit: " " <> gettext("kcal"),
       split: split(figures),
       macros: macro_tiles_of(figures),
       minors: minors_of(figures),
@@ -294,6 +300,37 @@ defmodule Kati.Screens.Meal do
       method: recipe.method || "",
       history: history_rows(recipe)
     }
+  end
+
+  # The eyebrow over the photograph: `Dinner · 19:30 · today`, and
+  # `شام · ۱۹:۳۰ · امروز` for the same slot. Three separate facts joined by a
+  # `·`, so the join is the msgid rather than three fragments concatenated —
+  # a translator who needs the clock at the other end of the sentence can move
+  # it, which a `<>` between literals does not allow.
+  #
+  # The slot's own word goes through `Kati.Screens.MealEdit.slot_label/1`
+  # rather than a fourth copy of the same four entries.
+  # `Kati.Meals.MealPlanSlot.slot_name` is a free string on purpose, and that
+  # function already carries the fallback that answers an invented fifth slot
+  # its own word instead of raising inside a render.
+  #
+  # `· today` stays a literal for the reason `named_slot/1` gives: every slot
+  # that reaches this screen is a slot of TODAY, and a screen that one day
+  # opens another day's has to derive the word before it can.
+  #
+  # **A slot with no clock now loses the separator with it.** `clock/1`
+  # answered `""` for a nil time and the sentence was assembled around it
+  # regardless, so a slot the plan never gave an hour drew `Dinner ·  · today`
+  # — two dots around a hole. Two sentences rather than a conditional fragment,
+  # because a msgid has to be a literal at the call site.
+  defp slot_line(%{slot_time: nil} = slot),
+    do: gettext("%{slot} · today", slot: Kati.Screens.MealEdit.slot_label(slot.slot_name))
+
+  defp slot_line(slot) do
+    gettext("%{slot} · %{at} · today",
+      slot: Kati.Screens.MealEdit.slot_label(slot.slot_name),
+      at: Kati.Locale.time(slot.slot_time)
+    )
   end
 
   # The drawing declares 34/42/24 rather than deriving it. What is derived here
@@ -318,9 +355,9 @@ defmodule Kati.Screens.Meal do
 
   defp macro_tiles_of(figures) do
     [
-      {"Protein", "#{grams(figures.protein_mg)} g", Palette.ink()},
-      {"Carbs", "#{grams(figures.carbs_mg)} g", Palette.bronze()},
-      {"Fat", "#{grams(figures.fat_mg)} g", Palette.bar_gold()}
+      {gettext("Protein"), grams_label(figures.protein_mg), Palette.ink()},
+      {gettext("Carbs"), grams_label(figures.carbs_mg), Palette.bronze()},
+      {gettext("Fat"), grams_label(figures.fat_mg), Palette.bar_gold()}
     ]
   end
 
@@ -328,11 +365,17 @@ defmodule Kati.Screens.Meal do
   # unit it is stored in — `840 mg`, not `0.84 g`.
   defp minors_of(figures) do
     [
-      {"Fibre", "#{grams(figures.fibre_mg)} g"},
-      {"Sugar", "#{grams(figures.sugar_mg)} g"},
-      {"Sodium", "#{figures.sodium_mg} mg"}
+      {gettext("Fibre"), grams_label(figures.fibre_mg)},
+      {gettext("Sugar"), grams_label(figures.sugar_mg)},
+      {gettext("Sodium"), gettext("%{n} mg", n: Kati.Locale.number(figures.sodium_mg))}
     ]
   end
+
+  # `%{n} g` rather than `"#{n} g"`. A gram is a WORD in Persian — ۵۲ گرم — and
+  # the numeral is the reader's, so both halves of the figure move. The msgid is
+  # the one `Kati.Screens.MealEdit.grams/1` already made, which is why this is a
+  # function of its own rather than the interpolation repeated five times.
+  defp grams_label(milligrams), do: gettext("%{n} g", n: Kati.Locale.number(grams(milligrams)))
 
   # Each line carries its own kcal so the total is visibly the sum of its
   # parts, which is screen 45's claim about itself — and the reason
@@ -342,7 +385,7 @@ defmodule Kati.Screens.Meal do
     %{
       name: line.name,
       amount: amount(line.unit, scale_amount(line.amount_mg, portion)),
-      calories: "#{Nutrition.scale(Nutrition.take(line), portion).kcal}"
+      calories: Kati.Locale.number(Nutrition.scale(Nutrition.take(line), portion).kcal)
     }
   end
 
@@ -350,17 +393,36 @@ defmodule Kati.Screens.Meal do
     div(amount_mg * portion + div(Nutrition.one_portion(), 2), Nutrition.one_portion())
   end
 
-  defp amount(:piece, amount), do: "×#{div(amount, 1000)}"
-  defp amount(unit, amount), do: "#{div(amount, 1000)} #{unit}"
+  # `×2` keeps its sign and takes `Kati.Locale.ltr/1`: `×` is U+00D7, a
+  # MATHEMATICAL sign and therefore a bidi neutral, so on a Persian page it
+  # resolves to the paragraph's direction and lands to the right of the digits
+  # — ۲× where every drawing writes ×2. An isolate pins the run to its own
+  # direction, which is `Kati.Locale.ltr/1`'s whole job.
+  defp amount(:piece, amount), do: Kati.Locale.ltr("×#{Kati.Locale.number(div(amount, 1000))}")
+
+  # Every other unit is a WORD once the page is Persian — 150 g is ۱۵۰ گرم —
+  # and `#{unit}` was interpolating the ATOM, so a folded screen would have
+  # drawn `۱۵۰ g` with a Latin letter in it. `Kati.Screens.MealEdit.unit_amount/2`
+  # already spells all eight units this column can hold, plural rules included,
+  # and a second table here would be the same eight words kept twice — which is
+  # the mistake `mark_eaten/1`'s own doc records about the write it shares.
+  defp amount(unit, amount), do: Kati.Screens.MealEdit.unit_amount(unit, div(amount, 1000))
 
   # A fact with no column behind it is not drawn. A recipe that never sees an
   # oven has no oven temperature, and `Oven —°` would be worse than three facts
   # where the drawing has three and two where it has two.
   defp method_facts(recipe) do
+    # The three labels are built inside anonymous functions rather than in a
+    # `@fact_labels` module attribute, and that is not an accident of style:
+    # `gettext/1` in a module attribute is evaluated at COMPILE time and freezes
+    # into whichever locale the compiler happened to be in. These run per render.
     [
-      {"schedule", recipe.minutes, fn minutes -> "#{minutes} min" end},
-      {"local_fire_department", recipe.oven_c, fn celsius -> "Oven #{celsius}°" end},
-      {"restaurant", recipe.serves, fn serves -> "Serves #{serves}" end}
+      {"schedule", recipe.minutes,
+       fn minutes -> gettext("%{n} min", n: Kati.Locale.number(minutes)) end},
+      {"local_fire_department", recipe.oven_c,
+       fn celsius -> gettext("Oven %{n}°", n: Kati.Locale.number(celsius)) end},
+      {"restaurant", recipe.serves,
+       fn serves -> gettext("Serves %{n}", n: Kati.Locale.number(serves)) end}
     ]
     |> Enum.reject(fn {_icon, value, _label} -> is_nil(value) end)
     |> Enum.map(fn {icon, value, label} -> {icon, label.(value)} end)
@@ -391,29 +453,51 @@ defmodule Kati.Screens.Meal do
       %{
         icon: "event_repeat",
         title: times(length(logs)),
-        sub: "Last on #{Calendar.strftime(last, "%A")}",
+        sub: gettext("Last on %{day}", day: weekday(last)),
         stars: 0
       }
     ]
   end
 
   defp rating_row(rating) when is_integer(rating) and rating > 0,
-    do: [%{icon: "star", title: "Your rating", sub: "", stars: rating}]
+    do: [%{icon: "star", title: gettext("Your rating"), sub: "", stars: rating}]
 
   defp rating_row(_rating), do: []
 
+  # The note itself is what the reader typed, so it is drawn and never
+  # translated — only the word over it is Kati's.
   defp note_row(note) when is_binary(note) and note != "",
-    do: [%{icon: "sticky_note_2", title: "Note", sub: note, stars: 0}]
+    do: [%{icon: "sticky_note_2", title: gettext("Note"), sub: note, stars: 0}]
 
   defp note_row(_note), do: []
 
-  defp times(1), do: "Eaten once"
-  defp times(count), do: "Eaten #{count} times"
+  # `pgettext/2` on the one-off, because `Eaten once` is two words and
+  # `mix gettext.merge` fuzzy-matches a short msgid against any sentence that
+  # resembles it. The counted form carries a placeholder and is safe as it is.
+  #
+  # Two clauses rather than `ngettext/4`: English says *once* and not *1 time*,
+  # which is a different word rather than a different inflection, and the
+  # second clause is therefore only ever reached with a count above one.
+  defp times(1), do: pgettext("meal history", "Eaten once")
+  defp times(count), do: gettext("Eaten %{n} times", n: Kati.Locale.number(count))
+
+  # A weekday NAMED, with no day of the month beside it — which is the one
+  # shape `Kati.Locale` has no helper for: `weekday_initial/1` is a chart axis's
+  # single letter and `date/2`'s `:full` carries the day and the month as well.
+  # So the pick is here, over the same two tables those two read, rather than a
+  # sixth style added to `date/2` for one row on one screen.
+  #
+  # `Calendar.strftime(last, "%A")` was the English name in both scripts, and
+  # `%A` has no locale to consult — Elixir's default calendar names its days in
+  # English and nothing about `:fa` changes that.
+  defp weekday(date) do
+    Kati.Locale.pick(
+      Kati.Time.day_name(date),
+      Kati.Calendar.Shamsi.weekday_name(Kati.Calendar.Shamsi.weekday_index(date))
+    )
+  end
 
   defp grams(milligrams), do: div(milligrams, 1000)
-
-  defp clock(nil), do: ""
-  defp clock(time), do: Calendar.strftime(time, "%H:%M")
 
   defp recipe_figures(recipe) do
     Map.new(Nutrition.fields(), fn field -> {field, Map.fetch!(recipe, :"total_#{field}")} end)
@@ -468,9 +552,9 @@ defmodule Kati.Screens.Meal do
           >
             {Kati.Screens.Meal.portion_card(meal)}
             {Kati.Screens.Meal.actions(meal)}
-            {UI.eyebrow("Ingredients · 1 portion")}
+            {UI.eyebrow(gettext("Ingredients · 1 portion"))}
             {Kati.Screens.Meal.ingredients(meal.ingredients)}
-            {Kati.Screens.Meal.muted_eyebrow("Method")}
+            {Kati.Screens.Meal.muted_eyebrow(gettext("Method"))}
             {Kati.Screens.Meal.method(meal)}
             {Kati.Screens.Meal.history_block(meal.history)}
           </Column>
@@ -493,6 +577,19 @@ defmodule Kati.Screens.Meal do
   # The slot eyebrow and the title below are NOT over media: `Kati.UI.paper_fade/1`
   # has already laid the page back over the bottom 130pt, which is why the title
   # is `:on_surface` and the eyebrow is `sub` rather than the `on_media` family.
+  #
+  # The eyebrow takes `Kati.Locale.mono_face/0` and not `"mono"`, because what
+  # it holds is a sentence rather than a serial number: `kati_mono.ttf` carries
+  # no Persian glyph, so `شام · ۱۹:۳۰ · امروز` in DM Mono is handed to Android's
+  # substitute face and comes out beside Kati's own type in something that is
+  # not. `Kati.UI.eyebrow_label/1` for the same reason `String.upcase/1` is
+  # wrong there: Persian has no case, and upcasing it is a no-op that reads on
+  # the diff as a rule being applied.
+  #
+  # The title keeps `line_height={1.1}` and takes no `max_lines`. It is a
+  # RECIPE's own name, not a heading this app wrote — it can be long in either
+  # script, it wraps in the drawing, and clipping it to one line would hide the
+  # half of *Miso salmon, greens & rice* that says what is in it.
   @doc false
   def artwork(meal) do
     ~MOB"""
@@ -504,10 +601,10 @@ defmodule Kati.Screens.Meal do
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={4}>
           <Text
-            text={String.upcase(meal.slot)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(meal.slot)}
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
-            letter_spacing={0.14}
+            letter_spacing={Kati.Locale.tracking(0.14)}
             text_color={Palette.sub()}
             max_lines={1}
           />
@@ -516,7 +613,7 @@ defmodule Kati.Screens.Meal do
             text={meal.title}
             text_size={26}
             font_weight="extrabold"
-            letter_spacing={-0.035}
+            letter_spacing={Kati.Locale.tracking(-0.035)}
             line_height={1.1}
             text_color={:on_surface}
           />
@@ -544,6 +641,14 @@ defmodule Kati.Screens.Meal do
   # photograph it is simply see-through — the building behind the meal came
   # through the overflow disc. Every other floating disc in the app
   # (`Kati.Screens.Health.disc/2`, screen 47's share button) is opaque card.
+  #
+  # The pill's word is `gettext("Meals")` rather than
+  # `Kati.Screens.Pushed.back_label/2`, because this screen draws its own chrome
+  # and has no `:params` assign to read a `%{back: …}` out of — see the note on
+  # `mount/2`. The two reach the same catalogue entry, and the difference is
+  # that this one cannot yet say *Home* when the reader came from Home. That is
+  # the same gap `back_label/2` was written to close, and closing it here is a
+  # navigation change rather than a translation.
   @doc false
   def chrome do
     back = {self(), :back}
@@ -565,11 +670,12 @@ defmodule Kati.Screens.Meal do
           {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
           <Spacer size={6} />
           <Text
-            text="Meals"
+            text={gettext("Meals")}
             text_size={13.5}
             font_weight="semibold"
-            letter_spacing={-0.01}
+            letter_spacing={Kati.Locale.tracking(-0.01)}
             text_color={:on_surface}
+            max_lines={1}
           />
         </Row>
         <Spacer weight={1.0} />
@@ -619,10 +725,10 @@ defmodule Kati.Screens.Meal do
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
             <Text
-              text={String.upcase("Per portion")}
-              font_family="mono"
+              text={Kati.UI.eyebrow_label(gettext("Per portion"))}
+              font_family={Kati.Locale.mono_face()}
               text_size={10.5}
-              letter_spacing={0.16}
+              letter_spacing={Kati.Locale.tracking(0.16)}
               text_color={Palette.eyebrow()}
             />
             <Spacer size={6} />
@@ -657,7 +763,7 @@ defmodule Kati.Screens.Meal do
       text={meal.calories}
       text_size={32}
       font_weight="extrabold"
-      letter_spacing={-0.04}
+      letter_spacing={Kati.Locale.tracking(-0.04)}
       text_color={:on_surface}
       max_lines={1}
     />
@@ -685,6 +791,13 @@ defmodule Kati.Screens.Meal do
   # and no editable field, whose steppers are Material Symbols rather than the
   # component's "−"/"+" Text glyphs. Only its arithmetic is shared; see
   # `handle_info/2`.
+  #
+  # `Kati.Locale.mono_face/1` on the pill and not `mono_face/0`: the label is
+  # `portion_label/1`'s, so it is `۱٫۲۵×` for a Persian reader and `1.25×` for a
+  # Latin one, and `kati_mono.ttf` carries none of U+06F0–U+06F9. Asking the
+  # STRING rather than the reader keeps the drawn meal — whose `1.0×` comes off
+  # `Kati.Meals.SampleRecipe` as ASCII — in DM Mono on a Persian page, which is
+  # the right answer for a figure that has no Persian in it.
   @doc false
   def stepper(meal) do
     down = {self(), :portion_down}
@@ -705,7 +818,7 @@ defmodule Kati.Screens.Meal do
       <Spacer size={7} />
       <Text
         text={meal.portion}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(meal.portion)}
         text_size={13}
         font_weight="medium"
         text_color={:on_surface}
@@ -779,10 +892,10 @@ defmodule Kati.Screens.Meal do
           <Box width={6} height={6} corner_radius={2} background={tone} />
           <Spacer size={5} />
           <Text
-            text={String.upcase(name)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(name)}
+            font_family={Kati.Locale.mono_face()}
             text_size={9}
-            letter_spacing={0.1}
+            letter_spacing={Kati.Locale.tracking(0.1)}
             text_color={Palette.eyebrow()}
             max_lines={1}
           />
@@ -816,10 +929,10 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Column weight={1.0}>
       <Text
-        text={String.upcase(label)}
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(label)}
+        font_family={Kati.Locale.mono_face()}
         text_size={9}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
@@ -867,7 +980,7 @@ defmodule Kati.Screens.Meal do
               {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
               <Spacer size={8} />
               <Text
-                text="Mark eaten"
+                text={gettext("Mark eaten")}
                 text_size={14}
                 font_weight="bold"
                 text_color={Palette.on_ink()}
@@ -972,6 +1085,23 @@ defmodule Kati.Screens.Meal do
     """
   end
 
+  # The name is the RECIPE's — typed by the reader or imported with the recipe —
+  # so it is drawn as stored and never translated. The two mono columns beside
+  # it are Kati's own and both ask `Kati.Locale.mono_face/1` which face they
+  # need. Neither can stay in DM Mono on a Persian page: `kati_mono.ttf` carries
+  # no Persian letter for `۱۵۰ گرم` and none of U+06F0–U+06F9 for `۳۱۲` either,
+  # which is the rule `Kati.PersianFontTest` states as *Persian numerals are set
+  # in `fa` at the design's mono size*.
+  #
+  # `mono_face/1` and not `mono_face/0` because the two sources of these strings
+  # disagree: a cooked meal's are the reader's script and a drawn one's come off
+  # `Kati.Meals.SampleRecipe` as ASCII, and `150 g` beside `312` has every glyph
+  # it needs in DM Mono whatever language the page is in. Asking the STRING
+  # answers both without a branch on where the row came from.
+  #
+  # `text_align="right"` is absolute rather than direction-relative and stays
+  # that way: nothing in the app mirrors a text alignment yet, and inside a
+  # 30pt box the whole of the difference is a few points.
   @doc false
   def ingredient_row(row, rule?) do
     ~MOB"""
@@ -996,7 +1126,7 @@ defmodule Kati.Screens.Meal do
         <Spacer size={13} />
         <Text
           text={row.amount}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(row.amount)}
           text_size={11.5}
           text_color={Palette.ink_soft()}
           max_lines={1}
@@ -1005,7 +1135,7 @@ defmodule Kati.Screens.Meal do
         <Column width={30}>
           <Text
             text={row.calories}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.calories)}
             text_size={10.5}
             text_color={Palette.rail_idle()}
             text_align="right"
@@ -1020,6 +1150,18 @@ defmodule Kati.Screens.Meal do
 
   # Kati.UI.eyebrow's dash is always the accent, and orange means new or now.
   # Method and History are neither, so the drawing gives them a #C4BDB3 dash.
+  #
+  # Everything else about the label is `Kati.UI.eyebrow/2`'s, down to the two
+  # values it picks by script: 11pt semibold in Persian where Latin takes 10.5
+  # normal. Those picks are copied rather than left out because this eyebrow and
+  # that one sit on the SAME page — *Ingredients* is drawn by
+  # `Kati.UI.eyebrow/2` and *Method* by this, a card below it — and two eyebrows
+  # in one stack that disagree about their size is the one difference a reader
+  # of either script cannot help seeing. They are copied rather than shared
+  # because the only difference left between the two functions would then be the
+  # dash colour, and `Kati.UI.eyebrow/2` already takes that as an option; that
+  # merge is a change to what this screen draws in BOTH scripts, which is not
+  # what a fold is for.
   @doc false
   def muted_eyebrow(label) do
     ~MOB"""
@@ -1028,10 +1170,11 @@ defmodule Kati.Screens.Meal do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face()}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
       </Row>
@@ -1042,6 +1185,12 @@ defmodule Kati.Screens.Meal do
 
   # On cream, like screen 08's note: the design's one warm surface, used here
   # for the part of the card a person reads rather than counts.
+  #
+  # The paragraph is the one place on this screen a reader READS rather than
+  # scans, so it takes `Kati.Locale.leading/1`: the drawing's 1.65 in Latin and
+  # `Kati.Theme.fa_line_height/0` in Persian, because Vazirmatn's ascenders and
+  # descenders are not Plus Jakarta's and a method set at 1.65 collides with
+  # itself. The method text itself is the recipe's, so it is never translated.
   @doc false
   def method(meal) do
     facts =
@@ -1059,7 +1208,7 @@ defmodule Kati.Screens.Meal do
         <Text
           text={meal.method}
           text_size={13.5}
-          line_height={1.65}
+          line_height={Kati.Locale.leading(1.65)}
           text_color={Palette.cream_body()}
         />
       </Column>
@@ -1096,7 +1245,7 @@ defmodule Kati.Screens.Meal do
   def history_block([]), do: []
 
   def history_block(rows) do
-    [muted_eyebrow("History"), history(rows)]
+    [muted_eyebrow(gettext("History")), history(rows)]
   end
 
   @doc false
@@ -1119,6 +1268,14 @@ defmodule Kati.Screens.Meal do
     """
   end
 
+  # `Kati.Locale.forward_chevron/0` and not `"chevron_right"`. Material Symbols
+  # are text in a font and auto-mirror nothing, so a right-pointing chevron on a
+  # right-to-left row points back the way the reader came.
+  #
+  # It points and opens nothing: this row carries no `on_tap` and never has, on
+  # any of the three facts. That is a separate question from which way it faces
+  # — a chevron that lies about the direction is wrong in one script whether or
+  # not it is also wrong about being a control.
   @doc false
   def history_row(row, rule?) do
     ~MOB"""
@@ -1140,7 +1297,7 @@ defmodule Kati.Screens.Meal do
           {Kati.Screens.Meal.history_sub(row)}
         </Column>
         <Spacer size={13} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
+        {Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Meal.hairline(rule?)}
     </Column>
@@ -1330,11 +1487,30 @@ defmodule Kati.Screens.Meal do
     end
   end
 
-  @doc false
+  @doc """
+  The multiplier the pill is showing, read back out of its own label.
+
+  ## It has to fold the digits before it parses them
+
+  This was `Float.parse/1`, and under `:fa` that is a defect rather than an
+  inelegance: `portion_label/1` writes the reader's own numerals, so the string
+  handed back here is `۱٫۲۵×` — Persian digits around U+066B — and
+  `Float.parse/1` answers `:error` on the first character. The `:error` clause
+  is a FALLBACK and it answered `1.0`, so every tap of `add` moved the portion
+  from 1.0 to 1.25, and the next tap read 1.25 as 1.0 and moved it to 1.25
+  again. The pill counted 1.0, 1.25, 1.25, 1.25 and the stepper looked broken
+  in exactly one language.
+
+  `Kati.I18n.Digits.parse_float/1` folds U+06F0–U+06F9 and U+066B down to ASCII
+  first, so both scripts round-trip. `Kati.Screens.MealEdit.figures/3` names
+  this file as the one that keeps a number inside a label and says a label is a
+  poor place to keep one; that is still true and is a larger change than this.
+  At least the label round-trips now.
+  """
   @spec portion_factor(String.t()) :: float()
   def portion_factor(label) do
-    case Float.parse(String.trim_trailing(label, "×")) do
-      {n, _} -> n
+    case Kati.I18n.Digits.parse_float(String.trim_trailing(label, "×")) do
+      {n, _rest} -> n
       :error -> 1.0
     end
   end
@@ -1351,6 +1527,12 @@ defmodule Kati.Screens.Meal do
         other -> other
       end
 
-    text <> "×"
+    # The digits are the reader's, and `Kati.Locale.number/1` moves the DECIMAL
+    # SEPARATOR with them — ۱٫۰ with U+066B, not Persian numerals around a Latin
+    # full stop. `×` is U+00D7, a mathematical sign rather than a letter and the
+    # same sign in both scripts, so it is appended and never translated. This is
+    # `Kati.Screens.MealEdit.portion_label/1`'s shape, arrived at from the other
+    # end: that one holds the float and renders it, this one holds the string.
+    Kati.Locale.number(text) <> "×"
   end
 end

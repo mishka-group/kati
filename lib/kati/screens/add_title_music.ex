@@ -52,10 +52,12 @@ defmodule Kati.Screens.AddTitleMusic do
   *broken*. Removing a record is the shelf's business, not this sheet's.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
+  alias Kati.Lists.Shelf
   alias Kati.Screens.AddByHandRecord
   alias Kati.Theme
   alias Kati.Theme.Palette
@@ -63,6 +65,16 @@ defmodule Kati.Screens.AddTitleMusic do
 
   # Five chips is the most any chip row in Kati carries, and the board says
   # which two are pinned when it scrolls: `Everything` and the lit one.
+  #
+  # These five are KEYS and not words. `visible/2` narrows on them, the socket
+  # holds one, `chip/2` builds `filter_Albums` out of one and
+  # `Kati.ScreenTapSweepTest` names that tag — so they stay English in every
+  # locale and `scope_label/1` is the only part the reader sees. Screen 06's
+  # `filters/0` carries the long version of the argument, and
+  # `Kati.Screens.Books.chip_counts/1` records what happens without it: the
+  # Persian filter was «همه», every clause of that screen's `visible/2` fell
+  # through, and the chips drew correctly while tapping any of them showed
+  # everything.
   @scopes ["Everything", "Films", "Series", "Albums", "Artists"]
 
   # The scope this sheet opens in, because this is the sheet screen 21's FAB
@@ -97,33 +109,60 @@ defmodule Kati.Screens.AddTitleMusic do
 
   `added` is the third row's, drawn as 06 draws it: one result already on the
   shelf, so the two states of the trailing disc are both on the board.
+
+  ## `key` is what names a row, and `title` is what it says
+
+  They were one string. Translating the title alone would have translated the
+  tap tag with it — `add_Tidal Works` becomes `:"add_کارهای جزر و مد"`, and
+  `add/2` then looks a row up in a list it stopped matching the moment the
+  words moved. That is the chip defect `Kati.Screens.AddTitle.filter_label/1`
+  documents, one control over and with the same shape.
+
+  So `key` is the English title, which is the name
+  `Kati.MusicAddByHandTest` taps these rows by, and `title` is the word the
+  reader sees. The words are not new: `Kati.Music.Sample` already names all
+  three of these records and their musician, so screen 21's shelf and this
+  sheet call one album one thing.
+
+  `year` and `tracks` are DATA and keep their Latin digits. Nothing renders
+  them — `meta_line/2` draws their Persian — and they travel into
+  `Kati.Screens.AddByHandRecord.write/3`, which parses both.
   """
   @spec drawn_results() :: [map()]
   def drawn_results do
+    # Bound once rather than written three times: these are the same musician
+    # and the same genre on every row the board draws, and a msgid repeated at
+    # three call sites is three places to mistype it.
+    ostrand = gettext("Kell Ostrand")
+    genre = gettext("Post-classical")
+
     [
       %{
-        title: "Tidal Works",
-        artist: "Kell Ostrand",
-        note: "Kell Ostrand · Post-classical",
-        meta: "2025 · ALBUM · 11 TRACKS",
+        key: "Tidal Works",
+        title: gettext("Tidal Works"),
+        artist: ostrand,
+        note: Kati.Screens.AddTitleMusic.note_line(ostrand, genre),
+        meta: Kati.Screens.AddTitleMusic.meta_line(2025, 11),
         year: "2025",
         tracks: "11",
         added: false
       },
       %{
-        title: "Estuary Tapes",
-        artist: "Kell Ostrand",
-        note: "Kell Ostrand · Post-classical",
-        meta: "2026 · ALBUM · 8 TRACKS",
+        key: "Estuary Tapes",
+        title: gettext("Estuary Tapes"),
+        artist: ostrand,
+        note: Kati.Screens.AddTitleMusic.note_line(ostrand, genre),
+        meta: Kati.Screens.AddTitleMusic.meta_line(2026, 8),
         year: "2026",
         tracks: "8",
         added: false
       },
       %{
-        title: "Nine Rooms",
-        artist: "Kell Ostrand",
-        note: "Kell Ostrand",
-        meta: "2021 · ALBUM · 9 TRACKS",
+        key: "Nine Rooms",
+        title: gettext("Nine Rooms"),
+        artist: ostrand,
+        note: Kati.Screens.AddTitleMusic.note_line(ostrand, nil),
+        meta: Kati.Screens.AddTitleMusic.meta_line(2021, 9),
         year: "2021",
         tracks: "9",
         added: true
@@ -131,17 +170,105 @@ defmodule Kati.Screens.AddTitleMusic do
     ]
   end
 
-  @doc "The query the board is drawn mid-typing, and what the specimen card names."
+  @doc """
+  A result's mono line: the year, the kind, and the size of the running order.
+
+  Composed rather than held in a msgid of its own, which is
+  `Kati.Screens.AddTitle.meta_line/1`'s choice on the sheet beside this one and
+  made for its reason: `·` is a bidi NEUTRAL between a number and a word, so it
+  takes the paragraph's direction and `۲۰۲۵ · آلبوم · ۱۱ آهنگ` lays itself out
+  right-to-left in the order it was written. There is nothing here for a
+  translator to reorder, and a msgid that is three interpolations and two
+  separators is exactly what `mix gettext.merge` fuzzy-matches against every
+  other `·` line in the catalogue.
+
+  None of the three is a new word. `ALBUM` is `Kati.Lists.Shelf.kind_word/1` —
+  the tag the shelf prints under this record once it is on it — and the count is
+  `Kati.Screens.AlbumDetail`'s own `%{n} track`, so a record reads *۱۱ آهنگ*
+  here and *۱۱ آهنگ* on its own page.
+
+  `Kati.Locale.year/1` and not `number/1`: a release year is a fact printed on
+  the record, so its digits change and its calendar does not.
+  `Kati.UI.eyebrow_label/1` carries the upper case, because upper case is a
+  LATIN effect — `String.upcase/1` on `آهنگ` is a no-op that reads as one.
+
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.AddTitleMusic.meta_line(2025, 11) end)
+      "2025 · ALBUM · 11 TRACKS"
+  """
+  @spec meta_line(integer(), integer()) :: String.t()
+  def meta_line(year, tracks) do
+    counted = ngettext("%{n} track", "%{n} tracks", tracks, n: Kati.Locale.number(tracks))
+
+    Kati.Locale.year(year) <>
+      " · " <> Shelf.kind_word(:album) <> " · " <> UI.eyebrow_label(counted)
+  end
+
+  @doc """
+  A result's third line: who made the record, and what it is.
+
+  Joined rather than given a `%{artist} · %{genre}` entry, for `meta_line/2`'s
+  reason — and because the third row has no genre at all, which one msgid would
+  have made a translator's problem instead of a clause's.
+
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.AddTitleMusic.note_line("Kell Ostrand", nil) end)
+      "Kell Ostrand"
+  """
+  @spec note_line(String.t(), String.t() | nil) :: String.t()
+  def note_line(artist, nil), do: artist
+  def note_line(artist, genre), do: artist <> " · " <> genre
+
+  @doc """
+  The query the board is drawn mid-typing, and what the specimen card names.
+
+  A SPECIMEN and therefore copy, which is `Kati.Screens.AddTitle.field/2`'s
+  ruling on its own `quiet`: the board is drawn mid-query on this word and the
+  resting field shows it greyed. It is the surname the three rows are by —
+  `اوستراند` once `Kell Ostrand` is `کل اوستراند` — so a page that left it Latin
+  would be quoting a search nobody on it could have typed.
+
+  `pgettext/2` because a bare seven-letter msgid is what `mix gettext.merge`'s
+  fuzzy matcher takes for a near-miss of some other short string.
+  """
   @spec drawn_query() :: String.t()
-  def drawn_query, do: "ostrand"
+  def drawn_query, do: pgettext("board 179 specimen query", "ostrand")
 
   @doc false
   @spec scope_list() :: [String.t()]
   def scope_list, do: @scopes
 
+  @doc """
+  The word a scope chip shows for the value it carries.
+
+  A literal per clause, because a msgid has to be a literal at the call site —
+  `gettext(value)` does not compile — and five chips are five decisions rather
+  than one table.
+
+  `pgettext/2` with **screen 06's own context**, and three of the five entries
+  are already in the catalogue under it: this row is that row plus two, and a
+  context of its own would hand a translator `Everything` a second time and let
+  the two sheets drift apart on the word for it. Only `Albums` and `Artists` are
+  new. Both are plural where `Kati.Screens.ArtistDetail`'s totals tile is
+  singular, which is the difference between a chip that names a set and a tile
+  that counts one.
+  """
+  @spec scope_label(String.t()) :: String.t()
+  def scope_label("Everything"), do: pgettext("add-title filter", "Everything")
+  def scope_label("Films"), do: pgettext("add-title filter", "Films")
+  def scope_label("Series"), do: pgettext("add-title filter", "Series")
+  def scope_label("Albums"), do: pgettext("add-title filter", "Albums")
+  def scope_label("Artists"), do: pgettext("add-title filter", "Artists")
+  def scope_label(other), do: other
+
   def render(assigns) do
     shown = Kati.Screens.AddTitleMusic.visible(assigns.results, assigns.filter)
-    count = "#{length(shown)} results"
+    found = length(shown)
+
+    # Screen 06's eyebrow and screen 06's msgid. Two sheets counting the same
+    # thing must not need two entries to say so, and `Kati.UI.eyebrow/2` raises
+    # the Latin side through `Kati.UI.eyebrow_label/1` — so the drawing's
+    # `3 RESULTS` still comes out of a sentence-case entry, and Persian, which
+    # has no case, is left as it is written.
+    count = ngettext("%{n} result", "%{n} results", found, n: Kati.Locale.number(found))
 
     ~MOB"""
     <Box
@@ -182,6 +309,9 @@ defmodule Kati.Screens.AddTitleMusic do
   scopes and their chips open it — see `handle_info/2`. Nothing here is
   filtered by the artist scope yet, and the empty card says why in the board's
   own words rather than drawing an empty list under a count of nothing.
+
+  Matched on the five English keys and never on what a chip says, which is the
+  whole of why `scope_label/1` is a separate function — see `@scopes`.
   """
   @spec visible([map()], String.t()) :: [map()]
   def visible(_results, "Artists"), do: []
@@ -189,15 +319,24 @@ defmodule Kati.Screens.AddTitleMusic do
 
   @doc false
   def header do
+    # Screen 06's heading, and the same three decisions it records for it.
+    # `Add a title` is the catalogue's existing entry — this sheet is a STATE of
+    # that one, so it says the same words. `Kati.Locale.tracking/1` carries the
+    # drawing's -0.03: negative tracking pulls Arabic letters apart at the
+    # joins, so the kerning the design wants is the thing that breaks the word.
+    # And `max_lines={1}` arrives with it, because a display heading that wraps
+    # pushes the close disc down the page and the disc is this sheet's only
+    # dismissal.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Text
-          text="Add a title"
+          text={gettext("Add a title")}
           text_size={26}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
+          max_lines={1}
         />
         <Spacer weight={1.0} />
         {Kati.Screens.AddTitleMusic.close_disc()}
@@ -225,7 +364,15 @@ defmodule Kati.Screens.AddTitleMusic do
   @doc "Board 06's focused field: a 2px ink ring, an orange caret, and a clear glyph."
   @spec field(String.t()) :: map()
   def field(query) do
-    assigns = %{query: query, on_change: {self(), :album_query}}
+    # The placeholder is `drawn_query/0` rather than a second copy of the same
+    # word. The board draws one query in two places — greyed in the field, named
+    # by the empty card below it — and two literals is how they come to show
+    # different words the first time either is reworded.
+    assigns = %{
+      query: query,
+      placeholder: Kati.Screens.AddTitleMusic.drawn_query(),
+      on_change: {self(), :album_query}
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -245,7 +392,7 @@ defmodule Kati.Screens.AddTitleMusic do
         <Spacer size={11} />
         <TextField
           value={@query}
-          placeholder="ostrand"
+          placeholder={@placeholder}
           return_key="search"
           weight={1.0}
           accessibility_id="album_query"
@@ -262,7 +409,7 @@ defmodule Kati.Screens.AddTitleMusic do
   def chips(active) do
     children =
       Kati.Screens.AddTitleMusic.scope_list()
-      |> Enum.map(fn label -> Kati.Screens.AddTitleMusic.chip(label, label == active) end)
+      |> Enum.map(fn value -> Kati.Screens.AddTitleMusic.chip(value, value == active) end)
       |> Enum.intersperse(Kati.Screens.AddTitleMusic.chip_gap())
 
     ~MOB"""
@@ -276,11 +423,16 @@ defmodule Kati.Screens.AddTitleMusic do
   end
 
   @doc false
-  def chip(label, on?) do
+  def chip(value, on?) do
+    # The tag carries the VALUE and the chip shows the LABEL — see `@scopes`.
+    # `MishkaChip` takes its label as a string and discards children, so the
+    # word cannot carry a `font_family` of its own; `Kati.Locale.face_prop/0` on
+    # the root node is what sets it, which is the half a component cannot reach
+    # and the reason that prop is drawn where it is.
     MishkaChip.chip(
-      label: label,
+      label: Kati.Screens.AddTitleMusic.scope_label(value),
       checked: on?,
-      on_toggle: String.to_atom("filter_" <> label),
+      on_toggle: String.to_atom("filter_" <> value),
       height: 32,
       padding_x: 15,
       padding_y: 0,
@@ -315,6 +467,18 @@ defmodule Kati.Screens.AddTitleMusic do
 
   @doc false
   def result_row(r) do
+    # Two of this row's three lines can now hold Arabic script, and screen 06's
+    # own row records both fixes.
+    #
+    # The TITLE takes `Kati.Locale.tracking/1`, because -0.015 on `کارهای جزر و
+    # مد` pulls the letters apart at the joins rather than tightening them.
+    #
+    # The META was a hardcoded `font_family="mono"` and `kati_mono.ttf` carries
+    # no Persian glyph at all, so `۲۰۲۵ · آلبوم · ۱۱ آهنگ` fell through to
+    # whatever face Android substitutes — legible, in a typeface that is not
+    # Kati's, beside rows that are. `Kati.Locale.mono_face/1` asks the STRING's
+    # script rather than the reader's, which is the finer question and leaves an
+    # all-ASCII line in DM Mono on a Persian page.
     ~MOB"""
     <Row
       fill_width={true}
@@ -334,14 +498,14 @@ defmodule Kati.Screens.AddTitleMusic do
           text={r.title}
           text_size={14}
           font_weight="bold"
-          letter_spacing={-0.015}
+          letter_spacing={Kati.Locale.tracking(-0.015)}
           text_color={:on_surface}
           max_lines={1}
         />
         <Spacer size={5} />
         <Text
           text={r.meta}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(r.meta)}
           text_size={10.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -350,7 +514,7 @@ defmodule Kati.Screens.AddTitleMusic do
         <Text text={r.note} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      {Kati.Screens.AddTitleMusic.add_button(r.added, r.title)}
+      {Kati.Screens.AddTitleMusic.add_button(r.added, r.key)}
     </Row>
     """
   end
@@ -365,13 +529,22 @@ defmodule Kati.Screens.AddTitleMusic do
   """
   @spec art(String.t()) :: map()
   def art(title) do
-    assigns = %{initial: Kati.Music.Album.initial(%Kati.Music.Album{title: title})}
+    initial = Kati.Music.Album.initial(%Kati.Music.Album{title: title})
+
+    # The letter asks its OWN script and not the reader's, which is the finer
+    # question for a slot holding one character off a record's name: `T` stays
+    # in DM Mono on a Persian page, exactly as board 179 draws it, and `ک` —
+    # what `Kati.Music.Album.initial/1` answers for کارهای جزر و مد — takes
+    # Vazirmatn instead of the face Android substitutes for a glyph
+    # `kati_mono.ttf` does not carry. `Kati.Music.Sample.album/0` makes the same
+    # point about the same letter for screen 74's tile.
+    assigns = %{initial: initial, face: Kati.Locale.mono_face(initial)}
 
     ~MOB"""
     <Box width={52} height={52} corner_radius={11} background={Palette.placeholder()} align="center">
       <Text
         text={@initial}
-        font_family="mono"
+        font_family={@face}
         text_size={20}
         text_color={Palette.tertiary()}
         max_lines={1}
@@ -385,23 +558,28 @@ defmodule Kati.Screens.AddTitleMusic do
   one already there.
 
   The muted one carries no tap — see the moduledoc.
+
+  The argument is the row's `key` and not its title: the tag has to read
+  `add_Tidal Works` in every locale, which is the name
+  `Kati.MusicAddByHandTest` taps it by and the only reason `String.to_atom/1`
+  here is safe. See `drawn_results/0`.
   """
   @spec add_button(boolean(), String.t()) :: map()
-  def add_button(true, _title) do
+  def add_button(true, _key) do
     MishkaActionIcon.action_icon(
       [size: 34, shape: :circle, variant: :filled, background: Palette.paper()],
       [UI.symbol("check", size: 19, color: Palette.sub())]
     )
   end
 
-  def add_button(false, title) do
+  def add_button(false, key) do
     MishkaActionIcon.action_icon(
       [
         size: 34,
         shape: :circle,
         variant: :filled,
         background: Palette.ink_fill(),
-        on_tap: String.to_atom("add_" <> title)
+        on_tap: String.to_atom("add_" <> key)
       ],
       [UI.symbol("add", size: 19, color: Palette.on_ink())]
     )
@@ -440,7 +618,7 @@ defmodule Kati.Screens.AddTitleMusic do
         {Kati.UI.symbol("edit_note", size: 18, color: Palette.sub())}
         <Spacer size={7} />
         <Text
-          text="Can’t find it? Add it by hand"
+          text={gettext("Can’t find it? Add it by hand")}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.ink_soft()}
@@ -474,9 +652,17 @@ defmodule Kati.Screens.AddTitleMusic do
   end
 
   def nothing_band(_rows, _query) do
+    # `pgettext/2` on a two-word eyebrow: `mix gettext.merge` fuzzy-matches a
+    # short new msgid onto any longer sentence that resembles it, and the
+    # catalogue already carries *Nothing here for “…”* and *Nothing to save
+    # yet.* for it to find. The context names the band.
+    #
+    # `Kati.UI.Eyebrow.quiet/1` raises the Latin side itself and asks the
+    # label's own script for its face, so `چیزی پیدا نشد` arrives in Vazirmatn
+    # and `NOTHING FOUND` in DM Mono, out of one sentence-case entry.
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.Eyebrow.quiet("Nothing found")}
+      {Kati.UI.Eyebrow.quiet(pgettext("board 179 band", "Nothing found"))}
       {Kati.Screens.AddTitleMusic.nothing_card(Kati.Screens.AddTitleMusic.drawn_query())}
       <Spacer size={14} />
     </Column>
@@ -494,7 +680,20 @@ defmodule Kati.Screens.AddTitleMusic do
 
   @doc false
   def nothing_card(query) do
-    assigns = %{headline: "Nothing here for “" <> query <> "”"}
+    # One msgid for the whole headline, quotation marks included, rather than a
+    # stem with two marks concatenated around the query.
+    # `Kati.Screens.AddTitle.found_nothing/1` quotes this sentence character for
+    # character on the sheet beside this one and its own comment says why: one
+    # entry is what keeps the two sheets saying one thing, and a Persian
+    # translator swaps `“…”` for the guillemets `«…»` in the same edit that
+    # writes the words — which a split stem could not express.
+    #
+    # `query` is deliberately NOT wrapped in `Kati.Locale.ltr/1`. It is the
+    # reader's own text and can be in either script; isolating a Persian query
+    # as a left-to-right run would be the exact defect that helper exists to
+    # fix, and a Latin one is bounded by the sentence's own quotation marks on
+    # both sides, so it strands no neutral at the wrong edge.
+    assigns = %{headline: gettext("Nothing here for “%{query}”", query: query)}
 
     ~MOB"""
     <Column
@@ -512,9 +711,9 @@ defmodule Kati.Screens.AddTitleMusic do
       <Text text={@headline} text_size={14} font_weight="bold" text_color={:on_surface} />
       <Spacer size={7} />
       <Text
-        text="Kati has no music catalogue to look in. Type it and it is yours."
+        text={gettext("Kati has no music catalogue to look in. Type it and it is yours.")}
         text_size={12.5}
-        line_height={1.55}
+        line_height={Kati.Locale.leading(1.55)}
         text_align="center"
         text_color={Palette.sub()}
       />
@@ -529,7 +728,7 @@ defmodule Kati.Screens.AddTitleMusic do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Add it by hand"
+          text={gettext("Add it by hand")}
           text_size={13}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -541,9 +740,46 @@ defmodule Kati.Screens.AddTitleMusic do
     """
   end
 
-  @doc "The board's dashed annotation, in the runs it is drawn in."
+  @doc """
+  The board's dashed annotation, in the runs it is drawn in.
+
+  Seven runs and not one paragraph, for `Kati.Screens.AddByHandBook.annotation/0`'s
+  reason: the board writes its emphasis as its own run, and
+  `Kati.ScreenDesignLiteralTest` compares a drawing's lines against the tree's,
+  so a joined sentence would no longer be the same shape.
+
+  Six of the seven are msgids, and two of those are short enough to take
+  `pgettext/2` — *square* and *21's FAB opens* are a board's shorthand rather
+  than labels, and a one-word msgid is what `mix gettext.merge` fuzzy-matches
+  onto any longer sentence containing the word. The context names the board,
+  because a run is only a fragment in the company of the other six.
+
+  **The fourth run is not a msgid at all.** It NAMES the chip beside it, so it
+  asks `scope_label/1` for the word that chip is drawn with — an annotation and
+  the control it describes cannot be allowed to disagree, which is what two
+  entries for one word eventually produce.
+
+  The board numbers stay inside the sentences: they are part of a sentence a
+  translator rewrites whole, and the Persian catalogue already writes them in
+  its own digits where the sentence puts them. The aspect RATIO is bound
+  instead, which is `Kati.Screens.AddByHandRecord.decision_note/0`'s split for
+  its own `4:12` — a figure is numerals a Persian reader reads in their own
+  digits, and not a word a translator should have to retype correctly.
+  """
   @spec note() :: map()
   def note do
+    # Built out here rather than inside the sigil: `@name` in `~MOB` is an
+    # ASSIGN, so a binding read through one cannot also be an argument to the
+    # call that consumes it.
+    assigns = %{
+      shape:
+        gettext(
+          ", and the paper placeholder carries its initial rather than a %{ratio} poster. Five chips is the most any chip row in Kati carries;",
+          ratio: Kati.Locale.number("2:3")
+        ),
+      everything: Kati.Screens.AddTitleMusic.scope_label("Everything")
+    }
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -557,46 +793,41 @@ defmodule Kati.Screens.AddTitleMusic do
       <Spacer size={11} />
       <Column weight={1.0}>
         <Text
-          text="The one row-shape difference from 06: an album is a"
+          text={gettext("The one row-shape difference from 06: an album is a")}
           text_size={12.5}
           line_height={1.65}
           text_color={Palette.ink_soft()}
         />
         <Text
-          text="square"
+          text={pgettext("board 179 annotation", "square")}
+          text_size={12.5}
+          line_height={1.65}
+          font_weight="semibold"
+          text_color={Palette.ink()}
+        />
+        <Text text={@shape} text_size={12.5} line_height={1.65} text_color={Palette.ink_soft()} />
+        <Text
+          text={@everything}
           text_size={12.5}
           line_height={1.65}
           font_weight="semibold"
           text_color={Palette.ink()}
         />
         <Text
-          text=", and the paper placeholder carries its initial rather than a 2:3 poster. Five chips is the most any chip row in Kati carries;"
+          text={gettext("and the lit chip are pinned when it scrolls. This is the state")}
           text_size={12.5}
           line_height={1.65}
           text_color={Palette.ink_soft()}
         />
         <Text
-          text="Everything"
+          text={pgettext("board 179 annotation", "21’s FAB opens")}
           text_size={12.5}
           line_height={1.65}
           font_weight="semibold"
           text_color={Palette.ink()}
         />
         <Text
-          text="and the lit chip are pinned when it scrolls. This is the state"
-          text_size={12.5}
-          line_height={1.65}
-          text_color={Palette.ink_soft()}
-        />
-        <Text
-          text="21’s FAB opens"
-          text_size={12.5}
-          line_height={1.65}
-          font_weight="semibold"
-          text_color={Palette.ink()}
-        />
-        <Text
-          text="— not a second add control on the shelf, which would be a second door to a sheet that already has one."
+          text={gettext("— not a second add control on the shelf, which would be a second door to a sheet that already has one.")}
           text_size={12.5}
           line_height={1.65}
           text_color={Palette.ink_soft()}
@@ -648,8 +879,10 @@ defmodule Kati.Screens.AddTitleMusic do
       "filter_" <> _label ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
 
-      "add_" <> title ->
-        {:noreply, Kati.Screens.AddTitleMusic.add(socket, title)}
+      # The row's KEY, which is what `add_button/2` put in the tag — never the
+      # title the row draws. See `drawn_results/0`.
+      "add_" <> key ->
+        {:noreply, Kati.Screens.AddTitleMusic.add(socket, key)}
 
       _other ->
         {:noreply, socket}
@@ -672,10 +905,15 @@ defmodule Kati.Screens.AddTitleMusic do
   what a hand-added album is — the artist reuse, the `:manual` source, the
   tracks — and `Kati.Screens.LogListen.params_for/1` is the same rule one screen
   over: spell it once, on the module that owns it.
+
+  Found by `key` and not by `title`, which is what makes the lookup survive the
+  reader's language: the tag `add_button/2` drew is the English name of the row
+  and the row still carries it, where the title beside it is the word the page
+  is set in. `drawn_results/0` carries the argument.
   """
   @spec add(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
-  def add(socket, title) do
-    case Enum.find(socket.assigns.results, &(&1.title == title and not &1.added)) do
+  def add(socket, key) do
+    case Enum.find(socket.assigns.results, &(&1.key == key and not &1.added)) do
       nil ->
         socket
 
@@ -685,7 +923,7 @@ defmodule Kati.Screens.AddTitleMusic do
             socket
             |> Mob.Socket.assign(
               :results,
-              Kati.Screens.AddTitleMusic.mark(socket.assigns.results, title)
+              Kati.Screens.AddTitleMusic.mark(socket.assigns.results, key)
             )
             |> Mob.Socket.assign(:save_error, nil)
 
@@ -695,7 +933,20 @@ defmodule Kati.Screens.AddTitleMusic do
     end
   end
 
-  @doc false
+  @doc """
+  The write, with the row's own four values.
+
+  `title` and `artist` and not `key`: what goes on the shelf is the record as
+  this page named it, so a Persian reader who taps the disc under
+  *کارهای جزر و مد* gets *کارهای جزر و مد* on screen 21 rather than a row in a
+  language they were not reading. The key is this sheet's private handle for a
+  row and belongs nowhere near the store.
+
+  `released` and `tracks` are the untouched Latin figures `drawn_results/0`
+  carries, and `Kati.Screens.AddByHandRecord.write/3` parses both through
+  `Kati.I18n.Digits.parse_integer/1` — which reads either script, so nothing
+  here depends on which one they are in.
+  """
   @spec shelve(map()) :: {:ok, struct()} | {:error, term()}
   def shelve(row) do
     AddByHandRecord.write(:album, row.title, %{
@@ -708,7 +959,7 @@ defmodule Kati.Screens.AddTitleMusic do
 
   @doc false
   @spec mark([map()], String.t()) :: [map()]
-  def mark(results, title) do
-    Enum.map(results, fn r -> if r.title == title, do: %{r | added: true}, else: r end)
+  def mark(results, key) do
+    Enum.map(results, fn r -> if r.key == key, do: %{r | added: true}, else: r end)
   end
 end

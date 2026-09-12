@@ -87,6 +87,7 @@ defmodule Kati.Screens.SeriesMeta do
   entirely real. An honest gap is worth more than a screen that renders wrong.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
@@ -218,7 +219,7 @@ defmodule Kati.Screens.SeriesMeta do
   @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil) :: map()
   def shaped(tracked, cached) do
     %{
-      title: (cached && cached.title) || "Untitled",
+      title: (cached && cached.title) || gettext("Untitled"),
       seed: cached && cached.poster_path,
       meta: meta_line(cached),
       ratings: Kati.Screens.SeriesMeta.yours(tracked, cached),
@@ -267,16 +268,27 @@ defmodule Kati.Screens.SeriesMeta do
         []
 
       offers ->
+        # The KIND is TMDB's key and never drawn; the line beside it is this
+        # page's own word for it and is. `pgettext/2` on all five: they are one
+        # and two words long, and `mix gettext.merge` fuzzy-matches a msgid that
+        # short against any sentence that happens to contain it — *free* and
+        # *buy* are in a dozen. The context is what keeps the availability
+        # vocabulary its own.
         for {kind, line} <- [
-              {"flatrate", "included"},
-              {"free", "free"},
-              {"ads", "free, with ads"},
-              {"rent", "rent"},
-              {"buy", "buy"}
+              {"flatrate", pgettext("where to watch", "included")},
+              {"free", pgettext("where to watch", "free")},
+              {"ads", pgettext("where to watch", "free, with ads")},
+              {"rent", pgettext("where to watch", "rent")},
+              {"buy", pgettext("where to watch", "buy")}
             ],
             name <- List.wrap(Map.get(offers, kind)),
             is_binary(name) do
           %{
+            # `String.upcase/1` and not `Kati.UI.eyebrow_label/1`, which is the
+            # one place on this page that distinction goes the other way: this
+            # is not an eyebrow whose case is a Latin typographic convention,
+            # it is the first letter of a NAME being written as a capital. It
+            # stays capital on a Persian page for the same reason `Lumen+` does.
             badge: String.slice(name, 0, 1) |> String.upcase(),
             name: name,
             line: Kati.Screens.SeriesMeta.where_line(kind, line, name, mine),
@@ -304,15 +316,29 @@ defmodule Kati.Screens.SeriesMeta do
   """
   @spec where_line(String.t(), String.t(), String.t(), MapSet.t()) :: String.t()
   def where_line("flatrate", line, name, mine) do
-    if MapSet.member?(mine, String.downcase(name)), do: line <> " · you pay for this", else: line
+    # The whole line is one msgid rather than a translated tail concatenated
+    # onto a translated head: Persian puts the possessive on the clause
+    # (*هزینه‌اش را می‌پردازید*), and a language that wanted to say it BEFORE the
+    # offer changes this string rather than this function.
+    if MapSet.member?(mine, String.downcase(name)),
+      do: gettext("%{line} · you pay for this", line: line),
+      else: line
   end
 
   def where_line(_kind, line, _name, _mine), do: line
 
   # `2024 · DRAMA, MYSTERY · 3 SEASONS · 26 EP`, minus whichever part the cache
-  # has not got. Upper case and interpuncts are the drawing's. The `15`
-  # certification the board draws between the year and the genres is still
-  # dropped rather than guessed: no column holds one.
+  # has not got. The interpuncts are the drawing's; the upper case is the
+  # drawing's in LATIN only, which is why every part goes through
+  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` — Persian has no
+  # case, and `String.upcase/1` on Persian is a no-op that still reads as a
+  # decision somebody made. The `15` certification the board draws between the
+  # year and the genres is still dropped rather than guessed: no column holds
+  # one.
+  #
+  # The YEAR converts its digits and nothing else — `Kati.Locale.year/1`'s rule,
+  # and board 69's: a first-air year is a fact about the broadcast calendar, so
+  # `2024` is `۲۰۲۴` and never `۱۴۰۳`.
   #
   # `render/1` draws this at `max_lines={2}`, not 1. The board's own sample fits
   # on one line and still does; a real title does not. Severance carries three
@@ -328,14 +354,29 @@ defmodule Kati.Screens.SeriesMeta do
       # The year, which board 14 draws first and which had no column until
       # 6 September — see the migration. The `15` certification beside it on
       # the board still has none, so the line is four parts rather than five.
-      cached.first_release_year && Integer.to_string(cached.first_release_year),
-      cached.genres && String.upcase(cached.genres),
-      seasons > 0 && "#{seasons} SEASON#{if seasons == 1, do: "", else: "S"}",
-      cached.episode_count && "#{cached.episode_count} EP"
+      cached.first_release_year && Kati.Locale.year(cached.first_release_year),
+      cached.genres && UI.eyebrow_label(cached.genres),
+      seasons > 0 && UI.eyebrow_label(seasons_label(seasons)),
+      cached.episode_count && UI.eyebrow_label(episodes_label(cached.episode_count))
     ]
     |> Enum.filter(&is_binary/1)
     |> Enum.join(" · ")
   end
+
+  # Screen 04's own msgid, deliberately — `Kati.Screens.Series.meta_line/1`
+  # draws the identical clause two screens away and one word for it is the
+  # whole point of a catalogue. Persian does not inflect a noun after a
+  # numeral, so both plural forms are `%{n} فصل`.
+  defp seasons_label(n),
+    do: ngettext("%{n} season", "%{n} seasons", n, n: Kati.Locale.number(n))
+
+  # `26 EP` is invariant on the board — no `EPS` at any count — so this is
+  # `gettext/1` and not `ngettext/3`: inventing an English plural the drawing
+  # does not draw would change the Latin page to make the Persian one easier.
+  # `pgettext/2` because `%{n} ep` is two characters of actual text and
+  # `mix gettext.merge` would fuzzy-match it against anything.
+  defp episodes_label(n),
+    do: pgettext("series meta line", "%{n} ep", n: Kati.Locale.number(n))
 
   defp seasons_of(%CachedTitle{source: source, source_id: source_id}),
     do: Kati.Media.CachedSeason.for_title(source, source_id)
@@ -365,14 +406,14 @@ defmodule Kati.Screens.SeriesMeta do
             {Kati.Screens.SeriesMeta.ratings(s)}
             {Kati.Screens.SeriesMeta.synopsis(s)}
             {Kati.Screens.SeriesMeta.actions(s)}
-            {Kati.Screens.SeriesMeta.band(s.cast, "Cast", &Kati.Screens.SeriesMeta.cast/1, s)}
-            {Kati.Screens.SeriesMeta.band(s.where, "Where to watch", &Kati.Screens.SeriesMeta.where/1, s)}
-            {Kati.Screens.SeriesMeta.band(s.tags, "Your tags", &Kati.Screens.SeriesMeta.tags/1, s)}
+            {Kati.Screens.SeriesMeta.band(s.cast, gettext("Cast"), &Kati.Screens.SeriesMeta.cast/1, s)}
+            {Kati.Screens.SeriesMeta.band(s.where, gettext("Where to watch"), &Kati.Screens.SeriesMeta.where/1, s)}
+            {Kati.Screens.SeriesMeta.band(s.tags, gettext("Your tags"), &Kati.Screens.SeriesMeta.tags/1, s)}
             {Kati.Screens.SeriesMeta.claim(s)}
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.SeriesMeta.chrome(Map.get(assigns, :back, "Series"))}
+      {Kati.Screens.SeriesMeta.chrome(Map.get(assigns, :back, gettext("Series")))}
     </Box>
     """
   end
@@ -416,7 +457,7 @@ defmodule Kati.Screens.SeriesMeta do
         </Row>
         <Spacer size={12} />
         <Text
-          text="No cast, and no scores"
+          text={gettext("No cast, and no scores")}
           text_size={13.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -424,17 +465,17 @@ defmodule Kati.Screens.SeriesMeta do
         />
         <Spacer size={6} />
         <Text
-          text="Both need a resource Kati has no column for — a person, and a cached score."
+          text={gettext("Both need a resource Kati has no column for — a person, and a cached score.")}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
         <Spacer size={8} />
         <Text
-          text="Your tags are on the series page, which is where they are written."
+          text={gettext("Your tags are on the series page, which is where they are written.")}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -493,6 +534,26 @@ defmodule Kati.Screens.SeriesMeta do
 
     fade = "to_top #FF#{rgb} 4% #B3#{rgb} 44% #00#{rgb}"
 
+    # Two locale notes on the two `Text`s below, since neither fits inside the
+    # sigil (a `#` at the top level of a ~MOB is not a comment):
+    #
+    #   * The 28pt title keeps its `line_height={1.05}` and takes NO `max_lines`.
+    #     A display heading that can only ever hold translated copy gets clamped
+    #     to one line so a longer Persian word cannot wrap — this one holds
+    #     `CachedTitle.title`, which is a provider's title and routinely longer
+    #     than the board's three words. The tight leading is there precisely
+    #     because it is expected to wrap, and clamping it would truncate the one
+    #     thing the page is about. Only the TRACKING goes, which is the part
+    #     Persian actually breaks on: `letter_spacing` prises apart the joins
+    #     between Arabic-script letters, so `Kati.Locale.tracking/1` returns 0
+    #     under `:fa` — and the fallback title IS translated copy (*بی‌عنوان*).
+    #
+    #   * The meta line is drawn in `mono`, and `kati_mono.ttf` carries no
+    #     Persian glyph and none of U+06F0–U+06F9 either. Since
+    #     `meta_line/1` now answers `۲۰۲۴ · DRAMA, MYSTERY · ۳ فصل · ۲۶ قسمت`,
+    #     the face has to follow the STRING rather than the reader — a line that
+    #     is still pure ASCII (genres alone) stays in DM Mono in both scripts,
+    #     which is what `Kati.Locale.mono_face/1` is for.
     ~MOB"""
     <Box fill_width={true} height={270} background={Palette.track_off()}>
       {Kati.Screens.SeriesMeta.hero_art(s.seed)}
@@ -506,14 +567,14 @@ defmodule Kati.Screens.SeriesMeta do
             text_size={28}
             max_font_scale={1.6}
             font_weight="extrabold"
-            letter_spacing={-0.035}
+            letter_spacing={Kati.Locale.tracking(-0.035)}
             line_height={1.05}
             text_color={:on_surface}
           />
           <Spacer size={8} />
           <Text
             text={s.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(s.meta)}
             text_size={11}
             text_color={Palette.meta()}
             max_lines={2}
@@ -545,8 +606,14 @@ defmodule Kati.Screens.SeriesMeta do
   defp art_for(nil), do: Sample.hero_art()
   defp art_for(seed), do: Kati.Design.Images.path(seed, {900, 620})
 
+  # The default is a `gettext/1` call and not the bare word, at all three
+  # arities below. A default argument is evaluated on every call rather than
+  # frozen at compile time — unlike a module attribute, which is the trap this
+  # fold keeps meeting — so the pill says *سریال* on a Persian page even when
+  # nothing pushed a `:back` label at all. `Kati.Screens.Pushed.back_label/2`
+  # translates the assigned one at runtime, so the two halves agree.
   @doc false
-  def chrome(label \\ "Series") do
+  def chrome(label \\ gettext("Series")) do
     back = {self(), :back}
     fill = Palette.card()
 
@@ -578,7 +645,7 @@ defmodule Kati.Screens.SeriesMeta do
   chevron, the 6pt gap and `Library` sit exactly where they sat.
   """
   @spec back_pill(term(), non_neg_integer(), String.t()) :: map()
-  def back_pill(back, fill, label \\ "Series") do
+  def back_pill(back, fill, label \\ gettext("Series")) do
     MishkaPill.pill(
       [
         background: fill,
@@ -596,7 +663,7 @@ defmodule Kati.Screens.SeriesMeta do
   end
 
   @doc false
-  def back_content(label \\ "Series") do
+  def back_content(label \\ gettext("Series")) do
     assigns = %{back: label}
 
     [
@@ -607,7 +674,7 @@ defmodule Kati.Screens.SeriesMeta do
         text={@back}
         text_size={13.5}
         font_weight="semibold"
-        letter_spacing={-0.01}
+        letter_spacing={Kati.Locale.tracking(-0.01)}
         text_color={:on_surface}
       />
       """
@@ -670,7 +737,7 @@ defmodule Kati.Screens.SeriesMeta do
 
     [
       %{
-        label: "Yours",
+        label: gettext("Yours"),
         value:
           if(rated == [],
             do: "—",
@@ -684,17 +751,22 @@ defmodule Kati.Screens.SeriesMeta do
         star?: rated != []
       },
       %{
-        label: "Episodes",
+        label: gettext("Episodes"),
+        # Both halves in the reader's own digits. The slash and its two spaces
+        # are the drawing's and stay: a fraction is written left to right in
+        # Persian as well, and the bidi algorithm keeps `۷ / ۲۶` in that order
+        # inside an RTL page because digits and a solidus resolve as one number
+        # run. No msgid, because there is no WORD here to translate.
         value:
           if(is_integer(total) and total > 0,
-            do: "#{length(watches)} / #{total}",
-            else: Integer.to_string(length(watches))
+            do: "#{Kati.Locale.number(length(watches))} / #{Kati.Locale.number(total)}",
+            else: Kati.Locale.number(length(watches))
           ),
         color: Palette.ink(),
         star?: false
       },
       %{
-        label: "Hours",
+        label: gettext("Hours"),
         value:
           Kati.Screens.SeriesMeta.hours_label(Kati.Screens.SeriesMeta.minutes(watches, cached)),
         color: Palette.ink(),
@@ -741,13 +813,23 @@ defmodule Kati.Screens.SeriesMeta do
     _error -> 0
   end
 
+  # `18h` and `45m` are the catalogue's own two msgids — `Kati.Stats.Sample`
+  # and `Kati.Screens.Library` already ask for them and Persian already answers
+  # `%{n} ساعت` and `%{n} دقیقه`. A suffix concatenated onto a number cannot be
+  # translated at all (the unit goes in front in some scripts and takes a space
+  # in this one), so the unit moves inside the msgid and the number becomes a
+  # binding.
+  #
+  # The em dash stays a bare `—`: it is punctuation, it means *not rated* in
+  # both scripts, and a one-character msgid is exactly what
+  # `mix gettext.merge` fuzzy-matches against every sentence that ends in one.
   @doc false
   @spec hours_label(non_neg_integer()) :: String.t()
   def hours_label(minutes) when is_integer(minutes) and minutes >= 60,
-    do: Integer.to_string(div(minutes, 60)) <> "h"
+    do: gettext("%{n}h", n: Kati.Locale.number(div(minutes, 60)))
 
   def hours_label(minutes) when is_integer(minutes) and minutes > 0,
-    do: Integer.to_string(minutes) <> "m"
+    do: gettext("%{n}m", n: Kati.Locale.number(minutes))
 
   def hours_label(_none), do: "—"
 
@@ -773,6 +855,15 @@ defmodule Kati.Screens.SeriesMeta do
   # Centred with weighted Spacers on both sides rather than text_align, because
   # text_align makes a Text fill its row in this bridge and the card is a
   # weighted column — the two together distort the row (screen 08's defect 2).
+  #
+  # The VALUE is put into the reader's digits here, at the draw, rather than
+  # where it is computed. The trio arrives from two owners: `yours/2` above,
+  # which already localises what it builds, and `Kati.Screens.SeriesMeta.Sample`
+  # for the board, whose `4.5`, `8.1` and `96%` are frozen Latin strings in a
+  # module this screen does not own. One call at the one place both arrive
+  # covers both, and `Kati.Locale.number/1` is idempotent — it converts digits
+  # and the decimal point and leaves everything else, so running it over a
+  # figure that is already `۴٫۵` changes nothing.
   @doc false
   def rating_card(r) do
     ~MOB"""
@@ -787,10 +878,10 @@ defmodule Kati.Screens.SeriesMeta do
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
           <Text
-            text={String.upcase(r.label)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(r.label)}
+            font_family={Kati.Locale.mono_face(r.label)}
             text_size={9.5}
-            letter_spacing={0.12}
+            letter_spacing={Kati.Locale.tracking(0.12)}
             text_color={Palette.muted()}
             max_lines={1}
           />
@@ -800,7 +891,13 @@ defmodule Kati.Screens.SeriesMeta do
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
           {Kati.Screens.SeriesMeta.rating_star(r)}
-          <Text text={r.value} text_size={17} font_weight="bold" text_color={r.color} max_lines={1} />
+          <Text
+            text={Kati.Locale.number(r.value)}
+            text_size={17}
+            font_weight="bold"
+            text_color={r.color}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
         </Row>
       </Column>
@@ -828,7 +925,12 @@ defmodule Kati.Screens.SeriesMeta do
   def synopsis(s) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={s.synopsis} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
+      <Text
+        text={s.synopsis}
+        text_size={14}
+        line_height={Kati.Locale.leading(1.6)}
+        text_color={Palette.cream_body()}
+      />
       {Kati.Screens.SeriesMeta.more_link(s.more)}
     </Column>
     """
@@ -841,19 +943,29 @@ defmodule Kati.Screens.SeriesMeta do
   on the board it is a word under three clamped lines and on a real title,
   whose `overview` is drawn whole, it would be a control promising a rest of a
   text that is already all there. `nil` is the real title's answer.
+
+  The argument is the PRESENCE of the word and no longer the word itself.
+  mishka-group/kati#103: `more` arrives as `Kati.Screens.SeriesMeta.Sample`'s
+  string `"more"`, and a msgid has to be a literal at the call site — so
+  `gettext(label)` does not compile and the board's own word would have come
+  out Latin on a Persian page no matter what the catalogue held. The one thing
+  this value has ever been used for is *is there more*, which is a boolean
+  question, so the copy is now this screen's and the fixture keeps the flag.
   """
   @spec more_link(String.t() | nil) :: map()
   def more_link(nil), do: ~MOB"<Spacer size={0} />"
 
-  def more_link(label) do
-    assigns = %{label: label}
+  def more_link(_present) do
+    # `pgettext/2`: *more* is four letters and `mix gettext.merge` fuzzy-matches
+    # a msgid that short against any sentence containing it.
+    assigns = %{label: pgettext("synopsis expander", "more")}
 
     ~MOB"""
     <Row align="center">
       <Text
         text={@label}
         text_size={14}
-        line_height={1.6}
+        line_height={Kati.Locale.leading(1.6)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
@@ -868,10 +980,23 @@ defmodule Kati.Screens.SeriesMeta do
   title `trailer` is `nil` and the row goes with it. The bookmark and label
   discs go too: neither has an `on_tap`, so what would be left is a play
   button that plays nothing beside two shapes that do nothing.
+
+  `trailer` is read as the PRESENCE of one and no longer as the button's word,
+  for `more_link/1`'s reason: it arrives as `Kati.Screens.SeriesMeta.Sample`'s
+  string `"Trailer"`, and `gettext(a_variable)` is not a msgid. The two uses
+  were always one value doing two jobs — the `nil` clause above has only ever
+  asked the first — so the label is the screen's copy now and the fixture keeps
+  the flag. Nothing moves in Latin: the word it held was this one.
   """
   def actions(%{trailer: nil}), do: ~MOB"<Spacer size={0} />"
 
-  def actions(s) do
+  def actions(_s) do
+    # `play_arrow` is NOT `Kati.Locale.forward_glyph()` and does not mirror. A
+    # forward arrow points where the READER is going and so follows the page;
+    # a transport control points at the direction the TAPE runs, which is the
+    # same direction in every script. Material's own mirroring guidance carves
+    # media playback out for exactly this reason, and every Persian player the
+    # reader already has draws it pointing right.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={16} />
@@ -889,7 +1014,7 @@ defmodule Kati.Screens.SeriesMeta do
             {Kati.UI.symbol("play_arrow", size: 20, color: Palette.on_ink(), fill: true)}
             <Spacer size={8} />
             <Text
-              text={s.trailer}
+              text={gettext("Trailer")}
               text_size={13.5}
               font_weight="bold"
               text_color={Palette.on_ink()}
@@ -969,7 +1094,7 @@ defmodule Kati.Screens.SeriesMeta do
       <Spacer size={2} />
       <Text
         text={c.role}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(c.role)}
         text_size={9.5}
         text_color={Palette.muted()}
         text_align="center"
@@ -1071,19 +1196,55 @@ defmodule Kati.Screens.SeriesMeta do
     )
   end
 
+  # The badge is a service's own initial, so it is Latin on a Persian page for
+  # the reason `Lumen+` is: it is a name, and `where_rows/1` takes it off a
+  # provider string no msgid reaches. `mono_face/1` asks the STRING and answers
+  # `mono` for it — the call is here so that a provider whose name is not ASCII
+  # gets Vazirmatn rather than an empty box, which is what DM Mono draws for
+  # every glyph it has not got.
   @doc false
   def where_mark(badge) do
     ~MOB"""
-    <Text text={badge} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
+    <Text
+      text={badge}
+      font_family={Kati.Locale.mono_face(badge)}
+      text_size={13}
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
   end
 
+  # `where_rows/1` answers `nil` here on every real row — TMDB says *where* and
+  # never *how much* — so this draws only the board's `£14.99` and `owned`.
+  #
+  # `Kati.Locale.ltr/1` all the same, and it is not decoration: a price is a
+  # Latin run whose currency mark is a bidi-neutral, so on an RTL page the
+  # algorithm resolves the `£` against the PAGE and lays it out at the other
+  # end — `14.99£`, the same failure screen 83's licence notices had with their
+  # full stops. The isolate makes the run resolve against itself.
+  #
+  # The face stays the hardcoded `mono` and does NOT go through
+  # `Kati.Locale.mono_face/1`, which is the one slot on this page where it
+  # should not. That function decides by asking whether the string is pure
+  # ASCII, which is the right question for a provider's NAME and the wrong one
+  # for a figure: `£` is U+00A3, so a perfectly Latin price would test as
+  # non-ASCII and be handed to Vazirmatn on a Persian page — DM Mono has the
+  # sterling sign and the drawing sets this cell in it. The digits stay Latin
+  # for the same reason, which is `Kati.Locale.number/1`'s own rule about
+  # figures in mono.
   @doc false
   def price(nil), do: ~MOB"<Spacer size={0} />"
 
   def price(value) do
     ~MOB"""
-    <Text text={value} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+    <Text
+      text={Kati.Locale.ltr(value)}
+      font_family="mono"
+      text_size={11}
+      text_color={Palette.muted()}
+      max_lines={1}
+    />
     """
   end
 

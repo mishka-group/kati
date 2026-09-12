@@ -30,8 +30,33 @@ defmodule Kati.Screens.Plans do
       trade `Kati.UI.SettingsList.note/2` records.
 
   No dock, so the frame's bottom inset is 40 rather than 132.
+
+  ## Where the Persian comes from
+
+  Board 294 — *برنامه‌ها — plans, RTL* — is this page in the other script, and
+  every msgid below is its wording rather than a fresh translation: فعال for
+  the ink card's eyebrow, هفتهٔ ۶ از ۱۲ for the week, ۸۶٪ پایبندی for the
+  adherence figure, جابه‌جایی for the section that schedules a swap.
+
+  Two lines do **not** take the board's words, and both times because the app
+  has already decided the question elsewhere:
+
+    * *Next Monday* is `Kati.Locale.week_start/0`, not دوشنبه.
+      `Kati.Screens.MealEdit.plan_group/0` draws the same row in the same kind
+      of card and interpolates the same helper, under board 137's ruling that
+      the week's first day follows the language. A Persian page promising a
+      Monday rollover promises a day its own week does not turn over on.
+    * *Keep the history* takes the msgid `Kati.Screens.MealEdit` already
+      introduced, so the one toggle does not acquire two Persian names.
+
+  `Kati.Meals.SampleProfiles` still holds this page's copy as composed English
+  — it is the one Meals fixture that does not call `gettext/1` for itself, the
+  way `Kati.Meals.SamplePlan` and `Kati.Meals.SampleToday` do — so the
+  translation happens where the strings are drawn. See the copy section at the
+  bottom of this file for what that costs and what it buys.
   """
   use Kati.Screens.Pushed, back: "Meals"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
@@ -40,12 +65,34 @@ defmodule Kati.Screens.Plans do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  # The drawing's dates, as `Date`s rather than as the words it prints.
+  #
+  # `started 6 Jul` and `used Mar–Jun` are a day and a span of months, and a
+  # Persian reader's ۱۵ تیر and اسفند–خرداد are those same moments counted in
+  # another calendar — the arithmetic `gettext/1` cannot do, which is why
+  # `Kati.Locale.date/2` and `Kati.Locale.month_name/2` take a `Date` and not a
+  # string. Frozen at the drawing's own year for the reason
+  # `Kati.Screens.BackupDark` freezes `~D[2026-08-14]`: the figure belongs to
+  # the picture rather than to the clock. Board 294 draws `از ۱۵ تیر`.
+  @started ~D[2026-07-06]
+  @used_from ~D[2026-03-01]
+  @used_to ~D[2026-06-01]
+
+  # The note as `Kati.Meals.SampleProfiles` writes it, so `note_text/1` can
+  # match on it. A plain literal — a `gettext/1` call in a module attribute
+  # would be resolved at COMPILE time and freeze in whichever locale the
+  # compiler happened to be in.
+  @drawn_note "A plan owns its meals, targets and reminder times. Switching swaps " <>
+                "all three at once — nothing has to be re-entered when you come " <>
+                "back to an old one."
+
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :plans, SampleProfiles.plans())
 
   @doc false
   def content(assigns) do
     plans = assigns.plans
+    subtitle = Kati.Screens.Plans.subtitle(plans)
 
     ~MOB"""
     <Scroll>
@@ -57,12 +104,12 @@ defmodule Kati.Screens.Plans do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 42)}
-        {SettingsList.title("Plans", plans.subtitle, "add", :meta_tight)}
-        {UI.eyebrow("Active")}
+        {SettingsList.title(gettext("Plans"), subtitle, "add", :meta_tight)}
+        {UI.eyebrow(pgettext("eyebrow", "Active"))}
         {Kati.Screens.Plans.active(plans.active)}
-        {SettingsList.eyebrow_muted("Saved plans")}
+        {SettingsList.eyebrow_muted(pgettext("eyebrow", "Saved plans"))}
         {Kati.Screens.Plans.saved(plans.saved)}
-        {UI.eyebrow("Switching")}
+        {UI.eyebrow(pgettext("eyebrow", "Switching"))}
         {Kati.Screens.Plans.switching(plans.switching)}
         {Kati.Screens.Plans.note(plans.note)}
         {Kati.Screens.Plans.import_row()}
@@ -87,7 +134,10 @@ defmodule Kati.Screens.Plans do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("download"),
-          Kati.UI.SettingsList.body("Import a plan", "From a link or a code somebody sent you"),
+          Kati.UI.SettingsList.body(
+            gettext("Import a plan"),
+            gettext("From a link or a code somebody sent you")
+          ),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :import_plan}
         )
@@ -113,6 +163,21 @@ defmodule Kati.Screens.Plans do
   # is the palette's call, not this screen's.
   @doc false
   def active(active) do
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: Persian has no
+    # case, so upcasing هفتهٔ ۶ از ۱۲ is a no-op that reads as one — a caps
+    # eyebrow that quietly is not one.
+    #
+    # The face, the size, the weight and the tracking under it are the same
+    # four answers `Kati.UI.eyebrow/2` already gives for a mono section label,
+    # and board 294 draws this one exactly that way: Vazirmatn, half a point
+    # larger, semibold, no tracking. Each is a `Kati.Locale` pick rather than a
+    # second number, so the Latin card's pixels are untouched.
+    week = UI.eyebrow_label(Kati.Screens.Plans.week_line(active.week))
+    name = Kati.Screens.Plans.plan_name(active.name)
+    targets = Kati.Screens.Plans.targets_line(active.targets)
+    started = Kati.Screens.Plans.started_line(active.started)
+    adherence = Kati.Screens.Plans.adherence_line(active.adherence)
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -125,29 +190,25 @@ defmodule Kati.Screens.Plans do
         <Row fill_width={true} align="top">
           <Column weight={1.0}>
             <Text
-              text={String.upcase(active.week)}
-              font_family="mono"
-              text_size={10}
-              letter_spacing={0.16}
+              text={week}
+              font_family={Kati.Locale.mono_face(week)}
+              text_size={Kati.Locale.pick(10, 10.5)}
+              font_weight={Kati.Locale.pick("normal", "semibold")}
+              letter_spacing={Kati.Locale.tracking(0.16)}
               text_color={0xFF6A6560}
               max_lines={1}
             />
             <Spacer size={8} />
             <Text
-              text={active.name}
+              text={name}
               text_size={22}
               font_weight="bold"
-              letter_spacing={-0.03}
+              letter_spacing={Kati.Locale.tracking(-0.03)}
               text_color={Palette.on_ink()}
               max_lines={1}
             />
             <Spacer size={6} />
-            <Text
-              text={active.targets}
-              text_size={12.5}
-              text_color={Palette.on_ink_meta()}
-              max_lines={1}
-            />
+            <Text text={targets} text_size={12.5} text_color={Palette.on_ink_meta()} max_lines={1} />
           </Column>
           <Spacer size={12} />
           {Kati.Screens.Plans.overflow()}
@@ -157,16 +218,16 @@ defmodule Kati.Screens.Plans do
         <Spacer size={10} />
         <Row fill_width={true} align="center">
           <Text
-            text={active.started}
-            font_family="mono"
+            text={started}
+            font_family={Kati.Locale.mono_face(started)}
             text_size={10}
             text_color={0xFF6A6560}
             max_lines={1}
           />
           <Spacer weight={1.0} />
           <Text
-            text={active.adherence}
-            font_family="mono"
+            text={adherence}
+            font_family={Kati.Locale.mono_face(adherence)}
             text_size={10}
             text_color={0xFF6A6560}
             max_lines={1}
@@ -246,6 +307,10 @@ defmodule Kati.Screens.Plans do
   # of these is a thing you can activate, so it gets its own edge.
   @doc false
   def saved_row(row) do
+    name = Kati.Screens.Plans.plan_name(row.name)
+    line = Kati.Screens.Plans.saved_line(row.line)
+    meta = Kati.Screens.Plans.saved_meta(row.meta)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -263,18 +328,18 @@ defmodule Kati.Screens.Plans do
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text
-            text={row.name}
+            text={name}
             text_size={13.5}
             font_weight="bold"
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={4} />
-          <Text text={row.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+          <Text text={line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
           <Spacer size={3} />
           <Text
-            text={row.meta}
-            font_family="mono"
+            text={meta}
+            font_family={Kati.Locale.mono_face(meta)}
             text_size={10}
             text_color={Palette.rail_idle()}
             max_lines={1}
@@ -308,7 +373,7 @@ defmodule Kati.Screens.Plans do
   @doc false
   def activate(label) do
     MishkaPill.pill(
-      label: label,
+      label: Kati.Screens.Plans.activate_label(label),
       background: Palette.paper(),
       color: :on_surface,
       corner_radius: 16,
@@ -346,7 +411,10 @@ defmodule Kati.Screens.Plans do
       |> Enum.map(fn {row, i} ->
         SettingsList.row(
           SettingsList.icon_tile(row.icon),
-          SettingsList.body(row.title, row.sub),
+          SettingsList.body(
+            Kati.Screens.Plans.switch_title(row.title),
+            Kati.Screens.Plans.switch_sub(row.sub)
+          ),
           Kati.Screens.Plans.trail(row.trail),
           rule: i < last
         )
@@ -371,6 +439,8 @@ defmodule Kati.Screens.Plans do
   # is a number here, so the frame is redrawn rather than approximated.
   @doc false
   def note(text) do
+    body = Kati.Screens.Plans.note_text(text)
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -383,15 +453,202 @@ defmodule Kati.Screens.Plans do
       {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
       <Text
-        text={text}
+        text={body}
         text_size={12.5}
-        line_height={1.55}
+        line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.ink_soft()}
         weight={1.0}
       />
     </Row>
     """
   end
+
+  # ── The drawing's copy, in the reader's language ───────────────────────────
+  #
+  # `Kati.Meals.SampleProfiles` holds this page's copy as composed English
+  # sentences — `2,100 kcal · 168P 210C 70F`, `used Mar–Jun` — and it is the
+  # one Meals fixture that does not call `gettext/1` for itself the way
+  # `Kati.Meals.SamplePlan` and `Kati.Meals.SampleToday` do. Until it does, the
+  # translation happens HERE, where each string reaches a `Text`, which is
+  # `Kati.Screens.AddToList.count_line/1`'s rule one layer up: *a value decided
+  # somewhere else is translated where it is drawn.*
+  #
+  # Every clause answers the fixture's own English and every function ends in a
+  # pass-through, which is the honest fallback in both directions. A plan name
+  # that came from `Kati.Meals.MealPlan` is a name a person typed and must not
+  # be translated; and the day `Kati.Meals.SampleProfiles` starts calling
+  # `gettext/1` for itself, its strings arrive here already Persian and go
+  # through untouched. What the arrangement costs is that the figures are
+  # written twice — once in the fixture's sentence and once as the numbers
+  # `Kati.Locale.number/1` needs — and that is the argument for moving these
+  # calls into the fixture the moment somebody owns it.
+
+  @doc """
+  `4 saved · 1 active`, counted rather than copied.
+
+  Four is the three rows below plus the one on the ink card, which is what the
+  drawing means by *saved* — a figure the reader can count off this page, and
+  so the one number here that must not be frozen. The second is the domain
+  rule this whole screen is arranged to say rather than a count: exactly one
+  plan is active.
+  """
+  @spec subtitle(map()) :: String.t()
+  def subtitle(plans) do
+    gettext("%{saved} saved · %{active} active",
+      saved: Kati.Locale.number(length(plans.saved) + 1),
+      active: Kati.Locale.number(1)
+    )
+  end
+
+  @doc false
+  @spec week_line(String.t()) :: String.t()
+  def week_line("Week 6 of 12"),
+    do: gettext("Week %{n} of %{total}", n: Kati.Locale.number(6), total: Kati.Locale.number(12))
+
+  def week_line(other), do: other
+
+  @doc """
+  A plan's name.
+
+  `Cutting v3` is the msgid `Kati.Meals.SamplePlan` already introduced and
+  screens 44 and 50 already draw, so the one plan keeps one Persian name
+  wherever it appears. `Maintenance` takes a context because the word here is
+  the WEIGHT sense — نگه‌داری, holding a figure steady — and a catalogue that
+  let it merge with a maintenance *mode* somewhere else would translate one of
+  the two wrongly with nothing failing.
+
+  Anything else is a name somebody typed, and is returned as it was given.
+  """
+  @spec plan_name(String.t()) :: String.t()
+  def plan_name("Cutting v3"), do: gettext("Cutting v3")
+  def plan_name("Maintenance"), do: pgettext("a saved meal plan's name", "Maintenance")
+  def plan_name("Travel week"), do: gettext("Travel week")
+  def plan_name("Jo’s plan"), do: gettext("Jo’s plan")
+  def plan_name(entered), do: entered
+
+  # The macro letters are INSIDE the msgid because they are letters: board 294
+  # writes ۱۶۸پ ۲۱۰ک ۷۰چ, the initials of پروتئین، کربوهیدرات، چربی. The
+  # thousands comma is not translated — `Kati.Locale.number/1` converts the
+  # digits and leaves the grouping mark alone, which is what board 59 draws
+  # (۱,۴۸۰) and what 294 draws here (۲,۱۰۰).
+  @doc false
+  @spec targets_line(String.t()) :: String.t()
+  def targets_line("2,100 kcal · 168P 210C 70F") do
+    gettext("%{kcal} kcal · %{protein}P %{carbs}C %{fat}F",
+      kcal: Kati.Locale.number("2,100"),
+      protein: Kati.Locale.number(168),
+      carbs: Kati.Locale.number(210),
+      fat: Kati.Locale.number(70)
+    )
+  end
+
+  def targets_line(other), do: other
+
+  @doc false
+  @spec started_line(String.t()) :: String.t()
+  def started_line("started 6 Jul"),
+    do: gettext("started %{date}", date: Kati.Locale.date(@started, :short))
+
+  def started_line(other), do: other
+
+  @doc false
+  @spec adherence_line(String.t()) :: String.t()
+  def adherence_line("86% adherence"),
+    do: gettext("%{percent}% adherence", percent: Kati.Locale.number(86))
+
+  def adherence_line(other), do: other
+
+  @doc "The middle line of a saved row: what the plan is, in one phrase."
+  @spec saved_line(String.t()) :: String.t()
+  def saved_line("2,450 kcal · 5 meals") do
+    ngettext("%{kcal} kcal · %{n} meal", "%{kcal} kcal · %{n} meals", 5,
+      kcal: Kati.Locale.number("2,450"),
+      n: Kati.Locale.number(5)
+    )
+  end
+
+  def saved_line("3 meals · no prep"),
+    do: ngettext("%{n} meal · no prep", "%{n} meals · no prep", 3, n: Kati.Locale.number(3))
+
+  def saved_line("shared with you"), do: gettext("shared with you")
+  def saved_line(other), do: other
+
+  @doc """
+  The mono line under a saved row: when the plan was last in use, or what it is.
+
+  `used Mar–Jun` is named out of two `Date`s rather than out of the words
+  *Mar* and *Jun*, for `month_name/2`'s own reason: March 2026 is اسفند and
+  June is خرداد, and no arithmetic on the numbers 3 and 6 produces either.
+  """
+  @spec saved_meta(String.t()) :: String.t()
+  def saved_meta("used Mar–Jun") do
+    gettext("used %{from}–%{to}",
+      from: Kati.Locale.month_name(@used_from, :short),
+      to: Kati.Locale.month_name(@used_to, :short)
+    )
+  end
+
+  def saved_meta("used 4 times"),
+    do: ngettext("used %{n} time", "used %{n} times", 4, n: Kati.Locale.number(4))
+
+  def saved_meta("vegetarian"), do: pgettext("a saved plan's dietary tag", "vegetarian")
+  def saved_meta(other), do: other
+
+  @doc false
+  @spec activate_label(String.t()) :: String.t()
+  def activate_label("Activate"), do: gettext("Activate")
+  def activate_label(other), do: other
+
+  @doc false
+  @spec switch_title(String.t()) :: String.t()
+  def switch_title("Switch takes effect"), do: gettext("Switch takes effect")
+  # The msgid `Kati.Screens.MealEdit.plan_group/0` introduced, deliberately
+  # shared: it is the same toggle over the same promise, and one toggle with
+  # two Persian names is how a settings page stops reading as one page.
+  def switch_title("Keep the history"), do: gettext("Keep the history")
+  def switch_title("Switch on a date"), do: gettext("Switch on a date")
+  def switch_title(other), do: other
+
+  @doc """
+  The line under a Switching row.
+
+  **`Kati.Locale.week_start/0`, not the word Monday.**
+  `Kati.Screens.MealEdit.plan_group/0` draws the same row in the same kind of
+  card and interpolates the same helper, under board 137's ruling that the
+  week's first day follows the language chosen in step one. A Persian page
+  promising a Monday rollover promises a day its own week does not turn over
+  on — and board 294 writes دوشنبه here, which is the one place that board is
+  not followed.
+  """
+  @spec switch_sub(String.t()) :: String.t()
+  def switch_sub("Next Monday · keeps this week intact"),
+    do: gettext("Next %{day} · keeps this week intact", day: Kati.Locale.week_start())
+
+  def switch_sub("Past days stay on their old plan"),
+    do: gettext("Past days stay on their old plan")
+
+  # The plan named here is the saved row two cards up, so it is named through
+  # `plan_name/1` rather than written out again: one plan, one Persian name.
+  def switch_sub("Travel week takes effect next Monday") do
+    gettext("%{plan} takes effect next %{day}",
+      plan: Kati.Screens.Plans.plan_name("Travel week"),
+      day: Kati.Locale.week_start()
+    )
+  end
+
+  def switch_sub(other), do: other
+
+  @doc false
+  @spec note_text(String.t()) :: String.t()
+  def note_text(@drawn_note) do
+    gettext(
+      "A plan owns its meals, targets and reminder times. Switching swaps " <>
+        "all three at once — nothing has to be re-entered when you come " <>
+        "back to an old one."
+    )
+  end
+
+  def note_text(other), do: other
 
   # One clause and no `_tag` catch-all, deliberately. A catch-all here would
   # answer every future control with silence, and `Kati.Screens.Pushed`'s
