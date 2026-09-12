@@ -184,13 +184,28 @@ defmodule Kati.Screens.YearShare do
   # Screen 07's own headline, change pill and year, in the shape this card
   # draws them. `change: nil` where 07 draws no pill — a first year has no last
   # year, and `↑ 0%` is the claim MOVIES-AND-TV.md #47 was about.
+  #
+  # The label is screen 07's own msgid rather than a second one. `Time watched`
+  # is already in the catalogue twice — `Kati.Screens.Stats.hero/2` draws it and
+  # `Kati.Stats.ShareSample.hours/0` carries it for the drawn card — and the two
+  # branches of `share/2` have to name one figure one way: a device with history
+  # reading زمان تماشا and a device without it reading something else would be
+  # two cards claiming to be the same card.
+  #
+  # `year/0` rather than a second `Kati.Time.today().year`. This row's year and
+  # the watermark on the two faces below it are the same year, and under `:fa`
+  # they have to be the same CALENDAR: the subtitle two rows above already reads
+  # فروردین تا مرداد ۱۴۰۵ — `Kati.Screens.Stats.range/1` converts it — so a
+  # Gregorian `2026` here is a card disagreeing with its own heading.
+  # `Kati.Screens.YearShareBooks.pages_face/0` met the same thing from the
+  # other side and its comment is the long version.
   defp hours_face(year) do
     %{
-      label: "Time watched",
+      label: gettext("Time watched"),
       figure: year.time,
       direction: if(year.rising?, do: :up, else: :down),
       change: year.change,
-      year: Integer.to_string(Kati.Time.today().year)
+      year: Kati.Screens.YearShare.year()
     }
   end
 
@@ -248,7 +263,13 @@ defmodule Kati.Screens.YearShare do
       iex> Kati.Screens.YearShare.shareable?({nil, 3}, :all, false)
       false
   """
-  @spec shareable?({map() | nil, integer()}, String.t(), boolean()) :: boolean()
+  # `atom()` first, because that is what a chip's tap resolves to — `pick_scope/2`
+  # matches the tapped key against `Kati.Stats.ShareSample.scopes/0` and assigns
+  # the ATOM, and all four doctests below pass one. The spec said `String.t()`
+  # alone, which contradicted every one of them; the string half is kept because
+  # `in_scope?/2`'s last clause deliberately answers `false` for a scope it does
+  # not know, whatever shape it arrives in, and that tolerance is asserted.
+  @spec shareable?({map() | nil, integer()}, atom() | String.t(), boolean()) :: boolean()
   def shareable?({nil, _n}, _scope, _hide_private), do: false
 
   def shareable?({tracked, _n}, scope, hide_private) do
@@ -264,6 +285,12 @@ defmodule Kati.Screens.YearShare do
 
   defp title_row(_rank, nil, _cached), do: []
 
+  # `Integer.to_string/1` and deliberately not `Kati.Locale.number/1`: the rank
+  # in this map is the position, and it is converted to the reader's digits at
+  # the one node that draws it — `rank_row/1`, which also draws
+  # `Kati.Stats.ShareSample.top_titles/0`'s ASCII `1 2 3`. Converting here as
+  # well would be the same decision in two places, and the second copy is the
+  # one that goes stale.
   defp title_row(rank, tracked, cached) do
     case Map.get(cached, {tracked.source, tracked.source_id}) do
       %{title: title, poster_path: seed} when is_binary(title) ->
@@ -382,6 +409,34 @@ defmodule Kati.Screens.YearShare do
   `sized/2` returns the size UNCHANGED at 1.0 rather than multiplying by it.
   `10 * 1.0` is `10.0` where the drawing's tree carries `10`, and the square
   ratio is what every capture, every sweep and the gallery render.
+
+  ## Three of these measurements are a script's rather than the design's
+
+  `Kati.Screens.YearShareBooks.card/0` named this frame as the one that still
+  wrote all three by hand — *"a disagreement between the two frames of the kind
+  this module's own doc says is a bug, and it is one this side cannot fix from
+  here"*. This side is here.
+
+    * **The case.** The board sets the face label in sentence case and
+      upper-cases it in CSS; `String.upcase/1` was this tree's half of that.
+      The Arabic script has no case, so upcasing **زمان تماشا** returns it
+      unchanged — a transform that reads in the source as though the label were
+      being styled and does nothing at all. `Kati.UI.eyebrow_label/1` is the
+      same upcasing in Latin and an honest no-op in Persian.
+    * **The tracking.** `.14em` is a Latin small-caps effect and the negative
+      display tracking is a Latin display effect; both pull Persian letters
+      apart at their joins, and a word whose letters do not join is not one
+      word. `Kati.Locale.tracking/1` answers the design's own number in Latin —
+      `tracking(0.14)` IS `0.14` here, so the English card measures exactly as
+      it was captured — and `0` in Persian.
+    * **`max_lines={1}` on the figure.** `312h 40m` is ۳۱۲ ساعت ۴۰ دقیقه in
+      Persian, which is four words where the drawing has two, at 34pt inside a
+      252pt card. Nothing on a card may reflow — the proportion IS the spec,
+      and this tree is what `:save_image` captures — so it has to ellipsize
+      rather than grow the frame it is measured in. The wordmark is the one
+      `letter_spacing` left hard-coded, for `Kati.Screens.YearCards`'s reason:
+      it is Latin in both scripts, so zeroing its tracking would loosen a word
+      that never needed it.
   """
   @spec card(atom(), map()) :: map()
   def card(aspect, share \\ nil) do
@@ -408,10 +463,10 @@ defmodule Kati.Screens.YearShare do
         shadow={Kati.Theme.shadow_card()}
       >
         <Text
-          text={String.upcase(@hours.label)}
+          text={Kati.UI.eyebrow_label(@hours.label)}
           font_family={Kati.Locale.mono_face()}
           text_size={@label_size}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.muted()}
         />
         <Spacer size={9} />
@@ -420,8 +475,9 @@ defmodule Kati.Screens.YearShare do
             text={@hours.figure}
             text_size={@figure_size}
             font_weight="extrabold"
-            letter_spacing={-0.035}
+            letter_spacing={Kati.Locale.tracking(-0.035)}
             text_color={:on_surface}
+            max_lines={1}
           />
           {Kati.Screens.YearShare.change_pill(@hours)}
           <Spacer weight={1.0} />
@@ -437,7 +493,7 @@ defmodule Kati.Screens.YearShare do
           text={gettext("Top titles")}
           font_family={Kati.Locale.mono_face()}
           text_size={@titles_size}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.muted()}
         />
         <Spacer size={11} />
@@ -489,7 +545,7 @@ defmodule Kati.Screens.YearShare do
         text={gettext("Your year")}
         font_family={Kati.Locale.mono_face()}
         text_size={@label_size}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={Palette.muted()}
       />
       <Spacer size={11} />
@@ -502,7 +558,7 @@ defmodule Kati.Screens.YearShare do
           text={@weeks}
           font_family={Kati.Locale.mono_face()}
           text_size={@label_size}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.muted()}
         />
         <Spacer weight={1.0} />
@@ -528,9 +584,22 @@ defmodule Kati.Screens.YearShare do
 
       iex> Kati.Screens.YearShare.year() =~ ~r/^\d{4}$/
       true
+
+  **The reader's own calendar, not the phone's.** `Integer.to_string/1` on
+  `Kati.Time.today().year` is the Gregorian number in Latin digits whatever the
+  reader counts in, and this is the one figure on the card that dates the card
+  — so under `:fa` it is ۱۴۰۵, beside a subtitle that already reads
+  فروردین تا مرداد ۱۴۰۵. `Kati.Locale.year_of/1` is the half of the split that
+  converts; `Kati.Locale.year/1` is the other half and is for a year printed on
+  an object — a book's publication, a film's release — which is never
+  converted. A card is neither: it is dated the day it was made, in the
+  reader's own reckoning.
+
+  `filename/0` keeps the Gregorian year and its own doc says why — a file name
+  is not a line of copy, and the Kotlin half will only carry ASCII.
   """
   @spec year() :: String.t()
-  def year, do: Integer.to_string(Kati.Time.today().year)
+  def year, do: Kati.Locale.year_of(Kati.Time.today())
 
   @doc """
   `Kati` — and it goes on the field face and nowhere else.
@@ -543,6 +612,18 @@ defmodule Kati.Screens.YearShare do
   Board 326 restates it from the other side, on the card that must NOT carry
   one: its own bottom row draws the year and stops. Two boards saying the same
   rule from both ends is what makes it checkable rather than remembered.
+
+  **`Kati`, in both scripts, and no `gettext/1` around it.** Board 127 draws
+  `Lumen+` in Latin on a Persian page for the same reason a name a thing calls
+  itself is spelled one way — and this is the app's own name on the one
+  artefact of the app that leaves it, so a card posted from a Persian phone and
+  a card posted from an English one have to be signed identically. This is the
+  wordmark and not the word: `Kati.Screens.WeekImage.message/1` writes کاتی in
+  the middle of a Persian sentence, which is the same name doing a different
+  job. It keeps its hard-coded `letter_spacing` for the same reason it keeps
+  its letters — the run is Latin whatever the reader reads, and
+  `Kati.Locale.tracking/1` would loosen it to `0` on a page it was drawn
+  tight for.
   """
   @spec wordmark() :: map()
   def wordmark do
@@ -600,7 +681,7 @@ defmodule Kati.Screens.YearShare do
         text={gettext("Where the hours went")}
         font_family={Kati.Locale.mono_face()}
         text_size={@label_size}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={Palette.muted()}
       />
       <Spacer size={11} />
@@ -679,9 +760,30 @@ defmodule Kati.Screens.YearShare do
     """
   end
 
-  @doc false
+  @doc """
+  One ranked title: the position, then the name.
+
+  The rank is converted here rather than where it is composed, because it
+  arrives from two places — `title_row/3` counts the reader's own watches and
+  `Kati.Stats.ShareSample.top_titles/0` carries the drawing's `1 2 3` — and
+  `Kati.Screens.YearCards` draws the second of those through this same
+  function, calling the typesetting of these rows *"this file's"* by name. One
+  conversion at the one node that draws both is the only place that can be
+  true for either.
+
+  `Kati.Locale.number/1` and not `Integer.to_string/1`, which is the Latin
+  digits whatever the reader counts in. The slot beside it is `mono_face/0` —
+  Vazirmatn under `:fa`, which carries U+06F0–U+06F9 where `kati_mono.ttf`
+  carries none of them — so the DM Mono exception `Kati.Locale.number/1`
+  documents does not reach here: ۱ beside a Persian title, 1 beside a Latin
+  one.
+
+  The TITLE is not this file's to translate and not anybody's: it is a row out
+  of `Kati.Media.CachedTitle`, which is what the provider called the thing.
+  """
+  @spec rank_row(map()) :: map()
   def rank_row(title) do
-    assigns = %{rank: title.rank, title: title.title}
+    assigns = %{rank: Kati.Locale.number(title.rank), title: title.title}
 
     ~MOB"""
     <Row fill_width={true} align="center">
@@ -753,7 +855,7 @@ defmodule Kati.Screens.YearShare do
           text={gettext("Save image")}
           text_size={15}
           font_weight="bold"
-          letter_spacing={-0.01}
+          letter_spacing={Kati.Locale.tracking(-0.01)}
           text_color={Palette.on_ink()}
         />
         <Spacer weight={1.0} />
@@ -868,9 +970,22 @@ defmodule Kati.Screens.YearShare do
   # else — so every one of these ends by saying so. Screen 110's own five,
   # because the two buttons do the same thing and a reader who met both should
   # not meet two vocabularies.
-  defp message(:no_activity), do: "Kati is not on screen. Nothing was saved."
-  defp message(:nothing_drawn), do: "There was nothing to capture. Nothing was saved."
-  defp message(:timeout), do: "The page took too long to capture. Nothing was saved."
-  defp message(:no_bridge), do: "Saving images does not work here yet."
-  defp message(_other), do: "That did not save. The page is unchanged."
+  #
+  # Screen 110's own five MSGIDS, then, character for character: these are
+  # `Kati.Screens.WeekImage.message/1`'s exact strings, so the catalogue
+  # already answers all five and the two screens cannot drift into two Persian
+  # vocabularies for one refusal. A refusal is the one thing on this page that
+  # is neither card and it follows the reader — a reader who cannot read the
+  # sentence explaining why nothing was saved is in exactly the position
+  # `handle_tap/2`'s doc says this whole branch exists to prevent.
+  #
+  # `کاتی` in the Persian rather than `Kati`, which is not the rule
+  # `wordmark/0` keeps: the app's name is a WORD in a sentence here and a
+  # wordmark in the footer of a card there, and the catalogue has written it
+  # the first way since long before this screen asked.
+  defp message(:no_activity), do: gettext("Kati is not on screen. Nothing was saved.")
+  defp message(:nothing_drawn), do: gettext("There was nothing to capture. Nothing was saved.")
+  defp message(:timeout), do: gettext("The page took too long to capture. Nothing was saved.")
+  defp message(:no_bridge), do: gettext("Saving images does not work here yet.")
+  defp message(_other), do: gettext("That did not save. The page is unchanged.")
 end

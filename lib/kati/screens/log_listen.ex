@@ -71,9 +71,21 @@ defmodule Kati.Screens.LogListen do
   the sheet stays open on the error with the reason drawn over the commit
   button. Staying open is the point: the ticks you set are still ticked, so
   trying again is one tap rather than a reconstruction from memory.
+
+  ## Under `:fa`
+
+  This module IS the Persian sheet — there is no mirror — and **board 296** is
+  what it has to come out looking like. Three things on it are not copy and are
+  easy to leave behind: the track numbers and the durations are numerals
+  (`Kati.Locale.number/1`, and the face follows the digits rather than the
+  reader), `Started at` is a clock, and the confirmation's *4th* is an ordinal,
+  which Persian spells as a word — see `ordinal/1`. The album's title and its
+  artist are the reader's own data and are drawn as they were entered.
+  mishka-group/kati#103.
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Music.Album
@@ -83,11 +95,10 @@ defmodule Kati.Screens.LogListen do
   alias Kati.UI.Segmented
   alias Kati.UI.Sheet
 
-  @scopes [
-    {"Whole album", :scope_album},
-    {"Selected tracks", :scope_selected},
-    {"Minutes", :scope_minutes}
-  ]
+  # `@scopes` was a module attribute and cannot be: `gettext/1` inside one is
+  # evaluated at COMPILE time, so the three words would freeze in whichever
+  # locale the compiler happened to be in. `Kati.Screens.LogProgress.units/0`
+  # made the same move for the same reason. See `scopes/0`.
 
   def mount(params, _session, socket) do
     Kati.Theme.activate()
@@ -156,7 +167,7 @@ defmodule Kati.Screens.LogListen do
   def album(id), do: Kati.Screens.AlbumDetail.album(id)
 
   def render(assigns),
-    do: Sheet.sheet("Log a listen", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    do: Sheet.sheet(gettext("Log a listen"), body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do
@@ -174,17 +185,47 @@ defmodule Kati.Screens.LogListen do
       {Kati.Screens.LogListen.insight(assigns)}
       <Spacer size={14} />
       {Kati.Screens.LogListen.save_notice(assigns)}
-      {Sheet.commit("Save listen", :save)}
+      {Sheet.commit(gettext("Save listen"), :save)}
     </Column>
     """
   end
 
-  @doc false
-  def scopes, do: @scopes
+  @doc """
+  The three scopes a listen can be logged in.
 
-  @doc "The album at 52pt, with its byline in the drawing's capitals."
+  The TAG is what the segment answers to and the word beside it is what the
+  reader sees, which is the arrangement every folded segmented control in
+  mishka-group/kati#103 ends up with: `handle_info/2`'s guard names these three
+  atoms, and a tag built from the label would be a different atom in each
+  script.
+
+  A function rather than the `@scopes` attribute it was, for the compile-time
+  reason noted above the module's aliases.
+  """
+  @spec scopes() :: [{String.t(), atom()}]
+  def scopes,
+    do: [
+      {gettext("Whole album"), :scope_album},
+      {gettext("Selected tracks"), :scope_selected},
+      # The same word screen 70's third segment carries, and deliberately the
+      # same msgid: the two sheets are siblings and a reader moving between
+      # them should not meet two Persian words for one unit.
+      {gettext("Minutes"), :scope_minutes}
+    ]
+
+  @doc "The album at 52pt, with its byline in the capitals its own script has."
   @spec album_row(map()) :: map()
   def album_row(a) do
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: the Arabic
+    # script has no case, so upcasing a Persian artist name is a no-op that
+    # nonetheless reads as one to whoever finds it next.
+    #
+    # The face asks the BYLINE's script and not the reader's. It is a proper
+    # noun plus a release year — `Kell Ostrand · 2025` — and a pure-ASCII name
+    # has every glyph it needs in DM Mono in both scripts, which is the
+    # distinction `Kati.Locale.mono_face/1` exists to draw.
+    byline = Kati.UI.eyebrow_label(a.byline || "")
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -195,14 +236,14 @@ defmodule Kati.Screens.LogListen do
             text={a.title}
             text_size={14.5}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={5} />
           <Text
-            text={String.upcase(a.byline || "")}
-            font_family={Kati.Locale.mono_face()}
+            text={byline}
+            font_family={Kati.Locale.mono_face(byline)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -265,7 +306,7 @@ defmodule Kati.Screens.LogListen do
     <Column fill_width={true}>
       {rows}
       <Spacer size={14} />
-      {Kati.UI.SettingsList.note("info", "Ticked rows are already counted this month")}
+      {Kati.UI.SettingsList.note("info", gettext("Ticked rows are already counted this month"))}
       <Spacer size={14} />
     </Column>
     """
@@ -291,12 +332,18 @@ defmodule Kati.Screens.LogListen do
     counted? = Map.get(track, :counted?, false)
 
     assigns = %{
-      position: Integer.to_string(track.position),
+      position: Kati.Locale.number(track.position),
       title: track.title,
       duration: track.duration || "",
       on?: on?,
       background: Kati.Screens.LogListen.row_fill(counted?),
       title_color: Kati.Screens.LogListen.title_colour(counted?),
+      # The TAP TAG keeps the Latin integer while the drawn number does not:
+      # `handle_info/2` reads the position back out of this atom with
+      # `String.to_integer/1`, and `۳` is not an integer to that function. A
+      # number is data and a drawn string is copy — the same split
+      # `Kati.Screens.AlbumDetail.shape_track/1` makes when it carries the
+      # seconds beside the `4:12`. mishka-group/kati#103.
       tap: {self(), String.to_atom("track_#{track.position}")}
     }
 
@@ -314,7 +361,7 @@ defmodule Kati.Screens.LogListen do
     >
       <Text
         text={@position}
-        font_family={Kati.Locale.mono_face()}
+        font_family={Kati.Locale.mono_face(@position)}
         text_size={11}
         text_color={Palette.tertiary()}
         width={16}
@@ -331,7 +378,7 @@ defmodule Kati.Screens.LogListen do
       <Spacer size={12} />
       <Text
         text={@duration}
-        font_family={Kati.Locale.mono_face()}
+        font_family={Kati.Locale.mono_face(@duration)}
         text_size={10.5}
         text_color={Palette.tertiary()}
       />
@@ -385,6 +432,12 @@ defmodule Kati.Screens.LogListen do
   @doc "Started-at, in the same card shape screen 70 gives it."
   @spec started_row() :: map()
   def started_row do
+    # Read ONCE. It was called twice — once for the text and once for the face
+    # it is set in — and `Kati.Screens.LogProgress.started_at/0` reads the
+    # clock, so the two calls could straddle a minute and typeset a time that
+    # is not the time drawn.
+    at = Kati.Screens.LogProgress.started_at()
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -400,15 +453,15 @@ defmodule Kati.Screens.LogListen do
         </Box>
         <Spacer size={13} />
         <Text
-          text="Started at"
+          text={gettext("Started at")}
           text_size={13.5}
           font_weight="semibold"
           text_color={:on_surface}
           weight={1.0}
         />
         <Text
-          text={Kati.Screens.LogProgress.started_at()}
-          font_family={Kati.Locale.mono_face(Kati.Screens.LogProgress.started_at())}
+          text={at}
+          font_family={Kati.Locale.mono_face(at)}
           text_size={12.5}
           text_color={Palette.ink_soft()}
           max_lines={1}
@@ -421,26 +474,65 @@ defmodule Kati.Screens.LogListen do
   @doc """
   The cream line: how many tracks, how long, and how many times this month.
 
-  The third clause is an ordinal — `4th time this month` — because it is a
-  count of occasions and not a quantity. It is also the only figure on this
-  sheet that is read rather than derived from the controls above it.
+  The third clause is an ordinal — `4th time this month`, `چهارمین بار این ماه`
+  — because it is a count of occasions and not a quantity. It is also the only
+  figure on this sheet that is read rather than derived from the controls above
+  it.
+
+  The first two clauses are `ngettext/4` now, rather than the hand-rolled
+  `if tracks == 1` and the interpolated *minutes* beside it. English needed the
+  first of those and never had the second — a one-minute listen drew
+  `1 minutes` — and Persian needs neither, which is why `msgstr[1]` repeats
+  `msgstr[0]`: a noun after a numeral does not inflect.
   """
   @spec insight(map()) :: map()
   def insight(assigns) do
-    body = [text_size: 13, line_height: 1.55, text_color: Palette.cream_body()]
+    body = [
+      text_size: 13,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.cream_ink(), text_size: 13]
 
     tracks = Kati.Screens.LogListen.chosen_count(assigns)
     minutes = Kati.Screens.LogListen.chosen_minutes(assigns)
+    times = Kati.Screens.LogListen.times_this_month(assigns[:album_id]) + 1
 
     Sheet.insight("lightbulb", [
-      {"That’s ", body},
-      {"#{tracks} #{if tracks == 1, do: "track", else: "tracks"}", strong},
+      {gettext("That’s "), body},
+      {ngettext("%{n} track", "%{n} tracks", tracks, n: Kati.Locale.number(tracks)), strong},
+      # A bare separator, not a `gettext/1` call: `" · "` is a msgid no
+      # translator can place and `mix gettext.merge` would fuzzy-match it onto
+      # the first neighbour that happens to contain one. Persian separates a
+      # list with the same mark, and the run takes the paragraph's direction,
+      # which under `:fa` is the direction the clauses are already flowing in.
       {" · ", body},
-      {"#{minutes} minutes", strong},
-      {" · #{Kati.Screens.LogListen.ordinal(Kati.Screens.LogListen.times_this_month(assigns[:album_id]) + 1)} time this month",
-       body}
+      {ngettext("%{n} minute", "%{n} minutes", minutes, n: Kati.Locale.number(minutes)), strong},
+      {" · ", body},
+      {nth_time(times), body}
     ])
+  end
+
+  # `4th time this month`, and board 296's `چهارمین بار این ماه`. ONE msgid
+  # rather than `ordinal(n) <> " time this month"`: the ordinal is an adjective
+  # in Persian and the noun it qualifies follows it, so the two halves do not
+  # meet in English's order and a sentence assembled from two translated
+  # fragments can only ever be assembled in English's.
+  # `Kati.Screens.Activity.nth_time/1` makes the same argument about the same
+  # phrase one word shorter.
+  #
+  # `pgettext/2` because the catalogue already holds `%{ordinal} time` and
+  # `%{n} this month`, and a msgid that resembles two neighbours at once is
+  # exactly what `mix gettext.merge` fuzzy-matches onto the wrong one. The
+  # context also keeps this construction apart from the rewatch row's, which is
+  # `ordinal/1`'s subject.
+  defp nth_time(n) do
+    pgettext(
+      "the nth listen of an album, on the confirmation line",
+      "%{ordinal} time this month",
+      ordinal: Kati.Screens.LogListen.ordinal(n)
+    )
   end
 
   @doc """
@@ -456,6 +548,10 @@ defmodule Kati.Screens.LogListen do
 
   It carries its own trailing `Spacer`, so a sheet with nothing to report is
   spaced to the pixel it was before.
+
+  The sentence itself is `Kati.Write.message/1`'s and is translated there — one
+  wording for every failed write in the app, which is the point of that module
+  owning it.
   """
   @spec save_notice(map()) :: map() | []
   def save_notice(%{save_error: message}) when is_binary(message) do
@@ -467,7 +563,7 @@ defmodule Kati.Screens.LogListen do
         text={@message}
         text_size={12.5}
         font_weight="semibold"
-        line_height={1.45}
+        line_height={Kati.Locale.leading(1.45)}
         text_color={Palette.red()}
       />
       <Spacer size={12} />
@@ -520,6 +616,18 @@ defmodule Kati.Screens.LogListen do
 
   `Minutes` is the scope where the length is yours to state rather than the
   album's, and it is the only one where this figure is not the answer.
+
+  ## Board 296 draws the other reading, and is not followed
+
+  The Persian drawing of this sheet writes `۲ آهنگ · ۸ دقیقه` over five rows
+  with two ticked, and eight minutes is exactly those two tracks — so it reports
+  the TICKS where screen 73 reports the sitting. Two drawings of one sheet
+  disagree, and the ruling above is the one with an argument behind it: the
+  sentence is about the sitting and the ticks are about credit. Following 296
+  under `:fa` alone would be worse than either answer, because the sheet would
+  then mean two different things in two scripts — which is the one outcome
+  mishka-group/kati#103 exists to prevent. Written down here rather than left
+  for whoever next opens the board beside the screen.
   """
   @spec chosen_count(map()) :: non_neg_integer()
   def chosen_count(%{tracks: tracks}), do: length(tracks)
@@ -595,17 +703,61 @@ defmodule Kati.Screens.LogListen do
   end
 
   @doc """
-  `1st`, `2nd`, `3rd`, `4th` — and `11th`, `12th`, `13th`.
+  `1st`, `2nd`, `3rd`, `4th` — and `11th`, `12th`, `13th`. `چهارمین` in Persian.
 
-  The teens are the whole reason this is a function: 11, 12 and 13 end in 1, 2
-  and 3 and take `th` anyway, and every naive implementation gets them wrong.
+      iex> Kati.Screens.LogListen.ordinal(4)
+      "4th"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.LogListen.ordinal(4) end)
+      "چهارمین"
+
+  The teens are the whole reason the Latin half is a function: 11, 12 and 13
+  end in 1, 2 and 3 and take `th` anyway, and every naive implementation gets
+  them wrong.
+
+  Those four suffixes are an ENGLISH rule and they stop at the language edge,
+  which is why this is `Kati.Locale.pick/2` over two whole answers rather than
+  one skeleton with a translated suffix — a shape that would be the English
+  rule with Persian letters in it.
+
+  ## Why the Persian half is a word where the rewatch badge's is a numeral
+
+  Board 296 draws this sheet's confirmation as **چهارمین بار این ماه**, with
+  the ordinal spelled out. `Kati.Screens.Activity.ordinal/1` prints `بار ۳ام`
+  for a rewatch, numeral and suffix, and both are right for what they count: a
+  rewatch badge runs to twenty and this line counts the times one record was
+  played inside one month, which is a small number a Persian sentence says
+  rather than prints. `nth_time/1`'s `pgettext/2` context is what keeps the two
+  constructions apart in the catalogue.
+
+  Spelled to ten and a numeral with the same suffix after that. That is the end
+  of the table rather than a guard hiding one: past ten the word grows longer
+  than the clause around it, and `۱۱مین` is what a Persian page prints there.
   """
   @spec ordinal(pos_integer()) :: String.t()
-  def ordinal(n) when rem(n, 100) in 11..13, do: "#{n}th"
-  def ordinal(n) when rem(n, 10) == 1, do: "#{n}st"
-  def ordinal(n) when rem(n, 10) == 2, do: "#{n}nd"
-  def ordinal(n) when rem(n, 10) == 3, do: "#{n}rd"
-  def ordinal(n), do: "#{n}th"
+  def ordinal(n), do: Kati.Locale.pick(latin_ordinal(n), persian_ordinal(n))
+
+  defp latin_ordinal(n) when rem(n, 100) in 11..13, do: "#{n}th"
+  defp latin_ordinal(n) when rem(n, 10) == 1, do: "#{n}st"
+  defp latin_ordinal(n) when rem(n, 10) == 2, do: "#{n}nd"
+  defp latin_ordinal(n) when rem(n, 10) == 3, do: "#{n}rd"
+  defp latin_ordinal(n), do: "#{n}th"
+
+  # Board 296's own word for four, and its nine neighbours. Clauses rather than
+  # a `@table` for the reason `scopes/0` is a function: nothing that is drawn
+  # belongs in a module attribute on this screen, and a list of words is easier
+  # to read as clauses anyway.
+  defp persian_ordinal(1), do: "اولین"
+  defp persian_ordinal(2), do: "دومین"
+  defp persian_ordinal(3), do: "سومین"
+  defp persian_ordinal(4), do: "چهارمین"
+  defp persian_ordinal(5), do: "پنجمین"
+  defp persian_ordinal(6), do: "ششمین"
+  defp persian_ordinal(7), do: "هفتمین"
+  defp persian_ordinal(8), do: "هشتمین"
+  defp persian_ordinal(9), do: "نهمین"
+  defp persian_ordinal(10), do: "دهمین"
+  defp persian_ordinal(n), do: Kati.Locale.number(n) <> "مین"
 
   # Screen 74's reader, by id or by shelf head — this sheet keeps no query of
   # its own, for the reason `album/1` gives.

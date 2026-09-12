@@ -751,6 +751,19 @@ defmodule Kati.DesignLiterals do
       # 69's own test has always asserted ۲۰۲۴ for a real book — the mirror's
       # FIXTURE said ۱۴۰۳ and its own test knew better.
       {"69", "۱۴۰۳ · ۳۸۰ صفحه"},
+      #
+      # **ISBN.** The board writes the Latin acronym on the Persian page and
+      # screen 66 now writes **شابک**, which is the settled spelling everywhere
+      # else in the app: `Kati.Screens.AddByHandBook`, 67's states row, 68's
+      # dark row, the `Add ISBN` affordance and `Kati.Sources`' own
+      # `شماره شابک` all say it. An Iranian book prints شابک on its copyright
+      # page, so this is the same test the year above is decided by — what the
+      # object in the reader's hands says — and it lands the other way, because
+      # the year is a number printed once and this is a word with a standard
+      # translation. 66 was the LAST page still drawing the acronym; 67's own
+      # source carried a note saying so and that wrapping it belonged to that
+      # file. This is that file having done it.
+      {"69", "isbn"},
       # **تعداد صفحه** — *number of pages* — captioned the Length row, and the
       # moment the format chip could say صوتی that row presented a duration as
       # a page count. `Kati.Screens.BookDetailFa`'s answer was to draw no row

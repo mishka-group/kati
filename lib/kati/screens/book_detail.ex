@@ -339,12 +339,24 @@ defmodule Kati.Screens.BookDetail do
   # A book with a publisher and no year prints the publisher, which is the same
   # rule `Kati.Screens.Film.meta_line/1` follows for runtime and genre.
   defp meta_line(%Book{} = book) do
-    # A publisher is a trade name and `String.upcase/1` is right for it in both
-    # scripts; the YEAR is the reader's own numerals, and board 69 writes it in
-    # Shamsi — `Kati.Locale.year/1` is the one that knows which.
+    # The YEAR is the reader's own numerals, and board 69 writes it in Shamsi —
+    # `Kati.Locale.year/1` is the one that knows which, and a stored Gregorian
+    # year keeps its value and folds only its digits.
+    #
+    # The PUBLISHER goes through `Kati.UI.eyebrow_label/1`, where this line said
+    # `String.upcase/1` and ratified it as right for a trade name in both
+    # scripts. It is not, for two reasons the fold made visible. A publisher is
+    # free text screen 177 types in, so `نشر چشمه` is as ordinary a value as
+    # `Faber`, and `String.upcase/1` on the Arabic script is exactly the no-op
+    # that reads as a decision — the thing mishka-group/kati#103 is removing
+    # everywhere else. And the segment beside it, `extent_meta/1`, already asks
+    # `eyebrow_label/1`: one drawn line was shouting under one rule and not
+    # under the other. Nothing moves in Latin, because `eyebrow_label/1` IS
+    # `String.upcase/1` under `:en` — `2024 · FABER · 380 PP` is still what
+    # `Kati.BooksTest` asserts.
     [
       book.published_year && Kati.Locale.year(book.published_year),
-      book.publisher && String.upcase(book.publisher),
+      book.publisher && Kati.UI.eyebrow_label(book.publisher),
       extent_meta(book)
     ]
     |> Enum.reject(&is_nil/1)
@@ -856,6 +868,23 @@ defmodule Kati.Screens.BookDetail do
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
+    # `gettext("ISBN")`, where the label was the one bare literal left in this
+    # band. `Kati.Screens.BookDetailStates` carries the finding in a comment of
+    # its own — *66 still passes the label as a bare literal, so 66 draws `ISBN`
+    # where every other Persian page in the app draws شابک* — and wrapping it
+    # was named there as this file's to do. That comment is now stale and its
+    # own owner's to remove.
+    #
+    # The acronym is NOT a provider name and does not take the provider rule.
+    # `TMDB` is what a service calls itself and has exactly one spelling;
+    # ISBN is a standard, and Persian has a standard name for it that the
+    # catalogue already holds from screens 177 and 67 — the same شابک that
+    # `Add ISBN` on the empty row two lines down has been drawing all along.
+    # Leaving the heading Latin under a Persian empty-state was one row saying
+    # the word twice in two scripts.
+    #
+    # The NUMBER stays Latin digits in `mono/1`, which is a different question
+    # and is answered there.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true}>
@@ -864,7 +893,7 @@ defmodule Kati.Screens.BookDetail do
       <Spacer size={12} />
       {SettingsList.card([
         {SettingsList.body(gettext("Length"), nil), SettingsList.trailing(Kati.Screens.BookDetail.value(b.extent_label))},
-        {SettingsList.body("ISBN", nil), SettingsList.trailing(Kati.Screens.BookDetail.mono(b.isbn))}
+        {SettingsList.body(gettext("ISBN"), nil), SettingsList.trailing(Kati.Screens.BookDetail.mono(b.isbn))}
       ] |> Enum.map(fn {body, trailing} -> SettingsList.row(nil, body, trailing) end))}
       <Spacer size={12} />
       {Kati.Screens.BookDetail.owned_row(b.owned)}
@@ -1214,6 +1243,11 @@ defmodule Kati.Screens.BookDetail do
       |> Enum.map(fn {icon, label, tag} -> Kati.Screens.BookDetail.second(icon, label, tag) end)
       |> Enum.intersperse(~MOB"<Spacer size={10} />")
 
+    # `max_lines={1}` on the ink label, which the three circular seconds under
+    # it have had all along and this one had not. The Row is a fixed
+    # `height={52}`, so a label that wraps is a label CLIPPED rather than a
+    # button that grows — and the label is the one string on this row that
+    # changes with both the reader's language and the book's state.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -1231,6 +1265,7 @@ defmodule Kati.Screens.BookDetail do
           font_weight="bold"
           letter_spacing={Kati.Locale.tracking(-0.01)}
           text_color={Palette.on_ink()}
+          max_lines={1}
         />
         <Spacer weight={1.0} />
       </Row>
@@ -1285,13 +1320,21 @@ defmodule Kati.Screens.BookDetail do
   def save_notice(message) do
     assigns = %{message: message}
 
+    # `Kati.Locale.leading/1` rather than the bare `1.35` this carried.
+    # Vazirmatn sets taller than the Latin face — its ascenders and the dots
+    # under `ب` and `ی` need the room — and every folded screen opens its line
+    # height up for Persian instead of mirroring the Latin figure.
+    # `Kati.Screens.LogProgress.error_line/1` is this exact block on the sheet
+    # this page pushes: same 12.5, same semibold, same red, and it already
+    # asks. Two identical failure lines leading differently is the drift the
+    # fold exists to stop.
     ~MOB"""
     <Column fill_width={true}>
       <Text
         text={@message}
         text_size={12.5}
         font_weight="semibold"
-        line_height={1.35}
+        line_height={Kati.Locale.leading(1.35)}
         text_color={Palette.red()}
       />
       <Spacer size={12} />

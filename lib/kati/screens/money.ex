@@ -57,10 +57,30 @@ defmodule Kati.Screens.Money do
       expenses ->
         expenses
         |> Expense.by_month()
-        |> Enum.map(fn {label, total, rows} ->
+        |> Enum.map(fn {_label, total, rows} ->
           %{
-            label: label,
-            total: Money.format(total),
+            # The group's own DATE rather than the label `Expense.by_month/1`
+            # hands back. That one is `Calendar.strftime(…, "%B")` — a
+            # Gregorian month name in English, which stays English under `:fa`
+            # — so a reader with real expenses got a group headed `August` on a
+            # page whose drawn groups are headed `مرداد`. The catalogue answers
+            # the drawn `August` with the SHAMSI month the date falls in, and
+            # `Kati.Locale.month_name/2` is that same arithmetic done from a
+            # date, so the two halves of screen 122 agree again.
+            #
+            # `hd(rows)` cannot raise: `by_month/1` builds every group by
+            # grouping rows, so a group with no rows in it does not exist. Any
+            # row will do — they all share the year and month that made the
+            # group.
+            label: Kati.Locale.month_name(hd(rows).spent_on, :long),
+            # `display/1`, not `format/1`. `format/2` is CLDR's own shape and
+            # leaves a `£` standing beside Persian numerals; `Kati.Money.display/2`
+            # is board 127's — the figure, then the currency as a WORD,
+            # `۶۱٫۴۰ پوند`. The drawn months already go through it in
+            # `Kati.Money.Sample.months/0`, so this is the stored half catching
+            # up rather than a new decision. `display/2` is `format/2` unchanged
+            # in English, so nothing on board 122 moves.
+            total: Money.display(total),
             direction: nil,
             delta: nil,
             rows:
@@ -149,11 +169,34 @@ defmodule Kati.Screens.Money do
 
   Cream because it carries a claim — the palette's own definition — and this is
   the one card on the page that asserts something rather than listing it.
+
+  ## The three things that change with the script
+
+  The eyebrow's tracking, the total's tracking, and the paragraph's leading.
+  Tracking prises apart the joins Arabic script is written with, so both
+  `letter_spacing` values go through `Kati.Locale.tracking/1` — the same call
+  screen 23 makes on the same card (`Kati.Screens.Subscriptions.monthly/1`) and
+  screen 123 makes on its own (`Kati.Screens.MoneyStates`). The 34pt total also
+  gains `max_lines={1}`: `£46.47` is six glyphs and `۴۶٫۴۷ پوند` is ten with a
+  word in it, and a total that wrapped would push the change line out of the
+  card. And Vazirmatn's line box is not Plus Jakarta's, so the wrapping
+  paragraph takes `Kati.Locale.leading/1` rather than the drawing's flat 1.5 —
+  `Kati.Theme.fa_line_height/0` is where that constant is argued.
   """
   @spec hero() :: map()
   def hero do
     m = Sample.monthly()
-    body = [text_size: 12.5, line_height: 1.5, text_color: Palette.cream_body()]
+
+    # The lead and the rest both carry `body` and the amount is never the
+    # longest of the three, so `Kati.UI.rich_text/1` resolves the paragraph's
+    # style to `body` in either script — which is why the leading only has to
+    # be right here.
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.5),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.cream_ink(), text_size: 12.5]
 
     assigns = %{
@@ -172,7 +215,7 @@ defmodule Kati.Screens.Money do
           text={Kati.UI.eyebrow_label(@m.label)}
           font_family={Kati.Locale.mono_face()}
           text_size={10}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.cream_meta()}
         />
         <Spacer size={9} />
@@ -180,8 +223,9 @@ defmodule Kati.Screens.Money do
           text={@m.total}
           text_size={34}
           font_weight="extrabold"
-          letter_spacing={-0.035}
+          letter_spacing={Kati.Locale.tracking(-0.035)}
           text_color={Palette.cream_ink()}
+          max_lines={1}
         />
         <Spacer size={11} />
         <Row fill_width={true} align="top">
@@ -318,6 +362,13 @@ defmodule Kati.Screens.Money do
   @doc false
   def month_group(month) do
     rows = Enum.map(month.rows, &Kati.Screens.Money.expense_row/1)
+
+    # The group's eyebrow is a hand-rolled one — no dash, and a total on the
+    # other end of the row — so it does not get `Kati.UI.eyebrow/2`'s
+    # `Kati.Locale.tracking/1` for free the way the two section labels in
+    # `content/1` do. It asks for it below. Same `.16em` and the same reason
+    # screen 23 gives on its own month label: a fraction of an em taken out
+    # between letters breaks the joins Persian is written with.
     assigns = %{month: month, rows: rows}
 
     ~MOB"""
@@ -327,7 +378,7 @@ defmodule Kati.Screens.Money do
           text={Kati.UI.eyebrow_label(@month.label)}
           font_family={Kati.Locale.mono_face()}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
         <Spacer weight={1.0} />
@@ -407,7 +458,19 @@ defmodule Kati.Screens.Money do
 
   def suggestion(false) do
     s = Sample.suggestion()
-    body = [text_size: 13, line_height: 1.55, text_color: Palette.cream_body()]
+
+    # `Kati.Locale.leading/1` over the drawing's flat 1.55, for the reason
+    # `Kati.Screens.Subscriptions.advice/2` spells out on the same card: this is
+    # the longest wrapping paragraph on the page, and Vazirmatn's ascenders and
+    # descenders are not Plus Jakarta's, so a leading measured against the Latin
+    # card crowds the Persian one. The Latin number stays at the call site,
+    # which is the point of the helper.
+    body = [
+      text_size: 13,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.cream_ink(), text_size: 13]
 
     assigns = %{

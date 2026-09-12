@@ -137,6 +137,36 @@ defmodule Kati.Screens.MealLibraryEmpty do
       be a hex literal. A `gold_wash` token is the thing that would have to land
       before either screen can draw the pill.
 
+  ## What mishka-group/kati#103 changed here, and the one thing it broke
+
+  The board's own chrome and the empty card now go through `Kati.Gettext`, so a
+  Persian reader gets the title, both eyebrows, the heading, the caption and
+  both routes out in their own language. Those `Text`s carry no `font_family`
+  and need none: `Kati.Screens.Pushed.chrome/3` puts `Kati.Locale.face_prop/0`
+  on the root and `MainActivity` installs it as the default every `Text` falls
+  back to, which is the half of the font problem a screen cannot reach itself.
+
+  The panel below them does **not** translate, and must not. It is a specimen.
+  Under `:en` it is the whole point of the board — 116 read in the other script
+  — and a `gettext/1` in `words/0` would draw two English libraries one above
+  the other under an eyebrow claiming one of them was Persian. The digits stay
+  on `Kati.I18n.Digits.to_persian/1` rather than `Kati.Locale.number/1` for the
+  same reason: `۲۴` is Persian because the specimen is, not because the reader
+  is, and `number/1` would fold it back to `24` on an English page.
+
+  **The hand mirror double-mirrors under `:fa`, and this file does not fix it.**
+  `Kati.Screens.Pushed.chrome/3` sets `layout_direction` from
+  `Kati.Locale.direction_prop/0`, so a Persian reader already has an RTL root —
+  and every `Enum.reverse/1` and hand-ordered `Row` in `search/0`, `chips/0`,
+  `chip/3`, `grid/1`, `tile/1` and `approx/1` then runs a second time against a
+  layout that has turned round on its own. The panel comes out reading LEFT to
+  right, which is the one thing it exists not to do. `absolute_right` holds, so
+  it is the child *order* that inverts and not the alignment, which makes it a
+  quiet wrong picture rather than an obvious one. There are two honest fixes —
+  every reversal on this board asks the root's direction first, or the panel
+  goes away now that the board's own English half renders right to left by
+  itself — and both are the board's decision rather than the translation's.
+
   ## Nothing on this board taps
 
   67's rule, for 67's reason: each card is a picture of a state, not a report
@@ -147,6 +177,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
   """
 
   use Kati.Screens.Pushed, back: "Meals"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.I18n.Digits
   alias Kati.Meals.SampleLibrary
@@ -197,6 +228,16 @@ defmodule Kati.Screens.MealLibraryEmpty do
 
   `TWO STATES` rather than a count, because nothing here is a report of how many
   of anything there are — the subtitle names what the board holds.
+
+  The title is deliberately the SAME msgid `Kati.Screens.MealLibrary` uses. A
+  mirror that named its original differently would be a second name for one
+  screen, which is the failure `words/0` exists to prevent on the Persian side.
+
+  `RTL` takes a `pgettext/2` context rather than a bare `gettext/1` because it
+  is three letters long: `mix gettext.merge` fuzzy-matches a msgid that short
+  against anything it resembles, and the catalogue already holds
+  `Kati.Screens.WeekImage`'s `RTL — the week restarts at `. A context is what
+  keeps the two apart.
   """
   @spec content(map()) :: map()
   def content(_assigns) do
@@ -210,10 +251,10 @@ defmodule Kati.Screens.MealLibraryEmpty do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Meal library", "TWO STATES")}
-        {UI.eyebrow("Empty — no meals at all")}
+        {SettingsList.title(gettext("Meal library"), gettext("TWO STATES"))}
+        {UI.eyebrow(gettext("Empty — no meals at all"))}
         {Kati.Screens.MealLibraryEmpty.empty_card()}
-        {SettingsList.eyebrow_muted("RTL")}
+        {SettingsList.eyebrow_muted(pgettext("screen 117’s second band — the library read right to left", "RTL"))}
         {Kati.Screens.MealLibraryEmpty.mirror()}
       </Column>
     </Scroll>
@@ -238,6 +279,22 @@ defmodule Kati.Screens.MealLibraryEmpty do
   116's own header hangs a create disc off the back-pill row and this board does
   not: `Create a meal` is already the card's whole point, and a second create
   control 200pt above it would be the same offer made twice.
+
+  ## The two numbers that stop being the drawing's under `:fa`
+
+  The heading's -0.02em goes through `Kati.Locale.tracking/1` and the caption's
+  1.55 through `Kati.Locale.leading/1`, for the reasons
+  `Kati.Screens.GoalsEmpty.invitation/0` sets out at the same two props on the
+  same two lines: letter-spacing is a Latin effect that breaks the joins between
+  Arabic letters outright, and Vazirmatn's metrics are not Plus Jakarta's, so
+  1.55 set against the Latin drawing crowds the Persian one.
+
+  Neither sentence takes a `max_lines`, and that is deliberate — the card has no
+  fixed height and both lines are centred and meant to wrap, so a cap would
+  truncate whichever script ran long instead of letting it take a second line.
+  `create_button/0`'s label keeps its cap, because a pill *does* have a fixed
+  height and a label that wrapped inside one would be clipped rather than grow
+  the pill.
   """
   @spec empty_card() :: map()
   def empty_card do
@@ -258,18 +315,18 @@ defmodule Kati.Screens.MealLibraryEmpty do
         </Row>
         <Spacer size={16} />
         <Text
-          text="No meals yet"
+          text={gettext("No meals yet")}
           text_size={16}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_align="center"
           text_color={:on_surface}
         />
         <Spacer size={8} />
         <Text
-          text="A meal is a name, a few ingredients and its numbers. One is enough to start a plan."
+          text={gettext("A meal is a name, a few ingredients and its numbers. One is enough to start a plan.")}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_align="center"
           text_color={Palette.sub()}
         />
@@ -277,7 +334,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
         {Kati.Screens.MealLibraryEmpty.create_button()}
         <Spacer size={15} />
         <Text
-          text="or import a shared plan"
+          text={gettext("or import a shared plan")}
           text_size={12.5}
           font_weight="semibold"
           text_align="center"
@@ -344,7 +401,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
       align="center"
     >
       <Text
-        text="Create a meal"
+        text={gettext("Create a meal")}
         text_size={14.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -533,9 +590,14 @@ defmodule Kati.Screens.MealLibraryEmpty do
   has a left and a right of its own and mirroring it would be mirroring the
   world, which is the rule board 69 records for a cover and
   board 76 for album art. The no-photo case comes back with
-  its `Meal photo` caption still in DM Mono and still in Latin, which is what
-  both drawings print: it is a note about a missing file, addressed to whoever
-  will supply one.
+  its `Meal photo` caption in DM Mono and in Latin, which is what both drawings
+  print — under `:en`. It does **not** stay Latin for a Persian reader, and that
+  is not this file's call to make: `Kati.Screens.MealLibrary.photo/1` owns the
+  string, translates it and takes its face from `Kati.Locale.mono_face/0`, and
+  the comment above that function gives the reason this board loses the
+  argument — the words are not a caption on the placeholder, they name
+  something the reader could go and add, and a prompt printed in a script the
+  reader may not have prompts nobody.
 
   The three lines under it are the mirror. The title and the slot word carry
   `absolute_right`; the kcal row is emitted mark-then-figure behind a weighted
