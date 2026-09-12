@@ -70,6 +70,7 @@ defmodule Kati.Screens.Health do
   the plan they do.
   """
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -91,6 +92,13 @@ defmodule Kati.Screens.Health do
   def content(assigns) do
     today = assigns.today
 
+    # The two eyebrows are the SAME two msgids `Kati.Screens.Home.content/1`
+    # writes, in the same order, over the same *My services* row — see
+    # `watching/0` on why that row is on a health screen at all. Sharing them is
+    # deliberate rather than incidental: *Watching* names a section of the app
+    # on both pages, so it must be the one word (**در حال تماشا**) on both, and
+    # a `pgettext/2` context here would split a section's name in two by
+    # accident. mishka-group/kati#103.
     ~MOB"""
     <Scroll>
       <Column
@@ -104,9 +112,9 @@ defmodule Kati.Screens.Health do
         {Kati.Screens.Health.header(today.day_line)}
         {Kati.Screens.Health.eaten(today.eaten)}
         {Kati.Screens.Health.next_meal(today.next_meal)}
-        {UI.eyebrow("Watching")}
+        {UI.eyebrow(gettext("Watching"))}
         {Kati.Screens.Health.watching()}
-        {UI.eyebrow("Sections")}
+        {UI.eyebrow(gettext("Sections"))}
         {Kati.Screens.Health.sections(today.sections)}
         {Kati.Screens.Health.container_note()}
       </Column>
@@ -197,18 +205,34 @@ defmodule Kati.Screens.Health do
     figures = Nutrition.sum(eaten)
 
     %{
-      day_line: Calendar.strftime(date, "%A %-d %B"),
+      # `Kati.Locale.date/2`'s `:full` IS `%A %-d %B` in Latin — its own doc
+      # names board 02's day heading as the shape it exists for — and the
+      # Shamsi date under `:fa`, which is a different CALENDAR rather than the
+      # same day translated. `Sunday 16 August` and ۲۵ مرداد ۱۴۰۵ are one day
+      # and neither is a formatting of the other.
+      day_line: Kati.Locale.date(date, :full),
       eaten: %{
-        label: "Eaten today",
-        calories: group(figures.kcal),
+        label: gettext("Eaten today"),
+        calories: Kati.Locale.number(group(figures.kcal)),
         target: target_run(plan.target_kcal),
-        meals: "#{length(eaten)} of #{meals_today(slots, logs)}",
+        meals: meals_run(length(eaten), meals_today(slots, logs)),
         macros: macro_split(figures),
         grams: grams_line(figures)
       },
       next_meal: next_meal_row(slots, logs),
       sections: sections_for(plan, date)
     }
+  end
+
+  # `3 of 5` on the green pill. `pgettext` rather than `gettext`: two
+  # numbers and a preposition is exactly the length `mix gettext.merge`
+  # fuzzy-matches, and the catalogue already carries `Week %{n} of %{total}`
+  # for it to land on.
+  defp meals_run(logged, total) do
+    pgettext("meals logged out of the day's total", "%{n} of %{total}",
+      n: Kati.Locale.number(logged),
+      total: Kati.Locale.number(total)
+    )
   end
 
   # The denominator of "3 of 5": the meals the day is *meant* to hold. A `:free`
@@ -225,8 +249,21 @@ defmodule Kati.Screens.Health do
   # denominator to print, and the two runs then read as `1,480 kcal` — which is
   # the same move `Kati.Screens.MealsToday.intake_line/2` makes rather than
   # inventing a target nobody set.
-  defp target_run(nil), do: " kcal"
-  defp target_run(target), do: " / #{group(target)} kcal"
+  #
+  # The leading space and the slash stay OUT of the catalogue. ` kcal` and
+  # ` / %{count} kcal` are a leading space and two words, which is precisely
+  # the shape `mix gettext.merge` fuzzy-matches onto any sentence ending the
+  # same way; the two msgids inside them — `kcal` and `%{count} kcal` — are the
+  # meals screens' own and already translated. The separator is punctuation
+  # between two runs on one baseline, not copy.
+  #
+  # Nothing mirrors the slash: this is a `Row`, so the bridge's `layout_direction`
+  # puts the target run to the LEFT of the 34pt figure under `:fa` and the line
+  # still reads ۱,۴۸۰ / ۲,۱۰۰ کالری from the right.
+  defp target_run(nil), do: " " <> gettext("kcal")
+
+  defp target_run(target),
+    do: " / " <> gettext("%{count} kcal", count: Kati.Locale.number(group(target)))
 
   # The three shares of the 9pt bar, by the energy each macro contributes — 4
   # kcal a gram of protein and of carbohydrate, 9 a gram of fat. It is the same
@@ -239,10 +276,15 @@ defmodule Kati.Screens.Health do
     fat = div(figures.fat_mg, 1000) * 9
     total = protein + carbs + fat
 
+    # The names are the legend's copy and nothing keys on them — `macro_bar/1`
+    # reads the share and the tone and drops the name, and `legend/1` draws it.
+    # So they are translated here rather than at the leaf, and they are the
+    # three msgids `Kati.Screens.Meal` and `Kati.Screens.MealEdit` already
+    # carry, so the app names a macro once.
     [
-      {"Protein", share(protein, total), Palette.ink()},
-      {"Carbs", share(carbs, total), Palette.bronze()},
-      {"Fat", share(fat, total), Palette.bar_gold()}
+      {gettext("Protein"), share(protein, total), Palette.ink()},
+      {gettext("Carbs"), share(carbs, total), Palette.bronze()},
+      {gettext("Fat"), share(fat, total), Palette.bar_gold()}
     ]
   end
 
@@ -251,15 +293,37 @@ defmodule Kati.Screens.Health do
 
   # `118P · 163C · 41F`. Milligrams to grams, half-up, so the line and the bar
   # above it are rounding the same figures the same way.
+  #
+  # The three letters are the INITIALS of the three macro names, so they go
+  # where the names go: `Kati.Screens.Plans` already writes this line as
+  # `%{protein}پ %{carbs}ک %{fat}چ`, and one app should not abbreviate پروتئین
+  # two ways. That makes the whole run non-ASCII under `:fa`, which is why the
+  # `Text` drawing it asks `Kati.Locale.mono_face/1` rather than naming `mono`
+  # — and why the figures go through `Kati.Locale.number/1`: the line is set in
+  # Vazirmatn there, so it has no reason to be the one figure on the card still
+  # counted in Latin digits.
   defp grams_line(figures) do
-    "#{grams(figures.protein_mg)}P · #{grams(figures.carbs_mg)}C · #{grams(figures.fat_mg)}F"
+    gettext("%{protein}P · %{carbs}C · %{fat}F",
+      protein: Kati.Locale.number(grams(figures.protein_mg)),
+      carbs: Kati.Locale.number(grams(figures.carbs_mg)),
+      fat: Kati.Locale.number(grams(figures.fat_mg))
+    )
   end
 
   defp grams(mg), do: div(mg + 500, 1000)
 
-  # `1,480`, never `1480` — the drawing's own ASCII grouping in every locale,
-  # for the reason `Kati.Screens.MealsToday` states: the Persian meals screens
-  # are 60 and their own module.
+  # `1,480`, never `1480` — the drawing's own grouping, and the group MARK is
+  # ASCII in both scripts: `test/design/screens/59.html` draws the Persian
+  # figure as `۱,۴۸۰` with a Latin comma, which is the case
+  # `Kati.Locale.number/1`'s own note sets out (the decimal point converts to
+  # U+066B, the thousands mark does not).
+  #
+  # So this stays a pure grouping and the DIGITS are asked for at the call
+  # site, wrapped in `Kati.Locale.number/1` — the shape
+  # `Kati.Screens.MealsToday.intake_line/2` uses over its own copy of this
+  # function. The old note here said the Persian meals screens were 60 and
+  # their own module; mishka-group/kati#103 folded those mirrors away, so this
+  # figure has one module drawing it in both scripts now.
   defp group(number) do
     number
     |> Integer.to_string()
@@ -312,11 +376,14 @@ defmodule Kati.Screens.Health do
 
   # `at` is the sort key and never reaches the markup: a slot with no time sorts
   # after every slot that has one rather than crashing the comparison.
+  #
+  # `title` is a recipe's own name and `slot_name` is a `:string` attribute the
+  # user typed, so neither reaches the catalogue — see `dash/2`.
   defp row(slot_name, slot_time, title, kcal) do
     %{
       at: sort_key(slot_time),
-      title: "Open Meals" <> dash(slot_name, slot_time),
-      line: "#{title} · #{kcal} kcal"
+      title: gettext("Open Meals") <> dash(slot_name, slot_time),
+      line: gettext("%{title} · %{kcal} kcal", title: title, kcal: Kati.Locale.number(kcal))
     }
   end
 
@@ -330,6 +397,10 @@ defmodule Kati.Screens.Health do
   # `Open Meals — dinner 19:30`. The em dash and the destination's name are the
   # drawing's copy; the slot and the clock are the row's own. A slot carrying
   # neither leaves the title as the bare verb rather than a dangling dash.
+  #
+  # `String.downcase/1` stays on the slot name and is a no-op on Persian rather
+  # than a mangling — the Arabic script has no case — so a user who typed
+  # «شام» gets «شام» back. The name itself is theirs and is not translated.
   defp dash(slot_name, slot_time) do
     [slot_name && String.downcase(slot_name), clock(slot_time)]
     |> Enum.reject(&(&1 in [nil, ""]))
@@ -341,7 +412,12 @@ defmodule Kati.Screens.Health do
   end
 
   defp clock(nil), do: ""
-  defp clock(time), do: Calendar.strftime(time, "%H:%M")
+
+  # `Kati.Locale.time/1` rather than `%H:%M` by hand. 24-hour in both scripts —
+  # the design draws that as a setting of its own rather than a consequence of
+  # the language — so what changes is the numerals, and a Persian row says
+  # ۱۹:۳۰.
+  defp clock(time), do: Kati.Locale.time(time)
 
   defp recipe_figures(recipe) do
     Map.new(Nutrition.fields(), fn field -> {field, Map.fetch!(recipe, :"total_#{field}")} end)
@@ -364,9 +440,15 @@ defmodule Kati.Screens.Health do
     |> Enum.join(" · ")
   end
 
+  # `pgettext/2`, and lower case on purpose: this is the tail of
+  # `Cutting v3 · week 6`, not a heading, and the catalogue already carries
+  # `Week`, `Week %{week} · %{date}` and `Week %{n} of %{total}` for
+  # `mix gettext.merge` to fuzzy-match a two-token msgid onto.
   defp week_of(%MealPlan{starts_on: %Date{} = from}, date) do
     weeks = div(Date.diff(date, from), 7) + 1
-    if weeks >= 1, do: "week #{weeks}"
+
+    if weeks >= 1,
+      do: pgettext("meal plan, mid-sentence", "week %{n}", n: Kati.Locale.number(weeks))
   end
 
   defp week_of(_plan, _date), do: nil
@@ -407,6 +489,21 @@ defmodule Kati.Screens.Health do
   @doc false
   def back_gap, do: ~MOB"<Spacer size={58} />"
 
+  # Three things move under `:fa` and none of them is a word:
+  #
+  #   * `letter_spacing` goes through `Kati.Locale.tracking/1`. A fraction of an
+  #     em off a 28pt heading is a Latin effect; on the Arabic script it pulls
+  #     the letters apart at the joins, which is a different word rather than a
+  #     tighter one.
+  #   * `max_lines={1}` is new. **سلامت** is one word and fits, but this heading
+  #     had no cap at all and every other 28pt display title on the folded
+  #     screens took one — a longer Persian title wrapping under the floating
+  #     `tune` disc is the failure the cap exists for.
+  #   * the day line asks `Kati.Locale.mono_face/1` about its own content rather
+  #     than naming `mono`. `kati_mono.ttf` carries no Persian glyph, so ۲۵ مرداد
+  #     ۱۴۰۵ set in DM Mono is handed to Android's substitute face; asking the
+  #     STRING means the Latin `Sunday 16 August` — which is also what
+  #     `Kati.Health.Sample.day_line/0` still answers — keeps DM Mono.
   @doc false
   def header(day_line) do
     ~MOB"""
@@ -414,17 +511,18 @@ defmodule Kati.Screens.Health do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Health"
+            text={gettext("Health")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={day_line}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(day_line)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -497,6 +595,13 @@ defmodule Kati.Screens.Health do
     )
   end
 
+  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` on the label, for
+  # the reason that function's own doc gives: upper-casing is a Latin
+  # operation, and the Arabic script has no case to raise — so `String.upcase`
+  # over Persian does nothing to most of it and quietly alters the rest, while
+  # reading in a diff as though the eyebrow were still being set in caps.
+  # `mono_face/1` and `tracking/1` are the same three-part recipe `Kati.UI.eyebrow/2`
+  # applies to every other section label on this page.
   @doc false
   def eaten(e) do
     ~MOB"""
@@ -511,10 +616,10 @@ defmodule Kati.Screens.Health do
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
             <Text
-              text={String.upcase(e.label)}
-              font_family="mono"
+              text={Kati.UI.eyebrow_label(e.label)}
+              font_family={Kati.Locale.mono_face(e.label)}
               text_size={10.5}
-              letter_spacing={0.16}
+              letter_spacing={Kati.Locale.tracking(0.16)}
               text_color={Palette.cream_meta()}
             />
             <Spacer size={7} />
@@ -523,7 +628,7 @@ defmodule Kati.Screens.Health do
                 text={e.calories}
                 text_size={34}
                 font_weight="extrabold"
-                letter_spacing={-0.04}
+                letter_spacing={Kati.Locale.tracking(-0.04)}
                 text_color={:on_surface}
                 max_lines={1}
               />
@@ -550,7 +655,7 @@ defmodule Kati.Screens.Health do
           <Spacer weight={1.0} />
           <Text
             text={e.grams}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(e.grams)}
             text_size={10}
             text_color={Palette.cream_meta()}
             max_lines={1}
@@ -655,6 +760,12 @@ defmodule Kati.Screens.Health do
   # One root node per sigil, so the tick, the gap and the label are three of
   # them. They are handed over as a list, which the pill drops straight into its
   # content Row — wrapping them in a Row here would only add a level.
+  #
+  # The label is `3 of 5` in Latin and ۳ از ۵ in Persian, so the face is asked
+  # of the string rather than declared: DM Mono has no `ا` and no U+06F0–U+06F9,
+  # and the pill would draw the Persian half in Android's substitute face. The
+  # tick keeps its place beside it either way — the pill's content `Row` is what
+  # `layout_direction` mirrors.
   defp meals_content(label) do
     [
       Kati.UI.symbol("check", size: 14, color: Palette.green_text()),
@@ -662,7 +773,7 @@ defmodule Kati.Screens.Health do
       ~MOB"""
       <Text
         text={label}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(label)}
         text_size={11.5}
         font_weight="medium"
         text_color={Palette.green_text()}
@@ -758,6 +869,13 @@ defmodule Kati.Screens.Health do
   @doc false
   def legend_gap, do: ~MOB"<Spacer size={13} />"
 
+  # `PROTEIN` / `CARBS` / `FAT` under the bar, and the same three-part eyebrow
+  # recipe the section labels take: no upper-casing, no tracking and Vazirmatn
+  # at the mono size, because پروتئین has no capitals to raise, letter-spacing
+  # breaks its joins and `kati_mono.ttf` has none of its glyphs.
+  # `Kati.Locale.mono_face/1` asks the name rather than the reader, so an
+  # English legend beside a Persian one — `Kati.Health.Sample`'s macros are
+  # still Latin literals — keeps DM Mono.
   @doc false
   def legend_key(name, tone) do
     ~MOB"""
@@ -765,10 +883,10 @@ defmodule Kati.Screens.Health do
       <Box width={7} height={7} corner_radius={2} background={tone} />
       <Spacer size={5} />
       <Text
-        text={String.upcase(name)}
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(name)}
+        font_family={Kati.Locale.mono_face(name)}
         text_size={9.5}
-        letter_spacing={0.08}
+        letter_spacing={Kati.Locale.tracking(0.08)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
@@ -796,7 +914,14 @@ defmodule Kati.Screens.Health do
     # only one of them is `tertiary`; taking the better name would move light
     # mode eleven units, so the value wins. `Kati.UI.SettingsList.chevron/0`
     # records the same discrepancy for the same reason.
-    chevron = Kati.UI.symbol("chevron_right", size: 19, color: Palette.rail_idle())
+    #
+    # `Kati.Locale.forward_chevron/0` rather than the literal, and that helper's
+    # doc is where the argument lives: this row OPENS something, so its chevron
+    # points the way the reader reads — leftward under `:fa`. Material Symbols
+    # are glyphs in a font and auto-mirror nothing, so it has to be asked for.
+    # It is the same call `Kati.UI.SettingsList.chevron/0` makes one block up
+    # the page, for the *My services* row.
+    chevron = Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 19, color: Palette.rail_idle())
 
     ~MOB"""
     <Column fill_width={true}>
@@ -816,7 +941,7 @@ defmodule Kati.Screens.Health do
             text={m.title}
             text_size={14.5}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -991,6 +1116,8 @@ defmodule Kati.Screens.Health do
 
   @doc false
   def tile(%{on?: true} = section) do
+    tap = tile_tap(tile_key(section), Map.get(section, :band))
+
     ~MOB"""
     <Column
       weight={1.0}
@@ -998,7 +1125,7 @@ defmodule Kati.Screens.Health do
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={16}
-      on_tap={Kati.Screens.Health.tile_tap(section.name, Map.get(section, :band))}
+      on_tap={tap}
     >
       <Row fill_width={true} align="center">
         {Kati.UI.symbol(section.icon, size: 22)}
@@ -1010,7 +1137,7 @@ defmodule Kati.Screens.Health do
         text={section.name}
         text_size={14.5}
         font_weight="bold"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={:on_surface}
         max_lines={1}
       />
@@ -1028,6 +1155,8 @@ defmodule Kati.Screens.Health do
   # `next_meal/0` on the two chevron greys. `0xFFC4BDB3` has exactly one row in
   # `Kati.Theme.Palette` and this is it.
   def tile(%{on?: false} = section) do
+    tap = tile_tap(tile_key(section), Map.get(section, :band))
+
     ~MOB"""
     <Column
       weight={1.0}
@@ -1035,7 +1164,7 @@ defmodule Kati.Screens.Health do
       border_width={1.5}
       border_color={Palette.border_soft()}
       padding={16}
-      on_tap={Kati.Screens.Health.tile_tap(section.name, Map.get(section, :band))}
+      on_tap={tap}
     >
       <Row fill_width={true} align="center">
         {Kati.UI.symbol(section.icon, size: 22, color: Palette.tertiary())}
@@ -1045,7 +1174,7 @@ defmodule Kati.Screens.Health do
         text={section.name}
         text_size={14.5}
         font_weight="bold"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={Palette.muted()}
         max_lines={1}
       />
@@ -1055,6 +1184,56 @@ defmodule Kati.Screens.Health do
     """
   end
 
+  # The name a tile's TAP is decided by, which is not the name it draws.
+  #
+  # `tile_tap/2` keys on a section's name, and a name is copy. The day
+  # `Kati.Health.Sample.sections/0` folds into `gettext/1` — which it must, it
+  # is the source of every word on this grid — `base_tag("وعده‌ها")` stops
+  # matching `base_tag("Meals")`, falls through to the unbuilt clause and
+  # answers `:open_retired_وعده‌ها`. Every live tile on the grid would quietly
+  # start opening screen 114 *about a section that is not retired*: a wrong
+  # answer delivered confidently, and one the English board cannot see.
+  #
+  # That is the failure `sections_for/2` predicts three hundred lines up — *an
+  # icon is never translated, where a label one day will be, and a lookup that
+  # missed would fail silently* — so this is the same move, taken one node
+  # further out. `id:` is the atom `Kati.Health.Sample.sections/0` documents as
+  # "not decoration and not a key into anything else", and an atom survives a
+  # translation where a name does not.
+  #
+  # The ENGLISH name is what comes back out rather than the id itself, because
+  # both directions of the tag are public: `tile_tap/2` must keep answering
+  # `:open_meals`, and `retired_section/1` reads a SECTION back out of
+  # `:open_retired_Sleep` for screen 114 to be about. Mapping to `:sleep` would
+  # move every tag and hand 114 the subject `"sleep"`, which is not a subject it
+  # knows. So nothing downstream moves and the English grid is unchanged
+  # byte for byte.
+  #
+  # A section map carrying no `id` — a reference sheet assembling its own rows
+  # — keeps exactly the behaviour it had. mishka-group/kati#103.
+  @section_keys %{
+    meals: "Meals",
+    habits: "Habits",
+    sleep: "Sleep",
+    weight: "Weight",
+    workouts: "Workouts",
+    medication: "Medication"
+  }
+
+  defp tile_key(%{id: id} = section) when is_atom(id) and not is_nil(id),
+    do: Map.get(@section_keys, id, section.name)
+
+  defp tile_key(section), do: section.name
+
+  # `Kati.Locale.leading/1` on the one real paragraph the screen draws.
+  # Vazirmatn's metrics are not Plus Jakarta's — its ascenders carry the marks
+  # that sit above the line — so 1.55 measured against the Latin board sets the
+  # Persian sentence solid and collides the diacritics with the line above.
+  # `Kati.Theme.fa_line_height/0` is the constant and this is it applied where
+  # the Latin number is still visible beside it.
+  #
+  # The sentence itself is `Kati.Health.Sample.container_note/0`'s copy and is
+  # translated there, not here.
   @doc false
   def container_note do
     ~MOB"""
@@ -1071,7 +1250,7 @@ defmodule Kati.Screens.Health do
       <Text
         text={Kati.Health.Sample.container_note()}
         text_size={12.5}
-        line_height={1.55}
+        line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.ink_soft()}
         weight={1.0}
       />

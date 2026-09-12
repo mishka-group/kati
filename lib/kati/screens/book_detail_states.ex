@@ -53,6 +53,26 @@ defmodule Kati.Screens.BookDetailStates do
   chips, `Retry` and `Start reading` are drawn rather than wired, and none of
   them reports a dead tag.
 
+  ## The three fixtures are written in the reader's language
+
+  `partial/0`, `not_started/0` and `did_not_finish/0` were already functions
+  rather than module attributes, and mishka-group/kati#103 made that
+  load-bearing rather than incidental: `gettext/1` inside an attribute is
+  evaluated when the MODULE is compiled, so all three position lines would
+  freeze in whichever locale the compiler happened to be in and no render could
+  correct them. Evaluated per call, they answer `Kati.Locale.current/0`.
+
+  Most of what the three say is screen 66's own msgid rather than a second
+  entry saying the same thing — the meta band is
+  `Kati.Books.Sample.detail/0`'s `%{year} · FABER · %{pp}` with a dash where
+  the extent goes, the status words are the `book status` context
+  `Kati.Screens.BookDetail`'s own `status_label/1` uses, and the primary's
+  label is 66's `Start reading`. That is the whole argument of this sheet
+  applied to the catalogue: a states board given msgids of its own could be
+  translated into a difference the app does not have, and the comparison would
+  go stale in Persian while staying true in English — which is the quiet half
+  of every failure this fold has met.
+
   ## Where the board and screen 66 disagree, and which one wins
 
   Four places, and 66 wins in all four, because a sheet that redrew a band its
@@ -98,6 +118,7 @@ defmodule Kati.Screens.BookDetailStates do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Books.Sample
   alias Kati.Screens.BookDetail
@@ -124,13 +145,33 @@ defmodule Kati.Screens.BookDetailStates do
   """
   @spec partial() :: map()
   def partial do
-    %{
-      BookDetail.drawn_book()
-      | seed: nil,
-        meta: "2024 · FABER · —",
-        progress_line: "p. 214 · NO PAGE COUNT",
-        extent_label: nil
-    }
+    # SCREEN 66'S OWN META MSGID, with a dash where the extent goes.
+    #
+    # `Kati.Books.Sample.detail/0` builds the full band from
+    # `%{year} · FABER · %{pp}`, so reusing it here means the two screens
+    # cannot spell the band two ways — a msgid of this sheet's own would let a
+    # translator write the publisher on 67 and not on 66, which is exactly the
+    # difference the sheet exists to rule out. The `—` is this board's and not
+    # 66's: `Kati.Screens.BookDetail.meta_line/1` DROPS a missing part rather
+    # than drawing a dash for it, and the dash is what the drawing puts there.
+    #
+    # `Kati.Locale.year/1` and not `year_of/1`: 2024 is printed on the
+    # copyright page of the object in the reader's hands, so the digits change
+    # and the calendar does not — ۲۰۲۴, never ۱۴۰۳.
+    meta = gettext("%{year} · FABER · %{pp}", year: Kati.Locale.year(2024), pp: "—")
+
+    # ONE MSGID FOR THE WHOLE POSITION LINE, `·` included.
+    #
+    # `Kati.Screens.DataSourcesStates.failing/0` makes the argument: joining
+    # two translated halves with a bare separator hands a Persian reader two
+    # fragments where the line is one phrase, and takes the word order away
+    # from the translator. The capitals stay inside the msgid rather than going
+    # through `Kati.UI.eyebrow_label/1` for `Kati.Books.Sample.reading_now/0`'s
+    # reason — they are the design's own phrasing rather than a text-transform,
+    # and there is no raised form of the Arabic script for a helper to reach.
+    line = gettext("p. %{at} · NO PAGE COUNT", at: Kati.Locale.number(214))
+
+    %{BookDetail.drawn_book() | seed: nil, meta: meta, progress_line: line, extent_label: nil}
   end
 
   @doc """
@@ -144,9 +185,20 @@ defmodule Kati.Screens.BookDetailStates do
     %{
       BookDetail.drawn_book()
       | status: :not_started,
-        status_label: "Not started",
+        # 66's own word for the fifth status, through the context its
+        # `status_label/1` reaches for — so the lozenge in this hero and the
+        # chip row under it cannot be given two Persian words for one state.
+        status_label: pgettext("book status", "Not started"),
         progress: nil,
-        progress_line: "Not started yet"
+        # `pgettext/2`, and the context is doing two jobs. The position line
+        # and the status word above it are nearly the same three syllables in
+        # English and must be free to differ in Persian — the lozenge names a
+        # condition, this line is the thing that moves as you read. And a bare
+        # `Not started yet` sits one fuzzy edit from the `Not started` already
+        # in the catalogue, which is the match `mix gettext.merge` would make
+        # for us: a context makes it a different entry rather than a guess.
+        progress_line:
+          pgettext("the position line of a book nobody has opened", "Not started yet")
     }
   end
 
@@ -158,12 +210,28 @@ defmodule Kati.Screens.BookDetailStates do
   """
   @spec did_not_finish() :: map()
   def did_not_finish do
+    # Screen 07's `%{n}%` msgid rather than a percent sign written here, so
+    # `۳۹٪` is punctuated once for the whole app — Persian ends a percentage
+    # with U+066A and `Kati.Screens.YearShareBooks.pages_face/0` records what
+    # happens when two pages answer that question separately.
+    pct = gettext("%{n}%", n: Kati.Locale.number(39))
+
+    # One msgid for the line, for `partial/0`'s reason: the preposition, the
+    # page pair and the percentage are one sentence, and a translator handed
+    # `stopped at` on its own could not put it where Persian wants it.
+    line =
+      gettext("STOPPED AT p. %{at} / %{of} · %{pct}",
+        at: Kati.Locale.number(148),
+        of: Kati.Locale.number(380),
+        pct: pct
+      )
+
     %{
       BookDetail.drawn_book()
       | status: :did_not_finish,
-        status_label: "Did not finish",
+        status_label: pgettext("book status", "Did not finish"),
         progress: 0.39,
-        progress_line: "STOPPED AT p. 148 / 380 · 39%"
+        progress_line: line
     }
   end
 
@@ -171,6 +239,17 @@ defmodule Kati.Screens.BookDetailStates do
   @spec content(map()) :: map()
   def content(assigns) do
     s = assigns.states
+
+    # `Edition` is 66's eyebrow quoted, so it is 66's msgid quoted — the
+    # moduledoc's own reason for keeping the orange dash on it applies word for
+    # word to the word. The other five eyebrows are this sheet's captions and
+    # are its own entries.
+    #
+    # Each caption stays ONE msgid across its em dash rather than splitting at
+    # it. The dash joins a state to the thing worth noticing about that state,
+    # and the half after it is a clause rather than a label: `primary reads
+    # Start reading` has to name the button in whatever words the button's own
+    # msgid took, which a translator can only do while holding both halves.
 
     ~MOB"""
     <Scroll>
@@ -182,20 +261,20 @@ defmodule Kati.Screens.BookDetailStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Book detail", "six states", nil, :name)}
-        {UI.eyebrow("Loading — skeleton, never a spinner")}
+        {SettingsList.title(gettext("Book detail"), gettext("six states"), nil, :name)}
+        {UI.eyebrow(gettext("Loading — skeleton, never a spinner"))}
         {Kati.Screens.BookDetailStates.loading()}
-        {SettingsList.eyebrow_muted("Partial metadata — no cover, no page count")}
+        {SettingsList.eyebrow_muted(gettext("Partial metadata — no cover, no page count"))}
         {BookDetail.hero(s.partial)}
-        {UI.eyebrow("Edition")}
+        {UI.eyebrow(gettext("Edition"))}
         {Kati.Screens.BookDetailStates.edition(s.partial)}
-        {SettingsList.eyebrow_muted("Error · offline")}
+        {SettingsList.eyebrow_muted(gettext("Error · offline"))}
         {Kati.Screens.BookDetailStates.alerts()}
-        {SettingsList.eyebrow_muted("Not started — primary reads Start reading")}
+        {SettingsList.eyebrow_muted(gettext("Not started — primary reads Start reading"))}
         {BookDetail.hero(s.not_started)}
         {Kati.Screens.BookDetailStates.status_chips()}
         {Kati.Screens.BookDetailStates.start_reading()}
-        {SettingsList.eyebrow_muted("Did not finish — captured honestly, no strike-through")}
+        {SettingsList.eyebrow_muted(gettext("Did not finish — captured honestly, no strike-through"))}
         {BookDetail.hero(s.did_not_finish)}
       </Column>
     </Scroll>
@@ -264,9 +343,23 @@ defmodule Kati.Screens.BookDetailStates do
       |> Enum.map(fn {value, label} -> UI.chip(label, selected: value == b.format) end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
+    # `Length` is 66's msgid. `ISBN` is the catalogue's — `شابک` is what screen
+    # 177 already calls the number, and what screen 83 spells out as
+    # `شماره شابک` — so it is a translated label rather than a brand: TMDB and
+    # Hardcover name a company, and this names a standard the Persian
+    # publishing trade has its own word for. That makes a FIFTH place the sheet
+    # and 66 differ under `:fa`, and unlike the moduledoc's four it is not one
+    # 66 wins: `Kati.Screens.BookDetail.edition/1` still passes the label as a
+    # bare literal, so 66 draws `ISBN` where every other Persian page in the
+    # app draws شابک. Wrapping it is that file's to do; writing English here to
+    # match a defect there would spread it rather than record it.
     rows = [
-      SettingsList.row(nil, SettingsList.body("Length", nil), BookDetail.value(b.extent_label)),
-      SettingsList.row(nil, SettingsList.body("ISBN", nil), BookDetail.mono(b.isbn))
+      SettingsList.row(
+        nil,
+        SettingsList.body(gettext("Length"), nil),
+        BookDetail.value(b.extent_label)
+      ),
+      SettingsList.row(nil, SettingsList.body(gettext("ISBN"), nil), BookDetail.mono(b.isbn))
     ]
 
     ~MOB"""
@@ -295,6 +388,25 @@ defmodule Kati.Screens.BookDetailStates do
   """
   @spec alerts() :: map()
   def alerts do
+    # The hour is a rendered figure and goes through `Kati.Locale.number/1`, so
+    # the badge reads `آخرین موفقیت ۶ ساعت پیش` rather than keeping a Latin `6`
+    # between two Persian words. It is still not read from
+    # `Kati.Calendars.Account.last_sync_at` — see the moduledoc — and putting
+    # it through the locale does not make it a report: the numeral is the
+    # reader's, the figure is the drawing's.
+    #
+    # `Offline` is the badge's title and `pgettext/2` because a bare `Offline`
+    # is one word. The context is `Kati.Screens.DataSourcesStates.offline/0`'s
+    # verbatim, which is the point of quoting it: both cards are 27's offline
+    # badge, they mean the radio rather than a provider that cannot be reached,
+    # and one msgid means the two sheets cannot say it two ways.
+    assigns = %{
+      failure: gettext("Couldn’t load this book"),
+      last: gettext("Last success %{n}h ago", n: Kati.Locale.number(6)),
+      offline: pgettext("the device has no network", "Offline"),
+      editable: gettext("Progress, notes and status stay editable")
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -309,22 +421,17 @@ defmodule Kati.Screens.BookDetailStates do
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text="Couldn’t load this book"
+            text={@failure}
             text_size={13}
             font_weight="bold"
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text
-            text="Last success 6h ago"
-            text_size={11.5}
-            text_color={Palette.sub()}
-            max_lines={1}
-          />
+          <Text text={@last} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        {SettingsList.action_pill("Retry")}
+        {SettingsList.action_pill(gettext("Retry"))}
       </Row>
       <Spacer size={10} />
       <Row
@@ -338,19 +445,14 @@ defmodule Kati.Screens.BookDetailStates do
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text="Offline"
+            text={@offline}
             text_size={13}
             font_weight="bold"
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text
-            text="Progress, notes and status stay editable"
-            text_size={11.5}
-            text_color={Palette.cream_sub()}
-            max_lines={2}
-          />
+          <Text text={@editable} text_size={11.5} text_color={Palette.cream_sub()} max_lines={2} />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -409,6 +511,23 @@ defmodule Kati.Screens.BookDetailStates do
   """
   @spec start_reading() :: map()
   def start_reading do
+    # 66's own msgid — `Kati.Screens.BookDetail.actions/1` reaches for the same
+    # one when `status == :not_started`. This band is ABOUT the label, so a
+    # second entry for it is the one thing on the sheet that could make the
+    # board and the screen disagree in Persian while agreeing in English, and
+    # the eyebrow above quotes the words back at the reader as well.
+    #
+    # `max_lines={1}` is new and is a guard rather than a look: the Row is
+    # `height={54}`, so a label that wraps is CLIPPED rather than given a
+    # second line, and a clipped button is a control nobody can read. Nothing
+    # wraps today — شروع خواندن is shorter than `Start reading` — but this is
+    # the one string on the sheet that belongs to another screen, and the day
+    # 66 relabels its primary this band takes the new words at whatever length
+    # they come in. `Kati.Screens.BookDetail.actions/1` has the same 52pt fixed
+    # Row and no `max_lines` on its label, which is the same latent clip and is
+    # that file's to close.
+    assigns = %{label: gettext("Start reading")}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -420,10 +539,11 @@ defmodule Kati.Screens.BookDetailStates do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Start reading"
+          text={@label}
           text_size={14.5}
           font_weight="bold"
           text_color={Palette.on_ink()}
+          max_lines={1}
         />
         <Spacer weight={1.0} />
       </Row>

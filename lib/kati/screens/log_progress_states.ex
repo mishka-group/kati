@@ -64,9 +64,56 @@ defmodule Kati.Screens.LogProgressStates do
       would save a session that does not exist. The named clauses are there so
       that a control added later without a handler still trips
       `Kati.Screens.Root`'s dead-tap report rather than being swallowed.
+
+  ## Under `:fa` this is the same sheet, and five choices follow
+
+  mishka-group/kati#103 folded the 33 Persian mirrors away, so every sentence
+  here reaches a Persian reader through `Kati.Gettext` and every figure through
+  `Kati.Locale`. Five of those are decisions rather than mechanics:
+
+    * **The frame's note stopped being `@note`.** `gettext/1` inside a module
+      attribute is evaluated when the MODULE compiles, so the footnote would
+      have frozen in whichever locale the compiler happened to be in and been
+      handed to every reader afterwards — an English caption under a Persian
+      page, with nothing in the render able to correct it. It is `note_body/0`
+      now, evaluated per render, which is the only moment
+      `Kati.Locale.current/0` is known. `Kati.Screens.DataSourcesStates` made
+      the identical move on the identical attribute.
+    * **`#C4BDB3` is interpolated, not translated.** A hex literal names a
+      value in the drawing rather than a word, so it stays Latin in both
+      scripts — and `#` and the comma after it are NEUTRAL characters, which an
+      RTL paragraph resolves against the page and lays out at the wrong end of
+      the code. `Kati.Locale.ltr/1` isolates the run. The board numbers around
+      it are ordinary numerals inside a sentence and are the translator's.
+    * **Every figure this sheet invents still goes through
+      `Kati.Locale.number/1`.** `00:38:12`, `194`, `214`, `294`, `46` and `38`
+      are the drawing's own numbers rather than this reader's — the moduledoc
+      above says why — but a drawing's number is still a number somebody reads,
+      and a Latin `214` sitting between Persian words is the tell. The two mono
+      lines then take `Kati.Locale.mono_face/1` off the string that conversion
+      produces: `kati_mono.ttf` carries none of U+06F0–U+06F9, so `۰۰:۳۸:۱۲`
+      left in DM Mono is handed to Android's own substitute face and renders,
+      at 26pt, in a typeface that is not Kati's.
+    * **`46 pages` is `ngettext/4` and shares screen 70's msgid.** It is the
+      sentence `Kati.Screens.LogProgress.delta_line/2` builds, so the two
+      screens cannot name a page two ways. Persian does not inflect a noun
+      after a numeral, so both plural forms are the same words and that is not
+      a mistake in the catalogue.
+    * **`Pause` and `Stop and save` stay two different words.** Screen 70's
+      timer row already put `Stop` in the catalogue as **توقف**, so the pause
+      button takes `pgettext/2` and **مکث** instead. A bare `Pause` is also
+      exactly the size `mix gettext.merge` fuzzy-matches, and the six `Paused`
+      entries already in the catalogue are a book's state rather than a button.
+
+  One change here is a fix rather than a translation: the offline badge's
+  second line is `max_lines={2}`. `Kati.Screens.DataSourcesStates.offline/0`
+  draws the identical badge at identical metrics and already allows two, and
+  the sentence this one carries is longer in Persian than the English it was
+  measured against — at one line it truncated rather than wrapped.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Screens.LogProgress
@@ -77,14 +124,10 @@ defmodule Kati.Screens.LogProgressStates do
   alias Kati.UI.Sheet
   alias Kati.UI.SettingsList
 
-  @note "A disabled segment has no precedent in the 62, so: paper track, " <>
-          "#C4BDB3 label with a hairline strike, no thumb. The undo pill " <>
-          "surfaces on both 20 and 66."
-
   @doc false
   @spec content(map()) :: map()
   def content(_assigns) do
-    note = SettingsList.note("info", @note)
+    note = SettingsList.note("info", note_body())
 
     ~MOB"""
     <Scroll>
@@ -96,21 +139,46 @@ defmodule Kati.Screens.LogProgressStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Log progress", "five states", nil, :name)}
-        {UI.eyebrow("Timer running — primary becomes Stop and save")}
+        {SettingsList.title(gettext("Log progress"), gettext("five states"), nil, :name)}
+        {UI.eyebrow(gettext("Timer running — primary becomes Stop and save"))}
         {Kati.Screens.LogProgressStates.timer_running()}
-        {SettingsList.eyebrow_muted("First session — no comparison invented")}
+        {SettingsList.eyebrow_muted(gettext("First session — no comparison invented"))}
         {Kati.Screens.LogProgressStates.first_session()}
-        {SettingsList.eyebrow_muted("Invalid entry — one-tap fix, in 31’s manner")}
+        {SettingsList.eyebrow_muted(gettext("Invalid entry — one-tap fix, in 31’s manner"))}
         {Kati.Screens.LogProgressStates.invalid_entry()}
-        {SettingsList.eyebrow_muted("No page count — segment disabled")}
+        {SettingsList.eyebrow_muted(gettext("No page count — segment disabled"))}
         {Kati.Screens.LogProgressStates.no_page_count()}
-        {SettingsList.eyebrow_muted("Offline · post-save undo")}
+        {SettingsList.eyebrow_muted(gettext("Offline · post-save undo"))}
         {Kati.Screens.LogProgressStates.offline_undo()}
         {note}
       </Column>
     </Scroll>
     """
+  end
+
+  # THE FRAME'S NOTE IS A FUNCTION AND NOT `@note` ANY MORE.
+  #
+  # `gettext/1` inside a module attribute is evaluated when the MODULE is
+  # compiled, so this sentence would freeze in whichever locale the compiler
+  # happened to be in and every reader afterwards would be handed that one. A
+  # function is evaluated per render, which is the only moment
+  # `Kati.Locale.current/0` is known. mishka-group/kati#103.
+  #
+  # `#C4BDB3` is interpolated rather than left inside the msgid, and through
+  # `Kati.Locale.ltr/1`: it is a value in the drawing rather than a word, so it
+  # stays Latin in both scripts, and `#` and the comma after it are NEUTRAL in
+  # the bidi algorithm — an RTL paragraph would resolve them against the page
+  # and lay the hash at the wrong end of the code. `Kati.Screens.DataSourcesStates`
+  # makes the same call around `TVmaze`. The board numbers are ordinary
+  # numerals inside a sentence and stay in the msgid, where the translator
+  # writes them in the reader's own digits.
+  defp note_body do
+    gettext(
+      "A disabled segment has no precedent in the 62, so: paper track, " <>
+        "%{hex} label with a hairline strike, no thumb. The undo pill " <>
+        "surfaces on both 20 and 66.",
+      hex: Kati.Locale.ltr("#C4BDB3")
+    )
   end
 
   @doc """
@@ -130,6 +198,13 @@ defmodule Kati.Screens.LogProgressStates do
   def timer_running do
     pause = pause_pill()
 
+    # The elapsed figure is `Kati.Locale.number/1`'s, which converts the digits
+    # and leaves the two colons — `۰۰:۳۸:۱۲`. It is the same call screen 70
+    # makes on its own `00:00:00`, so the two timers cannot disagree about the
+    # numerals. Not `Kati.Locale.time/1`: that formats `%H:%M` off a `Time` and
+    # this is an elapsed duration with seconds, not a moment in a day.
+    elapsed = Kati.Locale.number("00:38:12")
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -142,12 +217,18 @@ defmodule Kati.Screens.LogProgressStates do
         <Row fill_width={true} align="center">
           <Box width={10} height={10} corner_radius={5} background={Palette.accent()} />
           <Spacer size={13} />
+          {# `Kati.Locale.mono_face/1` and not `"mono"`: `kati_mono.ttf` carries
+           # none of U+06F0–U+06F9, so `۰۰:۳۸:۱۲` in DM Mono is handed to
+           # Android's own substitute face and renders, at 26pt and beside the
+           # live dot, in a typeface that is not Kati's. Latin digits keep DM
+           # Mono, which is what the drawing sets them in. `/1` rather than
+           # `/0` so the answer follows the string the conversion produced.}
           <Text
-            text="00:38:12"
-            font_family="mono"
+            text={elapsed}
+            font_family={Kati.Locale.mono_face(elapsed)}
             text_size={26}
             font_weight="medium"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={:on_surface}
             weight={1.0}
             max_lines={1}
@@ -156,7 +237,7 @@ defmodule Kati.Screens.LogProgressStates do
           {pause}
         </Row>
         <Spacer size={14} />
-        {Sheet.commit("Stop and save", :stop)}
+        {Sheet.commit(gettext("Stop and save"), :stop)}
       </Column>
       <Spacer size={22} />
     </Column>
@@ -166,9 +247,16 @@ defmodule Kati.Screens.LogProgressStates do
   # 32 tall at radius 16 with 13 of side padding, which is two points and one
   # point off `SettingsList.action_pill/1`. The drawing gives all three numbers,
   # so they are written rather than borrowed.
+  #
+  # `pgettext/2` for one word, and the context names the control. `Stop` is
+  # already **توقف** in the catalogue — screen 70's timer row put it there —
+  # and this button is the other half of that pair, so the two have to stay two
+  # words in Persian as they are in English. A bare `Pause` is also exactly the
+  # size `mix gettext.merge` fuzzy-matches, and the six `Paused` entries
+  # already in the catalogue are all a thing's STATE rather than a button.
   defp pause_pill do
     MishkaPill.pill(
-      label: "Pause",
+      label: pgettext("the button that pauses a running timer", "Pause"),
       background: Palette.paper(),
       color: :on_surface,
       corner_radius: 16,
@@ -193,15 +281,37 @@ defmodule Kati.Screens.LogProgressStates do
   """
   @spec first_session() :: map()
   def first_session do
-    body = [text_size: 13, line_height: 1.55, text_color: Palette.cream_body()]
+    body = [
+      text_size: 13,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.cream_ink(), text_size: 13]
+
+    # `ngettext/4` and screen 70's own msgid for the pages, so the two screens
+    # cannot name a page two ways — `Kati.Screens.LogProgress.delta_line/2`
+    # builds the identical run. Persian does not inflect a noun after a
+    # numeral, so both plural forms are the same words and the catalogue is
+    # right rather than lazy. The minutes take the same shape.
+    pages = ngettext("%{n} page", "%{n} pages", 46, n: Kati.Locale.number(46))
+    minutes = ngettext("%{n} minute", "%{n} minutes", 38, n: Kati.Locale.number(38))
 
     card =
       Sheet.insight("lightbulb", [
-        {"That’s ", body},
-        {"46 pages", strong},
-        {" in ", body},
-        {"38 minutes", strong},
+        {gettext("That’s "), body},
+        {pages, strong},
+        # `pgettext/2` and not `gettext/1`: a bare `" in "` is two letters and
+        # some whitespace, which `mix gettext.merge` fuzzy-matches against the
+        # first entry in the catalogue that happens to contain it. The context
+        # names the joint rather than the word.
+        {pgettext("joins the page count to the duration", " in "), body},
+        {minutes, strong},
+        # A bare full stop, not a `gettext/1` call: `"."` is a msgid no
+        # translator can place and `mix gettext.merge` fuzzy-matched it against
+        # the first sentence in the catalogue that ended in one. Persian ends a
+        # sentence with the same mark. Screen 70's `insight/2` says this too,
+        # about the same run of the same sentence.
         {".", body}
       ])
 
@@ -251,6 +361,20 @@ defmodule Kati.Screens.LogProgressStates do
   """
   @spec rejected_value() :: map()
   def rejected_value do
+    # The refused figure, in the reader's own digits and in the face those
+    # digits have a glyph in — the same two calls screen 70's `stepper/2` makes
+    # on the number it accepts, so the rejected card and the ordinary one are
+    # typeset identically and only the colour and the ring differ.
+    page = Kati.Locale.number(194)
+
+    # `Kati.UI.eyebrow_label/1` rather than a msgid already written in
+    # capitals. Arabic script has no case, so `String.upcase/1` is a no-op on
+    # Persian that reads in the source as though something happened; the
+    # capitals belong to the Latin rendering and the helper is where that is
+    # decided. Screen 70's `unit_label/1` — the line this card is a rejection
+    # of — takes the identical call.
+    label = UI.eyebrow_label(gettext("Below your current position"))
+
     ~MOB"""
     <Column
       weight={1.0}
@@ -263,20 +387,20 @@ defmodule Kati.Screens.LogProgressStates do
     >
       <Spacer weight={1.0} />
       <Text
-        text="194"
-        font_family="mono"
+        text={page}
+        font_family={Kati.Locale.mono_face(page)}
         text_size={27}
         font_weight="medium"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_align="center"
         text_color={Palette.red()}
       />
       <Spacer size={4} />
       <Text
-        text="BELOW YOUR CURRENT POSITION"
-        font_family="mono"
+        text={label}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_align="center"
         text_color={Palette.muted()}
       />
@@ -301,9 +425,31 @@ defmodule Kati.Screens.LogProgressStates do
   """
   @spec correction() :: map()
   def correction do
-    reread = correction_pill("Log a re-read", Palette.ink_fill(), Palette.on_ink(), true)
-    meant = correction_pill("I meant 294", Palette.paper(), Palette.ink_soft(), true)
-    edit = correction_pill("Edit", Palette.paper(), Palette.ink_soft(), false)
+    reread = correction_pill(gettext("Log a re-read"), Palette.ink_fill(), Palette.on_ink(), true)
+
+    # `294` is interpolated rather than written into the msgid, because it is a
+    # figure the pill PRINTS: it reads ۲۹۴ under `:fa`, beside the ۲۱۴ and ۱۹۴
+    # the sentence above it prints, and a Latin `294` between two Persian
+    # numerals is the tell that one of the three was missed.
+    meant_label = gettext("I meant %{n}", n: Kati.Locale.number(294))
+    meant = correction_pill(meant_label, Palette.paper(), Palette.ink_soft(), true)
+
+    # `pgettext/2` for one word. A bare `Edit` is exactly the size
+    # `mix gettext.merge` fuzzy-matches, and `Edit event` and `Edit this week
+    # only` are both already in the catalogue waiting to be matched against;
+    # the context names this pill's job instead.
+    edit_label = pgettext("the one-tap fix that reopens the field", "Edit")
+    edit = correction_pill(edit_label, Palette.paper(), Palette.ink_soft(), false)
+
+    # Both page numbers are the drawing's and both are still numbers a reader
+    # reads, so they go through `Kati.Locale.number/1`. `p.` is translated with
+    # the sentence — the catalogue already abbreviates it **ص.** for screen
+    # 70's `At p. %{at} of %{of}`, which is the same fact about the same book.
+    sentence =
+      gettext("You are already on p. %{at}. Did you mean you re-read to p. %{to}?",
+        at: Kati.Locale.number(214),
+        to: Kati.Locale.number(194)
+      )
 
     ~MOB"""
     <Column
@@ -318,9 +464,9 @@ defmodule Kati.Screens.LogProgressStates do
         <Spacer size={11} />
         <Column weight={1.0}>
           <Text
-            text="You are already on p. 214. Did you mean you re-read to p. 194?"
+            text={sentence}
             text_size={12.5}
-            line_height={1.55}
+            line_height={Kati.Locale.leading(1.55)}
             text_color={Palette.cream_body()}
           />
         </Column>
@@ -382,10 +528,26 @@ defmodule Kati.Screens.LogProgressStates do
   """
   @spec no_page_count() :: map()
   def no_page_count do
+    # `66` is interpolated for the reason the note's board numbers are not: it
+    # is the row's own sub-line rather than a sentence about the drawings, and
+    # screen 70's `%{n} rate & review` already prints a screen number this way.
+    # The chevron is `Kati.UI.SettingsList.chevron/0`'s, which is already
+    # `Kati.Locale.forward_chevron/0` — a row that OPENS something points the
+    # reading direction, which is leftward in Persian.
+    #
+    # The row's title is this screen's own wording and not 66's — `Add a page
+    # count` against `Kati.Screens.BookDetail.add_page_count_label/0`'s `Add
+    # page count` — so it is a msgid of its own. Its Persian is deliberately
+    # the SAME sentence, **افزودن تعداد صفحه**: this row is a signpost to that
+    # row, and a signpost that names its destination differently is a second
+    # thing to look for.
     row =
       SettingsList.row(
         SettingsList.icon_tile("menu_book"),
-        SettingsList.body("Add a page count", "Jumps to the Edition row on 66"),
+        SettingsList.body(
+          gettext("Add a page count"),
+          gettext("Jumps to the Edition row on %{n}", n: Kati.Locale.number(66))
+        ),
         SettingsList.chevron(),
         rule: false
       )
@@ -432,7 +594,23 @@ defmodule Kati.Screens.LogProgressStates do
   """
   @spec offline_undo() :: map()
   def offline_undo do
-    undo = States.undo(%{icon: "undo", text: "Logged 46 pages", action: "Undo"})
+    # `Kati.Screens.States.undo/1` is borrowed unchanged and is another
+    # module's file, so the two words it draws are handed to it from here —
+    # which is what makes them this screen's to translate rather than 27's.
+    # `Kati.Screens.DataSourcesStates.wipe/0` hands its own bar the same pair.
+    # `ngettext/4` because English inflects the noun after the count; Persian
+    # does not, so the two Persian forms are the same sentence.
+    logged = ngettext("Logged %{n} page", "Logged %{n} pages", 46, n: Kati.Locale.number(46))
+    undo = States.undo(%{icon: "undo", text: logged, action: gettext("Undo")})
+
+    # The badge's title and the eyebrow above it are ONE msgid on purpose: they
+    # are the same word about the same condition, and two entries would let a
+    # translator give the section and the card it introduces two different
+    # words. `pgettext/2` because a bare `Offline` is one word — the context
+    # names the radio, and it is the entry screen 80's states sheet already
+    # put in the catalogue for its own copy of this badge.
+    offline = pgettext("the device has no network", "Offline")
+    line = gettext("The session saves with no degradation")
 
     ~MOB"""
     <Column fill_width={true}>
@@ -447,19 +625,20 @@ defmodule Kati.Screens.LogProgressStates do
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text="Offline"
+            text={offline}
             text_size={13}
             font_weight="bold"
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text
-            text="The session saves with no degradation"
-            text_size={11.5}
-            text_color={Palette.cream_sub()}
-            max_lines={1}
-          />
+          {# Two lines and not one, and that is a fix rather than a
+           # translation. `Kati.Screens.DataSourcesStates.offline/0` draws this
+           # badge at identical metrics with an identical sentence under it and
+           # already caps at two, because the line is a claim rather than a
+           # label: cut short it stops being the promise it is here to make.
+           # The Persian is the longer of the two and was the one truncating.}
+          <Text text={line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={2} />
         </Column>
       </Row>
       <Spacer size={10} />

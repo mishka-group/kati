@@ -146,10 +146,31 @@ defmodule Kati.Screens.Season do
       tick keying above actually honours.
 
   The subtitle `order & specials` stays too, and is a label rather than data:
-  the same class of literal as screen 08's action row.
+  the same class of literal as screen 08's action row. `assemble/4` says it
+  itself rather than inheriting the fixture's copy of it — the same words, and
+  a msgid the reader's own script can reach. Nothing about it became data.
+
+  ## Persian
+
+  mishka-group/kati#103. Everything this screen writes is a msgid; three things
+  it writes are not words at all and are worth naming:
+
+    * **The order strip's labels are STATE.** `:orders` and `:current_order`
+      hold `Aired` and `Absolute`, `order_tap/2` builds `:order_Aired` out of
+      one and `order_from/1` parses it back. Translating them would have made
+      every tile on a Persian page dead. `order_title/1` is the word; the label
+      is the identity, and it stays English. `DVD` is a format's name and stays
+      Latin in both scripts.
+    * **The list's two mono lines ask the STRING what face it needs**, because
+      `kati_mono.ttf` carries no Persian glyph and a runtime line is a sentence
+      here (`۵۵ دقیقه · پخش ۲۹ مرداد`), not a figure.
+    * **An air date is a calendar, not a format.** `Kati.Locale.date/2` at
+      `:short`, which is `20 Aug` in Latin and ۲۹ مرداد in Persian — the one
+      thing a catalogue cannot do.
 
   """
   use Kati.Screens.Pushed, back: "Series"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaThemeIcon
@@ -171,7 +192,13 @@ defmodule Kati.Screens.Season do
 
   # The half of the drawing's footnote that is true of every season. See the
   # moduledoc: the other half renumbers one particular season.
-  @general_note "Your ticks follow the episode, not the number."
+  #
+  # A function and not the `@general_note` attribute it was, for
+  # mishka-group/kati#103's own trap: `gettext/1` inside a module attribute is
+  # evaluated at COMPILE time and freezes in whichever locale the compiler was
+  # in, so the sentence would have shipped in one script whatever the reader
+  # chose. One call site, and it reads the same.
+  defp general_note, do: gettext("Your ticks follow the episode, not the number.")
 
   # No `require Ash.Query`, for the reason `Kati.Screens.Series` states beside
   # its own aliases: every read here is an action by name, and `series_record/1`
@@ -567,12 +594,19 @@ defmodule Kati.Screens.Season do
     %{
       drawn
       | title: heading(cached_season(tracked, number), number),
-        eyebrow: "Episodes · #{length(rows)} in this order",
+        # The page's own subtitle, over the drawing's copy of it. It is the
+        # same label in the same words — see the moduledoc, it is a label
+        # rather than data — and the only thing that changes is that a Persian
+        # reader now gets it in Persian instead of the fixture's English.
+        # `Kati.Season.Sample` keeps the literal it always had; this screen
+        # does not edit the fixture, it says the label itself.
+        subtitle: gettext("order & specials"),
+        eyebrow: gettext("Episodes · %{n} in this order", n: Kati.Locale.number(length(rows))),
         episodes: rows,
         options: real_options(episodes),
         orders: Enum.map(offered, &Kati.Screens.Season.order_label/1),
         current_order: Kati.Screens.Season.order_label(order),
-        note: @general_note
+        note: general_note()
     }
     |> Map.put(:tracked_id, tracked.id)
     |> Map.put(:order, order)
@@ -661,6 +695,31 @@ defmodule Kati.Screens.Season do
   def order_from(_dvd), do: nil
 
   @doc """
+  What a tile READS, which is not what a tile IS.
+
+  mishka-group/kati#103. `order_label/1` is this screen's identity for an
+  order and it has to stay English: it is what `:orders` and `:current_order`
+  hold, what `order_tap/2` builds `:order_Aired` out of, and what
+  `order_from/1` parses back on the way in. Translating it would have made the
+  tag `:order_پخش` and `order_from/1` answer `nil` for it, so every tile on a
+  Persian page would have gone dead — the label is state here, and state is
+  not copy.
+
+  So the word the reader sees is asked for separately, at the moment it is
+  drawn. `DVD` falls through untranslated on purpose: it is only ever the
+  board's tile (see `offered_orders/1`), and it is a format's name rather than
+  a word — board 127 leaves `Lumen+` in Latin on a Persian page for the same
+  reason.
+
+      iex> Kati.Screens.Season.order_title("DVD")
+      "DVD"
+  """
+  @spec order_title(String.t()) :: String.t()
+  def order_title("Aired"), do: pgettext("episode order", "Aired")
+  def order_title("Absolute"), do: pgettext("episode order", "Absolute")
+  def order_title(other), do: other
+
+  @doc """
   The switches a real season can honour, which is one of the drawing's two.
 
   *Include specials* is wired and drawn in the state the list is actually in:
@@ -679,7 +738,7 @@ defmodule Kati.Screens.Season do
     [
       %{
         icon: "star",
-        title: "Include specials",
+        title: gettext("Include specials"),
         # NOT *Shown inline, at air date*, which is the board's wording and is
         # what `in_order(:aired)` cannot deliver: it sorts by `{season_number,
         # episode_number}` and every season-0 special therefore sorts ahead of
@@ -692,7 +751,11 @@ defmodule Kati.Screens.Season do
         # So the sub-line says where they are. A special a provider filed
         # INSIDE the season keeps its own place, which is why this says
         # `first` rather than `at the top`.
-        sub: if(any?, do: "Listed first, before the season", else: "None filed for this season"),
+        sub:
+          if(any?,
+            do: gettext("Listed first, before the season"),
+            else: gettext("None filed for this season")
+          ),
         on: any?
       }
     ]
@@ -718,9 +781,15 @@ defmodule Kati.Screens.Season do
   # to invent one and says why: *"a screen that wants 'Season 2' out of a bare
   # number is the thing that knows what its own heading should read"*. This is
   # that screen, and 0 is the specials shelf every source files them on.
+  #
+  # The provider's own name is left exactly as the provider wrote it — it is
+  # fetched data, and no msgid reaches it — so a Persian page can head itself
+  # `Season 2` where TMDB said so. The two Kati writes itself are translated,
+  # and `Season %{n}` is `Kati.Screens.Series`' own msgid rather than a second
+  # spelling of it.
   defp heading(%CachedSeason{name: name}, _number) when is_binary(name) and name != "", do: name
-  defp heading(_season, 0), do: "Specials"
-  defp heading(_season, number), do: "Season #{number}"
+  defp heading(_season, 0), do: gettext("Specials")
+  defp heading(_season, number), do: gettext("Season %{n}", n: Kati.Locale.number(number))
 
   # One episode in the shape `episode/1` reads. `special` is stored, so both
   # marks the design gives it — the bronze number and the badge — come off the
@@ -759,7 +828,7 @@ defmodule Kati.Screens.Season do
       # rule and its comment: `Kati.Media.Release.airing/2`'s `:unknown` is
       # grouped with `:aired`, because withholding the tick is a claim the user
       # has not seen it, and the thing Kati does not know is when it went out.
-      # `air_prefix/1` has already resolved this episode once; resolving it a
+      # `air_phrase/2` has already resolved this episode once; resolving it a
       # second time here rather than threading the value through keeps the two
       # readings of `Release` beside the two things they decide.
       aired: Release.airing(Release.air(episode), Kati.Time.now()) != :upcoming,
@@ -767,7 +836,13 @@ defmodule Kati.Screens.Season do
     }
   end
 
-  defp badge_for(%CachedEpisode{special: true}), do: %{label: "SPECIAL", tone: :cream}
+  # `pgettext/2` for a one-word badge: `mix gettext.merge` fuzzy-matches a short
+  # msgid against any sentence that happens to contain it, and `SPECIAL` is a
+  # word half this screen's copy uses. The context is what keeps the badge's
+  # own word its own.
+  defp badge_for(%CachedEpisode{special: true}),
+    do: %{label: pgettext("episode badge", "SPECIAL"), tone: :cream}
+
   defp badge_for(%CachedEpisode{}), do: nil
 
   # `E6`, and `S1` for a special. The number is what the CHOSEN order calls this
@@ -782,7 +857,7 @@ defmodule Kati.Screens.Season do
   defp number_label(%CachedEpisode{} = episode, :aired, _absolute) do
     case CachedEpisode.number_in(episode, :aired) do
       nil -> ""
-      n -> if episode.special, do: "S#{n}", else: "E#{n}"
+      n -> numbered(episode.special, n)
     end
   end
 
@@ -792,12 +867,29 @@ defmodule Kati.Screens.Season do
   defp number_label(%CachedEpisode{} = episode, :absolute, absolute) do
     case Map.get(absolute, episode.source_id) do
       nil -> ""
-      n -> "E#{n}"
+      n -> numbered(false, n)
     end
   end
 
+  # `E6` and `S1`, in the reader's own letters and digits: `ق۶`, `و۱`. The
+  # prefix is an abbreviation of a word — قسمت for an episode, ویژه for a
+  # special — so it is translated rather than kept as a Latin initial, and the
+  # episode one is the msgid `Kati.Screens.Inbox` already spells with the same
+  # `episode number` context rather than a second entry saying the same thing.
+  # The special takes its own context: `S` in this app already means فصل, a
+  # SEASON, in `Kati.Screens.Library`'s `S%{s} · E%{e}` — one msgid cannot be
+  # both, and a special numbered `ف۱` on the specials shelf would be a claim
+  # about season 1.
+  #
+  # The digits convert because the face does: `episode_body/3` asks
+  # `Kati.Locale.mono_face/1` about this very string, and a label with a
+  # Persian letter in it is set in Vazirmatn, which has ۰–۹. `kati_mono.ttf`
+  # never sees them.
+  defp numbered(true, n), do: pgettext("special number", "S%{n}", n: Kati.Locale.number(n))
+  defp numbered(_ordinary, n), do: pgettext("episode number", "E%{e}", e: Kati.Locale.number(n))
+
   defp title_of(%CachedEpisode{title: title}) when is_binary(title) and title != "", do: title
-  defp title_of(%CachedEpisode{}), do: "Untitled"
+  defp title_of(%CachedEpisode{}), do: gettext("Untitled")
 
   # `54m · 9 Jul`, and either half may be missing — a provider can decline a
   # runtime and an unannounced episode has no date. An absent half is left out
@@ -808,7 +900,12 @@ defmodule Kati.Screens.Season do
     |> Enum.join(" · ")
   end
 
-  defp runtime_label(%CachedEpisode{runtime_minutes: m}) when is_integer(m) and m > 0, do: "#{m}m"
+  # `Kati.Screens.SeriesMeta`'s own msgid, which is `54m` in Latin and
+  # `۵۴ دقیقه` in Persian: the minute's abbreviation is a Latin convention and
+  # Persian writes the word out.
+  defp runtime_label(%CachedEpisode{runtime_minutes: m}) when is_integer(m) and m > 0,
+    do: gettext("%{n}m", n: Kati.Locale.number(m))
+
   defp runtime_label(%CachedEpisode{}), do: nil
 
   # `9 Jul` for something that has gone out, `airs 20 Aug` for something that
@@ -817,12 +914,16 @@ defmodule Kati.Screens.Season do
   # one date path (#74): an episode a source described as "some time in March"
   # resolves to a period with no day in it, and this line then draws the runtime
   # alone rather than the first of the month wearing a date's clothes.
+  #
+  # `Kati.Locale.date/2` at `:short` rather than `Calendar.strftime/2`, and
+  # that is a CALENDAR and not a format: 20 Aug 2026 is ۲۹ مرداد ۱۴۰۵, and
+  # neither is a spelling of the other.
   defp air_label(%CachedEpisode{} = episode) do
     resolution = Release.air(episode)
 
     case air_date(resolution) do
       nil -> nil
-      date -> air_prefix(resolution) <> Calendar.strftime(date, "%-d %b")
+      date -> air_phrase(resolution, Kati.Locale.date(date, :short))
     end
   end
 
@@ -838,8 +939,18 @@ defmodule Kati.Screens.Season do
   # `airs` prefix along with `:upcoming`. An episode that goes out at 20:00 has
   # not gone out at 09:00, and the empty ring beside it is an affordance the
   # user should not be offered for something nobody has seen.
-  defp air_prefix(resolution) do
-    if Release.airing(resolution, Kati.Time.now()) == :aired, do: "", else: "airs "
+  #
+  # The whole phrase and not a prefix glued to a date. `airs ` alone is not a
+  # translatable unit: Persian puts the verb where the sentence wants it, and a
+  # bare prefix has nowhere to move to. `pgettext/2` because two words is
+  # exactly the length `mix gettext.merge` fuzzy-matches onto a longer
+  # sentence, and the app already has an `Airs %{date}` of its own that this
+  # must not be merged into — that one heads a card and this one sits inside a
+  # `55m · airs 20 Aug` line, which is why it is lowercase.
+  defp air_phrase(resolution, date) do
+    if Release.airing(resolution, Kati.Time.now()) == :aired,
+      do: date,
+      else: pgettext("episode sub-line", "airs %{date}", date: date)
   end
 
   @doc false
@@ -980,7 +1091,13 @@ defmodule Kati.Screens.Season do
   # pressed to be sure. It re-reads and re-renders the same list.
   @doc false
   def order(label, true, current) do
-    assigns = %{tap: Kati.Screens.Season.order_tap(label, current)}
+    assigns = %{
+      tap: Kati.Screens.Season.order_tap(label, current),
+      # The tile's WORD, asked for at the moment it is drawn. `label` stays the
+      # English identity the tag and `order_from/1` are built on — see
+      # `order_title/1`.
+      title: Kati.Screens.Season.order_title(label)
+    }
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
@@ -993,7 +1110,7 @@ defmodule Kati.Screens.Season do
         align="center"
       >
         <Text
-          text={label}
+          text={@title}
           text_size={12.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -1005,13 +1122,16 @@ defmodule Kati.Screens.Season do
   end
 
   def order(label, false, current) do
-    assigns = %{tap: Kati.Screens.Season.order_tap(label, current)}
+    assigns = %{
+      tap: Kati.Screens.Season.order_tap(label, current),
+      title: Kati.Screens.Season.order_title(label)
+    }
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
       <Box fill_width={true} height={34} corner_radius={12} align="center">
         <Text
-          text={label}
+          text={@title}
           text_size={12.5}
           font_weight="semibold"
           text_color={Palette.segment_idle()}
@@ -1177,6 +1297,12 @@ defmodule Kati.Screens.Season do
   # the episode row, and a sibling that fills the width leaves the tick nothing
   # to sit in — the disc was being measured past the right edge of every card.
   # A weight takes what is left once the 27pt disc has had its share.
+  #
+  # Both mono lines ask `Kati.Locale.mono_face/1` about their own string rather
+  # than naming `"mono"`. `kati_mono.ttf` carries no Persian glyph, so a line
+  # that reads `ق۶` or `۵۵ دقیقه · پخش ۲۹ مرداد` in DM Mono is a row of empty
+  # boxes — and asking the STRING rather than the reader is what keeps a
+  # provider's Latin runtime line in the drawing's own face on a Persian page.
   @doc false
   def episode_body(ep, title_color, number_color) do
     ~MOB"""
@@ -1184,7 +1310,7 @@ defmodule Kati.Screens.Season do
       <Column width={22}>
         <Text
           text={ep.number}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(ep.number)}
           text_size={12}
           text_color={number_color}
           max_lines={1}
@@ -1205,7 +1331,7 @@ defmodule Kati.Screens.Season do
         <Spacer size={4} />
         <Text
           text={ep.sub}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(ep.sub)}
           text_size={10.5}
           text_color={Palette.tertiary()}
           max_lines={1}
@@ -1310,6 +1436,12 @@ defmodule Kati.Screens.Season do
   # Solid, not dashed: `Modifier.border` takes a width and a colour and no
   # PathEffect. The 1.5pt weight, the alpha and this drawing's own 15pt padding
   # are literal; the stitching is what does not survive.
+  #
+  # The leading is the one number here that is not literal. Vazirmatn's
+  # ascenders and its descenders are taller than Plus Jakarta's, so the
+  # drawing's 1.55 sets the footnote's two Persian lines almost touching —
+  # `Kati.Locale.leading/1` is where that correction is kept, and this is a
+  # paragraph rather than a label, which is exactly what it is for.
   @doc false
   def note(s) do
     ~MOB"""
@@ -1328,7 +1460,7 @@ defmodule Kati.Screens.Season do
         <Text
           text={s.note}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.ink_soft()}
           weight={1.0}
         />

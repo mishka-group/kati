@@ -40,9 +40,29 @@ defmodule Kati.Screens.MealLibrary do
   Matching screens 104 and 109. The FAB slot belongs to global quick-add, and
   putting a second floating button in a pushed screen would make two controls
   compete for the same corner.
+
+  ## What this screen says in Persian, and what it cannot
+
+  Every word this file draws goes through `Kati.Gettext`, and the two
+  vocabularies it shares with the rest of Meals — the slot names and
+  `%{count} kcal` — are the catalogue's existing entries rather than second
+  spellings invented here. Board 117 is the specification for the Persian side:
+  it is the RTL mirror of this exact grid, and `Kati.Screens.MealLibraryEmpty`
+  holds the words it proposes.
+
+  What this file cannot reach is the fixture. `Kati.Meals.SampleLibrary` holds
+  six meal titles, six kcal strings and `24 MEALS · 6 WITHOUT A PHOTO` as frozen
+  literals, and those are the drawing's own values — `drawn_page/0` is where
+  they enter and `subtitle/1`'s doc is why they are literals rather than
+  arithmetic. They still render in Latin under `:fa`, and they translate where
+  they live. The two things this screen *can* do for them it does: the slot word
+  and the chip key are drawn through `slot_label/1`, and the chip count through
+  `Kati.Locale.number/1`, so the fixture's `Dinner 9` reads `شام ۹` without the
+  fixture changing at all.
   """
 
   use Kati.Screens.Pushed, back: "Meals"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -56,6 +76,13 @@ defmodule Kati.Screens.MealLibrary do
   # it back to resolve a tapped tile to its row — see `open_meal/2` — and a
   # second query at tap time could answer with a library that had moved under
   # the tile the person actually pressed.
+  #
+  # `"All"` here is the filter's KEY, not its label. It is compared against
+  # `meal.slot` in `grid/3` and rebuilt out of a tap tag in `handle_tap/2`, so
+  # it stays English in every locale; `slot_label/1` is what turns it into a
+  # word a reader sees. The two were the same string until this screen was
+  # folded, which is the shape of defect the fold keeps finding — a value doing
+  # duty as both state and copy passes every test until the copy changes.
   def load(socket) do
     socket
     |> Mob.Socket.assign(:page, page())
@@ -188,12 +215,79 @@ defmodule Kati.Screens.MealLibrary do
       # the drawing.
       id: recipe.id,
       title: recipe.title,
-      kcal: "#{if approximate?, do: "~", else: ""}#{recipe.total_kcal} kcal",
+      kcal: kcal_line(recipe.total_kcal, approximate?),
+      # The slot as the table SPELLS it — `Dinner`, not `شام`. It is matched
+      # against the chip key in `grid/3`, so a translated value here would make
+      # the Persian grid answer *no meals* to every filter. `slot_label/1` is
+      # where it becomes a word, at the one place it is drawn.
       slot: recipe.slot_name,
       seed: recipe.photo_seed,
       approximate?: approximate?
     }
   end
+
+  # The tile's calorie figure, in the reader's digits and the reader's word for
+  # the unit.
+  #
+  # `%{count} kcal` rather than a msgid of this screen's own: it is the line
+  # `Kati.Screens.MealsDay`, `Kati.Screens.MealsToday` and
+  # `Kati.Screens.MealReminders` already draw, and one meal named `۶۲۰ کالری`
+  # on the library and something else on screen 118 is the same disagreement
+  # `page/0` exists to prevent, one layer down.
+  #
+  # The tilde goes INSIDE the interpolated value and through
+  # `Kati.Locale.ltr/1`. `~` is a bidi-NEUTRAL character: on a Persian page a
+  # bare one in front of the number takes the paragraph's direction and is laid
+  # out at the far end of the figure — `۳۸۰~ کالری`, which reads as a mark
+  # against the word rather than against the number it qualifies. The isolate
+  # resolves it against the digits instead. A no-op under `:en`, where this
+  # still answers `~380 kcal` byte for byte.
+  defp kcal_line(total_kcal, approximate?) do
+    figure = Kati.Locale.number(total_kcal)
+
+    gettext("%{count} kcal",
+      count: if(approximate?, do: Kati.Locale.ltr("~" <> figure), else: figure)
+    )
+  end
+
+  @doc """
+  A slot's word, for DRAWING — never for comparing.
+
+  The chip keys, `meal.slot` and `assigns.filter` are one vocabulary and it is
+  English in every locale: `grid/3` tests `meal.slot == filter`, `chips/2`
+  builds `:filter_Dinner` out of the key, and `handle_tap/2` takes the word
+  back off the tag. Translating any of those would give the Persian grid a
+  filter that matches nothing and a tap tag that is not an atom the screen
+  answers.
+
+  So the key and the label part company here, at the only two places a slot is
+  drawn — the chip row and the tile's trailing word — and nowhere else.
+
+  `"All"` is carried by the same function even though it is not a slot,
+  because it is the first key in `chip_counts/1`'s list and a caller that had
+  to remember which of the five keys was special would get it wrong.
+
+  A slot this function does not know is drawn as it stands rather than dropped:
+  `slot_name` is a free string on `Kati.Meals.Recipe`, and a meal filed under a
+  word the app never proposed is still that meal's word. `nil` is `""` for
+  `Kati.ScreenNilTextTest`'s reason — `text={nil}` reaches the bridge as the
+  atom and Compose draws **nil**.
+  """
+  @spec slot_label(String.t() | nil) :: String.t()
+  def slot_label(nil), do: ""
+  def slot_label("All"), do: gettext("All")
+  def slot_label("Breakfast"), do: gettext("Breakfast")
+  # `Brunch` and `Breakfast` currently answer the same Persian word in the
+  # catalogue, which would make two chips and two tiles indistinguishable here.
+  # Board 117's own mirror settles it — `برانچ`, the transliteration Persian
+  # actually uses, written down in `Kati.Screens.MealLibraryEmpty`'s `@slots`
+  # with the reason — and the fix belongs in the catalogue rather than in a
+  # second msgid invented for this screen.
+  def slot_label("Brunch"), do: gettext("Brunch")
+  def slot_label("Lunch"), do: gettext("Lunch")
+  def slot_label("Dinner"), do: gettext("Dinner")
+  def slot_label("Snack"), do: gettext("Snack")
+  def slot_label(other) when is_binary(other), do: other
 
   @doc """
   Whether a recipe's total is built from partial ingredient data.
@@ -248,7 +342,7 @@ defmodule Kati.Screens.MealLibrary do
         padding_bottom={40}
       >
         {Kati.Screens.Goals.chrome()}
-        {SettingsList.title("Meal library", assigns.page.subtitle)}
+        {SettingsList.title(gettext("Meal library"), assigns.page.subtitle)}
         {Kati.Screens.MealLibrary.search_field(assigns.query)}
         {Kati.Screens.MealLibrary.chips(assigns.filter, assigns.page.chips)}
         {Kati.Screens.MealLibrary.grid(assigns.page.meals, assigns.filter, assigns.query)}
@@ -275,16 +369,25 @@ defmodule Kati.Screens.MealLibrary do
   derive from six rows and must not try to. `Kati.Screens.Books.subtitle/1`
   draws the same line for the same reason.
 
+  **The upper case is `Kati.UI.eyebrow_label/1`'s, not `String.upcase/1`'s.**
+  Arabic script has no case, so upcasing a Persian line is a no-op that READS
+  as one — the same sentence as the paragraph below it, in a slot the design
+  uses to shout. `eyebrow_label/1` shouts in Latin and leaves Persian alone,
+  and it goes around the finished line rather than inside the msgids so that
+  `%{n} meal` stays the entry the rest of Meals already uses. What the drawing
+  prints is unchanged: `2 MEALS · 1 WITHOUT A PHOTO`.
+
       iex> Kati.Screens.MealLibrary.subtitle([%{seed: "a"}, %{seed: nil}])
       "2 MEALS · 1 WITHOUT A PHOTO"
   """
   @spec subtitle([map()]) :: String.t()
   def subtitle(meals) do
     without = Enum.count(meals, &is_nil(&1.seed))
+    count = length(meals)
 
-    String.upcase(
-      "#{length(meals)} #{if length(meals) == 1, do: "meal", else: "meals"} · " <>
-        "#{without} without a photo"
+    Kati.UI.eyebrow_label(
+      ngettext("%{n} meal", "%{n} meals", count, n: Kati.Locale.number(count)) <>
+        " · " <> gettext("%{n} without a photo", n: Kati.Locale.number(without))
     )
   end
 
@@ -308,7 +411,15 @@ defmodule Kati.Screens.MealLibrary do
 
   The copy stays the drawing's and moves from `:text` to `:placeholder`, which
   `Kati.DesignLiterals.content_props/0` already reads, so
-  `Kati.ScreenDesignLiteralTest` still finds *Search your meals* in the tree.
+  `Kati.ScreenDesignLiteralTest` still finds *Search your meals* in the tree —
+  board 116 is drawn in English, and a msgid answers its own text under `:en`.
+  Board 117's mirror is where the Persian comes from: *جست‌وجوی وعده‌ها*, which
+  is also the shape `Kati.Screens.MyServices` uses for the same field.
+
+  No `font_family` on the field, deliberately. What a person types is in their
+  own script and the root's face is already theirs — `K-48 locale-face-root` —
+  so a `mono` or `sans` here would be this screen overriding the one prop that
+  knows the answer.
   """
   @spec search_field(String.t()) :: map()
   def search_field(query \\ "") do
@@ -331,7 +442,7 @@ defmodule Kati.Screens.MealLibrary do
         <Spacer size={11} />
         <TextField
           value={@query}
-          placeholder="Search your meals"
+          placeholder={gettext("Search your meals")}
           return_key="search"
           weight={1.0}
           accessibility_id="meal_query"
@@ -343,16 +454,36 @@ defmodule Kati.Screens.MealLibrary do
     """
   end
 
-  @doc "The filter chips, each with its count."
+  @doc """
+  The filter chips, each with its count.
+
+  **The key and the word are two things here.** `key` is what
+  `chip_counts/1` counted, what `grid/3` compares `meal.slot` against and what
+  `handle_tap/2` reads back out of `:filter_Dinner`; it is English in both
+  locales and never drawn. `slot_label/1` is the word, and it is drawn and
+  never compared. They were one string until this screen was folded, and the
+  Persian failure that separates them is silent rather than loud: the chips
+  would read صبحانه · ناهار · شام, each tap would assign a Persian filter, and
+  every one of them would match no `slot` at all — an empty grid under a chip
+  saying there are nine.
+
+  The count goes through `Kati.Locale.number/1` at the point it is DRAWN and
+  not in `chip_counts/1`, for the same split: `page.chips` is data other things
+  compare, and `۲۴` is a picture of a number rather than one. Board 117 draws
+  the chip counts in Persian digits — `همه ۲۴` — and
+  `Kati.Screens.MealLibraryEmpty`'s moduledoc gives the face they take, which
+  is the root's rather than DM Mono's, because `kati_mono.ttf` carries none of
+  U+06F0–U+06F9.
+  """
   @spec chips(String.t(), [{String.t(), String.t()}]) :: map()
   def chips(active, counts) do
     chips =
       counts
-      |> Enum.map(fn {label, count} ->
-        UI.chip(label,
-          selected: label == active,
-          count: count,
-          on_toggle: String.to_atom("filter_" <> label)
+      |> Enum.map(fn {key, count} ->
+        UI.chip(Kati.Screens.MealLibrary.slot_label(key),
+          selected: key == active,
+          count: Kati.Locale.number(count),
+          on_toggle: String.to_atom("filter_" <> key)
         )
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
@@ -475,6 +606,25 @@ defmodule Kati.Screens.MealLibrary do
   See the moduledoc: the equal size is the grid's whole argument, and the
   glyph-and-label treatment is what makes the missing photo look like a gap
   worth filling rather than a broken image.
+
+  **The calorie figure asks its own string which face it takes**, through
+  `Kati.Locale.mono_face/1` rather than `mono_face/0`. This one slot holds both
+  scripts at once and the READER's language does not settle which: a meal this
+  screen shaped answers `۶۲۰ کالری` under `:fa`, while the six frozen on
+  `Kati.Meals.SampleLibrary` are still pure ASCII and would be typeset
+  correctly in DM Mono on the very same Persian page. Deciding by the string's
+  own script is what `mono_face/1` is for, and it means those six are set right
+  before and after that fixture is folded.
+
+  `kati_mono.ttf` carries no Arabic-block glyph and none of U+06F0–U+06F9, so a
+  Persian figure left in `mono` is handed to Android's own substitute face —
+  it renders, in a typeface that is not Kati's, beside figures that are.
+  Board 117's caption asks that the kcal figure *keep DM Mono with Persian
+  digits*, and `Kati.Screens.MealLibraryEmpty`'s moduledoc records why it
+  cannot: the subset has neither the digits nor کالری, so the line would be
+  five empty boxes. `fa` at the design's size and colour is the standing trade,
+  and it goes away the day the mono subset is regenerated.
+  `Kati.PersianFontTest` sweeps for the untraded case.
   """
   @spec tile(map(), non_neg_integer()) :: map()
   def tile(meal, index) do
@@ -495,7 +645,7 @@ defmodule Kati.Screens.MealLibrary do
       <Row fill_width={true} align="center">
         <Text
           text={@meal.kcal}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(@meal.kcal)}
           text_size={10.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -503,7 +653,7 @@ defmodule Kati.Screens.MealLibrary do
         {Kati.Screens.MealLibrary.approx_badge(@meal.approximate?)}
         <Spacer weight={1.0} />
         <Text
-          text={@meal.slot || ""}
+          text={Kati.Screens.MealLibrary.slot_label(@meal.slot)}
           text_size={10.5}
           text_color={Palette.tertiary()}
           max_lines={1}
@@ -513,6 +663,17 @@ defmodule Kati.Screens.MealLibrary do
     """
   end
 
+  # *Meal photo* TRANSLATES, and board 117's mirror does not.
+  #
+  # The mirror draws its no-photo tile with the Latin words still in it. That
+  # is the one place the two boards can be read as disagreeing with this file,
+  # and the moduledoc is why it loses: these words are not a caption on the
+  # placeholder, they *tell the user the tile is missing something they could
+  # add* — and the affordance they point at, screen 118's `Add a meal photo`,
+  # is `افزودن عکس وعده` in the catalogue already. A prompt to do something,
+  # printed in a script the reader may not have, prompts nobody. The mirror's
+  # own caption lists what it means to hold in Latin — the photograph and the
+  # kcal face — and this is not on it.
   @doc false
   def photo(%{seed: nil}) do
     ~MOB"""
@@ -527,10 +688,10 @@ defmodule Kati.Screens.MealLibrary do
       {Kati.UI.symbol("restaurant", size: 22, color: Palette.tertiary())}
       <Spacer size={6} />
       <Text
-        text="Meal photo"
-        font_family="mono"
+        text={gettext("Meal photo")}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_align="center"
         text_color={Palette.tertiary()}
       />
@@ -551,7 +712,26 @@ defmodule Kati.Screens.MealLibrary do
     end
   end
 
-  @doc "The `APPROX` badge, or nothing."
+  @doc """
+  The `APPROX` badge, or nothing.
+
+  **The mark translates**, which is board 117's caption in as many words and
+  `Kati.Screens.MealLibraryEmpty`'s moduledoc at length: *تقریبی is a word
+  about the number rather than part of it*, and screen 118's reason for the
+  mark — a total built from partial data that pretends to be exact makes every
+  number downstream a lie — is a sentence, and sentences translate.
+
+  The msgid keeps the board's capitals and the Persian does not try to carry
+  them, because this Text is drawn directly rather than passed through
+  `Kati.UI.eyebrow_label/1` and Arabic script has no case to shout in.
+  `Kati.Money.Sample`'s `SCREEN` / `BOOKS` / `MEALS` are the same shape, and
+  `Kati.Screens.Subscriptions.body/4` states the rule.
+
+  Its face and its tracking both ask `Kati.Locale`: `kati_mono.ttf` carries no
+  Arabic-block glyph at all, and letter-spacing breaks the joins between
+  Persian letters rather than opening them — which is the one thing a reader
+  notices before they notice the word.
+  """
   @spec approx_badge(boolean()) :: map() | []
   def approx_badge(false), do: []
 
@@ -562,22 +742,33 @@ defmodule Kati.Screens.MealLibrary do
       {Kati.UI.symbol("help", size: 13, color: Kati.Theme.Palette.gold_icon())}
       <Spacer size={3} />
       <Text
-        text="APPROX"
-        font_family="mono"
+        text={gettext("APPROX")}
+        font_family={Kati.Locale.mono_face()}
         text_size={8.5}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Kati.Theme.Palette.gold_text()}
       />
     </Row>
     """
   end
 
-  @doc "The two sentences the grid needs to explain itself."
+  @doc """
+  The two sentences the grid needs to explain itself.
+
+  One msgid for both, because they are one paragraph in one pill and a
+  translator splitting them would have to guess at the join. The mark inside
+  the second sentence is the same word `approx_badge/1` draws, so a reader who
+  has just seen `تقریبی` on a tile finds `تقریبی` in the note rather than a
+  Latin run they have to match by shape.
+  """
   @spec notes() :: map()
   def notes do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.note("info", "A grid, not a list — a meal is recognised by its photo faster than by its name, and the no-photo tile is deliberately the same size so the grid never goes ragged. APPROX marks a total built from partial ingredient data.")}
+      {Kati.UI.SettingsList.note(
+        "info",
+        gettext("A grid, not a list — a meal is recognised by its photo faster than by its name, and the no-photo tile is deliberately the same size so the grid never goes ragged. APPROX marks a total built from partial ingredient data.")
+      )}
     </Column>
     """
   end

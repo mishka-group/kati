@@ -19,6 +19,11 @@ defmodule Kati.Screens.Activity do
       each other. The 6 the column borrowed is given back out of the gap after
       it, so `stamp column + gap` is the drawing's 50 either way and everything
       right of the stamp sits where the export puts it — see `entry_row/5`.
+      Under `:fa` the same 44 holds `۲۱:۱۲` and `۲۱ مرداد` — a Shamsi date, not
+      a translated Gregorian one — set in Vazirmatn rather than DM Mono, which
+      carries neither a Persian letter nor a Persian digit. The column does not
+      change: `date_stamp/1` takes Shamsi's `:short`, whose numerals are already
+      even-width and need none of the zero-padding `12 AUG` does.
     * **The second eyebrow is grey.** "Earlier this month" gets a `#C4BDB3`
       dash, not the accent — see `Kati.UI.Eyebrow`. Last month is neither new
       nor now.
@@ -38,6 +43,14 @@ defmodule Kati.Screens.Activity do
   `All` is the resting state and shows every row, which is what `15.html`
   draws. The other three name a verb, and the verb is what the row stores in
   `lead`, so the chip filters on that and nothing else.
+
+  Both halves of that match are **English in every locale**. `lead` and the
+  chip's value are keys, `filter_label/1` and `verb_label/1` are the only
+  places the reader's language gets in, and they get in on the way to a `Text`.
+  A screen that translated the value instead is `Kati.Screens.AddTitle`'s own
+  story: its Persian mirror stored «همه», every clause of `visible/2` fell
+  through to the catch-all, and four chips drew perfectly while tapping any of
+  them showed everything.
 
   A filter that leaves a dated group with no rows takes the group's **eyebrow
   with it** — `Rated` and `Added` have nothing in Earlier this month, and a
@@ -107,6 +120,14 @@ defmodule Kati.Screens.Activity do
     today = visible(log.today, filter)
     earlier = visible(log.earlier, filter)
 
+    # The two eyebrows are built here rather than written into the sigil.
+    # `gettext/1` around the label pushes the interpolation well past the line
+    # the group call already fills, and the sigil's formatter rewraps markup
+    # rather than the Elixir inside a `{...}` — so the readable place for the
+    # call is above the sigil, where the two section names sit side by side.
+    today_eyebrow = UI.eyebrow(gettext("Today"))
+    earlier_eyebrow = Kati.UI.Eyebrow.quiet(gettext("Earlier this month"))
+
     ~MOB"""
     <Scroll>
       <Column
@@ -119,8 +140,8 @@ defmodule Kati.Screens.Activity do
         {Kati.Screens.Activity.back_gap()}
         {Kati.Screens.Activity.header(log.entries_line)}
         {Kati.Screens.Activity.filters(filter)}
-        {Kati.Screens.Activity.group(today, UI.eyebrow("Today"), 44, 11, 0.0)}
-        {Kati.Screens.Activity.group(earlier, Kati.UI.Eyebrow.quiet("Earlier this month"), 44, 10, 0.06)}
+        {Kati.Screens.Activity.group(today, today_eyebrow, 44, 11, 0.0)}
+        {Kati.Screens.Activity.group(earlier, earlier_eyebrow, 44, 10, 0.06)}
         {Kati.Screens.Activity.nothing_here(log, today, earlier, filter)}
         {Kati.Screens.Activity.rewatch_section(log.rewatch)}
       </Column>
@@ -170,7 +191,16 @@ defmodule Kati.Screens.Activity do
   def drawn do
     %{
       count: 0,
-      entries_line: Sample.entries_line(),
+      # The drawing's FIGURE — board 15 was captured at 1,204 — through this
+      # screen's own sentence, rather than `Kati.Activity.Sample.entries_line/0`,
+      # which is the whole line `1,204 entries` frozen as a string. Byte for
+      # byte the same answer in English, and the reason it cannot stay a string
+      # is the other script: a frozen Latin line drew `1,204 entries` under
+      # **فعالیت**, in Latin numerals, on every Persian device with nothing
+      # recorded — which is a fresh install, so it is the first thing a Persian
+      # reader ever sees of this page. `entries_line/1` is where the wording and
+      # the digits already live, and its own doc says one wording, one place.
+      entries_line: entries_line(1204),
       today: Sample.today(),
       earlier: Sample.earlier(),
       rewatch: Sample.rewatch()
@@ -229,7 +259,7 @@ defmodule Kati.Screens.Activity do
       entries_line: entries_line(length(watches) + length(events)),
       today:
         for {date, clock, entry} <- dated, date == today, not is_nil(clock) do
-          row(entry, clock, cached)
+          row(entry, clock_stamp(clock), cached)
         end,
       earlier:
         for {date, _clock, entry} <- dated,
@@ -251,6 +281,15 @@ defmodule Kati.Screens.Activity do
   judgement here: `Watched` keeps `Rewatched` too, because a rewatch is a
   watch — the rewatch count at the bottom of this screen already counts it as
   one.
+
+  The match is on the ENGLISH word in both halves and stays there. `filter` is
+  what the socket holds and what `filter_<label>` names, `lead` is what `verb/2`
+  and `event_word/1` write, and neither is ever the reader's own language —
+  `filter_label/1` and `verb_label/1` are the only places that translate, and
+  they translate for drawing. `Kati.Screens.AddTitle.filters/0` carries the long
+  version of the argument: its Persian mirror stored «همه», every clause of its
+  `visible/2` fell through to the catch-all, and four chips drew perfectly while
+  tapping any of them showed everything.
   """
   @spec visible([map()], String.t()) :: [map()]
   def visible(rows, "All"), do: rows
@@ -259,6 +298,62 @@ defmodule Kati.Screens.Activity do
     verb = String.downcase(filter)
     Enum.filter(rows, fn row -> String.contains?(String.downcase(row.lead), verb) end)
   end
+
+  @doc """
+  The word a filter chip shows for the value it carries.
+
+  A literal per clause, because a msgid has to be a literal at the call site —
+  `gettext(value)` does not compile — and `pgettext/2` on every one, because a
+  chip is a surface: `All` alone is three characters and `mix gettext.merge`
+  will fuzzy-match a bare one-word msgid onto any sentence that opens with it.
+
+  The chips and the rows name the same four verbs and do **not** share their
+  Persian, which is the one judgement here. A chip is a CATEGORY — it answers
+  *which of these*, so Persian wants the adjective: دیده‌شده, امتیازدار. A row
+  is an EVENT — it answers *what happened*, so Persian wants the verb: دیده شد,
+  امتیاز داده شد. English writes both with the same word and Persian cannot,
+  which is exactly the case `pgettext/2` exists for. The adjectives are also the
+  shorter of the two, and this row of four is measured: the comment above
+  `filters/1` has it at ~285 inside the 360 the gutters leave, and the verb
+  forms would have spent most of the 75 that are left.
+  """
+  @spec filter_label(String.t()) :: String.t()
+  def filter_label("All"), do: pgettext("activity filter chip", "All")
+  def filter_label("Watched"), do: pgettext("activity filter chip", "Watched")
+  def filter_label("Rated"), do: pgettext("activity filter chip", "Rated")
+  def filter_label("Added"), do: pgettext("activity filter chip", "Added")
+  def filter_label(other), do: other
+
+  @doc """
+  The bold run at the head of a log row, in the reader's language.
+
+  `lead` is a KEY — `visible/2` filters on it and the chips are spelled in the
+  same words — so it is translated here, on the way to the `Text`, and never in
+  `verb/2` or `event_word/1`. That also gets the drawn rows for free:
+  `Kati.Activity.Sample`'s seven carry the same English words this file writes,
+  so board 15's own fallback reads Persian without a second copy of the sample.
+
+  `pgettext/2` throughout, for `filter_label/1`'s reason and one more: three of
+  these are one Persian word in the catalogue already — `Dropped`, `Abandoned`
+  and `Did not finish` are all رهاشده as a shelf STATUS — and a log has to keep
+  them apart, because a row saying رهاشده three ways is a row that cannot be
+  read back. As events they are رها شد, کنار گذاشته شد and ناتمام ماند.
+  """
+  @spec verb_label(String.t()) :: String.t()
+  def verb_label("Watched"), do: pgettext("activity log verb", "Watched")
+  def verb_label("Rewatched"), do: pgettext("activity log verb", "Rewatched")
+  def verb_label("Rated"), do: pgettext("activity log verb", "Rated")
+  def verb_label("Added"), do: pgettext("activity log verb", "Added")
+  def verb_label("Dropped"), do: pgettext("activity log verb", "Dropped")
+  def verb_label("Abandoned"), do: pgettext("activity log verb", "Abandoned")
+  def verb_label("Did not finish"), do: pgettext("activity log verb", "Did not finish")
+  def verb_label("Resumed"), do: pgettext("activity log verb", "Resumed")
+  def verb_label("Finished"), do: pgettext("activity log verb", "Finished")
+  def verb_label("Imported"), do: pgettext("activity log verb", "Imported")
+  # `event_word/1`'s own catch-all capitalises an atom nobody has named yet.
+  # It draws in English, which is the right failure: a verb this screen has not
+  # been told about is a verb nobody has translated either.
+  def verb_label(other), do: other
 
   @doc """
   One dated group — its eyebrow and its card — or nothing at all.
@@ -313,13 +408,32 @@ defmodule Kati.Screens.Activity do
   @spec no_matches(String.t(), boolean()) :: map()
   def no_matches(filter, month_has_rows?) do
     assigns = %{
-      title: "No #{String.downcase(filter)} entries this month",
+      # The chip's own word, not the key behind it. `filter` is `Added`, and a
+      # Persian card reading *No added entries this month* with one Latin word
+      # in the middle of it is the chip defect one sentence later. `filter_label/1`
+      # is what the chip itself drew, so the card and the control agree by
+      # construction rather than by two people remembering.
+      #
+      # `String.downcase/1` survives the move: English wants `No added entries`
+      # under an `Added` chip, and Persian has no case to fold, so it is a no-op
+      # on دیده‌شده rather than a second rule to write.
+      title:
+        gettext("No %{verb} entries this month",
+          verb: String.downcase(Kati.Screens.Activity.filter_label(filter))
+        ),
       body:
         if month_has_rows? do
-          "There is other activity this month. Press All to see it."
+          # The sentence names a chip, so it takes the chip's own label rather
+          # than spelling `All` a second time — the two would be «همه» and
+          # `All` on one card the day only one of them is translated.
+          gettext("There is other activity this month. Press %{all} to see it.",
+            all: Kati.Screens.Activity.filter_label("All")
+          )
         else
-          "Everything you have logged is older than the first. " <>
-            "The rewatch counts below still cover all of it."
+          gettext(
+            "Everything you have logged is older than the first. " <>
+              "The rewatch counts below still cover all of it."
+          )
         end,
       # `:show_all`, not the `All` chip's own `filter_All`: two nodes may not
       # share an `accessibility_id` — `onNodeWithTag` throws on the second
@@ -357,7 +471,7 @@ defmodule Kati.Screens.Activity do
         <Text
           text={@body}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -381,6 +495,19 @@ defmodule Kati.Screens.Activity do
   """
   @spec nothing_this_month(map(), [map()], [map()]) :: term()
   def nothing_this_month(%{count: count}, [], []) when count > 0 do
+    # Assigns rather than two `gettext/1` calls inside the sigil: the second
+    # sentence is the same msgid `no_matches/2`'s quiet branch carries, and a
+    # two-line string does not fit an interpolation. `@title`/`@body` inside a
+    # `~MOB` sigil are ASSIGNS, which is why the map is built first.
+    assigns = %{
+      title: gettext("Nothing this month"),
+      body:
+        gettext(
+          "Everything you have logged is older than the first. " <>
+            "The rewatch counts below still cover all of it."
+        )
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -400,7 +527,7 @@ defmodule Kati.Screens.Activity do
         </Row>
         <Spacer size={12} />
         <Text
-          text="Nothing this month"
+          text={@title}
           text_size={13.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -408,9 +535,9 @@ defmodule Kati.Screens.Activity do
         />
         <Spacer size={6} />
         <Text
-          text="Everything you have logged is older than the first. The rewatch counts below still cover all of it."
+          text={@body}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -429,6 +556,21 @@ defmodule Kati.Screens.Activity do
   @doc false
   def back_gap, do: ~MOB"<Spacer size={58} />"
 
+  # Three things the title and its line have to ask the reader about.
+  #
+  # The 28's `-0.03` tracking is `Kati.Locale.tracking/1`: the design tightens
+  # its display sizes by a fraction of an em, Arabic script has no such
+  # tradition, and tracking a Persian run apart breaks the joins between its
+  # letters — فعالیت set at -0.03 is six disconnected shapes. `max_lines={1}`
+  # goes with it, because the heading had none and the longest word this slot
+  # can hold is no longer the eight letters of `Activity`.
+  #
+  # And the mono line asks the STRING rather than the reader —
+  # `Kati.Locale.mono_face/1` — because `entries_line/1` answers in both
+  # scripts. `1,204 entries` is pure ASCII and stays in DM Mono, which is what
+  # the export draws; `۱,۲۰۴ مورد` is not, and `kati_mono.ttf` carries no
+  # Persian glyph at all, so it would be handed to Android's own substitute
+  # face beside sentences that are Kati's.
   @doc false
   def header(entries_line) do
     ~MOB"""
@@ -436,17 +578,18 @@ defmodule Kati.Screens.Activity do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Activity"
+            text={gettext("Activity")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
+            max_lines={1}
             text_color={:on_surface}
           />
           <Spacer size={5} />
           <Text
             text={entries_line}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(entries_line)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -499,7 +642,7 @@ defmodule Kati.Screens.Activity do
   def filters(active) do
     chips =
       Sample.filters()
-      |> Enum.map(fn label -> filter_chip(label, label == active) end)
+      |> Enum.map(fn value -> filter_chip(value, value == active) end)
       |> Enum.intersperse(chip_gap())
 
     ~MOB"""
@@ -545,13 +688,17 @@ defmodule Kati.Screens.Activity do
       which is the same position — `(32 - label height) / 2` from the top in
       both.
   """
-  def filter_chip(label, on?) do
-    # The tag carries the label, so one handler serves every chip and a fifth
-    # verb is a change to `Kati.Activity.Sample.filters/0` alone.
+  def filter_chip(value, on?) do
+    # The tag carries the VALUE and the chip draws the LABEL, which are two
+    # different strings the moment the reader is Persian: `value` is the English
+    # key `visible/2` matches `lead` against and `Kati.ScreenActivityTest` taps
+    # by name (`:filter_Rated`), and `filter_label/1` is the only part in the
+    # reader's language. One handler still serves every chip, and a fifth verb
+    # is a change to `Kati.Activity.Sample.filters/0` and `filter_label/1`.
     MishkaChip.chip(
-      label: label,
+      label: Kati.Screens.Activity.filter_label(value),
       checked: on?,
-      on_toggle: {self(), String.to_atom("filter_" <> label)},
+      on_toggle: {self(), String.to_atom("filter_" <> value)},
       color: Palette.ink_fill(),
       text_color: Palette.on_ink(),
       unchecked_color: Palette.card(),
@@ -618,6 +765,16 @@ defmodule Kati.Screens.Activity do
   # the stamp is unchanged: the text is start-aligned in its column, so what
   # the eye reads as the gap is (column − text) + gap, which is 17 for `21:12`
   # in both the drawing and here.
+  #
+  # The stamp asks its own string for a face rather than naming `mono`, because
+  # the two gutters answer differently: a clock is `۲۱:۱۲` under `:fa` and a
+  # date is `۲۱ مرداد`, and `kati_mono.ttf` carries neither the Persian digits
+  # nor a single Persian letter. `Kati.Locale.mono_face/1` keeps a Latin stamp
+  # in DM Mono — which is what the drawn rows still carry, and what the export
+  # draws — and sends a Persian one to Vazirmatn at the same size. The 0.06
+  # `letter_spacing` Earlier this month draws goes through
+  # `Kati.Locale.tracking/1` for the reason the heading's does: tracking pulls
+  # apart letters that are joined.
   @doc false
   def entry_row(row, stamp_width, stamp_size, stamp_spacing, rule?) do
     tap = Kati.Screens.Activity.open_tap(row)
@@ -628,9 +785,9 @@ defmodule Kati.Screens.Activity do
         <Column width={stamp_width}>
           <Text
             text={row.stamp}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.stamp)}
             text_size={stamp_size}
-            letter_spacing={stamp_spacing}
+            letter_spacing={Kati.Locale.tracking(stamp_spacing)}
             text_color={Palette.muted()}
             max_lines={1}
           />
@@ -641,7 +798,7 @@ defmodule Kati.Screens.Activity do
         <Box weight={1.0}>
           <Row fill_width={true} align="center">
             <Text
-              text={row.lead}
+              text={Kati.Screens.Activity.verb_label(row.lead)}
               text_size={12.5}
               font_weight="bold"
               text_color={:on_surface}
@@ -702,7 +859,7 @@ defmodule Kati.Screens.Activity do
   """
   @spec rewatch_section([{String.t(), String.t()}]) :: [map()]
   def rewatch_section([]), do: []
-  def rewatch_section(rows), do: [UI.eyebrow("Rewatch count"), rewatch(rows)]
+  def rewatch_section(rows), do: [UI.eyebrow(gettext("Rewatch count")), rewatch(rows)]
 
   @doc false
   def rewatch(rows) do
@@ -728,6 +885,11 @@ defmodule Kati.Screens.Activity do
 
   # Orange on the count is the design's own use of accent for "again, now" —
   # a rewatch is the one number on this screen that is still happening.
+  #
+  # `name` is a title and is never translated — it comes off `Kati.Media.Watch`
+  # through the cache, or out of `Kati.Activity.Sample` on a fresh install. The
+  # count asks its own string for a face for `entry_row/5`'s reason: `3×` is
+  # ASCII and stays in DM Mono, `۳×` is not.
   @doc false
   def rewatch_row(name, count, gap?) do
     ~MOB"""
@@ -743,7 +905,7 @@ defmodule Kati.Screens.Activity do
         <Spacer weight={1.0} />
         <Text
           text={count}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(count)}
           text_size={12}
           text_color={Palette.accent()}
           max_lines={1}
@@ -931,9 +1093,33 @@ defmodule Kati.Screens.Activity do
     end
   end
 
-  # `12 AUG`, the gutter Earlier this month draws. `%d` pads, which is what
-  # makes `07 AUG` and `12 AUG` line up in a 44pt mono column.
-  defp date_stamp(date), do: date |> Calendar.strftime("%d %b") |> String.upcase()
+  # `12 AUG`, the gutter Earlier this month draws — and `۲۱ مرداد` under `:fa`,
+  # which is a different CALENDAR rather than the same date translated. Board
+  # 15's *earlier this month* is the reader's own month either way, so it is
+  # `Kati.Locale.date/2` and not `Calendar.strftime/2`: 12 August 2026 falls in
+  # Mordad, and no formatting of the number 8 produces that.
+  #
+  # `:short_padded` is the style `%d %b` was — the leading zero is what makes
+  # `07 AUG` and `12 AUG` line up in a 44pt mono column — and `Kati.Locale`
+  # resolves it to Shamsi's `:short` on purpose, because Persian numerals are
+  # already even-width and have no column to pad.
+  #
+  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` for the caps. This
+  # is a stamp rather than an eyebrow, but it is the same question and that is
+  # the app's one place to ask it: Persian has no case, so upcasing مرداد is a
+  # no-op that reads in the diff as a decision somebody made.
+  defp date_stamp(date), do: Kati.UI.eyebrow_label(Kati.Locale.date(date, :short_padded))
+
+  # `21:12`, the gutter Today draws, in the reader's own digits.
+  #
+  # Separate from `stamped/2`, which keeps the ASCII `%H:%M` it formats: that
+  # string is also the sort key and the `is_nil` gate that decides whether a
+  # row can be in Today at all, and a sort whose correctness rests on
+  # U+06F0–U+06F9 being contiguous is a sort nobody can check by reading it.
+  # So the digits change here, where the clock stops being a key and becomes a
+  # stamp. `Kati.Locale.number/1` rather than `Kati.Locale.time/1` for the same
+  # reason — the time is already formatted by the time it reaches this.
+  defp clock_stamp(clock), do: Kati.Locale.number(clock)
 
   defp row(%Kati.Media.Event{} = event, stamp, cached) do
     {lead, rest} = event_verb(event, event.tracked_title, cached)
@@ -982,13 +1168,27 @@ defmodule Kati.Screens.Activity do
   # as `Rated`, because the stars are the thing the row is showing and the chip
   # that finds it is the one the user pressed. `Watched` keeps `Rewatched` too
   # — see `visible/2`, which matches on containment for exactly this.
+  #
+  # The verb stays ENGLISH here. It is the value `visible/2` filters on and the
+  # word the chips are keyed by; `verb_label/1` is what the row is drawn with.
   defp verb(%{rating: rating}, named) when is_integer(rating), do: {"Rated", named}
 
   defp verb(%{rewatch_number: n}, named) when is_integer(n) and n > 1 do
-    {"Rewatched", named <> " · " <> ordinal(n) <> " time"}
+    {"Rewatched", named <> " · " <> nth_time(n)}
   end
 
   defp verb(_watch, named), do: {"Watched", named}
+
+  # `3rd time`, and `بار ۳ام`. A msgid rather than `ordinal(n) <> " time"`,
+  # because the two halves are not in that order in Persian — the counter word
+  # comes first — and a sentence assembled out of two translated fragments can
+  # only ever be assembled in English's order.
+  #
+  # `pgettext/2` because `%{ordinal} time` is two tokens: the catalogue already
+  # holds `last time` and `used %{n} time`, and `mix gettext.merge` fuzzy-matches
+  # a msgid this short onto a neighbour that half-resembles it.
+  defp nth_time(n),
+    do: pgettext("the nth viewing, on a rewatch row", "%{ordinal} time", ordinal: ordinal(n))
 
   # The verb an event gets, and the sentence after it. `Dropped … after S1E3`
   # is screen 15's own drawn line and this is where it comes from; the reason,
@@ -996,13 +1196,31 @@ defmodule Kati.Screens.Activity do
   # `Kati.Media.Event` existed (#111).
   defp event_verb(%{kind: :imported} = event, _tracked, _cached) do
     n = event.count || 0
-    from = if event.source_label, do: " from #{event.source_label}", else: ""
+    titles = ngettext("%{n} title", "%{n} titles", n, n: Kati.Locale.number(n))
 
-    {"Imported", "#{n} #{if n == 1, do: "title", else: "titles"}#{from}"}
+    case event.source_label do
+      # `Kati.Locale.ltr/1` around the label, because it is a FILE NAME — the
+      # one this import was read out of — and a Latin run inside a Persian
+      # sentence hands its full stop to the paragraph's direction. Without the
+      # isolate, `goodreads_library_export.csv` draws with its `.csv` at the
+      # wrong end of the run, which is legible enough that nobody files it.
+      label when is_binary(label) and label != "" ->
+        {"Imported",
+         pgettext("an import row in the activity log", "%{titles} from %{source}",
+           titles: titles,
+           source: Kati.Locale.ltr(label)
+         )}
+
+      # An import that recorded no source. The guard was `if event.source_label`,
+      # so a stored `""` drew the line as `412 titles from ` with the preposition
+      # left hanging — the sentence promises a source and then does not name one.
+      _none ->
+        {"Imported", titles}
+    end
   end
 
   defp event_verb(event, nil, _cached),
-    do: {event_word(event.kind), "Untitled"}
+    do: {event_word(event.kind), gettext("Untitled")}
 
   defp event_verb(event, tracked, cached) do
     title = title_of(tracked, cached)
@@ -1013,6 +1231,8 @@ defmodule Kati.Screens.Activity do
      |> Enum.join(" · ")}
   end
 
+  # English, like `verb/2`'s: this is `lead`, which is a key. `verb_label/1`
+  # draws it.
   defp event_word(:added), do: "Added"
   defp event_word(:dropped), do: "Dropped"
   defp event_word(:abandoned), do: "Abandoned"
@@ -1023,7 +1243,11 @@ defmodule Kati.Screens.Activity do
 
   defp event_position(%{season_number: s, episode_number: e})
        when is_integer(s) and is_integer(e),
-       do: "after S#{s}E#{e}"
+       do:
+         pgettext("where a series was left, on an activity row", "after S%{s}E%{e}",
+           s: Kati.Locale.number(s),
+           e: Kati.Locale.number(e)
+         )
 
   defp event_position(_event), do: nil
 
@@ -1037,11 +1261,24 @@ defmodule Kati.Screens.Activity do
 
   # A label snapshot, never identity — `Kati.Media.Watch` is emphatic about
   # that, and this is the one place the snapshot is for: printing it.
+  #
+  # `pgettext/2` on both, and not because either word is ambiguous: `S%{s}` is
+  # two characters and a binding, and `mix gettext.merge`'s fuzzy matcher will
+  # hand a msgid that short to any sentence it half-resembles. The Persian is
+  # the abbreviation `Kati.Screens.Stats` already writes for the same pair —
+  # ف for فصل and ق for قسمت — so a title reads `گودال بلند ف۲ق۵` here and on
+  # every other board that names an episode.
   defp episode_label(%{season_number: s, episode_number: e})
        when is_integer(s) and is_integer(e),
-       do: "S#{s}E#{e}"
+       do:
+         pgettext("episode label on an activity row", "S%{s}E%{e}",
+           s: Kati.Locale.number(s),
+           e: Kati.Locale.number(e)
+         )
 
-  defp episode_label(%{season_number: s}) when is_integer(s), do: "S#{s}"
+  defp episode_label(%{season_number: s}) when is_integer(s),
+    do: pgettext("season label on an activity row", "S%{s}", s: Kati.Locale.number(s))
+
   defp episode_label(_watch), do: nil
 
   defp title_of(tracked, cached) do
@@ -1049,7 +1286,7 @@ defmodule Kati.Screens.Activity do
       %{title: title} when is_binary(title) and title != "" -> title
       # The evicted case. The memory survived the wipe and the poster did not,
       # so the row says so rather than disappearing from the user's own history.
-      _ -> "Untitled"
+      _ -> gettext("Untitled")
     end
   end
 
@@ -1079,7 +1316,17 @@ defmodule Kati.Screens.Activity do
 
   defp star_count(_rating), do: nil
 
-  defp ordinal(n) do
+  # `3rd`, and `۳ام`.
+  #
+  # English's four suffixes are an English rule and stop at the language edge:
+  # Persian forms an ordinal by suffixing ـُم to the numeral, with no exception
+  # for 11 to 13 and none for the units — `۳ام` is regular where `3rd` is one
+  # of four cases. So this is `Kati.Locale.pick/2` over two whole answers rather
+  # than a shared skeleton with a translated suffix, which would be the English
+  # rule with Persian letters in it.
+  defp ordinal(n), do: Kati.Locale.pick(latin_ordinal(n), Kati.Locale.number(n) <> "ام")
+
+  defp latin_ordinal(n) do
     suffix =
       cond do
         rem(n, 100) in 11..13 -> "th"
@@ -1095,9 +1342,15 @@ defmodule Kati.Screens.Activity do
   @doc """
   `1,204 entries`, `1 entry`, or `nothing logged yet`.
 
-  Grouped by hand rather than through `Kati.Cldr` because the drawing's line is
-  ASCII digits and a locale switch would silently turn it into Persian ones —
-  the Persian mirrors are their own screens.
+  Grouped by hand rather than through `Kati.Cldr`, and that is a statement
+  about the GROUPING MARK rather than about the digits. CLDR's `fa` groups with
+  U+066C and the boards do not — `test/design/screens/59.html` writes ۱,۴۸۰ with
+  a Latin comma — so `delimited/1` places the drawing's comma itself and hands
+  the result to `Kati.Locale.number/1`, which converts the numerals and the
+  decimal point and leaves the separator alone. The paragraph that stood here
+  said the digits stayed ASCII because *the Persian mirrors are their own
+  screens*; mishka-group/kati#103 folded the last of those away, and the line
+  below it has read the reader's own numerals since.
 
   Public because screen 07's *More numbers* draws the same sentence about the
   same rows, and drew `Kati.Stats.Sample`'s frozen `1,204 entries` on every
@@ -1148,7 +1401,16 @@ defmodule Kati.Screens.Activity do
     |> Enum.map(fn {_key, rows} -> rewatch_entry(rows, cached) end)
     |> Enum.reject(&is_nil/1)
     |> Enum.sort_by(fn {label, times} -> {-times, label} end)
-    |> Enum.map(fn {label, times} -> {label, "#{times}×"} end)
+    # The count is a figure and a symbol rather than a sentence, so the msgid is
+    # mostly there to let the Persian keep or drop the `×` — it reads as a
+    # multiplication sign in both scripts and the drawing writes it, but a
+    # translator who wants `۳ بار` should not have to change this file. The
+    # digits are the reader's own either way; `rewatch_row/3` gives the string a
+    # face to match.
+    |> Enum.map(fn {label, times} ->
+      {label,
+       pgettext("how many times a title has been watched", "%{n}×", n: Kati.Locale.number(times))}
+    end)
   end
 
   # `rewatch_number` is the user's own count and beats the row count, because

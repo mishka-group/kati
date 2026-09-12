@@ -244,7 +244,11 @@ defmodule Kati.Screens.DataSources do
   Two chips rather than a switch, because neither is the *off* state — both are
   a working configuration and the page's job is to say that plainly.
   """
-  @spec tmdb(atom(), String.t(), boolean(), String.t() | nil) :: map()
+  # Five arguments, and the spec named four — so it described `tmdb/4`, a head
+  # the default arguments generate and `content/1` never calls. `own_key/5`
+  # already spells the last one `non_neg_integer()`; this is the same value one
+  # frame up.
+  @spec tmdb(atom(), String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
   def tmdb(choice, token \\ "", saved? \\ false, error \\ nil, epoch \\ 0) do
     ~MOB"""
     <Column fill_width={true}>
@@ -431,12 +435,28 @@ defmodule Kati.Screens.DataSources do
 
   @doc false
   def masked_text(masked) do
-    assigns = %{masked: masked}
+    # `Kati.Locale.ltr/1`, and the FACE read off the RAW string rather than off
+    # the wrapped one — two decisions, and they pull in opposite directions.
+    #
+    # A masked token is `eyJhbGciOiJIUzI1… ••••`: a Latin run with an ellipsis,
+    # a space and four bullets behind it, and all six of those trailing
+    # characters are bidi-NEUTRAL. On board 318 under `:fa` the paragraph's own
+    # direction is RTL, so the neutrals resolve right-to-left and the tail is
+    # laid out at the LEFT edge — `•••• …eyJhbGciOiJIUzI1`, the mask drawn in
+    # front of the thing it is masking. Same failure as board 85's licence
+    # notices; `Kati.Locale.ltr/1`'s doc carries the long version.
+    #
+    # The face is asked BEFORE the wrap because `U+2066`/`U+2069` are not ASCII
+    # and `Kati.Locale.mono_face/1` decides by the script actually in the
+    # string. Asking it about the wrapped string would answer `fa` for a
+    # pure-ASCII JWT and take DM Mono off every masked token under `:fa` — the
+    # one line on this page that is a machine's string in both scripts.
+    assigns = %{masked: Kati.Locale.ltr(masked), face: Kati.Locale.mono_face(masked)}
 
     ~MOB"""
     <Text
       text={@masked}
-      font_family={Kati.Locale.mono_face(@masked)}
+      font_family={@face}
       text_size={12.5}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}
@@ -767,12 +787,28 @@ defmodule Kati.Screens.DataSources do
   and `Kati.ScreenDesignLiteralTest`'s allow-list carries it with the two-state
   contract the row actually keeps.
   """
+  # An account name is the reader's own Latin handle and stays Latin — it is a
+  # name, not copy — but `ines.k` carries a full stop, and a full stop is
+  # neutral in the bidi algorithm. Dropped bare into **متصل با نام …** it
+  # resolves against whatever happens to sit beside it in the Persian sentence,
+  # which is not a property this file gets to see: the words around `%{who}`
+  # belong to the msgstr and a translator may move them. `Kati.Locale.ltr/1`
+  # settles it here instead, and is a no-op under `:en`, so board 80's
+  # `Connected as ines.k · 412 listens` is byte for byte what it was.
   @spec connected_line(atom()) :: String.t()
   def connected_line(:listenbrainz),
-    do: gettext("Connected as %{who} · %{n} listens", who: "ines.k", n: Kati.Locale.number(412))
+    do:
+      gettext("Connected as %{who} · %{n} listens",
+        who: Kati.Locale.ltr("ines.k"),
+        n: Kati.Locale.number(412)
+      )
 
-  def connected_line(:hardcover), do: gettext("Connected as %{who}", who: "ines.k")
-  def connected_line(:thetvdb), do: gettext("Connected as %{who}", who: "ines.k")
+  def connected_line(:hardcover),
+    do: gettext("Connected as %{who}", who: Kati.Locale.ltr("ines.k"))
+
+  def connected_line(:thetvdb),
+    do: gettext("Connected as %{who}", who: Kati.Locale.ltr("ines.k"))
+
   def connected_line(_other), do: gettext("Connected")
 
   @doc """
@@ -1093,7 +1129,16 @@ defmodule Kati.Screens.DataSources do
     |> Ash.read()
     |> case do
       {:ok, [%CachedTitle{fetched_at: %DateTime{} = at}]} ->
-        days = Date.diff(Kati.Time.today(), DateTime.to_date(at))
+        # Both sides of the subtraction in the DEVICE's zone. `Kati.Time.today/0`
+        # is already local and `fetched_at` is stored in UTC, so
+        # `DateTime.to_date/1` on the raw row was taking a UTC date away from a
+        # local one: in Tehran (UTC+03:30) a row written at 02:00 today is
+        # 22:30 UTC yesterday, and the card said `OLDEST ENTRY 1 DAY` over a
+        # cache filled minutes earlier. `last_reached/1` on this same page
+        # already converts before it formats; this is that conversion, for the
+        # same reason, on the figure the eyebrow states as the reader's own.
+        local = Kati.Time.in_zone(at, Kati.Time.device_zone())
+        days = Date.diff(Kati.Time.today(), DateTime.to_date(local))
 
         Kati.UI.eyebrow_label(
           gettext("Oldest entry %{age}", age: Kati.Screens.DataSources.age(days))

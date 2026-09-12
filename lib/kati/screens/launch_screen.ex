@@ -172,6 +172,40 @@ defmodule Kati.Screens.LaunchScreen do
   states no Persian line height, so it takes `Kati.Theme.fa_line_height/0`, the
   declared 1.2 that exists so a wrong number is wrong in one place.
 
+  ## Under `:fa`, almost every word on this page is already the right word
+
+  mishka-group/kati#103 folded the Persian mirrors away and this screen came
+  through that with exactly **one** translatable line. That is a fact about the
+  page rather than an oversight: four strings are drawn and the first three are
+  marks, not copy.
+
+    * **`Kati`** is the wordmark. A brand name is not translated — the rule
+      board 127 follows when it draws `Lumen+` in Latin on a Persian page — so
+      it keeps its face, its `extrabold` and its -.04em tracking in both
+      scripts. `Kati.Locale.tracking/1` is deliberately **not** called on it:
+      tracking is dropped where it would pull Arabic letters apart at their
+      joins, and this run holds no Arabic letter in either locale.
+    * **`کاتی`** was already the Persian half of the same lockup and is drawn on
+      the English page too. It does not rise to the top under `:fa` and the
+      Latin line does not leave: a lockup is one mark set in two scripts, and
+      reordering it with the reader's language would make it two marks.
+    * **`LADDER`** is the product line, and `Kati.UI.eyebrow_label/1` is the one
+      helper this screen must not reach for — see `line_name/0`.
+    * **`A MISHKA PROJECT`** is the only sentence, and the only `gettext/1` call
+      on the screen. `MISHKA` stays Latin inside it and the words around it do
+      not — see `credit/0`.
+
+  Nothing here renders a number, a date or a time, so the half of the fold that
+  `Kati.Locale`'s calendar and numeral functions answer has nothing to answer on
+  this screen: the boot bar's 58 is a width the layout consumes rather than a
+  figure the reader reads, and the mark's coordinates are the vector's.
+
+  The mark is safe under `rtl` without being asked to be. `layout_direction`
+  mirrors a LAYOUT, and `MobCanvas` draws each op at the coordinates it is
+  handed — Compose's `DrawScope` does not flip for direction the way
+  `padding_left` does. A sparrow facing the other way on the Persian page would
+  be a different mark, so this is load-bearing rather than incidental.
+
   ## The bar is at 58% because the drawing is, and nothing can improve on that
 
   27's rule applies unchanged: each card on a reference sheet is a picture of a
@@ -190,6 +224,7 @@ defmodule Kati.Screens.LaunchScreen do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaProgress
   alias Kati.Theme.Palette
@@ -384,6 +419,13 @@ defmodule Kati.Screens.LaunchScreen do
   type is the 28pt statistic in `Kati.UI.stat/2`, which is a number with a label
   under it, and a wordmark that borrowed a statistic's recipe would move the
   next time a statistic did.
+
+  Not a msgid, and not `Kati.Locale.tracking/1` either. The name of the product
+  is the same four letters on both pages — the rule the moduledoc states and
+  board 127 draws — so there is nothing here for a catalogue to hold, and the
+  tracking that a Persian line would have to drop is applied to a run that has
+  no Arabic letter in it under any locale. `wordmark_fa/0` is where this lockup
+  answers a Persian reader, and it answers one on the English page too.
   """
   @spec wordmark() :: map()
   def wordmark do
@@ -412,6 +454,13 @@ defmodule Kati.Screens.LaunchScreen do
   line for the same reason `Kati.Screens.Fa` gives about the vendored set: they
   build their own `Text` and leave `font_family` off, so a Persian label handed
   to either is absent rather than restyled.
+
+  The prop stays pinned to `"fa"` rather than becoming `Kati.Locale.face_prop/0`
+  after mishka-group/kati#103, and the difference matters in one direction only:
+  this line is Persian on the **English** page as well, so a face that asked the
+  reader's language would hand `کاتی` to `kati_sans_400.ttf` for every English
+  reader — which is the exact failure the paragraph above describes, reintroduced
+  by a helper that looks like the modern spelling of it.
   """
   @spec wordmark_fa() :: map()
   def wordmark_fa do
@@ -440,6 +489,23 @@ defmodule Kati.Screens.LaunchScreen do
   Written in sentence case and upcased at render, as `Kati.UI.eyebrow/2` does,
   because the drawing sets it in sentence case under `text-transform: uppercase`
   and the label in the source should read the way the design file writes it.
+
+  `String.upcase/1` and **not** `Kati.UI.eyebrow_label/1`, which is the opposite
+  of what mishka-group/kati#103 asked of every other eyebrow in the app. That
+  helper returns a Persian label with its case untouched, because Persian has
+  none — right for a section mark whose words are translated, and wrong here,
+  where the words are not: it would draw this one mark as `LADDER` on the
+  English page and `Ladder` on the Persian one, which is a product line spelled
+  two ways rather than a label cased two ways. `credit/0` is the line on this
+  screen that does call it, and the difference between the two is the whole of
+  the rule.
+
+  `font_family="mono"` stays pinned for the same reason. DM Mono carries no
+  Persian glyph and this word can never be Persian, so there is no question for
+  `Kati.Locale.mono_face/1` to ask — and `letter_spacing` stays a bare `0.2`
+  rather than `Kati.Locale.tracking/1` for the third face of it: tracking is
+  dropped where it would break the joins between Arabic letters, and there are
+  none to break in `LADDER` under either locale.
 
   Centred by a weighted `Spacer` at **each** end. There was one only at the
   leading end for a while, which does not centre a group — it pushes it to the
@@ -538,21 +604,66 @@ defmodule Kati.Screens.LaunchScreen do
   end
 
   @doc """
-  `A MISHKA PROJECT`, the last line on the page.
+  `A MISHKA PROJECT`, the last line on the page — and the only sentence on it.
 
   `Palette.tertiary/0` is the drawing's `#B3ACA2` exactly, and its meaning fits
   as well as its value does — *a mark that is present but not addressed*, which
   is what a credit under a boot bar is. Upcased at render for the reason
   `line_name/0` gives.
+
+  ## The house name stays Latin and the sentence around it does not
+
+  `MISHKA` is a brand, so it is the same six letters on both pages — board 127's
+  `Lumen+` rule, and the reason a transliteration would have the app spell one
+  thing two ways. *A … project* is Kati describing itself and is copy like any
+  other, so the msgid is the **whole line** and the Persian entry carries the
+  Latin name inside it: `پروژه‌ای از MISHKA`.
+
+  The name is written in caps in the catalogue rather than left to the upcasing
+  at render, and that is forced rather than chosen. `Kati.UI.eyebrow_label/1`
+  returns a Persian label untouched — Persian has no case — so under `:fa` the
+  only place `MISHKA` can be raised is the entry itself. `line_name/0` is the
+  opposite call for the opposite reason and the two docs are each other's other
+  half.
+
+  No `Kati.Locale.ltr/1` around the name. That wrapper exists for a Latin run
+  whose **neutrals** would resolve against the page — the terminating full stop
+  screen 83's licence notices lost to the left edge — and this credit ends on
+  the name itself with no punctuation after it, so the bidi algorithm already
+  places it where it belongs.
+
+  ## Three props that had to follow the words
+
+    * `Kati.Locale.mono_face/1`, asked of the STRING rather than the reader, for
+      the reason that function's doc gives: `kati_mono.ttf` carries no code point
+      in U+0600–U+06FF, so the Persian credit set in DM Mono would be a row of
+      substituted glyphs under a wordmark that is not one. English is pure ASCII
+      and gets `"mono"` back, unchanged.
+    * `Kati.Locale.tracking/1` rather than a bare `.18em`. Letter spacing is a
+      Latin small-caps effect and it breaks the joins between Arabic letters,
+      which makes different words.
+    * a half-point and a weight, through `Kati.Locale.pick/2`. This is the step
+      `Kati.UI.eyebrow/2` and `Kati.Screens.Accessibility.quiet_eyebrow/1` both
+      take — Vazirmatn reads lighter than DM Mono at a mono label's size, so the
+      step restores the credit to the weight the drawing gives it rather than
+      adding any. It lands at 10.5 and not at their 11 because this is the
+      quietest line on the page and must not come out larger than a section mark.
   """
   @spec credit() :: map()
   def credit do
+    # Resolved once and passed twice: the line is asked for as text and again as
+    # the face it is set in, and two calls to the same pair could only ever
+    # drift apart. `Kati.Screens.Accessibility.quiet_eyebrow/1` does it this way
+    # for the same reason.
+    line = Kati.UI.eyebrow_label(gettext("A Mishka project"))
+
     ~MOB"""
     <Text
-      text={String.upcase("A Mishka project")}
-      font_family="mono"
-      text_size={10}
-      letter_spacing={0.18}
+      text={line}
+      font_family={Kati.Locale.mono_face(line)}
+      text_size={Kati.Locale.pick(10, 10.5)}
+      font_weight={Kati.Locale.pick("normal", "semibold")}
+      letter_spacing={Kati.Locale.tracking(0.18)}
       text_color={Kati.Theme.Palette.tertiary()}
       max_lines={1}
     />
