@@ -93,6 +93,7 @@ defmodule Kati.Screens.WhatFits do
   from the filter and not from memory."*
   """
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
@@ -107,6 +108,13 @@ defmodule Kati.Screens.WhatFits do
   # The five windows the drawing offers, in minutes. `2h+` is a ceiling and not
   # a bound — everything fits in it — so it is the largest runtime this app is
   # ever going to see rather than 120.
+  #
+  # `20m` here is a KEY and never a word. It is the suffix of the tag
+  # `window_20m`, which is what `Mob.Renderer` derives the node's
+  # `accessibility_id` from and what `set_window/2` looks the window up by, so
+  # it stays Latin ASCII in both scripts. The word the button says is
+  # `window_word/1` — mishka-group/kati#103, where this table was drawn
+  # straight and a Persian reader got `20m` under `۴۵ دقیقه`.
   @windows [{"20m", 20}, {"30m", 30}, {"45m", 45}, {"1h", 60}, {"2h+", 600}]
   @default_window 45
 
@@ -184,14 +192,25 @@ defmodule Kati.Screens.WhatFits do
       %{
         now: Kati.Screens.WhatFits.clock(),
         window: Kati.Screens.WhatFits.window_label(minutes),
-        lengths: Enum.map(@windows, fn {label, m} -> %{label: label, selected: m == minutes} end),
+        # The key and the word are two fields because they are two things —
+        # see `@windows` and `window_word/1`.
+        lengths:
+          Enum.map(@windows, fn {key, m} ->
+            %{key: key, label: Kati.Screens.WhatFits.window_word(key), selected: m == minutes}
+          end),
         # `Kati.Media.Watch.moods` exists and is `[]` on every device, because
         # none of its five writers sets it — see `tonight/1`. A chip that
         # cannot narrow anything is dropped rather than drawn dead.
         moods: [],
         fits_label: Kati.Screens.WhatFits.fits_label(fits),
         fits: fits,
-        over_label: over && "Nothing else fits — nearest film is #{over.length}",
+        # One msgid with the length in it rather than a sentence glued to a
+        # figure: `#{over.length}` put a translated duration at the end of an
+        # English clause, and Persian ends this sentence with the copula —
+        # `نزدیک‌ترین فیلم ۱ ساعت ۴۶ دقیقه است` — which no interpolation at the
+        # tail can reach.
+        over_label:
+          over && gettext("Nothing else fits — nearest film is %{length}", length: over.length),
         over: over
       }
     end
@@ -203,7 +222,33 @@ defmodule Kati.Screens.WhatFits do
   def clock do
     now = Kati.Time.now() |> Kati.Time.in_zone(Kati.Time.device_zone())
 
-    Calendar.strftime(now, "%A, %H:%M")
+    # `Calendar.strftime(now, "%A, %H:%M")` was the English day name and Latin
+    # digits in both scripts: `%A` has no locale to consult — Elixir's default
+    # calendar names its days in English — and `%H:%M` never converts numerals.
+    # So a Persian reader's evening read `Sunday, 21:40` under a Persian title.
+    #
+    # The comma is the sentence's own punctuation and goes in the msgid, where
+    # Persian can spell it `،`.
+    gettext("%{day}, %{time}",
+      day: Kati.Screens.WhatFits.weekday(now),
+      time: Kati.Locale.time(now)
+    )
+  end
+
+  @doc false
+  # A weekday NAMED, with no day of the month beside it — the one shape
+  # `Kati.Locale` has no helper for: `weekday_initial/1` is a chart axis's
+  # single letter and `date/2`'s `:full` carries the day and the month as well.
+  # So the pick is here, over the same two tables those two read, exactly as
+  # `Kati.Screens.Meal`'s and `Kati.Screens.QuickAdd`'s own `weekday/1` do it.
+  @spec weekday(DateTime.t()) :: String.t()
+  def weekday(%DateTime{} = at) do
+    date = DateTime.to_date(at)
+
+    Kati.Locale.pick(
+      Kati.Time.day_name(date),
+      Kati.Calendar.Shamsi.weekday_name(Kati.Calendar.Shamsi.weekday_index(date))
+    )
   end
 
   @doc """
@@ -217,16 +262,69 @@ defmodule Kati.Screens.WhatFits do
 
       iex> Kati.Screens.WhatFits.window_label(600)
       "2 hr+"
+
+  Spelled out — `45 min`, not `45m` — because this is the 40pt display line and
+  the compact form belongs to the buttons under it. `%{n} min` is the msgid
+  `Kati.Screens.Series` and `Kati.Screens.Inbox` already write an episode's
+  length with; a window and a runtime are measured in the same minute and two
+  spellings of it is how two screens come to disagree.
   """
   @spec window_label(pos_integer()) :: String.t()
-  def window_label(600), do: "2 hr+"
-  def window_label(60), do: "1 hr"
-  def window_label(minutes), do: "#{minutes} min"
+  # The ceiling takes a context: `%{n} hr+` is one character from `%{n} hr` and
+  # `mix gettext.merge` would fuzzy-match it onto that entry, dropping the plus
+  # — which is the whole of what this window means.
+  def window_label(600),
+    do: pgettext("the largest window, a ceiling", "%{n} hr+", n: Kati.Locale.number(2))
+
+  def window_label(60), do: gettext("%{n} hr", n: Kati.Locale.number(1))
+  def window_label(minutes), do: gettext("%{n} min", n: Kati.Locale.number(minutes))
+
+  @doc """
+  The word on a window button, which is **not** its key.
+
+      iex> Kati.Screens.WhatFits.window_word("45m")
+      "45m"
+
+  `20m` was one string doing two jobs: `length_button/2` drew it and
+  `handle_tap/2` parsed it back out of the tag `window_20m`. Translating the
+  table would therefore have translated the tag — and with it the
+  `accessibility_id` `Mob.Renderer` derives from it — so a Persian device would
+  have had five nodes no device test could address. A key is what a control
+  *is*; a label is what it *says*. They are two things now.
+
+  The words are the app's own minute and hour msgids rather than five new ones:
+  `Kati.Screens.Library.runtime_line/1` and `Kati.Screens.Season`'s episode
+  runtime both spell a duration exactly this way already.
+  """
+  @spec window_word(String.t()) :: String.t()
+  def window_word("20m"), do: gettext("%{n}m", n: Kati.Locale.number(20))
+  def window_word("30m"), do: gettext("%{n}m", n: Kati.Locale.number(30))
+  def window_word("45m"), do: gettext("%{n}m", n: Kati.Locale.number(45))
+  def window_word("1h"), do: gettext("%{n}h", n: Kati.Locale.number(1))
+
+  # The ceiling's own context again, and for the same fuzzy-match reason
+  # `window_label/1` records.
+  def window_word("2h+"),
+    do: pgettext("the largest window, a ceiling", "%{n}h+", n: Kati.Locale.number(2))
+
+  # A key nobody drew a word for answers itself rather than raising: the table
+  # above is the only caller and a sixth window would be a code change, but a
+  # screen that crashes over a button label is the wrong way to find that out.
+  def window_word(key) when is_binary(key), do: key
 
   @doc false
-  def fits_label([]), do: "Nothing fits that window"
-  def fits_label([_one]), do: "1 episode fits"
-  def fits_label(fits), do: "#{length(fits)} episodes fit"
+  # The empty window keeps a sentence of its own. `ngettext/4` over zero would
+  # say *0 episodes fit*, and screen 96's rule — *never render a plausible
+  # looking zero* — is exactly about that shape.
+  def fits_label([]), do: gettext("Nothing fits that window")
+
+  def fits_label(fits) do
+    n = length(fits)
+
+    # Persian does not inflect a noun after a numeral, so both forms are
+    # `%{n} قسمت جا می‌شود`; English needs the two because the verb moves.
+    ngettext("%{n} episode fits", "%{n} episodes fit", n, n: Kati.Locale.number(n))
+  end
 
   @doc """
   The unwatched aired episodes that fit, longest first.
@@ -267,7 +365,10 @@ defmodule Kati.Screens.WhatFits do
       title: Kati.Screens.WhatFits.name_of(cached),
       seed: cached && cached.poster_path,
       meta: Kati.Screens.WhatFits.place(episode),
-      run: "#{episode.runtime_minutes}m",
+      # `Kati.Screens.Season`'s own msgid, which is `41m` in Latin and
+      # `۴۱ دقیقه` in Persian: the minute's abbreviation is a Latin convention
+      # and Persian writes the word out.
+      run: gettext("%{n}m", n: Kati.Locale.number(episode.runtime_minutes)),
       minutes: episode.runtime_minutes,
       tracked_id: tracked.id
     }
@@ -278,16 +379,29 @@ defmodule Kati.Screens.WhatFits do
 
   `Kati.Media.CachedEpisode` calls an invented placeholder *"a string a
   provider invented"*, and a special a source never placed has neither number.
+
+  `ف۳ · ق۲` under `:fa`, and the prefix is an abbreviation of a WORD — فصل for
+  a season, قسمت for an episode — so it is translated rather than kept as a
+  Latin initial. Three clauses rather than a join, because a sentence assembled
+  from pieces is one a translator cannot reorder: the pair is
+  `Kati.Screens.Library`'s own `S%{s} · E%{e}` and the two halves are the
+  contexts `Kati.Screens.Inbox` and `Kati.Screens.Season` already spell.
+
+  The season alone takes a context of its own: `S` in this app also means a
+  SPECIAL — `Kati.Screens.Season`'s `pgettext("special number", "S%{n}")` is
+  `و%{n}` — and one msgid cannot be both.
   """
   @spec place(CachedEpisode.t()) :: String.t()
-  def place(episode) do
-    [
-      episode.season_number && "S#{episode.season_number}",
-      episode.episode_number && "E#{episode.episode_number}"
-    ]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join(" · ")
-  end
+  def place(%{season_number: s, episode_number: e}) when is_integer(s) and is_integer(e),
+    do: gettext("S%{s} · E%{e}", s: Kati.Locale.number(s), e: Kati.Locale.number(e))
+
+  def place(%{season_number: s}) when is_integer(s),
+    do: pgettext("season number", "S%{s}", s: Kati.Locale.number(s))
+
+  def place(%{episode_number: e}) when is_integer(e),
+    do: pgettext("episode number", "E%{e}", e: Kati.Locale.number(e))
+
+  def place(_unplaced), do: ""
 
   @doc """
   The nearest film that does NOT fit, or nothing.
@@ -315,7 +429,22 @@ defmodule Kati.Screens.WhatFits do
           title: Kati.Screens.WhatFits.name_of(cached),
           seed: cached.poster_path,
           length: Kati.Screens.WhatFits.hours(m),
-          meta: "#{String.upcase(Kati.Screens.WhatFits.hours(m))} · #{m - minutes} MIN OVER",
+          # `String.upcase/1` is a LATIN operation — the Arabic script has no
+          # case at all — so the raise goes through `Kati.UI.eyebrow_label/1`,
+          # which is the one place this app asks whether the reader's script
+          # has a raised form. English is byte-for-byte the drawing's
+          # `1H 46M · 61 MIN OVER`; Persian is left unraised.
+          #
+          # The whole line is one msgid rather than a length glued to a tail,
+          # for the reason `over_label` gives: `MIN OVER` was a literal at the
+          # end of a Persian sentence.
+          meta:
+            Kati.UI.eyebrow_label(
+              gettext("%{length} · %{n} min over",
+                length: Kati.Screens.WhatFits.hours(m),
+                n: Kati.Locale.number(m - minutes)
+              )
+            ),
           # No column records a deferral — see `defer_pill/1` — so the row has
           # its film and not the board's offer.
           action: nil,
@@ -332,19 +461,30 @@ defmodule Kati.Screens.WhatFits do
 
       iex> Kati.Screens.WhatFits.hours(120)
       "2h"
+
+  `Kati.Screens.Library.runtime_line/1`'s three msgids rather than three more
+  of this app's own: a film's length is the same sentence on the shelf and in
+  this row, and two spellings of it is how two screens come to disagree.
+  Persian writes the units out — `۱ ساعت ۴۶ دقیقه` — so the digits convert with
+  them and the string is no longer a Latin run that needs isolating.
   """
   @spec hours(pos_integer()) :: String.t()
   def hours(minutes) do
     case {div(minutes, 60), rem(minutes, 60)} do
-      {0, m} -> "#{m}m"
-      {h, 0} -> "#{h}h"
-      {h, m} -> "#{h}h #{m}m"
+      {0, m} ->
+        gettext("%{n}m", n: Kati.Locale.number(m))
+
+      {h, 0} ->
+        gettext("%{n}h", n: Kati.Locale.number(h))
+
+      {h, m} ->
+        gettext("%{h}h %{m}m", h: Kati.Locale.number(h), m: Kati.Locale.number(m))
     end
   end
 
   @doc false
   def name_of(%{title: title}) when is_binary(title) and title != "", do: title
-  def name_of(_evicted), do: "Untitled"
+  def name_of(_evicted), do: gettext("Untitled")
 
   @doc false
   def series, do: Kati.Screens.WhatFits.shelf(@series_kinds)
@@ -421,13 +561,15 @@ defmodule Kati.Screens.WhatFits do
   over-budget row and its `61 MIN OVER` are four views of one window, and a
   screen that moved the buttons and left the rows is the thing this finding is.
   """
+  # `key` rather than `label`: what comes back off the tag is `@windows`' Latin
+  # key and never the word the button said — see `window_word/1`.
   @spec set_window(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
-  def set_window(socket, label) do
-    case List.keyfind(@windows, label, 0) do
+  def set_window(socket, key) do
+    case List.keyfind(@windows, key, 0) do
       nil ->
         socket
 
-      {_label, minutes} ->
+      {_key, minutes} ->
         socket
         |> Mob.Socket.assign(:window, minutes)
         |> Mob.Socket.assign(:tonight, Kati.Screens.WhatFits.tonight(minutes))
@@ -440,6 +582,11 @@ defmodule Kati.Screens.WhatFits do
   The row IS the answer to *what fits* — a list you cannot act on is a list you
   read and then go somewhere else to use — so the whole row is the target
   rather than a play disc the drawing does not draw.
+
+  The `back:` both pushes carry stays the English `What fits?`. It is a lookup
+  key rather than a drawn string — `Kati.Screens.Pushed.back_label/2` translates
+  it at render time and `back_vocabulary/0` is where its msgid is declared, so
+  a Persian word here would be a pill the catalogue cannot answer.
   """
   @spec open(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def open(socket, index) do
@@ -551,21 +698,31 @@ defmodule Kati.Screens.WhatFits do
   end
 
   @doc false
+  # The title's `-0.03` becomes `Kati.Locale.tracking/1` and gains a
+  # `max_lines={1}`: tracking prises apart the joins that make Persian legible,
+  # and `چه چیزی جا می‌شود؟` is four words where the English is two, so an
+  # uncapped display heading had room to wrap where the drawing has one line.
+  #
+  # `t.now` is set in mono, and `kati_mono.ttf` carries no Persian glyph — so
+  # the face asks the STRING rather than the reader: `Sunday, 21:40` off
+  # `Kati.Screens.WhatFits.Sample` is pure ASCII and keeps DM Mono, and
+  # `یک‌شنبه، ۲۱:۴۰` off `clock/0` takes Vazirmatn at the mono size.
   def header(t) do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="What fits?"
+        text={gettext("What fits?")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
       <Text
         text={t.now}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(t.now)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -583,6 +740,15 @@ defmodule Kati.Screens.WhatFits do
   does not get to hand another screen a control it cannot answer — the rule
   `Kati.Screens.Rating.scale_toggle/1` and `Kati.Screens.QuickAdd.kinds/2` both
   state for the rows they lend.
+
+  The `TIME YOU HAVE` line is `Kati.UI.eyebrow/2`'s recipe hand-rolled on
+  cream, so it takes all four of that function's locale questions rather than
+  the one the audit caught: `String.upcase/1` is a Latin operation and becomes
+  `Kati.UI.eyebrow_label/1`, `kati_mono.ttf` has no Arabic glyph so the face
+  becomes `Kati.Locale.mono_face/0`, `.16em` is a small-caps effect that breaks
+  Persian's joins so the tracking becomes `Kati.Locale.tracking/1`, and
+  Vazirmatn wants 11pt semibold where DM Mono wants 10.5 normal. All four are
+  no-ops in Latin, so the cream card draws exactly as it did.
   """
   @spec window(map(), boolean()) :: map()
   def window(t, live? \\ false) do
@@ -596,10 +762,11 @@ defmodule Kati.Screens.WhatFits do
         padding={19}
       >
         <Text
-          text={String.upcase("Time you have")}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={Kati.UI.eyebrow_label(gettext("Time you have"))}
+          font_family={Kati.Locale.mono_face()}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.cream_meta()}
         />
         <Spacer size={8} />
@@ -607,8 +774,9 @@ defmodule Kati.Screens.WhatFits do
           text={t.window}
           text_size={40}
           font_weight="extrabold"
-          letter_spacing={-0.04}
+          letter_spacing={Kati.Locale.tracking(-0.04)}
           text_color={:on_surface}
+          max_lines={1}
         />
         <Spacer size={16} />
         <Row fill_width={true} align="center">
@@ -664,12 +832,20 @@ defmodule Kati.Screens.WhatFits do
   # are already in is how somebody checks which one that is, and a button that
   # goes dead once chosen stops answering exactly when it is pressed to be sure.
   # The rule screen 35's status tiles and screen 34's order tiles both keep.
+  #
+  # The TAG comes off the row's `:key` and the label off its `:label` — see
+  # `window_word/1` for why those are two fields. `Map.get/3` rather than
+  # `l.key`, because `Kati.Screens.WhatFits.Sample`'s rows carry only the pair
+  # they always did and screen 96 draws them through `window/1` with `live?`
+  # false, where no tag is built at all.
   @doc false
   def length_button(l, live? \\ false) do
     bg = if l.selected, do: Palette.ink_fill(), else: Palette.cream_raise()
     fg = if l.selected, do: Palette.on_ink(), else: Palette.cream_sub()
 
-    assigns = %{tap: if(live?, do: {self(), String.to_atom("window_" <> l.label)})}
+    assigns = %{
+      tap: if(live?, do: {self(), String.to_atom("window_" <> Map.get(l, :key, l.label))})
+    }
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
@@ -751,15 +927,44 @@ defmodule Kati.Screens.WhatFits do
       ~MOB"<Spacer size={0} />"
     else
       Kati.Screens.NothingSetUpKnockOn.prompt(
-        t.fits_label <> " — 0 you can watch",
-        "Kati can size the gap but not fill it. Set up your services and this " <>
-          "becomes a shortlist instead of a count.",
+        Kati.Screens.WhatFits.unfiltered_title(t),
+        gettext(
+          "Kati can size the gap but not fill it. Set up your services and this becomes a shortlist instead of a count."
+        ),
         :my_services_what_fits
       )
     end
   end
 
+  @doc """
+  The band's own heading: how many fit, and how many of those you can reach.
+
+  Board 96's msgid rather than `fits_label/1` glued to a second half.
+  `t.fits_label <> " — 0 you can watch"` built one sentence out of two pieces,
+  which under `:fa` came out as a translated count followed by an English tail
+  and a Latin zero — and no translator can move a hole that is not in the
+  msgid. Screen 96 draws this very band with this very sentence, so it is one
+  entry and the two pages cannot come to word it differently.
+
+  The empty window keeps `fits_label/1`'s own sentence instead. `0 episodes fit
+  — 0 you can watch` is the plausible-looking zero screen 96's rule is about;
+  *Nothing fits that window* is the honest form of the same fact.
+  """
+  @spec unfiltered_title(map()) :: String.t()
+  def unfiltered_title(%{fits: []} = t), do: t.fits_label
+
+  def unfiltered_title(t) do
+    gettext("%{fit} episodes fit — %{watchable} you can watch",
+      fit: Kati.Locale.number(length(t.fits)),
+      watchable: Kati.Locale.number(0)
+    )
+  end
+
   @doc false
+  # Both mono slots ask the STRING rather than the reader which face to take:
+  # `ف۳ · ق۲` and `۴۱ دقیقه` have no glyph in `kati_mono.ttf` and would be
+  # handed to Android's own substitute face, while a row off
+  # `Kati.Screens.WhatFits.Sample` is still pure ASCII and keeps DM Mono.
   def fit_row(row, index \\ nil) do
     assigns = %{tap: Kati.Screens.WhatFits.row_tap(row, index)}
 
@@ -790,7 +995,7 @@ defmodule Kati.Screens.WhatFits do
           <Spacer size={4} />
           <Text
             text={row.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.meta)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -799,7 +1004,7 @@ defmodule Kati.Screens.WhatFits do
         <Spacer size={12} />
         <Text
           text={row.run}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(row.run)}
           text_size={12}
           font_weight="medium"
           text_color={:on_surface}
@@ -850,7 +1055,7 @@ defmodule Kati.Screens.WhatFits do
         <Spacer size={4} />
         <Text
           text={row.meta}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(row.meta)}
           text_size={10.5}
           text_color={Palette.tertiary()}
           max_lines={1}

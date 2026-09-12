@@ -10,9 +10,33 @@ defmodule Kati.Screens.PlanImport do
   last of the four steps. Screen 50 is the other half of the same sentence — it
   exports the document this screen opens — so the card at the top does not invent
   a file name: `plan/0` reads `Kati.Meals.SampleShare.share/0`, and the mono line
-  under *Cutting v3* is the same `KATI://PLAN/CUTTING-V3 · 35 MEALS` screen 50
-  prints under its QR code. If export's copy moves, this screen stops agreeing
-  with it at compile time rather than at read time.
+  under *Cutting v3* is the same `KATI://PLAN/CUTTING-V3 · SETTINGS ONLY` screen
+  50 prints under its QR code. If export's copy moves, this screen stops agreeing
+  with it at compile time rather than at read time. (The scope half read
+  `· 35 MEALS` until board 316 found the payload did not fit a QR; this sentence
+  said so for a while after `Kati.Meals.SampleShare.qr_uri` had stopped.)
+
+  ## What stays in Latin under `:fa`, and why each one does
+
+  mishka-group/kati#103 folds this board rather than mirroring it, so the page
+  below is one drawing read in two scripts. Three runs do not convert:
+
+    * **`KATI://PLAN/CUTTING-V3 · SETTINGS ONLY`** — a URI, and
+      `Kati.Screens.PlanShare.qr_card/1` already declined to take it apart:
+      *"two copies of one URI is how that claim quietly stops being true"*.
+      `SETTINGS ONLY` is `Kati.Meals.SampleShare.qr_scope/0`'s word and is
+      therefore left alone on the code arrival too, where `plan(:code)` folds
+      only the frame around it — a scope translated on one arrival and not the
+      other is one scope spelled two ways.
+    * **The four rows of `Kati.Meals.SampleShare.carried/0`** are looked up by
+      `carried_title/1` and `carried_sub/1` rather than in the module that
+      holds them, because a msgid has to be a literal at its call site. That is
+      the arrangement `Kati.Screens.PlanShare.row_title/1` and
+      `Kati.Screens.MealReminders.copy/1` already use, catch-all clause and
+      all, so the day that module folds nothing here has to be undone.
+    * **The counts keep their DM Mono look and lose it in Persian**, because
+      `kati_mono.ttf` carries no U+06F0–U+06F9 and `Kati.Locale.mono_face/0`
+      hands Vazirmatn the digits `Kati.Locale.number/1` converted.
 
   ## What is literally screen 37's, and what is re-drawn
 
@@ -172,9 +196,9 @@ defmodule Kati.Screens.PlanImport do
         {Kati.Screens.PlanImport.steps(job.plan)}
         {Kati.Screens.PlanImport.title(job.plan)}
         {Kati.Screens.PlanImport.source_card(job.plan)}
-        {UI.eyebrow("What the code carries")}
+        {UI.eyebrow(gettext("What the code carries"))}
         {Kati.Screens.PlanImport.carried(job.carried)}
-        {UI.eyebrow("What will happen")}
+        {UI.eyebrow(gettext("What will happen"))}
         {Kati.Screens.PlanImport.count_row(job.counts)}
         {Kati.Screens.PlanImport.footer()}
       </Column>
@@ -198,11 +222,11 @@ defmodule Kati.Screens.PlanImport do
         {Kati.Screens.PlanImport.steps(job.plan)}
         {Kati.Screens.PlanImport.title(job.plan)}
         {Kati.Screens.PlanImport.source_card(job.plan)}
-        {UI.eyebrow("What will happen")}
+        {UI.eyebrow(gettext("What will happen"))}
         {Kati.Screens.PlanImport.count_row(job.counts)}
-        {UI.eyebrow("Conflicts · keep which?")}
+        {UI.eyebrow(gettext("Conflicts · keep which?"))}
         {Kati.Screens.PlanImport.conflict(job.conflict)}
-        {SettingsList.eyebrow_muted("Coming in as-is")}
+        {SettingsList.eyebrow_muted(gettext("Coming in as-is"))}
         {Kati.Screens.PlanImport.as_is(job.as_is)}
         {Kati.Screens.PlanImport.footer()}
       </Column>
@@ -232,13 +256,33 @@ defmodule Kati.Screens.PlanImport do
   # deliver"* — so the header verb loses its number, the mono line says where
   # the plan came from, and the meter is two steps rather than four: there is
   # no conflict queue to walk.
+  #
+  # mishka-group/kati#103. `Set up` is two words and `Set up your services to
+  # see where this is streaming` is already in the catalogue, which is exactly
+  # the distance `mix gettext.merge` fuzzy-matches across — so the pill's verb
+  # takes a context. The Persian is برپاسازی, the word screen 50's
+  # *Scan to set up this plan* already uses for this same act, rather than
+  # راه‌اندازی, which the app spends on a SERVICE being connected.
   def plan(:code) do
     share = SampleShare.share()
 
     %{
-      action: "Set up",
-      name: share.plan,
-      uri: "FROM A CODE · " <> SampleShare.qr_scope(),
+      action: pgettext("the import action for a scanned plan", "Set up"),
+      name: Kati.Screens.PlanImport.plan_name(share.plan),
+      # `SETTINGS ONLY` STAYS LATIN AND ONLY THE FRAME AROUND IT FOLDS.
+      #
+      # The word is `Kati.Meals.SampleShare.qr_scope/0`'s, and screen 50 prints
+      # the same one inside `KATI://PLAN/CUTTING-V3 · SETTINGS ONLY` and
+      # deliberately leaves it — *"two copies of one URI is how that claim
+      # quietly stops being true"*. A scope translated on this screen and not
+      # on that one is the same scope spelled two ways in one app, which is the
+      # defect the provider-name rule exists to stop; it is also the same word
+      # the file arrival above prints in Latin. So it comes in as a hole.
+      #
+      # `Kati.Locale.ltr/1` around it because it is now a Latin run inside a
+      # Persian line: without the isolate the bidi algorithm resolves the `·`
+      # against the paragraph and lands it on the wrong edge of the scope.
+      uri: gettext("FROM A CODE · %{scope}", scope: Kati.Locale.ltr(SampleShare.qr_scope())),
       steps: 2,
       step: 2
     }
@@ -247,8 +291,43 @@ defmodule Kati.Screens.PlanImport do
   def plan(_file) do
     share = SampleShare.share()
 
-    %{action: "Import 35", name: share.plan, uri: share.qr_uri, steps: 4, step: 3}
+    %{
+      # The `35` comes out of the pill and back in as an interpolation, for the
+      # reason `Kati.Screens.PlanShare.qr_body/1` gives about the same figure:
+      # a Latin `35` on a Shamsi page is the thing `Kati.Locale.number/1`
+      # exists to stop. A context because `Import`, `Import a file` and
+      # `Import a plan` are all in the catalogue already and a two-token msgid
+      # would be merged onto one of them.
+      action:
+        pgettext("the import action pill, with its meal count", "Import %{n}",
+          n: Kati.Locale.number(35)
+        ),
+      name: Kati.Screens.PlanImport.plan_name(share.plan),
+      uri: share.qr_uri,
+      steps: 4,
+      step: 3
+    }
   end
+
+  @doc """
+  The plan's name, in the reader's language.
+
+  `Kati.Meals.SampleShare` holds the string and is not folded, so the lookup
+  happens here — the arrangement `Kati.Screens.PlanShare.plan_name/1` and
+  `Kati.Screens.Plans.plan_name/1` already use over this same name, word for
+  word, because `gettext/1` needs a literal at the call site and a sample
+  module cannot be edited from a screen. `Cutting v3` is one plan and
+  `Kati.Meals.SamplePlan` opened the msgid; reusing it is what stops one plan
+  from having two Persian names across screens 44, 50 and 120.
+
+  Anything else is a name somebody typed, and comes back as it was given — so
+  the day `Kati.Meals.SampleShare` folds itself, the Persian it starts
+  returning falls through this clause untouched rather than being looked up a
+  second time.
+  """
+  @spec plan_name(String.t()) :: String.t()
+  def plan_name("Cutting v3"), do: gettext("Cutting v3")
+  def plan_name(other), do: other
 
   @doc """
   What the write would do, as three counts.
@@ -264,6 +343,18 @@ defmodule Kati.Screens.PlanImport do
   @spec counts(atom() | nil) :: [map()]
   def counts(from \\ nil)
 
+  # THE DIGITS CONVERT HERE AND THE COLOUR DOES NOT — and the two are different
+  # questions rather than an inconsistency in one function.
+  #
+  # `Kati.Theme.Palette` resolves against the theme installed at the moment it
+  # is called, which is why `tone` waits for `count_card/1`. A locale does not
+  # move under a mounted screen the way a theme does — `Kati.Screens.Language`
+  # restarts the frame — so `Kati.Locale.number/1` can answer at load, which is
+  # where `Kati.Backup.SampleRestore.counts/0` answers it for the three cards
+  # screen 132 hands to this screen's own `count_card/1`. Both lists therefore
+  # arrive already converted and the shared card stays a drawing rather than
+  # having to decide whether the figure it was handed is converted yet.
+
   # Board 316: *"120's counts read 0 new rather than 29, so the pre-write
   # summary matches what lands."* A code carries settings, so the write adds no
   # meal, merges none and conflicts with none — three zeroes that are the truth
@@ -271,17 +362,17 @@ defmodule Kati.Screens.PlanImport do
   # exactly this before the scan.
   def counts(:code) do
     [
-      %{value: "0", label: "New", tone: :ink},
-      %{value: "0", label: "Merged", tone: :green},
-      %{value: "0", label: "Conflicts", tone: :red}
+      %{value: Kati.Locale.number(0), label: gettext("New"), tone: :ink},
+      %{value: Kati.Locale.number(0), label: gettext("Merged"), tone: :green},
+      %{value: Kati.Locale.number(0), label: gettext("Conflicts"), tone: :red}
     ]
   end
 
   def counts(_file) do
     [
-      %{value: "29", label: "New", tone: :ink},
-      %{value: "4", label: "Merged", tone: :green},
-      %{value: "2", label: "Conflicts", tone: :red}
+      %{value: Kati.Locale.number(29), label: gettext("New"), tone: :ink},
+      %{value: Kati.Locale.number(4), label: gettext("Merged"), tone: :green},
+      %{value: Kati.Locale.number(2), label: gettext("Conflicts"), tone: :red}
     ]
   end
 
@@ -299,14 +390,37 @@ defmodule Kati.Screens.PlanImport do
   def conflict do
     %{
       icon: "restaurant",
-      title: "Overnight oats",
-      line: "Yours 410 kcal · file says 385 kcal",
+      # A CONTEXT ON THE MEAL NAME, BECAUSE THE CATALOGUE ALREADY HOLDS A
+      # LONGER ONE. `Overnight oats, berries` is `Kati.Meals.SampleToday`'s and
+      # is translated «جو دوسر شبانه با توت»; a bare `Overnight oats` is a
+      # strict prefix of it, which is precisely what `mix gettext.merge`
+      # fuzzy-matches — and a fuzzy entry does not render at all. The two names
+      # are the same dish and keep the same words; they are not the same msgid.
+      title: pgettext("a meal name", "Overnight oats"),
+      # Both figures are named rather than the disagreement summarised, so the
+      # pills below are a choice between two known values — and both convert,
+      # because a Persian page that prints `410` beside «کالری» has stopped
+      # being one page. `kcal` is inside the msgid rather than appended: the
+      # catalogue writes the unit as a WORD, کالری, and Persian does not put it
+      # where English does.
+      line:
+        gettext("Yours %{mine} kcal · file says %{theirs} kcal",
+          mine: Kati.Locale.number(410),
+          theirs: Kati.Locale.number(385)
+        ),
       choices: [
         {:keep_mine, gettext("Keep mine"), true},
         {:take_file, gettext("Take file"), false},
         {:keep_both, gettext("Keep both"), false}
       ],
-      progress: "1 of 2 · apply to all"
+      # `Kati.Backup.SampleRestore.conflict/0` opened this msgid for the same
+      # line on screen 132 and the queue is a different length here, which is
+      # the whole reason both numbers are holes. One entry, two screens.
+      progress:
+        gettext("%{index} of %{total} · apply to all",
+          index: Kati.Locale.number(1),
+          total: Kati.Locale.number(2)
+        )
     }
   end
 
@@ -324,18 +438,55 @@ defmodule Kati.Screens.PlanImport do
   """
   @spec as_is() :: [map()]
   def as_is do
+    # `ngettext/4` ON BOTH TITLES, THOUGH BOTH FIGURES ARE FROZEN TODAY.
+    #
+    # `Kati.Screens.MealReminders.copy/1` takes the other reading for its own
+    # numbers and is right to: *15 minutes* and *5 meals* are the drawing's,
+    # and none of them is ever 1. These two are not that. They are counts of
+    # ROWS IN A FILE — the moduledoc says so, and names
+    # `Kati.Backup.inspect_file/1` as the shape that will produce them — so the
+    # day the staging exists, a file with one partial meal in it prints
+    # `1 meals with partial nutrition` out of a plain msgid and nothing fails.
+    # `Kati.Screens.Import.result_line/1` made the same call for its
+    # `%{n} conflict settled` and for the same reason.
+    #
+    # Persian does not inflect a noun after a numeral, so both plural forms are
+    # the one string — which is the catalogue's shape, not a duplicated
+    # mistake.
     [
       %{
         tone: :gold,
         icon: "help",
-        title: "7 meals with partial nutrition",
-        sub: "Arrive marked approximate, exactly as the sender had them"
+        title:
+          ngettext(
+            "%{n} meal with partial nutrition",
+            "%{n} meals with partial nutrition",
+            7,
+            n: Kati.Locale.number(7)
+          ),
+        sub: gettext("Arrive marked approximate, exactly as the sender had them")
       },
       %{
         tone: :paper,
         icon: "label",
-        title: "12 ingredients with no aisle",
-        sub: "Filed as Uncategorised — they still reach the shopping list"
+        title:
+          ngettext(
+            "%{n} ingredient with no aisle",
+            "%{n} ingredients with no aisle",
+            12,
+            n: Kati.Locale.number(12)
+          ),
+        # `Uncategorised` COMES OUT OF THE SENTENCE, because it is a LABEL the
+        # reader meets elsewhere and not a word in this line. Screen 119's
+        # aisle chips print `pgettext("aisle", "Uncategorised")`, and an
+        # ingredient filed under a word this sentence spells its own way is an
+        # ingredient the reader cannot then find on the shopping screen. The
+        # moduledoc's point stands unchanged: the copy is the drawing's
+        # `Uncategorised` rather than `Kati.Meals.Aisle.label/1`'s `Other`.
+        sub:
+          gettext("Filed as %{aisle} — they still reach the shopping list",
+            aisle: pgettext("aisle", "Uncategorised")
+          )
       }
     ]
   end
@@ -373,27 +524,51 @@ defmodule Kati.Screens.PlanImport do
   cannot disagree — a meter showing three of four over a line reading step 2 is
   the kind of wrong that survives review because both halves look right alone.
 
-  `~MOB` is an uppercase sigil, so `#{}` inside it is literal text; the string is
-  assembled out here for that reason and not by preference.
+  `~MOB` is an uppercase sigil, so `\#{}` inside it is literal text; the string
+  is assembled out here for that reason and not by preference — and now for a
+  second one, which would have forced it anyway: a msgid has to be a literal at
+  the call site, so the two numbers cannot be interpolated into the string
+  before `gettext/2` sees it. They go in as holes instead, which is also what
+  lets Persian put گام in front of them and از between them.
   """
   @spec title(map()) :: term()
   def title(plan) do
-    kicker = "STEP #{plan.step} OF #{plan.steps}"
+    # A CONTEXT, THOUGH FOUR TOKENS IS NOT SHORT. `STEP %{step} OF %{total} ·
+    # PICK ONE AND KATI DOES THE MAPPING` is already in the catalogue for
+    # screen 141's source picker, and this msgid is a strict prefix of it —
+    # the closest thing to a guaranteed `mix gettext.merge` fuzzy match there
+    # is. A fuzzy entry does not render, so the kicker would have come out
+    # English on a Persian page with nothing failing.
+    #
+    # The headline loses its tracking and gains a line limit, the same two
+    # changes `Kati.Screens.Import.title/1` made to the same 28pt slot:
+    # `-0.03em` tightens `Import a plan` and BREAKS the joins between the
+    # letters of «درون‌ریزی یک برنامه», which Vazirmatn draws as one connected
+    # word — so `Kati.Locale.tracking/1` spends it on one script only. And
+    # `max_lines={1}` because a display heading that wraps has changed the
+    # page's shape rather than its type size; every other one in the app
+    # carries it.
+    kicker =
+      pgettext("the step meter's kicker", "STEP %{step} OF %{total}",
+        step: Kati.Locale.number(plan.step),
+        total: Kati.Locale.number(plan.steps)
+      )
 
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Import a plan"
+        text={gettext("Import a plan")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={6} />
       <Text
         text={kicker}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(kicker)}
         text_size={11.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -436,7 +611,7 @@ defmodule Kati.Screens.PlanImport do
           <Spacer size={4} />
           <Text
             text={plan.uri}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(plan.uri)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -508,6 +683,12 @@ defmodule Kati.Screens.PlanImport do
   """
   @spec count_card(map()) :: term()
   def count_card(card) do
+    # The figure's tracking goes the way the headline's does. `-0.03em` is a
+    # Latin tightening and the Arabic-Indic digits are joined to nothing, but
+    # this card is shared — `Kati.Screens.Restore.count_row/1` draws its three
+    # through here — and a `value` that is one day a word rather than a figure
+    # would be tracked apart letter by letter. `Kati.Screens.Import.outcome_card/1`
+    # made the same call on the same slot.
     color =
       case card.tone do
         :ink -> Palette.ink()
@@ -529,7 +710,7 @@ defmodule Kati.Screens.PlanImport do
           font_family={Kati.Locale.mono_face()}
           text_size={22}
           font_weight="medium"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={color}
           text_align="center"
           max_lines={1}
@@ -594,7 +775,7 @@ defmodule Kati.Screens.PlanImport do
         <Spacer size={12} />
         <Text
           text={c.progress}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(c.progress)}
           text_size={10.5}
           text_color={Palette.cream_meta()}
           text_align="center"
@@ -646,7 +827,7 @@ defmodule Kati.Screens.PlanImport do
       |> Enum.map(fn {row, i} ->
         SettingsList.row(
           Kati.Screens.PlanImport.carried_tile(row.state),
-          SettingsList.body(row.title, row.sub, lines: 2),
+          SettingsList.body(carried_title(row), carried_sub(row), lines: 2),
           nil,
           rule: i < last
         )
@@ -659,6 +840,95 @@ defmodule Kati.Screens.PlanImport do
     </Column>
     """
   end
+
+  # THESE FOUR ROWS ARE `Kati.Meals.SampleShare.carried/0`'s AND ARE LOOKED UP
+  # HERE, NOT THERE.
+  #
+  # mishka-group/kati#103. That module is not folded, `gettext(some_variable)`
+  # does not compile, and a screen cannot reach into a domain module to add a
+  # msgid. So the screen matches the literal it was handed and answers with one
+  # — the arrangement `Kati.Screens.PlanShare.row_title/1`,
+  # `Kati.Screens.Plans.plan_name/1` and `Kati.Screens.MealReminders.copy/1`
+  # all use over the same kind of sample module. Every clause ends in a
+  # catch-all that returns the string it was given, so the day
+  # `Kati.Meals.SampleShare` folds itself the Persian it starts returning falls
+  # straight through rather than being looked up a second time.
+  #
+  # Matched on the TITLE rather than on `state`, against
+  # `Kati.Screens.PlanShare`'s preference — *the title is copy and copy is
+  # translated; the icon is the row's identity* — because three of these four
+  # rows share one `state` and `carried/0` gives them no icon to be told apart
+  # by. Giving those rows an identity is a change to `Kati.Meals.SampleShare`,
+  # not to this screen.
+  #
+  # `Targets`, `Reminders`, `Evening preview` and the macro line are msgids the
+  # catalogue already holds — screens 50, 51 and 49 draw them — so the code
+  # card says هدف‌ها exactly where the share card does.
+  defp carried_title(%{title: "Targets"}), do: gettext("Targets")
+
+  # A context on two words: screen 50's *What travels with it* already put
+  # `Reminder times` in the catalogue, and a pair of msgids that close is what
+  # `mix gettext.merge` fuzzy-matches together — onto an entry that then does
+  # not render at all.
+  defp carried_title(%{title: "Meal times"}),
+    do: pgettext("what a scanned plan's code carries", "Meal times")
+
+  defp carried_title(%{title: "Reminders"}), do: gettext("Reminders")
+
+  # The refused row, and the count is board 316's whole argument — *"the one
+  # thing a code-import must never do is print a meal count it cannot
+  # deliver"* — so it converts like every other figure on the page. A context
+  # because `%{n} meals` and `%{day} · %{count} meals` are both already msgids.
+  defp carried_title(%{title: "The 35 meals"}),
+    do:
+      pgettext("the one thing a scanned plan's code cannot carry", "The %{n} meals",
+        n: Kati.Locale.number(35)
+      )
+
+  defp carried_title(%{title: title}), do: title
+
+  # `2,100` groups with a LATIN comma in both scripts and converts its digits —
+  # board 59 draws ۱,۴۸۰ — and the macro initials are inside the msgid because
+  # they are letters: board 294 writes ۱۶۸پ ۲۱۰ک ۷۰چ. Both of those are
+  # `Kati.Screens.Plans.targets_line/1`'s findings and this is the same line,
+  # so it is the same msgid rather than a second one that could disagree.
+  defp carried_sub(%{sub: "2,100 kcal · 168P 210C 70F"}) do
+    gettext("%{kcal} kcal · %{protein}P %{carbs}C %{fat}F",
+      kcal: Kati.Locale.number("2,100"),
+      protein: Kati.Locale.number(168),
+      carbs: Kati.Locale.number(210),
+      fat: Kati.Locale.number(70)
+    )
+  end
+
+  # ONE MSGID WITH THREE HOLES RATHER THAN A JOIN. Persian puts تا where the
+  # drawing puts `to`, and a screen that concatenates a range has already
+  # decided where the word goes — `Kati.Screens.MealReminders` states the rule
+  # for its quiet-hours range. The clock times go through `Kati.Locale.time/1`
+  # so ۰۷:۳۰ needs no digit carried in a msgstr.
+  defp carried_sub(%{sub: "5 slots · 07:30 to 19:30"}) do
+    gettext("%{n} slots · %{from} to %{to}",
+      n: Kati.Locale.number(5),
+      from: Kati.Locale.time(~T[07:30:00]),
+      to: Kati.Locale.time(~T[19:30:00])
+    )
+  end
+
+  # Composed from two entries rather than opened as a third. `Evening preview`
+  # is screen 51's msgid for this same reminder, and a second copy of it inside
+  # a longer sentence is how one reminder ends up with two Persian names the
+  # day somebody edits one of them. The `·` sits between two runs of the
+  # reader's own script in either language.
+  defp carried_sub(%{sub: "Evening preview · 15 min before"}) do
+    gettext("Evening preview") <>
+      " · " <>
+      pgettext("a reminder's lead time", "%{n} min before", n: Kati.Locale.number(15))
+  end
+
+  defp carried_sub(%{sub: "Ask for the file — a code cannot hold them"}),
+    do: gettext("Ask for the file — a code cannot hold them")
+
+  defp carried_sub(%{sub: sub}), do: sub
 
   @doc false
   def carried_tile(:refused) do
@@ -765,14 +1035,40 @@ defmodule Kati.Screens.PlanImport do
   """
   @spec footer() :: term()
   def footer do
-    body = [text_size: 12.5, line_height: 1.6, text_color: Palette.cream_body()]
+    # `Kati.Locale.leading/1` RATHER THAN THE DRAWING'S 1.6, and it is the one
+    # behaviour change in this paragraph. Vazirmatn's metrics are not Plus
+    # Jakarta's — its ascenders carry the Persian marks — so 1.6 that is
+    # generous in Latin is tight enough in Persian for a زیر to touch the line
+    # above it. `Kati.Theme.fa_line_height/0` is the measured answer and this
+    # is the call site that spends it; the Latin number stays here so both are
+    # visible where they differ.
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      text_color: Palette.cream_body(),
+      # `base: true`, because the base style is otherwise the LONGEST run and
+      # translation is the one edit that moves lengths around. Without it a
+      # Persian that happened to make the emphasised clause the longest would
+      # hand the whole paragraph `:bold`'s style — no size, no colour — and
+      # `Kati.UI.rich_text/1` would fall back to 14pt `:on_surface` on a cream
+      # card. Its own doc asks for the mark in exactly this case.
+      base: true
+    ]
 
+    # THREE RUNS, THREE MSGIDS — not one sentence cut into thirds by accident.
+    # The split is the emphasis the export draws, `rich_text/1` keeps the runs
+    # so the day the bridge gains `runs` this paragraph starts rendering as
+    # drawn, and a translator needs all three to read as one sentence. The
+    # leading `.` on the third and the trailing space on the first are part of
+    # their msgids for that reason; `Kati.Screens.AddByHand`'s split note
+    # carries the same shape.
     paragraph =
       UI.rich_text([
-        {"The sender’s history, notes and ratings do not travel — ", body},
-        {"they never leave their device", :bold},
-        {". You are importing meals, targets and reminder times, and nothing about how they ate.",
-         body}
+        {gettext("The sender’s history, notes and ratings do not travel — "), body},
+        {gettext("they never leave their device"), :bold},
+        {gettext(
+           ". You are importing meals, targets and reminder times, and nothing about how they ate."
+         ), body}
       ])
 
     ~MOB"""

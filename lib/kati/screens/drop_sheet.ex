@@ -63,7 +63,7 @@ defmodule Kati.Screens.DropSheet do
   actually wraps them at the frame's own width — not a character count. Six
   labels rendered at `test/design/reference/149.html`'s own `402px` frame
   break after `Too long`: `Lost interest · Too slow · Not for me · Too long`,
-  then `Bad time for it · Might come back`. `Enum.chunk_every(@reasons, 4)`
+  then `Bad time for it · Might come back`. `Enum.chunk_every(reason_table(), 4)`
   is that break, not a coincidence — six items in fours is two rows of 4 and
   2 on any input this short, which is what the measurement gave back.
 
@@ -156,6 +156,59 @@ defmodule Kati.Screens.DropSheet do
   *before* the sheet that offers it is gone, and now it is readable before the
   drop as well.
 
+  ## What this sheet says in Persian, and what it only typesets
+
+  mishka-group/kati#103. Every string this file writes goes through
+  `gettext/1` or `pgettext/2` here — the header, the position card, the six
+  reason chips, both cards, both buttons and the undo pill — with `pgettext/2`
+  wherever the copy is short enough for `mix gettext.merge` to fuzzy-match it
+  onto a neighbour, which on a sheet made of buttons and chips is most of it.
+
+  Three strings it draws and does not own, each named where it is drawn rather
+  than left to be noticed:
+
+    * `The Quiet Ones` and `GONE COLD · 4 MONTHS` come off
+      `Kati.Screens.DropSheet.Sample`, which is board 149 typed once and is
+      that module's to translate — the same split `Kati.Screens.DropStates`
+      keeps with `Kati.Settings.DropStatesSample`, and for its reason: a msgid
+      has to be a literal at its own call site, so wrapping the specimen from
+      here would move the copy out of the specimen. A REAL title is a
+      `Kati.Media.CachedTitle` row and is never translated at all.
+    * the age inside that mark is `Kati.Screens.UpNext.age/1`'s bucket,
+      borrowed rather than re-typed — see `duration_of/1`.
+    * the refusal band's sentence is `Kati.Write.message/1`'s, and that module
+      already speaks both languages.
+
+  The typesetting is this file's either way, and it is the half that breaks
+  silently rather than loudly:
+
+    * `Kati.Locale.mono_face/1` on both mono slots. `kati_mono.ttf` carries no
+      Persian glyph and none of U+06F0–U+06F9, so `ف۱ ق۳` set in it is handed
+      to Android's own substitute face; the arity-1 form asks the STRING's
+      script, so `S1 E3` and a Latin `GONE COLD · 4 MONTHS` keep DM Mono.
+    * `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` on *Stopping at*
+      — the Arabic script has no case, so upper-casing **جای توقف** is a no-op
+      that reads as a decision.
+    * `Kati.Locale.tracking/1` on the card's `.14em` and on both tight
+      headings: letter-spacing is a Latin effect and pulls Persian letters
+      apart at their joins.
+    * `Kati.Locale.number/1` on the season and the episode, which is what makes
+      the position `ف۱ ق۳` rather than `ف1 ق3`.
+    * `Kati.Locale.ltr/1` on the title inside the undo pill's sentence. A
+      Latin name in a Persian sentence hands its own punctuation to the
+      paragraph's direction — *Dune: Part Two* comes back with the colon on
+      the wrong side of the name — and an isolate is Unicode's own answer.
+
+  ## The reason that is written down is the one the reader read
+
+  `reason_label/1` answers the six chips' own words, and under `:fa` those
+  words are Persian. That is deliberate and it is what this module already
+  said it was for — *"the words the reader read when they tapped it"* — and
+  `Kati.Media.Event.reason` is free text precisely so it can hold a sentence.
+  It does mean a drop made in one language keeps that language in the log
+  after the reader switches; the alternative is a column of English shown to
+  somebody who chose Persian, on a row that is their own history.
+
   ## Referent
 
   `gone_cold_title/1` reads the `status == :paused, archived == false` rows —
@@ -170,6 +223,7 @@ defmodule Kati.Screens.DropSheet do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
   require Ash.Query
 
@@ -181,16 +235,17 @@ defmodule Kati.Screens.DropSheet do
   alias Kati.UI.Eyebrow
   alias Kati.UI.Sheet
 
-  # The six reasons, in the board's own order — the order `Enum.chunk_every/2`
-  # below turns into the measured 4-then-2 wrap.
-  @reasons [
-    {:lost_interest, "Lost interest"},
-    {:too_slow, "Too slow"},
-    {:not_for_me, "Not for me"},
-    {:too_long, "Too long"},
-    {:bad_time, "Bad time for it"},
-    {:might_come_back, "Might come back"}
-  ]
+  # The six reasons' keys, in the board's own order — the order
+  # `Enum.chunk_every/2` below turns into the measured 4-then-2 wrap.
+  #
+  # The KEYS only. The labels were here too, in one `@reasons` attribute, and
+  # they cannot stay: `gettext/1` inside a module attribute is evaluated when
+  # the module is COMPILED, so the six words would freeze in whichever locale
+  # the compiler happened to be in and every reader after that would get that
+  # one. `reason_table/0` is the same six with their labels, evaluated per
+  # call — which is per render, which is what a locale that changes while the
+  # app is running needs. mishka-group/kati#103.
+  @reason_keys [:lost_interest, :too_slow, :not_for_me, :too_long, :bad_time, :might_come_back]
 
   # The six chips' tap tags, as atoms.
   #
@@ -205,7 +260,28 @@ defmodule Kati.Screens.DropSheet do
   # to sit among five sibling clauses that match specific atoms, and a guard
   # is the only way to match *these six* without swallowing `:drop` and
   # `:keep` on the way past.
-  @reason_tags Enum.map(@reasons, fn {key, _label} -> :"reason_#{key}" end)
+  @reason_tags Enum.map(@reason_keys, fn key -> :"reason_#{key}" end)
+
+  # The six, with the words the board draws on them.
+  #
+  # `pgettext/2` on all six rather than `gettext/1`, and one shared context
+  # rather than six: every label here is two or three words, which is exactly
+  # the length `mix gettext.merge`'s fuzzy matcher hands to whatever sentence
+  # it half-resembles — *Too long* against `Kati.Screens.WeekImage`'s "The page
+  # took too long to capture", say. The context is also the frame a translator
+  # needs, because
+  # none of the six is a sentence: they are the ends of *I dropped it because…*
+  # and read as adjectives without that.
+  defp reason_table do
+    [
+      {:lost_interest, pgettext("why a show was dropped", "Lost interest")},
+      {:too_slow, pgettext("why a show was dropped", "Too slow")},
+      {:not_for_me, pgettext("why a show was dropped", "Not for me")},
+      {:too_long, pgettext("why a show was dropped", "Too long")},
+      {:bad_time, pgettext("why a show was dropped", "Bad time for it")},
+      {:might_come_back, pgettext("why a show was dropped", "Might come back")}
+    ]
+  end
 
   @impl true
   def mount(params, _session, socket) do
@@ -307,7 +383,14 @@ defmodule Kati.Screens.DropSheet do
       tracked: tracked,
       title: title_of(cached),
       seed: seed_of(cached),
-      cold_label: "GONE COLD · " <> duration_of(tracked.last_touched_at),
+      # The half of this line the screen owns. The age inside it is
+      # `Kati.Screens.UpNext`'s and stays Latin until that screen folds — see
+      # `duration_of/1` — so under `:fa` the mark reads **سردشده · 4 MONTHS**,
+      # which is one word short of translated rather than a line of English.
+      cold_label:
+        pgettext("the cold mark over the title being dropped", "GONE COLD · %{age}",
+          age: duration_of(tracked.last_touched_at)
+        ),
       # MOVIES-AND-TV.md #110. A film has no episode to have stopped after, so
       # it carries no position at all rather than a manufactured `S1 E1` — and
       # `position_card/1` draws nothing for it. Inventing a position would put
@@ -327,8 +410,13 @@ defmodule Kati.Screens.DropSheet do
     _ -> nil
   end
 
-  defp title_of(nil), do: "Untitled"
-  defp title_of(%CachedTitle{title: nil}), do: "Untitled"
+  # The msgid `Kati.Screens.Activity`, `Kati.Screens.Stats` and
+  # `Kati.Screens.SeriesSettings` already draw for the same gap — **بی‌عنوان**
+  # — rather than a second Persian word for a title Kati has no name for. The
+  # title BESIDE these two clauses is a cache row and is never translated: a
+  # show is called what it is called.
+  defp title_of(nil), do: gettext("Untitled")
+  defp title_of(%CachedTitle{title: nil}), do: gettext("Untitled")
   defp title_of(%CachedTitle{title: title}), do: title
 
   defp seed_of(nil), do: nil
@@ -339,6 +427,16 @@ defmodule Kati.Screens.DropSheet do
   # what this line wants too. The board's own words are "GONE COLD · 4 MONTHS,"
   # not "… 4 MONTHS AGO," so the one word `age/1` adds for its own sentence
   # comes back off for this one.
+  #
+  # mishka-group/kati#103: those nine buckets are `Kati.Screens.UpNext`'s copy
+  # and are that screen's to translate. A msgid has to be a literal at its own
+  # call site, so the only way to say *4 MONTHS* in Persian from here is to
+  # re-type the whole table — and two answers to *how long ago* is exactly the
+  # drift `age/1` was made public to prevent. It stays borrowed, and stays
+  # Latin under `:fa` until `Kati.Screens.UpNext` folds. When it does, this
+  # suffix strip stops matching — Persian has no " AGO" to remove — and the
+  # mark reads *سردشده · ۴ ماه پیش*, which is a redundant word rather than a
+  # wrong one, and is that screen's edit to make beside its own.
   defp duration_of(at), do: String.replace_suffix(Kati.Screens.UpNext.age(at), " AGO", "")
 
   @doc """
@@ -451,6 +549,10 @@ defmodule Kati.Screens.DropSheet do
   holding `:too_slow` for one row and a sentence for the next is two columns
   wearing one name.
 
+  Under `:fa` those words are Persian, which is the moduledoc's own section on
+  this and not an accident of wrapping the chips: the log is the reader's own
+  history and it is written in the language they were reading.
+
       iex> Kati.Screens.DropSheet.reason_label(:too_slow)
       "Too slow"
 
@@ -461,7 +563,7 @@ defmodule Kati.Screens.DropSheet do
   def reason_label(nil), do: nil
 
   def reason_label(key) do
-    Enum.find_value(@reasons, fn {k, label} -> if k == key, do: label end)
+    Enum.find_value(reason_table(), fn {k, label} -> if k == key, do: label end)
   end
 
   @doc """
@@ -533,7 +635,7 @@ defmodule Kati.Screens.DropSheet do
           {Sheet.header(Kati.Screens.DropSheet.heading(s))}
           {Kati.Screens.DropSheet.identity(s)}
           {Kati.Screens.DropSheet.position_card(s)}
-          {Eyebrow.quiet("Why, if you like")}
+          {Eyebrow.quiet(gettext("Why, if you like"))}
           {Kati.Screens.DropSheet.reasons(assigns.reason)}
           {Kati.Screens.DropSheet.info_card()}
           {Kati.Screens.DropSheet.keep_card()}
@@ -569,7 +671,24 @@ defmodule Kati.Screens.DropSheet do
     """
   end
 
-  @doc false
+  @doc """
+  The poster, the title and the cold mark.
+
+  Neither string is this screen's to translate — the title is a
+  `Kati.Media.CachedTitle` row and the mark is built in `from_tracked/1` — but
+  both are this screen's to typeset, and both can arrive in Persian:
+
+    * `Kati.Locale.tracking/1` on the title's `-0.015em`. A Persian title is
+      the same case as any other heading here — tightening a Latin face by a
+      fraction of an em is a typographic tradition the Arabic script does not
+      have, and Vazirmatn is not drawn for it.
+    * `Kati.Locale.mono_face/1` on the mark, arity 1 so the STRING decides:
+      `GONE COLD · 4 MONTHS` is pure Latin and keeps DM Mono, and
+      **سردشده · 4 MONTHS** takes Vazirmatn at the same size rather than being
+      handed to Android's own substitute face. `kati_mono.ttf` has no glyph
+      for either half of that word.
+  """
+  @spec identity(map()) :: map()
   def identity(s) do
     ~MOB"""
     <Column fill_width={true}>
@@ -581,14 +700,14 @@ defmodule Kati.Screens.DropSheet do
             text={s.title}
             text_size={14.5}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={s.cold_label}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(s.cold_label)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -628,6 +747,24 @@ defmodule Kati.Screens.DropSheet do
   `nil` the button read **Drop at S E** and the pill **Dropped Dune at S E** —
   a position with the numbers missing, which is worse than no position.
 
+  ## A phrase, and why the two sentences interpolate it rather than adding words
+
+  `actions/1` and `undo_pill/2` each hold ONE msgid with a `%{at}` in it, and
+  this is what goes in. That is deliberate: a phrase can be placed, and a word
+  cannot. `Drop` + `at` + `S1 E3` bolted together left to right is an English
+  sentence built out of three English facts, and the Persian for it puts the
+  position before the verb — *رهاکردن در ف۱ ق۳* — which a translator can write
+  only if the whole position arrives as one piece they are free to move.
+
+  Keeping it one function is also what keeps #110 fixed in one place: the film
+  guard is here, so a title with no position collapses both sentences rather
+  than one of them.
+
+  The leading space is added at the CALL SITE below and is not part of the
+  msgid. `Kati.Screens.AnimeFilter` gives the reason for the same split: a
+  msgid with a space on either end is a msgid a translator silently trims, and
+  the trim shows up as two words run together on a page nobody reads twice.
+
       iex> Kati.Screens.DropSheet.at(%{season: 1, episode: 3})
       " at S1 E3"
 
@@ -635,7 +772,14 @@ defmodule Kati.Screens.DropSheet do
       ""
   """
   @spec at(map()) :: String.t()
-  def at(%{season: s, episode: e}) when is_integer(s) and is_integer(e), do: " at S#{s} E#{e}"
+  def at(%{season: s, episode: e}) when is_integer(s) and is_integer(e) do
+    " " <>
+      pgettext("the position a drop is captured at, inside a sentence", "at S%{s} E%{e}",
+        s: Kati.Locale.number(s),
+        e: Kati.Locale.number(e)
+      )
+  end
+
   def at(_sheet), do: ""
 
   @doc """
@@ -645,6 +789,12 @@ defmodule Kati.Screens.DropSheet do
   film could not use it as drawn — the ledger's own note said *149 cannot be
   reused as drawn*. It can, once the two things that are actually about
   episodes come off it: this word, and the position card.
+
+  Plain `gettext/1` on both, and `Drop this show` deliberately shares its msgid
+  with `Kati.Screens.Series`'s own menu row — **رهاکردن این سریال** — rather
+  than minting a contexted twin. An exact msgid always beats a fuzzy one, and
+  a second Persian word for the one thing this sheet does would be the app
+  disagreeing with the row that opened it.
 
       iex> Kati.Screens.DropSheet.heading(%{kind: :movie})
       "Drop this film"
@@ -656,8 +806,8 @@ defmodule Kati.Screens.DropSheet do
       "Drop this show"
   """
   @spec heading(map()) :: String.t()
-  def heading(%{kind: :movie}), do: "Drop this film"
-  def heading(_sheet), do: "Drop this show"
+  def heading(%{kind: :movie}), do: gettext("Drop this film")
+  def heading(_sheet), do: gettext("Drop this show")
 
   @doc """
   Where the reader had got to — or nothing, on a film.
@@ -672,6 +822,29 @@ defmodule Kati.Screens.DropSheet do
   def position_card(%{episode: nil}), do: ~MOB"<Spacer size={0} />"
 
   def position_card(s) do
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: the Arabic
+    # script has no case, so upper-casing **جای توقف** does nothing to it and
+    # reads as a decision somebody made. `pgettext/2` because two words is
+    # under the line where `mix gettext.merge` stops fuzzy-matching, and
+    # because *stopping* alone is a word this app also uses about a timer.
+    label = pgettext("the card holding the position a drop captures", "Stopping at")
+
+    # The msgid `Kati.Screens.Stats` already draws — **ف%{s} ق%{e}**, ف for
+    # فصل and ق for قسمت — so a position is spelled one way on every board
+    # that names one. Plain `gettext/1` precisely BECAUSE the msgid exists: an
+    # exact match always beats a fuzzy one, and a contexted twin here would be
+    # a second Persian abbreviation for the same two nouns.
+    #
+    # `Kati.Locale.number/1` on both, and `mono_face/1` follows the result
+    # rather than the reader: `S1 E3` is pure ASCII and stays in DM Mono at the
+    # drawing's own 20pt, and `ف۱ ق۳` cannot — `kati_mono.ttf` carries neither
+    # the letters nor U+06F0–U+06F9.
+    position =
+      gettext("S%{s} E%{e}",
+        s: Kati.Locale.number(s.season),
+        e: Kati.Locale.number(s.episode)
+      )
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -684,20 +857,20 @@ defmodule Kati.Screens.DropSheet do
       >
         <Column>
           <Text
-            text={String.upcase("Stopping at")}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(label)}
+            font_family={Kati.Locale.mono_face(label)}
             text_size={10}
-            letter_spacing={0.14}
+            letter_spacing={Kati.Locale.tracking(0.14)}
             text_color={Palette.eyebrow()}
             max_lines={1}
           />
           <Spacer size={7} />
           <Text
-            text={"S#{s.season} E#{s.episode}"}
-            font_family="mono"
+            text={position}
+            font_family={Kati.Locale.mono_face(position)}
             text_size={20}
             font_weight="medium"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -758,7 +931,10 @@ defmodule Kati.Screens.DropSheet do
   @doc "The reason a tap tag names, or `nil` when the tag is not one of the six."
   @spec reason_for(atom()) :: atom() | nil
   def reason_for(tag) when is_atom(tag) do
-    Enum.find_value(@reasons, fn {key, _label} ->
+    # `@reason_keys` and not `reason_table/0`: a tap carries a key and answers
+    # with a key, so looking the six labels up — which now means six catalogue
+    # reads — to throw all six away would be work for nothing.
+    Enum.find_value(@reason_keys, fn key ->
       if Kati.Screens.DropSheet.reason_tag(key) == tag, do: key
     end)
   end
@@ -767,7 +943,7 @@ defmodule Kati.Screens.DropSheet do
   @spec reasons(atom() | nil) :: map()
   def reasons(selected) do
     rows =
-      @reasons
+      reason_table()
       |> Enum.chunk_every(4)
       |> Enum.map(fn row -> Kati.Screens.DropSheet.reason_row(row, selected) end)
       |> Enum.intersperse(~MOB"<Box fill_width={true} height={7} />")
@@ -799,16 +975,46 @@ defmodule Kati.Screens.DropSheet do
     """
   end
 
-  @doc "The dashed card: one tap, never mandatory."
+  @doc """
+  The dashed card: one tap, never mandatory.
+
+  Three runs, three msgids, and the spaces between them are added at the call
+  site rather than carried inside one — see `at/1` for why a msgid does not
+  keep its own edges. The first two take `pgettext/2` because neither is long
+  enough to be safe alone; the third is a whole sentence and needs nothing.
+
+  `Kati.Locale.leading/1` rather than the drawing's flat 1.65: Vazirmatn's
+  ascenders and the diacritics above them are not Plus Jakarta's, and this is
+  the longest paragraph on the sheet. `base: true` stays where it was, on the
+  first run, which is what keeps the paragraph body-weight when Persian
+  changes which run is longest — `Kati.UI.rich_text/1` picks the longest
+  otherwise, and that is a fact about English rather than about the sentence.
+  """
   @spec info_card() :: map()
   def info_card do
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.ink_soft()
+    ]
+
+    strong = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      font_weight: "semibold",
+      text_color: :on_surface
+    ]
+
+    tail =
+      gettext(
+        "— a required reason is a reason people lie about. A drop with no chip is complete, not unfinished."
+      )
+
     runs = [
-      {"One tap, ",
-       [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft(), base: true]},
-      {"never mandatory",
-       [text_size: 12.5, line_height: 1.65, font_weight: "semibold", text_color: :on_surface]},
-      {" — a required reason is a reason people lie about. A drop with no chip is complete, not unfinished.",
-       [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft()]}
+      {pgettext("the drop sheet's info card, before its bolded run", "One tap,") <> " ",
+       Keyword.put(body, :base, true)},
+      {pgettext("the drop sheet's info card, its bolded run", "never mandatory"), strong},
+      {" " <> tail, body}
     ]
 
     ~MOB"""
@@ -832,16 +1038,49 @@ defmodule Kati.Screens.DropSheet do
     """
   end
 
-  @doc "The cream-less card: keeping it clears Gone cold and nothing else."
+  @doc """
+  The cream-less card: keeping it clears Gone cold and nothing else.
+
+  Same three-run shape as `info_card/0`, and the same argument for the spaces,
+  for `base: true` and for `Kati.Locale.leading/1`.
+
+  The middle run is the OTHER button's words, so it goes through
+  `Kati.Locale.quoted/1` rather than carrying `“` and `”` inside its msgid.
+  Persian quotes with the guillemets — **«نه، هنوز دنبالش هستم»** — and a
+  reader meets `“…”` as a foreign mark; putting the marks outside the msgid
+  also stops a translator having to decide, and stops two of the three ending
+  up mismatched. `Kati.Books.Note.display/1` is the other caller and this is
+  the same question about a different quotation.
+
+  `Gone cold` inside the sentence is the app's own **سردشده**, the word
+  `Kati.Screens.ShelfFilters` and `Kati.Screens.DropStates` already use for
+  the status this button clears.
+  """
   @spec keep_card() :: map()
   def keep_card do
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      text_color: Palette.ink_soft()
+    ]
+
+    strong = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      font_weight: "semibold",
+      text_color: :on_surface
+    ]
+
+    still =
+      Kati.Locale.quoted(
+        pgettext("the keep card, quoting the button beside it", "No, I’m still on it")
+      )
+
     runs = [
-      {"Or keep it — ",
-       [text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft(), base: true]},
-      {"“No, I’m still on it”",
-       [text_size: 12.5, line_height: 1.6, font_weight: "semibold", text_color: :on_surface]},
-      {" clears the Gone cold mark and changes nothing else.",
-       [text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft()]}
+      {pgettext("the drop sheet's keep card, before its bolded run", "Or keep it —") <> " ",
+       Keyword.put(body, :base, true)},
+      {still, strong},
+      {" " <> gettext("clears the Gone cold mark and changes nothing else."), body}
     ]
 
     ~MOB"""
@@ -865,10 +1104,23 @@ defmodule Kati.Screens.DropSheet do
     """
   end
 
-  @doc "`Drop at S# E#` beside `Still on it` — the board's own two-button row."
+  @doc """
+  `Drop at S# E#` beside `Still on it` — the board's own two-button row.
+
+  One msgid for the commit button, with the position interpolated into it —
+  see `at/1` for why the position arrives as a phrase and not as words. Two
+  msgids (one with the position, one without) would put MOVIES-AND-TV.md
+  #110's film guard in a second place, and the pill below would then need a
+  third and a fourth.
+
+  `pgettext/2` on both: *Drop* is one word, *Still on it* is three, and the
+  catalogue already holds `Dropping`, `Dropped` and `Drop this show` for a
+  merge to reach for.
+  """
   @spec actions(map()) :: map()
   def actions(s) do
-    label = "Drop" <> Kati.Screens.DropSheet.at(s)
+    at = Kati.Screens.DropSheet.at(s)
+    label = pgettext("the drop sheet's own commit button", "Drop%{at}", at: at)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -903,7 +1155,7 @@ defmodule Kati.Screens.DropSheet do
           on_tap={{self(), :keep}}
         >
           <Text
-            text="Still on it"
+            text={pgettext("the second button on the drop sheet", "Still on it")}
             text_size={13}
             font_weight="semibold"
             text_color={Palette.ink_soft()}
@@ -928,7 +1180,7 @@ defmodule Kati.Screens.DropSheet do
   def trail(s, false) do
     ~MOB"""
     <Column fill_width={true}>
-      {Eyebrow.quiet("After you drop it")}
+      {Eyebrow.quiet(gettext("After you drop it"))}
       {Kati.Screens.DropSheet.undo_pill(s, false)}
     </Column>
     """
@@ -943,10 +1195,35 @@ defmodule Kati.Screens.DropSheet do
   pill is always drawn. It reads the sheet's own position rather than a
   remembered one, so `Change` and the pill never disagree about which episode
   the sentence is about.
+
+  One msgid holding both the title and the position, rather than a verb with
+  two things concatenated after it. Persian puts the verb last — *«…» در ف۱ ق۳
+  رها شد* — so a sentence assembled left to right here could not be written in
+  it at all; with both as bindings the msgstr places them where its own grammar
+  wants them.
+
+  `Kati.Locale.ltr/1` on the title because this is the one place a title sits
+  INSIDE a sentence rather than on a line of its own. A full stop, a colon or a
+  bracket is direction-neutral in the bidi algorithm and takes the paragraph's
+  direction, so `Dune: Part Two` in a right-to-left sentence comes back with
+  the colon against the wrong side of the name. An isolate is Unicode's own
+  answer and needs nothing from the bridge.
+
+  The `undo` glyph is NOT mirrored. `Kati.Locale.forward_glyph/0` exists for a
+  picture that means *where the reader is going*, and this one means *take that
+  back* — `Kati.Screens.ShelfSelection` and `Kati.Screens.MedicationDetail`
+  both draw the same pill in both languages with the same glyph, and a third
+  answer here would be this sheet disagreeing with the other two undo bars.
   """
   @spec undo_pill(map(), boolean()) :: map()
   def undo_pill(s, live?) do
-    text = "Dropped #{s.title}" <> Kati.Screens.DropSheet.at(s)
+    at = Kati.Screens.DropSheet.at(s)
+
+    text =
+      pgettext("the undo pill's sentence after a drop", "Dropped %{title}%{at}",
+        title: Kati.Locale.ltr(s.title),
+        at: at
+      )
 
     ~MOB"""
     <Row
@@ -991,9 +1268,14 @@ defmodule Kati.Screens.DropSheet do
   end
 
   def undo_action(false) do
+    # Plain `gettext/1`: `Undo` is one word, and normally that is exactly what
+    # `pgettext/2` is for — but the msgid already exists and is already
+    # **برگرداندن** on `Kati.Screens.ShelfSelection`'s own undo bar. An exact
+    # match beats a fuzzy one, and every undo in this app should say the same
+    # word. The same call `Kati.Screens.DropStates`'s `Finished` makes.
     ~MOB"""
     <Text
-      text="Undo"
+      text={gettext("Undo")}
       text_size={12.5}
       font_weight="bold"
       text_color={Palette.accent()}

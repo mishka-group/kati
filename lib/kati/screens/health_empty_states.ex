@@ -109,21 +109,56 @@ defmodule Kati.Screens.HealthEmptyStates do
     * **`114` cannot be a link.** It is kept as a run of its own so the token the
       drawing anchors is still the token in the tree, and it sets as body text.
 
+  ## Which words on this board are this board's
+
+  The sheet reads in Persian as of mishka-group/kati#103, and the line between
+  what it translates and what it does not is the line the grids are built on.
+  Every tile's NAME, and the three live lines in the *Meals off* band — *4
+  active · 12-day best*, *76.0 kg · down 2.4*, *4 doses today* — come off
+  `Kati.Health.Sample.sections/0` and are translated there or not at all. This
+  board never writes them and must not wrap them: a `gettext/1` here would put
+  a second msgid on the same six words and the two grids on screen 42 and this
+  one could then disagree about what a section is called.
+
+  What is this board's own is every line it OVERWRITES — *Not set up*,
+  *Switched off*, *Tap to see why* — plus the chrome, the two cards and the
+  badge, and those are the msgids this file owns. The badge is the exception
+  that proves it: its words are `Kati.Screens.DataSources`' `Not in v1`,
+  borrowed rather than restated, because *designed, not built* is one claim the
+  app makes in four places and four msgids is how it would come to make four
+  slightly different ones.
+
   ## Smaller notes
 
   The subtitle is typed in capitals — `THREE VARIANTS` — because the drawing sets
   it that way and `Kati.UI.SettingsList.title/3` does not transform it, where
-  both eyebrow helpers upcase what they are given. The first eyebrow keeps the
-  orange dash because *nothing is set up yet* is a state you are in now; the
-  other two take `eyebrow_muted/1`'s grey, since neither a section being off nor
-  a section being retired is new or now.
+  both eyebrow helpers upcase what they are given. The Arabic script has no
+  raised form at all, so the Persian is written as the phrase it is and the
+  capitals are a fact about the English msgid rather than about the slot — the
+  same answer `Kati.UI.eyebrow_label/1` gives everywhere else. The first eyebrow
+  keeps the orange dash because *nothing is set up yet* is a state you are in
+  now; the other two take `eyebrow_muted/1`'s grey, since neither a section
+  being off nor a section being retired is new or now.
+
+  `Kati.UI.SettingsList.eyebrow_muted/1` still upcases with `String.upcase/1`
+  and still tracks its label at a flat `.16em`, where `Kati.UI.eyebrow/2` next
+  to it goes through `Kati.UI.eyebrow_label/1` and `Kati.Locale.tracking/1`.
+  The upcase is a harmless no-op on Persian; the tracking is not — it breaks
+  the joins between letters — so the two `eyebrow_muted/1` bands on this sheet
+  set loose where the `eyebrow/2` band above them sets correctly. That is
+  `Kati.UI.SettingsList`'s to fix and is recorded here because this board is
+  where the difference is visible side by side.
 
   The empty card is `Kati.Screens.States.empty/1`'s recipe at this board's
   numbers, by way of `Kati.Screens.MyServicesEmpty.empty_group/0`, which is the
   nearest thing to it in the app: the same 48pt tile at radius 15 over paper, the
   same `Spacer weight={1.0}` either side of it, the same `text_align="center"` on
   the two paragraphs. Neither function could be called — 27's carries a call to
-  action this card does not have, and both carry their own copy.
+  action this card does not have, and both carry their own copy. Its body's
+  leading is the one number that is not copied straight across: all three
+  wrapping paragraphs on this sheet take `Kati.Locale.leading/1`, which answers
+  the drawing's 1.55 in Latin and Vazirmatn's own in Persian. `derived_note/0`
+  carries the argument.
 
   The closing note is 42's `container_note/0` shape and cannot be that function,
   which takes no text and prints `Kati.Health.Sample.container_note/0`.
@@ -140,6 +175,7 @@ defmodule Kati.Screens.HealthEmptyStates do
   # set the precedent by keeping `Health` from its own board. Reproducing the
   # board is the rule; inventing a word for a pill nobody navigates by is not.
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaThemeIcon
@@ -180,14 +216,14 @@ defmodule Kati.Screens.HealthEmptyStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Health", "THREE VARIANTS")}
-        {UI.eyebrow("Nothing in Health set up")}
+        {SettingsList.title(gettext("Health"), gettext("THREE VARIANTS"))}
+        {UI.eyebrow(gettext("Nothing in Health set up"))}
         {Kati.Screens.HealthEmptyStates.empty_card()}
         {Health.sections(b.nothing_set_up)}
-        {SettingsList.eyebrow_muted("Meals off — the ring and macro bar are meal-derived")}
+        {SettingsList.eyebrow_muted(gettext("Meals off — the ring and macro bar are meal-derived"))}
         {Kati.Screens.HealthEmptyStates.derived_note()}
         {Health.sections(b.meals_off)}
-        {SettingsList.eyebrow_muted("Built vs retired")}
+        {SettingsList.eyebrow_muted(gettext("Built vs retired"))}
         {Kati.Screens.HealthEmptyStates.retired_row(b.retired)}
         {Kati.Screens.HealthEmptyStates.retired_note()}
       </Column>
@@ -209,8 +245,16 @@ defmodule Kati.Screens.HealthEmptyStates do
   """
   @spec nothing_set_up() :: [map()]
   def nothing_set_up do
+    # The LINE is translated and the `:band` is not, and the two sit one after
+    # the other so the difference is visible: the line is copy a reader reads,
+    # and the band is the suffix `Kati.Screens.Health.tile_tap/2` builds a tag
+    # out of. Translating the band would move every tag on this grid and land
+    # the presses in `rescue_tap/3` — the same failure `tile_key/1` was written
+    # to stop happening to a tile's NAME. mishka-group/kati#103.
     Enum.map(buildable(), fn tile ->
-      tile |> Map.merge(%{on?: false, line: "Not set up"}) |> Map.put(:band, "nothing_set_up")
+      tile
+      |> Map.merge(%{on?: false, line: gettext("Not set up")})
+      |> Map.put(:band, "nothing_set_up")
     end)
   end
 
@@ -230,8 +274,15 @@ defmodule Kati.Screens.HealthEmptyStates do
   def meals_off do
     {meals, running} = Enum.split_with(buildable(), &(&1.icon == "restaurant"))
 
+    # `pgettext/2` for two words, on the rule the fold works to: a msgid under
+    # about three words is the shape `mix gettext.merge` fuzzy-matches onto
+    # something else, and *Switched off* is one preposition away from the meal
+    # plan's *Switching* — which is جابه‌جایی, a different sentence entirely.
+    # The context says which switch and stops the match.
+    off = pgettext("a Health section whose switch is off", "Switched off")
+
     (Enum.map(running, &live/1) ++
-       Enum.map(meals, fn tile -> %{tile | on?: false, line: "Switched off"} end))
+       Enum.map(meals, fn tile -> %{tile | on?: false, line: off} end))
     |> Enum.map(&Map.put(&1, :band, "meals_off"))
   end
 
@@ -244,9 +295,14 @@ defmodule Kati.Screens.HealthEmptyStates do
   """
   @spec retired() :: [map()]
   def retired do
+    # The same four words screen 80 puts under a retired provider — its row
+    # reads `Not set up — tap to see why` and this grid has already said *not
+    # set up* with its outline, so only the tail is drawn here. One wording for
+    # one promise: a reader who has met the phrase on 80 meets it again, rather
+    # than a second Persian sentence for the same tap.
     Sample.sections()
     |> Enum.filter(&(&1.icon in @retired))
-    |> Enum.map(fn tile -> %{tile | line: "Tap to see why"} end)
+    |> Enum.map(fn tile -> %{tile | line: gettext("Tap to see why")} end)
   end
 
   # Everything Health holds that is a section rather than a decision already
@@ -290,7 +346,7 @@ defmodule Kati.Screens.HealthEmptyStates do
         </Row>
         <Spacer size={13} />
         <Text
-          text="Nothing here yet"
+          text={gettext("Nothing here yet")}
           text_size={14}
           font_weight="bold"
           text_align="center"
@@ -298,9 +354,9 @@ defmodule Kati.Screens.HealthEmptyStates do
         />
         <Spacer size={6} />
         <Text
-          text="Health holds sections rather than data of its own. Switch one on and this fills in."
+          text={gettext("Health holds sections rather than data of its own. Switch one on and this fills in.")}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_align="center"
           text_color={Palette.sub()}
         />
@@ -349,16 +405,37 @@ defmodule Kati.Screens.HealthEmptyStates do
   """
   @spec derived_note() :: map()
   def derived_note do
-    body = [text_size: 12.5, line_height: 1.55, text_color: Palette.ink_soft()]
+    # `Kati.Locale.leading/1` rather than the drawing's flat 1.55. Vazirmatn's
+    # ascenders and descenders are not Plus Jakarta's, so a leading set on the
+    # Latin card crowds the Persian one — the argument
+    # `Kati.Screens.Subscriptions.advice/2` makes at length about the one
+    # paragraph on that screen which wraps, and both paragraphs on this board
+    # wrap. The drawing's own number stays at the call site, which is the point
+    # of that helper.
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.ink_soft()
+    ]
 
     # `base: true` on the opening run rather than letting the longest one win:
     # the two body runs are close enough in length that editing the copy could
-    # flip which style `Kati.UI.rich_text/1` picks for the paragraph.
+    # flip which style `Kati.UI.rich_text/1` picks for the paragraph. It is
+    # load-bearing twice over now that the runs are translated — the Persian
+    # of any run can be longer or shorter than the English it came from, so a
+    # length-decided base would be decided by the catalogue.
+    #
+    # Three runs and not one interpolation, because the middle one is the
+    # drawing's `<strong>` span: `Kati.UI.rich_text/1` drops the weight today
+    # and would carry it the day `MobText` takes a `runs` prop, and a sentence
+    # folded into one msgid could not get it back. The Persian is split at the
+    # same seam and reads straight through it.
     text =
       UI.rich_text([
-        {"No calorie ring, no macro split — both come from meals. ", [base: true] ++ body},
-        {"What remains is what Health actually is", :semibold},
-        {": a list of sections.", body}
+        {gettext("No calorie ring, no macro split — both come from meals. "),
+         [base: true] ++ body},
+        {gettext("What remains is what Health actually is"), :semibold},
+        {gettext(": a list of sections."), body}
       ])
 
     ~MOB"""
@@ -419,9 +496,12 @@ defmodule Kati.Screens.HealthEmptyStates do
   `rail_idle` — so the two tiles are the same tile with one thing added, which is
   exactly what the grid is claiming about them.
 
-  No `on_tap`, though the line under the name says *Tap to see why*. Screen 114
-  is not built and a tag nothing answers is reported as a dead tap; see the
-  moduledoc.
+  The `on_tap` the line under the name promises, since board 114 landed on
+  7 September as `Kati.Screens.RetiredReason`. This paragraph used to say there
+  was none — *screen 114 is not built and a tag nothing answers is reported as
+  a dead tap* — which stopped being true when the tap went in below and is
+  corrected here rather than left to be believed. A tile whose id
+  `Kati.Retired` does not know still keeps `nil` and stays untappable.
   """
   @spec retired_tile(map()) :: map()
   def retired_tile(section) do
@@ -460,7 +540,7 @@ defmodule Kati.Screens.HealthEmptyStates do
         text={@section.name}
         text_size={14.5}
         font_weight="bold"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={Palette.muted()}
         max_lines={1}
       />
@@ -511,13 +591,27 @@ defmodule Kati.Screens.HealthEmptyStates do
 
   # Handed over as a one-element list, which the pill drops straight into its
   # content Row — wrapping it in a Row here would only add a level.
+  #
+  # Worded and typeset exactly as `Kati.Screens.DataSources.not_in_v1/0` and
+  # `Kati.Screens.AddIngredient.path_trailing/1` word and typeset it, and for
+  # that function's own reason: *designed, not built* has to mean one thing
+  # app-wide, and three badges with three msgids is how a phrase drifts into
+  # three. So it is the shared `Not in v1` and not a fourth copy — the caps are
+  # `Kati.UI.eyebrow_label/1`'s, which is a Latin operation the Arabic script
+  # has no answer to, so Persian gets the sentence rather than a no-op.
+  #
+  # `Kati.Locale.mono_face/0` because `kati_mono.ttf` carries no Persian glyph
+  # and Android would silently substitute its own face for the whole badge, and
+  # `Kati.Locale.tracking/1` because .08em is a Latin small-caps effect that
+  # breaks the joins between Persian letters. Both are no-ops in English, so the
+  # drawing's DM Mono at 9pt is unchanged.
   defp badge_label do
     ~MOB"""
     <Text
-      text="NOT IN V1"
-      font_family="mono"
+      text={Kati.UI.eyebrow_label(gettext("Not in v1"))}
+      font_family={Kati.Locale.mono_face()}
       text_size={9}
-      letter_spacing={0.08}
+      letter_spacing={Kati.Locale.tracking(0.08)}
       text_color={Palette.sub()}
       max_lines={1}
     />
@@ -529,9 +623,10 @@ defmodule Kati.Screens.HealthEmptyStates do
 
   It is here rather than in `Kati.Health.Sample` because it is a claim about the
   *version* rather than about Health: 42's note explains what the hub is, and
-  this one explains why two of its tiles will not do anything. When 114 lands and
-  the tiles become tappable, the last sentence stops being a promise and this
-  becomes the ordinary caption of a built thing.
+  this one explains why two of its tiles will not do anything. That happened on
+  7 September — 114 landed, the tiles became tappable, and the last sentence
+  stopped being a promise — so this is now the ordinary caption of a built
+  thing, which is what the paragraph said it would become.
 
   The paragraph is wrapped in a `Column weight={1.0}` rather than carrying the
   weight itself, which is the one structural difference from 42's
@@ -541,18 +636,45 @@ defmodule Kati.Screens.HealthEmptyStates do
   """
   @spec retired_note() :: map()
   def retired_note do
-    body = [text_size: 12.5, line_height: 1.55, text_color: Palette.ink_soft()]
+    # `Kati.Locale.leading/1` for the reason `derived_note/0` gives one frame up.
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.ink_soft()
+    ]
 
     # `114` is a run of its own, and the closing full stop is another, so the
     # token the drawing anchors is still one token in the tree even though
     # nothing can make it a link. See the moduledoc.
+    #
+    # `Kati.Locale.number/1` around it, so the board this note points at is
+    # written ۱۱۴ on a Persian page. A board number is a number in a sentence
+    # rather than a citation — `Kati.Locale.year/1` is the other case and the
+    # opposite answer — and the three eyebrows on
+    # `Kati.Screens.NothingSetUpKnockOn` already name their boards ۱۱، ۱۳، ۲۳.
+    # A Latin `114` among Persian numerals would read as a different kind of
+    # thing. English is unchanged: `number/1` is `Integer.to_string/1` there.
+    #
+    # The full stop stays a bare literal with no msgid. It is the same
+    # character in both scripts, and a one-character msgid is exactly what
+    # `mix gettext.merge` fuzzy-matches onto any sentence that ends in one.
+    # The bidi algorithm puts it at the left edge of an RTL paragraph without
+    # being asked, which is where a Persian sentence ends.
+    #
+    # The badge run is the same `Not in v1` the badge itself draws, so the
+    # sentence and the thing it is about cannot drift apart. Persian has no
+    # caps to set it off from the words around it, so the guillemets the app
+    # quotes with live at the tail of the run before it and the head of the run
+    # after — «…با نشانِ «در نسخه ۱ نیست» روی شبکه می‌مانند…» — which is why
+    # those two msgstrs look lopsided beside their msgids.
     text =
       UI.rich_text([
-        {"Retired tiles stay visible with a ", body},
-        {"NOT IN V1", :semibold},
-        {" badge rather than vanishing — a tile that disappears reads as a bug, and the badge is honest about what the version does. Tapping one opens ",
-         [base: true] ++ body},
-        {"114", body},
+        {gettext("Retired tiles stay visible with a "), body},
+        {Kati.UI.eyebrow_label(gettext("Not in v1")), :semibold},
+        {gettext(
+           " badge rather than vanishing — a tile that disappears reads as a bug, and the badge is honest about what the version does. Tapping one opens "
+         ), [base: true] ++ body},
+        {Kati.Locale.number(114), body},
         {".", body}
       ])
 

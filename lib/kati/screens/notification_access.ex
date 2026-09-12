@@ -79,6 +79,22 @@ defmodule Kati.Screens.NotificationAccess do
   paragraph goes in as one already-flattened sentence rather than through
   `rich_text/1` at all.
 
+  ## The same three paragraphs are where mishka-group/kati#103 costs the most
+
+  A `rich_text/1` run is a msgid, and a run is a fragment of a sentence rather
+  than a sentence. Persian puts its verb last and negates with a prefix fused to
+  it, so a clause cut around an English bold word does not survive being
+  translated a clause at a time: the verb ends up at the head of the run after
+  the emphasis, or the negation has nowhere to go at all.
+
+  All three paragraphs here redistribute inside their own fragments rather than
+  being merged into one msgid, because merging would delete the design record of
+  *where the board bolds* — which is the only thing these run lists still carry
+  once `rich_text/1` has flattened the style. `scope_paragraph/0`,
+  `not_folded_runs/0` and `revoked_paragraph/0` each document their own move,
+  and each names a `pgettext/2` context so a translator opening one fragment
+  knows which others it has to be read beside.
+
   ## `0xFFF1EEE9` is a real third grey, not a rounding of `paper`
 
   The retired row's icon tile is filled `#F1EEE9` in the board — between
@@ -103,12 +119,23 @@ defmodule Kati.Screens.NotificationAccess do
   """
 
   use Kati.Screens.Pushed, back: "Auto-detect"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
   alias Kati.UI.Sheet
 
+  # *Granted* is ONE WORD and takes `pgettext/2` for it.
+  #
+  # `mix gettext.merge` fuzzy-matches a short new msgid against any longer one
+  # that resembles it, and a bare permission state is exactly the shape that
+  # goes wrong — `Kati.Screens.NotificationsHelp` already reached for the same
+  # `"permission"` context for its *Allow* pill, so the two states of one
+  # permission carry one context and cannot be handed each other's word.
+  #
+  # The English still reads GRANTED: `SettingsList.eyebrow_muted/1` upcases,
+  # which is a no-op on the Persian and the right answer for both.
   @doc false
   def content(_assigns) do
     ~MOB"""
@@ -121,14 +148,14 @@ defmodule Kati.Screens.NotificationAccess do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Notification access", "THE ONE PERMISSION UNLIKE EVERY OTHER")}
-        {UI.eyebrow("Not granted — purpose, then scope, then the action")}
+        {SettingsList.title(gettext("Notification access"), gettext("THE ONE PERMISSION UNLIKE EVERY OTHER"))}
+        {UI.eyebrow(gettext("Not granted — purpose, then scope, then the action"))}
         {Kati.Screens.NotificationAccess.not_granted()}
-        {SettingsList.eyebrow_muted("Revoked after being granted — different wording")}
+        {SettingsList.eyebrow_muted(gettext("Revoked after being granted — different wording"))}
         {Kati.Screens.NotificationAccess.revoked()}
-        {SettingsList.eyebrow_muted("Granted")}
+        {SettingsList.eyebrow_muted(pgettext("permission", "Granted"))}
         {Kati.Screens.NotificationAccess.granted()}
-        {SettingsList.eyebrow_muted("What actually ships — retired")}
+        {SettingsList.eyebrow_muted(gettext("What actually ships — retired"))}
         {Kati.Screens.NotificationAccess.retired()}
         {Kati.Screens.NotificationAccess.footnote()}
       </Column>
@@ -147,6 +174,14 @@ defmodule Kati.Screens.NotificationAccess do
   this is the one place on the board that asserts a policy decision (this
   permission does not live in the ordinary Notifications row) rather than
   describing a state.
+
+  The closing caption asks for `Kati.Locale.mono_face/0` rather than naming
+  `"mono"`. It is a msgid, so under `:fa` it arrives as Persian, and
+  `kati_mono.ttf` carries no Arabic-script glyph — set in it, دسترسی ویژه is
+  handed to Android's own substitute face and renders in a typeface that is not
+  Kati's, eleven points under a sentence that is. Arity 0 rather than 1 because
+  the caption is always the reader's own words; `Kati.Screens.NotificationsHelp.status/2`
+  carries the argument for when the arity-1 form is the right question instead.
   """
   @spec not_granted() :: map()
   def not_granted do
@@ -164,17 +199,17 @@ defmodule Kati.Screens.NotificationAccess do
           <Spacer size={12} />
           <Column weight={1.0}>
             <Text
-              text="Why Kati wants it"
+              text={gettext("Why Kati wants it")}
               text_size={14}
               font_weight="bold"
-              letter_spacing={-0.015}
+              letter_spacing={Kati.Locale.tracking(-0.015)}
               text_color={:on_surface}
             />
             <Spacer size={6} />
             <Text
-              text="To see what your music apps are playing, so you do not have to log every track by hand."
+              text={gettext("To see what your music apps are playing, so you do not have to log every track by hand.")}
               text_size={12.5}
-              line_height={1.65}
+              line_height={Kati.Locale.leading(1.65)}
               text_color={Palette.ink_soft()}
             />
           </Column>
@@ -187,8 +222,8 @@ defmodule Kati.Screens.NotificationAccess do
         {Kati.Screens.NotificationAccess.open_settings_button()}
         <Spacer size={11} />
         <Text
-          text="SPECIAL ACCESS · NO DIALOG TO RAISE"
-          font_family="mono"
+          text={gettext("SPECIAL ACCESS · NO DIALOG TO RAISE")}
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           text_color={Palette.muted()}
           text_align="center"
@@ -216,32 +251,83 @@ defmodule Kati.Screens.NotificationAccess do
   the same weight as the lead-in, because the board bolds both: what Kati is
   handed and that Kati is handed something wide are the same claim in two
   clauses. See the moduledoc for why the bold does not survive `rich_text/1`.
+
+  ## The spaces moved out of the msgids, and one clause moved inside one
+
+  A run's leading and trailing space is concatenation rather than copy, so it
+  sits at the call site the way `Kati.Screens.AutoDetectMusic.apps_note/0`
+  writes it — a msgid that ends in a space is a msgid a translator has to guess
+  the width of.
+
+  The harder half is that **Persian puts the verb last** and this sentence's
+  verb is in the middle, before the bolded clause. Translating `Android grants
+  this as access to` word for word would leave *می‌دهد* stranded at the head of
+  the run after the emphasis. So the Persian of that run is a colon
+  construction — *اندروید این اجازه را این‌طور می‌دهد: دسترسی به* — which carries
+  its own verb and hands the bolded clause over intact. The msgid is still the
+  board's English; only the shape of its translation differs, which is what a
+  fragment msgid costs and why each one here is a whole clause rather than a
+  phrase cut mid-thought.
   """
   @spec scope_paragraph() :: map()
   def scope_paragraph do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.ink_soft()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.ink()]
 
     UI.rich_text([
-      {"What it can see.", strong},
-      {" Android grants this as access to ", body},
-      {"every notification on the device, messages included", strong},
-      {". Kati reads only media notifications and never stores anything else.",
+      {gettext("What it can see.") <> " ", strong},
+      {gettext("Android grants this as access to") <> " ", body},
+      {gettext("every notification on the device, messages included"), strong},
+      {". " <> gettext("Kati reads only media notifications and never stores anything else."),
        body ++ [base: true]}
     ])
   end
 
-  @doc "The runs for the cream card's claim: this permission does not live in 40's list."
+  @doc """
+  The runs for the cream card's claim: this permission does not live in 40's list.
+
+  ## `not` is a bolded word, and Persian has no bolded word to put there
+
+  The board's emphasis is on the negation, and Persian negates with a prefix
+  fused to a verb that stands at the end of the clause — *گنجانده نمی‌شود* —
+  so there is no separable *not* for this run to hold. The Persian of that run
+  is **هرگز**, the emphatic negator, which is a word of its own, sits exactly
+  where the board puts the bold, and leaves the grammatical negation to the
+  verb in the run after it. A literal *نه* would be a word the sentence around
+  it does not need twice.
+
+  Both short runs take `pgettext/2`: `"It is"` and `"not"` are the two- and
+  one-word msgids `mix gettext.merge` fuzzy-matches against the first longer
+  string that resembles them.
+
+  The board number stays a number and is not interpolated through
+  `Kati.Locale.number/1`. It is inside the sentence, so it converts with the
+  rest of it — ۴۰ is written into the Persian the way ۱۸۹ and ۱۱۲ are written
+  into screen 189's — and a `%{board}` binding would only hand a translator a
+  figure they cannot read in place.
+  """
   @spec not_folded_runs() :: [{String.t(), keyword()}]
   def not_folded_runs do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.ink()]
 
     [
-      {"It is ", body},
-      {"not", strong},
-      {" folded into the ordinary Notifications row on 40. A permission that can read every message in a person’s life does not belong in a list next to “show me notifications”.",
-       body ++ [base: true]}
+      {pgettext("notification access, the cream card", "It is") <> " ", body},
+      {pgettext("notification access, the cream card", "not"), strong},
+      {" " <>
+         gettext(
+           "folded into the ordinary Notifications row on 40. A permission that can read every message in a person’s life does not belong in a list next to “show me notifications”."
+         ), body ++ [base: true]}
     ]
   end
 
@@ -265,7 +351,7 @@ defmodule Kati.Screens.NotificationAccess do
       {UI.symbol("settings", size: 17, color: Palette.on_ink())}
       <Spacer size={8} />
       <Text
-        text="Open system settings"
+        text={gettext("Open system settings")}
         text_size={12.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -298,7 +384,7 @@ defmodule Kati.Screens.NotificationAccess do
           <Spacer size={11} />
           <Column weight={1.0}>
             <Text
-              text="Turned off in system settings"
+              text={gettext("Turned off in system settings")}
               text_size={13.5}
               font_weight="bold"
               text_color={:on_surface}
@@ -310,11 +396,11 @@ defmodule Kati.Screens.NotificationAccess do
         <Spacer size={14} />
         <Row align="center">
           <Column on_tap={{self(), :open_settings_revoked}}>
-            {SettingsList.action_pill("Open system settings")}
+            {SettingsList.action_pill(gettext("Open system settings"))}
           </Column>
           <Spacer size={8} />
           <Column on_tap={{self(), :log_by_hand}}>
-            {SettingsList.action_pill("Log by hand instead")}
+            {SettingsList.action_pill(gettext("Log by hand instead"))}
           </Column>
         </Row>
       </Column>
@@ -323,18 +409,49 @@ defmodule Kati.Screens.NotificationAccess do
     """
   end
 
-  @doc "What was kept, then what stopped — in that order, per the moduledoc."
+  @doc """
+  What was kept, then what stopped — in that order, per the moduledoc.
+
+  ## The count is a specimen, and goes through `ngettext/4` anyway
+
+  128 is the board's own figure rather than this phone's, and the moduledoc's
+  argument for drawing four states instead of branching on one applies to the
+  number inside a state as much as to the state.
+  `Kati.Screens.BackupStates.stale/0` hands its three drawn counts to
+  `ngettext/4` for the reason this one does: a specimen figure is still read by
+  a reader, and a Persian one has to see ۱۲۸ آهنگ rather than `128 tracks`.
+  The entry is the one `Kati.Screens.AlbumDetail` already owns, so nothing new
+  reaches a translator; Persian does not inflect a noun after a numeral, which
+  is why its plural msgstr is its singular.
+
+  ## Four fragments, and the Persian redistributes across them
+
+  The same shape `scope_paragraph/0` hits: Persian's verb comes last and this
+  sentence puts *logged* second, so *while it was on* moves forward into the
+  first run's Persian — *کاتی تا وقتی روشن بود* — and the verb moves back into
+  the third, *ثبت کرده و*. Every msgid is still a clause of the board's own
+  English. The shared `pgettext/2` context is what says so: a translator who
+  opens one of these four has to read the other three, and the context is the
+  only thing in the `.po` that can tell them that.
+  """
   @spec revoked_paragraph() :: map()
   def revoked_paragraph do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.ink_soft()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.ink()]
 
     UI.rich_text([
-      {"Kati logged ", body},
-      {"128 tracks", strong},
-      {" while it was on and ", body},
-      {"keeps all of them", strong},
-      {". Nothing new is detected until it is turned back on.", body ++ [base: true]}
+      {pgettext("notification access, the revoked card", "Kati logged") <> " ", body},
+      {ngettext("%{n} track", "%{n} tracks", 128, n: Kati.Locale.number(128)), strong},
+      {" " <> pgettext("notification access, the revoked card", "while it was on and") <> " ",
+       body},
+      {pgettext("notification access, the revoked card", "keeps all of them"), strong},
+      {". " <> gettext("Nothing new is detected until it is turned back on."),
+       body ++ [base: true]}
     ])
   end
 
@@ -342,6 +459,15 @@ defmodule Kati.Screens.NotificationAccess do
   State 3 — the plain row every other permission's Allow becomes, once it has
   been. One row, so `rule: false` — there is nothing under it to rule off
   from.
+
+  ## *Live* is the third thing in this app called Live and takes a context
+
+  `Kati.Screens.AutoDetect`'s now-playing pill is **در حال پخش** and
+  `Kati.Screens.Sync`'s account pill is **به‌روز**, and neither is what this one
+  means: here the permission itself is switched on and listening, which is
+  **فعال**. One English word, three Persian ones, which is exactly the case
+  `pgettext/2` exists for — without a context the three collapse into whichever
+  `mix gettext.merge` saw first and two rows of the app start lying.
   """
   @spec granted() :: map()
   def granted do
@@ -350,8 +476,12 @@ defmodule Kati.Screens.NotificationAccess do
       {SettingsList.card([
         SettingsList.row(
           SettingsList.icon_tile("sensors"),
-          SettingsList.body("Notification access", "On · media notifications only"),
-          SettingsList.status_pill("Live", Palette.green_text(), Palette.green_wash()),
+          SettingsList.body(gettext("Notification access"), gettext("On · media notifications only")),
+          SettingsList.status_pill(
+            pgettext("notification access status pill", "Live"),
+            Palette.green_text(),
+            Palette.green_wash()
+          ),
           rule: false
         )
       ])}
@@ -405,7 +535,7 @@ defmodule Kati.Screens.NotificationAccess do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Notification access"
+        text={gettext("Notification access")}
         text_size={13.5}
         font_weight="semibold"
         text_color={Palette.tertiary()}
@@ -413,7 +543,7 @@ defmodule Kati.Screens.NotificationAccess do
       />
       <Spacer size={3} />
       <Text
-        text="Not set up — tap to see why"
+        text={gettext("Not set up — tap to see why")}
         text_size={11.5}
         text_color={Palette.rail_idle()}
         max_lines={1}
@@ -422,7 +552,19 @@ defmodule Kati.Screens.NotificationAccess do
     """
   end
 
-  @doc false
+  @doc """
+  The badge, in the recipe `Kati.Screens.DataSources.not_in_v1/0` already
+  settled for the same token on the same treatment.
+
+  The msgid is sentence case and `Kati.UI.eyebrow_label/1` does the shouting,
+  because `String.upcase/1` is a Latin operation and the Persian — **در نسخه ۱
+  نیست** — has no case to raise; the English still draws `NOT IN V1`. The face
+  is `Kati.Locale.mono_face/0` rather than the literal `"mono"` for
+  `not_granted/0`'s reason, and the tracking goes through
+  `Kati.Locale.tracking/1` because `.06em` is a Latin small-caps effect that
+  pulls Persian letters out of their joins. Only the sizes are this board's own
+  — 9pt in a 22pt pill, where 80's is 9.5 in one of the same height.
+  """
   def not_in_v1_badge do
     ~MOB"""
     <Row
@@ -434,10 +576,10 @@ defmodule Kati.Screens.NotificationAccess do
       align="center"
     >
       <Text
-        text="NOT IN V1"
-        font_family="mono"
+        text={UI.eyebrow_label(gettext("Not in v1"))}
+        font_family={Kati.Locale.mono_face()}
         text_size={9}
-        letter_spacing={0.06}
+        letter_spacing={Kati.Locale.tracking(0.06)}
         text_color={Palette.sub()}
         max_lines={1}
       />
@@ -445,12 +587,32 @@ defmodule Kati.Screens.NotificationAccess do
     """
   end
 
-  @doc "The closing footnote: why the shipped app never shows states 1–3 at all."
+  @doc """
+  The closing footnote: why the shipped app never shows states 1–3 at all.
+
+  ## `NOTIFICATION_LISTENER` comes in as a binding so its comma stays put
+
+  It is the one Latin run inside this paragraph with punctuation hard against
+  it, and a full stop or comma is **neutral** in the Unicode bidirectional
+  algorithm: on a Persian page it resolves to the paragraph's direction and
+  lands at the wrong edge of the token. `Kati.Locale.ltr/1` is the isolate that
+  stops it, and a binding is the only way to reach one word of a msgid — which
+  is also why it is the only Latin run here that gets one. *Play Protect* and
+  *APK* sit against spaces and Persian words, and a space is a neutral with
+  nothing to reorder.
+
+  Both stay Latin. They are Google's name for a service and Android's name for
+  a file, and transliterating either would spell in Persian a thing the phone
+  spells in Latin two screens away — the rule board 127 draws `Lumen+` under.
+  """
   @spec footnote() :: map()
   def footnote do
     SettingsList.note(
       "info",
-      "Play Protect blocks sideloaded APKs declaring NOTIFICATION_LISTENER, and Kati installs directly. So the three states above are the design record, and the live row wears 114’s retired treatment — it keeps its place and explains itself rather than vanishing."
+      gettext(
+        "Play Protect blocks sideloaded APKs declaring %{listener}, and Kati installs directly. So the three states above are the design record, and the live row wears 114’s retired treatment — it keeps its place and explains itself rather than vanishing.",
+        listener: Kati.Locale.ltr("NOTIFICATION_LISTENER")
+      )
     )
   end
 
@@ -458,6 +620,14 @@ defmodule Kati.Screens.NotificationAccess do
   `:open_retired` is the one tap on this board with somewhere real to go —
   see the moduledoc for why it falls back to `RetiredTile`'s drawn subject
   rather than a subject keyed for this permission.
+
+  `"Sleep"` is a **key, not copy**, and stays English for that reason.
+  `Kati.Screens.RetiredTile.subject/1` matches it against the untranslated
+  names `Kati.Health.Sample.sections/0` stores, so a translated `"Sleep"` would
+  miss the map under `:fa` and fall through to the sheet's default —
+  indistinguishable, on screen, from a section nobody wrote copy for.
+  `Kati.Screens.States` pushes the same string for the same reason and carries
+  the long version of the note. mishka-group/kati#103.
 
   `:log_by_hand` goes to `Kati.Screens.LogListen`. That is not a consolation
   prize: this sheet gates *auto*-detecting a listen, so the alternative it

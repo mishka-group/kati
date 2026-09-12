@@ -43,6 +43,7 @@ defmodule Kati.Screens.ClearHistory do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
@@ -75,7 +76,7 @@ defmodule Kati.Screens.ClearHistory do
           padding_bottom={40}
         >
           {SettingsList.chrome(nil, 44)}
-          {SettingsList.title("Clear watch history", nil, nil, :name)}
+          {SettingsList.title(gettext("Clear watch history"), nil, nil, :name)}
           {@body}
         </Column>
       </Scroll>
@@ -96,13 +97,28 @@ defmodule Kati.Screens.ClearHistory do
   def body(:error, _cleared) do
     SettingsList.note(
       "error",
-      "Kati could not read your history just now, so it will not offer to clear it. " <>
-        "Nothing has been changed. Open this again in a moment."
+      gettext(
+        "Kati could not read your history just now, so it will not offer to clear it. " <>
+          "Nothing has been changed. Open this again in a moment."
+      )
     )
   end
 
   def body(counts, cleared) do
+    # The two eyebrows are bound out of the sigil rather than called inside it,
+    # for the reason `Kati.Screens.Backup.content/1` gives about its own pair: a
+    # `~MOB` interpolation cannot be wrapped across lines the way an ordinary
+    # call can, and both of these run past the formatter's column once the
+    # label is a `gettext/1` call inside a `SettingsList.eyebrow_muted/1` call.
+    #
+    # `pgettext/2` on the second one. *What stays* is two words and it sits on
+    # the same screen as *What goes, and what stays*, which is exactly the
+    # shape `mix gettext.merge` fuzzy-matches: the short msgid would arrive
+    # already filled in with the long one's Persian, marked `#, fuzzy`, in a
+    # merge nobody reads line by line. The context is what keeps them apart.
     assigns = %{
+      goes_eyebrow: gettext("What goes, and what stays"),
+      stays_eyebrow: pgettext("board 267 eyebrow", "What stays"),
       goes: Kati.Screens.ClearHistory.goes(counts),
       stays: Kati.Screens.ClearHistory.stays(),
       counted_note: Kati.Screens.ClearHistory.counted_note(),
@@ -114,12 +130,12 @@ defmodule Kati.Screens.ClearHistory do
     ~MOB"""
     <Column fill_width={true}>
       {@done}
-      {SettingsList.eyebrow_muted("What goes, and what stays")}
+      {SettingsList.eyebrow_muted(@goes_eyebrow)}
       {@goes}
       <Spacer size={14} />
       {SettingsList.note("info", @counted_note)}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("What stays")}
+      {SettingsList.eyebrow_muted(@stays_eyebrow)}
       {@stays}
       <Spacer size={14} />
       {SettingsList.note("history", @unticks)}
@@ -133,10 +149,10 @@ defmodule Kati.Screens.ClearHistory do
   @spec goes(map()) :: map()
   def goes(counts) do
     rows = [
-      {counts.logs, "times you logged something watched, read or played"},
-      {counts.ratings, "ratings on those logs"},
-      {counts.reviews, "reviews you wrote"},
-      {counts.notes, "notes about where and who with"}
+      {counts.logs, gettext("times you logged something watched, read or played")},
+      {counts.ratings, gettext("ratings on those logs")},
+      {counts.reviews, gettext("reviews you wrote")},
+      {counts.notes, gettext("notes about where and who with")}
     ]
 
     last = length(rows) - 1
@@ -157,11 +173,22 @@ defmodule Kati.Screens.ClearHistory do
 
   @doc false
   def figure(count) do
-    assigns = %{text: Integer.to_string(count)}
+    # The digits move to the reader's own numerals and THE FACE MOVES WITH THEM.
+    # `kati_mono.ttf` carries none of U+06F0–U+06F9, so `۱٬۲۰۴` left on the
+    # hardcoded `font_family="mono"` would be handed to Android's own fallback
+    # and drawn in a typeface that is not Kati's, in a column beside figures
+    # that were not — which is the pairing `Kati.PersianFontTest` states as
+    # *Persian numerals are set in `fa` at the design's mono size*.
+    #
+    # `Kati.Locale.mono_face/1` rather than `/0` for the same reason
+    # `Kati.Screens.AlbumDetail.track_row/1` uses it on a track number: it asks
+    # the STRING, so an English page keeps DM Mono without a branch on locale.
+    text = Kati.Locale.number(count)
+    assigns = %{text: text, face: Kati.Locale.mono_face(text)}
 
     ~MOB"""
     <Box width={44} align="center">
-      <Text text={@text} font_family="mono" text_size={15} text_color={:on_surface} max_lines={1} />
+      <Text text={@text} font_family={@face} text_size={15} text_color={:on_surface} max_lines={1} />
     </Box>
     """
   end
@@ -170,10 +197,10 @@ defmodule Kati.Screens.ClearHistory do
   @spec stays() :: map()
   def stays do
     rows = [
-      {"Every shelf and every status",
-       "watching, finished, dropped — they live on the title, not on a log"},
-      {"Reading sessions and listens", "their own tables, untouched by this"},
-      {"Your library, lists and wishlist", "nothing here is a log"}
+      {gettext("Every shelf and every status"),
+       gettext("watching, finished, dropped — they live on the title, not on a log")},
+      {gettext("Reading sessions and listens"), gettext("their own tables, untouched by this")},
+      {gettext("Your library, lists and wishlist"), gettext("nothing here is a log")}
     ]
 
     last = length(rows) - 1
@@ -194,18 +221,32 @@ defmodule Kati.Screens.ClearHistory do
 
   @doc false
   def counted_note do
-    "Counted before the delete, never after — a report built from the delete's own row " <>
-      "count would say nothing was deleted while it deleted everything. And reviews are " <>
-      "named separately: a count of \"entries\" hides the fact that this deletes sentences " <>
-      "a person wrote. No total across the four — there is no such noun in this app, and a " <>
-      "destructive confirmation is the last screen that may print an invented one."
+    gettext(
+      "Counted before the delete, never after — a report built from the delete's own row " <>
+        "count would say nothing was deleted while it deleted everything. And reviews are " <>
+        "named separately: a count of \"entries\" hides the fact that this deletes sentences " <>
+        "a person wrote. No total across the four — there is no such noun in this app, and a " <>
+        "destructive confirmation is the last screen that may print an invented one."
+    )
   end
 
   @doc false
   def unticks_note do
-    "Every episode unticks. A tick is a log row, and series progress is counted from those " <>
-      "rows rather than stored — so every progress ring returns to zero. Your bookmark " <>
-      "survives: a shelf will read S2 · E5 beside a ring at nothing until you tick again."
+    # `S2 · E5` is interpolated rather than typed into the sentence, and the
+    # msgid it comes from is `Kati.Screens.Library.meta_for/4`'s own — this
+    # note is QUOTING the shelf ("a shelf will read …"), so it has to quote the
+    # string the shelf actually draws, which under `:fa` is `ف۲ · ق۵`. Typing
+    # it in would have left the one Latin run in a Persian paragraph whose
+    # middle dot the bidi algorithm then has to place, and it would have said
+    # the shelf reads something the shelf does not.
+    bookmark = gettext("S%{s} · E%{e}", s: Kati.Locale.number(2), e: Kati.Locale.number(5))
+
+    gettext(
+      "Every episode unticks. A tick is a log row, and series progress is counted from those " <>
+        "rows rather than stored — so every progress ring returns to zero. Your bookmark " <>
+        "survives: a shelf will read %{bookmark} beside a ring at nothing until you tick again.",
+      bookmark: bookmark
+    )
   end
 
   @doc """
@@ -224,10 +265,18 @@ defmodule Kati.Screens.ClearHistory do
   def actions(counts) do
     clear_tap = if counts.logs > 0, do: {self(), :ask}
 
+    # The destination's name is interpolated from `Kati.Screens.Backup`'s own
+    # msgid rather than written out a second time. A row that says where it
+    # goes has to keep saying what that screen is called, and two copies of
+    # `Back up everything` are two things a translator can answer differently
+    # — which would leave this row naming a screen the reader cannot find.
+    backup_line =
+      gettext("Offered, not taken — opens %{screen}", screen: gettext("Back up everything"))
+
     SettingsList.card([
       SettingsList.row(
         SettingsList.icon_tile("upload"),
-        SettingsList.body("Keep a copy first", "Offered, not taken — opens Back up everything"),
+        SettingsList.body(gettext("Keep a copy first"), backup_line),
         SettingsList.trailing(SettingsList.chevron()),
         on_tap: {self(), :back_up}
       ),
@@ -251,9 +300,15 @@ defmodule Kati.Screens.ClearHistory do
 
   @doc false
   def danger_label do
+    # Its own msgid, ellipsis and all, rather than the page title plus a `…`
+    # bolted on: the two are the same words in English and the ellipsis is what
+    # separates a heading from a control that opens something. A translator who
+    # sees them as one string cannot make that distinction in the other script.
+    assigns = %{label: gettext("Clear watch history…")}
+
     ~MOB"""
     <Text
-      text="Clear watch history…"
+      text={@label}
       text_size={13.5}
       font_weight="semibold"
       text_color={Palette.red()}
@@ -266,7 +321,22 @@ defmodule Kati.Screens.ClearHistory do
   def done(nil), do: ~MOB"<Spacer size={0} />"
 
   def done(cleared) do
-    assigns = %{text: "Cleared #{cleared} logs."}
+    # `ngettext/4` rather than the interpolation that stood here. `"Cleared
+    # #{cleared} logs."` printed **Cleared 1 logs.** for the reader who had one
+    # thing logged, on the one screen in the app where every word is being read
+    # carefully because something has just been destroyed. Persian does not
+    # inflect a noun after a numeral, so its two forms are the same sentence —
+    # the plural exists for the English side of the pair.
+    #
+    # `Kati.Locale.number/1` on the figure: this one is inside a sentence and
+    # takes the reader's numerals, unlike the four in `figure/1`, which are a
+    # mono column and take their face with them.
+    assigns = %{
+      text:
+        ngettext("Cleared %{n} log.", "Cleared %{n} logs.", cleared,
+          n: Kati.Locale.number(cleared)
+        )
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -283,9 +353,32 @@ defmodule Kati.Screens.ClearHistory do
   and **Does not change** are two sentences rather than one paragraph, because
   the second is the reason the first is safe to agree to.
   """
-  @spec confirm(boolean(), map()) :: map()
-  def confirm(true, counts) do
-    assigns = %{heading: "Clear #{counts.logs} logs?"}
+  @spec confirm(boolean(), map() | :error) :: map()
+  # `is_map/1` on this clause so `:error` falls through to the resting one
+  # instead of raising on `counts.logs`. `Kati.Media.History.counts/0` answers
+  # the atom when the store cannot be read, and it is the same assign this
+  # clause reads — `handle_tap(:clear, …)` writes a fresh `counts/0` into the
+  # socket, so the shape can change under a screen that is already mounted.
+  # Nothing reaches it today (the row that sets `confirming?` is only drawn by
+  # the readable branch of `body/2`), and a confirmation that crashes rather
+  # than closes is still not the failure to leave standing on this screen.
+  def confirm(true, counts) when is_map(counts) do
+    # `line_height` on the two sentences below is `Kati.Locale.leading/1` rather
+    # than the flat 1.5 that was there. Vazirmatn's metrics are not Plus
+    # Jakarta's — `Kati.Theme.fa_line_height/0` carries the argument — and both
+    # of these wrap to two or three lines inside a 28pt-inset card, which is
+    # where the difference is read rather than measured.
+    assigns = %{
+      heading:
+        ngettext("Clear %{n} log?", "Clear %{n} logs?", counts.logs,
+          n: Kati.Locale.number(counts.logs)
+        ),
+      changes: gettext("Changes: every tick, rating and review, and every progress ring."),
+      keeps:
+        gettext(
+          "Does not change: your shelves, your lists, your reading sessions and your listens."
+        )
+    }
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} align="center">
@@ -312,17 +405,17 @@ defmodule Kati.Screens.ClearHistory do
           />
           <Spacer size={11} />
           <Text
-            text="Changes: every tick, rating and review, and every progress ring."
+            text={@changes}
             text_size={12.5}
-            line_height={1.5}
+            line_height={Kati.Locale.leading(1.5)}
             text_color={Palette.sub()}
             text_align="center"
           />
           <Spacer size={7} />
           <Text
-            text="Does not change: your shelves, your lists, your reading sessions and your listens."
+            text={@keeps}
             text_size={12.5}
-            line_height={1.5}
+            line_height={Kati.Locale.leading(1.5)}
             text_color={Palette.sub()}
             text_align="center"
           />
@@ -338,6 +431,14 @@ defmodule Kati.Screens.ClearHistory do
 
   @doc false
   def confirm_buttons do
+    # Both labels are plain `gettext/1` and stay a pair. *Keep it* is already
+    # `Kati.Screens.ListDetail`'s msgid for the same button on the same kind of
+    # confirmation, so this screen reuses it rather than asking for a second
+    # Persian word for the same answer; *Clear it* is its opposite number and
+    # gets no context for the same reason — a destructive pair that a
+    # translator meets apart is a pair that stops reading as one.
+    assigns = %{clear: gettext("Clear it"), keep: gettext("Keep it")}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -350,7 +451,7 @@ defmodule Kati.Screens.ClearHistory do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Clear it"
+          text={@clear}
           text_size={13.5}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -362,7 +463,7 @@ defmodule Kati.Screens.ClearHistory do
       <Row fill_width={true} height={44} align="center" on_tap={{self(), :keep}}>
         <Spacer weight={1.0} />
         <Text
-          text="Keep it"
+          text={@keep}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}

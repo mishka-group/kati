@@ -41,6 +41,7 @@ defmodule Kati.Screens.QuickAddExpense do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Money
@@ -65,6 +66,13 @@ defmodule Kati.Screens.QuickAddExpense do
     draft = assigns.draft
     save_error = assigns[:save_error]
 
+    # The two eyebrows are deliberately the same msgids
+    # `Kati.Screens.QuickAdd.render/1` passes: this screen IS screen 18 with a
+    # different sentence in the field, it borrows that screen's header, field,
+    # chip row and commit, and two spellings of *Kati read that as* is how a
+    # catalogue starts disagreeing with itself. They were bare literals here —
+    # screen 18 translated its pair and screen 124 went on drawing Latin
+    # eyebrows over a Persian card.
     ~MOB"""
     <Box
       fill_width={true}
@@ -84,9 +92,9 @@ defmodule Kati.Screens.QuickAddExpense do
         >
           {QuickAdd.header()}
           {QuickAdd.field(draft)}
-          {UI.eyebrow("Kati read that as")}
+          {UI.eyebrow(gettext("Kati read that as"))}
           {Kati.Screens.QuickAddExpense.parsed(draft)}
-          {UI.eyebrow("Or file it as")}
+          {UI.eyebrow(gettext("Or file it as"))}
           {QuickAdd.kinds(draft)}
           {Kati.Screens.QuickAddExpense.save_notice(save_error)}
           {QuickAdd.actions(draft)}
@@ -115,6 +123,24 @@ defmodule Kati.Screens.QuickAddExpense do
   """
   @spec parsed(map()) :: map()
   def parsed(draft) do
+    # Two props on this card follow the script rather than the drawing, and
+    # both are no-ops in Latin — the English node is the node that was here.
+    #
+    # `Kati.Locale.tracking/1` on the title. The design tightens it by a
+    # fiftieth of an em; Arabic script has no such tradition and Vazirmatn is
+    # not drawn for it, so the fraction pulls the letters apart at their joins
+    # and `سالنامه نمک` comes apart into letterforms. That is a different
+    # defect from looking wrong, which is why it is worth a call rather than a
+    # constant. The Text already carries `max_lines={1}`.
+    #
+    # `Kati.Locale.mono_face/1` on the kind line. `kati_mono.ttf` carries no
+    # Persian glyph, so `هزینه · کتاب` set in DM Mono is handed to Android's
+    # own substitute face — it renders, in a typeface that is not Kati's,
+    # inside a card whose every other line is. It asks the STRING rather than
+    # the reader because the line comes from
+    # `Kati.Screens.QuickAdd.Sample.expense_draft/0` and this card is lent to
+    # whatever that hands it: an ASCII kind line keeps DM Mono in both scripts,
+    # the way screen 80's provider names do.
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -132,14 +158,14 @@ defmodule Kati.Screens.QuickAddExpense do
               text={draft.title}
               text_size={16}
               font_weight="bold"
-              letter_spacing={-0.02}
+              letter_spacing={Kati.Locale.tracking(-0.02)}
               text_color={:on_surface}
               max_lines={1}
             />
             <Spacer size={3} />
             <Text
               text={draft.kind}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(draft.kind)}
               text_size={10.5}
               text_color={Palette.cream_meta()}
               max_lines={1}
@@ -170,20 +196,75 @@ defmodule Kati.Screens.QuickAddExpense do
   """
   @spec amount_field(map()) :: map()
   def amount_field(draft) do
+    symbol = Money.symbol(Money.currency())
+
     assigns = %{
-      symbol: Money.symbol(Money.currency()),
+      symbol: symbol,
+      # The face follows the SYMBOL, not the reader. `$` is ASCII and keeps DM
+      # Mono in both scripts, which is what the drawing draws. `£`, `€`, `₺`
+      # and above all `﷼` are not, and `kati_mono.ttf` has none of them — a
+      # rial set in a face with no rial is a tofu box sitting against a field
+      # that works, which reads as the field being broken rather than the font.
+      # `mono_face/1` answers DM Mono for the ASCII one and the reader's own
+      # face for the rest, so all five currencies screen 125 offers draw under
+      # `:fa`.
+      symbol_face: Kati.Locale.mono_face(symbol),
       placeholder: draft.amount_placeholder,
       value: draft.amount,
       on_change: {self(), :amount}
     }
 
+    # `base: true` on the body run rather than letting run length decide it.
+    # `Kati.UI.rich_text/1` takes its one style from the LONGEST run when
+    # nothing is marked, and on this paragraph the longest run has always been
+    # the bolded clause — so the whole sentence was drawn semibold in cream ink
+    # with no `line_height` at all, which is the emphasis style applied to the
+    # body copy rather than the other way round. Marking the body says which
+    # run the style is, in every language: the two runs are close enough that a
+    # translation shorter than its own bold clause would flip the answer again.
+    # `Kati.Screens.AutoDetectMusic.apps_note/0` carries the same mark for the
+    # same reason.
+    #
+    # `Kati.Locale.leading/1` on the line height for the reason its doc gives:
+    # Vazirmatn's metrics are not Plus Jakarta's, and 1.5 measured against the
+    # Latin paragraph sets the Persian one too tight.
+    #
+    # The closing `.` stays a literal and is not a msgid. Persian ends a
+    # sentence with the same full stop, and a bare `"."` is precisely the
+    # one-character msgid `mix gettext.merge` fuzzy-matches against any sentence
+    # that ends in one. It is the last character of an RTL paragraph, so the
+    # bidi algorithm resolves it to the left edge — which is where a Persian
+    # sentence ends — and `Kati.Locale.ltr/1` would be the wrong tool for it.
+    body = [
+      text_size: 12,
+      line_height: Kati.Locale.leading(1.5),
+      text_color: Palette.cream_body()
+    ]
+
+    # The label above the field, set the way `Kati.UI.eyebrow/2` sets its own
+    # mono caps: Vazirmatn, because `kati_mono.ttf` has no `مبلغ`; no tracking,
+    # because 0.12em of it breaks the joins between Persian letters; and half a
+    # point and a weight more, because Vazirmatn does not hold DM Mono's optical
+    # colour at 9.5. `Kati.Screens.NumberingScheme.kicker/1` is the same four
+    # decisions over the same kind of label. Every one of them answers with the
+    # drawn value under `:en`, so nothing moves on the English board.
+    #
+    # The msgid is the capitals the drawing types. There is no text-transform
+    # on that line, so `AMOUNT` is the copy itself rather than a styling of
+    # *Amount* — the reading `Kati.Screens.QuickAdd.Sample` states for
+    # `PERSONAL EVENT` — and `Kati.UI.eyebrow_label/1` has nothing to upcase.
+    # `pgettext/2` rather than `gettext/1` because it is one word, and
+    # `mix gettext.merge` fuzzy-matches a one-word msgid against any sentence
+    # that resembles it; the chips next to it are contexted for the same
+    # reason.
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="AMOUNT"
-        font_family="mono"
-        text_size={9.5}
-        letter_spacing={0.12}
+        text={pgettext("quick add expense", "AMOUNT")}
+        font_family={Kati.Locale.mono_face()}
+        text_size={Kati.Locale.pick(9.5, 10)}
+        font_weight={Kati.Locale.pick("normal", "semibold")}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.cream_meta()}
       />
       <Spacer size={9} />
@@ -198,7 +279,12 @@ defmodule Kati.Screens.QuickAddExpense do
         padding_right={15}
         align="center"
       >
-        <Text text={@symbol} font_family="mono" text_size={17} text_color={Palette.cream_ink()} />
+        <Text
+          text={@symbol}
+          font_family={@symbol_face}
+          text_size={17}
+          text_color={Palette.cream_ink()}
+        />
         <Spacer size={9} />
         <TextField
           value={@value || ""}
@@ -212,11 +298,10 @@ defmodule Kati.Screens.QuickAddExpense do
       </Row>
       <Spacer size={11} />
       {Kati.UI.rich_text([
-        {"Type it, or save without — ",
-         [text_size: 12, line_height: 1.5, text_color: Palette.cream_body()]},
-        {"an expense with no amount still counts as a thing that happened",
+        {gettext("Type it, or save without —") <> " ", [base: true] ++ body},
+        {gettext("an expense with no amount still counts as a thing that happened"),
          [font_weight: "semibold", text_color: Palette.cream_ink(), text_size: 12]},
-        {".", [text_size: 12, line_height: 1.5, text_color: Palette.cream_body()]}
+        {".", body}
       ])}
     </Column>
     """
@@ -239,6 +324,12 @@ defmodule Kati.Screens.QuickAddExpense do
   def save_notice(nil), do: ~MOB"<Spacer size={0} />"
 
   def save_notice(message) when is_binary(message) do
+    # The message itself is `Kati.Write.message/1`'s and arrives translated —
+    # this is the one string on the page the reader did not ask for, so it is
+    # the one that must not arrive in a second language. `Kati.Locale.leading/1`
+    # on the line height because a failure notice is the worst place for the
+    # Persian to set tight: it sits directly above the button somebody is about
+    # to press again.
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.rich_text([
@@ -246,7 +337,7 @@ defmodule Kati.Screens.QuickAddExpense do
          [
            text_size: 13,
            font_weight: "semibold",
-           line_height: 1.45,
+           line_height: Kati.Locale.leading(1.45),
            text_color: Palette.red()
          ]}
       ])}
@@ -332,12 +423,33 @@ defmodule Kati.Screens.QuickAddExpense do
   three decimal places on purpose, but silently losing a penny is the kind of
   thing that is noticed much later and trusted much less.
 
+  ## Persian digits fold before anything is parsed
+
+  `Kati.I18n.Digits.fold/1` is the first step, and it is the difference between
+  this field working under `:fa` and failing in the one way this screen is
+  built not to fail. An Iranian keyboard produces U+06F0–U+06F9 and CLDR's
+  Persian decimal mark is U+066B — `۱۲٫۵۰`. `Float.parse/1` answers `:error`
+  for every one of them, so a reader who typed an amount got `nil`, and `nil`
+  on this screen is not an error: it is *an expense with no amount*, which the
+  copy under the field promises is a perfectly good record. The sheet would
+  have closed on a saved expense with the price dropped out of it, which is the
+  same shape as the `:ok`-whatever-happened bug the moduledoc describes and
+  quieter, because here the write really did succeed.
+
+  Folding rather than `Kati.I18n.Digits.parse_float/1`: that function strips a
+  comma as a GROUP separator, and this one has read a comma as a decimal point
+  since it was written — `12,50` is £12.50 here, not £1,250. Folding leaves
+  that decision alone and only makes a Persian numeral behave exactly as the
+  Latin one it means.
+
       iex> Kati.Screens.QuickAddExpense.pence("12.50")
       1250
       iex> Kati.Screens.QuickAddExpense.pence("8")
       800
       iex> Kati.Screens.QuickAddExpense.pence("12.")
       1200
+      iex> Kati.Screens.QuickAddExpense.pence("۱۲٫۵۰")
+      1250
       iex> Kati.Screens.QuickAddExpense.pence("")
       nil
       iex> Kati.Screens.QuickAddExpense.pence("abc")
@@ -347,7 +459,11 @@ defmodule Kati.Screens.QuickAddExpense do
   def pence(amount) when is_integer(amount), do: amount
 
   def pence(amount) when is_binary(amount) do
-    cleaned = amount |> String.replace(",", ".") |> String.trim()
+    cleaned =
+      amount
+      |> Kati.I18n.Digits.fold()
+      |> String.replace(",", ".")
+      |> String.trim()
 
     case Float.parse(cleaned) do
       {value, _rest} when value >= 0 -> round(value * 100)

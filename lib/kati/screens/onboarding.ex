@@ -52,8 +52,32 @@ defmodule Kati.Screens.Onboarding do
   `Kati.Notifications.Scheduler`. It is also, as screen 40 says, the answer that
   lets *"Not yet asked"* stay true — the decision is made here and the OS
   permission is requested later.
+
+  ## The copy arrives in English and is spelled here
+
+  `Kati.Onboarding.Sample` holds every sentence on this page as a plain
+  literal, and it is not this screen's file to change: `Kati.Screens.
+  LoudnessPrompt` reads the same `Sample.telling/0` and draws it through
+  `option/1` below. `gettext/1` will not take a variable, so the words cannot be
+  translated where they are used — they are keyed on their English spelling by
+  `translated/1`, one clause each, which is the shape
+  `Kati.Screens.OnboardingFirstTitle.label_for/1` already uses for the four
+  poster titles it is handed.
+
+  **No msgid on this page is new.** Screens 161, 162 and 163 are this drawing's
+  three panels renumbered by `D-33`, and they have carried these sentences
+  through the catalogue since mishka-group/kati#103 folded their mirrors away.
+  38 asks for the same msgids, so one sentence cannot end up in the catalogue
+  twice under two spellings and drift.
+
+  The right home for the calls is `Sample` itself —
+  `Kati.Screens.PickSections.Sample` calls `gettext/1` from inside the sample
+  module, which is what leaves nothing for a screen to look up — and moving them
+  there would empty `translated/1`. That is an edit to a file this screen does
+  not own.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaSeparator
@@ -107,8 +131,123 @@ defmodule Kati.Screens.Onboarding do
     """
   end
 
+  @doc """
+  One of `Kati.Onboarding.Sample`'s sentences, in the reader's script.
+
+      iex> Kati.Screens.Onboarding.translated("Marram")
+      "Marram"
+
+  The moduledoc's *"The copy arrives in English and is spelled here"* is the
+  why. In short: the words are literals in a module this screen does not own and
+  `gettext/1` will not take a variable, so each is a clause keyed on its English
+  spelling — `Kati.Screens.OnboardingFirstTitle.label_for/1`'s shape, for the
+  same reason it has that shape.
+
+  Every msgid below already exists. 161, 162 and 163 are this drawing's three
+  panels renumbered by `D-33` and they have carried these sentences since
+  mishka-group/kati#103; asking for the same msgids is what keeps one sentence
+  from reaching the catalogue twice under two spellings.
+
+  An unknown string comes back unchanged rather than raising. That is the trade
+  `label_for/1` makes too: copy added to `Sample` and not added here ships in
+  Latin, which is wrong on a page rather than a crash in the middle of a first
+  run — a `FunctionClauseError` here would be a blank device on the one screen a
+  new install cannot get past.
+  """
+  # Step 1. The drawing breaks the title inside one `Text`, and 161 — the same
+  # panel renumbered — draws the two halves as two `Text`s off two msgids.
+  # Those two joined by the break, rather than a third msgid holding both: the
+  # Persian is the two lines 164 drew, یک جا برای over هر چه نگه می‌دارید, and
+  # one sentence entered in the catalogue twice is one that drifts.
+  def translated("One place for\nwhat you keep"),
+    do: gettext("One place for") <> "\n" <> gettext("what you keep")
+
+  def translated(
+        "Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
+      ) do
+    gettext(
+      "Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
+    )
+  end
+
+  def translated("Get started"), do: gettext("Get started")
+
+  # Step 3. 162 draws this question broken after *should* and keeps the break in
+  # the msgid — `"How should we\ntell you?"`, whose Persian does its own
+  # typesetting and comes back as a single line. 38 draws it unbroken at 26pt
+  # and lets the `Text` wrap, so the break comes out here rather than the same
+  # question entering the catalogue a second time at a different width.
+  # `Kati.Screens.LanguagePick` flattens a heading the same way.
+  def translated("How should we tell you?"),
+    do: String.replace(gettext("How should we\ntell you?"), "\n", " ")
+
+  def translated(
+        "Kati checks for new episodes on its own. You choose how loudly it mentions them."
+      ) do
+    gettext("Kati checks for new episodes on its own. You choose how loudly it mentions them.")
+  end
+
+  def translated("Quietly"), do: gettext("Quietly")
+  def translated("Notify me"), do: gettext("Notify me")
+  def translated("Weekly digest"), do: gettext("Weekly digest")
+
+  def translated("A card on home. Nothing buzzes."),
+    do: gettext("A card on home. Nothing buzzes.")
+
+  def translated("A push when something lands."), do: gettext("A push when something lands.")
+
+  # The digest's day and its hour are inside the msgid, so the translation moves
+  # them rather than this screen formatting them: the Persian reads جمعه‌ها
+  # ساعت ۱۸:۰۰ — Friday, the quiet end of an Iranian week, in Persian digits.
+  # `Kati.Locale.time/1` wants a `Time` and there is none here; the sentence is
+  # a promise about a schedule, not a clock this page reads.
+  def translated("One summary, Sundays at 18:00."), do: gettext("One summary, Sundays at 18:00.")
+
+  # Step 4.
+  def translated("Add your first title"), do: gettext("Add your first title")
+
+  def translated("Pick something you are watching now — the calendar fills itself from there.") do
+    gettext("Pick something you are watching now — the calendar fills itself from there.")
+  end
+
+  def translated("Finish setup"), do: gettext("Finish setup")
+  def translated("Skip — I’ll add things later"), do: gettext("Skip — I’ll add things later")
+
+  # The four starter posters are invented films, not a provider's name, so they
+  # translate: `Kati.Screens.OnboardingFirstTitle.label_for/1` already shelves
+  # them under these four Persian titles, and its `@seeds` keys the artwork off
+  # both spellings so the photograph follows the name into either script. The
+  # same four msgids here, so 38 and 163 cannot spell one film two ways.
+  def translated("The Long Hollow"), do: gettext("The Long Hollow")
+  def translated("Ashfall"), do: gettext("Ashfall")
+  def translated("Marram"), do: gettext("Marram")
+  def translated("Nightbirds"), do: gettext("Nightbirds")
+
+  def translated(other), do: other
+
+  # The three display headings on this screen all take the same two locale
+  # numbers, and the welcome one is where the reason is easiest to see.
+  #
+  # `Kati.Locale.tracking/1` because the drawing's -0.035em is a Latin habit:
+  # Arabic script joins its letters and tracking prises the joins apart, so the
+  # mirrors dropped `letter_spacing` rather than mirroring it.
+  #
+  # `Kati.Locale.pick(1.12, 1.4)` and not `Kati.Locale.leading/1`, which answers
+  # 1.95 — a paragraph's leading, far too open for a 32pt heading. 1.4 is the
+  # number board 53 settled on for exactly this Text: `Kati.Screens.
+  # LanguagePick`'s own 32pt extrabold lead carries `pick(1.12, 1.4)` with the
+  # measurement written beside it — *Vazirmatn's ascenders need the second: a
+  # 32pt Persian question at 1.12 closes on the line above it*. This title is
+  # two lines by construction, so it is the one that would close first.
+  #
+  # No `max_lines={1}`: the title carries its own break, so capping it at one
+  # line would cut *what you keep* off the bottom of the drawing.
   @doc false
   def welcome(w) do
+    title = Kati.Screens.Onboarding.translated(w.title)
+    body = Kati.Screens.Onboarding.translated(w.body)
+    cta = Kati.Screens.Onboarding.translated(w.cta)
+
     ~MOB"""
     <Column fill_width={true} padding_top={26}>
       {Kati.Screens.Onboarding.steps(1)}
@@ -117,15 +256,20 @@ defmodule Kati.Screens.Onboarding do
       </Box>
       <Spacer size={20} />
       <Text
-        text={w.title}
+        text={title}
         text_size={32}
         font_weight="extrabold"
-        letter_spacing={-0.035}
-        line_height={1.12}
+        letter_spacing={Kati.Locale.tracking(-0.035)}
+        line_height={Kati.Locale.pick(1.12, 1.4)}
         text_color={:on_surface}
       />
       <Spacer size={14} />
-      <Text text={w.body} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
+      <Text
+        text={body}
+        text_size={14.5}
+        line_height={Kati.Locale.leading(1.6)}
+        text_color={Palette.ink_soft()}
+      />
       <Spacer size={24} />
       <Box
         on_tap={{self(), :get_started}}
@@ -136,7 +280,7 @@ defmodule Kati.Screens.Onboarding do
         align="center"
       >
         <Text
-          text={w.cta}
+          text={cta}
           text_size={14.5}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -223,21 +367,33 @@ defmodule Kati.Screens.Onboarding do
     """
   end
 
+  # Same two locale numbers as `welcome/1`, whose comment carries the reason.
+  # 26pt rather than 32, and the Persian question is short enough to sit on one
+  # line, but a reader who has scaled their type up gets the second line and
+  # 1.15 would close it on the first.
   @doc false
   def telling(t) do
+    title = Kati.Screens.Onboarding.translated(t.title)
+    body = Kati.Screens.Onboarding.translated(t.body)
+
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.Onboarding.steps(3)}
       <Text
-        text={t.title}
+        text={title}
         text_size={26}
         font_weight="extrabold"
-        letter_spacing={-0.035}
-        line_height={1.15}
+        letter_spacing={Kati.Locale.tracking(-0.035)}
+        line_height={Kati.Locale.pick(1.15, 1.4)}
         text_color={:on_surface}
       />
       <Spacer size={10} />
-      <Text text={t.body} text_size={13.5} line_height={1.55} text_color={Palette.ink_soft()} />
+      <Text
+        text={body}
+        text_size={13.5}
+        line_height={Kati.Locale.leading(1.55)}
+        text_color={Palette.ink_soft()}
+      />
       <Spacer size={18} />
       {t.options
        |> Enum.map(fn option -> Kati.Screens.Onboarding.option(option) end)
@@ -251,8 +407,17 @@ defmodule Kati.Screens.Onboarding do
 
   # The chosen option inverts to ink and carries an accent tick, so the answer
   # is legible without comparing three cards' backgrounds.
+  #
+  # Both clauses spell their two lines through `translated/1` rather than
+  # drawing `option.title` as it arrives, which is what puts the three cards
+  # into Persian on `Kati.Screens.LoudnessPrompt` too — that screen reads the
+  # same `Kati.Onboarding.Sample.telling/0` and calls this function to draw it,
+  # so translating here translates both boards from one place.
   @doc false
   def option(%{selected?: true} = option) do
+    title = Kati.Screens.Onboarding.translated(option.title)
+    sub = Kati.Screens.Onboarding.translated(option.sub)
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -266,14 +431,14 @@ defmodule Kati.Screens.Onboarding do
       <Spacer size={13} />
       <Column weight={1.0}>
         <Text
-          text={option.title}
+          text={title}
           text_size={14}
           font_weight="bold"
           text_color={Palette.on_ink()}
           max_lines={1}
         />
         <Spacer size={3} />
-        <Text text={option.sub} text_size={11.5} text_color={Palette.on_ink_count()} max_lines={1} />
+        <Text text={sub} text_size={11.5} text_color={Palette.on_ink_count()} max_lines={1} />
       </Column>
       <Spacer size={13} />
       {Kati.Screens.Onboarding.tick(22, 11, 14)}
@@ -282,6 +447,9 @@ defmodule Kati.Screens.Onboarding do
   end
 
   def option(option) do
+    title = Kati.Screens.Onboarding.translated(option.title)
+    sub = Kati.Screens.Onboarding.translated(option.sub)
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -294,15 +462,9 @@ defmodule Kati.Screens.Onboarding do
       {Kati.UI.symbol(option.icon, size: 21, color: Palette.sub())}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text
-          text={option.title}
-          text_size={14}
-          font_weight="bold"
-          text_color={:on_surface}
-          max_lines={1}
-        />
+        <Text text={title} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer size={3} />
-        <Text text={option.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+        <Text text={sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
     </Row>
     """
@@ -371,25 +533,44 @@ defmodule Kati.Screens.Onboarding do
     )
   end
 
-  # Two across. 174*2 + 11 = 359, the content width between the 21pt gutters,
-  # which is the design's own `calc(50% - 6px)` with an 11pt gap.
+  # Two across, each cell a weight, with an 11pt gap — the design's own
+  # `calc(50% - 6px)`.
+  #
+  # This comment used to call `174 * 2 + 11 = 359` *the content width between
+  # the 21pt gutters*, which is the arithmetic the moduledoc and `poster/1`
+  # both exist to correct: 359 is what two fixed 174s come to, and the content
+  # width on the 411dp device is 369, so that grid stops 10pt short of the
+  # right gutter. The 174 was never in the code — `poster/1` has taken a weight
+  # all along — so this was a stale sentence over correct code, sitting where a
+  # reader would trust it over the two places that did the measuring.
+  #
+  # Headings: the two locale numbers `welcome/1`'s comment explains.
   @doc false
   def first_title(f) do
     rows = Enum.chunk_every(f.posters, 2)
+    title = Kati.Screens.Onboarding.translated(f.title)
+    body = Kati.Screens.Onboarding.translated(f.body)
+    cta = Kati.Screens.Onboarding.translated(f.cta)
+    skip = Kati.Screens.Onboarding.translated(f.skip)
 
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.Onboarding.steps(4)}
       <Text
-        text={f.title}
+        text={title}
         text_size={26}
         font_weight="extrabold"
-        letter_spacing={-0.035}
-        line_height={1.15}
+        letter_spacing={Kati.Locale.tracking(-0.035)}
+        line_height={Kati.Locale.pick(1.15, 1.4)}
         text_color={:on_surface}
       />
       <Spacer size={10} />
-      <Text text={f.body} text_size={13.5} line_height={1.55} text_color={Palette.ink_soft()} />
+      <Text
+        text={body}
+        text_size={13.5}
+        line_height={Kati.Locale.leading(1.55)}
+        text_color={Palette.ink_soft()}
+      />
       <Spacer size={18} />
       {Enum.map(rows, fn row -> Kati.Screens.Onboarding.poster_row(row) end)}
       <Spacer size={9} />
@@ -402,7 +583,7 @@ defmodule Kati.Screens.Onboarding do
         align="center"
       >
         <Text
-          text={f.cta}
+          text={cta}
           text_size={14}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -412,7 +593,7 @@ defmodule Kati.Screens.Onboarding do
       <Spacer size={14} />
       <Box fill_width={true} on_tap={{self(), :finish_skip}}>
         <Text
-          text={f.skip}
+          text={skip}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}
@@ -445,19 +626,22 @@ defmodule Kati.Screens.Onboarding do
   # of the 369 between the gutters and the grid stops short of the right one.
   # The tile's height is `aspect_ratio` — the export's own `aspect-ratio:2/3` —
   # so it follows whatever width the weight hands out, at any frame width.
+  #
+  # The caption is spelled through `translated/1` and the artwork is not: a
+  # poster is a photograph, and `p.seed` is what fetches it, so the picture is
+  # the same in both scripts while the name under it is the reader's. Board 166
+  # is where that rule is written down — *a Persian run should not put an
+  # English name on a Persian shelf* — and `Kati.Screens.OnboardingFirstTitle`
+  # keys its own seeds off both spellings for the same reason.
   @doc false
   def poster(p) do
+    title = Kati.Screens.Onboarding.translated(p.title)
+
     ~MOB"""
     <Column weight={1.0}>
       {Kati.Screens.Onboarding.poster_art(p)}
       <Spacer size={8} />
-      <Text
-        text={p.title}
-        text_size={12.5}
-        font_weight="bold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Text text={title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
     </Column>
     """
   end

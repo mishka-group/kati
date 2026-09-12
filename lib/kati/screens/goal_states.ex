@@ -163,6 +163,7 @@ defmodule Kati.Screens.GoalStates do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Screens.Goals
   alias Kati.Theme.Palette
@@ -249,6 +250,18 @@ defmodule Kati.Screens.GoalStates do
   def content(assigns) do
     s = assigns.states
 
+    # `Kati.UI.eyebrow_label/1` rather than a second all-caps msgid. The Latin
+    # line is FOUR STATES because the drawing upcases it, and `String.upcase/1`
+    # is a Latin operation the Arabic script has no answer to — that function's
+    # own doc carries the long version, and `Kati.Screens.BackupStates` takes
+    # the same route for its EIGHT STATES. English is byte-identical either way.
+    #
+    # The four band labels below are NOT upcased here: `eyebrow_muted/1` and
+    # `Kati.UI.eyebrow/2` both do it themselves, so a msgid that arrived already
+    # shouting would be a second copy of the same sentence for a translator to
+    # keep in step.
+    subtitle = UI.eyebrow_label(gettext("Four states"))
+
     ~MOB"""
     <Scroll>
       <Column
@@ -259,15 +272,15 @@ defmodule Kati.Screens.GoalStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Goals", "FOUR STATES")}
-        {UI.eyebrow("Impossible — says so, offers the fix")}
+        {SettingsList.title(gettext("Goals"), subtitle)}
+        {UI.eyebrow(gettext("Impossible — says so, offers the fix"))}
         {Kati.Screens.GoalStates.impossible_card(s.impossible)}
-        {SettingsList.eyebrow_muted("Completed early")}
+        {SettingsList.eyebrow_muted(gettext("Completed early"))}
         {Kati.Screens.GoalStates.completed_card(s.completed)}
-        {SettingsList.eyebrow_muted("Period rolled over")}
+        {SettingsList.eyebrow_muted(gettext("Period rolled over"))}
         {Kati.Screens.GoalStates.rollover(s.completed)}
         {Kati.Screens.GoalStates.repeat_row()}
-        {SettingsList.eyebrow_muted("Source data changed")}
+        {SettingsList.eyebrow_muted(gettext("Source data changed"))}
         {Kati.Screens.GoalStates.recount()}
       </Column>
     </Scroll>
@@ -286,7 +299,11 @@ defmodule Kati.Screens.GoalStates do
   """
   @spec prose() :: {keyword(), keyword()}
   def prose do
-    {[text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft()],
+    # `Kati.Locale.leading/1` rather than the bare 1.6. Vazirmatn's metrics are
+    # not Plus Jakarta's — `Kati.Theme.fa_line_height/0` argues it — so the
+    # board's own leading gives a Persian paragraph lines that touch. 1.6 is
+    # returned unchanged in Latin, so the frame comparison is untouched.
+    {[text_size: 12.5, line_height: Kati.Locale.leading(1.6), text_color: Palette.ink_soft()],
      [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]}
   end
 
@@ -301,7 +318,25 @@ defmodule Kati.Screens.GoalStates do
   @spec impossible_card(map()) :: map()
   def impossible_card(g) do
     {body, strong} = prose()
-    shortfall = "#{g.target - g.progress} books in #{@days_left} days"
+    short = g.target - g.progress
+
+    # Both halves of the shortfall are numerals inside a SENTENCE, which is
+    # exactly the case `Kati.Locale.number/1` is for — `4` and `11` read ۴ and
+    # ۱۱ under `:fa` like every other number in the body copy.
+    #
+    # `%{n}` and not `%{count}`: `ngettext/5` binds `count` to the integer
+    # itself, so a `count:` carrying Persian digits is silently overwritten and
+    # the sentence comes out with a Latin `4` in it — the note
+    # `Kati.Screens.Goals` keeps above its own projection strings. The plural
+    # still selects on the integer, which is the third argument.
+    shortfall =
+      ngettext(
+        "%{n} book in %{days} days",
+        "%{n} books in %{days} days",
+        short,
+        n: Kati.Locale.number(short),
+        days: Kati.Locale.number(@days_left)
+      )
 
     ~MOB"""
     <Column fill_width={true}>
@@ -317,7 +352,7 @@ defmodule Kati.Screens.GoalStates do
             text={g.title}
             text_size={14.5}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             weight={1.0}
             max_lines={2}
@@ -332,7 +367,7 @@ defmodule Kati.Screens.GoalStates do
         <Spacer size={14} />
         {UI.rich_text([
           {shortfall, strong},
-          {" is not going to happen. The count stands either way.", body}
+          {gettext(" is not going to happen. The count stands either way."), body}
         ])}
         <Spacer size={14} />
         {Kati.Screens.GoalStates.impossible_actions(g)}
@@ -354,7 +389,10 @@ defmodule Kati.Screens.GoalStates do
 
   The figure is an em dash rather than a percentage, so it takes DM Mono like
   every other figure on the sheet — a dash set in the body face beside a mono
-  `48` would look like a different kind of mark.
+  `48` would look like a different kind of mark. `Kati.Locale.mono_face/0`
+  rather than the name, for exactly that reason: `figures/1` follows 104 into
+  Vazirmatn under `:fa`, and a dash that stayed in DM Mono beside it would be
+  the different kind of mark this pill is drawn to avoid.
   """
   @spec impossible_pill(String.t()) :: map()
   def impossible_pill(figure) do
@@ -371,7 +409,7 @@ defmodule Kati.Screens.GoalStates do
       <Spacer size={5} />
       <Text
         text={figure}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={11.5}
         text_color={Palette.red()}
         max_lines={1}
@@ -394,20 +432,31 @@ defmodule Kati.Screens.GoalStates do
   """
   @spec figures(map()) :: map()
   def figures(g) do
+    # The digits and the face both come from 104's own band rather than from
+    # `Integer.to_string/1` and the literal `"mono"`: `Kati.Screens.Goals.card/1`
+    # draws `Kati.Locale.number/1` in `Kati.Locale.mono_face/0`, so under `:fa`
+    # these read ۴۸ / ۵۲ in Vazirmatn. `kati_mono.ttf` carries no U+06F0–U+06F9
+    # at all, so a Persian numeral left in DM Mono is a box — and this sheet's
+    # whole argument is that its figures measure like the card they are a state
+    # of. The size and the gap stay the sheet's own 27/15 at 8.
+    #
+    # Tracking through `Kati.Locale.tracking/1` for the rule the fold applies to
+    # every `letter_spacing` that can hold Persian: the value is returned
+    # unchanged in Latin, so the frame comparison is untouched.
     ~MOB"""
     <Row fill_width={true} align="bottom">
       <Text
-        text={Integer.to_string(g.progress)}
-        font_family="mono"
+        text={Kati.Locale.number(g.progress)}
+        font_family={Kati.Locale.mono_face()}
         text_size={27}
         font_weight="medium"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
       />
       <Spacer size={8} />
       <Text
-        text={"/ " <> Integer.to_string(g.target)}
-        font_family="mono"
+        text={"/ " <> Kati.Locale.number(g.target)}
+        font_family={Kati.Locale.mono_face()}
         text_size={15}
         text_color={Palette.meta()}
       />
@@ -427,7 +476,14 @@ defmodule Kati.Screens.GoalStates do
   """
   @spec impossible_actions(map()) :: map()
   def impossible_actions(g) do
-    make = "Make it " <> Integer.to_string(g.progress)
+    # `pgettext/3` and not `gettext/2` for both labels. They are two- and
+    # three-word buttons, and `mix gettext.merge` fuzzy-matches a msgid that
+    # short against anything that looks like it — *Keep it* is already in the
+    # catalogue as **بماند**, and these two are a pair that has to be read
+    # together rather than one of them silently inheriting that. The context
+    # names the card so a translator can see the pair.
+    make =
+      pgettext("impossible goal card button", "Make it %{n}", n: Kati.Locale.number(g.progress))
 
     ~MOB"""
     <Row fill_width={true} align="center">
@@ -452,7 +508,7 @@ defmodule Kati.Screens.GoalStates do
         align="center"
       >
         <Text
-          text="Leave it"
+          text={pgettext("impossible goal card button", "Leave it")}
           text_size={12.5}
           font_weight="semibold"
           text_color={Palette.ink_soft()}
@@ -478,6 +534,21 @@ defmodule Kati.Screens.GoalStates do
   """
   @spec completed_card(map()) :: map()
   def completed_card(g) do
+    # THE DATE IS A MSGID AND NOT A `Kati.Locale.date/2` CALL, and it has to be.
+    #
+    # `Kati.Goals.Sample`'s maps are card-shaped and carry no dates — the
+    # moduledoc says so about `11 days` — so there is no `Date` here to convert,
+    # and inventing one would be a second fixture. What the line actually says
+    # is a POSITION IN THE YEAR: four months before a target that ends with the
+    # year. Under `:fa` that year ends with Esfand, so the Persian names the
+    # same position in the Shamsi year rather than transliterating 14 August,
+    # which falls seven months before Nowruz and would make the card's own
+    # *4 months early* arithmetic false.
+    #
+    # This is the move `Kati.Goals.Sample` already makes with the goal's end
+    # date: its `31 December` is **پایان اسفند** rather than ۱۰ دی.
+    done = gettext("Done on 14 August — 4 months early")
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -495,17 +566,12 @@ defmodule Kati.Screens.GoalStates do
               text={g.title}
               text_size={14.5}
               font_weight="bold"
-              letter_spacing={-0.015}
+              letter_spacing={Kati.Locale.tracking(-0.015)}
               text_color={:on_surface}
               max_lines={2}
             />
             <Spacer size={4} />
-            <Text
-              text="Done on 14 August — 4 months early"
-              text_size={12}
-              text_color={Palette.sub()}
-              max_lines={1}
-            />
+            <Text text={done} text_size={12} text_color={Palette.sub()} max_lines={1} />
           </Column>
         </Row>
         <Spacer size={14} />
@@ -542,7 +608,7 @@ defmodule Kati.Screens.GoalStates do
     >
       <Spacer weight={1.0} />
       <Text
-        text="Set next year’s"
+        text={gettext("Set next year’s")}
         text_size={12.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -684,11 +750,23 @@ defmodule Kati.Screens.GoalStates do
     note(%{
       icon: "repeat",
       color: Palette.gold_icon(),
-      title: "1 January — a fresh " <> Integer.to_string(g.target),
+      # `1 January` is the same figure of speech `Kati.Goals.Sample`'s
+      # `31 December` is — the day the yearly period turns over — and the
+      # Persian names Nowruz rather than converting a date the fixture does not
+      # hold. `Kati.Screens.Goals`' own repeat sub-line already says it that
+      # way: *a yearly goal restarts on 1 January* is **در آغاز سال**.
+      title: gettext("1 January — a fresh %{n}", n: Kati.Locale.number(g.target)),
       runs: [
-        {"Last year finished at ", body},
-        {Integer.to_string(g.progress) <> " of " <> Integer.to_string(g.target), strong},
-        {". That result keeps its own card in the archive.", body}
+        {gettext("Last year finished at "), body},
+        # The same msgid `Kati.Goals.Sample` sets its projections with, so the
+        # result quotes the score in one wording across 104 and 107 — and the
+        # emphasised run is one unit rather than three pieces of punctuation a
+        # right-to-left paragraph would have to reorder around.
+        {gettext("%{done} of %{total}",
+           done: Kati.Locale.number(g.progress),
+           total: Kati.Locale.number(g.target)
+         ), strong},
+        {gettext(". That result keeps its own card in the archive."), body}
       ],
       gap: 11
     })
@@ -720,8 +798,8 @@ defmodule Kati.Screens.GoalStates do
         SettingsList.row(
           SettingsList.icon_tile("repeat"),
           SettingsList.body(
-            "Repeat each period",
-            "Off — the goal ends with its period and moves to the archive",
+            gettext("Repeat each period"),
+            gettext("Off — the goal ends with its period and moves to the archive"),
             lines: 2
           ),
           SettingsList.trailing(SettingsList.switch(false)),
@@ -749,12 +827,29 @@ defmodule Kati.Screens.GoalStates do
     note(%{
       icon: "history",
       color: Palette.sub(),
-      title: "A book moved to Did not finish",
+      # *Did not finish* is the BOOK STATUS, not the activity-log verb: the
+      # catalogue holds both under `msgctxt`, **رهاشده** for the shelf a book
+      # moves to and **ناتمام ماند** for the line 15 writes about it. This card
+      # names the shelf, and `Kati.Screens.BookDetailStates` is where that
+      # status word is drawn.
+      title: gettext("A book moved to Did not finish"),
       runs: [
-        {"Its 214 pages stay counted toward the pages goal. The books goal drops by one, " <>
-           "because that goal counts finishing. ", body},
-        {"Kati never silently recounts the past", strong},
-        {" — the change appears in 15.", body}
+        # One literal rather than the `<>` of two: a msgid has to be a literal
+        # at the call site, and `gettext("a" <> "b")` is an operator call by the
+        # time the macro sees it. 214 is interpolated because it is a page count
+        # the reader reads, which is `Kati.Locale.number/1`'s own case.
+        {gettext(
+           "Its %{pages} pages stay counted toward the pages goal. The books goal drops by one, because that goal counts finishing. ",
+           pages: Kati.Locale.number(214)
+         ), body},
+        {gettext("Kati never silently recounts the past"), strong},
+        # `15` stays inside the msgid rather than being interpolated. It is a
+        # screen number set as copy — see the moduledoc — and the catalogue
+        # already writes one that way: *Kati never rewrites what happened — 15
+        # is append-only* on `Kati.Screens.MyServicesStates` reads **به ۱۵ فقط
+        # افزوده می‌شود**, with the number in the reader's own digits because it
+        # is a word in a sentence rather than a citation.
+        {gettext(" — the change appears in 15."), body}
       ],
       gap: 0
     })

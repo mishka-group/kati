@@ -63,9 +63,26 @@ defmodule Kati.Screens.Nutrition do
   Both stay on `Kati.Meals.SampleNutrition` and are named here, rather than
   being drawn as computed-looking blanks.
 
+  ## The words are this screen's; the drawing's figures are the fixture's
+
+  Every label this module writes is a msgid — the title, the three periods,
+  the hero's two eyebrows, the three count cards, the four macro names, both
+  muted eyebrows — and every figure it counts goes out through `Kati.Locale`,
+  which is also what starts a Persian reader's seven-day axis on a Saturday
+  rather than on a Monday.
+
+  What is not here is `Kati.Meals.SampleNutrition`'s own copy. The resting
+  screen draws the fixture's `Cutting v3 · week 6 of 12`, its `2,040 kcal`,
+  its `Jun` and `best run — 19 days` and its Friday sentence, and those are
+  that module's to translate the way `Kati.Meals.SampleToday` already has.
+  Every slot they land in here asks `Kati.Locale.mono_face/1` about the string
+  rather than pinning `mono`, so the day they change they are typeset in
+  Vazirmatn at the design's mono size and this file needs no second edit.
+
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Meals"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -98,6 +115,12 @@ defmodule Kati.Screens.Nutrition do
     period = assigns.period
     data = Map.fetch!(assigns.periods, period)
 
+    # The field names its own window in its own eyebrow, and the window is
+    # interpolated rather than written into the sentence so the reader meets it
+    # in their own digits — `ثبات · ۱۲ هفته`. Twelve is still the fixture's own
+    # count: `Kati.Meals.SampleNutrition.consistency/0` is 84 cells.
+    consistency = gettext("Consistency · %{n} weeks", n: Kati.Locale.number(12))
+
     ~MOB"""
     <Scroll>
       <Column
@@ -112,11 +135,11 @@ defmodule Kati.Screens.Nutrition do
         {Kati.Screens.Nutrition.segments(period)}
         {Kati.Screens.Nutrition.hero(data)}
         {Kati.Screens.Nutrition.counts(data)}
-        {UI.eyebrow("Macros vs target")}
+        {UI.eyebrow(gettext("Macros vs target"))}
         {Kati.Screens.Nutrition.macros(data)}
-        {Kati.Screens.Nutrition.muted_eyebrow("Consistency · 12 weeks")}
+        {Kati.Screens.Nutrition.muted_eyebrow(consistency)}
         {Kati.Screens.Nutrition.field()}
-        {Kati.Screens.Nutrition.muted_eyebrow("What the data says")}
+        {Kati.Screens.Nutrition.muted_eyebrow(gettext("What the data says"))}
         {Kati.Screens.Nutrition.insight()}
       </Column>
     </Scroll>
@@ -149,8 +172,8 @@ defmodule Kati.Screens.Nutrition do
         plan_line: plan.name <> week_of(plan, date),
         periods: %{
           "Week" => window(plan, logs, daily_buckets(date)),
-          "Month" => window(plan, logs, weekly_buckets(date, 4, &"W#{&1}")),
-          "All" => window(plan, logs, weekly_buckets(date, 12, &"#{&1}"))
+          "Month" => window(plan, logs, weekly_buckets(date, 4, &week_label/1)),
+          "All" => window(plan, logs, weekly_buckets(date, 12, &Kati.Locale.number/1))
         }
       }
     else
@@ -185,27 +208,49 @@ defmodule Kati.Screens.Nutrition do
     %{data | macros: Enum.map(data.macros, &Map.put(&1, :mark, mark))}
   end
 
-  # One bucket per day, Monday first, labelled with the day's own initial —
-  # `M T W T F S S`, which is what the drawing's axis is.
+  # One bucket per day, the reader's own week first, labelled with the day's
+  # own initial — `M T W T F S S`, which is what the drawing's axis is, and
+  # `ش ی د س چ پ ج` on a Persian one.
+  #
+  # Two things moved for `:fa` and they have to move together. The label is
+  # `Kati.Locale.weekday_initial/1` rather than the first letter of `%a`, which
+  # is Latin in every locale; and the week begins where the READER's week
+  # begins — board 137 makes that follow the language, so a Persian axis starts
+  # on Saturday. `Kati.Screens.Stats.week_start_on/1` is the app's one answer
+  # to that and screens 02 and 22 ask it too. A Persian axis labelled ش and
+  # bucketed from Monday would put Saturday's calories under Monday's letter,
+  # which is the quiet kind of wrong this fold keeps finding.
   defp daily_buckets(date) do
-    monday = Date.add(date, -(Date.day_of_week(date) - 1))
+    start = Kati.Screens.Stats.week_start_on(date)
 
     Enum.map(0..6, fn offset ->
-      day = Date.add(monday, offset)
-      {String.first(Calendar.strftime(day, "%a")), [day]}
+      day = Date.add(start, offset)
+      {Kati.Locale.weekday_initial(day), [day]}
     end)
   end
 
   # `count` weeks ending with the one `date` falls in, oldest first, each
-  # bucket the seven days of its week.
+  # bucket the seven days of its week — counted from the reader's own week
+  # start, for the reason `daily_buckets/1` gives.
   defp weekly_buckets(date, count, label) do
-    monday = Date.add(date, -(Date.day_of_week(date) - 1))
+    this_week = Kati.Screens.Stats.week_start_on(date)
 
     Enum.map(1..count, fn index ->
-      start = Date.add(monday, -7 * (count - index))
+      start = Date.add(this_week, -7 * (count - index))
       {label.(index), Enum.map(0..6, &Date.add(start, &1))}
     end)
   end
+
+  # `W1`, and `ه۱` in Persian: the initial of the reader's own word for a week,
+  # which is how this app abbreviates anywhere it has no room for the word —
+  # `Kati.Screens.Stats` writes an episode as `E%{e}` and `ق%{e}` for exactly
+  # the same reason.
+  #
+  # `pgettext/3` because two characters and a number is the size of msgid
+  # `mix gettext.merge` will fuzzy-match against any sentence that happens to
+  # end in one.
+  defp week_label(index),
+    do: pgettext("a week number on a chart axis", "W%{n}", n: Kati.Locale.number(index))
 
   defp window(plan, logs, buckets) do
     eaten = Enum.filter(logs, &(&1.state == :eaten))
@@ -225,12 +270,27 @@ defmodule Kati.Screens.Nutrition do
   # week you recorded two days of is not a week you averaged 600 kcal in, and
   # the honest reading of a gap is that nothing is known about it.
   defp hero(eaten, target) do
+    hero_figures(group(daily_average(eaten, &(&1.kcal || 0))), group(target))
+  end
+
+  # The cream hero's five values in one place, because the computed week and
+  # the two drawn periods all write the same three words and one msgid written
+  # three times is one word that can drift three ways.
+  #
+  # Both figures arrive already grouped — `2,040` — and go through
+  # `Kati.Locale.number/1` here: the digits change and the comma does not,
+  # which is the ruling `Kati.Locale.number/1` takes off board 59.
+  defp hero_figures(average, target) do
     %{
-      label: "Daily average",
-      average: group(daily_average(eaten, &(&1.kcal || 0))),
-      unit: " kcal",
-      target_label: "Target",
-      target: group(target)
+      label: gettext("Daily average"),
+      average: Kati.Locale.number(average),
+      # The leading space is the GAP between the two runs of one inline figure
+      # — a 34pt Text beside a 15pt one on one baseline — rather than part of
+      # the word, so it stays out of the msgid and `kcal` reaches the catalogue
+      # as the word the rest of the app already translates: کالری.
+      unit: " " <> gettext("kcal"),
+      target_label: gettext("Target"),
+      target: Kati.Locale.number(target)
     }
   end
 
@@ -272,28 +332,56 @@ defmodule Kati.Screens.Nutrition do
     hit = Enum.count(inside, &(&1.state == :eaten))
     skipped = Enum.count(inside, &(&1.state == :skipped))
 
+    count_cards(adherence(hit, skipped), Kati.Locale.number(hit), Kati.Locale.number(skipped))
+  end
+
+  # The three cards' words, in one place for the reason `hero_figures/2` is:
+  # the computed week and the two drawn periods label the same three cards, and
+  # a card whose word drifted between periods would read as a different card.
+  #
+  # Two of the three are `pgettext/2`, and the context is doing real work. A
+  # count card is a WORD UNDER A NUMBER in a third of the screen's width, so
+  # the Persian has to be the short participle — `خورده‌شده` and `رد شده`, a
+  # matched pair a reader takes in at a glance — where the app's plain
+  # `Skipped` is the state of one meal on screens 43 and 44 and reads as a
+  # sentence about it. One msgid cannot be both, which is the case
+  # `Kati.Screens.Pushed.back_label/2` writes out at length for *Meals*.
+  defp count_cards(adherence, hit, skipped) do
     [
-      {adherence(hit, skipped), "Adherence", Palette.ink()},
-      {"#{hit}", "Meals hit", Palette.ink()},
-      {"#{skipped}", "Skipped", Palette.red()}
+      {adherence, gettext("Adherence"), Palette.ink()},
+      {hit, pgettext("the count card on board 47 counting meals eaten as planned", "Meals hit"),
+       Palette.ink()},
+      {skipped, pgettext("the count card on board 47 counting meals skipped", "Skipped"),
+       Palette.red()}
     ]
   end
 
   defp adherence(0, 0), do: "—"
-  defp adherence(hit, skipped), do: "#{round(hit * 100 / (hit + skipped))}%"
+  defp adherence(hit, skipped), do: percent(round(hit * 100 / (hit + skipped)))
+
+  # `%{n}%` is the app's own msgid for a share and its Persian is `%{n}٪` —
+  # U+066A, the Arabic percent sign, which is the mark board 07 draws its own
+  # percentages with.
+  defp percent(n), do: gettext("%{n}%", n: Kati.Locale.number(n))
 
   # A macro with no target is not drawn: this card is `Macros vs target`, and a
   # bar with nothing to be measured against is the shape the moduledoc says a
   # measurement must not be. `Kati.Meals.MealPlan` allows every target to be
   # nil, so all four rows can legitimately be absent.
+  #
+  # `< 1000` rather than `== 0`, and that is arithmetic rather than taste: the
+  # row draws WHOLE grams, so a target under one gram divides down to a
+  # `target_grams` of nought and `grams / target_grams` raises on the way to
+  # the screen. A target that cannot be measured against in the unit the row
+  # prints is the same case as no target at all.
   defp macro_rows(eaten, plan) do
     [
-      {"Protein", :protein_mg, plan.target_protein_mg, Palette.ink()},
-      {"Carbs", :carbs_mg, plan.target_carbs_mg, Palette.bronze()},
-      {"Fat", :fat_mg, plan.target_fat_mg, Palette.bar_gold()},
-      {"Fibre", :fibre_mg, plan.target_fibre_mg, Palette.bar_ink()}
+      {gettext("Protein"), :protein_mg, plan.target_protein_mg, Palette.ink()},
+      {gettext("Carbs"), :carbs_mg, plan.target_carbs_mg, Palette.bronze()},
+      {gettext("Fat"), :fat_mg, plan.target_fat_mg, Palette.bar_gold()},
+      {gettext("Fibre"), :fibre_mg, plan.target_fibre_mg, Palette.bar_ink()}
     ]
-    |> Enum.reject(fn {_name, _field, target, _tone} -> is_nil(target) or target == 0 end)
+    |> Enum.reject(fn {_name, _field, target, _tone} -> is_nil(target) or target < 1000 end)
     |> Enum.map(fn {name, field, target, tone} ->
       value = daily_average(eaten, &(Map.get(&1, field) || 0))
       grams = div(value, 1000)
@@ -301,12 +389,22 @@ defmodule Kati.Screens.Nutrition do
 
       %{
         name: name,
-        value: "#{grams} / #{target_grams} g",
+        value: macro_value(grams, target_grams),
         fill: Float.round(min(grams / target_grams, 1.0), 2),
         tone: tone,
         mark: (plan.tolerance_permille || 950) / 1000
       }
     end)
+  end
+
+  # `155 / 168 g`, and `۱۵۵ / ۱۶۸ گرم`. One msgid rather than a figure with a
+  # unit appended, because the gram has to be able to move to the other end of
+  # the run: a Persian reader reads the whole of it right to left.
+  defp macro_value(grams, target_grams) do
+    gettext("%{value} / %{target} g",
+      value: Kati.Locale.number(grams),
+      target: Kati.Locale.number(target_grams)
+    )
   end
 
   defp daily_average([], _figure), do: 0
@@ -319,13 +417,35 @@ defmodule Kati.Screens.Nutrition do
   # "Cutting v3 · week 6 of 12". The week is counted from the plan's start
   # date; a plan with none says its name and stops, rather than claiming a week
   # it cannot count.
+  #
+  # The ` · ` stays outside the msgid — it is the separator this whole screen
+  # joins mono runs with, not a word — and the plan's own name stays outside it
+  # too, because it is the reader's and no catalogue has it. What goes in is
+  # the counted half: `هفته ۶ از ۱۲`.
+  #
+  # `pgettext/3` under the context `Kati.Screens.Health.week_of/2` already
+  # writes, and the shorter clause is literally that screen's msgid: screen 42
+  # draws `Cutting v3 · week 6` from the same plan and the two tails must not
+  # be able to say it differently. The context is what keeps a lower-case
+  # two-token tail off the catalogue's own `Week`, `Week %{week} · %{date}`
+  # and `Week %{n} of %{total}`, any of which `mix gettext.merge` would
+  # otherwise fuzzy-match it onto.
   defp week_of(%{starts_on: nil}, _date), do: ""
 
-  defp week_of(%{starts_on: starts_on, weeks_total: nil}, date),
-    do: " · week #{div(Date.diff(date, starts_on), 7) + 1}"
+  defp week_of(%{starts_on: starts_on, weeks_total: nil}, date) do
+    " · " <> pgettext("meal plan, mid-sentence", "week %{n}", n: week_number(starts_on, date))
+  end
 
-  defp week_of(%{starts_on: starts_on, weeks_total: total}, date),
-    do: " · week #{div(Date.diff(date, starts_on), 7) + 1} of #{total}"
+  defp week_of(%{starts_on: starts_on, weeks_total: total}, date) do
+    " · " <>
+      pgettext("meal plan, mid-sentence", "week %{n} of %{total}",
+        n: week_number(starts_on, date),
+        total: Kati.Locale.number(total)
+      )
+  end
+
+  defp week_number(starts_on, date),
+    do: Kati.Locale.number(div(Date.diff(date, starts_on), 7) + 1)
 
   defp group(number) do
     number
@@ -405,66 +525,46 @@ defmodule Kati.Screens.Nutrition do
         }
   def period_data("Month") do
     %{
-      hero: %{
-        label: "Daily average",
-        average: "2,088",
-        unit: " kcal",
-        target_label: "Target",
-        target: "2,100"
-      },
+      hero: hero_figures("2,088", "2,100"),
       bars: [
-        {"W1", 46, Palette.bar_neutral()},
-        {"W2", 52, Palette.cream_ink()},
-        {"W3", 61, Palette.red()},
-        {"W4", 50, Palette.cream_ink()}
+        {week_label(1), 46, Palette.bar_neutral()},
+        {week_label(2), 52, Palette.cream_ink()},
+        {week_label(3), 61, Palette.red()},
+        {week_label(4), 50, Palette.cream_ink()}
       ],
-      counts: [
-        {"84%", "Adherence", Palette.ink()},
-        {"126", "Meals hit", Palette.ink()},
-        {"24", "Skipped", Palette.red()}
-      ],
+      counts: count_cards(percent(84), Kati.Locale.number(126), Kati.Locale.number(24)),
       macros: [
-        %{name: "Protein", value: "149 / 168 g", fill: 0.89, tone: Palette.ink()},
-        %{name: "Carbs", value: "205 / 210 g", fill: 0.98, tone: Palette.bronze()},
-        %{name: "Fat", value: "64 / 70 g", fill: 0.91, tone: Palette.bar_gold()},
-        %{name: "Fibre", value: "27 / 35 g", fill: 0.77, tone: Palette.bar_ink()}
+        macro(gettext("Protein"), 149, 168, 0.89, Palette.ink()),
+        macro(gettext("Carbs"), 205, 210, 0.98, Palette.bronze()),
+        macro(gettext("Fat"), 64, 70, 0.91, Palette.bar_gold()),
+        macro(gettext("Fibre"), 27, 35, 0.77, Palette.bar_ink())
       ]
     }
   end
 
   def period_data("All") do
     %{
-      hero: %{
-        label: "Daily average",
-        average: "2,062",
-        unit: " kcal",
-        target_label: "Target",
-        target: "2,100"
-      },
+      hero: hero_figures("2,062", "2,100"),
       bars: [
-        {"1", 38, Palette.bar_neutral()},
-        {"2", 44, Palette.bar_neutral()},
-        {"3", 49, Palette.cream_ink()},
-        {"4", 52, Palette.cream_ink()},
-        {"5", 47, Palette.bar_neutral()},
-        {"6", 51, Palette.cream_ink()},
-        {"7", 58, Palette.cream_ink()},
-        {"8", 62, Palette.red()},
-        {"9", 55, Palette.cream_ink()},
-        {"10", 43, Palette.bar_neutral()},
-        {"11", 50, Palette.cream_ink()},
-        {"12", 46, Palette.bar_neutral()}
+        {Kati.Locale.number(1), 38, Palette.bar_neutral()},
+        {Kati.Locale.number(2), 44, Palette.bar_neutral()},
+        {Kati.Locale.number(3), 49, Palette.cream_ink()},
+        {Kati.Locale.number(4), 52, Palette.cream_ink()},
+        {Kati.Locale.number(5), 47, Palette.bar_neutral()},
+        {Kati.Locale.number(6), 51, Palette.cream_ink()},
+        {Kati.Locale.number(7), 58, Palette.cream_ink()},
+        {Kati.Locale.number(8), 62, Palette.red()},
+        {Kati.Locale.number(9), 55, Palette.cream_ink()},
+        {Kati.Locale.number(10), 43, Palette.bar_neutral()},
+        {Kati.Locale.number(11), 50, Palette.cream_ink()},
+        {Kati.Locale.number(12), 46, Palette.bar_neutral()}
       ],
-      counts: [
-        {"81%", "Adherence", Palette.ink()},
-        {"340", "Meals hit", Palette.ink()},
-        {"80", "Skipped", Palette.red()}
-      ],
+      counts: count_cards(percent(81), Kati.Locale.number(340), Kati.Locale.number(80)),
       macros: [
-        %{name: "Protein", value: "146 / 168 g", fill: 0.87, tone: Palette.ink()},
-        %{name: "Carbs", value: "212 / 210 g", fill: 1.0, tone: Palette.bronze()},
-        %{name: "Fat", value: "66 / 70 g", fill: 0.94, tone: Palette.bar_gold()},
-        %{name: "Fibre", value: "24 / 35 g", fill: 0.69, tone: Palette.bar_ink()}
+        macro(gettext("Protein"), 146, 168, 0.87, Palette.ink()),
+        macro(gettext("Carbs"), 212, 210, 1.0, Palette.bronze()),
+        macro(gettext("Fat"), 66, 70, 0.94, Palette.bar_gold()),
+        macro(gettext("Fibre"), 24, 35, 0.69, Palette.bar_ink())
       ]
     }
   end
@@ -478,12 +578,27 @@ defmodule Kati.Screens.Nutrition do
     }
   end
 
+  # A drawn macro row, and `fill` is passed rather than derived on purpose: it
+  # is the width the DRAWING gives the bar, which is not always `grams /
+  # target` — `212 / 210 g` is over its target and the drawing still stops the
+  # bar at full, because a bar cannot say "nine grams past the end".
+  defp macro(name, grams, target, fill, tone) do
+    %{name: name, value: macro_value(grams, target), fill: fill, tone: tone}
+  end
+
   # `Kati.Screens.Pushed` floats the ‹ Meals pill over this content, and unlike
   # screens 43 and 44 nothing sits opposite it — so this is a plain reservation
   # of the drawing's 42pt pill and the 16pt gap under it.
   @doc false
   def back_gap, do: ~MOB"<Spacer size={58} />"
 
+  # `plan_line` is the one mono line on this screen whose script is not decided
+  # here: `Cutting v3` is the reader's own plan name and `· هفته ۶ از ۱۲` is
+  # the half `week_of/2` counts, so the run can be Latin, Persian or both.
+  # `Kati.Locale.mono_face/1` asks the STRING rather than the reader — DM Mono
+  # while it is ASCII, Vazirmatn at the mono size the moment it is not, since
+  # `kati_mono.ttf` carries no Persian glyph and would hand the line to
+  # Android's own substitute face.
   @doc false
   def header(plan_line) do
     ~MOB"""
@@ -491,17 +606,18 @@ defmodule Kati.Screens.Nutrition do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Nutrition"
+            text={gettext("Nutrition")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={plan_line}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(plan_line)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -568,8 +684,8 @@ defmodule Kati.Screens.Nutrition do
   @doc false
   def segments(active) do
     tabs =
-      Sample.segments()
-      |> Enum.map(fn label -> segment(label, label == active) end)
+      period_keys()
+      |> Enum.map(fn key -> segment(key, period_label(key), key == active) end)
       |> Enum.intersperse(segment_gap())
 
     ~MOB"""
@@ -593,11 +709,43 @@ defmodule Kati.Screens.Nutrition do
   @doc false
   def segment_gap, do: ~MOB"<Spacer size={4} />"
 
+  # The three periods, in the order the strip draws them, as KEYS and not as
+  # words.
+  #
+  # `Kati.Meals.SampleNutrition.segments/0` was both at once, and a screen that
+  # translates cannot let it stay both: the key is what `figures/1` builds its
+  # map under, what `period_data/1` matches on and what `handle_tap/2` puts
+  # back into the assign, while the word is only what the reader reads. Built
+  # out of its own labels, a Persian strip taps `:period_هفته` into
+  # `Map.fetch!(periods, "هفته")` — a KeyError on the first tap. The label was
+  # doing two jobs and only one of them survives being translated;
+  # `Kati.Screens.Weight` split board 109's range row the same way and its
+  # three words are these three msgids.
+  #
+  # This is also where a fourth segment goes, and always was: a fourth name in
+  # the fixture alone would have drawn a segment that no clause of
+  # `period_data/1` answers and no key of `figures/1` holds.
   @doc false
-  def segment(label, on?) do
-    # The tag carries the period, so one handler serves all three and a fourth
-    # segment would be a change to `SampleNutrition.segments/0` alone.
-    tap = {self(), String.to_atom("period_" <> label)}
+  @spec period_keys() :: [String.t()]
+  def period_keys, do: ["Week", "Month", "All"]
+
+  # The word a segment shows. No catch-all clause: a key added above without a
+  # word here should fail where it was added rather than draw itself in English
+  # on a Persian strip — `Kati.Screens.Pushed`'s moduledoc makes the same
+  # argument about a default `handle_tap/2`.
+  @doc false
+  @spec period_label(String.t()) :: String.t()
+  def period_label("Week"), do: gettext("Week")
+  def period_label("Month"), do: gettext("Month")
+  def period_label("All"), do: gettext("All")
+
+  @doc false
+  def segment(key, label, on?) do
+    # The tag carries the period's KEY and the segment draws its WORD, so one
+    # handler serves all three and what comes back out of a tap is the string
+    # `figures/1` filed its figures under rather than the string the reader
+    # read.
+    tap = {self(), String.to_atom("period_" <> key)}
     background = if on?, do: Palette.card(), else: Palette.transparent()
     color = if on?, do: Palette.ink(), else: Palette.segment_idle()
     weight = if on?, do: "bold", else: "semibold"
@@ -641,10 +789,10 @@ defmodule Kati.Screens.Nutrition do
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
             <Text
-              text={String.upcase(hero.label)}
-              font_family="mono"
+              text={Kati.UI.eyebrow_label(hero.label)}
+              font_family={Kati.Locale.mono_face(hero.label)}
               text_size={10.5}
-              letter_spacing={0.16}
+              letter_spacing={Kati.Locale.tracking(0.16)}
               text_color={Palette.cream_meta()}
             />
             <Spacer size={7} />
@@ -653,10 +801,10 @@ defmodule Kati.Screens.Nutrition do
           <Spacer size={12} />
           <Column width={52}>
             <Text
-              text={String.upcase(hero.target_label)}
-              font_family="mono"
+              text={Kati.UI.eyebrow_label(hero.target_label)}
+              font_family={Kati.Locale.mono_face(hero.target_label)}
               text_size={10}
-              letter_spacing={0.1}
+              letter_spacing={Kati.Locale.tracking(0.1)}
               text_color={Palette.cream_meta()}
               text_align="right"
               max_lines={1}
@@ -694,7 +842,7 @@ defmodule Kati.Screens.Nutrition do
       text={hero.average}
       text_size={34}
       font_weight="extrabold"
-      letter_spacing={-0.04}
+      letter_spacing={Kati.Locale.tracking(-0.04)}
       text_color={:on_surface}
       max_lines={1}
     />
@@ -750,6 +898,10 @@ defmodule Kati.Screens.Nutrition do
     """
   end
 
+  # The axis letter is `M` under one period and `ه۱` or `۷` under the others,
+  # so the face is decided by the label rather than by the reader: DM Mono has
+  # the Latin initials and none of U+06F0–U+06F9, and a Persian week number
+  # left in it is handed to Android's own substitute face.
   @doc false
   def chart_label(letter) do
     ~MOB"""
@@ -757,7 +909,7 @@ defmodule Kati.Screens.Nutrition do
       <Spacer weight={1.0} />
       <Text
         text={letter}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(letter)}
         text_size={9.5}
         text_color={Palette.cream_meta()}
         max_lines={1}
@@ -802,16 +954,16 @@ defmodule Kati.Screens.Nutrition do
           text={value}
           text_size={24}
           font_weight="extrabold"
-          letter_spacing={-0.035}
+          letter_spacing={Kati.Locale.tracking(-0.035)}
           text_color={tone}
           max_lines={1}
         />
         <Spacer size={5} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face(label)}
           text_size={10}
-          letter_spacing={0.1}
+          letter_spacing={Kati.Locale.tracking(0.1)}
           text_color={Palette.muted()}
           max_lines={1}
         />
@@ -858,7 +1010,7 @@ defmodule Kati.Screens.Nutrition do
         <Spacer weight={1.0} />
         <Text
           text={row.value}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(row.value)}
           text_size={11}
           text_color={Palette.muted()}
           max_lines={1}
@@ -962,7 +1114,7 @@ defmodule Kati.Screens.Nutrition do
         <Row fill_width={true} align="center">
           <Text
             text={left}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(left)}
             text_size={10}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -970,7 +1122,7 @@ defmodule Kati.Screens.Nutrition do
           <Spacer weight={1.0} />
           <Text
             text={right}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(right)}
             text_size={10}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -1008,6 +1160,13 @@ defmodule Kati.Screens.Nutrition do
 
   # Kati.UI.eyebrow's dash is always the accent, and orange means new or now.
   # Neither the field nor the insight is either, so both take #C4BDB3.
+  #
+  # Everything else about the label is `Kati.UI.eyebrow/2`'s and is repeated
+  # here rather than approximated: the Persian face, the half-point the Persian
+  # label takes instead of the tracking, and the weight that carries it. The
+  # two eyebrows on this screen differ by the colour of a 13pt dash, and a
+  # reader who could also tell them apart by their typeface would be reading a
+  # distinction nobody drew.
   @doc false
   def muted_eyebrow(label) do
     ~MOB"""
@@ -1016,10 +1175,11 @@ defmodule Kati.Screens.Nutrition do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face()}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
       </Row>
@@ -1035,6 +1195,11 @@ defmodule Kati.Screens.Nutrition do
   # card rather than on cream. In dark it becomes `#E4DBCE` — warm off-white on
   # `#1E1D1B`, which keeps the sentence reading warmer than the figures around
   # it, which is what the light drawing does too.
+  #
+  # It is also the one paragraph on this screen, so it is the one line whose
+  # leading is `Kati.Locale.leading/1`: Vazirmatn's ascenders and descenders
+  # are not Plus Jakarta's, and 1.55 set on Persian closes the sentence up
+  # until the diacritics of one line touch the next.
   @doc false
   def insight do
     ~MOB"""
@@ -1051,7 +1216,7 @@ defmodule Kati.Screens.Nutrition do
       <Text
         text={Kati.Meals.SampleNutrition.insight()}
         text_size={13}
-        line_height={1.55}
+        line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.cream_body()}
         weight={1.0}
       />
@@ -1059,13 +1224,15 @@ defmodule Kati.Screens.Nutrition do
     """
   end
 
-  # One clause for all three segments: the tag carries the period, so the
-  # handler never learns their names. `:share` falls through deliberately —
-  # the disc is drawn and its sheet is not this screen's to open.
+  # One clause for all three segments: the tag carries the period's key, so the
+  # handler never learns their words — which is also what makes it safe in a
+  # second language. What comes back out is one of `period_keys/0`, the same
+  # string `figures/1` filed its three windows under. `:share` falls through
+  # deliberately — the disc is drawn and its sheet is not this screen's to open.
   @impl true
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "period_" <> label -> {:noreply, Mob.Socket.assign(socket, :period, label)}
+      "period_" <> key -> {:noreply, Mob.Socket.assign(socket, :period, key)}
       _ -> {:noreply, socket}
     end
   end

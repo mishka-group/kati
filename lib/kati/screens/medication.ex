@@ -513,7 +513,7 @@ defmodule Kati.Screens.Medication do
         padding_bottom={40}
       >
         {Kati.Screens.Goals.chrome()}
-        {SettingsList.title("Medication", Kati.Screens.Medication.subtitle(assigns.doses))}
+        {SettingsList.title(gettext("Medication"), Kati.Screens.Medication.subtitle(assigns.doses))}
         {UI.eyebrow(Kati.Screens.Medication.today_label())}
         {Kati.Screens.Medication.today(assigns.doses, assigns[:save_error], assigns.schedules)}
         {Kati.Screens.Medication.schedule_band(assigns.schedules)}
@@ -738,22 +738,46 @@ defmodule Kati.Screens.Medication do
   def nothing_due([]), do: gettext("Every medication you have is paused.")
 
   def nothing_due(schedules) do
-    "Your #{Kati.Screens.Medication.schedule_count(length(schedules))} below, " <>
-      "and none of them has a time set yet."
+    # ONE msgid for the whole sentence, with the count interpolated — not the
+    # three-part concatenation this used to be. A Persian sentence puts its
+    # verb last, so `" below, "` welded between two Elixir fragments is a word
+    # order the locale cannot have; a translator needs the frame to move the
+    # count inside it. mishka-group/kati#103.
+    #
+    # The count stays its OWN call rather than being inlined here, because
+    # `Kati.MedicationQuietDayTest` asserts this sentence contains
+    # `schedule_count/1` — *the counted half agrees with the band below it* —
+    # and an interpolated fragment keeps that claim checkable in both scripts.
+    gettext("Your %{count} below, and none of them has a time set yet.",
+      count: Kati.Screens.Medication.schedule_count(length(schedules))
+    )
   end
 
   @doc """
   `4 schedules are` / `one schedule is`, for the sentence above.
 
-      iex> Kati.Screens.Medication.schedule_count(1)
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.Medication.schedule_count(1) end)
       "one schedule is"
 
-      iex> Kati.Screens.Medication.schedule_count(4)
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.Medication.schedule_count(4) end)
       "4 schedules are"
+
+  Two msgids rather than an `ngettext/4`, because the two English clauses are
+  not one sentence inflected: the singular spells its number as a WORD and the
+  plural draws a numeral, which is the drawing's own choice and is not
+  something a plural form can express. A context on both, for the trap the
+  fold's own rules name — a bare `one schedule is` is a three-word fragment
+  that `mix gettext.merge` will fuzzy-match against any sentence ending the
+  same way, and a fragment out of its frame is untranslatable anyway.
   """
   @spec schedule_count(pos_integer()) :: String.t()
-  def schedule_count(1), do: "one schedule is"
-  def schedule_count(n), do: "#{n} schedules are"
+  def schedule_count(1), do: pgettext("the medication quiet-day sentence", "one schedule is")
+
+  def schedule_count(n),
+    do:
+      pgettext("the medication quiet-day sentence", "%{n} schedules are",
+        n: Kati.Locale.number(n)
+      )
 
   @doc """
   The quiet day's one card, in the shape a dose row would have had.
@@ -802,7 +826,12 @@ defmodule Kati.Screens.Medication do
           max_lines={1}
         />
         <Spacer size={7} />
-        <Text text={@sentence} text_size={12.5} line_height={1.65} text_color={Palette.ink_soft()} />
+        <Text
+          text={@sentence}
+          text_size={12.5}
+          line_height={Kati.Locale.leading(1.65)}
+          text_color={Palette.ink_soft()}
+        />
       </Column>
     </Row>
     """
@@ -867,7 +896,19 @@ defmodule Kati.Screens.Medication do
     second = Kati.Screens.Medication.dose_line_nodes(line)
 
     assigns = %{
-      time: dose.time,
+      # The clock in the reader's own digits — board 115 draws ۰۸:۰۰, ۱۴:۰۰ and
+      # ۲۱:۰۰ for the three cards this row builds, and
+      # `Kati.Screens.MedicationDetail.preview/1` converts the same value for
+      # the same reason: *a time the page READ rather than one the copy quotes.*
+      # Safe in this slot because the face beside it is `mono_face/0` and not a
+      # pinned `"mono"` — `kati_mono.ttf` carries no U+06F0–U+06F9, and under
+      # `:fa` this Text is set in Vazirmatn, which does.
+      #
+      # Converted HERE and not in `shape/2`, which is the shape a write is
+      # handed: `due_at` has to stay `"08:00"` all the way into
+      # `Ash.Changeset.for_create/3`, and `Kati.MedicationQuietDayTest` pins
+      # `Enum.map(doses, & &1.time) == ["08:00"]` on exactly that list.
+      time: Kati.Locale.number(dose.time),
       name: dose.name,
       second: second,
       background: Kati.Screens.Medication.fill(dose.state),
@@ -1213,7 +1254,13 @@ defmodule Kati.Screens.Medication do
 
       candidate ->
         %{
-          app: "KATI · " <> candidate.meta.at,
+          # **KATI** stays Latin in both scripts — it is the app's name, and a
+          # transliterated brand is one thing spelled two ways — and the clock
+          # beside it converts, because it is a time this page READ rather than
+          # a word the copy quotes. `Kati.Screens.MedicationDetail.preview/1`
+          # composes the same line the same way and its doc already claims
+          # screen 112 does; this is the line that makes the claim true.
+          app: "KATI · " <> Kati.Locale.number(candidate.meta.at),
           title: candidate.title,
           body: candidate.body,
           actions: WeightSample.reminder().actions
@@ -1273,6 +1320,21 @@ defmodule Kati.Screens.Medication do
   the drawing's card — from four keys it cannot tell apart, which is `shape/2`'s
   rule one band up: two branches drawing two cards is two pieces of code that
   can disagree about what a reminder looks like.
+
+  ## The app line asks the STRING for its face, and gives up its tracking
+
+  `Kati.Locale.mono_face/1` and not `mono_face/0`, which is the one place on
+  this page the distinction bites: `KATI · 08:00` is pure ASCII and belongs in
+  DM Mono in both scripts, and `KATI · ۰۸:۰۰` cannot be — `kati_mono.ttf`
+  carries no U+06F0–U+06F9, so the Persian digits would come back as boxes
+  beside four perfectly set Latin letters, which is the worst of the two
+  outcomes because it looks deliberate. `Kati.Screens.MedicationDetail.preview/1`
+  asks the same question of the same line.
+
+  And `.14em` goes through `Kati.Locale.tracking/1`. Letter-spacing is a Latin
+  small-caps effect with no Arabic-script tradition, and tracking a joined
+  script pulls its letters apart at the joins — `Kati.UI.eyebrow/1` does this
+  with `.16em` for the same reason.
   """
   @spec reminder_card(map()) :: map()
   def reminder_card(r) do
@@ -1291,9 +1353,9 @@ defmodule Kati.Screens.Medication do
       <Column fill_width={true} background={Palette.card_settled()} corner_radius={20} padding={16}>
         <Text
           text={@app}
-          font_family={Kati.Locale.mono_face()}
+          font_family={Kati.Locale.mono_face(@app)}
           text_size={9.5}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.muted()}
         />
         <Spacer size={9} />
@@ -1330,14 +1392,25 @@ defmodule Kati.Screens.Medication do
     """
   end
 
-  @doc "The two claims this page has to make, both in the flow rather than as small print."
+  @doc """
+  The two claims this page has to make, both in the flow rather than as small
+  print.
+
+  Translated, which for these two sentences is not the usual argument about
+  copy. The alarm note is the only place the app admits a reminder can be late,
+  and the device note is the line `Kati.Health`'s own moduledoc calls the limit
+  of the whole domain — a reader who cannot read them has been shown a
+  medication tracker with neither of its disclaimers. `Kati.UI.SettingsList.note/2`
+  already sets its paragraph's leading through `Kati.Locale.leading/1`, so the
+  Persian wraps at Vazirmatn's metrics rather than Plus Jakarta's.
+  """
   @spec footnotes() :: map()
   def footnotes do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.note("info", "Reminders can arrive late if the phone is restricting alarms to save battery, so treat them as a nudge and not a guarantee.")}
+      {Kati.UI.SettingsList.note("info", gettext("Reminders can arrive late if the phone is restricting alarms to save battery, so treat them as a nudge and not a guarantee."))}
       <Spacer size={12} />
-      {Kati.UI.SettingsList.note("info", "Kati is not a medical device and gives no medical advice — it only records what you tell it.")}
+      {Kati.UI.SettingsList.note("info", gettext("Kati is not a medical device and gives no medical advice — it only records what you tell it."))}
     </Column>
     """
   end

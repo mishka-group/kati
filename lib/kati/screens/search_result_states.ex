@@ -48,7 +48,7 @@ defmodule Kati.Screens.SearchResultStates do
   has nothing would make the page argue with itself — an ink pill over an empty
   list — and the third band is where that reading is drawn on purpose.
 
-  The zeroes stay where they are because `Kati.Search.chip_labels/0` fixes the
+  The zeroes stay where they are because `Kati.Search.chip_keys/0` fixes the
   order: screen 88's own rule is that relevance-sorted groups move the target
   every keystroke. Only the numbers live here, so a ninth scope arrives on this
   sheet from the domain module rather than from a literal typed into it.
@@ -99,6 +99,26 @@ defmodule Kati.Screens.SearchResultStates do
   all. So the pill is a `Row` here, at the board's 30/15/13 rather than 19's
   32/16/14, and the count node is still 19's.
 
+  ## Two things this sheet had stopped being able to say in Persian
+
+  Both arrived with `mishka-group/kati#103`, both were invisible in English,
+  and both are the same shape: a fact about the English *sentence* standing in
+  for a fact about the *screen*.
+
+    * **Which chip is lit** was `label == active` against the literal `Meals`.
+      `Kati.Search.scope_label/1` answers `وعده‌ها` under `:fa`, so the
+      comparison failed on all eight chips and the page drew no ink pill at
+      all — which is the one reading neither the first band nor the third
+      survives, since both of them are arguments about *where the pill is*.
+      `chips/2` takes the scope KEY now, which is what
+      `Kati.Screens.Search.chip/4` identifies a chip by and what does not
+      translate.
+    * **Where the matched word sits inside a hit** was three runs typed out.
+      `Quinoa bowl` matches at the head of its title and `کاسهٔ کینوا` matches
+      at the tail, so a typed split sets the wrong half of the Persian row in
+      bold — it reports that the query found `کاسهٔ`. `split_match/2` finds the
+      word in whichever sentence it is handed.
+
   ## Nothing here reads a store, and nothing here taps
 
   27's argument applies unchanged: each band is a picture of a state, not a
@@ -114,6 +134,7 @@ defmodule Kati.Screens.SearchResultStates do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Screens.Search, as: SearchScreen
   alias Kati.Theme.Palette
@@ -136,15 +157,21 @@ defmodule Kati.Screens.SearchResultStates do
   A scope absent from `counts` is a zero rather than a missing chip, which is
   the whole subject of the first band: the eight chips are the same eight chips
   whatever the query matched, and a scope that did not answer says so by
-  carrying a number. Reading the labels from `Kati.Search.chip_labels/0` rather
+  carrying a number. Reading the labels from `Kati.Search.scope_label/1` rather
   than typing them keeps screen 88's order — Screen, Books, Music, Calendar,
-  Meals, Money, Notes — as the one place it is written down.
+  Meals, Money, Notes — as the one place it is written down, and it is also the
+  one place they are translated: every label here is a `pgettext/2` off
+  `Kati.Search.scopes/0`.
+
+  The KEY travels beside the label, in `Kati.Screens.Search.chip/4`'s shape.
+  `chips/2` lights a chip by comparing it, and a chip cannot be identified by a
+  word that changes with the reader's language — see there.
   """
   @spec counted(%{optional(atom()) => non_neg_integer()}) ::
-          [{String.t(), non_neg_integer()}]
+          [{atom(), String.t(), non_neg_integer()}]
   def counted(counts) do
     Enum.map(Kati.Search.chip_keys(), fn key ->
-      {Kati.Search.scope_label(key), Map.get(counts, key, 0)}
+      {key, Kati.Search.scope_label(key), Map.get(counts, key, 0)}
     end)
   end
 
@@ -154,7 +181,7 @@ defmodule Kati.Screens.SearchResultStates do
   `All` and `Meals` agree at 3 because there is one scope holding anything —
   `All` is the sum, and a sum with one non-zero term is that term.
   """
-  @spec in_scope() :: [{String.t(), non_neg_integer()}]
+  @spec in_scope() :: [{atom(), String.t(), non_neg_integer()}]
   def in_scope, do: counted(%{all: 3, meals: 3})
 
   @doc """
@@ -163,8 +190,24 @@ defmodule Kati.Screens.SearchResultStates do
   The same eight chips and the same total as `in_scope/0`, moved one scope
   along, so the two rows differ in exactly the thing the band is about.
   """
-  @spec elsewhere_chips() :: [{String.t(), non_neg_integer()}]
+  @spec elsewhere_chips() :: [{atom(), String.t(), non_neg_integer()}]
   def elsewhere_chips, do: counted(%{all: 3, screen: 3})
+
+  @doc """
+  The query the first two bands are drawn over.
+
+  One function rather than the word typed in three places, because it is drawn
+  in three: the field above the rows, and the marked run inside each of them.
+  Three literals would let a translator move one of them, and a hit whose bold
+  run is not the word in the field above it is a picture of a search that did
+  not happen.
+
+  `pgettext/2` at one word. `quinoa` is short enough for `mix gettext.merge` to
+  fuzzy-match onto a neighbour, and `Chicken, quinoa, slaw` is sitting in the
+  catalogue for it to reach.
+  """
+  @spec query() :: String.t()
+  def query, do: pgettext("search query", "quinoa")
 
   @doc """
   The two meal hits, split at the matched run.
@@ -174,6 +217,17 @@ defmodule Kati.Screens.SearchResultStates do
   different places — mid-sentence in one, at the head of the title in the other.
   Storing the split is what lets `hit_title/1` name which word matched even
   though the bridge cannot draw it; see there.
+
+  The three runs are SPLIT OUT of the translated title rather than typed, which
+  `split_match/2` is the argument for: which of the three a word falls in is a
+  fact about the sentence, and the sentence changes with the language.
+
+  The meal is `Kati.Meals.SampleToday`'s own lunch and carries its msgid, so
+  the sheet draws the app's lunch rather than a second one worded differently;
+  its two meta lines are built from `Lunch` and `Cutting v3`, which are in the
+  catalogue for the same reason. `%{n} meals` is `ngettext/4` even though the
+  figure is fixed at 6 — English inflects the noun after a numeral and Persian
+  does not, so the plural is the app's shared answer rather than this sheet's.
   """
   @spec hits() :: [
           %{
@@ -185,28 +239,119 @@ defmodule Kati.Screens.SearchResultStates do
           }
         ]
   def hits do
+    matched = Kati.Screens.SearchResultStates.query()
+
     [
-      %{
-        icon: "restaurant",
-        lead: "Chicken, ",
-        match: "quinoa",
-        tail: ", slaw",
-        sub: "Lunch · Cutting v3"
-      },
-      %{
-        icon: "restaurant",
-        lead: "",
-        match: "Quinoa",
-        tail: " bowl",
-        sub: "Ingredient · 6 meals"
-      }
+      Map.merge(
+        %{icon: "restaurant", sub: gettext("Lunch") <> " · " <> gettext("Cutting v3")},
+        split_match(gettext("Chicken, quinoa, slaw"), matched)
+      ),
+      Map.merge(
+        %{
+          icon: "restaurant",
+          sub:
+            pgettext("meal search result", "Ingredient") <>
+              " · " <> ngettext("%{n} meal", "%{n} meals", 6, n: Kati.Locale.number(6))
+        },
+        split_match(gettext("Quinoa bowl"), matched)
+      )
     ]
+  end
+
+  # Where the matched word sits inside a title, as `hit_title/1`'s three runs.
+  #
+  # Derived rather than typed, and that is a fix rather than a tidy-up. The
+  # board writes the two rows as `Chicken, |quinoa|, slaw` and `|Quinoa| bowl`
+  # — the match mid-sentence in one and at the head of the other — and those
+  # two positions are a fact about ENGLISH. `کاسهٔ کینوا` matches at the tail,
+  # so the typed split set `کاسهٔ` in bold and left the word the query actually
+  # found in plain weight: the one fact `hit_title/1` says a result row exists
+  # to carry, reported wrongly, on the band drawn to show a correct one.
+  #
+  # Deriving also keeps each title as ONE msgid. `Chicken, quinoa, slaw` is
+  # already in the catalogue off `Kati.Meals.SampleToday`, where `"Chicken, "`
+  # and `", slaw"` would be two new fragments — short enough for
+  # `gettext.merge` to fuzzy-match onto somebody else's sentence, and neither
+  # of them a phrase a translator could do anything with.
+  #
+  # Case-insensitively, because the query is `quinoa` and the second title
+  # opens with `Quinoa`; Persian has no case, so it costs nothing there and
+  # this is what a real highlighter would do anyway. A title whose translation
+  # does not contain the word at all draws in one weight rather than raising: a
+  # missing emphasis is a smaller failure than a sheet that will not render.
+  @spec split_match(String.t(), String.t()) :: %{
+          lead: String.t(),
+          match: String.t(),
+          tail: String.t()
+        }
+  defp split_match(title, match) do
+    lowered = String.downcase(title)
+
+    # The offsets come off the downcased copy and are applied to the original,
+    # so a string that changes LENGTH when downcased would be sliced
+    # mid-character. Guarding on the byte size is cheaper than mapping the
+    # offsets back, and the answer when it fails is the no-emphasis one either
+    # way.
+    case match != "" and byte_size(lowered) == byte_size(title) and
+           :binary.match(lowered, String.downcase(match)) do
+      {at, length} ->
+        %{
+          lead: binary_part(title, 0, at),
+          match: binary_part(title, at, length),
+          tail: binary_part(title, at + length, byte_size(title) - at - length)
+        }
+
+      _unmatched ->
+        %{lead: title, match: "", tail: ""}
+    end
   end
 
   @doc false
   @spec content(map()) :: map()
   def content(assigns) do
     s = assigns.states
+
+    # The page's whole copy resolved above the sigil, which is how
+    # `Kati.Screens.States.content/1` arranges its own five bands and for the
+    # same reason: the four eyebrows are read against each other, and a ~MOB
+    # block is the wrong place to compare four labels.
+    #
+    # Two of them take a context, and both would have gone wrong quietly.
+    # `Search results` is two words with a bare `Search` and a `%{n} results`
+    # plural already in the catalogue for `gettext.merge` to fuzzy-match it
+    # onto; `four edge states` sits beside `Two states`, `Eight states` and
+    # `Five states, three media`, every one of them another reference sheet's
+    # subtitle. Nothing on this screen is asserted against a string, so a sheet
+    # headed **هشت حالت** is a wrong word no test here would catch.
+    title = pgettext("screen title", "Search results")
+    subtitle = pgettext("screen subtitle", "four edge states")
+    first_band = gettext("One scope only — seven zeroes are not a fault")
+
+    # Not a typed `Meals · 3`. The word is the chip's own, so the eyebrow and
+    # the lit pill under it cannot come out in two vocabularies, and the figure
+    # goes through `Kati.Locale.number/1`, which is what
+    # `Kati.Screens.Search.chip_count/2` puts the eight figures under the
+    # eyebrow through. It is the same 3 `in_scope/0` gives the Meals chip, and
+    # the audit could not see it: a bare numeral carries no Latin letters.
+    found_band = Kati.Search.scope_label(:meals) <> " · " <> Kati.Locale.number(3)
+
+    nothing_band = gettext("No results anywhere")
+    elsewhere_band = gettext("Nothing in this scope, something elsewhere")
+
+    # The eyebrow over a badge that opens with the same word. `pgettext/2`
+    # because a bare `Offline` is one word, and this is the entry screens 70
+    # and 80 have already put in the catalogue for their own copies of it.
+    offline_band = pgettext("the device has no network", "Offline")
+
+    matched = Kati.Screens.SearchResultStates.query()
+
+    # The query that matched nowhere. A Persian word rather than a
+    # transliteration of `vellichor`: the band's claim is that a real query
+    # reached eight scopes and came back with nothing, and a reader cannot read
+    # a string of Latin letters they would never type as the query they just
+    # ran. It goes to the field and to both of `nothing/2`'s sentences from one
+    # place, because those three are one query.
+    missing = pgettext("search query", "vellichor")
 
     ~MOB"""
     <Scroll>
@@ -218,19 +363,19 @@ defmodule Kati.Screens.SearchResultStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Search results", "four edge states", nil, :name)}
-        {UI.eyebrow("One scope only — seven zeroes are not a fault")}
-        {SearchScreen.field("quinoa", false)}
-        {Kati.Screens.SearchResultStates.chips(s.in_scope, "Meals")}
-        {SettingsList.eyebrow_muted("Meals · 3")}
+        {SettingsList.title(title, subtitle, nil, :name)}
+        {UI.eyebrow(first_band)}
+        {SearchScreen.field(matched, false)}
+        {Kati.Screens.SearchResultStates.chips(s.in_scope, :meals)}
+        {SettingsList.eyebrow_muted(found_band)}
         {Kati.Screens.SearchResultStates.found(s.hits)}
-        {SettingsList.eyebrow_muted("No results anywhere")}
-        {SearchScreen.field("vellichor", false)}
-        {Kati.Screens.SearchResultStates.nothing("vellichor")}
-        {SettingsList.eyebrow_muted("Nothing in this scope, something elsewhere")}
-        {Kati.Screens.SearchResultStates.chips(s.elsewhere, "Calendar")}
+        {SettingsList.eyebrow_muted(nothing_band)}
+        {SearchScreen.field(missing, false)}
+        {Kati.Screens.SearchResultStates.nothing(missing)}
+        {SettingsList.eyebrow_muted(elsewhere_band)}
+        {Kati.Screens.SearchResultStates.chips(s.elsewhere, :calendar)}
         {Kati.Screens.SearchResultStates.cross_scope()}
-        {SettingsList.eyebrow_muted("Offline")}
+        {SettingsList.eyebrow_muted(offline_band)}
         {Kati.Screens.SearchResultStates.offline()}
       </Column>
     </Scroll>
@@ -250,13 +395,24 @@ defmodule Kati.Screens.SearchResultStates do
   `active` is passed rather than carried on the chips: which scope is lit is the
   thing each band varies, and a fixture that stated it would let the two rows
   disagree about how many chips can be lit at once.
+
+  It is a scope KEY and not a label, and that is a fix rather than a rename.
+  This was `label == active` against the literal `"Meals"` — the word
+  `Kati.Search.scope_label/1` answers in English and `وعده‌ها` in Persian — so
+  under `:fa` the comparison failed on all eight chips and the page drew no ink
+  pill at all. Both bands that use this row are arguments about where the pill
+  is: the first says it sits on the scope with the results, the third that it
+  sits on a scope without them, and neither survives a row with nothing lit.
+  `Kati.Screens.Search.chip/4` takes the key beside the label for the same
+  reason, and `Kati.Search.built?/1`'s note is the long form of it — the key is
+  what identifies a scope, the label is what draws it.
   """
-  @spec chips([{String.t(), non_neg_integer()}], String.t()) :: map()
+  @spec chips([{atom(), String.t(), non_neg_integer()}], atom()) :: map()
   def chips(chips, active) do
     row =
       chips
-      |> Enum.map(fn {label, count} ->
-        Kati.Screens.SearchResultStates.chip(label, count, label == active)
+      |> Enum.map(fn {key, label, count} ->
+        Kati.Screens.SearchResultStates.chip(label, count, key == active)
       end)
       |> Enum.intersperse(SearchScreen.gap())
 
@@ -446,9 +602,36 @@ defmodule Kati.Screens.SearchResultStates do
   @spec nothing(String.t(), keyword()) :: map()
   def nothing(query, taps \\ []) do
     # The sigil is uppercase, so `#{}` inside it is literal text and both
-    # quoted strings have to be built out here.
-    title = "Nothing here for “" <> query <> "”"
-    action = "Search TMDB for “" <> query <> "”"
+    # sentences have to be built out here — as bindings now rather than as
+    # `<>`, which is the difference that matters. The quotation marks stay
+    # INSIDE the msgid, and `Kati.Screens.AddTitle.found_nothing/1` is where
+    # that was decided at length: a Persian translator swaps `“…”` for the
+    # guillemets `«…»` in the same edit that writes the words, and cannot if
+    # the marks are concatenated out here. The first sentence is that screen's
+    # own msgid character for character — two sheets that say one thing in
+    # English may not say two things in Persian — so this band arrives already
+    # translated.
+    #
+    # `query` is deliberately NOT wrapped in `Kati.Locale.ltr/1`, for the
+    # reason that call site gives. The live caller is
+    # `Kati.Screens.Search.no_matches/1` and the value is then the reader's own
+    # text, which can be in either script; isolating a Persian query as a
+    # left-to-right run would mirror the exact defect that helper exists to
+    # fix. A Latin query needs no isolate here anyway — the sentence's own
+    # quotation marks bound it on both sides, so it strands no trailing neutral
+    # at the wrong edge.
+    #
+    # `TMDB` stays Latin inside the Persian sentence: it is the service's name
+    # for itself, and board 127's `Lumen+` is the standing rule.
+    title = gettext("Nothing here for “%{query}”", query: query)
+    action = gettext("Search TMDB for “%{query}”", query: query)
+
+    body =
+      gettext(
+        "Kati only searches what you keep. If it is a title you have not added yet, look it up."
+      )
+
+    by_hand = gettext("or add it by hand")
 
     ~MOB"""
     <Column fill_width={true}>
@@ -474,15 +657,15 @@ defmodule Kati.Screens.SearchResultStates do
           text={title}
           text_size={14.5}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
-          text="Kati only searches what you keep. If it is a title you have not added yet, look it up."
+          text={body}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -510,7 +693,7 @@ defmodule Kati.Screens.SearchResultStates do
         <Spacer size={13} />
         <Box fill_width={true} on_tap={taps[:by_hand]}>
           <Text
-            text="or add it by hand"
+            text={by_hand}
             text_size={12.5}
             font_weight="semibold"
             text_color={Palette.sub()}
@@ -529,11 +712,36 @@ defmodule Kati.Screens.SearchResultStates do
   One row rather than an empty state, and that is the argument the band makes:
   the page already knows where the answer is, so telling the user their scope is
   empty and stopping would be withholding it. `swap_horiz` leads because the
-  offer is a change of scope rather than a new query, and `arrow_forward` closes
-  it because tapping moves you rather than expanding anything in place.
+  offer is a change of scope rather than a new query, and the forward arrow
+  closes it because tapping moves you rather than expanding anything in place —
+  `Kati.Locale.forward_glyph/0`'s arrow, which points the way the reader is
+  going in either script rather than the way the glyph is drawn.
+
+  Both halves of the sentence are `Kati.Screens.Search.cross_scope/2`'s own
+  msgids, with the two scopes named through `Kati.Search.scope_label/1` and the
+  figure through `Kati.Locale.number/1`. The wired row and its picture may not
+  word this differently, which is the whole reason a states sheet is worth
+  having — and the trailing space in `Nothing in %{scope}. ` is that msgid's,
+  not a typo here: `Kati.UI.rich_text/1` concatenates the runs and something
+  has to hold the gap between the two.
   """
   @spec cross_scope() :: map()
   def cross_scope do
+    # `Kati.Locale.forward_glyph/0` rather than the literal. The glyph closes a
+    # row that MOVES you, and an arrow is a picture: `layout_direction` mirrors
+    # the row and leaves the arrow pointing back the way the reader came.
+    # `Kati.Screens.Search.cross_scope/2` still writes `arrow_forward` and
+    # should follow — it is one line, and it is that screen's to change.
+    assigns = %{
+      lead: gettext("Nothing in %{scope}. ", scope: Kati.Search.scope_label(:calendar)),
+      over:
+        ngettext("%{n} match in %{scope}", "%{n} matches in %{scope}", 3,
+          n: Kati.Locale.number(3),
+          scope: Kati.Search.scope_label(:screen)
+        ),
+      forward: Kati.Locale.forward_glyph()
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -548,12 +756,12 @@ defmodule Kati.Screens.SearchResultStates do
         <Spacer size={12} />
         <Column weight={1.0}>
           {UI.rich_text([
-            {"Nothing in Calendar. ", [text_size: 13, text_color: :on_surface, base: true]},
-            {"3 matches in Screen", :bold}
+            {@lead, [text_size: 13, text_color: :on_surface, base: true]},
+            {@over, :bold}
           ])}
         </Column>
         <Spacer size={12} />
-        {UI.symbol("arrow_forward", size: 17)}
+        {UI.symbol(@forward, size: 17)}
       </Row>
       <Spacer size={22} />
     </Column>
@@ -570,12 +778,25 @@ defmodule Kati.Screens.SearchResultStates do
   The sentence is this screen's because the promise is. Every scope
   `Kati.Search` lists is local, so losing the radio costs nothing a search can
   see; the one thing it does cost is the TMDB lookup the band above offers, and
-  the second line names that rather than reassuring in general. `max_lines={2}`
-  is the measured wrap for it at 11.5pt across this card, and stating it is what
-  stops a longer sentence from silently losing its second half.
+  the second line names that rather than reassuring in general. Two lines is the
+  measured wrap for it at 11.5pt across this card and three is Persian's, which
+  `Kati.Locale.pick/2` is for — Vazirmatn is wider than Plus Jakarta at a size
+  and the sentence is a claim rather than a label, so cut short it stops being
+  the promise it is here to make. `Kati.Screens.LogProgressStates.offline_undo/0`
+  found the same thing on the same badge and its comment is the long form.
   """
   @spec offline() :: map()
   def offline do
+    # The title and the eyebrow above it are two msgids and not one, which is
+    # the opposite of screen 70's arrangement and is right here: 70's eyebrow
+    # and badge say the same word about the same condition, and these two do
+    # not — the eyebrow names the state and the badge says what survives it.
+    assigns = %{
+      title: gettext("Offline — still searching"),
+      line: gettext("Everything you keep is on this device. Only looking up new titles waits."),
+      lines: Kati.Locale.pick(2, 3)
+    }
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -588,19 +809,14 @@ defmodule Kati.Screens.SearchResultStates do
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
-          text="Offline — still searching"
+          text={@title}
           text_size={13}
           font_weight="bold"
           text_color={:on_surface}
           max_lines={1}
         />
         <Spacer size={3} />
-        <Text
-          text="Everything you keep is on this device. Only looking up new titles waits."
-          text_size={11.5}
-          text_color={Palette.cream_sub()}
-          max_lines={2}
-        />
+        <Text text={@line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={@lines} />
       </Column>
     </Row>
     """
