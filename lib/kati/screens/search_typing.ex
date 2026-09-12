@@ -172,6 +172,7 @@ defmodule Kati.Screens.SearchTyping do
   """
 
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaProgress
   alias Kati.Screens.SearchIdle
@@ -363,8 +364,18 @@ defmodule Kati.Screens.SearchTyping do
   """
   @spec nothing_yet() :: map()
   def nothing_yet do
-    kept = String.downcase(SearchSpec.word(Search.recent_kept()))
-    assigns = %{body: "Your last " <> kept <> " queries will sit here."}
+    # The count as each script writes it: English spells it out and Persian
+    # sets the digit, which is `Kati.Locale`'s own division of labour. It was
+    # `"Your last " <> word <> " queries will sit here."` with the word
+    # capitalised-then-downcased in English, so the Persian rendering of board
+    # 90 drew an English sentence and the full stop resolved to the wrong edge.
+    kept =
+      Kati.Locale.pick(
+        String.downcase(SearchSpec.word(Search.recent_kept())),
+        Kati.Locale.number(Search.recent_kept())
+      )
+
+    assigns = %{body: gettext("Your last %{n} queries will sit here.", n: kept)}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -385,7 +396,7 @@ defmodule Kati.Screens.SearchTyping do
         </Row>
         <Spacer size={12} />
         <Text
-          text="Nothing searched yet"
+          text={gettext("Nothing searched yet")}
           text_size={13.5}
           font_weight="bold"
           text_color={:on_surface}

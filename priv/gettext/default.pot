@@ -441,8 +441,8 @@ msgstr ""
 
 #: lib/kati/screens/pushed.ex:184
 #: lib/kati/screens/search.ex:157
-#: lib/kati/screens/search.ex:356
-#: lib/kati/screens/search.ex:557
+#: lib/kati/screens/search.ex:335
+#: lib/kati/screens/search.ex:536
 #: lib/kati/shell.ex:80
 #, elixir-autogen, elixir-format
 msgid "Home"
@@ -2414,6 +2414,7 @@ msgid "Cached metadata"
 msgstr ""
 
 #: lib/kati/screens/data_sources.ex:1003
+#: lib/kati/screens/search_idle.ex:261
 #, elixir-autogen, elixir-format
 msgid "Clear"
 msgstr ""
@@ -4031,7 +4032,7 @@ msgstr ""
 msgid "Mark episode %{n} watched"
 msgstr ""
 
-#: lib/kati/screens/search.ex:967
+#: lib/kati/screens/search.ex:946
 #, elixir-autogen, elixir-format
 msgid "%{n} match in %{scope}"
 msgid_plural "%{n} matches in %{scope}"
@@ -4059,7 +4060,7 @@ msgstr ""
 msgid "Note · %{date} · %{title}"
 msgstr ""
 
-#: lib/kati/screens/search.ex:965
+#: lib/kati/screens/search.ex:944
 #, elixir-autogen, elixir-format
 msgid "Nothing in %{scope}. "
 msgstr ""
@@ -4245,7 +4246,7 @@ msgctxt "search scope"
 msgid "Screen"
 msgstr ""
 
-#: lib/kati/screens/search.ex:358
+#: lib/kati/screens/search.ex:337
 #, elixir-autogen, elixir-format
 msgid "Recent"
 msgstr ""
@@ -4258,4 +4259,34 @@ msgstr ""
 #: lib/kati/search/query.ex:651
 #, elixir-autogen, elixir-format
 msgid "Note · %{date}"
+msgstr ""
+
+#: lib/kati/search.ex:320
+#, elixir-autogen, elixir-format
+msgid "Counts stay off the chips until a query exists — %{n} zeroes on open would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one character is a word. Every keystroke runs: the search is your own library on this device, so waiting would cost more than it saved."
+msgstr ""
+
+#: lib/kati/search.ex:289
+#, elixir-autogen, elixir-format
+msgid "Counts stay off the chips until a query exists — eight zeroes on open would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one character is a word. Keystrokes debounce at 180 ms, so one pause costs seven counted queries, not seven per letter."
+msgstr ""
+
+#: lib/kati/screens/search_typing.ex:380
+#, elixir-autogen, elixir-format
+msgid "Nothing searched yet"
+msgstr ""
+
+#: lib/kati/screens/search_idle.ex:217
+#, elixir-autogen, elixir-format
+msgid "Recent · last %{n}"
+msgstr ""
+
+#: lib/kati/search.ex:256
+#, elixir-autogen, elixir-format
+msgid "Search anything you keep"
+msgstr ""
+
+#: lib/kati/screens/search_typing.ex:378
+#, elixir-autogen, elixir-format
+msgid "Your last %{n} queries will sit here."
 msgstr ""

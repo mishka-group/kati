@@ -189,8 +189,25 @@ defmodule Kati.SearchGroupsTest do
       note = Kati.Search.local_note()
 
       refute note =~ "debounce", "screen 19 runs on every keystroke, deliberately"
-      refute note =~ "eight zeroes", "screen 19 narrows to five scopes"
-      assert note =~ "#{length(Kati.Search.narrowable_scopes())} zeroes"
+
+      # The chips it counts, not the scopes it can narrow to. Board 90 draws
+      # all eight — `Kati.Search.Query.chip_counts/1` walks `chip_keys/0` since
+      # mishka-group/kati#103 — and a sentence about what a reader sees on open
+      # has to name the row they see. It said five over a row of eight.
+      assert note =~ "#{length(Kati.Search.chip_keys())} zeroes"
+    end
+
+    test "and it says so in the other script too" do
+      # The whole sentence is one msgid, so this is the check that the Persian
+      # rendering of board 90 does not draw an English paragraph under a
+      # Persian page — which is what the device found.
+      Kati.Locale.as(:fa, fn ->
+        note = Kati.Search.local_note()
+
+        refute note =~ "Counts stay off"
+        assert note =~ "چیپ‌ها"
+        assert note =~ Kati.Locale.number(length(Kati.Search.chip_keys()))
+      end)
     end
 
     test "and board 88 keeps its own" do

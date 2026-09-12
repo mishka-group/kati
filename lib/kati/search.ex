@@ -253,7 +253,7 @@ defmodule Kati.Search do
   everything — the scope chips narrow, the field does not.
   """
   @spec placeholder() :: String.t()
-  def placeholder, do: "Search anything you keep"
+  def placeholder, do: gettext("Search anything you keep")
 
   # Board 86's two, and its own caption says they are *drawn from what you
   # actually have* — which they were not: two fixed strings that match nothing
@@ -286,10 +286,12 @@ defmodule Kati.Search do
   """
   @spec counts_note() :: String.t()
   def counts_note do
-    "Counts stay off the chips until a query exists — eight zeroes on open would read as an " <>
-      "empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one " <>
-      "character is a word. Keystrokes debounce at 180 ms, so one pause costs seven counted " <>
-      "queries, not seven per letter."
+    gettext(
+      "Counts stay off the chips until a query exists — eight zeroes on open would read as an " <>
+        "empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where " <>
+        "one character is a word. Keystrokes debounce at 180 ms, so one pause costs seven " <>
+        "counted queries, not seven per letter."
+    )
   end
 
   @doc """
@@ -311,10 +313,17 @@ defmodule Kati.Search do
   """
   @spec local_note() :: String.t()
   def local_note do
-    "Counts stay off the chips until a query exists — #{length(narrowable_scopes())} zeroes on open " <>
-      "would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic " <>
-      "and CJK, where one character is a word. Every keystroke runs: the search is your own " <>
-      "library on this device, so waiting would cost more than it saved."
+    # The number of CHIPS, not of narrowable scopes. The sentence is about what
+    # a reader would see on open, and what they see is the row —
+    # `Kati.Search.Query.chip_counts/1` draws one per `chip_keys/0` since board
+    # 90, so the row that read *five zeroes* showed eight of them.
+    gettext(
+      "Counts stay off the chips until a query exists — %{n} zeroes on open would read as an " <>
+        "empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where " <>
+        "one character is a word. Every keystroke runs: the search is your own library on this " <>
+        "device, so waiting would cost more than it saved.",
+      n: Kati.Locale.number(length(chip_keys()))
+    )
   end
 
   @doc """

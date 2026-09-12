@@ -752,6 +752,20 @@ defmodule Kati.Screens.Search do
   scopes behind a gesture nobody knows is there."* The chevron is the mark; it
   is not a control, because the row it points along is already draggable and a
   second way to move it would be two answers to one question.
+
+  ## The mark needed `weight={1.0}` on the scroll, and the phone is what said so
+
+  313's affordance was written and never appeared. A `Scroll` with no width and
+  no weight force-fills — upstream Mob's behaviour, the same K-17
+  box-hugs-when-told case `field/2`'s clear disc is written against — so the
+  scroll took the whole row and pushed the chevron past its right edge. The
+  host sweeps could not see it: they compare a tree against a board and neither
+  has a width, and the symbol was in the tree throughout.
+
+  It points the reading direction, not a fixed way: `chevron_right` in English
+  and `chevron_left` in Persian, which is `Kati.Locale.forward_chevron/0`. On
+  board 90 the row runs right to left and a chevron pointing right would have
+  been an affordance for a gesture the page does not make.
   """
   @spec chip_line([map()]) :: map()
   def chip_line(chips) do
@@ -759,13 +773,13 @@ defmodule Kati.Screens.Search do
 
     ~MOB"""
     <Row fill_width={true} align="center">
-      <Scroll axis="horizontal">
+      <Scroll axis="horizontal" weight={1.0}>
         <Row align="center">
           {@chips}
         </Row>
       </Scroll>
       <Spacer size={7} />
-      {Kati.UI.symbol("chevron_right", size: 17, color: Kati.Theme.Palette.tertiary())}
+      {Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 17, color: Kati.Theme.Palette.tertiary())}
     </Row>
     """
   end

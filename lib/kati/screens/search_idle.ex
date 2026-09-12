@@ -39,6 +39,7 @@ defmodule Kati.Screens.SearchIdle do
   """
 
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Search
   alias Kati.Theme.Palette
@@ -204,6 +205,18 @@ defmodule Kati.Screens.SearchIdle do
   end
 
   @doc """
+  `Recent · last 8`, in the reader's own script and digits.
+
+  The number was interpolated straight into the string, so the eyebrow on the
+  Persian rendering of board 90 read **Recent · last 8** over a page of
+  Persian — the Latin word and the Latin digit, in a run the bidi algorithm
+  then flipped the separator inside. mishka-group/kati#103.
+  """
+  @spec recent_eyebrow() :: String.t()
+  def recent_eyebrow,
+    do: gettext("Recent · last %{n}", n: Kati.Locale.number(Search.recent_kept()))
+
+  @doc """
   The last eight queries, and the row that forgets them.
 
   `Clear` sits on the eyebrow rather than at the foot of the list, because a
@@ -233,21 +246,21 @@ defmodule Kati.Screens.SearchIdle do
     # definition* on a first run. So the eyebrow stays and the card under it
     # explains itself.
     if rows == [] do
-      assigns = %{kept: Search.recent_kept()}
+      assigns = %{eyebrow: Kati.Screens.SearchIdle.recent_eyebrow()}
 
       ~MOB"""
       <Column fill_width={true}>
-        {Kati.UI.eyebrow("Recent · last #{@kept}")}
+        {Kati.UI.eyebrow(@eyebrow)}
         {Kati.Screens.SearchTyping.nothing_yet()}
       </Column>
       """
     else
-      assigns = %{rows: rows, kept: Search.recent_kept()}
+      assigns = %{rows: rows, eyebrow: Kati.Screens.SearchIdle.recent_eyebrow()}
 
       ~MOB"""
       <Column fill_width={true}>
-        {Kati.UI.eyebrow("Recent · last #{@kept}",
-           trailing: "Clear",
+        {Kati.UI.eyebrow(@eyebrow,
+           trailing: gettext("Clear"),
            trailing_tap: {self(), :clear_recent}
          )}
         {Kati.UI.SettingsList.card(@rows)}

@@ -444,8 +444,8 @@ msgstr "عنوان‌های خصوصی پنهان شوند"
 
 #: lib/kati/screens/pushed.ex:184
 #: lib/kati/screens/search.ex:157
-#: lib/kati/screens/search.ex:356
-#: lib/kati/screens/search.ex:557
+#: lib/kati/screens/search.ex:335
+#: lib/kati/screens/search.ex:536
 #: lib/kati/shell.ex:80
 #, elixir-autogen, elixir-format
 msgid "Home"
@@ -2417,6 +2417,7 @@ msgid "Cached metadata"
 msgstr "حافظه موقت"
 
 #: lib/kati/screens/data_sources.ex:1003
+#: lib/kati/screens/search_idle.ex:261
 #, elixir-autogen, elixir-format
 msgid "Clear"
 msgstr "پاک‌کردن"
@@ -4034,7 +4035,7 @@ msgstr "پس‌کشند"
 msgid "Mark episode %{n} watched"
 msgstr "قسمت %{n} را دیده‌ام"
 
-#: lib/kati/screens/search.ex:967
+#: lib/kati/screens/search.ex:946
 #, elixir-autogen, elixir-format
 msgid "%{n} match in %{scope}"
 msgid_plural "%{n} matches in %{scope}"
@@ -4062,7 +4063,7 @@ msgstr "قسمت %{e} فصل %{s} · %{date} دیده شد"
 msgid "Note · %{date} · %{title}"
 msgstr "یادداشت · %{date} · %{title}"
 
-#: lib/kati/screens/search.ex:965
+#: lib/kati/screens/search.ex:944
 #, elixir-autogen, elixir-format
 msgid "Nothing in %{scope}. "
 msgstr "چیزی در %{scope} نیست. "
@@ -4248,7 +4249,7 @@ msgctxt "search scope"
 msgid "Screen"
 msgstr "نمایش"
 
-#: lib/kati/screens/search.ex:358
+#: lib/kati/screens/search.ex:337
 #, elixir-autogen, elixir-format
 msgid "Recent"
 msgstr "اخیر"
@@ -4262,3 +4263,33 @@ msgstr "یادداشت"
 #, elixir-autogen, elixir-format
 msgid "Note · %{date}"
 msgstr "یادداشت · %{date}"
+
+#: lib/kati/search.ex:320
+#, elixir-autogen, elixir-format
+msgid "Counts stay off the chips until a query exists — %{n} zeroes on open would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one character is a word. Every keystroke runs: the search is your own library on this device, so waiting would cost more than it saved."
+msgstr "شمارش‌ها تا وقتی چیزی نوشته نشود روی چیپ‌ها نمی‌آیند — %{n} صفر هنگام باز شدن، برنامه را خالی نشان می‌دهد. جست‌وجو از ۲ نویسه آغاز می‌شود، و از ۱ نویسه برای فارسی، عربی و خط‌های شرق آسیا که در آن‌ها یک نویسه یک واژه است. هر کلید بی‌درنگ اجرا می‌شود: جست‌وجو در کتابخانهٔ خودتان روی همین دستگاه است، پس صبر کردن بیش از آنکه صرفه‌جویی کند هزینه دارد."
+
+#: lib/kati/search.ex:289
+#, elixir-autogen, elixir-format
+msgid "Counts stay off the chips until a query exists — eight zeroes on open would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one character is a word. Keystrokes debounce at 180 ms, so one pause costs seven counted queries, not seven per letter."
+msgstr "شمارش‌ها تا وقتی چیزی نوشته نشود روی چیپ‌ها نمی‌آیند — هشت صفر هنگام باز شدن، برنامه را خالی نشان می‌دهد. جست‌وجو از ۲ نویسه آغاز می‌شود، و از ۱ نویسه برای فارسی، عربی و خط‌های شرق آسیا که در آن‌ها یک نویسه یک واژه است. کلیدها با ۱۸۰ میلی‌ثانیه مکث اجرا می‌شوند، پس یک مکث هفت جست‌وجوی شمرده‌شده هزینه دارد، نه هفت‌تا به ازای هر حرف."
+
+#: lib/kati/screens/search_typing.ex:380
+#, elixir-autogen, elixir-format
+msgid "Nothing searched yet"
+msgstr "هنوز چیزی جست‌وجو نشده"
+
+#: lib/kati/screens/search_idle.ex:217
+#, elixir-autogen, elixir-format
+msgid "Recent · last %{n}"
+msgstr "اخیر · %{n} تای آخر"
+
+#: lib/kati/search.ex:256
+#, elixir-autogen, elixir-format
+msgid "Search anything you keep"
+msgstr "هر چه نگه داشته‌اید را جست‌وجو کنید"
+
+#: lib/kati/screens/search_typing.ex:378
+#, elixir-autogen, elixir-format
+msgid "Your last %{n} queries will sit here."
+msgstr "%{n} جست‌وجوی آخر شما اینجا می‌نشیند."
