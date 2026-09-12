@@ -124,28 +124,12 @@ defmodule Kati.Screens.AttributionStates do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Screens.Attribution
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
-
-  # The sixth source, in the shape `Kati.Screens.Attribution.source_card/1`
-  # reads: `id`, `name`, `takes`, `notice`, `licence`, `site`.
-  #
-  # `notice` is legal text and is a literal here for the reason 83 gives for its
-  # five — editing one for tone is a licence change. ListenBrainz publishes its
-  # listen data under CC0, which is why the tag is shown at all: a public-domain
-  # dedication still gets named, so that a reader can tell it apart from the
-  # sources whose terms actually bind.
-  @listenbrainz %{
-    id: :listenbrainz,
-    name: "ListenBrainz",
-    takes: "Your listening history, synced to your own account.",
-    notice: "Listening data from ListenBrainz, a MetaBrainz project.",
-    licence: "CC0",
-    site: "listenbrainz.org"
-  }
 
   @impl true
   def load(socket) do
@@ -169,9 +153,42 @@ defmodule Kati.Screens.AttributionStates do
   unconditional — every one of those five is credited on a fresh install, and a
   source credited before it has ever been contacted is a notice for something
   that did not happen.
+
+  ## Why this builds the map rather than returning an attribute
+
+  It was `@listenbrainz`, and `takes` is Kati's own sentence about the source
+  and so is translated. `gettext/1` inside a module attribute is evaluated at
+  COMPILE time, which would freeze the sentence in whichever locale ran
+  `mix compile` and hand every reader that one.
+  `Kati.Screens.Attribution.sources/0` is a function for exactly this reason
+  and says so at length; the sixth source follows the five.
   """
   @spec connected_source() :: map()
-  def connected_source, do: @listenbrainz
+  def connected_source do
+    # The sixth source, in the shape `Kati.Screens.Attribution.source_card/1`
+    # reads: `id`, `name`, `takes`, `notice`, `licence`, `site`.
+    #
+    # `notice` is legal text and is a literal here for the reason 83 gives for
+    # its five — editing one for tone is a licence change — and it is left in
+    # English under `:fa` for the second reason `sources/0` gives: a quotation
+    # that has been through a translator is no longer the quotation the licence
+    # asks for. `source_card/1` is what puts it in a `Kati.Locale.ltr/1`
+    # isolate, so the Latin sentence keeps its own full stop on a Persian page.
+    #
+    # ListenBrainz publishes its listen data under CC0, which is why the tag is
+    # shown at all: a public-domain dedication still gets named, so that a
+    # reader can tell it apart from the sources whose terms actually bind. The
+    # tag, the name and the site are identifiers rather than copy and stay in
+    # Latin in both scripts.
+    %{
+      id: :listenbrainz,
+      name: "ListenBrainz",
+      takes: gettext("Your listening history, synced to your own account."),
+      notice: "Listening data from ListenBrainz, a MetaBrainz project.",
+      licence: "CC0",
+      site: "listenbrainz.org"
+    }
+  end
 
   @doc """
   83's own TMDB entry, fetched rather than copied.
@@ -190,6 +207,19 @@ defmodule Kati.Screens.AttributionStates do
   def content(assigns) do
     s = assigns.states
 
+    # 235 goes through `Kati.Locale.number/1` rather than into the msgid, so the
+    # scale is drawn in the reader's own numerals — ۲۳۵٪ — and one translation
+    # serves every size this sheet might be redrawn at.
+    # `Kati.Screens.Accessibility` writes the same figure the same way, which
+    # matters here because 41 is the board this one is quoting: two boards that
+    # name one scale should not name it in two sets of digits.
+    #
+    # No `String.upcase/1` at any of these call sites. `Kati.UI.eyebrow/2` puts
+    # its label through `Kati.UI.eyebrow_label/1`, which knows the Arabic script
+    # has no case; `Kati.UI.SettingsList.eyebrow_muted/1` still upcases and
+    # letter-spaces its own label, which is that component's to fix rather than
+    # this screen's — it is called from thirty-odd boards and a copy written
+    # here would be one of them going its own way.
     ~MOB"""
     <Scroll>
       <Column
@@ -200,16 +230,16 @@ defmodule Kati.Screens.AttributionStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Attribution", "three states", nil, :name)}
-        {UI.eyebrow("With a connected account — a sixth card appears")}
+        {SettingsList.title(pgettext("screen 84’s title — crediting the sources", "Attribution"), gettext("three states"), nil, :name)}
+        {UI.eyebrow(gettext("With a connected account — a sixth card appears"))}
         {Attribution.source_card(s.connected)}
         <Spacer size={24} />
-        {SettingsList.eyebrow_muted("Offline — identical, from bundled assets")}
+        {SettingsList.eyebrow_muted(gettext("Offline — identical, from bundled assets"))}
         {Attribution.source_card(s.tmdb)}
         <Spacer size={11} />
         {Kati.Screens.AttributionStates.bundled_note()}
         <Spacer size={24} />
-        {SettingsList.eyebrow_muted("Dynamic Type 235% — nothing truncates")}
+        {SettingsList.eyebrow_muted(gettext("Dynamic Type %{n}% — nothing truncates", n: Kati.Locale.number(235)))}
         {Kati.Screens.AttributionStates.dynamic_type(s.tmdb)}
         <Spacer size={22} />
         {Kati.Screens.AttributionStates.footnote()}
@@ -238,7 +268,7 @@ defmodule Kati.Screens.AttributionStates do
       {UI.symbol("info", size: 18, color: Palette.gold_icon())}
       <Spacer size={11} />
       <Text
-        text="Every mark on this screen ships inside the app. An attribution screen that needs the network to render its notices is a compliance failure, not a loading state."
+        text={gettext("Every mark on this screen ships inside the app. An attribution screen that needs the network to render its notices is a compliance failure, not a loading state.")}
         text_size={12.5}
         line_height={1.6}
         text_color={Palette.cream_body()}
@@ -273,6 +303,15 @@ defmodule Kati.Screens.AttributionStates do
   """
   @spec dynamic_type(map()) :: map()
   def dynamic_type(source) do
+    # The notice goes through `Kati.Locale.ltr/1` here, exactly as
+    # `Kati.Screens.Attribution.source_card/1` does to the same string on the
+    # band above. It is not decoration: the notice is the one sentence on this
+    # sheet that is NOT translated — a quotation a licence requires — so under
+    # `:fa` it is a Latin run in a right-to-left paragraph, and its terminating
+    # full stop is a neutral character that resolves against the paragraph and
+    # lands at the left edge. Without the isolate the third band would draw the
+    # TMDB sentence broken while the second drew it whole, and this sheet exists
+    # to say the two are one source at two sizes.
     ~MOB"""
     <Column
       fill_width={true}
@@ -287,7 +326,12 @@ defmodule Kati.Screens.AttributionStates do
       <Spacer size={14} />
       {SettingsList.hairline(true)}
       <Spacer size={14} />
-      <Text text={source.notice} text_size={21} line_height={1.45} text_color={Palette.ink_soft()} />
+      <Text
+        text={Kati.Locale.ltr(source.notice)}
+        text_size={21}
+        line_height={1.45}
+        text_color={Palette.ink_soft()}
+      />
       <Spacer size={14} />
       {SettingsList.hairline(true)}
       <Spacer size={14} />
@@ -313,6 +357,13 @@ defmodule Kati.Screens.AttributionStates do
   """
   @spec large_mark(String.t()) :: map()
   def large_mark(name) do
+    # `String.upcase/1` stays, and is not the eyebrow case `Kati.UI.eyebrow_label/1`
+    # exists for. A source's `name` is a provider's name for itself — `TMDB`,
+    # `ListenBrainz` — and no msgid reaches one, so the letter this takes the case
+    # of is always Latin and upcasing it is the Latin operation it looks like.
+    # `Kati.Screens.Attribution.mark/1` does the same to the same names on the two
+    # bands above, and a mark that disagreed with itself across the sheet would be
+    # a difference this board invented.
     initial = name |> String.first() |> String.upcase()
 
     ~MOB"""
@@ -344,15 +395,29 @@ defmodule Kati.Screens.AttributionStates do
   """
   @spec link_stack(String.t()) :: map()
   def link_stack(site) do
+    # `Kati.Locale.mono_face/1` rather than a hardcoded `"mono"`: it asks the
+    # STRING's script rather than the reader's, so every site this sheet can
+    # draw today — pure ASCII, every one — keeps DM Mono in both scripts, and an
+    # internationalised domain arriving tomorrow is set in Vazirmatn instead of
+    # in the empty boxes `kati_mono.ttf` has for Persian. Nothing on screen
+    # changes for `themoviedb.org`; the decision simply stops being invisible.
+    #
+    # *Opens in your browser* is Kati's own sentence and translates. The URL
+    # beside it is not, and does not.
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={site} font_family="mono" text_size={17} text_color={:on_surface} />
+      <Text
+        text={site}
+        font_family={Kati.Locale.mono_face(site)}
+        text_size={17}
+        text_color={:on_surface}
+      />
       <Spacer size={9} />
       <Row align="center">
         {UI.symbol("ios_share", size: 20, color: Palette.sub())}
         <Spacer size={7} />
         <Text
-          text="Opens in your browser"
+          text={gettext("Opens in your browser")}
           text_size={17}
           font_weight="semibold"
           text_color={Palette.sub()}
@@ -372,11 +437,21 @@ defmodule Kati.Screens.AttributionStates do
   """
   @spec footnote() :: map()
   def footnote do
+    # Both figures are interpolated rather than written into the msgid: 235 is a
+    # scale the reader reads as a number and 41 is a board number this sheet
+    # names out loud, and `Kati.Locale.number/1` puts both in the reader's own
+    # digits. A translator who met `235%` and `41` inside the sentence would
+    # have to retype them to convert them, and a retyped figure is a figure that
+    # can come back wrong.
     SettingsList.note(
       "info",
-      "At 235% the mark-beside-text row becomes a stack and the link row splits into two " <>
-        "lines, per 41’s rule. The verbatim notice wraps in full — a legal sentence is the " <>
-        "one thing that may never be ellipsised."
+      gettext(
+        "At %{n}% the mark-beside-text row becomes a stack and the link row splits into two " <>
+          "lines, per %{board}’s rule. The verbatim notice wraps in full — a legal sentence " <>
+          "is the one thing that may never be ellipsised.",
+        n: Kati.Locale.number(235),
+        board: Kati.Locale.number(41)
+      )
     )
   end
 

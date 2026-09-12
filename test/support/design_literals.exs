@@ -714,7 +714,7 @@ defmodule Kati.DesignLiterals do
       # identify.
       {"90", "قسمت · ۲۵ مرداد دیده شد"},
       {"90", "یادداشت · ۶ مرداد"},
-      # ── Boards 74 and 76's listen field, and board 76's art tile.
+      # ── Boards 74, 75 and 76's listen field, and board 76's art tile.
       #
       # **MAY / اردیبهشت.** The field is ninety-one days ending TODAY and the
       # month under it was a literal, so every device drew May whatever month
@@ -722,6 +722,17 @@ defmodule Kati.DesignLiterals do
       # `Kati.Screens.AlbumDetail.field_month/0` reads the device clock and the
       # reader's calendar, so a Persian reader in Shahrivar sees شهریور.
       {"74", "may"},
+      #
+      # **75 held a SECOND copy of that literal**, which is why it is listed
+      # separately rather than covered by the line above: closing the defect on
+      # 74 left the states sheet drawing `MAY` on every device in every month,
+      # and the two boards are the same card. It now calls the same helper, so
+      # the fix cannot come apart again the way two copies of one answer do.
+      # Its *Zero plays keeps the field, drawn and empty* eyebrow is what makes
+      # the month read correctly rather than contradicting it — the window
+      # belongs to the calendar, not to the album, and naming the reader's
+      # current month claims nothing about when the record was played.
+      {"75", "may"},
       {"76", "اردیبهشت"},
       # **T / Art.** The paper square's letter is the album title's own first
       # character — board 76 draws **ک**, because the album is کارهای جزر و مد

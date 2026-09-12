@@ -85,6 +85,39 @@ defmodule Kati.Screens.ImportStates do
   tap is reported rather than swallowed — which is exactly why none of these
   props are set at all.
 
+  ## What stays Latin when this page renders under `:fa`
+
+  mishka-group/kati#103. The chrome translates — the title, the subtitle, the
+  three eyebrows, all three cards and the footnote. What does not is the grid's
+  own four strings and the three names the cards spell out. `Goodreads`,
+  `StoryGraph`, `goodreads_library_export.csv` and `storygraph_export.csv` are
+  140's, and `Kati.Screens.ImportSources`'s moduledoc is where the rule is
+  written down: board 278 transliterated the overflow four («سیمکل») and board
+  328 ruled against it, because a transliterated export name matches no file on
+  the phone. `Letterboxd`, `Letterboxd URI` and `Watched Date` go the same way
+  and the last two for a sharper version of the same reason — they are COLUMN
+  HEADERS the reader is being asked to find in a row of their own file, so a
+  Persian rendering of either would name a column that is not there.
+
+  Each of those is handed to `Kati.Locale.ltr/1` wherever it lands inside a
+  Persian sentence, because a Latin run's neutrals otherwise resolve against
+  the paragraph rather than against the run — the failure screen 83 drew for
+  five licence notices. The two filenames are not: they are whole lines of
+  their own rather than runs inside a sentence, which is how
+  `Kati.Screens.ImportSources.source_tile/1` draws the same two, and a tile
+  that differed from the picker's by an invisible isolate would be the one
+  difference this sheet is not for.
+
+  `font_family` on the filename is `Kati.Locale.mono_face/1` rather than the
+  hardcoded `"mono"` it used to be: it asks the STRING and not the reader, so
+  both values this board holds today keep DM Mono, and a filename typed here
+  tomorrow that is not pure ASCII is typeset in Vazirmatn rather than handed to
+  Android's substitute face. `letter_spacing` on the tile's name stays the
+  drawing's literal and that is not an oversight — 140's own `source_tile/1`
+  carries the argument: `Kati.Locale.tracking/1` exists to drop the Latin
+  design's tightening off text that turns into Persian, and a trade name never
+  does.
+
   ## The bold spans are not bold
 
   As in `Kati.Screens.MoneyStates`: `Kati.UI.rich_text/1` concatenates its
@@ -93,8 +126,17 @@ defmodule Kati.Screens.ImportStates do
   `Letterboxd URI`, `Watched Date`, `418 books arrive with no finish dates`
   and `what it found` are still written as their own runs — the day the
   bridge grows a `runs` prop, these five call sites are already right.
+
+  Each body run is its own msgid, so the seam survives translation: the Persian
+  is split at the same five places and reads straight through them. And the
+  body run of all four paragraphs is marked `base: true` rather than left to
+  win on length — `rich_text/1` takes its one style from the longest run when
+  nothing is marked, which was the body here only by arithmetic, and a Persian
+  run that came out shorter than the bold span beside it would set a whole
+  paragraph semibold in ink.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -103,6 +145,28 @@ defmodule Kati.Screens.ImportStates do
   @doc false
   @spec content(map()) :: map()
   def content(_assigns) do
+    # The page's whole copy resolved above the sigil, which is how
+    # `Kati.Screens.SearchResultStates.content/1` arranges its own four bands
+    # and for the same reason: the three eyebrows are read against each other,
+    # and a ~MOB block is the wrong place to compare three labels.
+    #
+    # The subtitle takes a context and the title does not. `THREE EDGE STATES`
+    # is three words sitting in the catalogue beside `FIVE STATES`,
+    # `THREE VARIANTS`, `four edge states` and half a dozen other reference
+    # sheets' subtitles — exactly what `mix gettext.merge` fuzzy-matches a short
+    # msgid onto — and nothing on this screen is asserted against a string, so a
+    # sheet headed **پنج حالت** is a wrong word no test here would catch. That
+    # is screen 89's own argument for `pgettext("screen subtitle", …)` and this
+    # is the second sheet to need it. `Import` needs none: the catalogue already
+    # carries it for screen 37's heading and for the back pill, it is the same
+    # word in the same register, and a second entry would be the disagreement.
+    title = gettext("Import")
+    subtitle = pgettext("screen subtitle", "THREE EDGE STATES")
+
+    wrong_band = gettext("Wrong guess — back at the grid, choice remembered")
+    unrecognised_band = gettext("Unrecognised for the named tile — name what it looks like")
+    partial_band = gettext("Partial columns — right source, old export")
+
     ~MOB"""
     <Scroll>
       <Column
@@ -113,12 +177,12 @@ defmodule Kati.Screens.ImportStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Import", "THREE EDGE STATES")}
-        {UI.eyebrow("Wrong guess — back at the grid, choice remembered")}
+        {SettingsList.title(title, subtitle)}
+        {UI.eyebrow(wrong_band)}
         {Kati.Screens.ImportStates.wrong_guess()}
-        {SettingsList.eyebrow_muted("Unrecognised for the named tile — name what it looks like")}
+        {SettingsList.eyebrow_muted(unrecognised_band)}
         {Kati.Screens.ImportStates.unrecognised()}
-        {SettingsList.eyebrow_muted("Partial columns — right source, old export")}
+        {SettingsList.eyebrow_muted(partial_band)}
         {Kati.Screens.ImportStates.partial_columns()}
         {Kati.Screens.ImportStates.footnote()}
       </Column>
@@ -138,14 +202,39 @@ defmodule Kati.Screens.ImportStates do
   """
   @spec wrong_guess() :: map()
   def wrong_guess do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
+    # `Kati.Locale.leading/1` on the paragraph and `base: true` on its body run,
+    # the two moves every folded card on this board makes — the moduledoc's
+    # "The bold spans are not bold" carries the argument for the mark, and
+    # `Kati.Theme.fa_line_height/0` the one for the leading: Vazirmatn's metrics
+    # are not Plus Jakarta's, so a paragraph set at the drawing's 1.65 sets
+    # Persian lines too close together to read.
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.cream_body(),
+      base: true
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # `Something else` is INTERPOLATED from screen 140's own msgid rather than
+    # typed into this sentence, and that is the same fix board 328 made for its
+    # count: the sentence names a tile the picker draws, and a tile named one
+    # way in the grid and another in the card is how a catalogue starts
+    # disagreeing with itself. It is the one string on this board that is copy
+    # in both scripts — *Something else* is not a trade name — so it translates
+    # where `Goodreads` beside it does not, and `Goodreads` takes
+    # `Kati.Locale.ltr/1` because it sits inside a Persian sentence.
+    #
+    # `pgettext/2` on `You picked `: two words and a trailing space is exactly
+    # what `mix gettext.merge` fuzzy-matches onto some other screen's sentence.
     message =
       UI.rich_text([
-        {"You picked ", body},
-        {"Goodreads", strong},
-        {" and that file is not one. Pick again, or use Something else to map it by hand.", body}
+        {pgettext("wrong import guess", "You picked "), body},
+        {Kati.Locale.ltr("Goodreads"), strong},
+        {gettext(" and that file is not one. Pick again, or use %{tile} to map it by hand.",
+           tile: pgettext("import source", "Something else")
+         ), body}
       ])
 
     ~MOB"""
@@ -204,6 +293,11 @@ defmodule Kati.Screens.ImportStates do
   The filename carries no `max_lines`: the board sets `word-break: break-all`
   rather than truncating, because a filename cut short would stop naming the
   file it is meant to confirm.
+
+  Neither string is wrapped for translation and the moduledoc's Latin section
+  says why — both are 140's, one a trade name and one a file a reader has to
+  recognise in a picker. `font_family` asks the filename rather than the reader
+  all the same, exactly as `Kati.Screens.ImportSources.source_tile/1` does.
   """
   @spec source_tile(String.t(), String.t(), String.t()) :: map()
   def source_tile(letter, name, filename) do
@@ -228,7 +322,7 @@ defmodule Kati.Screens.ImportStates do
       <Spacer size={5} />
       <Text
         text={filename}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(filename)}
         text_size={10.5}
         line_height={1.5}
         text_color={Palette.sub()}
@@ -246,16 +340,40 @@ defmodule Kati.Screens.ImportStates do
   """
   @spec unrecognised() :: map()
   def unrecognised do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.ink_soft(),
+      base: true
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # `Kati.Screens.ImportRecognised`'s own msgid and not a second spelling of
+    # it: 141 draws this exact sentence over the file whose guess was wrong, and
+    # the screen that demonstrates the state cannot word it differently from the
+    # screen that has it. Built above the sigil because it carries an
+    # interpolation — a `%{source}` inside a `~MOB` block's `{}` is a brace the
+    # sigil has no reason to read as Elixir's, and every wrapped string on this
+    # board that needs a comment has to live out here anyway.
+    heading =
+      gettext("This looks like a %{source} export", source: Kati.Locale.ltr("Letterboxd"))
+
+    # The two bold runs are COLUMN HEADERS, not copy — see the moduledoc — so
+    # they stay Latin and go through `Kati.Locale.ltr/1`, which is what keeps
+    # the space between `Letterboxd` and `URI` from resolving against a Persian
+    # paragraph. The two joins between them take `pgettext/2`: ` and ` is one
+    # word, `It has ` is two, and a msgid that short is what `mix gettext.merge`
+    # fuzzy-matches against any line in the catalogue that ends the same way.
     message =
       UI.rich_text([
-        {"It has ", body},
-        {"Letterboxd URI", strong},
-        {" and ", body},
-        {"Watched Date", strong},
-        {" columns, which Goodreads files do not. Nothing has been imported.", body}
+        {pgettext("before two import column names", "It has "), body},
+        {Kati.Locale.ltr("Letterboxd URI"), strong},
+        {pgettext("between two import column names", " and "), body},
+        {Kati.Locale.ltr("Watched Date"), strong},
+        {gettext(" columns, which %{source} files do not. Nothing has been imported.",
+           source: Kati.Locale.ltr("Goodreads")
+         ), body}
       ])
 
     ~MOB"""
@@ -271,12 +389,7 @@ defmodule Kati.Screens.ImportStates do
           {UI.symbol("error", size: 19, color: Palette.red())}
           <Spacer size={11} />
           <Column weight={1.0}>
-            <Text
-              text="This looks like a Letterboxd export"
-              text_size={13.5}
-              font_weight="bold"
-              text_color={:on_surface}
-            />
+            <Text text={heading} text_size={13.5} font_weight="bold" text_color={:on_surface} />
             <Spacer size={6} />
             {message}
           </Column>
@@ -287,7 +400,7 @@ defmodule Kati.Screens.ImportStates do
             {Kati.Screens.ImportStates.letterboxd_cta()}
           </Column>
           <Spacer size={8} />
-          {SettingsList.action_pill("Pick again")}
+          {SettingsList.action_pill(gettext("Pick again"))}
         </Row>
       </Column>
       <Spacer size={24} />
@@ -302,9 +415,26 @@ defmodule Kati.Screens.ImportStates do
   padding sized to its label; this one is a 40pt full-width CTA the board
   draws in ink, the same `Palette.ink_fill/0` and `Palette.on_ink/0` pairing
   `Kati.Screens.MoneyStates.nothing_set_up/0` uses for its own inert button.
+
+  ## The Persian label is shorter than its msgid, on purpose
+
+  It shares a `Row` with `Pick again`, which is a pill sized to its own label
+  and not to the space left over — so the CTA gets what that pill does not
+  want, and *دوباره انتخاب کنید* wants about 35pt more of it than `Pick again`
+  does. The label carries `max_lines={1}`, so an over-long translation does not
+  wrap, it truncates, and a primary action with an ellipsis in it names
+  nothing. `Kati.Screens.PickSections`'s *Restore from a backup instead* is the
+  precedent and went the same way — the Persian drops *instead* and keeps the
+  action, because the card above has already said twice that this file is not
+  the one that was asked for.
   """
   @spec letterboxd_cta() :: map()
   def letterboxd_cta do
+    # Built above the sigil rather than inside it: the label carries an
+    # interpolation now, and a `%{source}` inside a `~MOB` block's `{}` is a
+    # brace the sigil has no reason to read as Elixir's.
+    label = gettext("Use %{source} instead", source: Kati.Locale.ltr("Letterboxd"))
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -315,7 +445,7 @@ defmodule Kati.Screens.ImportStates do
     >
       <Spacer weight={1.0} />
       <Text
-        text="Use Letterboxd instead"
+        text={label}
         text_size={12.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -337,15 +467,45 @@ defmodule Kati.Screens.ImportStates do
   """
   @spec partial_columns() :: map()
   def partial_columns do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.ink_soft(),
+      base: true
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # `Date Read` is the export's own column header and stays Latin for the
+    # moduledoc's reason, so the heading is an interpolation rather than a
+    # sentence — and it is the same shape 141 already writes for the same
+    # finding, `No %{column} column — everything else maps`, minus the half this
+    # card says in its body instead.
+    heading = gettext("No %{column} column", column: Kati.Locale.ltr("Date Read"))
+
+    # `Kati.Locale.year/1` on 2019 and `Kati.Locale.number/1` on 418, and the
+    # difference between them is the whole rule. 2019 is a date an EXPORTER
+    # stamped on a file — `year/1`'s doc argues it at length for a publication
+    # year, and 141 puts this same figure through it — so its digits convert and
+    # its calendar does not: a Goodreads export from before 2019 is not one from
+    # before ۱۳۹۷. 418 is a plain count inside a sentence and takes the reader's
+    # own numerals whole. The audit that found this board's Latin could see
+    # neither: a bare numeral carries no Latin letters.
+    #
+    # `gettext/1` with `%{n}` rather than `ngettext/4`, which is the one place
+    # this board departs from `Kati.Screens.Import`'s own tallies: 418 is a
+    # specimen and not a count of anything, the singular can never render, and a
+    # plural form nothing reaches is a second Persian string to keep correct.
     message =
       UI.rich_text([
-        {"This is a Goodreads export from before 2019. Everything else maps. ", body},
-        {"418 books arrive with no finish dates", strong},
-        {", so they will not appear in your year or on the calendar — ratings, reviews and shelves are unaffected.",
-         body}
+        {gettext("This is a %{source} export from before %{year}. Everything else maps. ",
+           source: Kati.Locale.ltr("Goodreads"),
+           year: Kati.Locale.year(2019)
+         ), body},
+        {gettext("%{n} books arrive with no finish dates", n: Kati.Locale.number(418)), strong},
+        {gettext(
+           ", so they will not appear in your year or on the calendar — ratings, reviews and shelves are unaffected."
+         ), body}
       ])
 
     ~MOB"""
@@ -361,12 +521,7 @@ defmodule Kati.Screens.ImportStates do
           {UI.symbol("help", size: 19, color: Palette.gold_icon())}
           <Spacer size={11} />
           <Column weight={1.0}>
-            <Text
-              text="No Date Read column"
-              text_size={13.5}
-              font_weight="bold"
-              text_color={:on_surface}
-            />
+            <Text text={heading} text_size={13.5} font_weight="bold" text_color={:on_surface} />
             <Spacer size={6} />
             {message}
           </Column>
@@ -393,15 +548,37 @@ defmodule Kati.Screens.ImportStates do
   """
   @spec footnote() :: map()
   def footnote do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.ink_soft(),
+      base: true
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # `pgettext/2` on the bold half: `what it found` is three words with no
+    # terminating punctuation, which is the shape `mix gettext.merge` fuzzy
+    # matches onto a longer line, and this is the one run on the board whose
+    # exact words are the board's argument.
+    #
+    # The two quoted specimens are translated rather than left in English — both
+    # are COPY being quoted, one as the wording this sheet refuses and one as
+    # the wording it draws, and a Persian page that criticised an English
+    # sentence would be criticising a sentence it never shows. The guillemets go
+    # in the msgstr rather than through `Kati.Locale.quoted/1`, because they are
+    # punctuation inside a sentence and not a name being quoted — which is how
+    # every other quoted specimen in the catalogue is already written.
+    # `Letterboxd` inside the second is interpolated so the footnote and the
+    # card it quotes cannot come out naming two different services.
     message =
       UI.rich_text([
-        {"Every one of the three names ", body},
-        {"what it found", strong},
-        {" rather than what failed. “Unrecognised format” tells a switcher nothing; “this looks like Letterboxd” hands them the next tap.",
-         body}
+        {gettext("Every one of the three names "), body},
+        {pgettext("the bold half of a footnote", "what it found"), strong},
+        {gettext(
+           " rather than what failed. “Unrecognised format” tells a switcher nothing; “this looks like %{source}” hands them the next tap.",
+           source: Kati.Locale.ltr("Letterboxd")
+         ), body}
       ])
 
     ~MOB"""

@@ -39,6 +39,7 @@ defmodule Kati.Screens.DiscoverFilters do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Discover.Filters
@@ -66,23 +67,35 @@ defmodule Kati.Screens.DiscoverFilters do
 
   @impl true
   def render(assigns),
-    do: Sheet.sheet("Sort & filter", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    do: Sheet.sheet(gettext("Sort & filter"), body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do
     choice = assigns.choice
 
+    # Board 145's sheet says five of these words in the same five places, and
+    # `Kati.Screens.ShelfFilters` translated them first — so this page reaches
+    # for ITS msgids rather than minting a second set. Two sheets that disagree
+    # in Persian about what *Filters* is called would be a difference the
+    # English pair does not have.
+    #
+    # `pgettext/2` on the one-word eyebrows and on *Reset* in `footer/1`, for
+    # the reason board 145 records: `mix gettext.merge` fuzzy-matches a msgid
+    # that short against whatever it resembles, and a bare `Sort` sitting one
+    # edit away from `Sort & filter` — the title of this very sheet — is
+    # exactly the pair that arrives translated to the wrong one and marked
+    # fuzzy. The Ranges eyebrow is a whole clause and needs no context.
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Sort")}
+      {UI.eyebrow(pgettext("sort & filter sheet section", "Sort"))}
       {Kati.Screens.DiscoverFilters.sort_card(choice)}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Ranges — buckets, not sliders")}
+      {SettingsList.eyebrow_muted(gettext("Ranges — buckets, not sliders"))}
       {Kati.Screens.DiscoverFilters.rating_chips(choice)}
       <Spacer size={11} />
       {SettingsList.note("star", Kati.Screens.DiscoverFilters.rating_note())}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Filters")}
+      {SettingsList.eyebrow_muted(pgettext("sort & filter sheet section", "Filters"))}
       {Kati.Screens.DiscoverFilters.kind_chips(choice)}
       <Spacer size={16} />
       {Kati.Screens.DiscoverFilters.footer(assigns)}
@@ -97,10 +110,22 @@ defmodule Kati.Screens.DiscoverFilters do
   are out of ten rather than percentages.
   """
   @spec rating_note() :: String.t()
-  def rating_note,
-    do:
-      "TMDB's own average out of ten, from everyone who rated it — not a fit to your shelf. " <>
-        "Only titles with 200 or more votes are counted, so one perfect score cannot carry a film."
+  def rating_note do
+    # The vote floor is INTERPOLATED rather than written into the sentence, so
+    # the Persian reader is told ۲۰۰ and not 200 — a numeral inside a sentence
+    # takes `Kati.Locale.number/1` here as it does everywhere else. The literal
+    # restates `Kati.Discover.Filters`' own `@vote_floor`, which is private to
+    # that module; the two are the same figure and must not drift, and the
+    # sentence is the only place a reader ever sees it.
+    #
+    # `TMDB` stays Latin inside the Persian sentence. It is a service's name
+    # for itself — `Kati.Services.Service` never translates one — and the
+    # catalogue already writes it that way in nine other Persian strings.
+    gettext(
+      "TMDB's own average out of ten, from everyone who rated it — not a fit to your shelf. Only titles with %{n} or more votes are counted, so one perfect score cannot carry a film.",
+      n: Kati.Locale.number(200)
+    )
+  end
 
   @doc """
   The note at the foot.
@@ -114,10 +139,11 @@ defmodule Kati.Screens.DiscoverFilters do
   MOVIES-AND-TV.md, which is where a reason belongs.
   """
   @spec note_text() :: String.t()
-  def note_text,
-    do:
-      "These go to TMDB rather than to a recommender, so nothing here is scored against " <>
-        "your own shelf."
+  def note_text do
+    gettext(
+      "These go to TMDB rather than to a recommender, so nothing here is scored against your own shelf."
+    )
+  end
 
   # ── Sort ─────────────────────────────────────────────────────────────────
 
@@ -257,7 +283,7 @@ defmodule Kati.Screens.DiscoverFilters do
         <Spacer weight={1.0} />
         <Row align="center" on_tap={{self(), :reset}}>
           <Text
-            text="Reset"
+            text={pgettext("clears every filter on the sheet", "Reset")}
             text_size={12.5}
             font_weight="semibold"
             text_color={Palette.sub()}
@@ -273,8 +299,21 @@ defmodule Kati.Screens.DiscoverFilters do
   def count_text(nil), do: ~MOB"<Spacer size={0} />"
 
   def count_text(line) do
+    # `Kati.Locale.mono_face/0` rather than a hardcoded `"mono"`: `kati_mono.ttf`
+    # carries no Persian glyph and none of U+06F0–U+06F9 either, so a Persian
+    # `۴,۲۱۳ عنوان` left in mono is handed to Android's substitute face whole —
+    # the figure and the noun both. The line is the reader's own script all the
+    # way through, a phrase rather than a bare figure, so it is `mono_face/0`
+    # and not `mono_face/1`. `Kati.Screens.ShelfFilters.count_card/2` makes the
+    # same call for the same line on board 145.
     ~MOB"""
-    <Text text={line} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
+    <Text
+      text={line}
+      font_family={Kati.Locale.mono_face()}
+      text_size={13}
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
   end
 
@@ -301,8 +340,24 @@ defmodule Kati.Screens.DiscoverFilters do
   """
   @spec count_line(map(), map()) :: String.t() | nil
   def count_line(choice, %{opened_with: choice, total: total})
-      when is_integer(total) and total > 0,
-      do: Kati.Screens.DiscoverFilters.thousands(total) <> " titles"
+      when is_integer(total) and total > 0 do
+    # `thousands/1` groups and `Kati.Locale.number/1` then puts the digits into
+    # the reader's own numerals — in that order, because the SEPARATOR is not
+    # translated with them. CLDR's `fa` groups with U+066C and the drawings do
+    # not: `test/design/screens/59.html` writes ۱,۴۸۰ with a Latin comma, which
+    # is why `Kati.Locale.number/1` converts the decimal point and leaves
+    # grouping alone. So the comma survives the crossing and the digits do not.
+    #
+    # `ngettext/4` and not a concatenation: `<> " titles"` froze the noun in
+    # Latin and the word order with it, and Persian puts no plural mark on a
+    # noun after a numeral — ۴,۲۱۳ عنوان, not عنوان‌ها.
+    ngettext(
+      "%{n} title",
+      "%{n} titles",
+      total,
+      n: Kati.Locale.number(Kati.Screens.DiscoverFilters.thousands(total))
+    )
+  end
 
   def count_line(_choice, _assigns), do: nil
 
@@ -315,6 +370,10 @@ defmodule Kati.Screens.DiscoverFilters do
 
       iex> Kati.Screens.DiscoverFilters.thousands(42)
       "42"
+
+  Latin digits in both scripts, deliberately: this groups and nothing else, and
+  `count_line/2` hands the result to `Kati.Locale.number/1` for the numerals.
+  The comma it inserts is kept even in Persian — see `count_line/2`.
   """
   @spec thousands(integer()) :: String.t()
   def thousands(n) do

@@ -124,6 +124,13 @@ defmodule Kati.Screens.MyServicesEmpty do
 
   @doc false
   def content(assigns) do
+    # Every label in this sigil is the bare `gettext/1` screen 92 hands the same
+    # helper, msgid for msgid, because the two boards are one page in two states
+    # and a second msgid would let the Persian drift where the English cannot.
+    # *Money* is the one that had a choice: the catalogue holds both `"Money"`
+    # (*مالی*) and `pgettext("screen title", "Money")` (*پول*, screen 97's own
+    # title). This is a section label that is a footnote to the group above it —
+    # 92's `UI.eyebrow(gettext("Money"))` — so it is the bare one.
     ~MOB"""
     <Scroll>
       <Column
@@ -134,18 +141,18 @@ defmodule Kati.Screens.MyServicesEmpty do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
-        {UI.eyebrow("Region")}
+        {SettingsList.title(gettext("My services"), gettext("So Kati only shows you what you can actually watch."), nil, :name)}
+        {UI.eyebrow(gettext("Region"))}
         {Kati.Screens.MyServicesEmpty.region_group(assigns[:chosen_region])}
         {Kati.Screens.MyServices.search_field()}
-        {UI.eyebrow("Subscribed · none yet")}
+        {UI.eyebrow(gettext("Subscribed · none yet"))}
         {Kati.Screens.MyServicesEmpty.empty_group()}
-        {SettingsList.eyebrow_muted("Free with ads")}
+        {SettingsList.eyebrow_muted(gettext("Free with ads"))}
         {Kati.Screens.MyServicesEmpty.free_group()}
         {Kati.Screens.MyServicesEmpty.catalogue_group()}
-        {UI.eyebrow("Rules")}
+        {UI.eyebrow(gettext("Rules"))}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
-        {SettingsList.eyebrow_muted("Money")}
+        {SettingsList.eyebrow_muted(gettext("Money"))}
         {Kati.Screens.MyServicesEmpty.money_group()}
       </Column>
     </Scroll>
@@ -190,7 +197,7 @@ defmodule Kati.Screens.MyServicesEmpty do
         )
       ])}
       <Spacer size={11} />
-      {Kati.UI.SettingsList.note("info", "Availability is per country. Telling you a film is on Lumen+ when it is only on Lumen+ in Canada is worse than telling you nothing at all.")}
+      {Kati.UI.SettingsList.note("info", gettext("Availability is per country. Telling you a film is on Lumen+ when it is only on Lumen+ in Canada is worse than telling you nothing at all."))}
       <Spacer size={24} />
     </Column>
     """
@@ -253,6 +260,17 @@ defmodule Kati.Screens.MyServicesEmpty do
   """
   @spec empty_group() :: map()
   def empty_group do
+    # The paragraph's leading is `Kati.Locale.leading/1` rather than the
+    # drawing's flat 1.55, which is the recipe's one departure under `:fa` and
+    # the same one `Kati.UI.SettingsList.note_text/1` already makes for the
+    # region note two groups up. Vazirmatn's ascenders and descenders are not
+    # Plus Jakarta's, and three centred lines set at 1.55 collide; the card has
+    # no fixed height, so the only thing that moves is the gap between lines.
+    #
+    # Both sentences are wrapped here rather than in the caller because this
+    # card is drawn on screen 92 as well — `Kati.Screens.MyServices.service_group/3`
+    # calls this function for its own empty state — so one msgid serves both
+    # boards, which is the whole argument for the card living in this file.
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -272,7 +290,7 @@ defmodule Kati.Screens.MyServicesEmpty do
         </Row>
         <Spacer size={13} />
         <Text
-          text="No services yet"
+          text={gettext("No services yet")}
           text_size={13.5}
           font_weight="bold"
           text_align="center"
@@ -280,9 +298,9 @@ defmodule Kati.Screens.MyServicesEmpty do
         />
         <Spacer size={6} />
         <Text
-          text="Turn on the ones you pay for and Kati stops showing you things you can’t watch."
+          text={gettext("Turn on the ones you pay for and Kati stops showing you things you can’t watch.")}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_align="center"
           text_color={Palette.sub()}
         />
@@ -347,7 +365,7 @@ defmodule Kati.Screens.MyServicesEmpty do
   def catalogue_group do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.eyebrow_muted("Not mine")}
+      {Kati.UI.SettingsList.eyebrow_muted(gettext("Not mine"))}
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("more_horiz"),
@@ -378,7 +396,7 @@ defmodule Kati.Screens.MyServicesEmpty do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("payments"),
-          Kati.UI.SettingsList.body("Nothing to add up yet", "Subscriptions"),
+          Kati.UI.SettingsList.body(gettext("Nothing to add up yet"), gettext("Subscriptions")),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :open_subscriptions},
           rule: false

@@ -42,9 +42,35 @@ defmodule Kati.Screens.InboxNotifications do
   watcher's loudness settings, and nothing between them. It is built in screen
   05's idiom instead: the same grouped rows, the same eyebrows, the same empty
   state, and it says so in `Kati.Screens.Gallery`'s undrawn list.
+
+  ## Said in the reader's own language
+
+  Every word this page writes is a msgid. Three kinds of word on it are not,
+  and none of them is this screen's to say:
+
+    * **A row's title, its domain name and its held-back reason.**
+      `Kati.Notifications.Inbox.title/1`, `domain_label/1` and `held_reason/1`
+      answer all three. Those sentences are drawn on the diagnostic (#26) as
+      well — `Kati.Screens.NotificationsHelp.held_line/1` joins the same five —
+      and one of them translated twice would be two Persians for one rule. The
+      frame around them is this screen's and is translated; the words arrive as
+      the inbox says them.
+    * **A candidate's own body.** `Kati.Notifications.Sources.*` writes it per
+      domain, out of a meal's name or an episode's number, and a line built
+      from a record is not copy.
+    * **The back pill.** `Kati.Screens.Pushed.back_vocabulary/0` owns every
+      label a pill can carry, for the reason its own doc gives about
+      `mix gettext.extract --merge` deleting hand-added entries.
+
+  Two figures on the page are read rather than written: the counts in the
+  header come off the groups and the share in each section's line comes off
+  `Kati.Notifications.Budget`. Both go through `Kati.Locale.number/1` rather
+  than being spelled into a sentence — a translator carrying a digit is how a
+  page ends up stating a number the scheduler does not use.
   """
 
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Notifications.Candidate
   alias Kati.Notifications.Inbox
@@ -143,6 +169,16 @@ defmodule Kati.Screens.InboxNotifications do
   # guess spread across the page.
   defp platform, do: :android
 
+  # THE FOUR EYEBROW LABELS ARE TRANSLATED HERE RATHER THAN WHERE THEY ARE DRAWN.
+  #
+  # `group/3` takes its label as an argument and hands it to `Kati.UI.eyebrow/2`,
+  # so by the time it reaches a `<Text>` it is a runtime value — and
+  # `gettext(some_variable)` does not compile, the msgid having to be a literal
+  # at the call site. This is that call site.
+  #
+  # They share the `eyebrow` context the rest of the app's short section labels
+  # use, which is what lets *Manners* below reuse screen 51's آداب rather than
+  # opening a second Persian for one word.
   @doc false
   def content(assigns) do
     groups = Inbox.groups(assigns.plan)
@@ -157,12 +193,12 @@ defmodule Kati.Screens.InboxNotifications do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Notifications", Kati.Screens.InboxNotifications.subtitle(groups))}
-        {Kati.Screens.InboxNotifications.group("Now", groups.now, :armed)}
-        {Kati.Screens.InboxNotifications.group("Later", groups.later, :armed)}
-        {Kati.Screens.InboxNotifications.group("Held back", groups.held, :held)}
+        {SettingsList.title(gettext("Notifications"), Kati.Screens.InboxNotifications.subtitle(groups))}
+        {Kati.Screens.InboxNotifications.group(pgettext("eyebrow", "Now"), groups.now, :armed)}
+        {Kati.Screens.InboxNotifications.group(pgettext("eyebrow", "Later"), groups.later, :armed)}
+        {Kati.Screens.InboxNotifications.group(pgettext("eyebrow", "Held back"), groups.held, :held)}
         {Kati.Screens.InboxNotifications.empty(groups)}
-        {UI.eyebrow("By section", dash: Palette.rail_idle())}
+        {UI.eyebrow(pgettext("eyebrow", "By section"), dash: Palette.rail_idle())}
         {Kati.Screens.InboxNotifications.domains(assigns.plan)}
         {Kati.Screens.InboxNotifications.manners()}
       </Column>
@@ -170,13 +206,37 @@ defmodule Kati.Screens.InboxNotifications do
     """
   end
 
-  @doc "The header's mono subtitle: what is due today, and what is held."
+  @doc """
+  The header's mono subtitle: what is due today, and what is held.
+
+  One msgid with two holes rather than two counts joined to two labels, for the
+  reason `Kati.Screens.NotificationsHelp.quiet_hours_label/0` gives about its
+  own two times: Persian does not put its words in the order the separator
+  assumes, and a line assembled out of fragments has already decided for the
+  translator.
+
+  `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`. Persian has no case,
+  so upcasing a Persian line changes nothing while *looking* like a rule the
+  page applies — and the helper keeps the English line the caps the design
+  draws while leaving the Persian alone.
+
+  Both counts go through `Kati.Locale.number/1`. That is safe here and is not
+  safe everywhere: this line is set in `Kati.UI.SettingsList.subtitle/2`, whose
+  face is `Kati.Locale.mono_face/0` — Vazirmatn under `:fa`, not
+  `kati_mono.ttf` — so the Persian numerals it asks for are numerals that face
+  actually carries.
+  """
   @spec subtitle(map()) :: String.t()
   def subtitle(groups) do
     now = length(groups.now)
     held = length(groups.held)
 
-    String.upcase("#{now} today · #{held} held back")
+    Kati.UI.eyebrow_label(
+      gettext("%{now} today · %{held} held back",
+        now: Kati.Locale.number(now),
+        held: Kati.Locale.number(held)
+      )
+    )
   end
 
   @doc """
@@ -185,6 +245,11 @@ defmodule Kati.Screens.InboxNotifications do
   An empty group draws no eyebrow either — screen 05's rule, and the reason is
   that three empty headings read as an app that has broken rather than as an
   evening with nothing due.
+
+  `label` arrives **already translated** — see the note above `content/1` — and
+  is drawn through `Kati.UI.eyebrow/2`, which upcases only Latin and sets the
+  line in `Kati.Locale.mono_face/0`. So nothing here has to know which script
+  it is in.
   """
   @spec group(String.t(), [Candidate.t()], :armed | :held) :: map() | []
   def group(_label, [], _kind), do: []
@@ -271,6 +336,13 @@ defmodule Kati.Screens.InboxNotifications do
   def tag_for(:health), do: :open_health
   def tag_for(:money), do: :open_money
 
+  # A row's second line is the reason it was held, its own body, or its domain,
+  # and NONE of the three is a msgid of this screen's — see the moduledoc. The
+  # held reason and the domain name belong to
+  # `Kati.Notifications.Inbox.held_reason/1` and `domain_label/1`, which the
+  # diagnostic draws as well; the body is whatever the domain's own collector
+  # wrote out of a record. Wrapping any of them here would be a second Persian
+  # for one rule.
   @doc false
   def sub(%Candidate{} = candidate, :held), do: Inbox.held_reason(candidate.suppressed)
   def sub(%Candidate{body: body}, _armed) when is_binary(body) and body != "", do: body
@@ -281,13 +353,26 @@ defmodule Kati.Screens.InboxNotifications do
 
   def trailing(%Candidate{fire_at: nil}, _armed), do: nil
 
+  # `Kati.Locale.time/1` rather than `Calendar.strftime/2` with `"%H:%M"`. Both
+  # are 24-hour — the design's own choice, and `Kati.Screens.Settings` draws it
+  # as a setting rather than as a consequence of the language — so the only
+  # thing that moves is the numerals: ۲۱:۴۰ beside a header counted in Persian
+  # rather than 21:40 stranded in the middle of a Persian page.
+  #
+  # And then the face has to ask the STRING and not the reader.
+  # `Kati.Locale.mono_face/1` is the arity that does: `21:40` is pure ASCII and
+  # stays DM Mono in both scripts, while `۲۱:۴۰` cannot — `kati_mono.ttf`
+  # carries none of U+06F0–U+06F9, so a hardcoded `font_family="mono"` here
+  # would have handed the converted time to Android's own substitute face and
+  # drawn it in a typeface that is not Kati's. Screen 51's notification preview
+  # settled the same question for `KATI · ۱۹:۱۵`.
   def trailing(%Candidate{fire_at: at}, _armed) do
-    assigns = %{label: Calendar.strftime(Kati.Time.in_zone(at, Kati.Time.device_zone()), "%H:%M")}
+    assigns = %{label: Kati.Locale.time(Kati.Time.in_zone(at, Kati.Time.device_zone()))}
 
     ~MOB"""
     <Text
       text={@label}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(@label)}
       text_size={12}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}
@@ -317,7 +402,7 @@ defmodule Kati.Screens.InboxNotifications do
         {Kati.UI.symbol("notifications_off", size: 26, color: Palette.tertiary())}
         <Spacer size={12} />
         <Text
-          text="Nothing waiting"
+          text={pgettext("the notification inbox's empty state", "Nothing waiting")}
           text_size={16}
           font_weight="bold"
           text_align="center"
@@ -325,9 +410,9 @@ defmodule Kati.Screens.InboxNotifications do
         />
         <Spacer size={7} />
         <Text
-          text="Kati is quiet unless you ask it not to be. Turn a reminder on and it will show up here first, before it ever interrupts you."
+          text={gettext("Kati is quiet unless you ask it not to be. Turn a reminder on and it will show up here first, before it ever interrupts you.")}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_align="center"
           text_color={Palette.sub()}
         />
@@ -371,10 +456,34 @@ defmodule Kati.Screens.InboxNotifications do
     """
   end
 
-  @doc "`2 of 24 slots` — or the sentence a section with nothing armed gets."
+  @doc """
+  `2 of 24 slots` — or the sentence a section with nothing armed gets.
+
+  One msgid with both holes in it rather than a count joined to a label: the
+  two numbers do not sit either side of the word *of* in Persian, and a line
+  assembled out of fragments has decided the word order before a translator
+  sees it.
+
+  `gettext/2` and not `ngettext/4`, deliberately. The noun that could inflect
+  is *slots*, and it is governed by `limit` rather than by `count` — a budget
+  from `Kati.Notifications.Budget`, whose smallest allocation is the four iOS
+  gives Health and Money. There is no singular English form for a translator to
+  fill in because the table can never produce one.
+
+  Both numbers go through `Kati.Locale.number/1`. This line is the sub of a
+  `Kati.UI.SettingsList.body/3`, which names no `font_family` and so falls back
+  to the root face the locale installed — Vazirmatn under `:fa` — so the
+  Persian numerals are ones the face carries.
+  """
   @spec usage_line(non_neg_integer(), pos_integer()) :: String.t()
-  def usage_line(0, _limit), do: "Nothing today"
-  def usage_line(count, limit), do: "#{count} of #{limit} slots"
+  def usage_line(0, _limit), do: pgettext("a section with nothing armed", "Nothing today")
+
+  def usage_line(count, limit) do
+    gettext("%{count} of %{limit} slots",
+      count: Kati.Locale.number(count),
+      limit: Kati.Locale.number(limit)
+    )
+  end
 
   @doc """
   The two rows that lead out of the inbox.
@@ -383,22 +492,42 @@ defmodule Kati.Screens.InboxNotifications do
   getting these?* is the diagnostic. The second is on the inbox rather than
   buried in Settings for the obvious reason: the person asking that question is
   looking at an empty inbox when they ask it.
+
+  ## Two of the five strings here are already said somewhere else
+
+  *Why am I not getting these?* is the diagnostic's own title and the msgid it
+  already carries, so this row and the page it opens say the same sentence
+  once. *How loudly* is not: screen 25 holds it under the `eyebrow` context,
+  where it labels a section, and here it is a row that opens that screen. One
+  English phrase two boards write differently is what `pgettext/2` is for, so
+  this takes a context of its own — the Persian is چقدر بلند بگوید either way,
+  and the context is what stops `mix gettext.merge` folding the two together
+  and making them move as one later.
+
+  *Manners* takes the `eyebrow` context screen 51 already uses for the same
+  word above the same kind of card, so there is one آداب rather than two.
   """
   @spec manners() :: map()
   def manners do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.eyebrow("Manners", dash: Kati.Theme.Palette.rail_idle())}
+      {Kati.UI.eyebrow(pgettext("eyebrow", "Manners"), dash: Kati.Theme.Palette.rail_idle())}
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("notifications_active"),
-          Kati.UI.SettingsList.body("How loudly", "Quiet hours, digest, stop after two skips"),
+          Kati.UI.SettingsList.body(
+            pgettext("a row on the inbox that opens the loudness settings", "How loudly"),
+            gettext("Quiet hours, digest, stop after two skips")
+          ),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :open_watcher}
         ),
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("help"),
-          Kati.UI.SettingsList.body("Why am I not getting these?", "Permissions, alarms and battery"),
+          Kati.UI.SettingsList.body(
+            gettext("Why am I not getting these?"),
+            gettext("Permissions, alarms and battery")
+          ),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :open_diagnostic}
         )

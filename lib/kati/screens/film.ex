@@ -66,6 +66,7 @@ defmodule Kati.Screens.Film do
   scale halved, and the watched pill is the latest watch's date.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   require Ash.Query
@@ -110,11 +111,26 @@ defmodule Kati.Screens.Film do
   # until 7 September no film page had one. The `:log_watch` tap is unchanged —
   # `menu/1` and `rating_card/1` still carry it, and `action_label/3` still
   # answers *Log a watch* for a film nobody has seen.
-  @actions [
-    {"bookmarks", "Add to list", :add_to_list},
-    {"event", "Schedule", :schedule_watch},
-    {"ios_share", "Share", :share_film}
-  ]
+  #
+  # A function and no longer an `@actions` module attribute, for
+  # `Kati.Screens.BookDetail.secondary/0`'s reason: `gettext/1` inside an
+  # attribute is evaluated at COMPILE time, so all three labels would freeze in
+  # whichever locale the compiler happened to be in and a Persian reader would
+  # get whatever `mix compile` was set to. Read once per `shaped/3`, which is
+  # once per arrival at the screen.
+  #
+  # *Schedule* takes a context rather than the bare msgid. `Kati.Screens.
+  # Calendar` already holds one — the NOUN, the list of appointments, **برنامه**
+  # — and `Kati.Screens.MedicationDetail` holds a third under a context of its
+  # own. This one is the VERB: pressing it schedules a watch, and Persian does
+  # not say the two with one word. One word, three jobs, three entries.
+  defp action_row do
+    [
+      {"bookmarks", gettext("Add to list"), :add_to_list},
+      {"event", pgettext("film action pill", "Schedule"), :schedule_watch},
+      {"ios_share", gettext("Share"), :share_film}
+    ]
+  end
 
   @doc """
   What the first pill says, which depends on whether you have seen it.
@@ -131,10 +147,18 @@ defmodule Kati.Screens.Film do
 
       iex> Kati.Screens.Film.action_label("Schedule", nil, 0)
       "Schedule"
+
+  The third clause hands back the label it was given. That one is already in
+  the reader's language when it came off `action_row/0`, and is the drawing's
+  own Latin when it came off `Kati.Library.Sample.film/0` — the fixture is
+  another module's copy, and a lookup table mapping its English back to a msgid
+  here would be this screen translating somebody else's literals.
   """
   @spec action_label(String.t(), atom() | nil, non_neg_integer()) :: String.t()
-  def action_label(_drawn, :log_watch, seen) when is_integer(seen) and seen > 0, do: "Log rewatch"
-  def action_label(_drawn, :log_watch, _never), do: "Log a watch"
+  def action_label(_drawn, :log_watch, seen) when is_integer(seen) and seen > 0,
+    do: gettext("Log rewatch")
+
+  def action_label(_drawn, :log_watch, _never), do: gettext("Log a watch")
   def action_label(drawn, _other, _seen), do: drawn
 
   # `use Mob.Screen` and not `Kati.Screens.Root`, so this screen's own `mount/3`
@@ -151,6 +175,12 @@ defmodule Kati.Screens.Film do
     {:ok,
      socket
      |> Mob.Socket.assign(:film, film(Map.get(params || %{}, :id)))
+     # `"Library"` stays an English literal and is not wrapped in `gettext/1`:
+     # it is the catalogue KEY, not the drawn word. `Kati.Screens.Pushed.
+     # back_label/2` translates whatever it is handed at runtime — the pusher's
+     # `%{back: …}` or this default — against `back_vocabulary/0`, which is
+     # where the msgid for every back pill in the app is declared. Handing it
+     # the Persian would be handing it a string the catalogue has no entry for.
      |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
      |> Mob.Socket.assign(:menu?, false)}
   end
@@ -332,12 +362,16 @@ defmodule Kati.Screens.Film do
       # whichever the cache says it is, so *This is a film* on an anime series
       # still means the right thing.
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
-      actions: @actions
+      actions: action_row()
     }
   end
 
   defp title_of(%CachedTitle{title: title}) when is_binary(title) and title != "", do: title
-  defp title_of(_cached), do: "Untitled"
+
+  # The one title on this page that is Kati's own word rather than a provider's,
+  # so it is the one that translates — `Kati.Screens.Series` and
+  # `Kati.Screens.SeriesMeta` answer the same msgid for the same state.
+  defp title_of(_cached), do: gettext("Untitled")
 
   # `Kati.Seeds` writes the design seed straight into `poster_path` — "not a
   # TMDB path: the sample artwork is resolved by seed" — and `sample_source_id/1`
@@ -359,17 +393,39 @@ defmodule Kati.Screens.Film do
     |> Enum.join(" · ")
   end
 
+  # The three shapes a runtime takes, each through the msgid the rest of the app
+  # already uses for a duration — `Kati.Screens.SeriesMeta.runtime_label/1`,
+  # screen 13 and screen 61 all draw `%{n}h` and `%{n}m`, and a film's runtime
+  # is the same fact as an episode's.
+  #
+  # `Kati.UI.eyebrow_label/1` and not `String.upcase/1` on the result: the upper
+  # case is the drawing's Latin typography, and Persian has no case — `۱ ساعت
+  # ۵۲ دقیقه` upcased is the same string, which is a no-op that still reads as
+  # a decision. `Kati.Locale.number/1` for the figures, because these are
+  # numerals inside a phrase rather than a column of mono digits.
   defp runtime_label(%CachedTitle{runtime_minutes: m}) when is_integer(m) and m > 0 do
     case {div(m, 60), rem(m, 60)} do
-      {0, minutes} -> "#{minutes}M"
-      {hours, 0} -> "#{hours}H"
-      {hours, minutes} -> "#{hours}H #{minutes}M"
+      {0, minutes} ->
+        UI.eyebrow_label(gettext("%{n}m", n: Kati.Locale.number(minutes)))
+
+      {hours, 0} ->
+        UI.eyebrow_label(gettext("%{n}h", n: Kati.Locale.number(hours)))
+
+      {hours, minutes} ->
+        UI.eyebrow_label(
+          gettext("%{h}h %{m}m", h: Kati.Locale.number(hours), m: Kati.Locale.number(minutes))
+        )
     end
   end
 
   defp runtime_label(_cached), do: nil
 
-  defp genre_label(%CachedTitle{genres: g}) when is_binary(g) and g != "", do: String.upcase(g)
+  # The genres are the provider's own words and no msgid reaches them, so this
+  # raises their case and nothing else — through `Kati.UI.eyebrow_label/1` for
+  # the reason above, which is also the reason a genre that arrives in Persian
+  # is left exactly as it came.
+  defp genre_label(%CachedTitle{genres: g}) when is_binary(g) and g != "", do: UI.eyebrow_label(g)
+
   defp genre_label(_cached), do: nil
 
   # The green pill is an assertion that the film has been seen, so it needs
@@ -378,16 +434,26 @@ defmodule Kati.Screens.Film do
   # remember when" `Kati.Media.Watch` describes, and says so without one; a
   # title the user marked finished with nothing logged is the same statement
   # made on the shelf. Anything else has not been watched and gets no pill.
+  #
+  # `Kati.Locale.date/2` rather than `Calendar.strftime/2`: the date is one the
+  # reader logged about their own evening, so under `:fa` it is a Shamsi date
+  # rather than a Gregorian one spelled in Persian — `12 Aug` is `۲۱ مرداد`,
+  # and neither is a formatting of the other.
+  #
+  # The bare word takes a context. It is one word, `mix gettext.merge` fuzzy
+  # matches a msgid that short against any sentence containing it, and the
+  # catalogue already holds two *Watched*s that are not this one —
+  # `Kati.Screens.Activity`'s filter chip and its log verb.
   defp watched_label(tracked, dated, zone) do
     cond do
       date = dated |> Enum.find_value(&watch_date(&1, zone)) ->
-        "Watched " <> Calendar.strftime(date, "%-d %b")
+        gettext("Watched %{date}", date: Kati.Locale.date(date, :short))
 
       dated != [] ->
-        "Watched"
+        pgettext("the watched pill over a film's artwork", "Watched")
 
       tracked.status == :finished ->
-        "Watched"
+        pgettext("the watched pill over a film's artwork", "Watched")
 
       true ->
         nil
@@ -425,10 +491,17 @@ defmodule Kati.Screens.Film do
       |> Enum.filter(&is_integer/1)
       |> Enum.max(fn -> 0 end)
 
+    # `ngettext/4` for the count, because English inflects the noun after a
+    # numeral and Persian does not — both plural forms of `%{n} بار` are the
+    # same words, which is what a catalogue with one plural form is for.
+    #
+    # `never` is one word and takes a context: `mix gettext.merge` would fuzzy
+    # match it against any sentence containing it, and the catalogue already
+    # holds a *never* that is `Kati.Screens.Sync`'s — the last time a calendar
+    # synced, which is a different never and could want a different word.
     case max(length(watches), claimed) do
-      0 -> "never"
-      1 -> "1 time"
-      n -> "#{n} times"
+      0 -> pgettext("how many times a film has been seen", "never")
+      n -> ngettext("%{n} time", "%{n} times", n, n: Kati.Locale.number(n))
     end
   end
 
@@ -437,10 +510,22 @@ defmodule Kati.Screens.Film do
   defp noted?(%Watch{review: review}), do: is_binary(review) and String.trim(review) != ""
 
   # `Note · 12 Aug`, and `Note` alone for a review the user never dated.
+  #
+  # Both msgids are the app's own already — `Kati.Search.Query` heads a found
+  # note with the identical pair, and one word for one thing is the whole point
+  # of a catalogue. `Note` stays a plain `gettext/1` rather than taking a
+  # context despite being one word: it is a common label with an entry three
+  # modules already share, and a context here would fork it into a second
+  # Persian word for the same noun.
+  #
+  # The whole clause is ONE msgid rather than a translated head with a date
+  # concatenated on: a language that puts the date first changes this string,
+  # not this function. `Kati.Locale.date/2` because a note's date is the
+  # reader's own day — Shamsi under `:fa`.
   defp note_date(watch, zone) do
     case watch_date(watch, zone) do
-      nil -> "Note"
-      date -> "Note · " <> Calendar.strftime(date, "%-d %b")
+      nil -> gettext("Note")
+      date -> gettext("Note · %{date}", date: Kati.Locale.date(date, :short))
     end
   end
 
@@ -492,11 +577,34 @@ defmodule Kati.Screens.Film do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Film.chrome(assigns.menu?, Map.get(assigns, :back, "Library"), f)}
+      {Kati.Screens.Film.chrome(assigns.menu?, Map.get(assigns, :back, gettext("Library")), f)}
     </Box>
     """
   end
 
+  # Two locale notes on the two `Text`s below, since neither fits inside the
+  # sigil (a `#` at the top level of a ~MOB is not a comment), and both are
+  # `Kati.Screens.SeriesMeta.artwork/1`'s notes on the same two nodes:
+  #
+  #   * The 30pt title keeps `line_height={1.05}` and takes NO `max_lines`. It
+  #     holds `CachedTitle.title` — a provider's words, routinely longer than
+  #     the board's two — and the tight leading is there precisely because it
+  #     is expected to wrap, so clamping it would truncate the one thing the
+  #     page is about. Only the TRACKING goes: `letter_spacing` prises apart
+  #     the joins between Arabic-script letters, and the fallback title IS
+  #     translated copy (*بی‌عنوان*).
+  #
+  #   * The meta line is drawn in mono, and `kati_mono.ttf` carries no Persian
+  #     glyph and none of U+06F0–U+06F9 either. `meta_line/1` now answers
+  #     `۱ ساعت ۵۲ دقیقه · DRAMA`, so the face has to follow the STRING rather
+  #     than the reader — a line that is still pure ASCII stays in DM Mono in
+  #     both scripts, which is what `Kati.Locale.mono_face/1` is for.
+  #
+  #     `max_lines={2}` where the board has one line and this had `1`: the
+  #     Persian runtime is four words where the Latin one is two characters,
+  #     and screen 14 found the same line truncating on a device
+  #     (`Kati.Screens.SeriesMeta.meta_line/1` says so). Wrapping loses
+  #     nothing; truncating always lost the last fact, which here is the genre.
   @doc false
   def artwork(f) do
     ~MOB"""
@@ -512,17 +620,17 @@ defmodule Kati.Screens.Film do
             text={f.title}
             text_size={30}
             font_weight="extrabold"
-            letter_spacing={-0.035}
+            letter_spacing={Kati.Locale.tracking(-0.035)}
             line_height={1.05}
             text_color={:on_surface}
           />
           <Spacer size={9} />
           <Text
             text={f.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(f.meta)}
             text_size={11.5}
             text_color={Palette.meta()}
-            max_lines={1}
+            max_lines={2}
           />
         </Column>
       </Box>
@@ -614,8 +722,13 @@ defmodule Kati.Screens.Film do
     end
   end
 
+  # The default is a `gettext/1` call and not the bare word, at all three of the
+  # call sites below: `mount/3` hands `Kati.Screens.Pushed.back_label/2`'s
+  # answer down, which is already the reader's own word, and the default is
+  # what a render with no `:back` assign draws — a test's, the gallery's — so
+  # an English literal there is a Persian page under a Latin pill.
   @doc false
-  def chrome(menu?, label \\ "Library", f \\ %{}) do
+  def chrome(menu?, label \\ gettext("Library"), f \\ %{}) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
@@ -651,7 +764,7 @@ defmodule Kati.Screens.Film do
   so the chevron, the 6pt gap and `Library` sit where they sat.
   """
   @spec back_pill(term(), non_neg_integer(), String.t(), String.t()) :: map()
-  def back_pill(back, fill, lift, label \\ "Library") do
+  def back_pill(back, fill, lift, label \\ gettext("Library")) do
     MishkaPill.pill(
       [
         background: fill,
@@ -669,7 +782,7 @@ defmodule Kati.Screens.Film do
   end
 
   @doc false
-  def back_content(label \\ "Library") do
+  def back_content(label \\ gettext("Library")) do
     assigns = %{back: label}
 
     [
@@ -680,7 +793,7 @@ defmodule Kati.Screens.Film do
         text={@back}
         text_size={13.5}
         font_weight="semibold"
-        letter_spacing={-0.01}
+        letter_spacing={Kati.Locale.tracking(-0.01)}
         text_color={:on_surface}
       />
       """
@@ -723,7 +836,7 @@ defmodule Kati.Screens.Film do
       trigger,
       menu?,
       [
-        Kati.UI.Menu.item("star", "Log a watch", :log_watch),
+        Kati.UI.Menu.item("star", gettext("Log a watch"), :log_watch),
         # The one control that can set `Kati.Media.TrackedTitle.private`, and
         # therefore the one thing that makes screen 98's *Hide titles I marked
         # private* a switch about anything (MOVIES-AND-TV.md #103). A decision
@@ -760,7 +873,9 @@ defmodule Kati.Screens.Film do
   @spec drop_item(map()) :: map() | []
   def drop_item(f) do
     if Map.get(f, :tracked_id) do
-      Kati.UI.Menu.item("do_not_disturb_on", "Drop this film", :open_drop_sheet)
+      # The same msgid `Kati.Screens.DropSheet` heads its own sheet with, which
+      # is the row and the page it opens saying one word.
+      Kati.UI.Menu.item("do_not_disturb_on", gettext("Drop this film"), :open_drop_sheet)
     else
       []
     end
@@ -785,6 +900,17 @@ defmodule Kati.Screens.Film do
     # match. One action, three doors, three names.
     tap = if Map.get(f, :tracked_id), do: {self(), :rate}
 
+    # Both eyebrows are the app's own words rather than data, so all three
+    # locale moves apply to each: `Kati.UI.eyebrow_label/1` in place of
+    # `String.upcase/1` (Persian has no case and upcasing it is a no-op that
+    # reads as a decision), `Kati.Locale.mono_face/0` in place of the literal
+    # `mono` (`kati_mono.ttf` has no Arabic-script glyph, so Android would
+    # substitute a face that is not Kati's), and `Kati.Locale.tracking/1` on
+    # the 0.16 (letter spacing prises apart the joins between Persian letters).
+    #
+    # `mono_face/0` and not `mono_face/1`: these two strings are always the
+    # reader's own script, where the badge in `where_mark/1` is always a
+    # provider's initial and has to be asked.
     ~MOB"""
     <Row
       fill_width={true}
@@ -797,10 +923,10 @@ defmodule Kati.Screens.Film do
     >
       <Column weight={1.0}>
         <Text
-          text={String.upcase("Your rating")}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(gettext("Your rating"))}
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
         <Spacer size={7} />
@@ -810,10 +936,10 @@ defmodule Kati.Screens.Film do
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
           <Text
-            text={String.upcase("Seen")}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(pgettext("the rating card's count eyebrow", "Seen"))}
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
-            letter_spacing={0.16}
+            letter_spacing={Kati.Locale.tracking(0.16)}
             text_color={Palette.eyebrow()}
             max_lines={1}
           />
@@ -868,23 +994,37 @@ defmodule Kati.Screens.Film do
   def note(%{note: nil}), do: []
 
   def note(f) do
+    # The eyebrow is `note_date/2`'s clause — *یادداشت · ۲۱ مرداد* under
+    # `:fa` — so the face is asked of the STRING, not of the reader: the drawn
+    # film's `Note · 12 Aug` is pure ASCII and stays in DM Mono in both scripts,
+    # which is what the board draws, and the Persian one goes to Vazirmatn
+    # rather than to Android's substitute face.
+    #
+    # The body is the reader's own words in whatever script they wrote them, and
+    # `Kati.Locale.leading/1` is about the READER: Vazirmatn's metrics are not
+    # Plus Jakarta's, so the design's 1.55 sets Persian too tight.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={12} />
       <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
         <Row fill_width={true} align="center">
           <Text
-            text={String.upcase(f.note_date)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(f.note_date)}
+            font_family={Kati.Locale.mono_face(f.note_date)}
             text_size={10.5}
-            letter_spacing={0.16}
+            letter_spacing={Kati.Locale.tracking(0.16)}
             text_color={Palette.cream_meta()}
           />
           <Spacer weight={1.0} />
           {Kati.Screens.Film.note_pencil(f)}
         </Row>
         <Spacer size={9} />
-        <Text text={f.note} text_size={14} line_height={1.55} text_color={Palette.cream_body()} />
+        <Text
+          text={f.note}
+          text_size={14}
+          line_height={Kati.Locale.leading(1.55)}
+          text_color={Palette.cream_body()}
+        />
       </Column>
       <Spacer size={26} />
     </Column>
@@ -926,19 +1066,30 @@ defmodule Kati.Screens.Film do
     if gate do
       []
     else
+      # One literal each rather than the `<>` pair the body used to be:
+      # `gettext/1` extracts a msgid from a LITERAL at the call site, and a
+      # sentence split across two of them is a sentence a translator cannot
+      # join. Both are the msgids screen 96 already draws — it is the reference
+      # board for this very band, and the copy is the same copy.
+      #
+      # The card is `Kati.Screens.NothingSetUpKnockOn`'s and its own chrome is
+      # that module's to translate; these two strings are arguments this screen
+      # passes, so they are this screen's.
       [
-        UI.eyebrow("Where to watch"),
+        UI.eyebrow(gettext("Where to watch")),
         Kati.Screens.NothingSetUpKnockOn.prompt(
-          "Set up your services to see where this is streaming",
-          "Kati knows this film exists. It cannot say whether you can watch it tonight " <>
-            "until it knows what you pay for.",
+          gettext("Set up your services to see where this is streaming"),
+          gettext(
+            "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
+          ),
           :my_services_where_to_watch
         )
       ]
     end
   end
 
-  def where_section(f, _set_up?), do: [UI.eyebrow("Where to watch"), Kati.Screens.Film.where(f)]
+  def where_section(f, _set_up?),
+    do: [UI.eyebrow(gettext("Where to watch")), Kati.Screens.Film.where(f)]
 
   @doc false
   def where(f) do
@@ -960,8 +1111,15 @@ defmodule Kati.Screens.Film do
     """
   end
 
+  # `row.name` is a service's own name — `Lumen+`, `Kino store`, and whatever
+  # TMDB answers for a real title — so it is Latin on a Persian page for the
+  # reason `Kati.Screens.SeriesMeta.where_rows/1` gives: no msgid reaches a
+  # provider, and a transliteration here would spell one service two ways
+  # across the app. Board 127 draws `Lumen+` in Latin on a Persian page.
   @doc false
   def where_row(row, rule?) do
+    {value, face} = where_value(row)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
@@ -976,8 +1134,8 @@ defmodule Kati.Screens.Film do
           max_lines={1}
         />
         <Text
-          text={Map.get(row, :line) || Map.get(row, :price) || ""}
-          font_family="mono"
+          text={value}
+          font_family={face}
           text_size={11}
           text_color={Palette.muted()}
           max_lines={1}
@@ -986,6 +1144,37 @@ defmodule Kati.Screens.Film do
       {Kati.Screens.Film.hairline(rule?)}
     </Column>
     """
+  end
+
+  # The trailing cell holds one of two different things, and they want opposite
+  # typesetting.
+  #
+  # `line` is the row's own WORD and `Kati.Screens.SeriesMeta.where_rows/1`
+  # translates it — under `:fa` it is `با اشتراک`, and `kati_mono.ttf` has no
+  # glyph for a letter of it, so a hardcoded `mono` hands the cell to Android's
+  # substitute face. `Kati.Locale.mono_face/1` asks the string: a word that is
+  # still pure ASCII stays in DM Mono, which is what the board draws.
+  #
+  # `price` is a FIGURE with a currency mark, and the same question answered
+  # about it gives the wrong answer: `£` is U+00A3, so a perfectly Latin price
+  # would test as non-ASCII and go to Vazirmatn, where DM Mono has the sterling
+  # sign and the drawing sets this cell in it. `Kati.Screens.SeriesMeta.price/1`
+  # says the same thing about its own cell. So the face follows WHICH value the
+  # row carries rather than what the string is made of.
+  #
+  # `Kati.Locale.ltr/1` on the price and never on the word: a currency mark is a
+  # bidi neutral, so on an RTL page the algorithm resolves it against the PAGE
+  # and lays `£9.99` out as `9.99£`. The isolate makes the run resolve against
+  # itself; wrapping the Persian word would do the reverse to it.
+  defp where_value(row) do
+    line = Map.get(row, :line)
+    price = Map.get(row, :price)
+
+    cond do
+      is_binary(line) and line != "" -> {line, Kati.Locale.mono_face(line)}
+      is_binary(price) and price != "" -> {Kati.Locale.ltr(price), "mono"}
+      true -> {"", "mono"}
+    end
   end
 
   @doc """
@@ -1031,12 +1220,18 @@ defmodule Kati.Screens.Film do
     )
   end
 
+  # The badge is a service's own initial, so it is Latin on a Persian page for
+  # the reason the name beside it is. `Kati.Locale.mono_face/1` asks the STRING
+  # and answers `mono` for it — the call is here so that a provider whose name
+  # is not ASCII gets Vazirmatn rather than the empty box DM Mono draws for
+  # every glyph it has not got. `Kati.Screens.SeriesMeta.where_mark/1` is the
+  # same node on screen 14 and reads the same way.
   @doc false
   def where_mark(badge) do
     ~MOB"""
     <Text
       text={badge}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(badge)}
       text_size={13}
       font_weight="medium"
       text_color={:on_surface}
@@ -1184,13 +1379,26 @@ defmodule Kati.Screens.Film do
   It is pre-filled with `Watch <title>` rather than the bare title, because
   the sentence a reader completes is *watch Dune tomorrow 8pm* and the verb is
   the part they should not have to type.
+
+  The VERB translates and the title does not: the title is a provider's, and
+  what a Persian reader should find in the field is *تماشای Dune* — their own
+  word for the thing they are about to do, in front of the name the film has.
+  The whole clause is one msgid so that a language which puts the verb last can
+  put it last.
+
+  No `Kati.Locale.ltr/1` around the title, deliberately, and this is the one
+  place on the screen that goes the other way: the isolates are invisible
+  characters, and this string lands in an editable `TextField` that the reader
+  then types into and that `Kati.QuickAdd.Parse` reads back — two of them
+  buried in a field somebody has to edit is worse than a name that leans the
+  wrong way for a moment.
   """
   def handle_info({:tap, :schedule_watch}, socket) do
     {:noreply,
      socket
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.push_screen(Kati.Screens.QuickAdd, %{
-       sentence: "Watch " <> socket.assigns.film.title
+       sentence: gettext("Watch %{title}", title: socket.assigns.film.title)
      })}
   end
 
@@ -1274,7 +1482,7 @@ defmodule Kati.Screens.Film do
   #
   # `Mob.Share.text/2`, which is Mob's own and needed no fence: `ACTION_SEND`
   # through `Intent.createChooser` on Android, `UIActivityViewController` on
-  # iOS. The comment beside `@actions` said this was waiting on something
+  # iOS. The comment beside `action_row/0` said this was waiting on something
   # nobody had written; it was there all along.
   #
   # Fire-and-forget by construction — nothing comes back into the BEAM — so
@@ -1331,12 +1539,46 @@ defmodule Kati.Screens.Film do
 
       iex> Kati.Screens.Film.where_line([%{name: "Apple TV", line: "rent"}])
       "Rent from Apple TV"
+
+  ## The two clauses that matched on a label
+
+  `line` is the row's own WORD, and since mishka-group/kati#103 it is a
+  translated one — `Kati.Screens.SeriesMeta.where_rows/1` builds it with
+  `pgettext("where to watch", "rent")`, so on a Persian page it is `کرایه`.
+  Matched against the literal `"rent"` in a head, both of those clauses simply
+  stopped firing under `:fa` and every offer fell through to the last one: a
+  rental shared as *On Apple TV*, which says the reader can watch it and they
+  cannot. A label carrying state is the defect; the state is the provider's
+  KIND, which `where_rows/1` has and does not pass on.
+
+  Compared against the same `pgettext/2` call rather than a literal, so the two
+  strings are the same catalogue entry read in the same process. The durable
+  fix is a `kind` on the row — that is `Kati.Screens.SeriesMeta`'s to add, and
+  when it lands these three lines read it instead.
+
+  The three msgids take a context. *On %{name}* is one word and a placeholder,
+  and `mix gettext.merge` fuzzy-matches a msgid that short against anything.
   """
   @spec where_line([map()]) :: String.t() | nil
   def where_line([]), do: nil
-  def where_line([%{name: name, line: "rent"} | _rest]), do: "Rent from " <> name
-  def where_line([%{name: name, line: "buy"} | _rest]), do: "Buy from " <> name
-  def where_line([%{name: name} | _rest]), do: "On " <> name
+
+  def where_line([row | _rest]) do
+    name = Map.get(row, :name)
+    line = Map.get(row, :line)
+
+    # `cond` and not a `case` with guards: `pgettext/3` expands to a function
+    # call, and a function call is not allowed in a guard.
+    cond do
+      line == pgettext("where to watch", "rent") ->
+        pgettext("how a shared film can be watched", "Rent from %{name}", name: name)
+
+      line == pgettext("where to watch", "buy") ->
+        pgettext("how a shared film can be watched", "Buy from %{name}", name: name)
+
+      true ->
+        pgettext("how a shared film can be watched", "On %{name}", name: name)
+    end
+  end
 
   @doc """
   The ⋯ row that marks a title private, and what it says.
@@ -1346,8 +1588,8 @@ defmodule Kati.Screens.Film do
   pressing it does when it is already off one.
   """
   @spec private_label(map()) :: String.t()
-  def private_label(%{private?: true}), do: "Show on shared cards"
-  def private_label(_film), do: "Keep off shared cards"
+  def private_label(%{private?: true}), do: gettext("Show on shared cards")
+  def private_label(_film), do: gettext("Keep off shared cards")
 
   @doc """
   The glyph beside it.
@@ -1378,10 +1620,18 @@ defmodule Kati.Screens.Film do
 
       iex> Kati.Screens.Film.anime_label(%{anime?: false})
       "Mark as anime"
+
+  Both take the same context. *Not anime* is two words, `mix gettext.merge`
+  fuzzy-matches a msgid that short, and the catalogue already holds a *Not
+  anime* that is screen 152's override pill rather than this row — one is a
+  statement about a guess and this is a thing you press. The pair shares a
+  context so a translator meets them as the pair they are.
   """
   @spec anime_label(map()) :: String.t()
-  def anime_label(%{anime?: true}), do: "Not anime"
-  def anime_label(_title), do: "Mark as anime"
+  def anime_label(%{anime?: true}),
+    do: pgettext("the ⋯ row that tags a title as anime", "Not anime")
+
+  def anime_label(_title), do: pgettext("the ⋯ row that tags a title as anime", "Mark as anime")
 
   @doc """
   The row, or nothing at all when there is no title behind it.
@@ -1415,10 +1665,15 @@ defmodule Kati.Screens.Film do
 
       iex> Kati.Screens.Film.kind_label(:tv)
       "This is a film"
+
+  Two whole sentences and so a plain `gettext/1` each, where the anime pair
+  beside them needs a context: four words about one subject are not what `mix
+  gettext.merge` fuzzy-matches, and `Kati.Screens.Series` draws these same two
+  rows from here — one msgid, two screens, one Persian word for one row.
   """
   @spec kind_label(atom()) :: String.t()
-  def kind_label(:movie), do: "This is a series"
-  def kind_label(_series), do: "This is a film"
+  def kind_label(:movie), do: gettext("This is a series")
+  def kind_label(_series), do: gettext("This is a film")
 
   @doc false
   @spec kind_item(map()) :: map() | []

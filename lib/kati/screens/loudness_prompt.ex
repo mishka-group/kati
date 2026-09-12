@@ -88,9 +88,13 @@ defmodule Kati.Screens.LoudnessPrompt do
   reading *"Back to sections"*, so this is a plain `Mob.Screen` like
   `Kati.Screens.Onboarding`, not a pushed screen. The label names where a push
   from the sections step (26, `Kati.Screens.PickSections`) would return to, so
-  the tap is `Mob.Socket.pop_screen/1` — the same answer `Kati.Screens.
-  Pushed`'s own `:back` gives, reached by hand because this screen draws the
-  link as content rather than as the shared floating pill.
+  the tap is a pop — the same answer `Kati.Screens.Pushed`'s own `:back` gives,
+  reached by hand because this screen draws the link as content rather than as
+  the shared floating pill. It goes through `Kati.Screens.Resume.pop/1` rather
+  than `Mob.Socket.pop_screen/1` bare, which this sentence used to name: the
+  wrapper is that call plus `Kati.Theme.activate/0`, `Kati.Locale.activate/0`
+  and the re-read announcement, so the screen underneath comes back in the
+  locale that is stored rather than the one its own process last snapshotted.
 
   ## Audited: two option taps are silent on purpose, two are not
 
@@ -100,9 +104,48 @@ defmodule Kati.Screens.LoudnessPrompt do
   function here inherits the same silence for the same reason. `Continue` and
   `Back to sections` are the two controls this board actually draws as
   pressable, and both reach a handler that changes the socket.
+
+  ## Where each sentence on this page is spelled
+
+  Three modules own the words, and this screen adds msgids for one of them.
+
+  The **question, its body and the three option cards** are literals in
+  `Kati.Onboarding.Sample`, a module this screen does not own, and `gettext/1`
+  will not take a variable — so they go through
+  `Kati.Screens.Onboarding.translated/1`, which exists for exactly that and
+  already carries every one of those msgids. `option/1` calls it on both of a
+  card's lines, so the three cards arrived in Persian before this file did;
+  `header/1` was drawing `t.title` and `t.body` raw, which is why the question
+  itself was still coming out in Latin under `:fa` while the cards below it were
+  not.
+
+  The **Quietly sentence** is 162's — `Kati.Screens.OnboardingLoudness`, this
+  drawing's renumbered panel, carries it as the three msgids `"Kati"`,
+  `"won’t ask"` and `"for notification permission. Everything arrives in your
+  inbox."`. They are asked for again rather than entered a second time under a
+  second spelling: one sentence in the catalogue twice is one that drifts, which
+  is the argument `Kati.Screens.Onboarding.translated/1`'s own doc makes. 162
+  stacks the three as separate `Text`s and this card joins them into one
+  paragraph, so the joins are made at the call site — see `confirmation/0`.
+
+  The **band underneath** — the eyebrow, the pre-prompt card and the denial
+  card — is this board's own copy, drawn nowhere else, and six msgids enter the
+  catalogue here for it. Its two controls do not: `"Continue"` and `"Back to
+  sections"` are 162's, which draws the same two words a step earlier, and
+  `Kati.Screens.LanguagePick` is a third caller of the first.
+
+  ## The two paragraphs were set in a face with no Persian in it
+
+  `confirmation/0` and `denial/0` both passed `font_family: "sans"` to
+  `Kati.UI.rich_text/1`, which paints the whole paragraph in one run's family.
+  `"sans"` is Plus Jakarta, which `Kati.Locale.face_for/1` documents as carrying
+  no Arabic-script glyph at all — Android would substitute a face of its own and
+  the card would render, correctly shaped, in a typeface that is not Kati's. Both
+  now pass `Kati.Locale.face_prop/0`, which is the same `"sans"` in English.
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Onboarding.Sample
@@ -158,7 +201,7 @@ defmodule Kati.Screens.LoudnessPrompt do
       <Spacer size={14} />
       {Kati.Screens.LoudnessPrompt.confirmation()}
       <Spacer size={22} />
-      {Kati.UI.SettingsList.eyebrow_muted("If Notify me or Weekly digest is chosen")}
+      {Kati.UI.SettingsList.eyebrow_muted(Kati.Screens.LoudnessPrompt.band_eyebrow())}
       {Kati.Screens.LoudnessPrompt.preprompt()}
       <Spacer size={14} />
       {Kati.Screens.LoudnessPrompt.denial()}
@@ -167,6 +210,27 @@ defmodule Kati.Screens.LoudnessPrompt do
     </Column>
     """
   end
+
+  @doc """
+  The eyebrow over the band, naming the two choices that reach it.
+
+  A function rather than a literal in `body/0` so the reason can sit beside it:
+  the two option names inside this sentence are the same two the cards above it
+  draw, and they have to be spelled the way those cards spell them. The Persian
+  quotes them — «خبرم کن» and «خلاصه هفتگی» — because
+  `Kati.Screens.OnboardingLoudness`'s own note about this band already does,
+  and two boards naming one option two ways is the thing
+  `Kati.Screens.Onboarding.translated/1` exists to prevent.
+
+  `Kati.UI.SettingsList.eyebrow_muted/1` upcases what it is handed, which is a
+  no-op on Persian rather than a wrong answer, and sets it in
+  `Kati.Locale.mono_face/0` — so the label reaches the right face without this
+  screen asking. The one thing it does not do is drop its `.16em` tracking on
+  Persian the way `Kati.UI.eyebrow_label/1` does, and that is a fix inside
+  `Kati.UI.SettingsList`, not here.
+  """
+  @spec band_eyebrow() :: String.t()
+  def band_eyebrow, do: gettext("If Notify me or Weekly digest is chosen")
 
   # Five segments, four filled — see the moduledoc for why this is not
   # `Kati.Screens.Onboarding.steps/1`, which is pinned to four total.
@@ -192,21 +256,46 @@ defmodule Kati.Screens.LoudnessPrompt do
 
   # The board's own line-heights (1.18 / 1.6) rather than screen 38's own
   # `telling/1` numbers (1.15 / 1.55) — the two frames drew this block
-  # slightly differently, and this file follows its own board.
+  # slightly differently, and this file follows its own board. Both are the
+  # Latin argument to a locale call now rather than a bare number: Vazirmatn's
+  # metrics are not Plus Jakarta's, so the Persian side takes 1.4 for the
+  # heading (board 53's measured number for a 26–32pt extrabold lead, where 1.15
+  # closes the second line on the first) and `Kati.Locale.leading/1`'s 1.95 for
+  # the paragraph.
+  #
+  # No `max_lines` on the question, matching 38's `telling/1`, which draws this
+  # same sentence at this same size and documents why: the Persian sits on one
+  # line, and a reader who has scaled their type up gets a second one that 1.4
+  # has room for. Capping it at one line would clip that reader rather than
+  # save them a wrap.
+  #
+  # `Kati.Screens.Onboarding.translated/1` and not `gettext/1`: these two
+  # sentences are literals in `Kati.Onboarding.Sample`, which is not this
+  # screen's file to change, and `gettext/1` will not take a variable. 38 spells
+  # the same pair through that function and `option/1` already spells the three
+  # cards below through it, so both boards ask for one set of msgids.
   @doc false
   def header(t) do
+    title = Kati.Screens.Onboarding.translated(t.title)
+    body = Kati.Screens.Onboarding.translated(t.body)
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={t.title}
+        text={title}
         text_size={26}
         font_weight="extrabold"
-        letter_spacing={-0.035}
-        line_height={1.18}
+        letter_spacing={Kati.Locale.tracking(-0.035)}
+        line_height={Kati.Locale.pick(1.18, 1.4)}
         text_color={:on_surface}
       />
       <Spacer size={11} />
-      <Text text={t.body} text_size={13.5} line_height={1.6} text_color={Palette.ink_soft()} />
+      <Text
+        text={body}
+        text_size={13.5}
+        line_height={Kati.Locale.leading(1.6)}
+        text_color={Palette.ink_soft()}
+      />
     </Column>
     """
   end
@@ -226,24 +315,47 @@ defmodule Kati.Screens.LoudnessPrompt do
   def confirmation do
     body = [
       text_size: 12.5,
-      line_height: 1.65,
+      line_height: Kati.Locale.leading(1.65),
       text_color: Palette.ink_soft(),
-      font_family: "sans"
+      # Was a hardcoded "sans" — the moduledoc's *"set in a face with no Persian
+      # in it"* is the long version. `face_prop/0` answers the same "sans" in
+      # English, so nothing moves on the Latin board.
+      font_family: Kati.Locale.face_prop(),
+      # `rich_text/1` paints the whole paragraph in the LONGEST run's style
+      # unless a run claims it, and "longest" is arithmetic over whichever
+      # script is on screen: a Persian body that came out shorter than its
+      # semibold clause would set this whole card semibold in ink. Marking the
+      # body run is what `Kati.Screens.Backup` does to its footnote, for exactly
+      # this reason.
+      base: true
     ]
 
     strong = [
       font_weight: "semibold",
       text_color: Palette.ink(),
       text_size: 12.5,
-      line_height: 1.65,
-      font_family: "sans"
+      line_height: Kati.Locale.leading(1.65),
+      font_family: Kati.Locale.face_prop()
     ]
 
+    # 162 — `Kati.Screens.OnboardingLoudness`, this drawing's renumbered panel —
+    # already carries this sentence as these three msgids, so they are asked for
+    # again rather than entered a second time under a second spelling. That
+    # screen stacks the runs as three `Text`s; this card is one paragraph, so
+    # the joins are made here rather than inside a msgid, where a translator
+    # silently trims a leading or trailing blank.
+    #
+    # The second join is `Kati.Locale.pick/2` and not a plain space. The Persian
+    # of the third run opens with its own full stop — the permission clause
+    # lives in the first run, whose Persian is «کاتی برای اعلان» — and a space
+    # before a full stop is a space in the wrong place. English needs it;
+    # Persian does not, and this is the one character that differs.
     paragraph =
       UI.rich_text([
-        {"Kati ", body},
-        {"won’t ask", strong},
-        {" for notification permission. Everything arrives in your inbox.", body}
+        {gettext("Kati") <> " ", body},
+        {gettext("won’t ask"), strong},
+        {Kati.Locale.pick(" ", "") <>
+           gettext("for notification permission. Everything arrives in your inbox."), body}
       ])
 
     ~MOB"""
@@ -281,19 +393,18 @@ defmodule Kati.Screens.LoudnessPrompt do
           <Spacer size={12} />
           <Column weight={1.0}>
             <Text
-              text="One prompt, then never again"
+              text={gettext("One prompt, then never again")}
               text_size={14}
               font_weight="bold"
-              letter_spacing={-0.015}
+              letter_spacing={Kati.Locale.tracking(-0.015)}
               text_color={:on_surface}
               max_lines={1}
             />
             <Spacer size={6} />
             <Text
-              text={"Kati asks the system for permission on the next screen. It is used " <>
-                "for new episodes and the meal reminders you switch on — nothing else."}
+              text={gettext("Kati asks the system for permission on the next screen. It is used for new episodes and the meal reminders you switch on — nothing else.")}
               text_size={12.5}
-              line_height={1.65}
+              line_height={Kati.Locale.leading(1.65)}
               text_color={Palette.ink_soft()}
             />
           </Column>
@@ -329,7 +440,7 @@ defmodule Kati.Screens.LoudnessPrompt do
       align="center"
     >
       <Text
-        text="Continue"
+        text={gettext("Continue")}
         text_size={14.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -343,25 +454,45 @@ defmodule Kati.Screens.LoudnessPrompt do
   def denial do
     body = [
       text_size: 12.5,
-      line_height: 1.65,
+      line_height: Kati.Locale.leading(1.65),
       text_color: Palette.cream_body(),
-      font_family: "sans"
+      # Both here and in `confirmation/0`: see the moduledoc. "sans" is Plus
+      # Jakarta, which carries no Arabic-script glyph.
+      font_family: Kati.Locale.face_prop(),
+      # The base run, for the reason `confirmation/0` spells out: "longest run
+      # wins" is arithmetic over the script on screen, and this card's bold
+      # clause is short in English and shorter in Persian.
+      base: true
     ]
 
     strong = [
       font_weight: "semibold",
       text_color: Palette.cream_ink(),
       text_size: 12.5,
-      line_height: 1.65,
-      font_family: "sans"
+      line_height: Kati.Locale.leading(1.65),
+      font_family: Kati.Locale.face_prop()
     ]
 
+    # Three runs, three msgids, and both joins live at the call site rather than
+    # inside a msgid — `Kati.Screens.Backup` and `Kati.Screens.AnimeFilter` both
+    # split a bolded sentence that way, because a msgid with a leading or
+    # trailing blank is a msgid a translator silently trims.
+    #
+    # The full stop that used to open the third run comes out with them. It
+    # closes the bolded clause rather than opening the sentence after it, so in
+    # both scripts it wants to sit tight against the bold and take the space on
+    # its far side; leaving it inside the msgid would have asked every
+    # translator to remember that, and asked this one for a msgid starting in
+    # punctuation.
     paragraph =
       UI.rich_text([
-        {"If you say no, Kati falls back to the inbox badge and ", body},
-        {"will not ask again", strong},
-        {". Android does not allow a second prompt — the only route back is the " <>
-           "system settings app, which is where this screen would send you.", body}
+        {gettext("If you say no, Kati falls back to the inbox badge and") <> " ", body},
+        {gettext("will not ask again"), strong},
+        {". " <>
+           gettext(
+             "Android does not allow a second prompt — the only route back is the " <>
+               "system settings app, which is where this screen would send you."
+           ), body}
       ])
 
     ~MOB"""
@@ -377,14 +508,25 @@ defmodule Kati.Screens.LoudnessPrompt do
     """
   end
 
-  @doc "The way out — pops back to the sections step this screen was pushed from."
+  @doc """
+  The way out — pops back to the sections step this screen was pushed from.
+
+  `Kati.Locale.back_glyph/0` rather than a literal `"arrow_back"`: Material
+  Symbols are text in a font and auto-mirror nothing, so an arrow that means
+  *where you came from* has to be asked for by meaning. It answers
+  `arrow_forward` on an RTL page, which points at the right edge — the edge a
+  Persian reader came from. `Kati.Screens.OnboardingWelcome.back_row/1` draws
+  162's identical row the same way, and the plain arrow stays the plain arrow:
+  a sequence steps back through itself rather than popping a stack, which is
+  the distinction `Kati.Screens.Pushed.back_glyph/0`'s `_ios` chevron carries.
+  """
   def back_link do
     ~MOB"""
     <Row on_tap={{self(), :back_to_sections}} align="center">
-      {Kati.UI.symbol("arrow_back", size: 17, color: Palette.sub())}
+      {Kati.UI.symbol(Kati.Locale.back_glyph(), size: 17, color: Palette.sub())}
       <Spacer size={7} />
       <Text
-        text="Back to sections"
+        text={gettext("Back to sections")}
         text_size={13}
         font_weight="semibold"
         text_color={Palette.sub()}

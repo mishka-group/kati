@@ -42,6 +42,7 @@ defmodule Kati.Screens.UpNextFilters do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Library.UpNextFilters, as: Filters
@@ -121,16 +122,27 @@ defmodule Kati.Screens.UpNextFilters do
   end
 
   def render(assigns),
-    do: Sheet.sheet("Sort & filter", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    do: Sheet.sheet(gettext("Sort & filter"), body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do
+    # Both section labels are board 145's OWN msgids, reused rather than
+    # restated — as are the title in `render/1` and `Gone cold` in
+    # `chip_label/2`. The two sheets are pixel-identical by construction (see
+    # the moduledoc), and a second entry for `Sort` is a second place the same
+    # word gets translated, which is how one control comes to be called two
+    # things on two boards that are meant to be the same board twice.
+    #
+    # `Sort` keeps 145's context for the reason `Kati.Screens.ShelfFilters.body/1`
+    # gives: a one-word msgid one edit away from `Sort & filter` — the title of
+    # this very sheet — is exactly the pair `mix gettext.merge` fuzzy-matches.
+    # The Ranges eyebrow is a whole clause and needs none.
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Sort")}
+      {UI.eyebrow(pgettext("sort & filter sheet section", "Sort"))}
       {Kati.Screens.UpNextFilters.sort_card(assigns.sort, assigns.direction)}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Ranges — buckets, not sliders")}
+      {SettingsList.eyebrow_muted(gettext("Ranges — buckets, not sliders"))}
       {Kati.Screens.UpNextFilters.runtime_row(assigns)}
       <Spacer size={11} />
       {Kati.Screens.UpNextFilters.band_row(assigns)}
@@ -152,11 +164,58 @@ defmodule Kati.Screens.UpNextFilters do
       options
       |> Enum.with_index()
       |> Enum.map(fn {{key, label}, i} ->
-        ShelfFilters.sort_row(key, label, selected, direction, i != last)
+        ShelfFilters.sort_row(
+          key,
+          Kati.Screens.UpNextFilters.sort_label(key, label),
+          selected,
+          direction,
+          i != last
+        )
       end)
 
     SettingsList.card(rows)
   end
+
+  @doc """
+  The reader's own word for one of board 167's four orderings.
+
+  `Kati.Library.UpNextFiltersSample` stays in the board's English, because what
+  travels out of it is a **key**: `:airing_soonest` is what `sort_row/5`
+  compares against `selected` to decide which row carries the check, what
+  `handle_info/2` matches against `Kati.Library.UpNextFilters.sorts/0`, and what
+  `apply_sort/2` stores and `natural_direction/1` is asked about. A key that
+  translated itself would break all four the moment the reader chose Persian,
+  and would break them silently — the rows would still draw.
+  `Kati.Screens.ShelfFilters.sort_label/2` is the same split over board 145's
+  five and carries the long version of the argument.
+
+  Public, and not a `defp`, because `Kati.Screens.UpNext` prints these same four
+  words in the line a narrowed queue says about itself — see
+  `Kati.Library.UpNextFilters.names/1` — and the chip and that sentence must not
+  come to spell one ordering two ways.
+
+  A key with no clause of its own comes back with the sample's own label, so a
+  fifth ordering added tomorrow draws in English rather than raising — the right
+  failure for a design fixture, since `mix gettext.extract` reads literal call
+  sites and could not have a msgid for it either way.
+  """
+  @spec sort_label(atom(), String.t()) :: String.t()
+  # All four take a context. `Recently touched` is one word from `Recently
+  # added`, `Recently watched` and `Recently eaten`, which the catalogue already
+  # holds three different Persian words for; `Time left` sits beside `%{n}m
+  # left` and `%{n} left today`; and `Airing soonest` is three letters from the
+  # `Airing soon` chip below, which is a different thing — an ordering, not a
+  # band. Any of them would arrive fuzzy-matched to somebody else's sentence.
+  def sort_label(:recently_touched, _label),
+    do: pgettext("an up next sort key", "Recently touched")
+
+  def sort_label(:closest_to_finishing, _label),
+    do: pgettext("an up next sort key", "Closest to finishing")
+
+  def sort_label(:time_left, _label), do: pgettext("an up next sort key", "Time left")
+  def sort_label(:airing_soonest, _label), do: pgettext("an up next sort key", "Airing soonest")
+
+  def sort_label(_key, label), do: label
 
   @doc "The runtime rail — four buckets, counts included, zeroes drawn."
   @spec runtime_row(map()) :: map()
@@ -169,13 +228,76 @@ defmodule Kati.Screens.UpNextFilters do
 
   defp rail(counts, chosen) do
     counts
-    |> Enum.map(fn {key, n} -> {key, Sample.label(key), n} end)
+    |> Enum.map(fn {key, n} ->
+      {key, Kati.Screens.UpNextFilters.chip_label(key, Sample.label(key)), n}
+    end)
     |> ShelfFilters.chip_row(fn key -> key in chosen end)
   end
 
-  @doc "The dashed footnote. `Kati.Library.UpNextFiltersSample` holds the words."
+  @doc """
+  The reader's own word for one of board 167's seven chips.
+
+  The same split `sort_label/2` makes and for the same reason: the first element
+  of every triple `rail/2` builds is a **key** — it is what `chip_row/2`'s
+  `selected?` closure tests and what `handle_info/2` matches against
+  `Kati.Library.UpNextFilters.runtime_keys/0` and `band_keys/0` — and only the
+  second is a word. Public for the same reason too: screen 10 names these chips
+  in its own sentence through `Kati.Library.UpNextFilters.names/1`.
+
+  `Gone cold` takes `Kati.Screens.ShelfFilters.facet_label/2`'s own `shelf
+  status` context rather than starting a second one. It is the same state named
+  on the same kind of chip — not where a title was put, but what happened to it
+  — and two contexts would let board 145 and board 167 spell one word two ways.
+
+  **The runtime thresholds are numbers this sheet prints**, which is the half a
+  Latin-letter audit cannot see: `Under 30m` and `30–60m` carry figures that a
+  Persian reader reads in Persian numerals. They come in as bindings through
+  `Kati.Locale.number/1`, so the msgid holds the sentence and not the arithmetic.
+  `Kati.Library.UpNextFilters.runtime_bucket/2` is where 30 and 60 actually
+  live; these are those two figures read out loud, and naming them once per side
+  is what keeps the chip and the bucket from drifting apart.
+  """
+  @spec chip_label(atom(), String.t()) :: String.t()
+  def chip_label(:runtime_short, _label),
+    do: pgettext("a runtime bucket", "Under %{n}m", n: Kati.Locale.number(30))
+
+  def chip_label(:runtime_medium, _label) do
+    pgettext("a runtime bucket", "%{from}–%{to}m",
+      from: Kati.Locale.number(30),
+      to: Kati.Locale.number(60)
+    )
+  end
+
+  def chip_label(:runtime_long, _label), do: pgettext("a runtime bucket", "Over an hour")
+  def chip_label(:runtime_unknown, _label), do: pgettext("a runtime bucket", "No runtime")
+
+  def chip_label(:band_ready, _label), do: pgettext("an up next band", "Ready")
+  def chip_label(:band_airing, _label), do: pgettext("an up next band", "Airing soon")
+  def chip_label(:band_cold, _label), do: pgettext("shelf status", "Gone cold")
+
+  def chip_label(_key, label), do: label
+
+  @doc """
+  The dashed footnote, which is one `Text` and therefore one msgid.
+
+  The words were `Kati.Library.UpNextFiltersSample.note/0` and are a literal
+  here now: `gettext/1`'s argument has to be a literal AT THE CALL SITE or
+  `mix gettext.extract` never sees it, so a sentence read out of another module
+  cannot be translated from this one. `Kati.Screens.ShelfFilters.note_text/1`
+  holds board 145's note the same way and for the same reason — the sample
+  modules are what the boards are drawn from, not what they are read from.
+
+  Still one msgid, which is the half of the sample's own argument that survives
+  the move: `Kati.DesignLiterals.locate/2` is `String.contains?` over each node's
+  own string, so every run board 167's three `<strong>`s split this sentence
+  into has to land inside one node to be found at the `:node` tier.
+  """
   @spec note_text() :: String.t()
-  def note_text, do: Sample.note()
+  def note_text do
+    gettext(
+      "Airing soon is a date, not a window. A title whose release is a bare year is not in the bucket rather than counted as 1 January — “soon” is a date Kati is sure enough of to name. No runtime is not padding: an evicted cache row keeps its position and has no duration, so it needs somewhere nameable to land."
+    )
+  end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 

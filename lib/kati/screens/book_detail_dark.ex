@@ -80,6 +80,7 @@ defmodule Kati.Screens.BookDetailDark do
   """
 
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Books.Sample
   alias Kati.Components.MishkaChip
@@ -88,15 +89,17 @@ defmodule Kati.Screens.BookDetailDark do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  # Screen 66's three secondary actions, in the drawing's order. Restated here
-  # rather than reached for through `Kati.Screens.BookDetail`, where the list is
-  # a private module attribute; `Log progress` is absent from both copies for
-  # the same reason, which is that `actions/1` draws the ink button itself.
-  @secondary [
-    {"check", "Finish", :finish},
-    {"star", "Rate & review", :rate},
-    {"bookmarks", "Add to list", :add_to_list}
-  ]
+  # The three secondary actions were an `@secondary` attribute here and cannot
+  # be: `gettext/1` inside a MODULE ATTRIBUTE is evaluated at COMPILE time, so
+  # the three labels would freeze in whichever locale `mix compile` happened to
+  # be in. Screen 66 hit the same wall under mishka-group/kati#103 and answered
+  # it by making its own list a function — which also retires the reason this
+  # copy existed, stated in the comment that stood here: the list was restated
+  # *because* it was private over there, and it is not any more. `actions/1`
+  # reads `Kati.Screens.BookDetail.secondary/0` now, so the two screens cannot
+  # drift about the icon, the order or the tag — the moduledoc's own claim
+  # about this file. `Log progress` is still absent from it, for screen 66's
+  # reason: `actions/1` draws the ink button itself.
 
   @spec load(Mob.Socket.t()) :: Mob.Socket.t()
   def load(socket) do
@@ -122,11 +125,11 @@ defmodule Kati.Screens.BookDetailDark do
         {SettingsList.title(b.title, b.author, nil, :name)}
         {Kati.Screens.BookDetailDark.hero(b)}
         {Kati.Screens.BookDetailDark.ratings(b)}
-        {UI.eyebrow("Status")}
+        {UI.eyebrow(gettext("Status"))}
         {Kati.Screens.BookDetailDark.statuses(b)}
-        {UI.eyebrow("Edition")}
+        {UI.eyebrow(gettext("Edition"))}
         {Kati.Screens.BookDetailDark.edition(b)}
-        {UI.eyebrow("Content warnings")}
+        {UI.eyebrow(gettext("Content warnings"))}
         {Kati.Screens.BookDetailDark.warnings(b)}
         {BookDetail.notes_section(b)}
         {Kati.Screens.BookDetailDark.series_section(b)}
@@ -233,11 +236,11 @@ defmodule Kati.Screens.BookDetailDark do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          {Kati.Screens.BookDetailDark.rating_card("Yours", b.rating, b.rating_label)}
+          {Kati.Screens.BookDetailDark.rating_card(gettext("Yours"), b.rating, b.rating_label)}
         </Column>
         <Spacer size={10} />
         <Column weight={1.0}>
-          {Kati.Screens.BookDetailDark.rating_card("Community", b.community, nil)}
+          {Kati.Screens.BookDetailDark.rating_card(gettext("Community"), b.community, nil)}
         </Column>
       </Row>
       <Spacer size={24} />
@@ -357,16 +360,27 @@ defmodule Kati.Screens.BookDetailDark do
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
+    # `ISBN` goes through `gettext/1` where a provider's name would not, and the
+    # difference is that this one is not a name: Persian has a word for the
+    # standard — **شابک** — and Kati already uses it. Screen 67, which is this
+    # same page in its partial-metadata states, writes `gettext("ISBN")` on this
+    # very row, and the empty affordance in the cell beside it is `Add ISBN`,
+    # which the catalogue answers with **افزودن شابک**. So leaving the label
+    # Latin puts two spellings of one thing inside one card: a row headed `ISBN`
+    # over an empty state offering to add a شابک. The msgid is not new —
+    # `Kati.Screens.AddByHandBook` and `Kati.Screens.BookDetailStates` already
+    # carry it. Screen 66's own copy of this row is still the bare literal; it
+    # is the outlier, not this.
     facts =
       card([
         SettingsList.row(
           nil,
-          SettingsList.body("Length", nil),
+          SettingsList.body(gettext("Length"), nil),
           SettingsList.trailing(BookDetail.value(b.extent_label))
         ),
         SettingsList.row(
           nil,
-          SettingsList.body("ISBN", nil),
+          SettingsList.body(gettext("ISBN"), nil),
           SettingsList.trailing(BookDetail.mono(b.isbn))
         )
       ])
@@ -375,7 +389,7 @@ defmodule Kati.Screens.BookDetailDark do
       card([
         SettingsList.row(
           SettingsList.icon_tile("inventory_2"),
-          SettingsList.body("This is the edition I own", nil),
+          SettingsList.body(gettext("This is the edition I own"), nil),
           SettingsList.trailing(SettingsList.switch(b.owned))
         )
       ])
@@ -408,7 +422,7 @@ defmodule Kati.Screens.BookDetailDark do
     rows = [
       SettingsList.row(
         nil,
-        SettingsList.body("Warnings", nil),
+        SettingsList.body(gettext("Warnings"), nil),
         SettingsList.trailing(BookDetail.warning_trailing(b.warning_count))
       )
     ]
@@ -445,7 +459,7 @@ defmodule Kati.Screens.BookDetailDark do
       rows ->
         ~MOB"""
         <Column fill_width={true}>
-          {UI.eyebrow("Series and ownership")}
+          {UI.eyebrow(gettext("Series and ownership"))}
           {Kati.Screens.BookDetailDark.card(rows)}
           <Spacer size={24} />
         </Column>
@@ -490,7 +504,7 @@ defmodule Kati.Screens.BookDetailDark do
 
         ~MOB"""
         <Column fill_width={true}>
-          {UI.eyebrow("Reading history")}
+          {UI.eyebrow(gettext("Reading history"))}
           {Kati.Screens.BookDetailDark.card(rows)}
           <Spacer size={24} />
         </Column>
@@ -511,15 +525,24 @@ defmodule Kati.Screens.BookDetailDark do
   """
   @spec actions(map()) :: map()
   def actions(b) do
-    primary = if b.status == :not_started, do: "Start reading", else: "Log progress"
+    primary =
+      if b.status == :not_started,
+        do: gettext("Start reading"),
+        else: gettext("Log progress")
 
     seconds =
-      @secondary
+      BookDetail.secondary()
       |> Enum.map(fn {icon, label, tag} ->
         Kati.Screens.BookDetailDark.second(icon, label, tag)
       end)
       |> Enum.intersperse(~MOB"<Spacer size={10} />")
 
+    # `Kati.Locale.tracking/1` on the button label, where the `-0.01` was a
+    # literal. Negative tracking is a Latin optical fix and in Persian it pulls
+    # apart the joins between letters — `شروع خواندن` set at -0.01 comes out as
+    # disconnected characters, which is a different word shape rather than a
+    # tighter one. `Kati.Screens.BookDetail.actions/1` reads it the same way;
+    # the pair of colours is the only thing dark is allowed to change here.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -535,7 +558,7 @@ defmodule Kati.Screens.BookDetailDark do
           text={primary}
           text_size={15}
           font_weight="bold"
-          letter_spacing={-0.01}
+          letter_spacing={Kati.Locale.tracking(-0.01)}
           text_color={Palette.fab_glyph()}
         />
         <Spacer weight={1.0} />

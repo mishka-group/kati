@@ -78,9 +78,77 @@ defmodule Kati.Screens.AlbumDetailStates do
   is `Kati.Screens.AlbumDetail.field_row/1` — the same builder, because the five
   listening tones are hues and do not move with the ground, so the dark field is
   the light field on a different card rather than a second drawing.
+
+  ## What this sheet translates, and what it only typesets
+
+  mishka-group/kati#103. There is no specimen module behind this board the way
+  `Kati.Settings.StatesSample` stands behind screen 27, so every word on it is
+  this file's own except the four the album carries — its title, its byline, its
+  initial and its `first_heard` date are `Kati.Music.Sample.album/0`'s and are
+  translated there. The seventeen that are left are `gettext/1` here, and three
+  of them are msgids screens 67 and 78 already own: *Loading — skeleton, never a
+  spinner*, *Error · offline* and *Last success %{n}h ago*. A states sheet
+  quoting a sibling states sheet is what a reference sheet is for, and an exact
+  msgid is what stops two of them wording one condition two ways. `Offline`
+  takes the `msgctxt` those sheets carry rather than a fourth of its own — a
+  bare `Offline` is one word, and this badge means the radio.
+
+  The rest of what this file owns is typeset rather than translated, and that is
+  the half that breaks quietly: the words arrive correct and the page is wrong.
+
+    * `Kati.Locale.tracking/1` on all four letter-spacings — the 28pt title's
+      -0.03, the with-art title's -0.025, the dark title's -0.02 and the
+      placeholder's +0.12. Tightening or opening by a fraction of an em is a
+      Latin move; in the Arabic script it pulls letters apart at the joins that
+      make a word one shape.
+    * `Kati.Locale.leading/1` on the dark inset's paragraph, because
+      Vazirmatn's metrics are not Plus Jakarta's and 1.6 sets Persian too tight.
+    * `max_lines={1}` on the 28pt title, which had none. Nothing else on this
+      sheet lets a heading wrap, and a title that took two lines would push the
+      count under it off the measure it was spaced against.
+    * `max_lines={2}` on the offline card's sub-line, which the English fits on
+      one line at 11.5 and the Persian does not — at one it truncated rather
+      than wrapped. `Kati.Screens.ArtistDetailStates.offline/0` made the same
+      allowance for the same sentence one screen over.
+
+  And `Kati.Locale.ltr/1` on the dark caption's two hex codes. `#` and the
+  digits after it are **neutral** characters in the bidirectional algorithm, so
+  inside a Persian sentence `#2A2622` resolves right-to-left and lands with its
+  hash at the wrong end. The helper is a no-op in Latin, so the English caption
+  is the character sequence it always was.
+
+  ## The one value this sheet stopped freezing
+
+  `MAY` was a literal here, which is the defect `Kati.Screens.AlbumDetail`
+  closed with `field_month/0` and this board kept a second copy of: the field is
+  ninety-one days ending TODAY, so the month under it is the device's month in
+  the reader's own calendar — شهریور for a Persian reader in Shahrivar, not a
+  translation of *May*. *Zero plays keeps the field, drawn and empty* above is
+  what makes that read rather than contradicting it: the month belongs to the
+  CALENDAR rather than to the album, the window is there whether or not anything
+  happened inside it, and a window has to be on the month the reader is actually
+  in. Nor is it a read of the shelf — the device clock is not an album, and
+  nothing about the month claims the album was played in it.
+
+  `Last success 6h ago` is the value that does **not** move, and *Nothing on this
+  sheet is read from the shelf* is why. Putting its `6` through
+  `Kati.Locale.number/1` does not make it a report either: the numeral becomes
+  the reader's and the figure stays the drawing's.
+
+  ## One defect this file can see and cannot fix
+
+  `Kati.UI.SettingsList.eyebrow_muted/1` still writes `String.upcase(label)` and
+  a hardcoded `letter_spacing={0.16}` where `Kati.UI.eyebrow/2` has since grown
+  `Kati.UI.eyebrow_label/1` and `Kati.Locale.tracking/1`. Four of this sheet's
+  five eyebrows go through the muted one, so under `:fa` they are set with the
+  Latin small-caps tracking that breaks Arabic-script joins.
+  `Kati.Screens.States` records the same defect from the same call site: the fix
+  is one helper changed once, in that file, rather than a fork of the grey dash
+  here.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Music.Sample
   alias Kati.Screens.AlbumDetail
@@ -107,6 +175,19 @@ defmodule Kati.Screens.AlbumDetailStates do
   def content(assigns) do
     a = assigns.album
 
+    # The five band labels, wrapped where they are drawn rather than bound out
+    # above the sigil — `Kati.Screens.BookDetailStates.content/1` reads the same
+    # way and this sheet is its album twin, so the two files stay comparable
+    # line for line.
+    #
+    # Three of the five are quoted rather than written: *Loading — skeleton,
+    # never a spinner* is screen 27's band and 67's, *Error · offline* is 67's,
+    # and *Dark* is 78's own dark band and the theme row on Settings. All three
+    # are already in the catalogue under exactly these msgids, an exact msgid is
+    # found before any fuzzy one, and minting a contexted twin here would give a
+    # reader a second Persian sentence for a condition the app has worded once.
+    # *Dark* is the only one short enough to need thinking about and it still
+    # takes no `pgettext/2`: every place this app writes it means the colourway.
     ~MOB"""
     <Scroll>
       <Column
@@ -118,16 +199,16 @@ defmodule Kati.Screens.AlbumDetailStates do
       >
         {SettingsList.chrome(nil, 44)}
         {Kati.Screens.AlbumDetailStates.title()}
-        {UI.eyebrow("With art — the second variant")}
+        {UI.eyebrow(gettext("With art — the second variant"))}
         {Kati.Screens.AlbumDetailStates.with_art(a)}
-        {SettingsList.eyebrow_muted("Loading — skeleton, never a spinner")}
+        {SettingsList.eyebrow_muted(gettext("Loading — skeleton, never a spinner"))}
         {Kati.Screens.AlbumDetailStates.skeleton()}
-        {SettingsList.eyebrow_muted("Error · offline")}
+        {SettingsList.eyebrow_muted(gettext("Error · offline"))}
         {Kati.Screens.AlbumDetailStates.trouble()}
-        {SettingsList.eyebrow_muted("Zero plays — the field stays, empty")}
+        {SettingsList.eyebrow_muted(gettext("Zero plays — the field stays, empty"))}
         {Kati.Screens.AlbumDetailStates.zero_plays()}
         {Kati.Screens.AlbumDetailStates.log_button()}
-        {SettingsList.eyebrow_muted("Dark")}
+        {SettingsList.eyebrow_muted(gettext("Dark"))}
         {Kati.Screens.AlbumDetailStates.dark(a)}
       </Column>
     </Scroll>
@@ -145,18 +226,32 @@ defmodule Kati.Screens.AlbumDetailStates do
   """
   @spec title() :: map()
   def title do
+    # `six states` is two words and lower-case, which is exactly the shape
+    # `mix gettext.merge` fuzzy-matches onto a neighbour — and the catalogue has
+    # five of them, every one a sibling reference board's subtitle (*Eight
+    # states*, *Two states*, *five states*, *seven states*). It needs no
+    # `pgettext/2` all the same, because `Kati.Screens.BookDetailStates` already
+    # put this exact msgid in the catalogue for its own sheet of six: an exact
+    # match is found before any fuzzy one, and the two sheets count the same way
+    # about the same kind of page.
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Album detail"
+        text={gettext("Album detail")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
-      <Text text="six states" text_size={13.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={gettext("six states")}
+        text_size={13.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -173,7 +268,18 @@ defmodule Kati.Screens.AlbumDetailStates do
   """
   @spec with_art(map()) :: map()
   def with_art(a) do
-    first_heard = String.upcase("First heard #{a.first_heard}")
+    # One msgid rather than a label concatenated onto a value, because the two
+    # halves do not stay in that order: Persian sets the date after the words
+    # here and the interpolation is what lets a translator say so.
+    #
+    # The date itself needs nothing — `Kati.Music.Sample.album/0` already asks
+    # `Kati.Locale.date/2` for it, so a Persian reader gets ۱۳ اسفند ۱۴۰۲, which
+    # is the Shamsi day board 76 draws rather than a renaming of 3 March.
+    #
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: upper-casing is a
+    # Latin operation, the Arabic script has no case at all, and calling it on a
+    # Persian line does nothing to four fifths of it while mangling the rest.
+    first_heard = UI.eyebrow_label(gettext("First heard %{date}", date: a.first_heard))
 
     ~MOB"""
     <Column fill_width={true}>
@@ -185,7 +291,7 @@ defmodule Kati.Screens.AlbumDetailStates do
             text={a.title}
             text_size={17}
             font_weight="bold"
-            letter_spacing={-0.025}
+            letter_spacing={Kati.Locale.tracking(-0.025)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -243,7 +349,15 @@ defmodule Kati.Screens.AlbumDetailStates do
 
   # The square 74 draws by default, at this variant's size. `Art` is the
   # drawing's own placeholder word and it stays: it is what tells the reader the
-  # square stands in for a cover rather than being one.
+  # square stands in for a cover rather than being one. It stays as a WORD,
+  # which means it translates — board 76 draws **هنر** — and it is screen 74's
+  # own msgid so the two placeholders cannot name the same square two ways.
+  #
+  # `gettext/1` bare rather than `Kati.Screens.AlbumDetail.art_label/0`: that
+  # one wraps the same msgid in `Kati.UI.eyebrow_label/1` and so upper-cases the
+  # Latin, and this tile is drawn in the mixed case `test/design/screens/74.html`
+  # prints. The two are the same word in Persian either way — the Arabic script
+  # has no case — so quoting the msgid is the whole of what needed sharing.
   defp art_placeholder(a) do
     shadow = tile_shadow()
 
@@ -268,10 +382,10 @@ defmodule Kati.Screens.AlbumDetailStates do
         />
         <Spacer size={2} />
         <Text
-          text="Art"
+          text={gettext("Art")}
           font_family={Kati.Locale.mono_face()}
           text_size={9.5}
-          letter_spacing={0.12}
+          letter_spacing={Kati.Locale.tracking(0.12)}
           text_align="center"
           text_color={Palette.tertiary()}
         />
@@ -419,6 +533,19 @@ defmodule Kati.Screens.AlbumDetailStates do
   """
   @spec error_card() :: map()
   def error_card do
+    # `Last success %{n}h ago` is screens 67 and 78's msgid quoted rather than
+    # written a third time. All three sheets draw 27's error card, the sentence
+    # means the same thing about a book, an artist and an album, and three
+    # entries would let a translator give one reader three ways of being told
+    # how stale a page is.
+    #
+    # The hour goes through `Kati.Locale.number/1` so the line reads
+    # `آخرین موفقیت ۶ ساعت پیش` rather than keeping a Latin `6` between two
+    # Persian words. It is still not read from `Kati.Calendars.Account` — see
+    # the moduledoc — and localising the numeral does not make it a report: the
+    # digits become the reader's and the figure stays the drawing's.
+    last = gettext("Last success %{n}h ago", n: Kati.Locale.number(6))
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -432,17 +559,17 @@ defmodule Kati.Screens.AlbumDetailStates do
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
-          text="Couldn’t load this album"
+          text={gettext("Couldn’t load this album")}
           text_size={13}
           font_weight="bold"
           text_color={:on_surface}
           max_lines={1}
         />
         <Spacer size={3} />
-        <Text text="Last success 6h ago" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+        <Text text={last} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      {SettingsList.action_pill("Retry")}
+      {SettingsList.action_pill(gettext("Retry"))}
     </Row>
     """
   end
@@ -459,6 +586,21 @@ defmodule Kati.Screens.AlbumDetailStates do
   """
   @spec offline_card() :: map()
   def offline_card do
+    # `pgettext/2` because a bare `Offline` is one word, and the context is the
+    # one screens 67, 71, 78 and 81 already carry rather than a fifth of my own:
+    # this badge means the RADIO, not a provider that cannot be reached, and one
+    # msgid is what stops five sheets naming one condition five ways.
+    title = pgettext("the device has no network", "Offline")
+
+    # `max_lines={2}` where the drawing needed one. The English sentence fits a
+    # single line at 11.5 and its Persian —
+    # `شمار پخش، امتیازها و یادداشت‌ها همچنان نمایش داده می‌شوند` — does not, so
+    # at one line it truncated rather than wrapped, which is the failure this
+    # whole fold keeps meeting: legible enough that nobody files it. 67's and
+    # 78's offline badges already allow two for the same reason, so the card is
+    # unchanged on the English sheet and one line taller on the Persian one.
+    line = gettext("Play counts, ratings and notes still render")
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -471,19 +613,14 @@ defmodule Kati.Screens.AlbumDetailStates do
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
-          text="Offline"
+          text={title}
           text_size={13}
           font_weight="bold"
           text_color={Palette.cream_ink()}
           max_lines={1}
         />
         <Spacer size={3} />
-        <Text
-          text="Play counts, ratings and notes still render"
-          text_size={11.5}
-          text_color={Palette.cream_sub()}
-          max_lines={1}
-        />
+        <Text text={line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={2} />
       </Column>
     </Row>
     """
@@ -493,12 +630,24 @@ defmodule Kati.Screens.AlbumDetailStates do
   An album nobody has played: the history card, drawn, with every cell empty.
 
   The card keeps 74's shape down to the mono footer — see the moduledoc for why
-  it is not simply hidden. `MAY` still names the month the field ends in,
+  it is not simply hidden. The footer still names the month the field ends in,
   because the field is a window on the calendar rather than a summary of the
   album, and the window is there whether or not anything happened inside it.
   """
   @spec zero_plays() :: map()
   def zero_plays do
+    # `Kati.Screens.AlbumDetail.field_month/0` rather than the drawing's `MAY`.
+    # The month is the one claim on this card that is about the CALENDAR rather
+    # than about the album, and the paragraph above is what makes it read: a
+    # window on ninety-one days ending today has to be on the month the reader
+    # is actually in. Screen 74 closed exactly this defect — a literal `MAY`
+    # drawn on every device in every month — and this sheet had kept a second
+    # copy of the answer. Under `:fa` the helper gives the Shamsi month, which
+    # is the calendar as well as the language: board 76 draws اردیبهشت.
+    #
+    # It is not a read of the shelf and so does not touch the moduledoc's rule:
+    # the device clock is not an album, and nothing about the month claims the
+    # album was played in it.
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -512,14 +661,14 @@ defmodule Kati.Screens.AlbumDetailStates do
         <Spacer size={12} />
         <Row fill_width={true} align="center">
           <Text
-            text="MAY"
+            text={Kati.Screens.AlbumDetail.field_month()}
             font_family={Kati.Locale.mono_face()}
             text_size={10}
             text_color={Palette.tertiary()}
           />
           <Spacer weight={1.0} />
           <Text
-            text="Nothing logged yet"
+            text={gettext("Nothing logged yet")}
             font_family={Kati.Locale.mono_face()}
             text_size={10}
             text_color={Palette.tertiary()}
@@ -603,6 +752,16 @@ defmodule Kati.Screens.AlbumDetailStates do
   """
   @spec log_button() :: map()
   def log_button do
+    # Screen 74's own msgid — `Kati.Screens.AlbumDetail.primary_label/0` writes
+    # the same literal — because the sheet is printing that screen's button and
+    # a reference sheet whose button said a different word from the page it
+    # references would be the drift this file is otherwise built to avoid.
+    #
+    # No directional glyph to ask about: the drawing gives this pill a centred
+    # label and no arrow, so there is nothing here for `Kati.Locale`'s mirrored
+    # glyphs to answer.
+    label = gettext("Log a listen")
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -613,7 +772,7 @@ defmodule Kati.Screens.AlbumDetailStates do
         align="center"
       >
         <Spacer weight={1.0} />
-        <Text text="Log a listen" text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} />
+        <Text text={label} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} />
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={24} />
@@ -633,6 +792,26 @@ defmodule Kati.Screens.AlbumDetailStates do
   """
   @spec dark(map()) :: map()
   def dark(a) do
+    # The two hex codes are interpolated rather than written into the msgid, and
+    # each is wrapped in `Kati.Locale.ltr/1`. `#` and the digits after it are
+    # NEUTRAL characters in the Unicode bidirectional algorithm, so inside a
+    # Persian sentence they take the paragraph's direction and `#2A2622` is laid
+    # out with its hash at the right-hand end — the same failure screen 83's
+    # licence notices had, legible enough that nobody files it. An isolate gives
+    # the run its own direction without reordering anything around it, and the
+    # helper is a no-op in Latin, so the English caption is the character
+    # sequence it always was.
+    #
+    # Interpolating also keeps the colours out of the catalogue: a translator
+    # cannot mistype a hex they never see, and the day the dark ground moves the
+    # msgid does not have to be retranslated.
+    caption =
+      gettext(
+        "Cream warms to %{bg} with %{fg} text; cards lift on a hairline, not a shadow.",
+        bg: Kati.Locale.ltr("#2A2622"),
+        fg: Kati.Locale.ltr("#F7EFE4")
+      )
+
     ~MOB"""
     <Column fill_width={true} background={Palette.paper(:dark)} corner_radius={22} padding={16}>
       <Row fill_width={true} align="center">
@@ -659,7 +838,7 @@ defmodule Kati.Screens.AlbumDetailStates do
             text={a.title}
             text_size={15}
             font_weight="bold"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={Palette.ink(:dark)}
             max_lines={1}
           />
@@ -681,9 +860,9 @@ defmodule Kati.Screens.AlbumDetailStates do
       <Spacer size={11} />
       <Column fill_width={true} background={Palette.cream(:dark)} corner_radius={18} padding={14}>
         <Text
-          text="Cream warms to #2A2622 with #F7EFE4 text; cards lift on a hairline, not a shadow."
+          text={caption}
           text_size={12.5}
-          line_height={1.6}
+          line_height={Kati.Locale.leading(1.6)}
           text_color={Palette.cream_ink(:dark)}
         />
       </Column>

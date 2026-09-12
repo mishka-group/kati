@@ -196,15 +196,50 @@ defmodule Kati.Screens.Rating do
       preferences — which scale the user reads ratings on — and no resource
       holds one. `Kati.Media.Watch.rating` is the ten-point integer either way,
       and screen 35's settings are where a scale preference would live. So both
-      stay the drawing's, on a real watch as on the fallback, and the note is
-      taken from the one place that copy lives rather than written out a second
-      time here.
+      stay the drawing's, on a real watch as on the fallback.
+
+      The note is now asked for BY NAME — `rating_note/0` — where it used to be
+      read off the draft. mishka-group/kati#103: a msgid has to be a literal at
+      its call site, so a sentence a Persian reader must be able to read cannot
+      arrive as `w.rating_note`. The msgid is `Kati.Rating.Sample`'s own
+      sentence letter for letter, which is the same "one place that copy lives"
+      rule one level up — the fixture still holds the English, and the
+      catalogue holds what it becomes.
 
       The second half of that same line, `TAP LEFT OR RIGHT OF CENTRE`, is not
       a preference and is no longer a claim: it is what `star_cell/3` draws, and
       the reason the ten targets are half-star wide rather than five stars wide.
+
+  ## What this sheet says in Persian, and what stays in Latin
+
+  mishka-group/kati#103 folded the mirrors away, so this module is both
+  languages now. Three of its decisions are worth naming here because they are
+  not simply a `gettext/1` around a literal:
+
+    * **`sub_of/2` is keyed by the row's glyph name, not by its title.** The
+      three context titles are drawn copy — `تاریخ تماشا` — and
+      `Kati.Rating.Sample` writes the drawing's rows in English, so a lookup by
+      title finds nothing the moment the reader's language is not the
+      fixture's. `event`, `tv` and `group` are the same three names in both
+      scripts.
+    * **`no_service/0` is a label that gets STORED.** It is the one chip on the
+      Where row whose words are Kati's, and `choose_where/2` writes the label
+      itself into `Kati.Media.Watch.service` — so a Persian reader's night at
+      the cinema is stored in Persian. That function's doc carries the trade
+      and what closing it properly would take.
+    * **The values `Kati.Rating.Sample` holds are still English, and that is
+      the fixture's file to fix.** `Blue Hour`, `2025 · 1H 52M`, `2nd rewatch`,
+      `184 characters`, `Spoilers hidden`, the three context sub-lines and the
+      three tags all reach the screen as data, and `gettext(w.title)` does not
+      compile. A real watch answers in the reader's own language — `shaped/3`
+      builds every one of those through a msgid — so what is left in Latin is
+      the DRAWING, on a device with nothing logged. The scale toggle's `5` and
+      `10pt` are the fixture's too, and `scale_from/1` matches those two
+      strings to decide which scale was tapped: translating the label without
+      moving that match would make the toggle stop working.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   require Ash.Query
@@ -458,7 +493,7 @@ defmodule Kati.Screens.Rating do
           meta: runtime_label(cached),
           rewatch: nil,
           rating: nil,
-          rating_note: Sample.watch().rating_note,
+          rating_note: rating_note(),
           spoilers: nil,
           review: "",
           characters: characters_label(nil),
@@ -574,8 +609,8 @@ defmodule Kati.Screens.Rating do
       rewatch: rewatch_label(logged.rewatch_number),
       rating: logged.rating && logged.rating / 2,
       # A display preference with no resource behind it — see the moduledoc.
-      rating_note: Sample.watch().rating_note,
-      spoilers: if(logged.contains_spoilers, do: "Spoilers hidden"),
+      rating_note: rating_note(),
+      spoilers: if(logged.contains_spoilers, do: spoilers_label()),
       review: logged.review || "",
       characters: characters_label(logged.review),
       # The values the three context rows edit, beside the rows themselves.
@@ -608,8 +643,45 @@ defmodule Kati.Screens.Rating do
   @spec writable?(map()) :: boolean()
   def writable?(draft), do: Map.get(draft, :live?, false) == true
 
+  @doc """
+  The note under the star row, which is copy rather than a value.
+
+  `Kati.Rating.Sample` still holds the drawing's own English — the moduledoc's
+  rule that the note is *taken from the one place that copy lives rather than
+  written out a second time here* — and that place is now the **msgid**: it is
+  the fixture's sentence letter for letter, so the two cannot drift while the
+  English stands, and a Persian reader gets a Persian note on the drawing as
+  well as on a real log. A `gettext/1` call needs a literal at the call site
+  (`gettext(w.rating_note)` does not compile), so the sentence has to be
+  written where it is asked for, and `Kati.Rating.Sample` is another module's
+  file.
+
+  Both halves are still the drawing's and neither is a preference any resource
+  holds — see the moduledoc. The reason this is drawn from here rather than off
+  the draft is only that `drawn_watch/0` is `Kati.Rating.Sample.watch/0`
+  verbatim, and a map built in English cannot answer in Persian.
+  """
+  @spec rating_note() :: String.t()
+  def rating_note do
+    pgettext(
+      "the note under screen 33's star row",
+      "HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE"
+    )
+  end
+
+  # The badge over a review that keeps its ending back.
+  #
+  # A LABEL USED AS STATE: the draft carries this sentence where a boolean
+  # would do, because `shaped/3` reads `contains_spoilers` into it and
+  # `save_watch/1` reads the presence of the sentence back out as the flag.
+  # Under gettext that still holds — presence is what is asked, never the
+  # wording — but it only holds because both ends say it with this one call,
+  # which is why the sentence is written once here instead of at each.
+  defp spoilers_label,
+    do: pgettext("the badge over a review that hides its ending", "Spoilers hidden")
+
   defp title_of(%CachedTitle{title: title}) when is_binary(title) and title != "", do: title
-  defp title_of(_cached), do: "Untitled"
+  defp title_of(_cached), do: gettext("Untitled")
 
   # `Kati.Seeds` writes the design's own seed into `poster_path` and
   # `sample_source_id/1` is the other half of that convention, so a row whose
@@ -625,20 +697,54 @@ defmodule Kati.Screens.Rating do
 
   # `2025 · 1H 52M` minus the year, which nothing stores. An unknown runtime
   # leaves the line empty rather than spelling the absence as a dash.
+  #
+  # The catalogue's own `%{h}h %{m}m` — eight other screens ask for a runtime
+  # with it — raised by `Kati.UI.eyebrow_label/1` rather than a second, upper
+  # case msgid of the same two words. The board prints this line in caps,
+  # `String.upcase/1` is what puts it there in Latin, and the Arabic script has
+  # no case at all, so a Persian reader gets `۱ ساعت ۵۲ دقیقه` in the wording
+  # the rest of the app already uses for an hour and a minute.
   defp runtime_label(%CachedTitle{runtime_minutes: m}) when is_integer(m) and m > 0 do
-    case {div(m, 60), rem(m, 60)} do
-      {0, minutes} -> "#{minutes}M"
-      {hours, 0} -> "#{hours}H"
-      {hours, minutes} -> "#{hours}H #{minutes}M"
-    end
+    label =
+      case {div(m, 60), rem(m, 60)} do
+        {0, minutes} ->
+          gettext("%{n}m", n: Kati.Locale.number(minutes))
+
+        {hours, 0} ->
+          gettext("%{n}h", n: Kati.Locale.number(hours))
+
+        {hours, minutes} ->
+          gettext("%{h}h %{m}m", h: Kati.Locale.number(hours), m: Kati.Locale.number(minutes))
+      end
+
+    Kati.UI.eyebrow_label(label)
   end
 
   defp runtime_label(_cached), do: ""
 
-  defp rewatch_label(n) when is_integer(n) and n > 1, do: "#{ordinal(n)} rewatch"
+  # `2nd rewatch`, and `بازتماشای ۲ام`. One msgid rather than `ordinal(n) <>
+  # " rewatch"`, because the two halves are not in that order in Persian — the
+  # noun comes first — and a phrase assembled from two translated fragments can
+  # only ever be assembled in English's order. `Kati.Screens.Activity.nth_time/1`
+  # is the same construction for the same reason.
+  #
+  # `pgettext/2` because the msgid is two tokens: `mix gettext.merge`
+  # fuzzy-matches something this short onto any neighbour that half-resembles
+  # it, and the catalogue already holds `Nothing rewatched`.
+  defp rewatch_label(n) when is_integer(n) and n > 1,
+    do: pgettext("the badge counting a repeat viewing", "%{ordinal} rewatch", ordinal: ordinal(n))
+
   defp rewatch_label(_n), do: nil
 
-  defp ordinal(n) do
+  # `3rd`, and `۳ام` — `Kati.Screens.Activity.ordinal/1`'s own split, taken for
+  # the reason it states: English's four suffixes are an English rule, and
+  # Persian forms an ordinal by suffixing ـُم to the numeral with no exception
+  # for 11 to 13 and none for the units. Two whole answers, rather than a shared
+  # skeleton with a translated suffix — which would be the English rule with
+  # Persian letters in it.
+  defp ordinal(n), do: Kati.Locale.pick(latin_ordinal(n), Kati.Locale.number(n) <> "ام")
+
+  defp latin_ordinal(n) do
     suffix =
       cond do
         rem(n, 100) in 11..13 -> "th"
@@ -651,25 +757,47 @@ defmodule Kati.Screens.Rating do
     "#{n}#{suffix}"
   end
 
+  # The count under the review field, which moves as the reader types.
+  #
+  # `ngettext/4` rather than the two branches this used to have: English needs
+  # the singular, and Persian does not inflect a noun after a numeral — ۱ نویسه
+  # and ۱۸۴ نویسه are both right — so its two forms are the same word, which
+  # the catalogue's own header records. `0` takes the plural in English, which
+  # is what the empty sheet's `0 characters` already said.
+  #
+  # `Kati.Locale.number/1` on the figure: it sits inside a sentence rather than
+  # in a mono slot, so the digits are the reader's own.
   defp characters_label(review) when is_binary(review) do
-    case String.length(review) do
-      1 -> "1 character"
-      n -> "#{n} characters"
-    end
+    n = String.length(review)
+    ngettext("%{n} character", "%{n} characters", n, n: Kati.Locale.number(n))
   end
 
-  defp characters_label(_review), do: "0 characters"
+  defp characters_label(_review), do: characters_label("")
 
   # The three facts that make a log worth keeping later — when, where, and who
   # with — in the drawing's own order. Always three rows: this is an editor, and
   # a field with nothing in it is a field with nothing in it, not a row to hide.
   defp context_rows(logged, zone) do
     [
-      %{icon: "event", title: "Watched on", sub: when_label(logged, zone)},
-      %{icon: "tv", title: "Where", sub: where_label(logged)},
-      %{icon: "group", title: "With", sub: presence(logged.companions)}
+      %{icon: "event", title: watched_on_label(), sub: when_label(logged, zone)},
+      %{icon: "tv", title: where_row_label(), sub: where_label(logged)},
+      %{icon: "group", title: with_row_label(), sub: presence(logged.companions)}
     ]
   end
+
+  # The three row titles, spelled once each rather than at both of their call
+  # sites — `context_rows/2` builds the opening state and `context_of/1` is what
+  # the card draws, and one spelling is what keeps them the same three words.
+  #
+  # `Kati.Screens.RateEpisode`'s own msgids and contexts, not a second set: the
+  # episode sheet asks the same three questions, and two entries for one word is
+  # how two sheets end up spelling it differently. All three carry a context
+  # because `Where` and `With` are single words and `Watched on` is two, and
+  # `mix gettext.merge` fuzzy-matches anything that short onto the first
+  # sentence that starts the same way.
+  defp watched_on_label, do: pgettext("the row naming the day a watch was logged", "Watched on")
+  defp where_row_label, do: pgettext("the row naming where a watch happened", "Where")
+  defp with_row_label, do: pgettext("the row naming who watched along", "With")
 
   # `Sun 16 Aug · 21:40`, and `Sun 16 Aug` for a watch that carries a date and
   # no hour. The two columns are separate on purpose — `watched_on` is
@@ -682,9 +810,21 @@ defmodule Kati.Screens.Rating do
 
     case {date, hour} do
       {nil, _hour} -> nil
-      {date, nil} -> Calendar.strftime(date, "%a %-d %b")
-      {date, hour} -> Calendar.strftime(date, "%a %-d %b") <> " · " <> hour
+      {date, nil} -> Kati.Locale.date(date, :long)
+      {date, hour} -> day_and_hour(date, hour)
     end
+  end
+
+  # `Sun 16 Aug · 21:40`, and `۲۵ مرداد · ۲۱:۴۰`. The middot is inside the msgid
+  # rather than between two fragments, because where the day sits relative to
+  # the hour is a translator's decision and a `<>` here would take it away.
+  # `Kati.Screens.RateEpisode`'s own entry, for the reason the row titles share
+  # theirs.
+  defp day_and_hour(date, hour) do
+    pgettext("a watch's day and the hour it was logged at", "%{date} · %{time}",
+      date: Kati.Locale.date(date, :long),
+      time: hour
+    )
   end
 
   defp log_date(%Watch{watched_on: %Date{} = date}, _zone), do: date
@@ -694,8 +834,12 @@ defmodule Kati.Screens.Rating do
 
   defp log_date(%Watch{}, _zone), do: nil
 
+  # `Kati.Locale.time/1` rather than `strftime("%H:%M")`: both scripts read the
+  # clock in 24 hours — the design's own choice, and `Kati.Screens.Settings`
+  # draws it as a setting rather than a consequence of the language — so what
+  # changes between them is the numerals, `۲۱:۴۰` against `21:40`.
   defp log_hour(%Watch{watched_at: %DateTime{} = at}, zone),
-    do: at |> Kati.Time.in_zone(zone) |> Calendar.strftime("%H:%M")
+    do: at |> Kati.Time.in_zone(zone) |> Kati.Locale.time()
 
   defp log_hour(%Watch{}, _zone), do: nil
 
@@ -773,7 +917,7 @@ defmodule Kati.Screens.Rating do
         {Kati.Screens.Rating.close_disc(close)}
         <Spacer weight={1.0} />
         <Text
-          text="Log a watch"
+          text={gettext("Log a watch")}
           text_size={15}
           font_weight="bold"
           text_color={:on_surface}
@@ -858,7 +1002,7 @@ defmodule Kati.Screens.Rating do
   """
   def save_pill(tap) do
     MishkaPill.pill(
-      label: "Save",
+      label: gettext("Save"),
       background: Palette.ink_fill(),
       color: Palette.on_ink(),
       height: 38,
@@ -886,6 +1030,11 @@ defmodule Kati.Screens.Rating do
 
   Nothing at all when there is nothing to say. A `Spacer` of zero rather than
   `nil`, because every branch of a `~MOB` interpolation has to be a node.
+
+  The sentence is `Kati.Write.message/1`'s, already translated where it is
+  worded; what this adds is `Kati.Locale.leading/1` over the design's 1.45,
+  because Vazirmatn's metrics are not Plus Jakarta's and this is the one
+  paragraph on the sheet that wraps.
   """
   @spec save_notice(String.t() | nil) :: map()
   def save_notice(nil), do: ~MOB"<Spacer size={0} />"
@@ -897,7 +1046,7 @@ defmodule Kati.Screens.Rating do
         text={message}
         text_size={13}
         font_weight="semibold"
-        line_height={1.45}
+        line_height={Kati.Locale.leading(1.45)}
         text_color={Palette.red()}
       />
       <Spacer size={16} />
@@ -905,6 +1054,17 @@ defmodule Kati.Screens.Rating do
     """
   end
 
+  # Two locale calls on a card whose words are all data.
+  #
+  #   * `Kati.Locale.tracking/1` on the title. `-0.025em` is a Latin display
+  #     effect and the Arabic script has no tradition of it — tracking a
+  #     Persian title breaks the joins between its letters, which is a title
+  #     rendered wrong rather than a title rendered tightly. A film's title is
+  #     the cache's, so this slot holds either script.
+  #   * `Kati.Locale.mono_face/1` on the meta line. `kati_mono.ttf` carries no
+  #     Persian glyph, and `runtime_label/1` answers `۱ ساعت ۵۲ دقیقه` under
+  #     `:fa` — DM Mono would hand that to Android's own substitute face. The
+  #     arity-1 form asks the STRING, so a Latin runtime keeps DM Mono.
   @doc false
   def title_card(w) do
     ~MOB"""
@@ -917,7 +1077,7 @@ defmodule Kati.Screens.Rating do
             text={w.title}
             text_size={19}
             font_weight="bold"
-            letter_spacing={-0.025}
+            letter_spacing={Kati.Locale.tracking(-0.025)}
             line_height={1.2}
             text_color={:on_surface}
             max_lines={1}
@@ -925,7 +1085,7 @@ defmodule Kati.Screens.Rating do
           <Spacer size={6} />
           <Text
             text={w.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(w.meta)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -1004,6 +1164,26 @@ defmodule Kati.Screens.Rating do
     end
   end
 
+  # Three decisions about script on one card, and the middle one is the odd
+  # one out:
+  #
+  #   * The eyebrow is `Kati.UI.eyebrow_label/1` around a normal-case msgid
+  #     rather than `String.upcase("Rating")`. Upper case is a Latin operation
+  #     — the Arabic script has none — so upcasing امتیاز changes nothing and
+  #     reads as a no-op that somebody forgot to remove. `Kati.Locale.tracking/1`
+  #     drops the `.16em` with it, for the reason `Kati.UI.eyebrow_label/1`'s
+  #     own doc gives: letter-spacing breaks the joins between Persian letters.
+  #     `Kati.Screens.RateEpisode`'s msgid and context, not a second one — the
+  #     two sheets label the same card.
+  #   * **The numeral keeps the hardcoded `mono`.** `Kati.Rating.Scale.label/2`
+  #     answers `4.5`, `9` or `—` in both scripts, and a figure the design sets
+  #     in DM Mono keeps Latin digits — `Kati.Locale.number/1`'s own doc states
+  #     that rule and `Kati.PersianFontTest` keeps it. Screen 144 draws its
+  #     rating the same way, which is what stops the numeral beside an episode
+  #     disagreeing with the numeral on the sheet that wrote it.
+  #   * The note under the stars IS a sentence, so it takes
+  #     `Kati.Locale.mono_face/0` — see `rating_note/0` for why it is asked for
+  #     by name here rather than read off the draft.
   @doc false
   def rating_card(w) do
     ~MOB"""
@@ -1017,10 +1197,10 @@ defmodule Kati.Screens.Rating do
       >
         <Row fill_width={true} align="center">
           <Text
-            text={String.upcase("Rating")}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(pgettext("the rating card's own label", "Rating"))}
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
-            letter_spacing={0.16}
+            letter_spacing={Kati.Locale.tracking(0.16)}
             text_color={Palette.eyebrow()}
             max_lines={1}
           />
@@ -1042,8 +1222,8 @@ defmodule Kati.Screens.Rating do
         </Row>
         <Spacer size={10} />
         <Text
-          text={w.rating_note}
-          font_family="mono"
+          text={Kati.Screens.Rating.rating_note()}
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -1384,6 +1564,11 @@ defmodule Kati.Screens.Rating do
   # The one card on cream. Screen 08 does the same for its note, and for the
   # same reason: the user's own words are not metadata, so the palette warms up
   # around them.
+  #
+  # The eyebrow is `Kati.UI.eyebrow_label/1` over a msgid, on `rating_card/1`'s
+  # own argument one card up. The character count is a SENTENCE and not a
+  # figure — `۱۸۴ نویسه` — so it asks `Kati.Locale.mono_face/1` what its own
+  # script needs; a Latin count is still DM Mono, which is what the board draws.
   @doc false
   def review_card(w) do
     ~MOB"""
@@ -1397,10 +1582,10 @@ defmodule Kati.Screens.Rating do
       >
         <Row fill_width={true} align="center">
           <Text
-            text={String.upcase("Review")}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(pgettext("the review card's own label", "Review"))}
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
-            letter_spacing={0.16}
+            letter_spacing={Kati.Locale.tracking(0.16)}
             text_color={Palette.cream_meta()}
             max_lines={1}
           />
@@ -1415,7 +1600,7 @@ defmodule Kati.Screens.Rating do
         <Row fill_width={true} align="center">
           <Text
             text={w.characters}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(w.characters)}
             text_size={10.5}
             text_color={Palette.cream_meta()}
             max_lines={1}
@@ -1464,7 +1649,7 @@ defmodule Kati.Screens.Rating do
     ~MOB"""
     <TextField
       value={review}
-      placeholder="What did you make of it?"
+      placeholder={gettext("What did you make of it?")}
       return_key="done"
       fill_width={true}
       text_size={14}
@@ -1514,7 +1699,7 @@ defmodule Kati.Screens.Rating do
       {Kati.UI.symbol("visibility_off", size: 15, color: Palette.eyebrow())}
       <Spacer size={6} />
       <Text
-        text="Mark spoilers"
+        text={pgettext("the offer to flag a review as spoiling its ending", "Mark spoilers")}
         text_size={11}
         font_weight="semibold"
         text_color={Palette.eyebrow()}
@@ -1605,39 +1790,50 @@ defmodule Kati.Screens.Rating do
         key: :watched_on,
         tag: :open_watched_on,
         icon: "event",
-        title: "Watched on",
+        title: watched_on_label(),
         sub: Kati.Screens.Rating.day_label(w)
       },
       %{
         key: :where,
         tag: :open_where,
         icon: "tv",
-        title: "Where",
-        sub: Map.get(w, :service) || sub_of(w, "Where")
+        title: where_row_label(),
+        sub: Map.get(w, :service) || sub_of(w, "tv")
       },
       %{
         key: :with,
         tag: :open_with,
         icon: "group",
-        title: "With",
-        sub: Map.get(w, :companions) || sub_of(w, "With")
+        title: with_row_label(),
+        sub: Map.get(w, :companions) || sub_of(w, "group")
       }
     ]
   end
 
   # The drawing's own sub-line for a row the draft has no value for, so board
-  # 33 keeps its `Lumen+ · Living room` and `Jo` while a real sheet reads the
+  # 33 keeps its `Lumen+ · living room` and `Jo` while a real sheet reads the
   # watch. `nil` on a real sheet with nothing set, which is what an unanswered
   # question looks like.
-  defp sub_of(w, title) do
-    case Enum.find(Map.get(w, :context, []), &(&1.title == title)) do
+  #
+  # Keyed by the row's GLYPH NAME, where it used to be keyed by the row's
+  # title. The title is drawn copy now — `تاریخ تماشا` under `:fa` — and
+  # `Kati.Rating.Sample` writes the drawing's three rows in English, so a
+  # lookup by title would have found nothing the moment the reader's language
+  # was not the fixture's: board 33 in Persian would have lost the three
+  # sub-lines it is a drawing OF. `event`, `tv` and `group` are Material
+  # Symbols names, the same three in both maps and in neither script.
+  defp sub_of(w, icon) do
+    case Enum.find(Map.get(w, :context, []), &(&1.icon == icon)) do
       %{sub: sub} -> sub
       nil -> nil
     end
   end
 
   @doc """
-  `Mon 7 Sep · 00:09`, off the draft.
+  `Mon 7 Sep · 00:09`, off the draft — and `۱۶ شهریور · ۰۰:۰۹` for a Persian
+  reader, which is `Kati.Locale.date/2` answering in a different CALENDAR
+  rather than the same date translated, beside `Kati.Locale.time/1`'s
+  24-hour clock in the reader's own numerals.
 
   The hour comes from `watched_at` and the date from `watched_on`, which is the
   split `Kati.Media.Watch` keeps and `when_label/2` explains: storing a date as
@@ -1651,17 +1847,17 @@ defmodule Kati.Screens.Rating do
 
     case {Map.get(w, :watched_on), Map.get(w, :watched_at)} do
       {nil, nil} ->
-        sub_of(w, "Watched on")
+        sub_of(w, "event")
 
       {nil, %DateTime{} = at} ->
-        at |> Kati.Time.in_zone(zone) |> Calendar.strftime("%a %-d %b · %H:%M")
+        in_zone = Kati.Time.in_zone(at, zone)
+        day_and_hour(DateTime.to_date(in_zone), Kati.Locale.time(in_zone))
 
       {%Date{} = date, %DateTime{} = at} ->
-        Calendar.strftime(date, "%a %-d %b") <>
-          " · " <> (at |> Kati.Time.in_zone(zone) |> Calendar.strftime("%H:%M"))
+        day_and_hour(date, at |> Kati.Time.in_zone(zone) |> Kati.Locale.time())
 
       {%Date{} = date, _none} ->
-        Calendar.strftime(date, "%a %-d %b")
+        Kati.Locale.date(date, :long)
     end
   end
 
@@ -1709,7 +1905,7 @@ defmodule Kati.Screens.Rating do
     assigns = %{
       change: {self(), :with_draft},
       draft: Map.get(w, :with_draft) || Map.get(w, :companions) || "",
-      commit: Kati.Screens.Rating.commit_pill("Done", :commit_with)
+      commit: Kati.Screens.Rating.commit_pill(gettext("Done"), :commit_with)
     }
 
     ~MOB"""
@@ -1718,7 +1914,7 @@ defmodule Kati.Screens.Rating do
         <Box weight={1.0}>
           <TextField
             value={@draft}
-            placeholder="Jo, Sam"
+            placeholder={pgettext("two example names in the companions field", "Jo, Sam")}
             return_key="done"
             fill_width={true}
             text_size={13}
@@ -1748,11 +1944,20 @@ defmodule Kati.Screens.Rating do
     for offset <- 0..3 do
       date = Date.add(today, -offset)
 
+      # The chip a day further back than *yesterday* is dated in the reader's
+      # own calendar: `Kati.Locale.date/2`'s `:long` is this call's own
+      # `%a %-d %b` in Latin and the Shamsi day in Persian, which is an
+      # arithmetic rather than a formatting — ۲۰ شهریور ۱۴۰۵ and 11 September
+      # 2026 are the same day and neither is a translation of the other.
+      #
+      # The chip's TAG is `Date.to_iso8601/1` and not the label (see
+      # `editor/3`), so what the reader taps means the same day in both
+      # scripts.
       label =
         case offset do
-          0 -> "Today"
-          1 -> "Yesterday"
-          _ -> Calendar.strftime(date, "%a %-d %b")
+          0 -> gettext("Today")
+          1 -> gettext("Yesterday")
+          _ -> Kati.Locale.date(date, :long)
         end
 
       {label, date}
@@ -1794,12 +1999,14 @@ defmodule Kati.Screens.Rating do
   def where_note(false), do: ~MOB"<Spacer size={0} />"
 
   def where_note(true) do
+    # Built above the sigil rather than inside the attribute: the sentence is
+    # the longest on the sheet and every other attribute expression in this
+    # file fits on its line.
+    note = gettext("Add your services in Settings → My services, and they will be offered here.")
+    assigns = %{note: note}
+
     ~MOB"""
-    <Text
-      text="Add your services in Settings → My services, and they will be offered here."
-      text_size={11}
-      text_color={Palette.eyebrow()}
-    />
+    <Text text={@note} text_size={11} text_color={Palette.eyebrow()} />
     """
   end
 
@@ -1903,7 +2110,7 @@ defmodule Kati.Screens.Rating do
             <Box weight={1.0}>
               <TextField
                 value={@draft}
-                placeholder="rewatch, with Jo, rainy sunday…"
+                placeholder={gettext("rewatch, with Jo, rainy sunday…")}
                 return_key="done"
                 fill_width={true}
                 text_size={13}
@@ -1996,8 +2203,15 @@ defmodule Kati.Screens.Rating do
     )
   end
 
+  # `pgettext/2` rather than a bare `Add`: the catalogue already holds `Add a
+  # title`, `Add by hand` and `Add to a list`, and one word is exactly what
+  # `mix gettext.merge` fuzzy-matches onto the first of them. The `Done` beside
+  # it can stay plain — it is the whole label of every commit button in the app.
   @doc false
-  def commit_tag, do: Kati.Screens.Rating.commit_pill("Add", :commit_tag)
+  def commit_tag do
+    label = pgettext("the button that commits a typed tag", "Add")
+    Kati.Screens.Rating.commit_pill(label, :commit_tag)
+  end
 
   @doc """
   The gap between chips, in pt.
@@ -2064,7 +2278,12 @@ defmodule Kati.Screens.Rating do
     tap = if live?, do: {self(), :add_tag}
 
     MishkaPill.pill(
-      label: "+ tag",
+      # The `+` stays inside the msgid rather than being prefixed to a
+      # translated word: it is part of the affordance's name, and which side of
+      # the word it sits on is the bidi algorithm's answer rather than this
+      # file's — `+ برچسب` puts it at the start of the line, which under `rtl`
+      # is the right-hand edge, exactly where the Latin chip has it.
+      label: pgettext("the chip that opens the tag field", "+ tag"),
       background: :transparent,
       color: Palette.eyebrow(),
       border_color: Palette.border_strong(),
@@ -2187,8 +2406,13 @@ defmodule Kati.Screens.Rating do
       "use_tag_" <> label ->
         edit(socket, &add_tag_to(&1, label))
 
+      # `spoilers_label/0` and not the sentence again: the draft carries the
+      # badge's own words where a boolean would do (see that function), so the
+      # two ends of the flag have to be saying the same thing in the same
+      # language — `save_watch/1` reads the presence of this value back out as
+      # `contains_spoilers`.
       "toggle_spoilers" ->
-        edit(socket, &Map.put(&1, :spoilers, if(is_nil(&1.spoilers), do: "Spoilers hidden")))
+        edit(socket, &Map.put(&1, :spoilers, if(is_nil(&1.spoilers), do: spoilers_label())))
 
       "add_tag" ->
         edit(socket, &Map.put(&1, :tag_draft, Map.get(&1, :tag_draft) || ""))
@@ -2268,7 +2492,7 @@ defmodule Kati.Screens.Rating do
     assigns = %{
       change: {self(), :place_draft},
       draft: Map.get(w, :place_draft) || Map.get(w, :place) || "",
-      commit: Kati.Screens.Rating.commit_pill("Done", :commit_place),
+      commit: Kati.Screens.Rating.commit_pill(gettext("Done"), :commit_place),
       chips:
         used
         |> Enum.map(&Kati.Screens.Rating.choice(&1, "place_" <> &1, &1 == Map.get(w, :place))),
@@ -2279,10 +2503,10 @@ defmodule Kati.Screens.Rating do
     <Column fill_width={true}>
       <Spacer size={11} />
       <Text
-        text="PLACE"
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(pgettext("the eyebrow over the place field", "Place"))}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
-        letter_spacing={0.16}
+        letter_spacing={Kati.Locale.tracking(0.16)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
@@ -2291,7 +2515,7 @@ defmodule Kati.Screens.Rating do
         <Box weight={1.0}>
           <TextField
             value={@draft}
-            placeholder="living room"
+            placeholder={pgettext("an example of a room a film was watched in", "living room")}
             return_key="done"
             fill_width={true}
             text_size={13}
@@ -2352,9 +2576,25 @@ defmodule Kati.Screens.Rating do
   service: a night at the cinema is a fact about where the film was watched,
   and leaving the column `nil` would make it indistinguishable from a night
   nobody said anything about.
+
+  **Translated, and the consequence is stated rather than hidden.** This is the
+  one chip on the row whose words are Kati's — every other one is a service the
+  reader named, which stays in its own spelling for the reason board 127 draws
+  `Lumen+` in Latin on a Persian page. Because the chip's label IS the value
+  `choose_where/2` stores, a Persian reader's night at the cinema is stored as
+  `روی هیچ سرویسی نبود` and an English reader's as `Not on a service`; a reader
+  who later changes language meets their old answer as one more remembered
+  service in `where_options/1` rather than as the lit chip. That is a wart and
+  it is the smaller one: the alternative is an English chip sitting among
+  Persian ones on every device that is not English, which is the failure this
+  whole fold is about. Closing it properly means a stored token separate from
+  its label — `Kati.Media.Watch.service` holding `:none` — which is a column
+  change and not a screen's to make.
   """
   @spec no_service() :: String.t()
-  def no_service, do: "Not on a service"
+  def no_service do
+    pgettext("the chip for a watch that was on no service", "Not on a service")
+  end
 
   defp commit_place(draft) do
     typed = String.trim(Map.get(draft, :place_draft) || "")

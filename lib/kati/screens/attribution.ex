@@ -66,11 +66,10 @@ defmodule Kati.Screens.Attribution do
   #
   # ## Why this is a function and not a module attribute
   #
-  # `gettext/1` in an attribute is `gettext/1` in an attribute is
-  # evaluated once at COMPILE time, so the locale of whoever ran `mix compile`
-  # would be the locale every reader got. `takes` and `gloss` are Kati's own
-  # sentences and are translated here; `name`, `site` and `notice` are not, for
-  # the reasons above.
+  # `gettext/1` in an attribute is evaluated once at COMPILE time, so the
+  # locale of whoever ran `mix compile` would be the locale every reader got.
+  # `takes` and `gloss` are Kati's own sentences and are translated here;
+  # `name`, `site` and `notice` are not, for the reasons above.
   @doc "Every third-party source, with the notice its licence requires."
   @spec sources() :: [map()]
   def sources do
@@ -194,13 +193,17 @@ defmodule Kati.Screens.Attribution do
   def gloss(sentence) do
     assigns = %{sentence: sentence}
 
+    # `Kati.Locale.leading/1` and not the bare 1.5, because this is the half of
+    # the card that IS translated: under `:fa` it is a Persian sentence set in
+    # Vazirmatn, whose metrics are not Plus Jakarta's. The notice above it keeps
+    # its Latin 1.5 for the mirror-image reason — see `source_card/1`.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={5} />
       <Text
         text={@sentence}
         text_size={12}
-        line_height={1.5}
+        line_height={Kati.Locale.leading(1.5)}
         text_color={Palette.muted()}
         font_family={Kati.Locale.face_prop()}
       />
@@ -220,6 +223,38 @@ defmodule Kati.Screens.Attribution do
       tap: {self(), String.to_atom("open_#{source.id}")}
     }
 
+    # THE NOTICE PINS THREE PROPS, AND ALL THREE SAY THE SAME THING.
+    #
+    # It is a quotation a licence requires, so it is English on a Persian page —
+    # board 85 draws it as *a left-aligned LTR block, since a legal sentence
+    # quoted in English must read as English* — and without these it would
+    # inherit all three of that page's Persian defaults:
+    #
+    #   * `Kati.Locale.ltr/1` on the string, so the bidi algorithm keeps the
+    #     sentence's own full stop at the sentence's own edge rather than at the
+    #     paragraph's.
+    #   * `text_align="absolute_left"`, because `Start` under `rtl` is the RIGHT
+    #     edge, and an English paragraph ragged down its left is the one thing
+    #     board 85 says this block must not be. `absolute_left` and not `left`:
+    #     `MobBridge.textAlignProp/1` knows `center`, `right`, `start`, `end`,
+    #     `absolute_left`, `absolute_right` and `justify`, and drops anything
+    #     else in silence (`K-12 absolute-text-align`).
+    #   * `font_family="sans"`, because the root declares `fa` under `:fa`
+    #     (`K-48 locale-face`) and every unmarked `Text` falls back to it — and
+    #     this sentence is never Persian. `Kati.Screens.Language.language_body/1`
+    #     pins the same prop for the same reason, on the other page that draws a
+    #     script it is not written in.
+    #
+    # `line_height` deliberately does NOT take `Kati.Locale.leading/1`: that
+    # constant is Vazirmatn's metrics, and this line is not set in Vazirmatn.
+    # Board 85 holds the notice at 1.6 while opening every Persian paragraph
+    # around it out to 1.8.
+    #
+    # The site keeps a hardcoded `mono` for the neighbouring reason. It is an
+    # ASCII domain out of `sources/0` in both locales — never the reader's
+    # script — so DM Mono has every glyph it needs and both drawings set it
+    # there. `Kati.Locale.mono_face/1` would answer `"mono"` for every one of
+    # the five and only hide that this slot cannot hold Persian.
     ~MOB"""
     <Column
       fill_width={true}
@@ -238,12 +273,19 @@ defmodule Kati.Screens.Attribution do
             text_size={13.5}
             font_weight="semibold"
             text_color={:on_surface}
-            line_height={1.35}
+            line_height={Kati.Locale.leading(1.35)}
           />
         </Column>
       </Row>
       <Spacer size={11} />
-      <Text text={@notice} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+      <Text
+        text={@notice}
+        text_size={12}
+        line_height={1.5}
+        text_color={Palette.ink_soft()}
+        font_family="sans"
+        text_align="absolute_left"
+      />
       {Kati.Screens.Attribution.gloss(@gloss)}
       <Spacer size={11} />
       <Row fill_width={true} align="center">
@@ -324,7 +366,18 @@ defmodule Kati.Screens.Attribution do
       Enum.map(Kati.Screens.Attribution.open_source(), fn {licence, covers} ->
         SettingsList.row(
           Kati.Screens.Attribution.licence_pill(licence),
-          SettingsList.body(covers, nil),
+          # The covered-by line is a run of Latin names — `Kati, Mob`, `Plus
+          # Jakarta Sans, DM Mono, Vazirmatn` — sitting on a page that is RTL
+          # under `:fa`, and board 85 draws each of the three `direction:ltr`.
+          # The commas in the third sit between Latin words and resolve LTR on
+          # their own today; the isolate is what keeps that true the day a name
+          # with a neutral at either edge is added to `open_source/0`, which is
+          # not a breakage anybody goes looking for in a licence list.
+          #
+          # `Kati.Locale.ltr/1` here rather than inside `open_source/0`, so the
+          # list stays the pair of plain strings its `@spec` promises and the
+          # bidi marks belong to the thing that draws them.
+          SettingsList.body(Kati.Locale.ltr(covers), nil),
           SettingsList.trailing(nil)
         )
       end)
@@ -345,7 +398,7 @@ defmodule Kati.Screens.Attribution do
       <Text
         text={gettext("Kati is MIT-licensed. It stands on work by people who gave it away.")}
         text_size={12.5}
-        line_height={1.5}
+        line_height={Kati.Locale.leading(1.5)}
         text_color={Palette.ink_soft()}
         font_family={Kati.Locale.face_prop()}
       />
@@ -365,8 +418,11 @@ defmodule Kati.Screens.Attribution do
   `Kati.Locale.pick/2` draws it in Persian and draws nothing in English rather
   than being folded into the two notes above it.
 
-  `Kati.Screens.AttributionFa.@copy.mirror` is where it comes from, and it is
-  the one string in that mirror with no English original at all.
+  `Kati.Screens.AttributionFa.@copy.mirror` is where it came from, and it was
+  the one string in that mirror with no English original at all — which is also
+  why it is a literal here rather than a `gettext/1` call. A msgid is an English
+  sentence somebody translated; this sentence has never had an English side, so
+  there is nothing for a catalogue entry to be keyed on.
   """
   @spec marks_note() :: map()
   def marks_note do
