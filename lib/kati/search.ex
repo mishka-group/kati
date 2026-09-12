@@ -104,14 +104,6 @@ defmodule Kati.Search do
   # holds `All` — which is every group rather than a scope of its own.
   @built [:screen, :books, :calendar, :notes]
 
-  # The four tiers, with the example screen 88 prints for each.
-  @tiers [
-    {1, "Exact title match", "hollow → Hollow"},
-    {2, "Prefix match", "hollow → Hollow Season"},
-    {3, "Substring", "hollow → The Long Hollow"},
-    {4, "Body text", "hollow → a note mentioning it"}
-  ]
-
   # Scripts where a single character is a word, and the minimum is therefore 1.
   # Ranges rather than a language list, because what matters is what was typed
   # rather than what the app is set to.
@@ -151,7 +143,16 @@ defmodule Kati.Search do
          {:title, gettext("title")},
          {:author, gettext("author")},
          {:series, gettext("series")},
-         {:isbn, "ISBN"},
+         # Kati already writes this one in Persian — «شابک» is the existing
+         # `gettext("ISBN")`, which `Kati.Screens.BookDetailStates` and
+         # `Kati.Screens.BookDetailDark` draw on the book's own page — so this
+         # is that msgid rather than a brand left in Latin: a standard's
+         # acronym the language has its own word for is not TMDB.
+         # `Kati.Screens.SearchSpec.searched/1` asks
+         # `Kati.Locale.mono_face/1` about the chip, so the Persian takes
+         # Vazirmatn and the English keeps DM Mono without either being
+         # decided twice.
+         {:isbn, gettext("ISBN")},
          {:your_notes, gettext("your notes")},
          {:your_quotes, gettext("your quotes")}
        ]},
@@ -233,9 +234,47 @@ defmodule Kati.Search do
     end
   end
 
-  @doc "The four ranking tiers, with their examples."
+  @doc """
+  The four ranking tiers, with the example screen 88 prints for each.
+
+  A function and not the `@tiers` attribute this was, for the reason `scopes/0`
+  gives one level up: `gettext/1` inside a module attribute is evaluated at
+  COMPILE time, so four translated tier names would have frozen in whichever
+  locale `mix compile` happened to be in. mishka-group/kati#103.
+  """
   @spec tiers() :: [{pos_integer(), String.t(), String.t()}]
-  def tiers, do: @tiers
+  def tiers do
+    # THE NAME IS THIS MODULE'S TO TRANSLATE AND THE EXAMPLE IS NOT — NOT YET.
+    #
+    # Board 88 draws the name through `Kati.UI.SettingsList.body/2`, which sets
+    # no `font_family` at all and so takes the face the root declares — `fa`
+    # under `:fa`. The EXAMPLE beside it is drawn by
+    # `Kati.Screens.SearchSpec.tier_row/1` with a hardcoded
+    # `font_family="mono"`, and `kati_mono.ttf` carries no Persian glyph: a
+    # translated «گودال ← گودال» there is handed to Android's own substitute
+    # face, which is the quiet failure `Kati.PersianFontTest` exists for and
+    # which it fails the build over, because it reads the rendered tree rather
+    # than this source.
+    #
+    # `tier_row/1`'s own comment already names the fix — *the round that
+    # translates `@tiers` has to bring `Kati.Locale.mono_face/1` here with it* —
+    # and that is another module's file. So the examples stay ASCII until the
+    # seam lands there, and the words are waiting for it: `hollow` is already
+    # «گودال», `Hollow Season` «فصل گودال» and `The Long Hollow` «گودال بلند»
+    # on screens 19 and 86.
+    #
+    # `pgettext/2` and not `gettext/1` for all four: `Substring`, `Prefix
+    # match` and `Body text` are one and two words, which is short enough for
+    # `mix gettext.merge` to fuzzy-match onto some other sentence, and a
+    # ranking tier is not a label another page could borrow. The context is the
+    # same for all four so a translator sees them as the set they are.
+    [
+      {1, pgettext("search ranking tier", "Exact title match"), "hollow → Hollow"},
+      {2, pgettext("search ranking tier", "Prefix match"), "hollow → Hollow Season"},
+      {3, pgettext("search ranking tier", "Substring"), "hollow → The Long Hollow"},
+      {4, pgettext("search ranking tier", "Body text"), "hollow → a note mentioning it"}
+    ]
+  end
 
   @doc "How long the field waits before it fires, in milliseconds."
   @spec debounce_ms() :: pos_integer()
@@ -255,11 +294,6 @@ defmodule Kati.Search do
   @spec placeholder() :: String.t()
   def placeholder, do: gettext("Search anything you keep")
 
-  # Board 86's two, and its own caption says they are *drawn from what you
-  # actually have* — which they were not: two fixed strings that match nothing
-  # on any device but the one the board was captured on. MOVIES-AND-TV.md #72.
-  @drawn_suggestions ["what leaves this week", "notes about the estuary"]
-
   @doc """
   The two suggestions, and there are only ever two.
 
@@ -275,7 +309,27 @@ defmodule Kati.Search do
   when they are derived.
   """
   @spec suggestions() :: [String.t()]
-  def suggestions, do: @drawn_suggestions
+  def suggestions do
+    # Board 86's two, and its own caption says they are *drawn from what you
+    # actually have* — which they were not: two fixed strings that match
+    # nothing on any device but the one the board was captured on.
+    # MOVIES-AND-TV.md #72.
+    #
+    # A function and not the `@drawn_suggestions` attribute this was, for
+    # `tiers/0`'s reason: a `gettext/1` in an attribute freezes at compile
+    # time. Board 86 draws a suggestion through
+    # `Kati.UI.SettingsList.body/2`, which takes the root's face, so Persian
+    # is safe to hand it.
+    #
+    # These are the only strings in this file that are also a QUERY — a tap
+    # searches for the words it draws — so translating them changes what a tap
+    # looks for. That costs nothing and is the honest reading either way: the
+    # pair match nothing on any device (#72 again), which is why
+    # `Kati.Search.Suggestions.for_reader/1` derives a real two and board 321
+    # draws a worded card rather than falling back at all. A reader who does
+    # reach this pair should at least reach it in their own script.
+    [gettext("what leaves this week"), gettext("notes about the estuary")]
+  end
 
   @doc """
   The sentence explaining why the chips carry no counts until something is typed.
@@ -636,11 +690,32 @@ defmodule Kati.Search do
   """
   @spec normalisation_table() :: [{String.t(), String.t(), String.t() | nil, String.t() | nil}]
   def normalisation_table do
+    # WHICH COLUMN A WORD SITS IN IS WHAT DECIDES WHETHER IT CAN BE TRANSLATED.
+    #
+    # `Kati.Screens.SearchSpec.folding_row/1` sets `font_family="fa"` on the
+    # `from` and `to` cells and `font_family="mono"` on the two code cells
+    # beside them, deliberately and with its own argument: those hold a
+    # machine's name for a character, ASCII in both scripts, and a table whose
+    # codes come out in two faces reads as a mistake.
+    #
+    # So the four words in the `fa` cells are translated, which is what board
+    # 88's moduledoc asks this file for by name — and the vocabulary was
+    # already decided, by board 90's own Persian annotation: نیم‌فاصله for the
+    # zero-width non-joiner and اعراب for the harakat.
+    #
+    # The last row's two English words are in the MONO cells and cannot be.
+    # `kati_mono.ttf` carries no Persian glyph, `Kati.PersianFontTest` reads the
+    # rendered tree rather than this source, and the face is pinned in a file
+    # this round does not own. That row is the only one putting prose where the
+    # other four put a codepoint, which is the actual defect and is a screen's
+    # to fix; it is reported rather than edited around here.
     [
       {"ي", "U+064A", "ی", "U+06CC"},
       {"ك", "U+0643", "ک", "U+06A9"},
-      {"ZWNJ", "U+200C", "folded", nil},
-      {"harakat", "U+064B–0652", "stripped", nil},
+      {pgettext("Persian normalisation table", "ZWNJ"), "U+200C",
+       pgettext("Persian normalisation table", "folded"), nil},
+      {pgettext("Persian normalisation table", "harakat"), "U+064B–0652",
+       pgettext("Persian normalisation table", "stripped"), nil},
       {"٤ ۴", "Arabic-Indic", "4", "folded"}
     ]
   end

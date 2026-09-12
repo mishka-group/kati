@@ -521,11 +521,11 @@ defmodule Kati.ScreenParamsSweepTest do
     # ingredient row on purpose — `meal_edit.ex:847-852` — and the tags below
     # are the rows' own.
     {Kati.Screens.MealEdit, :add_ingredient, Kati.Screens.AddIngredient},
-    {Kati.Screens.MealEdit, :ingredient_Coconut_milk, Kati.Screens.AddIngredient},
-    {Kati.Screens.MealEdit, :ingredient_Curry_leaves, Kati.Screens.AddIngredient},
-    {Kati.Screens.MealEdit, :ingredient_Onion, Kati.Screens.AddIngredient},
-    {Kati.Screens.MealEdit, :"ingredient_Red_lentils,_dry", Kati.Screens.AddIngredient},
-    {Kati.Screens.MealEdit, :ingredient_Spinach, Kati.Screens.AddIngredient},
+    {Kati.Screens.MealEdit, :ingredient_coconut_milk, Kati.Screens.AddIngredient},
+    {Kati.Screens.MealEdit, :ingredient_curry_leaves, Kati.Screens.AddIngredient},
+    {Kati.Screens.MealEdit, :ingredient_onion, Kati.Screens.AddIngredient},
+    {Kati.Screens.MealEdit, :ingredient_red_lentils, Kati.Screens.AddIngredient},
+    {Kati.Screens.MealEdit, :ingredient_spinach, Kati.Screens.AddIngredient},
 
     # ── Screen 57's six grid tiles.
     #

@@ -870,10 +870,31 @@ defmodule Kati.Screens.MealEdit do
   ordering, and any future per-row action — can now tell the second line from
   the first.
 
+  ## The tag is the row's KEY where it has one, never its drawn name
+
+  A drawn row's name is a msgid — `Kati.Meals.SampleLibrary.ingredients/0`
+  wraps all five — so building the tag out of it renamed every control the
+  moment the page was read in Persian: `:ingredient_اسفناج`. A control whose
+  identity changes with the language cannot be typed by a device test and is
+  not the same control to TalkBack twice, which is what
+  `Kati.ScreenTapSweepTest` fails over. The fixture carries `:key` for exactly
+  this, and `Kati.Screens.AddByHand.tag/2` is the same answer one screen over.
+
+  A stored row has no `:key` and keeps the name clause, which is correct rather
+  than a fallback: a real ingredient's name is what the reader typed, so it is
+  the row's value and not a label the app chose — it does not move between
+  locales, and nothing else on the row identifies it.
+
+      iex> Kati.Screens.MealEdit.ingredient_tag(%{key: :olive_oil})
+      :ingredient_olive_oil
+
       iex> Kati.Screens.MealEdit.ingredient_tag(%{name: "Olive oil"})
       :ingredient_Olive_oil
   """
   @spec ingredient_tag(map()) :: atom()
+  def ingredient_tag(%{key: key}) when is_atom(key) and not is_nil(key),
+    do: Kati.Screens.AddByHand.tag("ingredient_", key)
+
   def ingredient_tag(%{name: name}) when is_binary(name) do
     case String.trim(name) do
       "" -> :edit_ingredient

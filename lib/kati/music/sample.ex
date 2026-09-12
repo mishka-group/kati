@@ -10,23 +10,74 @@ defmodule Kati.Music.Sample do
   mirror `Kati.Library.Sample`'s: a list of works with artwork seeds, and a list
   of upcoming releases with a dot.
 
-  `plays` is stored already capitalised because the export writes `41 PLAYS`
-  into the markup rather than uppercasing it in CSS — unlike `This month`
-  beside it, which is `text-transform:uppercase` and is upcased at render.
+  `plays` *was* stored already capitalised, because the export writes
+  `41 PLAYS` into the markup rather than uppercasing it in CSS — unlike
+  `This month` beside it, which is `text-transform:uppercase` and is upcased at
+  render. It is built now, by `plays_label/1` below: a frozen `41 PLAYS` is
+  Latin digits, a Latin word and capitals a Persian page cannot undo. English
+  is unchanged, because `Kati.UI.eyebrow_label/1` upcases under `:en` and is a
+  no-op under `:fa`, where there is no case to make.
   """
 
-  @doc "The header's mono subtitle."
+  @doc """
+  The header's mono subtitle — `418 albums · 61h this year`.
+
+  The two figures are the drawing's and stay declared: a shelf is a window onto
+  a library of 418, which `Kati.Screens.Music`'s own moduledoc says at length.
+  What is *not* frozen any more is the sentence around them — the three msgids
+  are `Kati.Screens.Music.subtitle/2`'s own, so the drawn header and the
+  counted one cannot spell one shelf two ways.
+
+  `gettext/1` and not `ngettext/4` on the count, which is that function's
+  documented decision rather than a forgotten plural: the drawing writes one
+  word there, and Persian does not inflect after a numeral either.
+  """
   @spec subtitle() :: String.t()
-  def subtitle, do: "418 albums · 61h this year"
+  def subtitle,
+    do:
+      gettext("%{n} albums", n: Kati.Locale.number(418)) <>
+        " · " <>
+        gettext("%{hours} this year", hours: gettext("%{n}h", n: Kati.Locale.number(61)))
 
   @doc "The three albums on repeat, in the order the row draws them."
   @spec albums() :: [map()]
   def albums do
     [
-      %{seed: "albm1", title: "Tidal Works", artist: "Kell Ostrand", plays: "41 PLAYS"},
-      %{seed: "albm2", title: "Low Country", artist: "Vesper Line", plays: "28 PLAYS"},
-      %{seed: "albm3", title: "Nine Rooms", artist: "Aud Marne", plays: "19 PLAYS"}
+      %{
+        seed: "albm1",
+        title: gettext("Tidal Works"),
+        artist: gettext("Kell Ostrand"),
+        plays: plays_label(41)
+      },
+      %{
+        seed: "albm2",
+        title: gettext("Low Country"),
+        artist: gettext("Vesper Line"),
+        plays: plays_label(28)
+      },
+      %{
+        seed: "albm3",
+        title: gettext("Nine Rooms"),
+        artist: gettext("Aud Marne"),
+        plays: plays_label(19)
+      }
     ]
+  end
+
+  # `41 PLAYS` — built, not frozen, and built out of
+  # `Kati.Screens.Music.plays_label/1`'s own msgid and its own
+  # `Kati.UI.eyebrow_label/1`. A drawn tile and a counted tile sit in the same
+  # rail on screen 21 and are one tap from screen 74's `41 plays`; three
+  # spellings of one count inside one journey is what mishka-group/kati#103
+  # keeps finding.
+  #
+  # The msgid is the shared thing and not a call to `plays_label/1` itself:
+  # `Kati.Screens.Music` reads this module, and a fixture calling back into the
+  # screen it feeds would draw a cycle for the sake of one line.
+  defp plays_label(count) do
+    Kati.UI.eyebrow_label(
+      ngettext("%{n} play", "%{n} plays", count, n: Kati.Locale.number(count))
+    )
   end
 
   @doc """
@@ -43,9 +94,27 @@ defmodule Kati.Music.Sample do
     strong = 0xFFB08E55
 
     %{
-      label: "This month",
-      total: "9h 12m",
-      window: "mostly 21:00–23:00",
+      # The card's own SECTION word, and `Kati.Screens.Music.listening/1`'s own
+      # msgid — one string, so the drawn card and the counted one cannot head
+      # the same figure with two different words. Sentence case here on
+      # purpose: the capitals belong to `Kati.UI.eyebrow_label/1` in
+      # `listening_card/1`, where they are a no-op on a script that has none.
+      label: gettext("This month"),
+      # `9h 12m`, built the way `Kati.Screens.Music.clock/1` builds it — which
+      # is also `Kati.Screens.Stats.hours_and_minutes/1`'s msgid, so the two
+      # big durations in the app are one string a translator shapes once. Two
+      # Latin letters glued to two Latin numbers is exactly what put `9h 12m`
+      # on a Persian page; ۹ ساعت ۱۲ دقیقه is the same 552 minutes.
+      total: gettext("%{h}h %{m}m", h: Kati.Locale.number(9), m: Kati.Locale.number(12)),
+      # The two clocks are `Kati.Screens.Music.oclock/1`'s: 24-hour and the
+      # colon in both scripts, because that is the design's choice, and the
+      # digits in the reader's own. The en dash between them belongs to the
+      # msgid rather than to this call site.
+      window:
+        gettext("mostly %{from}–%{to}",
+          from: Kati.Locale.number("21:00"),
+          to: Kati.Locale.number("23:00")
+        ),
       bars: [
         {17.6, soft},
         {30.8, soft},
@@ -75,10 +144,39 @@ defmodule Kati.Music.Sample do
   @spec releases() :: [map()]
   def releases do
     [
-      %{seed: "albm4", artist: "Kell Ostrand", line: "Estuary Tapes · out Friday"},
-      %{seed: "albm5", artist: "Vesper Line", line: "single · out now"}
+      %{
+        seed: "albm4",
+        artist: gettext("Kell Ostrand"),
+        line: release_line(gettext("Estuary Tapes"), pgettext("new release row", "out Friday"))
+      },
+      %{
+        seed: "albm5",
+        artist: gettext("Vesper Line"),
+        line:
+          release_line(
+            pgettext("new release row", "single"),
+            pgettext("new release row", "out now")
+          )
+      }
     ]
   end
+
+  # A release row's line: what has landed, then when. `%{what} · %{when}` is
+  # already the app's join — `Kati.Screens.Stats.recent_data/1` heads screen
+  # 61's recent rows with it — so both rows of this card share one msgid rather
+  # than two a translator could order differently inside one card.
+  #
+  # The record is INTERPOLATED and not written into a sentence. `Estuary Tapes`
+  # is a msgid `artist_albums/0` and `unheard/0` also reach for, and a record
+  # spelled one way in screen 21's band and another on screen 77's card — one
+  # tap apart, because the band opens that page — is the defect
+  # mishka-group/kati#103 exists to close.
+  #
+  # `pgettext/2` on the three short halves rather than `gettext/1`: `single`,
+  # `out now` and `out Friday` are one and two words, and `mix gettext.merge`
+  # fuzzy-matches a msgid that short onto any longer string ending the same way
+  # — this module's own `Out Friday · you have not heard it` among them.
+  defp release_line(what, when_), do: gettext("%{what} · %{when}", what: what, when: when_)
 
   @doc """
   Screen 74's album, as the drawing captured it.
