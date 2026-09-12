@@ -81,6 +81,7 @@ defmodule Kati.Screens.Calendar do
   sweep's `@known_collisions`.
   """
   use Kati.Screens.Root, root: :calendar
+  use Gettext, backend: Kati.Gettext
 
   @doc """
   What the `+` opens from the Schedule: `Kati.Screens.QuickAdd`.
@@ -131,7 +132,7 @@ defmodule Kati.Screens.Calendar do
     Mob.Socket.assign(socket,
       date: date,
       rows: day_rows(date),
-      filter: "All",
+      filter: :all,
       menu?: false,
       # Read, never remembered. `Kati.Permissions` says why at length: a
       # permission can be revoked in system settings while Kati is
@@ -175,43 +176,100 @@ defmodule Kati.Screens.Calendar do
       %{
         shape: :done,
         kind: "event",
-        time: "08:00",
-        title: "Morning run",
-        meta: "Habit · 12-day streak"
+        time: Kati.Locale.time(~T[08:00:00]),
+        title: gettext("Morning run"),
+        meta: gettext("Habit · %{n}-day streak", n: Kati.Locale.number(12))
       },
       %{
         shape: :event,
         kind: "event",
-        time: "11:00",
-        title: "Dentist — Marlow Clinic",
-        meta: "11:00 – 11:45"
+        time: Kati.Locale.time(~T[11:00:00]),
+        title: gettext("Dentist — Marlow Clinic"),
+        meta:
+          gettext("%{from} – %{to}",
+            from: Kati.Locale.time(~T[11:00:00]),
+            to: Kati.Locale.time(~T[11:45:00])
+          )
       },
       %{
         shape: :reminder,
         kind: "event",
-        time: "15:00",
-        title: "Renew passport",
-        meta: "reminder"
+        time: Kati.Locale.time(~T[15:00:00]),
+        title: gettext("Renew passport"),
+        meta: gettext("reminder")
       },
-      %{shape: :money, kind: "money", time: "18:00", title: "Lumen+ renews", meta: "£8.99"},
+      %{
+        shape: :money,
+        kind: "money",
+        time: Kati.Locale.time(~T[18:00:00]),
+        title: gettext("Lumen+ renews"),
+        # `Kati.Services.Service.format/2` and not a literal: the symbol leads
+        # in Latin and trails in Persian, and the digits and the decimal mark
+        # follow the script — board 97's own ruling, applied to the one money
+        # row on this board. Board 56 writes the currency as a WORD, ۸٫۹۹ پوند,
+        # and that is the one form the app does not use; `retired_lines/0`
+        # carries why.
+        meta: Kati.Services.Service.format(899, "GBP")
+      },
       %{
         shape: :airing,
         kind: "screen",
-        time: "20:00",
-        title: "3 titles airing",
-        meta: "Lumen+ · Northlight · 20:00",
+        time: Kati.Locale.time(~T[20:00:00]),
+        title: ngettext("%{n} title airing", "%{n} titles airing", 3, n: Kati.Locale.number(3)),
+        meta:
+          gettext("%{a} · %{b} · %{at}",
+            a: "Lumen+",
+            b: "Northlight",
+            at: Kati.Locale.time(~T[20:00:00])
+          ),
         posters: ~w(hollow71 saltiron33 cartog60),
         # What "3 titles airing" is three OF. The drawing templates these rows
         # ({{ }} in the export) rather than naming them, so they are stated
         # from the posters the group already stacks — same three titles, in the
         # same order, which is the only reading consistent with the artwork.
+        #
+        # Board 56 fills the template in and its first row is the pair board 19
+        # already words: گودال بلند, فصل ۲ · قسمت ۶. So the title is
+        # `gettext("The Long Hollow")` — the msgid screen 19's own hit carries —
+        # rather than a second Persian string for the same series.
         airing: [
-          %{title: "The Long Hollow", meta: "S2E6 · Lumen+ · 20:00", seed: "hollow71"},
-          %{title: "Salt & Iron", meta: "S1E3 · Northlight · 20:00", seed: "saltiron33"},
-          %{title: "Cartographers", meta: "S4E1 · Lumen+ · 21:00", seed: "cartog60"}
+          %{
+            title: gettext("The Long Hollow"),
+            meta: Kati.Screens.Calendar.airing_meta(2, 6, "Lumen+", ~T[20:00:00]),
+            seed: "hollow71"
+          },
+          %{
+            title: gettext("Salt & Iron"),
+            meta: Kati.Screens.Calendar.airing_meta(1, 3, "Northlight", ~T[20:00:00]),
+            seed: "saltiron33"
+          },
+          %{
+            title: gettext("Cartographers"),
+            meta: Kati.Screens.Calendar.airing_meta(4, 1, "Lumen+", ~T[21:00:00]),
+            seed: "cartog60"
+          }
         ]
       }
     ]
+  end
+
+  @doc """
+  `S2E6 · Lumen+ · 20:00` — one airing row's second line.
+
+      iex> Kati.Screens.Calendar.airing_meta(2, 6, "Lumen+", ~T[20:00:00])
+      "S2E6 · Lumen+ · 20:00"
+
+  The service is a provider's name for itself and is never translated; the
+  numbers and the clock are the reader's.
+  """
+  @spec airing_meta(pos_integer(), pos_integer(), String.t(), Time.t()) :: String.t()
+  def airing_meta(season, episode, service, at) do
+    gettext("S%{s}E%{e} · %{service} · %{at}",
+      s: Kati.Locale.number(season),
+      e: Kati.Locale.number(episode),
+      service: service,
+      at: Kati.Locale.time(at)
+    )
   end
 
   @doc """
@@ -271,28 +329,49 @@ defmodule Kati.Screens.Calendar do
     """
   end
 
+  @doc """
+  `Sunday 16 August · 5 items`, in the reader's own calendar and digits.
+
+      iex> Kati.Screens.Calendar.subtitle(~D[2026-08-16], 5)
+      "Sunday 16 August · 5 items"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.Calendar.subtitle(~D[2026-08-16], 5) end)
+      "یکشنبه ۲۵ مرداد · ۵ مورد"
+
+  Board 56's own line, and it is not board 02's translated: 16 August 2026 is
+  25 Mordad 1405, so the day, the number and the month word all change together.
+  `Kati.Locale.date/2`'s `:long` is the same three parts every other page asks
+  it for.
+  """
+  @spec subtitle(Date.t(), non_neg_integer()) :: String.t()
+  def subtitle(date, count) do
+    gettext("%{date} · %{items}",
+      date: Kati.Locale.date(date, :full),
+      items: ngettext("%{n} item", "%{n} items", count, n: Kati.Locale.number(count))
+    )
+  end
+
   @doc false
   def header(date, rows, menu?) do
-    subtitle =
-      "#{Kati.Time.day_name(date)} #{date.day} #{Kati.Time.month_name(date.month)} · " <>
-        "#{length(rows)} #{if length(rows) == 1, do: "item", else: "items"}"
+    subtitle = Kati.Screens.Calendar.subtitle(date, length(rows))
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Schedule"
+            text={gettext("Schedule")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={subtitle}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(subtitle)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -335,11 +414,11 @@ defmodule Kati.Screens.Calendar do
       Kati.Screens.Calendar.disc("more_horiz", :toggle_menu),
       open?,
       [
-        Kati.UI.Menu.item("density_medium", "Agenda", :open_agenda),
-        Kati.UI.Menu.item("bolt", "Quick add", :open_quick_add),
+        Kati.UI.Menu.item("density_medium", gettext("Agenda"), :open_agenda),
+        Kati.UI.Menu.item("bolt", gettext("Quick add"), :open_quick_add),
         Kati.UI.Menu.rule(),
-        Kati.UI.Menu.item("restaurant", "Meals on the calendar", :open_meals_day),
-        Kati.UI.Menu.item("payments", "Money on the calendar", :open_money_day)
+        Kati.UI.Menu.item("restaurant", gettext("Meals on the calendar"), :open_meals_day),
+        Kati.UI.Menu.item("payments", gettext("Money on the calendar"), :open_money_day)
       ],
       dismiss: :close_menu
     )
@@ -377,7 +456,15 @@ defmodule Kati.Screens.Calendar do
   # keyed on `text_size={28}` and this is 20.
   @doc false
   def month_row(date) do
-    label = "#{Kati.Time.month_name(date.month)} #{date.year}"
+    # The reader's own calendar: board 56 heads its month strip in Shamsi, and
+    # `date.month`/`date.year` are Gregorian numbers that no amount of
+    # translation turns into مرداد ۱۴۰۵.
+    label =
+      gettext("%{month} %{year}",
+        month: Kati.Locale.month_name(date),
+        year: Kati.Locale.year_of(date)
+      )
+
     # An unfold chevron beside a month name means one thing, and the design
     # already drew screen 16 as the thing it means.
     month_tap = {self(), :open_month}
@@ -391,7 +478,7 @@ defmodule Kati.Screens.Calendar do
             text_size={20}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.025}
+            letter_spacing={Kati.Locale.tracking(-0.025)}
             text_color={:on_surface}
           />
           <Spacer size={6} />
@@ -407,7 +494,7 @@ defmodule Kati.Screens.Calendar do
           align="center"
         >
           <Text
-            text="Today"
+            text={gettext("Today")}
             text_size={12}
             max_font_scale={1.4}
             font_weight="semibold"
@@ -443,7 +530,12 @@ defmodule Kati.Screens.Calendar do
   # subtree it is on, so a cap on the Text does not reach its sibling.
   @doc false
   def day_strip(today) do
-    start = Date.add(today, -Date.day_of_week(today) + 1)
+    # The reader's own first day. `Date.day_of_week/1` is 1 = Monday, which is
+    # the English week; board 56's strip runs ش ی د س چ پ ج and starts on
+    # Saturday. `Kati.Screens.Stats.week_start_on/1` answers both — board 137
+    # rules that the week's first day follows the language choice rather than a
+    # setting of its own, and this is that ruling applied to the strip.
+    start = Kati.Screens.Stats.week_start_on(today)
     days = Enum.map(0..6, &Date.add(start, &1))
 
     ~MOB"""
@@ -493,7 +585,14 @@ defmodule Kati.Screens.Calendar do
     name_color = if today?, do: Palette.on_ink_muted(), else: Palette.muted()
     num_color = if today?, do: Palette.on_ink(), else: Palette.ink()
     shadow = if today?, do: Theme.shadow_button(), else: Theme.shadow_card_soft()
-    name = Kati.Time.day_name(date) |> String.slice(0, 3)
+    # `Kati.Locale.weekday_initial/1` in Persian — ش — and the Latin
+    # three-letter cut in English. Slicing شنبه to three graphemes gives شنب,
+    # which is not a word; board 56's strip is one letter per day.
+    name =
+      Kati.Locale.pick(
+        String.slice(Kati.Time.day_name(date), 0, 3),
+        Kati.Locale.weekday_initial(date)
+      )
 
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
@@ -508,19 +607,19 @@ defmodule Kati.Screens.Calendar do
       >
         <Text
           text={name}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(name)}
           text_size={10.5}
           max_font_scale={1.5}
-          letter_spacing={0.06}
+          letter_spacing={Kati.Locale.tracking(0.06)}
           text_color={name_color}
           text_align="center"
         />
         <Spacer size={5} />
         <Text
-          text={"#{date.day}"}
+          text={Kati.Locale.day_of_month(date)}
           text_size={16.5}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={num_color}
           text_align="center"
         />
@@ -529,14 +628,35 @@ defmodule Kati.Screens.Calendar do
     """
   end
 
+  @doc """
+  The four chips, `{key, label}`.
+
+  The KEY is what a tap is named after and what `visible/2` filters on; the
+  label is copy. They were one string — the chip's tag was
+  `String.to_atom("filter_" <> label)` and `visible/2` matched `"Screen"` — so
+  a chip drawn «نمایش» tagged `:"filter_نمایش"`, and every branch of
+  `visible/2` fell through to the Personal one: board 56's Screen chip hid the
+  episodes it names. mishka-group/kati#103, the same defect
+  `Kati.Search.built?/1` carries the note for.
+  """
+  @spec chips() :: [{atom(), String.t()}]
+  def chips do
+    [
+      {:all, gettext("All")},
+      {:screen, gettext("Screen")},
+      {:personal, gettext("Personal")},
+      {:money, gettext("Money")}
+    ]
+  end
+
   @doc false
   def filters(active) do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
         <Row>
-          {["All", "Screen", "Personal", "Money"]
-           |> Enum.map(fn label -> Kati.Screens.Calendar.chip(label, label == active) end)
+          {Kati.Screens.Calendar.chips()
+           |> Enum.map(fn {key, label} -> Kati.Screens.Calendar.chip(key, label, key == active) end)
            |> Enum.intersperse(Kati.Screens.Calendar.chip_gap())}
         </Row>
       </Scroll>
@@ -583,11 +703,12 @@ defmodule Kati.Screens.Calendar do
   # consulted: the ink/paper fills, the two label inks, the 16 radius, 12.5
   # semibold and the single line are all the drawing's own numbers.
   @doc false
-  def chip(label, on?) do
+  def chip(key, label, on?) do
     MishkaChip.chip(
       label: label,
       checked: on?,
-      on_toggle: String.to_atom("filter_" <> label),
+      # The KEY and not the label — see `chips/0`.
+      on_toggle: String.to_atom("filter_" <> Atom.to_string(key)),
       height: 32,
       padding_x: 15,
       padding_y: 0,
@@ -633,15 +754,15 @@ defmodule Kati.Screens.Calendar do
   def timeline(rows, reason \\ :no_events)
 
   def timeline([], :no_permission) do
-    Kati.Screens.Calendar.empty_card("lock", "Kati cannot see your calendar", [
+    Kati.Screens.Calendar.empty_card("lock", gettext("Kati cannot see your calendar"), [
       # Screen 40's Calendars row, word for word. Purpose first, then scope —
       # 151's fixed order for stating a permission.
-      "To show your appointments beside your episodes. Kati only reads them.",
+      gettext("To show your appointments beside your episodes. Kati only reads them."),
       # Where the control is, rather than a second copy of it. 40 is the board
       # that draws Allow, and 136's caption is why this is a sentence and not a
       # button: for a permanently refused permission the button would do
       # nothing, and a button that does nothing is worse than the truth.
-      "Allow Calendars in Settings, under This device."
+      gettext("Allow Calendars in Settings, under This device.")
     ])
   end
 
@@ -650,8 +771,8 @@ defmodule Kati.Screens.Calendar do
     # em-dashed sentence is split at the dash into the row's own two lines, and
     # its trailing chevron is dropped: that row pushes the calendar and this
     # card IS the calendar.
-    Kati.Screens.Calendar.empty_card("calendar_month", "Nothing scheduled", [
-      "Add anything with +"
+    Kati.Screens.Calendar.empty_card("calendar_month", gettext("Nothing scheduled"), [
+      gettext("Add anything with +")
     ])
   end
 
@@ -763,13 +884,13 @@ defmodule Kati.Screens.Calendar do
       :allow ->
         Kati.Screens.Calendar.ask_card(
           Kati.Screens.Calendar.ask_button(),
-          "READ ONLY · YOU PICK WHICH ON 32"
+          Kati.UI.eyebrow_label(gettext("Read only · you pick which on 32"))
         )
 
       :settings ->
         Kati.Screens.Calendar.ask_card(
           Kati.Screens.Calendar.settings_line(),
-          "ANDROID GRANTS NO SECOND PROMPT"
+          Kati.UI.eyebrow_label(gettext("Android grants no second prompt"))
         )
 
       :none ->
@@ -799,7 +920,7 @@ defmodule Kati.Screens.Calendar do
           <Spacer size={12} />
           <Column weight={1.0}>
             <Text
-              text="Your other calendars are not here"
+              text={gettext("Your other calendars are not here")}
               text_size={14}
               font_weight="bold"
               text_color={:on_surface}
@@ -807,7 +928,7 @@ defmodule Kati.Screens.Calendar do
             />
             <Spacer size={7} />
             <Text
-              text="Calendars already on this phone are not connected here — they arrive with the Android permission and land with no account row at all."
+              text={gettext("Calendars already on this phone are not connected here — they arrive with the Android permission and land with no account row at all.")}
               text_size={12.5}
               line_height={1.65}
               text_color={Palette.ink_soft()}
@@ -819,7 +940,7 @@ defmodule Kati.Screens.Calendar do
         <Spacer size={12} />
         <Text
           text={@mono}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(@mono)}
           text_size={10.5}
           text_align="center"
           text_color={Palette.muted()}
@@ -842,7 +963,7 @@ defmodule Kati.Screens.Calendar do
       on_tap={{self(), :ask_calendars}}
     >
       <Text
-        text="Let Kati read my calendars"
+        text={gettext("Let Kati read my calendars")}
         text_size={14.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -859,7 +980,7 @@ defmodule Kati.Screens.Calendar do
   def settings_line do
     ~MOB"""
     <Text
-      text="Allow Calendars in Settings, under This device."
+      text={gettext("Allow Calendars in Settings, under This device.")}
       text_size={12.5}
       line_height={1.65}
       text_color={:on_surface}
@@ -1334,14 +1455,14 @@ defmodule Kati.Screens.Calendar do
   calendar produces and the other two are Kati's own domains.
   """
   @spec visible([map()], String.t()) :: [map()]
-  def visible(rows, "All"), do: rows
+  def visible(rows, :all), do: rows
 
-  def visible(rows, filter) do
+  def visible(rows, filter) when is_atom(filter) do
     wanted =
       case filter do
-        "Screen" -> ["screen"]
-        "Money" -> ["money"]
-        _ -> ["event", "meals"]
+        :screen -> ["screen"]
+        :money -> ["money"]
+        _personal -> ["event", "meals"]
       end
 
     Enum.filter(rows, fn row -> row.kind in wanted end)
@@ -1464,8 +1585,8 @@ defmodule Kati.Screens.Calendar do
       "row_" <> _rest ->
         {:noreply, Kati.Screens.Calendar.open_timeline_row(socket, tag, socket.assigns.date)}
 
-      "filter_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      "filter_" <> key ->
+        {:noreply, Mob.Socket.assign(socket, :filter, String.to_existing_atom(key))}
 
       # Two meanings on one tag, and which one you get depends on what is
       # already selected.

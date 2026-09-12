@@ -202,7 +202,12 @@ defmodule Kati.CalendarDayRouteTest do
       # card is the proof the reload reached the render rather than stopping at
       # the assigns.
       assert text(view) =~ "Nothing scheduled"
-      assert text(view) =~ "#{date.day} #{Kati.Time.month_name(date.month)}"
+      # The screen's own line rather than a second composition of it: the
+      # subtitle names the day in the reader's CALENDAR, and since
+      # mishka-group/kati#103 folded board 56 into this screen that is Shamsi
+      # under `:fa` — `#{date.day} August` is the Gregorian day, which the page
+      # deliberately no longer draws.
+      assert text(view) =~ Calendar.subtitle(date, 0)
     end
 
     test "every unselected cell selects, and none of them navigates" do

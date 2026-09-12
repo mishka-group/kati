@@ -283,6 +283,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     # holds its sentence and the argument. The glyph is the aside's own `info`,
     # one board along from 90's pair and 176's.
     {"61", "info"},
+    # Board 56's annotation aside — see `DesignLiterals.retired_lines/0`, which
+    # holds its sentence and the argument. The glyph is the aside's own `info`,
+    # the fourth board in this ticket to carry one.
+    {"56", "info"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"}
@@ -1485,6 +1489,23 @@ defmodule Kati.ScreenDesignLiteralTest do
          |> Map.put(:on, MapSet.new(Enum.map(drawn.subscribed, & &1.name)))
        end},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
+      # 56 is the same screen and the same state read under `:fa` since
+      # mishka-group/kati#103 folded `Kati.Screens.ScheduleFa` away. One entry,
+      # because `drawn_rows/0` composes its five rows through `Kati.Locale` —
+      # the times, the streak count and the renewal's `£8.99` all localise, so
+      # there is no second transcription for the two boards to disagree over.
+      {"56", Kati.Screens.Calendar,
+       &Map.put(
+         &1,
+         :rows,
+         Enum.map(Kati.Screens.Calendar.drawn_rows(), fn row ->
+           # The airing group OPEN, which is the state board 56 draws it in:
+           # 02 templates its sub-rows and 56 fills them in, so 56 is the board
+           # that asks what a member row says. `handle_tap(:toggle_airing, …)`
+           # is what a reader presses to reach it.
+           if row.shape == :airing, do: Map.put(row, :open?, true), else: row
+         end)
+       )},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so
       # its state is 01's with one entry fewer: board 28 has no Watching row and

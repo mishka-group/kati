@@ -21,13 +21,12 @@ defmodule Kati.FaShellRoutesTest do
   # and the last fold empties it.
   @persian_roots [
     Kati.Screens.HomeFa,
-    Kati.Screens.ScheduleFa,
     Kati.Screens.LibraryFa
   ]
 
   # A folded root: still on the Persian dock, and Persian because
   # `Kati.Locale` says so rather than because the module's name ends in `Fa`.
-  @folded_roots [Kati.Screens.Stats]
+  @folded_roots [Kati.Screens.Stats, Kati.Screens.Calendar]
 
   describe "the Persian dock names Persian screens" do
     test "every root in Kati.Screens.Fa.roots/0 is a Persian screen" do
@@ -59,7 +58,7 @@ defmodule Kati.FaShellRoutesTest do
 
     for {tag, expected} <- [
           {:root_home, Kati.Screens.HomeFa},
-          {:root_calendar, Kati.Screens.ScheduleFa},
+          {:root_calendar, Kati.Screens.Calendar},
           {:root_library, Kati.Screens.LibraryFa}
         ] do
       test "#{tag} from آمار lands on #{inspect(expected)}", %{socket: socket} do

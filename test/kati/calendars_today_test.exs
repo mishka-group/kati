@@ -6,7 +6,7 @@ defmodule Kati.Calendars.TodayTest do
 
   A row used to leave `Kati.Calendars.Today` carrying one composed English
   sentence and nothing else, so two different things had to be read back out of
-  it. `Kati.Screens.HomeFa` and `Kati.Screens.ScheduleFa` drew that sentence
+  it. `Kati.Screens.HomeFa` and board 56 drew that sentence
   under a Persian title, ending every real row in `Airs today` or `Habit`; and
   `Kati.Screens.Calendar.kind/1` searched it for `"Money"` to decide a card's
   shape, its chip and the screen a tap pushed — over a string that begins with a
@@ -37,7 +37,6 @@ defmodule Kati.Calendars.TodayTest do
   alias Kati.Calendars.Event
   alias Kati.Calendars.Today
   alias Kati.Screens.Calendar
-  alias Kati.Screens.ScheduleFa
 
   # Every kind the column accepts, read off the resource rather than written out
   # here. A kind added to `Kati.Calendars.Event` and never given a word would
@@ -94,7 +93,7 @@ defmodule Kati.Calendars.TodayTest do
                "the English label for #{inspect(kind)} moved, and screens 01, 02 and 28 are " <>
                  "compared pixel-by-pixel against frames that hold it"
 
-        assert Today.kind_label(kind, :en) == word,
+        assert Kati.Locale.as(:en, fn -> Today.kind_label(kind) end) == word,
                "asking for English explicitly must answer what the default answers"
       end
     end
@@ -104,20 +103,24 @@ defmodule Kati.Calendars.TodayTest do
 
       assert Enum.sort(@kinds) == @english |> Map.keys() |> Enum.sort(),
              "`Kati.Calendars.Event` and this table disagree about which kinds exist, so a " <>
-               "kind is being labelled by `kind_label/2`'s catch-all with nothing checking it"
+               "kind is being labelled by `kind_label/1`'s catch-all with nothing checking it"
     end
 
     test "an unknown locale answers in English rather than raising" do
       # `Kati.Locale` ships two, and English is its default; a third arriving
       # before its words do must degrade to a readable line, not a crash.
-      for kind <- @kinds, do: assert(Today.kind_label(kind, :de) == @english[kind])
+      # gettext's own fallback since mishka-group/kati#103 folded board 56: the
+      # label took a locale argument while a mirror needed to ask for the other
+      # language by name, and now there is one caller in the reader's own.
+      for kind <- @kinds,
+          do: assert(Kati.Locale.as(:de, fn -> Today.kind_label(kind) end) == @english[kind])
     end
 
     test "no label is ever empty, in either locale" do
-      # `meta/2` drops blanks before joining and then relies on the label never
+      # `meta/1` drops blanks before joining and then relies on the label never
       # being one, which is why it has no "the line came out empty" branch.
       for kind <- @kinds, locale <- [:en, :fa] do
-        refute Today.kind_label(kind, locale) == ""
+        refute Kati.Locale.as(locale, fn -> Today.kind_label(kind) end) == ""
       end
     end
   end
@@ -141,7 +144,7 @@ defmodule Kati.Calendars.TodayTest do
     end
 
     test "the event itself answers the same line its row does" do
-      # `meta/2` takes the row or the `%Event{}` it came from, and the two are
+      # `meta/1` takes the row or the `%Event{}` it came from, and the two are
       # the same sentence — the row's `:meta` is this call.
       event = event(kind: :money, location: "Lumen+")
 
@@ -153,7 +156,7 @@ defmodule Kati.Calendars.TodayTest do
   describe "the Persian sub-line" do
     test "every kind's word is Persian, not merely different" do
       for kind <- @kinds do
-        word = Today.kind_label(kind, :fa)
+        word = Kati.Locale.as(:fa, fn -> Today.kind_label(kind) end)
 
         assert persian?(word),
                "#{inspect(kind)} answers #{inspect(word)} in Persian, which is not Persian — " <>
@@ -164,15 +167,18 @@ defmodule Kati.Calendars.TodayTest do
     end
 
     test "the line is the user's own words joined to a Persian word" do
-      assert Today.meta(%{location: "کلینیک مارلو", kind: :habit}, :fa) == "کلینیک مارلو · عادت"
-      assert Today.meta(%{location: nil, kind: :air_date}, :fa) == "پخش امروز"
+      Kati.Locale.as(:fa, fn ->
+        assert Today.meta(%{location: "کلینیک مارلو", kind: :habit}) == "کلینیک مارلو · عادت"
+        assert Today.meta(%{location: nil, kind: :air_date}) == "پخش امروز"
+      end)
     end
 
     test "the user's own words are not rewritten on the way past" do
       # A location is what the user typed and a title is their own words; only
       # the label is Kati's, so only the label changes language. Same rule
       # `Kati.Screens.HomeFa` states for digits.
-      assert Today.meta(%{location: "Lumen+", kind: :air_date}, :fa) == "Lumen+ · پخش امروز"
+      assert Kati.Locale.as(:fa, fn -> Today.meta(%{location: "Lumen+", kind: :air_date}) end) ==
+               "Lumen+ · پخش امروز"
     end
 
     test "a real row can be recomposed in Persian without touching its English" do
@@ -181,7 +187,7 @@ defmodule Kati.Calendars.TodayTest do
       row = row(kind: :air_date, location: "Lumen+")
 
       assert row.meta == "Lumen+ · Airs today"
-      assert Today.meta(row, :fa) == "Lumen+ · پخش امروز"
+      assert Kati.Locale.as(:fa, fn -> Today.meta(row) end) == "Lumen+ · پخش امروز"
     end
   end
 
@@ -248,15 +254,29 @@ defmodule Kati.Calendars.TodayTest do
     test "the chips still filter what they always filtered" do
       rows = Enum.map(@kinds, &Calendar.shaped(row(kind: &1)))
 
-      assert Calendar.visible(rows, "All") == rows
-      assert Enum.map(Calendar.visible(rows, "Money"), & &1.kind) == ["money"]
-      assert Enum.map(Calendar.visible(rows, "Screen"), & &1.kind) == ["screen"]
+      # The KEY, since mishka-group/kati#103. The chip's tag was
+      # `String.to_atom("filter_" <> label)` and this matched `"Screen"`, so
+      # board 56's نمایش chip tagged `:"filter_نمایش"` and fell through to the
+      # Personal branch — the Screen filter hid the episodes it names.
+      assert Calendar.visible(rows, :all) == rows
+      assert Enum.map(Calendar.visible(rows, :money), & &1.kind) == ["money"]
+      assert Enum.map(Calendar.visible(rows, :screen), & &1.kind) == ["screen"]
 
-      assert Calendar.visible(rows, "Personal")
+      assert Calendar.visible(rows, :personal)
              |> Enum.map(& &1.kind)
              |> Enum.uniq()
              |> Enum.sort() ==
                ["event", "meals"]
+    end
+
+    test "and the same four keys answer the same way in the other script" do
+      rows = Enum.map(@kinds, &Calendar.shaped(row(kind: &1)))
+
+      Kati.Locale.as(:fa, fn ->
+        assert Enum.map(Calendar.visible(rows, :screen), & &1.kind) == ["screen"]
+        assert Keyword.keys(Calendar.chips()) == [:all, :screen, :personal, :money]
+        assert Keyword.fetch!(Calendar.chips(), :screen) == "نمایش"
+      end)
     end
 
     test "a payment is drawn as money and an air date as airing" do
@@ -283,44 +303,63 @@ defmodule Kati.Calendars.TodayTest do
     end
   end
 
-  describe "screen 56 reads the same field" do
-    test "a payment still gets the badge chrome it always had" do
-      shaped = ScheduleFa.shaped(row(kind: :money))
-
-      assert shaped.tone == :done
-      assert shaped.lead == {:badge, "payments"}
+  # Board 56 is screen 02 read under `:fa` since mishka-group/kati#103, so the
+  # questions this block asked of `Kati.Screens.ScheduleFa.shaped/1` are asked
+  # of `Kati.Screens.Calendar.shaped/1` in the other locale. The mirror carried
+  # its own `tone`/`lead` pair; the folded screen has one `:shape`, which is
+  # what both boards' rows were always drawn from.
+  describe "board 56 reads the same field" do
+    test "a payment still gets the shape it always had" do
+      assert Calendar.shaped(row(kind: :money)).shape == :money
     end
 
-    test "an air date is raised, and a row that is not imminent settles" do
-      assert ScheduleFa.shaped(row(kind: :air_date)).tone == :raised
-      assert ScheduleFa.shaped(row(kind: :event)).lead == {:icon, "radio_button_unchecked"}
+    test "an air date is its own shape, and a row that is not imminent settles" do
+      assert Calendar.shaped(row(kind: :air_date)).shape == :airing
+      assert Calendar.shaped(row(kind: :event)).shape == :done
     end
 
     test "the time is Persian-digited and the user's own title is not" do
       shaped =
-        ScheduleFa.shaped(row(summary: "Dentist", dtstart_utc: ~U[2026-08-21 20:00:00.000000Z]))
+        Kati.Locale.as(:fa, fn ->
+          Calendar.shaped(row(summary: "Dentist", dtstart_utc: ~U[2026-08-21 20:00:00.000000Z]))
+        end)
 
       assert shaped.time == "۲۰:۰۰"
       assert shaped.title == "Dentist"
     end
+
+    test "and the same row in English keeps Latin digits" do
+      shaped =
+        Kati.Locale.as(:en, fn ->
+          Calendar.shaped(row(summary: "Dentist", dtstart_utc: ~U[2026-08-21 20:00:00.000000Z]))
+        end)
+
+      assert shaped.time == "20:00"
+    end
   end
 
-  # The two tests above this block ask what chrome a kind gets, and the block
-  # before them asks what `Today.meta/2` composes. Neither asks the question the
+  # The two tests above this block ask what shape a kind gets, and the block
+  # before them asks what `Today.meta/1` composes. Neither asks the question the
   # whole change exists for — *what does the page actually draw under the title*
   # — and the answer was `Airs today` on both Persian screens for a full round
-  # after `meta/2` and `:kind` existed to prevent it. A locale-aware composer
+  # after `meta/1` and `:kind` existed to prevent it. A locale-aware composer
   # nothing calls is not a fix, so the assertions below are made against the two
   # screen functions rather than against `Kati.Calendars.Today`.
   describe "the Persian screens draw the Persian line" do
-    test "56 composes its own sub-line for every kind" do
+    test "board 56 composes its own sub-line for every kind" do
+      # `row/1` builds the row, so the locale has to be in force for THAT call
+      # rather than for the shaping: `Today.row/2` is where `:meta` is composed
+      # and where the clock is digited.
       for kind <- @kinds do
-        drawn = ScheduleFa.shaped(row(kind: kind, location: nil)).meta
+        {drawn, persian} =
+          Kati.Locale.as(:fa, fn ->
+            {Calendar.shaped(row(kind: kind, location: nil)).meta, Today.kind_label(kind)}
+          end)
 
-        assert drawn == Today.kind_label(kind, :fa)
+        assert drawn == persian
 
         refute drawn == @english[kind],
-               "screen 56 draws #{inspect(drawn)} under a Persian title for #{inspect(kind)}"
+               "board 56 draws #{inspect(drawn)} under a Persian title for #{inspect(kind)}"
       end
     end
 
@@ -328,7 +367,7 @@ defmodule Kati.Calendars.TodayTest do
       for kind <- @kinds do
         drawn = Kati.Screens.HomeFa.fa_row(row(kind: kind, location: nil)).meta
 
-        assert drawn == Today.kind_label(kind, :fa)
+        assert drawn == Kati.Locale.as(:fa, fn -> Today.kind_label(kind) end)
         refute drawn == @english[kind]
       end
     end
@@ -338,7 +377,7 @@ defmodule Kati.Calendars.TodayTest do
       # made on a row that has none: everything left in the line is Kati's.
       for kind <- @kinds do
         for {screen, drawn} <- [
-              {"56", ScheduleFa.shaped(row(kind: kind)).meta},
+              {"56", Kati.Locale.as(:fa, fn -> Calendar.shaped(row(kind: kind)).meta end)},
               {"55", Kati.Screens.HomeFa.fa_row(row(kind: kind)).meta}
             ] do
           assert persian?(drawn),
@@ -350,7 +389,10 @@ defmodule Kati.Calendars.TodayTest do
     test "a location the user typed survives both screens unrewritten" do
       real = row(kind: :air_date, location: "Lumen+")
 
-      assert ScheduleFa.shaped(real).meta == "Lumen+ · پخش امروز"
+      assert Kati.Locale.as(:fa, fn ->
+               Calendar.shaped(row(kind: :air_date, location: "Lumen+")).meta
+             end) == "Lumen+ · پخش امروز"
+
       assert Kati.Screens.HomeFa.fa_row(real).meta == "Lumen+ · پخش امروز"
     end
 
@@ -359,7 +401,7 @@ defmodule Kati.Calendars.TodayTest do
       # 02 read `:meta` off the same value and are compared with captured frames.
       real = row(kind: :air_date, location: "Lumen+")
 
-      _ = ScheduleFa.shaped(real)
+      _ = Calendar.shaped(real)
       _ = Kati.Screens.HomeFa.fa_row(real)
 
       assert real.meta == "Lumen+ · Airs today"

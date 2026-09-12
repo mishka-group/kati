@@ -593,8 +593,18 @@ defmodule Kati.ScreenWriteTargetTest do
   # and one of the thirteen is a control that GAINED a destination rather than
   # losing one — 07's numbers card grew board 61's Health row, which opens
   # screen 110.
-  @screens_swept 160
-  @drawn_taps 2090
+  # 159 since mishka-group/kati#103 folded `Kati.Screens.ScheduleFa` away. The
+  # floor counts MODULES the pass can mount bare, and a fold removes one while
+  # leaving every control it drew reachable on the screen it folded into — the
+  # `@drawn_taps` floor beside this one is what says so.
+  #
+  # And a fifth time, to 2065. mishka-group/kati#103 folded
+  # `Kati.Screens.ScheduleFa` into screen 02: board 56 drew a search disc, an
+  # overflow menu with four items, a seven-cell day strip, four filter chips,
+  # five timeline rows, four dock tabs and a FAB. Screen 02 is swept in both
+  # locales and answers for all of them, and the measured drop is nineteen.
+  @screens_swept 159
+  @drawn_taps 2065
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

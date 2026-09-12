@@ -47,6 +47,8 @@ defmodule Kati.Calendars.Today do
       screens were forced into.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   require Ash.Query
 
   alias Kati.Calendars.Event
@@ -165,8 +167,12 @@ defmodule Kati.Calendars.Today do
       # The handle, not a rendering. See the moduledoc: a row that cannot name
       # its own event is a row a screen can draw and cannot open.
       id: event.id,
-      time: Calendar.strftime(local, "%H:%M"),
-      title: event.summary || "Untitled",
+      # `Kati.Locale.time/1` rather than `strftime/2`: the clock is 24-hour in
+      # both scripts — the design's own choice — and what changes is the
+      # numerals. Board 56's gutter reads ۰۸:۰۰, which is why its mirror
+      # digited this by hand on the way past.
+      time: Kati.Locale.time(local),
+      title: event.summary || gettext("Untitled"),
       # The event's own kind, uncollapsed. `:reminder` and `:event` share a
       # label and draw differently — screen 56 gives a reminder a hollow ring
       # and an appointment a rule — so the row keeps the value that can still
@@ -180,7 +186,7 @@ defmodule Kati.Calendars.Today do
   end
 
   @doc """
-  The sub-line under a row's title, in one locale.
+  The sub-line under a row's title.
 
   Takes a row, an occurrence or the `Kati.Calendars.Event` any of them was built
   from — all three carry the `:location` and the `:kind` the line is made of —
@@ -188,17 +194,16 @@ defmodule Kati.Calendars.Today do
   than translating a sentence back into its parts.
 
   The location leads because it is the user's own words and the label is Kati's,
-  and it is dropped when there is none. `kind_label/2` is never empty, so the
+  and it is dropped when there is none. `kind_label/1` is never empty, so the
   line never is either.
 
-  English is the default because it is what the row's `:meta` field holds and
-  what screens 01, 02 and 28 were captured drawing.
+  The reader's own language, since mishka-group/kati#103 folded board 56 into
+  screen 02: there is one caller and it draws in whichever language the reader
+  chose. A test asks for the other one with `Kati.Locale.as/2`.
   """
-  @spec meta(map(), :en | :fa) :: String.t()
-  def meta(row_or_event, locale \\ :en)
-
-  def meta(%{location: location, kind: kind}, locale) do
-    [location, kind_label(kind, locale)]
+  @spec meta(map()) :: String.t()
+  def meta(%{location: location, kind: kind}) do
+    [location, kind_label(kind)]
     |> Enum.reject(&(is_nil(&1) or &1 == ""))
     |> Enum.join(" · ")
   end
@@ -218,22 +223,23 @@ defmodule Kati.Calendars.Today do
   reasons its moduledoc lists.)
 
   The Persian words are the ones screens 55–62 already use for the same things,
-  rather than a second translation of the same concept: عادت and مالی are
-  `Kati.Screens.ScheduleFa.Sample`'s own, وعده‌ها is the Meals root's title in
-  `Kati.Screens.HomeFa.Sample`, and تقویم is Settings'.
+  rather than a second translation of the same concept: عادت and مالی were
+  `Kati.Screens.ScheduleFa.Sample`'s own, وعده‌ها is the Meals root's title and
+  تقویم is Settings'.
+
+  ## It took the locale as an argument, and no longer does
+
+  Two arities, `meta/2` and `kind_label/2`, both defaulting to `:en` — the shape
+  a mirror needs, because a mirror is a second module drawing the same row and
+  has to ask for the other language by name. mishka-group/kati#103 folds board
+  56 into screen 02, so there is one caller and it is in whichever language the
+  reader chose. `Kati.Locale.as/2` is how a test asks for the other one, which
+  is the same way every other folded screen is read.
   """
-  @spec kind_label(atom(), :en | :fa) :: String.t()
-  def kind_label(kind, locale \\ :en)
-
-  def kind_label(:air_date, :fa), do: "پخش امروز"
-  def kind_label(:meal, :fa), do: "وعده‌ها"
-  def kind_label(:habit, :fa), do: "عادت"
-  def kind_label(:money, :fa), do: "مالی"
-  def kind_label(_kind, :fa), do: "تقویم"
-
-  def kind_label(:air_date, _locale), do: "Airs today"
-  def kind_label(:meal, _locale), do: "Meals"
-  def kind_label(:habit, _locale), do: "Habit"
-  def kind_label(:money, _locale), do: "Money"
-  def kind_label(_kind, _locale), do: "Calendar"
+  @spec kind_label(atom()) :: String.t()
+  def kind_label(:air_date), do: gettext("Airs today")
+  def kind_label(:meal), do: gettext("Meals")
+  def kind_label(:habit), do: gettext("Habit")
+  def kind_label(:money), do: gettext("Money")
+  def kind_label(_kind), do: gettext("Calendar")
 end

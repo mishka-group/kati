@@ -328,7 +328,7 @@ defmodule Kati.ScreenCalendarEmptyStateTest do
       # permission off that list would put "Kati cannot see your calendar" on a
       # screen that is at that moment drawing the person's own event one chip
       # away.
-      texts = texts_of(rendered(rows: [real_row()], filter: "Money", access: :denied))
+      texts = texts_of(rendered(rows: [real_row()], filter: :money, access: :denied))
 
       for literal <- @no_permission do
         refute literal in texts,
@@ -462,7 +462,7 @@ defmodule Kati.ScreenCalendarEmptyStateTest do
   # `Kati.Permissions.status/1` cannot answer anything but `:unknown`, so the
   # refusal card is unreachable through a mount.
   defp rendered(overrides) do
-    %{date: Kati.Time.today(), rows: [], filter: "All", menu?: false, access: :unknown}
+    %{date: Kati.Time.today(), rows: [], filter: :all, menu?: false, access: :unknown}
     |> Map.merge(Map.new(overrides))
     |> Schedule.content()
   end

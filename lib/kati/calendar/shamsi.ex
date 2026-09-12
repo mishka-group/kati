@@ -132,12 +132,18 @@ defmodule Kati.Calendar.Shamsi do
   Digits are Persian (U+06F0–U+06F9) because `fa`'s default number system is
   `arabext`.
   """
-  @spec format(Date.t(), :long | :short | :numeric) :: String.t()
+  @spec format(Date.t(), :long | :full | :short | :numeric) :: String.t()
   def format(%Date{} = date, style \\ :long) do
     {y, m, d} = from_gregorian(date)
 
     case style do
       :long -> "#{weekday_name(weekday_index(date))} #{fa(d)} #{month_name(m)} #{fa(y)}"
+      # `:long` without the year. Board 56 heads its day یکشنبه ۲۵ مرداد and
+      # board 58's next-air line reads پنج‌شنبه ۲۹ مرداد ۱۴۰۵ — the year is
+      # carried where the date is in the future and dropped where it is today,
+      # which is the same distinction `Kati.Locale.date/2`'s `:full` draws in
+      # Latin.
+      :full -> "#{weekday_name(weekday_index(date))} #{fa(d)} #{month_name(m)}"
       :short -> "#{fa(d)} #{month_name(m)}"
       :numeric -> "#{fa(y)}/#{fa_pad(m)}/#{fa_pad(d)}"
     end

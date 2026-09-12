@@ -457,7 +457,7 @@ defmodule Kati.ScreenTapSweepTest do
     # appended to the query somebody was trying to delete. Found on a device.
     {Kati.Screens.AddTitle, :clear_query},
     {Kati.Screens.AddTitle, :filter_Everything},
-    {Kati.Screens.Calendar, :filter_All},
+    {Kati.Screens.Calendar, :filter_all},
     {Kati.Screens.Discover, :"filter_For you"},
     {Kati.Screens.EventDetail, :section_Work},
     # Screen 20's, which joined the day its chip rail was wired: `All` is the
@@ -923,7 +923,6 @@ defmodule Kati.ScreenTapSweepTest do
     # the sweep renders against an empty store, where the sheet draws
     # `Kati.Rating.Sample` and the chips carry no taps at all. `Kati.RatingTagsTest`
     # presses them over a real watch.)
-    {Kati.Screens.ScheduleFa, :open_menu},
     {Kati.Screens.Subscriptions, :open_menu}
     # (Screen 121's `save_image` was here, with the sentence *it stops being
     # inert the day the bridge gains a screen-to-bitmap call, and not before.*

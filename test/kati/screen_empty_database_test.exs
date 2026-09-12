@@ -366,7 +366,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # every drawing in that range was captured from its Sample module, and a
     # Persian page that renders empty cannot be compared with anything.
     {"55", Kati.Screens.HomeFa},
-    {"56", Kati.Screens.ScheduleFa},
+    # 56 was `Kati.Screens.ScheduleFa` until mishka-group/kati#103 folded that
+    # mirror away. Board 56 is screen 02 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"56", Kati.Screens.Calendar},
     {"57", Kati.Screens.LibraryFa},
     # 58 is 04 in Persian and reads through 04 — see the note above.
     # 58 was `Kati.Screens.Series` until mishka-group/kati#103 folded that
@@ -869,6 +872,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        "and none draws one Kati is not allowed to read either. `Kati.Screens.Calendar`'s " <>
        "moduledoc names the four boards its two cards are built from and quotes each",
      Kati.ScreenCalendarEmptyStateTest},
+    # 56 is 02 read under `:fa` since mishka-group/kati#103 and inherits 02's
+    # answer whole: no board draws a Schedule with nothing on it in either
+    # script, and the two cards a Persian reader gets are 02's own, translated.
+    {"56",
+     "56 is board 02 under `:fa` and no artboard draws a Schedule with nothing on it in " <>
+       "either script — 56 draws a day with five items, like 02. The two cards it draws " <>
+       "instead are 02's own read in the other script, and `Kati.ScreenCalendarEmptyStateTest` " <>
+       "is what holds which of the two a permission decides", Kati.ScreenCalendarEmptyStateTest},
     {"07",
      "no board in the 152 draws screen 07 with no history. `Kati.Screens.Stats`'s moduledoc " <>
        "names the four that decided its card — 101's *Not enough data*, 27's geometry, 123's " <>
@@ -1019,6 +1030,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"89", "89", "All"},
     {"02", "139", "Nothing scheduled"},
     {"02", "139", "add anything with +"},
+    # 56's three, and what constrains it is the chrome board 56 draws itself
+    # and an empty store cannot take away: the page's own name and the two
+    # chips whose meaning does not depend on a row existing. 139 is an English
+    # board with no Persian twin, so the pair 02 borrows from it has none here.
+    {"56", "56", "برنامه"},
+    {"56", "56", "همه"},
+    {"56", "56", "نمایش"},
     {"07", "101", "Not much to show yet"},
     # 61's three, and the reason they are three where 07 has one: 07 borrows its
     # empty sentence from board 101, which is an English board with no Persian
@@ -2373,11 +2391,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.Nutrition.drawn_figures/0},
       {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
        &Kati.Meals.SampleShopping.list/0},
-      # 56 answers with both halves of its day at once — the ordinary rows and
-      # the evening's feature card — because only the drawn day has the second,
-      # and a gate that looked at one half would pass while the other emptied.
-      {"56", Kati.Screens.ScheduleFa, fn -> Kati.Screens.ScheduleFa.day(today) end,
-       &Kati.Screens.ScheduleFa.drawn_day/0},
       {"57", Kati.Screens.LibraryFa, &Kati.Screens.LibraryFa.titles/0,
        &Kati.Screens.LibraryFa.drawn_titles/0},
       # 58 is 04's gate reached through 04's read, so this pair fails for two
@@ -2584,6 +2597,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # cards; a person's first launch drew a dentist appointment, a passport
       # reminder and a renewal that were not theirs.
       {"02", Kati.Screens.Calendar, fn -> Kati.Screens.Calendar.day_rows(today) end, [],
+       &Kati.Screens.Calendar.drawn_rows/0},
+      # 56 is 02 read under `:fa` since mishka-group/kati#103, so it gates on
+      # 02's own pair — the same read, and the same drawing to fall back to. It
+      # keeps a row of its own because the board is still a drawing this file
+      # renders against an empty store, and a `for` over `@migrated` would
+      # otherwise stop asking the Persian page anything at all.
+      {"56", Kati.Screens.Calendar, fn -> Kati.Screens.Calendar.day_rows(today) end, [],
        &Kati.Screens.Calendar.drawn_rows/0},
       {"03", Kati.Screens.Library, &Kati.Screens.Library.titles/0, [],
        &Kati.Screens.Library.drawn_titles/0},
@@ -3053,7 +3073,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(58 60 61 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
+  @fa_numbers ~w(56 58 60 61 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

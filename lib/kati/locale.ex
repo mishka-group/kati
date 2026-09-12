@@ -208,7 +208,7 @@ defmodule Kati.Locale do
   them was a `*Fa` mirror, which is exactly why a folded screen needs this: the
   English screen is now both, and it has one place to ask what day it is.
   """
-  @spec date(Date.t(), :long | :short | :short_padded | :dated | :numeric) :: String.t()
+  @spec date(Date.t(), :long | :full | :short | :short_padded | :dated | :numeric) :: String.t()
   def date(%Date{} = date, style \\ :long) do
     if direction(current()) == :rtl do
       # Shamsi has no `:dated` of its own: its `:long` already carries the year,
@@ -227,6 +227,10 @@ defmodule Kati.Locale do
     else
       case style do
         :long -> Calendar.strftime(date, "%a %-d %b")
+        # `Sunday 16 August`, which board 02 heads its day with. `:long`'s
+        # abbreviations are the ones a 44pt gutter needs; this is the one a
+        # sentence does.
+        :full -> Calendar.strftime(date, "%A %-d %B")
         :short -> Calendar.strftime(date, "%-d %b")
         :short_padded -> Calendar.strftime(date, "%d %b")
         :dated -> Calendar.strftime(date, "%-d %b %Y")
@@ -314,6 +318,29 @@ defmodule Kati.Locale do
       number(year)
     else
       number(date.year)
+    end
+  end
+
+  @doc """
+  The day of the month, in the reader's own calendar and digits.
+
+      iex> Kati.Locale.day_of_month(~D[2026-08-16])
+      "16"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.day_of_month(~D[2026-08-16]) end)
+      "۲۵"
+
+  The number a day-strip cell draws under its letter. Screen 02 drew
+  `date.day` — the Gregorian number — so board 56's strip ran 16 17 18 where
+  the board draws ۲۴ ۲۵ ۲۶: the right days, counted in the wrong calendar.
+  """
+  @spec day_of_month(Date.t()) :: String.t()
+  def day_of_month(%Date{} = date) do
+    if direction(current()) == :rtl do
+      {_year, _month, day} = Kati.Calendar.Shamsi.from_gregorian(date)
+      number(day)
+    else
+      number(date.day)
     end
   end
 

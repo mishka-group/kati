@@ -142,7 +142,10 @@ defmodule Kati.Screens.Fa do
   # app's language out from under the reader, and RTL with it.
   @roots [
     %{id: :home, icon: "home", screen: Kati.Screens.HomeFa},
-    %{id: :calendar, icon: "calendar_month", screen: Kati.Screens.ScheduleFa},
+    # تقویم is `Kati.Screens.Calendar` since mishka-group/kati#103 folded
+    # board 56's mirror away: the screen takes its script from `Kati.Locale`,
+    # so naming it here carries no reader out of Persian.
+    %{id: :calendar, icon: "calendar_month", screen: Kati.Screens.Calendar},
     %{id: :library, icon: "grid_view", screen: Kati.Screens.LibraryFa},
     # آمار is `Kati.Screens.Stats` again, and this time it is not a stand-in:
     # mishka-group/kati#103 folded the mirror away, so board 61 IS screen 07

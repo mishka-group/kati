@@ -34,7 +34,7 @@ defmodule Kati.Screens.HomeFa do
   `onNodeWithTag` throws on the second match rather than picking one, so
   neither control could be addressed by a device test on the branch that draws
   both. (The header's other disc is Persian — `:open_calendar` opens
-  `Kati.Screens.ScheduleFa`.)
+  `Kati.Screens.Calendar` read under `:fa`.)
 
   English because there is nothing else to reach: 05 has no Persian mirror in
   the export yet and `Kati.Screens.InboxNotifications` has no drawing at all,
@@ -1007,7 +1007,7 @@ defmodule Kati.Screens.HomeFa do
   def fa_row(%{kind: _} = row) do
     row
     |> Map.update!(:time, &Digits.to_persian/1)
-    |> Map.put(:meta, Kati.Calendars.Today.meta(row, :fa))
+    |> Map.put(:meta, Kati.Locale.as(:fa, fn -> Kati.Calendars.Today.meta(row) end))
   end
 
   def fa_row(row), do: Map.update!(row, :time, &Digits.to_persian/1)
@@ -1134,7 +1134,7 @@ defmodule Kati.Screens.HomeFa do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}
 
   def handle_info({:tap, :open_calendar}, socket),
-    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.ScheduleFa)}
+    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Calendar)}
 
   def handle_info({:tap, :open_meals}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.TodayFa)}

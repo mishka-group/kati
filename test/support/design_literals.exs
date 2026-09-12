@@ -560,6 +560,43 @@ defmodule Kati.DesignLiterals do
       {"176", "از راست پر می‌شود"},
       {"176", "، جلدها هرگز آینه نمی‌شوند، و ترتیب عمودی برعکس نمی‌شود."},
       {"176", "همان واژه‌ای است که ۱۵۶ به کار می‌برد — یک ثبت، در هر دو جا."},
+      # ── Board 56's annotation aside.
+      #
+      # *هفته از شنبه آغاز می‌شود* — *the week starts on Saturday.* The board's
+      # own caption says the same thing at length: *"The Persian week begins on
+      # شنبه, so the day strip reorders — a change no amount of CSS mirroring
+      # would produce."* That is the drawing telling a builder what to build,
+      # and the build was told: `Kati.Screens.Stats.week_start_on/1` answers the
+      # reader's own first day and `day_strip/1` generates forward from it, so
+      # the strip a Persian reader sees runs ش ی د س چ پ ج without a caption
+      # saying that it does. Boards 176, 90 and 61 retired their asides on the
+      # same reading — what is a fact for the reader survives, the note to the
+      # builder does not.
+      {"56", "هفته از شنبه آغاز می‌شود"},
+      # ── Board 56's money row, and its airing group's two lines.
+      #
+      # **۸٫۹۹ پوند.** Three Persian boards write a price and they write it
+      # three ways; 97 writes ۱۰٫۰۰ £ and is the one the money screens follow,
+      # because `Kati.Services.Service.format/2` is a symbol-and-figure
+      # formatter over `monthly_pence` and a currency code — it has no word for
+      # a currency and would need a vocabulary for every code the user can type.
+      # A price written پوند on the calendar and £ on the subscriptions page
+      # would be the app saying one thing two ways, which is what this ticket is
+      # about one level up.
+      {"56", "۸٫۹۹ پوند"},
+      #
+      # **فصل ۲ · قسمت ۶ · پس‌کشند and ویژه · لومن‌پلاس.** Board 02 templates
+      # this group's lines ({{ airingSub }}, {{ a.ep }} in the export) and board
+      # 56 fills them in — with a different day's airing: one special episode,
+      # named پس‌کشند, rather than 02's group of three. Both lines name
+      # something a calendar row does not carry. `Kati.Calendars.Event` holds a
+      # summary, a location and a kind; an air date's episode TITLE lives on
+      # `Kati.Media.CachedEpisode` and nothing joins the two here, and *ویژه* is
+      # a classification no column holds at all. So the group draws what it can
+      # answer — the season, the episode number, the service and the hour, which
+      # is `airing_meta/4` — and says nothing it would have to invent.
+      {"56", "فصل ۲ · قسمت ۶ · پس‌کشند"},
+      {"56", "ویژه · لومن‌پلاس"},
       # ── Board 61's annotation aside, and its four genre bars.
       #
       # **The aside.** *نمودارها هم برعکس می‌شوند: محور زمان از راست به چپ

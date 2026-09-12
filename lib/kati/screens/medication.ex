@@ -490,6 +490,17 @@ defmodule Kati.Screens.Medication do
     _error -> []
   end
 
+  @doc """
+  The eyebrow over today's doses — board 115's داروهای امروز.
+
+  `pgettext/2` and not a bare `gettext("Today")`. That msgid is also the
+  Schedule's Today pill, the meal plan's Today segment and the meals page's own
+  heading, and all three mean the bare day; one msgid is one word, so the
+  Persian Schedule's pill read *today's medicines*. mishka-group/kati#103.
+  """
+  @spec today_label() :: String.t()
+  def today_label, do: pgettext("the doses section on the medication page", "Today")
+
   @doc false
   def content(assigns) do
     ~MOB"""
@@ -503,7 +514,7 @@ defmodule Kati.Screens.Medication do
       >
         {Kati.Screens.Goals.chrome()}
         {SettingsList.title("Medication", Kati.Screens.Medication.subtitle(assigns.doses))}
-        {UI.eyebrow(gettext("Today"))}
+        {UI.eyebrow(Kati.Screens.Medication.today_label())}
         {Kati.Screens.Medication.today(assigns.doses, assigns[:save_error], assigns.schedules)}
         {Kati.Screens.Medication.schedule_band(assigns.schedules)}
         {Kati.Screens.Medication.reminder_band(assigns[:reminder])}
