@@ -502,7 +502,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"123", Kati.Screens.MoneyStates},
     # 115 is the Persian weight-and-doses page, and 61 joined the moment its
     # More numbers rows started counting real goals and services.
-    {"61", Kati.Screens.StatsFa},
+    # 61 was `Kati.Screens.StatsFa` until mishka-group/kati#103 folded that
+    # mirror away. Board 61 is screen 07 under `:fa` now — hence its number on
+    # `@fa_numbers` below — and it keeps its own row here because the board is
+    # still a drawing this file renders against an empty store.
+    {"61", Kati.Screens.Stats},
     # Screen 120 is deliberately NOT here. `Kati.Screens.PlanImport` draws the
     # import flow entirely from its own literals — no store, no Sample module —
     # so rendering it against an empty database would assert nothing, and the
@@ -870,6 +874,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        "names the four that decided its card — 101's *Not enough data*, 27's geometry, 123's " <>
        "rule for a statistic with nothing under it, and 110's refusal to draw a chart that " <>
        "would mean nothing", Kati.ScreenStatsEmptyTest},
+    # 61 is 07 read under `:fa` since mishka-group/kati#103, and it inherits
+    # 07's answer whole: no board draws the year card with no year behind it in
+    # either script, and the page a Persian reader gets with nothing watched is
+    # the same card, translated. `Kati.ScreenStatsEmptyTest` holds it.
+    {"61",
+     "61 is board 07 under `:fa` and no board draws the stats page with nothing watched in " <>
+       "either script. The card it draws instead is 07's — 101's *Not enough data* wording " <>
+       "through `Kati.Screens.Stats.nothing_yet/0` — read in the other script, and the " <>
+       "*More numbers* list under it is the same list saying what each page behind it says",
+     Kati.ScreenStatsEmptyTest},
     # 28 and 55 are screen 01 in dark and in Persian, and 139 — screen 01 with
     # nothing kept — has neither a dark mirror nor a Persian one anywhere in the
     # 152. So neither page branches the way 01 branches: each is its own board
@@ -1006,6 +1020,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"02", "139", "Nothing scheduled"},
     {"02", "139", "add anything with +"},
     {"07", "101", "Not much to show yet"},
+    # 61's three, and the reason they are three where 07 has one: 07 borrows its
+    # empty sentence from board 101, which is an English board with no Persian
+    # twin, so nothing in the 152 words a Persian stats page with nothing on it.
+    # What constrains 61 instead is the chrome board 61 draws itself and an
+    # empty store cannot take away — the page's own name, and the two rows of
+    # the *More numbers* list whose second lines are read rather than drawn.
+    {"61", "61", "سال شما"},
+    {"61", "61", "اعداد بیشتر"},
+    {"61", "61", "اهداف"},
     {"28", "139", "Nothing scheduled"},
     {"28", "139", "add anything with +"},
     # Board 317 gave screen 55 the gate 139 gives screen 01, so a Persian
@@ -2328,8 +2351,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MealLibrary.drawn_meals/0},
       {"123", Kati.Screens.MoneyStates, &Kati.Screens.Money.months/0,
        &Kati.Screens.Money.drawn_months/0},
-      {"61", Kati.Screens.StatsFa, &Kati.Screens.Goals.goals/0,
-       &Kati.Screens.Goals.drawn_goals/0},
+      {"61", Kati.Screens.Stats, &Kati.Screens.Goals.goals/0, &Kati.Screens.Goals.drawn_goals/0},
       # The four pictures, each gated on the pair it borrows rather than on a
       # read of its own — the same shape 120 already uses. 121 draws 44's week
       # grid, 127 draws 122's months, and 63 and 64 both draw 28's lock widgets.
@@ -3031,7 +3053,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(58 60 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
+  @fa_numbers ~w(58 60 61 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

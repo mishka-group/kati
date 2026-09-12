@@ -560,6 +560,38 @@ defmodule Kati.DesignLiterals do
       {"176", "از راست پر می‌شود"},
       {"176", "، جلدها هرگز آینه نمی‌شوند، و ترتیب عمودی برعکس نمی‌شود."},
       {"176", "همان واژه‌ای است که ۱۵۶ به کار می‌برد — یک ثبت، در هر دو جا."},
+      # ── Board 61's annotation aside, and its four genre bars.
+      #
+      # **The aside.** *نمودارها هم برعکس می‌شوند: محور زمان از راست به چپ
+      # خوانده می‌شود و میله‌ها از راست پر می‌شوند* — *charts flip too: the time
+      # axis reads right to left and the bars fill from the right.* That is the
+      # drawing telling a builder how to build it, and the build was told: the
+      # container declares `rtl`, so the axis reads from the right and each
+      # bar's fill is simply the first child of its track. Board 176's aside set
+      # the rule and board 90's pair followed it — what is a fact for the reader
+      # survives the fold, and the note to the builder does not.
+      {"61",
+       "نمودارها هم برعکس می‌شوند: محور زمان از راست به چپ خوانده می‌شود و میله‌ها از راست پر می‌شوند."},
+      # **درام، هیجان‌انگیز، مستند، کمدی.** The genre bars are the genres TMDB
+      # gave, split out of `Kati.Media.CachedTitle.genres` — a provider's own
+      # vocabulary, stored as the provider wrote it. `Kati.Stats.Sample.year/0`
+      # translates the FIXTURE's five, and those five are Drama, Documentary,
+      # Comedy, Thriller and Everything else, which is board 07's set and not
+      # board 61's: 61 draws four, in a different order, with هیجان‌انگیز where
+      # 07 has Thriller. Board 07 asserts no genre name at all for the same
+      # reason — what the bars say belongs to whatever the reader has watched.
+      {"61", "درام"},
+      {"61", "هیجان‌انگیز"},
+      {"61", "مستند"},
+      {"61", "کمدی"},
+      # **پول.** Board 61's Money row and board 62's Money section are one
+      # `gettext("Money")`, and the two boards write it differently: 62 says
+      # مالی and 61 says پول. One msgid is one word, and the word that stands
+      # is 62's — it labels a whole section of the app rather than one row into
+      # it, and screen 24 has drawn it since that fold. A row that said پول
+      # under a section called مالی would be the app calling one thing two
+      # names, which is the defect this ticket is about one level up.
+      {"61", "پول"},
       # ── Board 90's two annotations, its two counted group headings and its
       # two mis-converted dates.
       #

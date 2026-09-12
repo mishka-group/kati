@@ -175,6 +175,23 @@ defmodule Kati.Screens.Weight do
     end
   end
 
+  @doc """
+  Whether this device holds any weighing of its own.
+
+  The question `entries/0` cannot answer: it falls back to the drawing on an
+  empty store — deliberately, because screen 110 is a chart and a chart with
+  nothing in it is not a page — so `entries() == []` is never true and anything
+  guarding on it guards on nothing.
+
+  `Kati.Screens.Stats.weight_line/0` was doing exactly that. It asked
+  `entries()`, took the `else` branch on every device, and put the drawing's
+  **76.0 kg** on board 61's Health row on a phone that has never been weighed —
+  MOVIES-AND-TV.md #45, restored by a guard that reads the fallback rather than
+  the store. mishka-group/kati#103's stats fold is what surfaced it.
+  """
+  @spec stored?() :: boolean()
+  def stored?, do: stored() != []
+
   defp stored do
     Reading
     |> Ash.Query.for_read(:recent)

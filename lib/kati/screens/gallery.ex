@@ -90,7 +90,10 @@ defmodule Kati.Screens.Gallery do
     # mishka-group/kati#103. Board 59 is screen 43 under `:fa`.
     {"59", "امروز — Meals today, RTL", Kati.Screens.MealsToday, :push},
     {"60", "وعده‌ها", Kati.Screens.MealPlan, :push},
-    {"61", "آمار", Kati.Screens.StatsFa, :push},
+    # 61 was `Kati.Screens.StatsFa` until mishka-group/kati#103 folded that
+    # mirror away. It is screen 07 read under `:fa`, with "61" on
+    # `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"61", "آمار", Kati.Screens.Stats, :push},
     # mishka-group/kati#103's fold of screen 62. Board 62 is screen 24 under
     # `:fa`, with "62" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
     {"62", "تنظیمات — Settings, RTL", Kati.Screens.Settings, :push},
@@ -752,13 +755,13 @@ defmodule Kati.Screens.Gallery do
     # Persian Settings → سرویس‌های من (settings_fa.ex:522,941); also Persian
     #   Money → a subscription row.
     "97",
-    # Persian Stats → the share disc (stats_fa.ex:590).
+    # Persian Stats → the share disc (stats.ex).
     "103",
-    # Persian Stats → the اهداف card (stats_fa.ex:593).
+    # Persian Stats → the اهداف card (stats.ex).
     "108",
-    # Persian Stats → the سلامت card (stats_fa.ex:599).
+    # Persian Stats → the سلامت card (stats.ex).
     "115",
-    # Persian Stats → the پول card (stats_fa.ex:596).
+    # Persian Stats → the پول card (stats.ex).
     "127",
     # Persian first run → the بازگردانی link on 164/137, or the Persian empty
     #   Home's restore invitation (home_fa_empty.ex:309).

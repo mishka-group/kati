@@ -104,7 +104,11 @@ defmodule Kati.ScreenStatsTest do
       figures = Stats.figures()
       year = figures[:year]
 
-      assert Enum.sort(Keyword.keys(figures)) == [:grid, :range, :recent, :year]
+      # `:week` joined with mishka-group/kati#103's stats fold: board 61 draws a
+      # *این هفته* card over seven days and board 07 did not, so the card was
+      # built rather than retired — the data was already here, because the
+      # contribution grid above it counts the same watches over 182 days.
+      assert Enum.sort(Keyword.keys(figures)) == [:grid, :range, :recent, :week, :year]
 
       # The drawing's own field list, plus the pill's arrow — a state
       # `Kati.Stats.Sample` has no field for and the screen has to derive. A line

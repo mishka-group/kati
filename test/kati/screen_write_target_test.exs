@@ -585,8 +585,16 @@ defmodule Kati.ScreenWriteTargetTest do
   # this round — `Kati.Search.Query.chip_counts/1` draws Music, Meals and Money
   # because board 90 does — so the pass presses more scope chips than it did
   # and still dispatches fewer taps, because one page is now one page.
+  #
+  # And a fourth time, to 2090. mishka-group/kati#103 folded
+  # `Kati.Screens.StatsFa` into screen 07: board 61 drew a share disc, three
+  # *More numbers* rows, four dock tabs and a FAB, and screen 07 is swept in
+  # both locales and answers for all of them. The measured drop is thirteen,
+  # and one of the thirteen is a control that GAINED a destination rather than
+  # losing one — 07's numbers card grew board 61's Health row, which opens
+  # screen 110.
   @screens_swept 160
-  @drawn_taps 2110
+  @drawn_taps 2090
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

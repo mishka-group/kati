@@ -259,7 +259,6 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.MonthGrid, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.ScheduleFa, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Stats, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.StatsFa, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Week, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.AddTitleMusic, :filter_Everything, Kati.Screens.AddTitle},
     {Kati.Screens.AddTitleMusic, :filter_Films, Kati.Screens.AddTitle},

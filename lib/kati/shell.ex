@@ -79,7 +79,35 @@ defmodule Kati.Shell do
   def label(:stats), do: gettext("Stats")
   def label(_home), do: gettext("Home")
 
-  def screen_for(id), do: Enum.find(@roots, &(&1.id == id)).screen
+  @doc """
+  The screen a dock tab resolves to, in the language the reader is in.
+
+  `Kati.Screens.Root`'s `root_*` dispatch is the one caller that matters, and it
+  is shared by the English roots and — since mishka-group/kati#103 began folding
+  the Persian ones — by boards that are those same screens read under `:fa`.
+  Board 61 is screen 07 now, and its dock has to reach board 55, 56 and 57
+  rather than screens 01, 02 and 03: a Persian root that switched tabs into an
+  English page would change the app's language out from under the reader, which
+  is the failure `Kati.Screens.Fa` records for the آمار tab's old stand-in.
+
+  So the Persian table is asked first while it still names anything of its own.
+  `Kati.Screens.Fa.roots/0` shrinks by one entry per fold and the last fold
+  deletes it; on that day every answer here is `@roots`' and this clause can go
+  with it.
+  """
+  @spec screen_for(atom()) :: module()
+  def screen_for(id) do
+    english = Enum.find(@roots, &(&1.id == id)).screen
+
+    if Kati.Locale.current() == :fa do
+      case Enum.find(Kati.Screens.Fa.roots(), &(&1.id == id)) do
+        %{screen: screen} -> screen
+        nil -> english
+      end
+    else
+      english
+    end
+  end
 
   @doc """
   Wraps a root screen's content in the shell chrome.

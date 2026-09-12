@@ -279,6 +279,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     # which holds their runs and the argument. The glyph is the asides' own
     # `info`, 176's entry one board along.
     {"90", "info"},
+    # Board 61's annotation aside — see `DesignLiterals.retired_lines/0`, which
+    # holds its sentence and the argument. The glyph is the aside's own `info`,
+    # one board along from 90's pair and 176's.
+    {"61", "info"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"}
@@ -891,13 +895,13 @@ defmodule Kati.ScreenDesignLiteralTest do
          "and `Kati.Screens.Stats.money_line/0` now reads — through the same function " <>
          "screen 92's Money row reads, so the two pages cannot disagree",
        ~r/^(nothing added yet|.*a month.*|\p{N}+ expenses?)$/u},
-      # 61's two, which are 07's in Persian. Board 61 drew ۳ هدف فعال and
-      # ۴۶٫۴۷ پوند در ماه on every device — MOVIES-AND-TV.md #45's defect two
-      # rows at once — and `Kati.Screens.StatsFa.more_numbers/0` reads screen
-      # 07's own `goals_line/0` and `money_line/0` now, so the two Stats pages
-      # cannot disagree about a number. The third row, ۷۶٫۰ کیلوگرم, is 61's
-      # alone: English reaches weight through the Health hub and Persian has no
-      # such page, so `Kati.Screens.Stats.weight_line/0` was written for it.
+      # 61's two, which are 07's read in Persian — the same rows, since
+      # mishka-group/kati#103 folded the mirror away and board 61 became screen
+      # 07 under `:fa`. They were ۳ هدف فعال and ۴۶٫۴۷ پوند در ماه frozen on
+      # every device, MOVIES-AND-TV.md #45's defect two rows at once. The third,
+      # ۷۶٫۰ کیلوگرم, is the row board 61 has and board 07 does not; it survived
+      # the fold with `Kati.Screens.Stats.weight_line/0` behind it, and
+      # `Kati.Stats.Sample.more_numbers/0` carries the argument.
       {"61", "۳ هدف فعال", "the reader's own goals, which board 61 froze at the drawing's three",
        ~r/^(هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد|\p{N}+ هدف|تعیین نشده)$/u},
       {"61", "۴۶٫۴۷ پوند در ماه",
@@ -1530,6 +1534,21 @@ defmodule Kati.ScreenDesignLiteralTest do
        &Map.merge(&1, %{
          year: Map.put(Kati.Stats.Sample.year(), :rising?, true),
          grid: Kati.Stats.Sample.contributions(),
+         week: Kati.Stats.Sample.week(),
+         recent: Kati.Screens.Stats.recent(),
+         range: Kati.Stats.Sample.year().range
+       })},
+      # 61 is 07 read under `:fa` since mishka-group/kati#103, so it is the same
+      # state in the other script — one entry, not a transcription of one. Every
+      # figure in it comes out of `Kati.Stats.Sample`, which composes the
+      # boards' numbers through `Kati.Locale` rather than holding two sets of
+      # frozen strings; that is what makes ONE fixture answer both headers,
+      # `Jan – Aug 2026` and فروردین تا مرداد ۱۴۰۵.
+      {"61", Kati.Screens.Stats,
+       &Map.merge(&1, %{
+         year: Map.put(Kati.Stats.Sample.year(), :rising?, true),
+         grid: Kati.Stats.Sample.contributions(),
+         week: Kati.Stats.Sample.week(),
          recent: Kati.Screens.Stats.recent(),
          range: Kati.Stats.Sample.year().range
        })},

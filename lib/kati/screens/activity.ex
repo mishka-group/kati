@@ -84,6 +84,7 @@ defmodule Kati.Screens.Activity do
   `Kati.Activity.Sample` stays.
   """
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -1112,10 +1113,19 @@ defmodule Kati.Screens.Activity do
       "1,204 entries"
   """
   @spec entries_line(non_neg_integer()) :: String.t()
-  def entries_line(0), do: "nothing logged yet"
-  def entries_line(1), do: "1 entry"
-  def entries_line(n), do: delimited(n) <> " entries"
+  def entries_line(0), do: gettext("nothing logged yet")
 
+  def entries_line(n),
+    do: ngettext("%{n} entry", "%{n} entries", n, n: delimited(n))
+
+  # Grouped thousands, in the reader's own digits. The grouping mark stays a
+  # Latin comma in both scripts, which is the drawing's own choice and the
+  # reason `Kati.Locale.number/1` converts the decimal point and not the
+  # separator — `test/design/screens/59.html` writes ۱,۴۸۰.
+  #
+  # What was missing is the digits: this ended at `Integer.to_string/1`, so the
+  # Persian *More numbers* row that reads this line said `1,204` in Latin
+  # numerals under a Persian title.
   defp delimited(n) do
     n
     |> Integer.to_string()
@@ -1124,6 +1134,7 @@ defmodule Kati.Screens.Activity do
     |> Enum.chunk_every(3)
     |> Enum.map_join(",", &Enum.join/1)
     |> String.reverse()
+    |> Kati.Locale.number()
   end
 
   # What has been watched more than once, and how many times.

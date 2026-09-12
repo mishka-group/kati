@@ -236,6 +236,112 @@ defmodule Kati.Locale do
   end
 
   @doc """
+  The month a date falls in, named in the reader's own calendar.
+
+      iex> Kati.Locale.month_name(~D[2026-08-12])
+      "August"
+
+      iex> Kati.Locale.month_name(~D[2026-08-12], :short)
+      "Aug"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.month_name(~D[2026-08-12], :short) end)
+      "مرداد"
+
+  A DATE and not a month number, which is the whole of it: 12 August 2026 is in
+  Mordad, and no arithmetic on the number 8 produces that. Screen 07's header
+  built its range from `Kati.Time.month_name/1` over `1` and `today.month`, so
+  a Persian reader was told their year ran *Jan – Aug* — the Gregorian months,
+  in Latin, of a year that begins in Farvardin.
+  """
+  @spec month_name(Date.t(), :long | :short) :: String.t()
+  def month_name(%Date{} = date, style \\ :long) do
+    if direction(current()) == :rtl do
+      {_year, month, _day} = Kati.Calendar.Shamsi.from_gregorian(date)
+      # `:short` is a Latin abbreviation — `August` cut to `Aug` — and Persian
+      # month names are already one short word. Cutting مرداد to three letters
+      # gives مرد, which is a different word.
+      Kati.Calendar.Shamsi.month_name(month)
+    else
+      name = Kati.Time.month_name(date.month)
+      if style == :short, do: String.slice(name, 0, 3), else: name
+    end
+  end
+
+  @doc """
+  The first day of the year `date` falls in, in the reader's own calendar.
+
+      iex> Kati.Locale.year_start(~D[2026-08-12])
+      ~D[2026-01-01]
+
+  Nowruz in Shamsi, 1 January in Gregorian — and it is a Gregorian `Date` in
+  both cases, because everything downstream measures and formats in one
+  calendar and names in the other.
+  """
+  @spec year_start(Date.t()) :: Date.t()
+  def year_start(%Date{} = date) do
+    if direction(current()) == :rtl do
+      {year, month, day} = Kati.Calendar.Shamsi.from_gregorian(date)
+
+      case Kati.Calendar.Shamsi.to_gregorian(year, 1, 1) do
+        {:ok, nowruz} -> nowruz
+        # A year outside the Nowruz table: the date itself is the best answer
+        # there is, and it is never wrong about which year it is in.
+        {:error, _outside} -> Date.new!(date.year, if(month == 1 and day == 1, do: 1, else: 1), 1)
+      end
+    else
+      Date.new!(date.year, 1, 1)
+    end
+  end
+
+  @doc """
+  The year number a date falls in, in the reader's own calendar and digits.
+
+      iex> Kati.Locale.year_of(~D[2026-08-12])
+      "2026"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.year_of(~D[2026-08-12]) end)
+      "۱۴۰۵"
+
+  `year/1` is its opposite number and the two are not interchangeable: that one
+  takes a Gregorian year a RECORD carries — a book's publication, a film's
+  release — and never converts it, because a title published in 1961 was not
+  published in 1340. This one asks what year the READER is in.
+  """
+  @spec year_of(Date.t()) :: String.t()
+  def year_of(%Date{} = date) do
+    if direction(current()) == :rtl do
+      {year, _month, _day} = Kati.Calendar.Shamsi.from_gregorian(date)
+      number(year)
+    else
+      number(date.year)
+    end
+  end
+
+  @doc """
+  One letter for a weekday, as a chart axis writes it.
+
+      iex> Kati.Locale.weekday_initial(~D[2026-09-12])
+      "S"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.weekday_initial(~D[2026-09-12]) end)
+      "ش"
+
+  Persian's are single letters by nature — `Kati.Calendar.Shamsi.weekday_short/1`
+  — and English's are the first letter of the day's name, which is how every
+  seven-column axis in this app writes them. Two days share `S` and two share
+  `T`, and the axis is read positionally rather than letter by letter; that is
+  what an axis is.
+  """
+  @spec weekday_initial(Date.t()) :: String.t()
+  def weekday_initial(%Date{} = date) do
+    if direction(current()) == :rtl do
+      Kati.Calendar.Shamsi.weekday_short(Kati.Calendar.Shamsi.weekday_index(date))
+    else
+      date |> Kati.Time.day_name() |> String.first()
+    end
+  end
+
+  @doc """
   A quotation, in the marks the reader's own typography uses.
 
       iex> Kati.Locale.quoted("The tide keeps its own ledger.")

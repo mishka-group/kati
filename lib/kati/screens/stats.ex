@@ -153,6 +153,17 @@ defmodule Kati.Screens.Stats do
   @spec weeks() :: pos_integer()
   def weeks, do: @weeks
 
+  @doc """
+  `26 weeks to today`, in the reader's own digits.
+
+      iex> Kati.Screens.Stats.weeks_line(26)
+      "26 weeks to today"
+  """
+  @spec weeks_line(pos_integer()) :: String.t()
+  def weeks_line(weeks) do
+    ngettext("%{n} week to today", "%{n} weeks to today", weeks, n: Kati.Locale.number(weeks))
+  end
+
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket, figures())
@@ -179,7 +190,7 @@ defmodule Kati.Screens.Stats do
   def figures do
     case entries() do
       [] ->
-        [year: nil, grid: [], recent: [], range: range(Kati.Time.today())]
+        [year: nil, grid: [], week: [], recent: [], range: range(Kati.Time.today())]
 
       entries ->
         year = year(entries)
@@ -187,6 +198,7 @@ defmodule Kati.Screens.Stats do
         [
           year: year,
           grid: contributions(entries),
+          week: this_week(entries),
           recent: recent(entries),
           range: year.range
         ]
@@ -197,7 +209,7 @@ defmodule Kati.Screens.Stats do
   def content(assigns) do
     case assigns.year do
       nil -> nothing_counted(assigns.range)
-      year -> counted(year, assigns.range, assigns.grid, assigns.recent)
+      year -> counted(year, assigns.range, assigns.grid, assigns.week, assigns.recent)
     end
   end
 
@@ -205,7 +217,7 @@ defmodule Kati.Screens.Stats do
   # a hole in it, because they share only the header: the counted page is the
   # drawing, node for node, and the empty page is a card and a list.
   @doc false
-  def counted(year, range, grid, recent) do
+  def counted(year, range, grid, week, recent) do
     ~MOB"""
     <Scroll>
       <Column
@@ -218,13 +230,16 @@ defmodule Kati.Screens.Stats do
         {Kati.Screens.Stats.header(range)}
         {Kati.Screens.Stats.hero(year, grid)}
         {Kati.Screens.Stats.counts(year)}
-        {UI.eyebrow("Where the hours went")}
+        {UI.eyebrow(gettext("Where the hours went"))}
         {Kati.Screens.Stats.breakdown(year)}
         <Spacer size={26} />
-        {UI.eyebrow("More numbers")}
-        {Kati.Screens.Stats.more_numbers(true)}
+        {UI.eyebrow(gettext("This week"), dash: Palette.rail_idle())}
+        {Kati.Screens.Stats.week_card(week)}
         <Spacer size={26} />
-        {UI.eyebrow("Recently watched", dash: Palette.rail_idle(), gap: 12)}
+        {UI.eyebrow(gettext("More numbers"))}
+        {Kati.Screens.Stats.more_numbers()}
+        <Spacer size={26} />
+        {UI.eyebrow(gettext("Recently watched"), dash: Palette.rail_idle(), gap: 12)}
         {Kati.Screens.Stats.recently_watched(recent)}
       </Column>
     </Scroll>
@@ -250,8 +265,8 @@ defmodule Kati.Screens.Stats do
       >
         {Kati.Screens.Stats.header(range)}
         {Kati.Screens.Stats.nothing_yet()}
-        {UI.eyebrow("More numbers")}
-        {Kati.Screens.Stats.more_numbers(false)}
+        {UI.eyebrow(gettext("More numbers"))}
+        {Kati.Screens.Stats.more_numbers()}
       </Column>
     </Scroll>
     """
@@ -264,17 +279,18 @@ defmodule Kati.Screens.Stats do
       <Row fill_width={true} align="center">
         <Column weight={1.0}>
           <Text
-            text="Your year"
+            text={gettext("Your year")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={range}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(range)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -353,7 +369,7 @@ defmodule Kati.Screens.Stats do
         </Row>
         <Spacer size={18} />
         <Text
-          text="Not much to show yet"
+          text={gettext("Not much to show yet")}
           text_size={17}
           font_weight="bold"
           letter_spacing={-0.02}
@@ -362,7 +378,7 @@ defmodule Kati.Screens.Stats do
         />
         <Spacer size={9} />
         <Text
-          text="Your year is counted from what you tick off. Mark one thing watched and this page starts filling itself."
+          text={gettext("Your year is counted from what you tick off. Mark one thing watched and this page starts filling itself.")}
           text_size={13}
           line_height={1.6}
           text_align="center"
@@ -416,8 +432,8 @@ defmodule Kati.Screens.Stats do
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
             <Text
-              text={String.upcase("Time watched")}
-              font_family="mono"
+              text={Kati.UI.eyebrow_label(gettext("Time watched"))}
+              font_family={Kati.Locale.mono_face()}
               text_size={10.5}
               letter_spacing={0.16}
               text_color={Palette.cream_meta()}
@@ -438,15 +454,15 @@ defmodule Kati.Screens.Stats do
         <Spacer size={12} />
         <Row fill_width={true}>
           <Text
-            text={"#{year.weeks} weeks to today"}
-            font_family="mono"
+            text={Kati.Screens.Stats.weeks_line(year.weeks)}
+            font_family={Kati.Locale.mono_face()}
             text_size={10}
             text_color={Palette.cream_meta()}
           />
           <Spacer weight={1.0} />
           <Text
             text={year.streak}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(year.streak)}
             text_size={10}
             text_color={Palette.cream_meta()}
             max_lines={1}
@@ -602,6 +618,95 @@ defmodule Kati.Screens.Stats do
   @doc false
   def count_gap, do: ~MOB"<Spacer size={12} />"
 
+  @doc """
+  Board 61's *این هفته* card, over the reader's own seven days.
+
+  Bars grow from the leading edge of a 56pt well and the day initials sit under
+  them; under `rtl` the row starts on the right, which is the drawing's own
+  reading and needs no mirroring of its own — `Kati.Screens.Search.chips/2`
+  makes the same argument for its chip rail.
+
+  A day with nothing watched still draws a 4pt stub. A zero-height bar is an
+  absent bar, and a week with two quiet days would read as a chart that failed
+  to load rather than as a quiet week.
+  """
+  @spec week_card([{Date.t(), non_neg_integer()}]) :: map()
+  def week_card(week) do
+    most = week |> Enum.map(&elem(&1, 1)) |> Enum.max(fn -> 0 end)
+    today = Kati.Time.today()
+
+    assigns = %{
+      bars:
+        week
+        |> Enum.map(fn {date, count} ->
+          Kati.Screens.Stats.week_bar(Kati.Screens.Stats.bar_height(count, most), date == today)
+        end)
+        |> Enum.intersperse(~MOB"<Spacer size={6} />"),
+      labels: Enum.map(week, fn {date, _count} -> Kati.Screens.Stats.week_label(date) end)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+      >
+        <Row fill_width={true} height={56} align="bottom">
+          {@bars}
+        </Row>
+        <Spacer size={10} />
+        <Row fill_width={true} align="center">
+          {@labels}
+        </Row>
+      </Column>
+    </Column>
+    """
+  end
+
+  @doc """
+  A day's bar height in the 56pt well — 4 for a quiet day, 56 for the busiest.
+
+      iex> Kati.Screens.Stats.bar_height(0, 4)
+      4
+
+      iex> Kati.Screens.Stats.bar_height(4, 4)
+      56
+
+      iex> Kati.Screens.Stats.bar_height(1, 0)
+      4
+  """
+  @spec bar_height(non_neg_integer(), non_neg_integer()) :: pos_integer()
+  def bar_height(_count, 0), do: 4
+  def bar_height(0, _most), do: 4
+  def bar_height(count, most), do: max(round(count / most * 56), 4)
+
+  @doc false
+  def week_bar(height, today?) do
+    color = if today?, do: Palette.ink(), else: Palette.placeholder()
+
+    ~MOB"<Box weight={1.0} height={height} corner_radius={5} background={color} />"
+  end
+
+  @doc false
+  def week_label(date) do
+    assigns = %{day: Kati.Locale.weekday_initial(date)}
+
+    ~MOB"""
+    <Box weight={1.0}>
+      <Text
+        text={@day}
+        text_size={10.5}
+        text_color={Palette.tertiary()}
+        text_align="center"
+        max_lines={1}
+      />
+    </Box>
+    """
+  end
+
   @doc false
   def count_card(number, label) do
     ~MOB"""
@@ -676,7 +781,7 @@ defmodule Kati.Screens.Stats do
         <Column width={34}>
           <Text
             text={value}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(value)}
             text_size={11}
             text_color={Palette.muted()}
             text_align="right"
@@ -706,8 +811,8 @@ defmodule Kati.Screens.Stats do
   gallery. Dropping them would make half the app unreachable for exactly the
   person who has just installed it.
   """
-  @spec more_numbers(boolean()) :: map()
-  def more_numbers(counted?) do
+  @spec more_numbers() :: map()
+  def more_numbers do
     rows =
       Kati.Stats.Sample.more_numbers()
       |> Enum.reject(&(&1.id == :recently_watched))
@@ -726,7 +831,7 @@ defmodule Kati.Screens.Stats do
       padding_top={4}
       padding_bottom={4}
     >
-      {rows |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Stats.number_row(row, i < last, counted?) end)}
+      {rows |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Stats.number_row(row, i < last) end)}
     </Column>
     """
   end
@@ -755,6 +860,7 @@ defmodule Kati.Screens.Stats do
 
   defp entries_line(%{id: :goals} = row), do: %{row | sub: Kati.Screens.Stats.goals_line()}
   defp entries_line(%{id: :money} = row), do: %{row | sub: Kati.Screens.Stats.money_line()}
+  defp entries_line(%{id: :health} = row), do: %{row | sub: Kati.Screens.Stats.weight_line()}
 
   # `Kati.Habits` is a `Sample` module and nothing else — no resource, no
   # table — and `Nutrition`'s `Cutting v3 · 86%` is a diet plan, which
@@ -767,8 +873,14 @@ defmodule Kati.Screens.Stats do
   # one and says the honest thing — the first reads as a rendering fault, and
   # the second as an answer. **Not set up** is what the page behind each of them
   # says, which is 309's rule for the whole card.
-  defp entries_line(%{title: title} = row) when title in ["Habits", "Nutrition"],
-    do: %{row | sub: "Not set up"}
+  # The ID, not the drawn title. `Kati.Stats.Sample.more_numbers/0` has
+  # translated its titles since mishka-group/kati#103, so this clause matched
+  # two English words and no Persian ones: on board 61 Habits and Nutrition fell
+  # through to the drawing's frozen `4 active · 12-day best` and
+  # `Cutting v3 · 86%`, which is the very defect the clause was written to
+  # close, restored by translating the thing it was keyed on.
+  defp entries_line(%{id: id} = row) when id in [:habits, :nutrition],
+    do: %{row | sub: gettext("Not set up")}
 
   defp entries_line(row), do: row
 
@@ -802,17 +914,24 @@ defmodule Kati.Screens.Stats do
   """
   @spec weight_line() :: String.t()
   def weight_line do
-    latest = Kati.Screens.Weight.latest()
+    if Kati.Screens.Weight.stored?() do
+      latest = Kati.Screens.Weight.latest()
 
-    if Kati.Screens.Weight.entries() == [] do
-      # 309's rule for a row whose page has nothing in it: the row stays,
-      # because it is the door to a page that exists, and the figure goes.
-      gettext("Not set up")
-    else
       gettext("%{figure} %{unit}",
         figure: Kati.Locale.number(latest.figure),
         unit: latest.unit
       )
+    else
+      # 309's rule for a row whose page has nothing in it: the row stays,
+      # because it is the door to a page that exists, and the figure goes.
+      #
+      # `stored?/0` and not `entries() == []`, which is what this asked and
+      # which is never true: screen 110 falls back to its drawing on an empty
+      # store, so the guard took the other branch on every device and this row
+      # reported the drawing's **76.0 kg** to somebody who has never been
+      # weighed. The function's own doc says it was written against exactly
+      # that defect.
+      gettext("Not set up")
     end
   rescue
     _error -> gettext("Not set up")
@@ -831,7 +950,14 @@ defmodule Kati.Screens.Stats do
     n = Kati.Money.Expense |> Ash.read!() |> length()
 
     [
-      if(total in [nil, "—"], do: nil, else: gettext("%{total} a month", total: total)),
+      # `Kati.Locale.ltr/1` on the total. It is a Latin money run — `£46.47` —
+      # and the currency mark is a neutral character to the bidi algorithm, so
+      # inside a Persian sentence it resolved right-to-left and the page drew
+      # **۴۶٫۴۷ £ در ماه** with the sign on the wrong side of its own figure.
+      if(total in [nil, "—"],
+        do: nil,
+        else: gettext("%{total} a month", total: Kati.Locale.ltr(total))
+      ),
       if(n == 0,
         do: nil,
         else: ngettext("%{n} expense", "%{n} expenses", n, n: Kati.Locale.number(n))
@@ -844,7 +970,7 @@ defmodule Kati.Screens.Stats do
       parts -> Enum.join(parts, " · ")
     end
   rescue
-    _error -> "Nothing added yet"
+    _error -> gettext("Nothing added yet")
   end
 
   @doc """
@@ -862,7 +988,7 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc false
-  def number_row(row, rule?, counted?) do
+  def number_row(row, rule?) do
     tap = {self(), String.to_atom("go_" <> Atom.to_string(row.id))}
 
     ~MOB"""
@@ -878,10 +1004,10 @@ defmodule Kati.Screens.Stats do
             text_color={:on_surface}
             max_lines={1}
           />
-          {Kati.Screens.Stats.row_sub(row, counted?)}
+          {Kati.Screens.Stats.row_sub(row)}
         </Column>
         <Spacer size={12} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
+        {Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Stats.hairline(rule?)}
     </Column>
@@ -891,15 +1017,28 @@ defmodule Kati.Screens.Stats do
   # The second line, or nothing where there is no figure to put on it. A row of
   # a title and a chevron is the settings-list recipe the whole app is built
   # from; a row of a title and an invented figure is not a recipe at all.
+  #
+  # ## It took a `counted?` flag, and the flag outlived its reason
+  #
+  # `nothing_counted/1` passed `false` and every row on the empty page lost its
+  # second line at once — the blunt answer from before any of these lines could
+  # be read. Each of them can now, and each answers the empty store honestly:
+  # **No goals set — Kati counts anyway**, **Nothing to add up yet**, **Not set
+  # up**, **0 entries**. Those are board 309's own wordings for exactly this
+  # state, so suppressing them was the page withholding the answer 309 asked
+  # for.
+  #
+  # Board 61 is what said so. Its mirror drew all three lines in every state
+  # because it read them rather than the flag, and folding the mirror into this
+  # screen would have taken that away. mishka-group/kati#103.
+  #
+  # A row whose figure is nobody's still draws no second line — #45. `Habits`
+  # and `Nutrition` have no resource to count, and `entries_line/1` gives them
+  # **Not set up** rather than the drawing's figures.
   @doc false
-  def row_sub(_row, false), do: ~MOB"<Spacer size={0} />"
+  def row_sub(%{sub: nil}), do: ~MOB"<Spacer size={0} />"
 
-  # A row whose figure is nobody's draws no second line at all — #45. `Habits`
-  # and `Nutrition` have no resource to count, and a subtitle that says nothing
-  # is better than one that says the drawing's.
-  def row_sub(%{sub: nil}, true), do: ~MOB"<Spacer size={0} />"
-
-  def row_sub(row, true) do
+  def row_sub(row) do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={3} />
@@ -1207,7 +1346,7 @@ defmodule Kati.Screens.Stats do
     %{
       range: range(today),
       time: hours_and_minutes(minutes),
-      change: change && "#{abs(change)}%",
+      change: change && gettext("%{n}%", n: Kati.Locale.number(abs(change))),
       rising?: is_nil(change) or change >= 0,
       weeks: @weeks,
       streak: streak(this),
@@ -1279,13 +1418,14 @@ defmodule Kati.Screens.Stats do
 
     if rest == [],
       do: named,
-      else: named ++ [bar_row("Everything else", rest_minutes, largest, rest_colour())]
+      else: named ++ [bar_row(gettext("Everything else"), rest_minutes, largest, rest_colour())]
   end
 
   defp bar_row(name, minutes, largest, colour) do
     fraction = if largest > 0, do: minutes / largest, else: 0.0
 
-    {name, Float.round(fraction, 2), "#{div(minutes, 60)}h", colour}
+    {name, Float.round(fraction, 2), gettext("%{n}h", n: Kati.Locale.number(div(minutes, 60))),
+     colour}
   end
 
   # `Drama, Mystery, Sci-Fi & Fantasy` as it is stored, split on the separator
@@ -1303,14 +1443,47 @@ defmodule Kati.Screens.Stats do
   defp in_year?(%{on: %Date{} = on}, year), do: on.year == year
   defp in_year?(_entry, _year), do: false
 
-  # `Jan – Aug 2026`: the year so far, in the device's own clock.
-  defp range(today) do
-    "#{short_month(1)} – #{short_month(today.month)} #{today.year}"
+  @doc """
+  `Jan – Aug 2026`: the year so far, in the device's own clock and calendar.
+
+      iex> Kati.Screens.Stats.range(~D[2026-08-12])
+      "Jan – Aug 2026"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.Stats.range(~D[2026-08-12]) end)
+      "فروردین تا مرداد ۱۴۰۵"
+
+  Public because `Kati.Stats.Sample.year/0` composes the boards' own header from
+  it: board 07 draws **Jan – Aug 2026** and board 61 draws
+  **فروردین تا مرداد ۱۴۰۵**, and those are one function over one date rather
+  than two frozen strings that could disagree about which year it is.
+  """
+  @spec range(Date.t()) :: String.t()
+  #
+  # `Kati.Locale.date/2` and not `Kati.Time.month_name/1`, because the year this
+  # line names is the reader's year: board 61's header reads
+  # **فروردین تا مرداد ۱۴۰۵**, which is the Shamsi year so far and neither the
+  # same months nor the same number as the Gregorian one. The first of the year
+  # is Farvardin 1 in Shamsi and January 1 in Gregorian, so the range is built
+  # from two REAL dates and the calendar decides what to call them.
+  def range(today) do
+    gettext("%{from} – %{to} %{year}",
+      from: month_word(Kati.Locale.year_start(today)),
+      to: month_word(today),
+      year: Kati.Locale.year_of(today)
+    )
   end
 
-  defp short_month(month), do: month |> Kati.Time.month_name() |> String.slice(0, 3)
+  defp month_word(date), do: Kati.Locale.month_name(date, :short)
 
-  defp hours_and_minutes(minutes), do: "#{div(minutes, 60)}h #{rem(minutes, 60)}m"
+  # `312h 40m`, in the reader's own digits and words. It was two Latin letters
+  # glued to two Latin numbers, so board 61's hero read `312h 40m` on a Persian
+  # page — which is why the mirror carried its own `hours`/`hours_unit` pair.
+  defp hours_and_minutes(minutes) do
+    gettext("%{h}h %{m}m",
+      h: Kati.Locale.number(div(minutes, 60)),
+      m: Kati.Locale.number(rem(minutes, 60))
+    )
+  end
 
   # A first year has nothing to be up on. Reporting that as 100% rather than as
   # a division by zero, and as 0% when there is nothing either side.
@@ -1330,9 +1503,9 @@ defmodule Kati.Screens.Stats do
     series = distinct(entries, &(&1.kind in [:tv, :anime]))
 
     [
-      {Integer.to_string(films), "Films"},
-      {Integer.to_string(series), "Series"},
-      {average_rating(entries), "Avg ★"}
+      {Kati.Locale.number(films), gettext("Films")},
+      {Kati.Locale.number(series), gettext("Series")},
+      {average_rating(entries), gettext("Avg ★")}
     ]
   end
 
@@ -1351,8 +1524,15 @@ defmodule Kati.Screens.Stats do
       |> Enum.reject(&is_nil/1)
 
     case ratings do
-      [] -> "—"
-      list -> :erlang.float_to_binary(Enum.sum(list) / length(list) / 2, decimals: 1)
+      [] ->
+        "—"
+
+      list ->
+        list
+        |> Enum.sum()
+        |> Kernel./(length(list) * 2)
+        |> :erlang.float_to_binary(decimals: 1)
+        |> Kati.Locale.number()
     end
   end
 
@@ -1360,9 +1540,13 @@ defmodule Kati.Screens.Stats do
   # not watches: two films on one evening is one night.
   defp streak(entries) do
     case longest_run(entries) do
-      0 -> "no streak yet"
-      1 -> "longest streak — 1 night"
-      n -> "longest streak — #{n} nights"
+      0 ->
+        gettext("no streak yet")
+
+      n ->
+        ngettext("longest streak — %{n} night", "longest streak — %{n} nights", n,
+          n: Kati.Locale.number(n)
+        )
     end
   end
 
@@ -1395,6 +1579,70 @@ defmodule Kati.Screens.Stats do
     end
   end
 
+  @doc """
+  The seven days of the reader's own week, each with what was watched on it.
+
+  `[{date, count}]`, Saturday-first in Persian and Monday-first in English —
+  `Kati.Locale.week_start/0` is the same ruling board 137 makes about the
+  calendar, applied to a chart.
+
+  ## Board 61 drew this card and screen 07 did not have it
+
+  `Kati.Fa.SampleYear.week/0` was seven frozen bar heights and a frozen *this
+  one is lit* flag: `[{42, false}, {36, false}, {12, false}, {54, true}, …]`,
+  identical on every device, which is MOVIES-AND-TV.md #45 over a whole card.
+  So the card does not survive the fold as it stood — but the DATA behind it
+  was already on this screen, because the contribution grid above it counts the
+  same watches over 182 days. Seven of those days is this week.
+
+  The lit bar is **today**, which is the one reading of the drawing a device can
+  honour: a week strip whose dark bar moves with the date says where you are in
+  the week, and one whose dark bar is the tallest says nothing the heights do
+  not already say.
+  """
+  @spec this_week([map()]) :: [{Date.t(), non_neg_integer()}]
+  def this_week(entries) do
+    today = Kati.Time.today()
+
+    counted =
+      entries
+      |> Enum.map(& &1.on)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.frequencies()
+
+    start = Kati.Screens.Stats.week_start_on(today)
+
+    for offset <- 0..6 do
+      date = Date.add(start, offset)
+      {date, Map.get(counted, date, 0)}
+    end
+  end
+
+  @doc """
+  The date this reader's week began on, at or before `today`.
+
+      iex> Kati.Screens.Stats.week_start_on(~D[2026-09-12])
+      ~D[2026-09-07]
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.Stats.week_start_on(~D[2026-09-12]) end)
+      ~D[2026-09-12]
+
+  12 September 2026 is a Saturday, so a Persian week starts on it and an
+  English one started five days earlier.
+  """
+  @spec week_start_on(Date.t()) :: Date.t()
+  def week_start_on(%Date{} = today) do
+    # `Date.day_of_week/1` is 1 = Monday .. 7 = Sunday.
+    back =
+      if Kati.Locale.direction(Kati.Locale.current()) == :rtl do
+        rem(Date.day_of_week(today) + 1, 7)
+      else
+        Date.day_of_week(today) - 1
+      end
+
+    Date.add(today, -back)
+  end
+
   # Five steps, because `Kati.Stats.Sample.intensity/1` paints five. Four or
   # more in a day is the heaviest square there is; the ramp has nowhere further
   # to go and a busier day is not a different colour.
@@ -1417,8 +1665,16 @@ defmodule Kati.Screens.Stats do
   defp recent_data(entry) do
     %{
       seed: entry.seed,
-      title: entry.title || "Untitled",
-      meta: "#{recent_label(entry)} · #{ago(entry.at)}",
+      title: entry.title || gettext("Untitled"),
+      # The kind takes the eyebrow's casing and the time does not, which is the
+      # drawing's own pairing: `FILM · yesterday`. `Kati.UI.eyebrow_label/1`
+      # rather than `String.upcase/1`, so the Persian side is left alone —
+      # Persian has no case and upcasing it is a no-op that reads as one.
+      meta:
+        gettext("%{what} · %{when}",
+          what: Kati.UI.eyebrow_label(recent_label(entry)),
+          when: ago(entry.at)
+        ),
       # `div/2`, not `round/1`: nine on the ten-point scale is four and a half
       # stars and the row draws four whole ones.
       stars: div(entry.rating || 0, 2)
@@ -1429,14 +1685,20 @@ defmodule Kati.Screens.Stats do
   # drawing's `FILM · yesterday` is a whole-title watch with nothing to number.
   defp recent_label(%{season: season, episode: episode})
        when is_integer(season) and is_integer(episode),
-       do: "S#{season} E#{episode}"
+       do:
+         gettext("S%{s} E%{e}",
+           s: Kati.Locale.number(season),
+           e: Kati.Locale.number(episode)
+         )
 
-  defp recent_label(%{episode: episode}) when is_integer(episode), do: "E#{episode}"
-  defp recent_label(%{kind: :movie}), do: "FILM"
-  defp recent_label(%{kind: :anime}), do: "ANIME"
-  defp recent_label(%{kind: :book}), do: "BOOK"
-  defp recent_label(%{kind: :album}), do: "ALBUM"
-  defp recent_label(_entry), do: "SERIES"
+  defp recent_label(%{episode: episode}) when is_integer(episode),
+    do: gettext("E%{e}", e: Kati.Locale.number(episode))
+
+  defp recent_label(%{kind: :movie}), do: gettext("Film")
+  defp recent_label(%{kind: :anime}), do: gettext("Anime")
+  defp recent_label(%{kind: :book}), do: gettext("Book")
+  defp recent_label(%{kind: :album}), do: gettext("Album")
+  defp recent_label(_entry), do: gettext("Series")
 
   @doc """
   How long ago something was watched, in the drawing's own words —
@@ -1458,15 +1720,28 @@ defmodule Kati.Screens.Stats do
     # `Kati.Screens.UpNext.age/1`, which says the same thing in the louder
     # voice its own drawing uses.
     cond do
-      minutes < 1 -> "just now"
-      minutes < 60 -> "#{minutes}m ago"
-      days < 1 -> "#{div(minutes, 60)}h ago"
-      days == 1 -> "yesterday"
-      days < 7 -> "#{days} days ago"
-      days < 14 -> "1 week ago"
-      days < 30 -> "#{div(days, 7)} weeks ago"
-      days < 60 -> "1 month ago"
-      true -> "#{div(days, 30)} months ago"
+      minutes < 1 ->
+        gettext("just now")
+
+      minutes < 60 ->
+        gettext("%{n}m ago", n: Kati.Locale.number(minutes))
+
+      days < 1 ->
+        gettext("%{n}h ago", n: Kati.Locale.number(div(minutes, 60)))
+
+      days == 1 ->
+        gettext("yesterday")
+
+      days < 7 ->
+        ngettext("%{n} day ago", "%{n} days ago", days, n: Kati.Locale.number(days))
+
+      days < 30 ->
+        weeks = max(div(days, 7), 1)
+        ngettext("%{n} week ago", "%{n} weeks ago", weeks, n: Kati.Locale.number(weeks))
+
+      true ->
+        months = max(div(days, 30), 1)
+        ngettext("%{n} month ago", "%{n} months ago", months, n: Kati.Locale.number(months))
     end
   end
 
@@ -1477,7 +1752,11 @@ defmodule Kati.Screens.Stats do
     "habits" => Kati.Screens.Habits,
     "nutrition" => Kati.Screens.Health,
     "goals" => Kati.Screens.Goals,
-    "money" => Kati.Screens.Money
+    "money" => Kati.Screens.Money,
+    # Board 61's row, kept through the fold — see `Kati.Stats.Sample`. Screen
+    # 110 is the weight page itself rather than screen 42's hub, because the row
+    # names a reading and the hub is a menu.
+    "health" => Kati.Screens.Weight
     # `Recently watched` was here, and `more_numbers/1` rejects that row by
     # name — so no `go_Recently watched` tag was ever emitted and the entry was
     # dead code. MOVIES-AND-TV.md #125. Deleted rather than drawn: the row is

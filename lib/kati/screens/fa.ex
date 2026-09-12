@@ -144,7 +144,12 @@ defmodule Kati.Screens.Fa do
     %{id: :home, icon: "home", screen: Kati.Screens.HomeFa},
     %{id: :calendar, icon: "calendar_month", screen: Kati.Screens.ScheduleFa},
     %{id: :library, icon: "grid_view", screen: Kati.Screens.LibraryFa},
-    %{id: :stats, icon: "bar_chart_4_bars", screen: Kati.Screens.StatsFa}
+    # آمار is `Kati.Screens.Stats` again, and this time it is not a stand-in:
+    # mishka-group/kati#103 folded the mirror away, so board 61 IS screen 07
+    # read under `:fa`. The stand-in that used to sit here changed the app's
+    # language out from under the reader; this entry cannot, because the screen
+    # it names takes its script from `Kati.Locale` like every other.
+    %{id: :stats, icon: "bar_chart_4_bars", screen: Kati.Screens.Stats}
   ]
 
   @doc "The four roots of the Persian shell."

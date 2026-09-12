@@ -14,18 +14,26 @@ defmodule Kati.FaShellRoutesTest do
   """
   use ExUnit.Case, async: true
 
+  # The mirrors still standing. `Kati.Screens.StatsFa` left this list on
+  # mishka-group/kati#103's stats fold: board 61 is `Kati.Screens.Stats` read
+  # under `:fa`, so the آمار tab names an English MODULE and a Persian PAGE, and
+  # the two are no longer the same question. The list shrinks by one per fold
+  # and the last fold empties it.
   @persian_roots [
     Kati.Screens.HomeFa,
     Kati.Screens.ScheduleFa,
-    Kati.Screens.LibraryFa,
-    Kati.Screens.StatsFa
+    Kati.Screens.LibraryFa
   ]
+
+  # A folded root: still on the Persian dock, and Persian because
+  # `Kati.Locale` says so rather than because the module's name ends in `Fa`.
+  @folded_roots [Kati.Screens.Stats]
 
   describe "the Persian dock names Persian screens" do
     test "every root in Kati.Screens.Fa.roots/0 is a Persian screen" do
       strays =
         Kati.Screens.Fa.roots()
-        |> Enum.reject(&(&1.screen in @persian_roots))
+        |> Enum.reject(&(&1.screen in (@persian_roots ++ @folded_roots)))
         |> Enum.map(&"#{&1.id} -> #{inspect(&1.screen)}")
 
       assert strays == [],
@@ -37,9 +45,9 @@ defmodule Kati.FaShellRoutesTest do
       assert length(Enum.uniq(screens)) == 4
     end
 
-    test "the stats tab is screen 61, not the English stand-in" do
+    test "the stats tab is board 61, which is screen 07 read in Persian" do
       stats = Enum.find(Kati.Screens.Fa.roots(), &(&1.id == :stats))
-      assert stats.screen == Kati.Screens.StatsFa
+      assert stats.screen == Kati.Screens.Stats
     end
   end
 
@@ -55,13 +63,40 @@ defmodule Kati.FaShellRoutesTest do
           {:root_library, Kati.Screens.LibraryFa}
         ] do
       test "#{tag} from آمار lands on #{inspect(expected)}", %{socket: socket} do
-        {:noreply, moved} = Kati.Screens.StatsFa.handle_info({:tap, unquote(tag)}, socket)
+        # Screen 07 under `:fa` — `Kati.Screens.Root`'s shared `root_*` clause
+        # asking `Kati.Shell.screen_for/1`, which reads the Persian table first
+        # while that table still names anything of its own. Before the fold this
+        # was `Kati.Screens.StatsFa.handle_info/2` answering the same question
+        # in a module of its own.
+        moved =
+          Kati.Locale.as(:fa, fn ->
+            {:noreply, moved} = Kati.Screens.Stats.handle_info({:tap, unquote(tag)}, socket)
+            moved
+          end)
+
         assert target_of(moved) == unquote(expected)
       end
     end
 
+    test "and in English the same tap lands on the English root", %{socket: socket} do
+      # The other half, and the reason `screen_for/1` asks the locale rather
+      # than the module: one screen, two docks.
+      moved =
+        Kati.Locale.as(:en, fn ->
+          {:noreply, moved} = Kati.Screens.Stats.handle_info({:tap, :root_home}, socket)
+          moved
+        end)
+
+      assert target_of(moved) == Kati.Screens.Home
+    end
+
     test "root_stats from آمار is inert", %{socket: socket} do
-      {:noreply, moved} = Kati.Screens.StatsFa.handle_info({:tap, :root_stats}, socket)
+      moved =
+        Kati.Locale.as(:fa, fn ->
+          {:noreply, moved} = Kati.Screens.Stats.handle_info({:tap, :root_stats}, socket)
+          moved
+        end)
+
       assert target_of(moved) == nil
     end
   end

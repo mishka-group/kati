@@ -183,6 +183,26 @@ defmodule Kati.ScreenStatsEmptyTest do
       end
     end
 
+    test "and puts each row's own empty-store answer there instead" do
+      # The page used to drop EVERY second line on this branch — `more_numbers/1`
+      # took a `counted?` flag and `nothing_counted/1` passed `false`. That was
+      # the blunt answer from before any of these lines could be read; each of
+      # them can now, and each says what board 309 asks a row whose page is
+      # empty to say. Folding board 61 into this screen is what surfaced it:
+      # `Kati.Screens.StatsFa` read the three lines rather than the flag, so it
+      # drew them in every state and the English page did not.
+      words = text(tree(mount_screen(Stats)))
+
+      for line <- [
+            Kati.Screens.Stats.goals_line(),
+            Kati.Screens.Stats.money_line(),
+            Kati.Screens.Stats.weight_line(),
+            Kati.Screens.Stats.entries_count()
+          ] do
+        assert words =~ line, "an empty store's own answer is missing: #{inspect(line)}"
+      end
+    end
+
     test "every `More numbers` row still opens the screen it names" do
       # Kept rows have to be live ones: a row drawn on an empty page and wired to
       # nothing is a worse lie than the figure it lost.
@@ -197,7 +217,10 @@ defmodule Kati.ScreenStatsEmptyTest do
             {:habits, Kati.Screens.Habits},
             {:nutrition, Kati.Screens.Health},
             {:goals, Kati.Screens.Goals},
-            {:money, Kati.Screens.Money}
+            {:money, Kati.Screens.Money},
+            # Board 61's row, kept through mishka-group/kati#103's stats fold —
+            # `Kati.Stats.Sample.more_numbers/0` carries the argument.
+            {:health, Kati.Screens.Weight}
           ] do
         {:noreply, moved} = Stats.handle_tap(String.to_atom("go_#{id}"), socket)
 
@@ -225,7 +248,21 @@ defmodule Kati.ScreenStatsEmptyTest do
       assert year.streak == "longest streak — 11 nights"
       assert year.counts == [{"84", "Films"}, {"19", "Series"}, {"4.1", "Avg ★"}]
       assert length(year.breakdown) == 5
-      assert length(Sample.more_numbers()) == 6
+      assert length(Sample.more_numbers()) == 7
+
+      # And the same fixture read in the other script, which is what board 61
+      # is: one set of figures, composed through `Kati.Locale` rather than
+      # transcribed. Two frozen headers is how a mirror ends up claiming a
+      # different year from the screen it mirrors.
+      Kati.Locale.as(:fa, fn ->
+        fa = Sample.year()
+
+        assert fa.range == "فروردین تا مرداد ۱۴۰۵"
+        assert fa.time == "۳۱۲ ساعت ۴۰ دقیقه"
+        assert fa.change == "۱۸٪"
+        assert fa.streak == "بلندترین رشته — ۱۱ شب"
+        assert fa.counts == [{"۸۴", "فیلم"}, {"۱۹", "سریال"}, {"۴٫۱", "میانگین ★"}]
+      end)
 
       # And they are still the drawing's, not just the sample module's.
       drawn = File.read!(Path.join(__DIR__, "../design/screens/07.html"))
