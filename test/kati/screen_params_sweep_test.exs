@@ -412,21 +412,27 @@ defmodule Kati.ScreenParamsSweepTest do
     # explicit `%{}` would be the same value this push already sends. No edit.
     {Kati.Screens.NotificationAccess, :log_by_hand, Kati.Screens.LogListen},
 
-    # ── Screen 90's two hits.
+    # ── The four Persian roots' search button.
     #
-    # `@hits` at `search_fa.ex:215-231` is two typed maps and `mount/3` reads
-    # nothing, so the only identifier a hit carries is its design seed
-    # (`hollow71`). `Kati.Seeds.sample_source_id/1` would turn that into the
-    # `{source, source_id}` pair a real shelf row carries, but `Kati.Seeds.groups/0`
-    # seeds `:calendars` and `:media` only and never a
-    # `Kati.Media.TrackedTitle`, so the reference would resolve to nothing.
-    # Both hits are the same series in Persian, which is why one destination
-    # answers both (`search_fa.ex:971-976`). The push now writes `%{back:
-    # "جست‌وجو"}` so the Persian series page's pill says where the reader came
-    # from instead of `کتابخانه`, and that is an origin, not a subject — see
-    # `no_subject?/1` and `subject_args/1` for why it leaves these two here.
-    {Kati.Screens.SearchFa, :hit_0, Kati.Screens.Series},
-    {Kati.Screens.SearchFa, :hit_1, Kati.Screens.Series}
+    # Screen 19 reads `:back`, `:query` and `:scope`, and a home that opens the
+    # search field has none of the three to hand it. There is no query: the
+    # reader has not typed yet, and `opening_query/1` reads silence and `""` as
+    # two different things on purpose. There is no scope: the field opens
+    # unnarrowed. And `:back` is the one key a push here COULD name and should
+    # not, because screen 19's own default is `gettext("Home")` — which is
+    # «خانه» in the script these four are drawn in. Naming it would be writing
+    # the same word twice, in a place where only one of the two gets
+    # translated.
+    #
+    # `Kati.Screens.Home` opens screen 86 for the same tap and lands on the
+    # empty field rather than on 19. The Persian roots cannot: screen 86 holds
+    # no translated copy, and a Persian root that pushed an English page would
+    # change the app's language out from under the reader — which is the
+    # failure `Kati.Screens.Fa` records for the آمار tab's old stand-in.
+    {Kati.Screens.HomeFa, :open_search, Kati.Screens.Search},
+    {Kati.Screens.HomeFaEmpty, :open_search, Kati.Screens.Search},
+    {Kati.Screens.HomeFaEmptyDark, :open_search, Kati.Screens.Search},
+    {Kati.Screens.HomeFaOmittedSections, :open_search, Kati.Screens.Search}
   ]
 
   # Every door into a params reader that names its subject and hands the reader

@@ -74,19 +74,30 @@ defmodule Kati.Search do
   # `cast` — TMDB's credits are not fetched and `Kati.Media.CachedTitle` has no
   # column for a person. `series` — `Kati.Books.Book` has no series name. Both
   # become searchable the day the column does, and nothing else has to change.
-  @unkept ["cast", "series"]
+  # `never_invitees` is the third and the only one that is a decision rather
+  # than a missing column: searching your calendar should not turn into
+  # searching your contacts, and it stays unread the day every column exists.
+  @unkept [:cast, :series, :never_invitees]
 
   @doc """
   Whether a field this board names is one a search actually reads.
 
-      iex> Kati.Search.kept?("your review")
+      iex> Kati.Search.kept?(:your_review)
       true
 
-      iex> Kati.Search.kept?("cast")
+      iex> Kati.Search.kept?(:cast)
       false
+
+      iex> Kati.Search.kept?(:never_invitees)
+      false
+
+  The KEY and not the label, for `built?/1`'s reason one level up: this answered
+  `false` only for the two English words in `@unkept`, so «بازیگران» — which is
+  `cast` — read as a searched field on the Persian rendering of the same board.
+  mishka-group/kati#103.
   """
-  @spec kept?(String.t()) :: boolean()
-  def kept?(field), do: field not in @unkept
+  @spec kept?(atom()) :: boolean()
+  def kept?(field) when is_atom(field), do: field not in @unkept
 
   # The scopes `Kati.Search.Query.run/1` actually builds a group for. Written
   # as labels rather than derived from `@narrowable`, because that list also
@@ -117,44 +128,52 @@ defmodule Kati.Search do
   @doc """
   Every scope, in the fixed order every result list uses.
 
-  `{key, label, fields}`. The KEY is what a chip's tap is named after and what
-  `built?/1` and `narrowable/1` answer about; the label and the field list are
-  copy. They were one string, which is the defect this whole ticket is about.
+  `{key, label, fields}`, and every field is `{key, label}` in turn. The KEY is
+  what a chip's tap is named after and what `built?/1`, `narrowable/1` and
+  `kept?/1` answer about; the labels are copy. They were one string, which is
+  the defect this whole ticket is about.
   """
-  @spec scopes() :: [{atom(), String.t(), [String.t()]}]
+  @spec scopes() :: [{atom(), String.t(), [{atom(), String.t()}]}]
   def scopes do
     [
       {:screen, pgettext("search scope", "Screen"),
        [
-         gettext("title"),
-         gettext("original title"),
-         gettext("alt titles"),
-         gettext("episode titles"),
-         gettext("cast"),
-         gettext("your tags"),
-         gettext("your review")
+         {:title, gettext("title")},
+         {:original_title, gettext("original title")},
+         {:alt_titles, gettext("alt titles")},
+         {:episode_titles, gettext("episode titles")},
+         {:cast, gettext("cast")},
+         {:your_tags, gettext("your tags")},
+         {:your_review, gettext("your review")}
        ]},
       {:books, pgettext("search scope", "Books"),
        [
-         gettext("title"),
-         gettext("author"),
-         gettext("series"),
-         "ISBN",
-         gettext("your notes"),
-         gettext("your quotes")
+         {:title, gettext("title")},
+         {:author, gettext("author")},
+         {:series, gettext("series")},
+         {:isbn, "ISBN"},
+         {:your_notes, gettext("your notes")},
+         {:your_quotes, gettext("your quotes")}
        ]},
       {:music, pgettext("search scope", "Music"),
-       [gettext("album"), gettext("artist"), gettext("track"), gettext("your notes")]},
+       [
+         {:album, gettext("album")},
+         {:artist, gettext("artist")},
+         {:track, gettext("track")},
+         {:your_notes, gettext("your notes")}
+       ]},
       {:calendar, pgettext("search scope", "Calendar"),
        [
-         gettext("event title"),
-         gettext("location"),
-         gettext("notes"),
-         gettext("never invitee names")
+         {:event_title, gettext("event title")},
+         {:location, gettext("location")},
+         {:notes, gettext("notes")},
+         {:never_invitees, gettext("never invitee names")}
        ]},
-      {:meals, pgettext("search scope", "Meals"), [gettext("meal name"), gettext("ingredients")]},
-      {:money, pgettext("search scope", "Money"), [gettext("service name")]},
-      {:notes, pgettext("search scope", "Notes"), [gettext("every cream card in the app")]}
+      {:meals, pgettext("search scope", "Meals"),
+       [{:meal_name, gettext("meal name")}, {:ingredients, gettext("ingredients")}]},
+      {:money, pgettext("search scope", "Money"), [{:service_name, gettext("service name")}]},
+      {:notes, pgettext("search scope", "Notes"),
+       [{:every_cream_card, gettext("every cream card in the app")}]}
     ]
   end
 
@@ -205,8 +224,8 @@ defmodule Kati.Search do
     end
   end
 
-  @doc "The fields one scope searches, as screen 88 lists them."
-  @spec fields(atom()) :: [String.t()]
+  @doc "The fields one scope searches, as screen 88 lists them — `{key, label}`."
+  @spec fields(atom()) :: [{atom(), String.t()}]
   def fields(scope) do
     case Enum.find(Kati.Search.scopes(), &(elem(&1, 0) == scope)) do
       {_scope, _label, fields} -> fields

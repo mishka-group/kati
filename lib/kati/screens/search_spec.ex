@@ -240,24 +240,28 @@ defmodule Kati.Screens.SearchSpec do
   page), a book's `series` is not a column, and `invitee names` is excluded on
   purpose, because searching a calendar is not searching contacts.
   """
-  @spec field_chip(String.t()) :: map()
-  def field_chip("never" <> _rest = field), do: Kati.Screens.SearchSpec.refused(field)
-
+  #
   # MOVIES-AND-TV.md #74 at the field level. `Kati.Search.kept?/1` is the same
   # seam `built?/1` is one level up, and a field with nothing behind it takes
   # the same treatment as a refused one — the reasons differ and the reader's
   # question does not: *is this searched?*
-  def field_chip(field) when is_binary(field) do
-    if Kati.Search.kept?(field) do
-      Kati.Screens.SearchSpec.searched(field)
+  #
+  # Asked with the KEY. It was asked with the drawn word, and matched `"never"
+  # <> _rest` for the invitee line, so on the Persian rendering of this board
+  # all three withdrawn fields drew as searched: «بازیگران» is not `"cast"` and
+  # «هرگز نام مهمانان» does not begin with `never`. mishka-group/kati#103.
+  @spec field_chip({atom(), String.t()}) :: map()
+  def field_chip({key, label}) when is_atom(key) do
+    if Kati.Search.kept?(key) do
+      Kati.Screens.SearchSpec.searched(label)
     else
-      Kati.Screens.SearchSpec.refused(field)
+      Kati.Screens.SearchSpec.refused(label)
     end
   end
 
   @doc false
   def searched(field) do
-    assigns = %{field: field}
+    assigns = %{field: field, face: Kati.Locale.mono_face(field)}
 
     ~MOB"""
     <Row
@@ -270,7 +274,7 @@ defmodule Kati.Screens.SearchSpec do
     >
       <Text
         text={@field}
-        font_family="mono"
+        font_family={@face}
         text_size={10.5}
         text_color={Palette.ink_soft()}
         max_lines={1}
@@ -281,14 +285,14 @@ defmodule Kati.Screens.SearchSpec do
 
   @doc false
   def refused(field) do
-    assigns = %{field: field}
+    assigns = %{field: field, face: Kati.Locale.mono_face(field)}
 
     ~MOB"""
     <Row height={26} corner_radius={13} padding_left={10} padding_right={10} align="center">
       <Box>
         <Text
           text={@field}
-          font_family="mono"
+          font_family={@face}
           text_size={10.5}
           text_color={Palette.track_off()}
           max_lines={1}
@@ -341,14 +345,15 @@ defmodule Kati.Screens.SearchSpec do
 
   @doc false
   def tier_row({rank, name, example}) do
-    assigns = %{rank: Integer.to_string(rank), example: example}
+    numeral = Kati.Locale.number(rank)
+    assigns = %{rank: numeral, face: Kati.Locale.mono_face(numeral), example: example}
 
     SettingsList.row(
       ~MOB"""
       <Box width={26} height={26} corner_radius={13} background={Palette.paper()} align="center">
         <Text
           text={@rank}
-          font_family="mono"
+          font_family={@face}
           text_size={11.5}
           text_align="center"
           text_color={Palette.ink_soft()}

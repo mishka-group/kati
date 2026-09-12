@@ -180,8 +180,12 @@ defmodule Kati.SearchRunTest do
     test "cast is named on the board and searched by nothing, and says so" do
       # Nothing on the device holds a person, so the field is struck rather
       # than quietly dropped — #74 at the field level.
-      refute Kati.Search.kept?("cast")
-      assert Kati.Search.kept?("your review")
+      #
+      # The KEY, since mishka-group/kati#103. Asked with the drawn word this
+      # answered about two English strings, so on the Persian rendering of
+      # board 88 «بازیگران» came back kept and drew as a searched field.
+      refute Kati.Search.kept?(:cast)
+      assert Kati.Search.kept?(:your_review)
 
       drawn = inspect(Kati.Screens.SearchSpec.scopes(), limit: :infinity)
 

@@ -572,8 +572,21 @@ defmodule Kati.ScreenWriteTargetTest do
   # control that survived is still pressed, in both locales, and
   # `@screens_swept` is again untouched: the mirror is gone and the screen it
   # mirrored is swept twice.
+  #
+  # And a third time, to 2110, for the fold one board further on.
+  # mishka-group/kati#103 folded `Kati.Screens.SearchFa` into screen 19, and
+  # board 90's mirror drew a page of its own: a back pill, a field with its
+  # clear disc, eight scope chips, two hits and a recent shelf, every one of
+  # them a tap this pass dispatched. Screen 19 is swept in both locales and so
+  # answers for most of them, which is why the measured drop is seven rather
+  # than the mirror's whole page.
+  #
+  # It is not a loss of controls. Three of the eight chips are NEW on screen 19
+  # this round — `Kati.Search.Query.chip_counts/1` draws Music, Meals and Money
+  # because board 90 does — so the pass presses more scope chips than it did
+  # and still dispatches fewer taps, because one page is now one page.
   @screens_swept 160
-  @drawn_taps 2120
+  @drawn_taps 2110
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

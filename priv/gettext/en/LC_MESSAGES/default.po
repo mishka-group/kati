@@ -438,6 +438,9 @@ msgid "Hide titles I marked private"
 msgstr ""
 
 #: lib/kati/screens/pushed.ex:184
+#: lib/kati/screens/search.ex:157
+#: lib/kati/screens/search.ex:356
+#: lib/kati/screens/search.ex:557
 #: lib/kati/shell.ex:80
 #, elixir-autogen, elixir-format
 msgid "Home"
@@ -937,6 +940,9 @@ msgstr ""
 #: lib/kati/library/sample.ex:155
 #: lib/kati/library/sample.ex:224
 #: lib/kati/screens/onboarding_first_title.ex:148
+#: lib/kati/screens/search.ex:230
+#: lib/kati/screens/search.ex:254
+#: lib/kati/screens/search.ex:275
 #, elixir-autogen, elixir-format
 msgid "The Long Hollow"
 msgstr ""
@@ -3591,6 +3597,8 @@ msgstr ""
 
 #: lib/kati/library/sample.ex:198
 #: lib/kati/music/sample.ex:178
+#: lib/kati/screens/search.ex:239
+#: lib/kati/screens/search.ex:262
 #, elixir-autogen, elixir-format
 msgid "Hollow Season"
 msgstr ""
@@ -4019,4 +4027,233 @@ msgstr ""
 #: lib/kati/screens/series.ex:1036
 #, elixir-autogen, elixir-format
 msgid "Mark episode %{n} watched"
+msgstr ""
+
+#: lib/kati/screens/search.ex:967
+#, elixir-autogen, elixir-format
+msgid "%{n} match in %{scope}"
+msgid_plural "%{n} matches in %{scope}"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/search.ex:253
+#, elixir-autogen, elixir-format
+msgid "%{title} S%{s}E%{e} airs"
+msgstr ""
+
+#: lib/kati/screens/search.ex:262
+#, elixir-autogen, elixir-format
+msgid "%{title} — watched"
+msgstr ""
+
+#: lib/kati/screens/search.ex:241
+#, elixir-autogen, elixir-format
+msgid "Episode · S%{s}E%{e} · watched %{date}"
+msgstr ""
+
+#: lib/kati/screens/search.ex:273
+#: lib/kati/search/query.ex:652
+#, elixir-autogen, elixir-format
+msgid "Note · %{date} · %{title}"
+msgstr ""
+
+#: lib/kati/screens/search.ex:965
+#, elixir-autogen, elixir-format
+msgid "Nothing in %{scope}. "
+msgstr ""
+
+#: lib/kati/screens/search.ex:232
+#, elixir-autogen, elixir-format
+msgid "Series · S%{n} · %{status}"
+msgstr ""
+
+#: lib/kati/search.ex:160
+#, elixir-autogen, elixir-format, fuzzy
+msgid "album"
+msgstr ""
+
+#: lib/kati/search.ex:143
+#, elixir-autogen, elixir-format
+msgid "alt titles"
+msgstr ""
+
+#: lib/kati/search.ex:161
+#, elixir-autogen, elixir-format, fuzzy
+msgid "artist"
+msgstr ""
+
+#: lib/kati/search.ex:152
+#, elixir-autogen, elixir-format
+msgid "author"
+msgstr ""
+
+#: lib/kati/search.ex:145
+#, elixir-autogen, elixir-format
+msgid "cast"
+msgstr ""
+
+#: lib/kati/search.ex:144
+#, elixir-autogen, elixir-format
+msgid "episode titles"
+msgstr ""
+
+#: lib/kati/search.ex:167
+#, elixir-autogen, elixir-format
+msgid "event title"
+msgstr ""
+
+#: lib/kati/search.ex:176
+#, elixir-autogen, elixir-format
+msgid "every cream card in the app"
+msgstr ""
+
+#: lib/kati/screens/search.ex:226
+#: lib/kati/screens/search.ex:279
+#, elixir-autogen, elixir-format
+msgid "hollow"
+msgstr ""
+
+#: lib/kati/search.ex:173
+#, elixir-autogen, elixir-format
+msgid "ingredients"
+msgstr ""
+
+#: lib/kati/screens/search.ex:280
+#, elixir-autogen, elixir-format
+msgid "is a character, not a place. Watch E1 again before S3."
+msgstr ""
+
+#: lib/kati/search.ex:168
+#, elixir-autogen, elixir-format
+msgid "location"
+msgstr ""
+
+#: lib/kati/search.ex:173
+#, elixir-autogen, elixir-format
+msgid "meal name"
+msgstr ""
+
+#: lib/kati/search.ex:170
+#, elixir-autogen, elixir-format
+msgid "never invitee names"
+msgstr ""
+
+#: lib/kati/search.ex:169
+#, elixir-autogen, elixir-format, fuzzy
+msgid "notes"
+msgstr ""
+
+#: lib/kati/search.ex:142
+#, elixir-autogen, elixir-format
+msgid "original title"
+msgstr ""
+
+#: lib/kati/search.ex:153
+#, elixir-autogen, elixir-format, fuzzy
+msgid "series"
+msgstr ""
+
+#: lib/kati/search.ex:174
+#, elixir-autogen, elixir-format
+msgid "service name"
+msgstr ""
+
+#: lib/kati/search.ex:141
+#: lib/kati/search.ex:151
+#, elixir-autogen, elixir-format, fuzzy
+msgid "title"
+msgstr ""
+
+#: lib/kati/search.ex:162
+#, elixir-autogen, elixir-format
+msgid "track"
+msgstr ""
+
+#: lib/kati/search.ex:155
+#: lib/kati/search.ex:163
+#, elixir-autogen, elixir-format, fuzzy
+msgid "your notes"
+msgstr ""
+
+#: lib/kati/search.ex:156
+#, elixir-autogen, elixir-format, fuzzy
+msgid "your quotes"
+msgstr ""
+
+#: lib/kati/search.ex:147
+#, elixir-autogen, elixir-format
+msgid "your review"
+msgstr ""
+
+#: lib/kati/search.ex:146
+#, elixir-autogen, elixir-format
+msgid "your tags"
+msgstr ""
+
+#: lib/kati/screens/search.ex:278
+#, elixir-autogen, elixir-format
+msgid "…the"
+msgstr ""
+
+#: lib/kati/search.ex:218
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "All"
+msgstr ""
+
+#: lib/kati/search.ex:149
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "Books"
+msgstr ""
+
+#: lib/kati/search.ex:165
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "Calendar"
+msgstr ""
+
+#: lib/kati/search.ex:172
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "Meals"
+msgstr ""
+
+#: lib/kati/search.ex:174
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "Money"
+msgstr ""
+
+#: lib/kati/search.ex:158
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "Music"
+msgstr ""
+
+#: lib/kati/search.ex:175
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "Notes"
+msgstr ""
+
+#: lib/kati/search.ex:139
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "search scope"
+msgid "Screen"
+msgstr ""
+
+#: lib/kati/screens/search.ex:358
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Recent"
+msgstr ""
+
+#: lib/kati/search/query.ex:647
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Note"
+msgstr ""
+
+#: lib/kati/search/query.ex:651
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Note · %{date}"
 msgstr ""

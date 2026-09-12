@@ -488,7 +488,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"97", Kati.Screens.MyServices},
     # The Persian search and the two year-card twins. Each gates on the pair its
     # primary gates on, for the reason every mirror in this list does.
-    {"90", Kati.Screens.SearchFa},
+    # 90 was `Kati.Screens.Search` until mishka-group/kati#103 folded that
+    # mirror away. It is screen 19 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"90", Kati.Screens.Search},
     {"103", Kati.Screens.YearShare},
     {"105", Kati.Screens.GoalsEmpty},
     {"110", Kati.Screens.WeightStates},
@@ -846,6 +849,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
      "89 is the four edge states of 19 side by side, so it has no empty state of its own — " <>
        "it IS the drawing of them. On this list because it reads what 19 reads",
      Kati.SearchRunTest},
+    # 90 is 19 in the other script since mishka-group/kati#103, so it inherits
+    # 19's answer whole: the board is drawn mid-query and its idle state is the
+    # two cards 19's is, read under `:fa`. The reason is 19's rather than a
+    # second one, because a Persian reader clearing the field reaches the same
+    # branch by the same route.
+    {"90",
+     "90 is board 19 under `:fa` and no board draws the results page with nothing typed in " <>
+       "either script. What it draws idle is board 87's card and board 88's note through the " <>
+       "screens that own them, translated, and its no-match state is board 89's card. " <>
+       "`Kati.SearchRunTest` holds what the read answers on a store with rows and without",
+     Kati.SearchRunTest},
     {"02",
      "no artboard draws a Schedule with nothing on it — 02 draws a day with five items — " <>
        "and none draws one Kati is not allowed to read either. `Kati.Screens.Calendar`'s " <>
@@ -979,6 +993,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"19", "87", "Search anything you keep"},
     {"19", "19", "All"},
     {"19", "19", "Recent"},
+    # 90's two, and only two. The pair 19 borrows from board 87 has no Persian
+    # twin — 87 is an English board and nothing in the 152 draws the idle field
+    # in Persian — so what constrains 90 is the chrome board 90 draws itself:
+    # the chip that reads as selected, and the shelf's own heading. A Persian
+    # results page that quietly lost its scope row or its Recent heading fails
+    # here exactly as the English one does.
+    {"90", "90", "همه"},
+    {"90", "90", "اخیر"},
     {"89", "87", "Search anything you keep"},
     {"89", "89", "All"},
     {"02", "139", "Nothing scheduled"},
@@ -2492,7 +2514,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"97", Kati.Screens.MyServices,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"90", Kati.Screens.SearchFa,
+      {"90", Kati.Screens.Search,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"01", Kati.Screens.Home, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,
@@ -3009,7 +3031,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(58 60 62 69 72 76 82 97 103 137 156 164 165 166 176)
+  @fa_numbers ~w(58 60 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

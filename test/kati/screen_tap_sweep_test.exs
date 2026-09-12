@@ -825,8 +825,13 @@ defmodule Kati.ScreenTapSweepTest do
     # The opening chip on each of the four screens the third batch added. Same
     # already-selected case as every other family above: 87 and 90 open on All,
     # and 102 and 103 are 98's board with its own opening scope and ratio.
+    #
+    # Board 90's own entry is gone rather than renamed. Since
+    # mishka-group/kati#103 folded the mirror away, 90 IS screen 19 read under
+    # `:fa`, and 19 has always named its chips `filter_<key>` — so the one
+    # `{Kati.Screens.Search, :filter_all}` below covers the board in both
+    # scripts, and `:scope_all` was a tag nothing had drawn since the fold.
     {Kati.Screens.SearchTyping, :scope_all},
-    {Kati.Screens.SearchFa, :scope_all},
     # Screen 113 draws screen 42's Meals tile as one of the states it is about.
     # A picture of a tile, not a tile.
     # Once per grid since #97 banded the tags — this board draws the same four

@@ -560,6 +560,53 @@ defmodule Kati.DesignLiterals do
       {"176", "از راست پر می‌شود"},
       {"176", "، جلدها هرگز آینه نمی‌شوند، و ترتیب عمودی برعکس نمی‌شود."},
       {"176", "همان واژه‌ای است که ۱۵۶ به کار می‌برد — یک ثبت، در هر دو جا."},
+      # ── Board 90's two annotations, its two counted group headings and its
+      # two mis-converted dates.
+      #
+      # **The annotations.** Board 90's own caption rules them out of the
+      # screen: *"The two normalisation promises are carried as on-screen
+      # annotations, because they are the part a build has to be told rather
+      # than shown."* They are addressed to whoever builds the search, and the
+      # build was told — `Kati.Search.fold/1` does the folding and screen 88
+      # draws the whole table plus the sentence about ي and ی under it. Board
+      # 176's aside set the rule one fold earlier: what is a fact for the
+      # reader survives and the note to the builder does not. The second aside
+      # even links out to screen 54, which is a drawing cross-reference rather
+      # than a control.
+      {"90", "نوشتن"},
+      {"90", "ي"},
+      {"90", "واژه‌های با"},
+      {"90", "را پیدا می‌کند، و"},
+      {"90", "ك"},
+      {"90", "را. نیم‌فاصله و اعراب نادیده گرفته می‌شوند و ارقام عربی و فارسی یکی شمرده می‌شوند."},
+      {"90",
+       "جست‌وجوی لاتین عنوان فارسی آوانویسی‌شده را پیدا می‌کند و برعکس — همان چیزی که گزینه «نمایش عنوان اصلی» در"},
+      {"90", "روشن می‌کند."},
+      #
+      # **نمایش · ۳ and یادداشت‌ها · ۲.** Board 90 counts each group in its own
+      # heading and then draws fewer rows than the count — three over two, two
+      # over one. That gap is precisely the defect MOVIES-AND-TV.md #62 closed:
+      # every group used to be cut to `Kati.Search.rows_per_group/0` BEFORE
+      # `Kati.Search.Query.chip_counts/1` counted it, so the chip said three
+      # over a list of two and the third row was unreachable from this page.
+      # The cut is gone and a group now draws every row it counts, which makes
+      # the heading's number the length of the list directly under it — and
+      # board 19, the English capture of the same page, heads its groups with
+      # the bare word. The count is on the chip, where both boards put it.
+      {"90", "نمایش · ۳"},
+      {"90", "یادداشت‌ها · ۲"},
+      #
+      # **۲۵ مرداد and ۶ مرداد.** Both are the board translating a Gregorian
+      # date by swapping the month's name and keeping the Gregorian day.
+      # 12 August 2026 is ۲۱ مرداد and 6 August is ۱۵ مرداد;
+      # `Kati.Locale.date/2` converts rather than renames, so the episode line
+      # reads **قسمت ۵ فصل ۲ · ۲۱ مرداد دیده شد** and the note's eyebrow
+      # **یادداشت · ۱۵ مرداد · گودال بلند**. The episode line also carries its
+      # season and episode back: board 90 dropped **S2E5** where board 19 draws
+      # it, and a hit a reader cannot place is a hit they have to open to
+      # identify.
+      {"90", "قسمت · ۲۵ مرداد دیده شد"},
+      {"90", "یادداشت · ۶ مرداد"},
       # ── Boards 74 and 76's listen field, and board 76's art tile.
       #
       # **MAY / اردیبهشت.** The field is ninety-one days ending TODAY and the

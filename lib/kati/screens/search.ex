@@ -122,7 +122,9 @@ defmodule Kati.Screens.Search do
 
   # The label the drawing's back pill carries, and the answer for a push that
   # names no other. Board 19 draws `Home`, so a bare push still draws `Home`.
-  @drawn_back "Home"
+  # `Kati.Screens.Pushed.back_vocabulary/0` carries this word and thirty-two
+  # others as literal `gettext/1` calls, which is what keeps them extractable;
+  # this is a default rather than a second copy of one.
 
   # `recent` is nil because that is the state the drawing is in: no recent
   # search picked out of the shelf. `query` and `filter` were the drawing's too
@@ -152,7 +154,7 @@ defmodule Kati.Screens.Search do
        # itself a replacement, so a value handed to a field it has already
        # drawn is otherwise ignored.
        query_epoch: if(query == "", do: 0, else: 1),
-       back: Map.get(params, :back, @drawn_back),
+       back: Map.get(params, :back, gettext("Home")),
        history: Kati.Search.Recent.all()
      )}
   end
@@ -221,25 +223,61 @@ defmodule Kati.Screens.Search do
   @spec drawn_results() :: map()
   def drawn_results do
     %{
-      query: "hollow",
+      query: gettext("hollow"),
       idle?: false,
       titles: [
-        %{title: "The Long Hollow", sub: "Series · S2 · watching", seed: "hollow71"},
-        %{title: "Hollow Season", sub: "Episode · S2E5 · watched 12 Aug", seed: "hollow71"}
+        %{
+          title: gettext("The Long Hollow"),
+          sub:
+            gettext("Series · S%{n} · %{status}",
+              n: Kati.Locale.number(2),
+              status: Kati.Screens.Series.status_label(:watching)
+            ),
+          seed: "hollow71"
+        },
+        %{
+          title: gettext("Hollow Season"),
+          sub:
+            gettext("Episode · S%{s}E%{e} · watched %{date}",
+              s: Kati.Locale.number(2),
+              e: Kati.Locale.number(5),
+              date: Kati.Locale.date(~D[2026-08-12], :short)
+            ),
+          seed: "hollow71"
+        }
       ],
       calendar: [
-        %{date: "20 AUG", title: "The Long Hollow S2E6 airs", time: "20:00"},
-        %{date: "06 AUG", title: "Hollow Season — watched", time: "21:12"}
+        %{
+          date: Kati.UI.eyebrow_label(Kati.Locale.date(~D[2026-08-20], :short_padded)),
+          title:
+            gettext("%{title} S%{s}E%{e} airs",
+              title: gettext("The Long Hollow"),
+              s: Kati.Locale.number(2),
+              e: Kati.Locale.number(6)
+            ),
+          time: Kati.Locale.time(~T[20:00:00])
+        },
+        %{
+          date: Kati.UI.eyebrow_label(Kati.Locale.date(~D[2026-08-06], :short_padded)),
+          title: gettext("%{title} — watched", title: gettext("Hollow Season")),
+          time: Kati.Locale.time(~T[21:12:00])
+        }
       ],
       # A list of one. The board draws one note because its query matched one,
       # not because the group holds one — the same thing its two Screen rows
       # say about `:titles`.
       notes: [
         %{
-          eyebrow: "NOTE · 6 AUG · THE LONG HOLLOW",
-          lead: "…the",
-          match: "hollow",
-          tail: "is a character, not a place. Watch E1 again before S3.",
+          eyebrow:
+            Kati.UI.eyebrow_label(
+              gettext("Note · %{date} · %{title}",
+                date: Kati.Locale.date(~D[2026-08-06], :short),
+                title: gettext("The Long Hollow")
+              )
+            ),
+          lead: gettext("…the"),
+          match: gettext("hollow"),
+          tail: gettext("is a character, not a place. Watch E1 again before S3."),
           inline_words: 6
         }
       ],
@@ -248,36 +286,37 @@ defmodule Kati.Screens.Search do
   end
 
   @doc """
-  The chip counts board 19 types: `6 / 3 / 2 / 1`.
-
-  The drawing means them. It prints **Screen 3** over two drawn rows, the same
-  way the shelf on screen 20 says *64 books* over six covers — a chip counts
-  what the query matched, and the group under it shows the ones that fit above
-  the fold. Deriving them from `drawn_results/0` turns the drawing's 6 and 3
-  into 5 and 2, which is a literal on the screen not matching its frame.
-
-  A device does derive them, from the matched set, which is what they already
-  claim to be: `Kati.Search.Query.chip_counts/1`.
-  """
-  @spec drawn_chips() :: [{atom(), String.t(), non_neg_integer()}]
-  def drawn_chips,
-    do: [
-      {:all, Kati.Search.scope_label(:all), 6},
-      {:screen, Kati.Search.scope_label(:screen), 3},
-      {:calendar, Kati.Search.scope_label(:calendar), 2},
-      {:notes, Kati.Search.scope_label(:notes), 1}
-    ]
-
-  @doc """
   The recent shelf board 19 draws, pre-chunked into the rows its `flex-wrap`
   produces.
 
   Three then one, which is what 402pt gives at these widths — and worth
   keeping, because it is what says the field remembers more than fits.
   `chunk/1` is what a device's own history goes through.
+
+  ## Picked, not translated — the board says so
+
+  Board 90's caption: *"Recent chips are the user's own words and are never
+  translated."* Screen 86's own shelf carries the same sentence. So this is
+  `Kati.Locale.pick/2` over two readers' histories rather than `gettext/1` over
+  one reader's: board 19 was captured from somebody who had looked up a
+  dentist, a leaving-soon shelf and a person; board 90 from somebody who had
+  looked up a dentist, a leaving-soon shelf and a miso salmon. The first two
+  agree by coincidence and the third does not, which is exactly what a
+  translation of a search history would have hidden.
+
+  The Persian shelf is three where the English one is four, because that is
+  what its board draws — `chunk/1` wraps a real history at three either way.
   """
   @spec drawn_recent() :: [[String.t()]]
-  def drawn_recent, do: [["dentist", "leaving soon", "ines karvel"], ["4 stars"]]
+  def drawn_recent do
+    Kati.Locale.pick(
+      [
+        ["dentist", "leaving soon", "ines karvel"],
+        ["4 stars"]
+      ],
+      [["دندان‌پزشک", "به‌زودی حذف", "سالمون میسو"]]
+    )
+  end
 
   @doc "This reader's own history, in the rows the drawing wraps it into."
   @spec chunk([String.t()]) :: [[String.t()]]
@@ -293,7 +332,7 @@ defmodule Kati.Screens.Search do
     # written that way: `Kati.SearchRunTest` builds this map by hand and holds
     # five keys, so a required sixth would be a `KeyError` raised in a file that
     # has nothing to do with back pills.
-    back = Map.get(assigns, :back, @drawn_back)
+    back = Map.get(assigns, :back, gettext("Home"))
 
     ~MOB"""
     <Box
@@ -316,7 +355,7 @@ defmodule Kati.Screens.Search do
           {Kati.Screens.Search.field(query, true, Map.get(assigns, :query_epoch, 0))}
           {Kati.Screens.Search.chips(filter, results)}
           {Kati.Screens.Search.state_or_groups(results, filter, history)}
-          {Kati.Screens.Search.section("Recent")}
+          {Kati.Screens.Search.section(gettext("Recent"))}
           {Kati.Screens.Search.recent(results, history, recent)}
         </Column>
       </Scroll>
@@ -494,7 +533,7 @@ defmodule Kati.Screens.Search do
   # its own search bar to `Kati.Screens.SearchIdle`. The default keeps board
   # 19's word for a push that names no other.
   @doc false
-  def back(label \\ @drawn_back) do
+  def back(label \\ gettext("Home")) do
     tap = {self(), :back}
 
     ~MOB"""
@@ -809,8 +848,8 @@ defmodule Kati.Screens.Search do
   def chip_count(count, color) do
     ~MOB"""
     <Text
-      text={to_string(count)}
-      font_family="mono"
+      text={Kati.Locale.number(count)}
+      font_family={Kati.Locale.mono_face(Kati.Locale.number(count))}
       text_size={10.5}
       text_color={color}
       max_lines={1}
@@ -1091,10 +1130,10 @@ defmodule Kati.Screens.Search do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
       </Row>
@@ -1218,7 +1257,7 @@ defmodule Kati.Screens.Search do
           <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={2} />
         </Column>
         <Spacer size={12} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
+        {Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())}
       </Row>
       <Spacer size={9} />
     </Column>
@@ -1277,9 +1316,9 @@ defmodule Kati.Screens.Search do
         <Column width={44}>
           <Text
             text={row.date}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.date)}
             text_size={10}
-            letter_spacing={0.06}
+            letter_spacing={Kati.Locale.tracking(0.06)}
             text_color={Palette.muted()}
             max_lines={1}
           />
@@ -1296,7 +1335,7 @@ defmodule Kati.Screens.Search do
         <Spacer size={13} />
         <Text
           text={row.time}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(row.time)}
           text_size={11}
           text_color={Palette.muted()}
           max_lines={1}
@@ -1361,9 +1400,9 @@ defmodule Kati.Screens.Search do
       <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
         <Text
           text={note.eyebrow}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(note.eyebrow)}
           text_size={10}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.cream_meta()}
           max_lines={1}
         />

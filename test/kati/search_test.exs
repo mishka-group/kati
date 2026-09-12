@@ -30,9 +30,24 @@ defmodule Kati.SearchTest do
       # Searching your calendar should not turn into searching your contacts.
       fields = Search.fields(:calendar)
 
-      assert "event title" in fields
-      assert "location" in fields
-      assert Enum.any?(fields, &(&1 =~ "never invitee names"))
+      assert Keyword.keys(fields) == [:event_title, :location, :notes, :never_invitees]
+      assert Keyword.fetch!(fields, :event_title) == "event title"
+      refute Search.kept?(:never_invitees)
+    end
+
+    test "and the exclusion holds in the other script" do
+      # The key, not the word. Asked with the drawn label it matched `"never"
+      # <> _rest`, so on the Persian rendering of board 88 the invitee line —
+      # and `cast`, and a book's `series` — drew as searched fields.
+      Kati.Locale.as(:fa, fn ->
+        fields = Search.fields(:calendar)
+
+        assert Keyword.keys(fields) == [:event_title, :location, :notes, :never_invitees]
+        assert Keyword.fetch!(fields, :never_invitees) == "هرگز نام مهمانان"
+        refute Search.kept?(:never_invitees)
+        refute Search.kept?(:cast)
+        refute Search.kept?(:series)
+      end)
     end
 
     test "every scope names at least one field" do

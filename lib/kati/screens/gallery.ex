@@ -154,7 +154,9 @@ defmodule Kati.Screens.Gallery do
     {"101", "Year cards — states", Kati.Screens.YearCardsStates, :push},
     {"87", "Search — typing", Kati.Screens.SearchTyping, :push},
     {"89", "Search — result states", Kati.Screens.SearchResultStates, :push},
-    {"90", "جست‌وجو", Kati.Screens.SearchFa, :push},
+    # mishka-group/kati#103's fold of screen 90. Board 90 is screen 19 under
+    # `:fa`, with "90" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"90", "جست‌وجو", Kati.Screens.Search, :push},
     {"91", "Search at 235%", Kati.Screens.SearchLarge, :push},
     {"103", "سال شما", Kati.Screens.YearShare, :push},
     {"105", "Goals — empty", Kati.Screens.GoalsEmpty, :push},

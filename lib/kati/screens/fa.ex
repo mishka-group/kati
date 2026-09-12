@@ -566,7 +566,7 @@ defmodule Kati.Screens.Fa do
 
   # ── Board 76's two-toned eyebrow, lifted here by mishka-group/kati#103 ──────
   #
-  # `Kati.Screens.SearchFa` calls it three times across a module boundary,
+  # `Kati.Screens.Search` calls it three times across a module boundary,
   # which is what kept board 76 from folding. It goes with
   # the last mirror; `Kati.UI.eyebrow/2` takes a `:dash` option and is what a
   # folded screen uses.

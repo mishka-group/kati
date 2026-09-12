@@ -275,6 +275,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     # which holds its seven runs and the argument. The glyph is the aside's own
     # `info`.
     {"176", "info"},
+    # Board 90's two annotation asides — see `DesignLiterals.retired_lines/0`,
+    # which holds their runs and the argument. The glyph is the asides' own
+    # `info`, 176's entry one board along.
+    {"90", "info"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"}
@@ -1407,6 +1411,17 @@ defmodule Kati.ScreenDesignLiteralTest do
        &(&1
          |> Map.put(:results, Kati.Screens.Search.drawn_results())
          |> Map.put(:query, "hollow")
+         |> Map.put(:history, []))},
+      # Board 90 is the same screen read under `:fa` since
+      # mishka-group/kati#103, so it is the same state — the transcription, in
+      # the other script. The query is `drawn_results/0`'s own rather than a
+      # second literal: `gettext("hollow")` is «گودال» and typing the English
+      # word into a Persian render would be a field disagreeing with the hits
+      # under it.
+      {"90", Kati.Screens.Search,
+       &(&1
+         |> Map.put(:results, Kati.Screens.Search.drawn_results())
+         |> Map.put(:query, Kati.Screens.Search.drawn_results().query)
          |> Map.put(:history, []))},
       # 86 is the idle page and its shelf is this reader's search history —
       # empty on a fresh install, which board 87 words rather than omits. The

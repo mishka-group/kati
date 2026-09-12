@@ -313,7 +313,7 @@ defmodule Kati.Screens.HomeFaEmpty do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
 
   def handle_info({:tap, :open_search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
 
   # The Today card leads to the Persian calendar, which is the board's own
   # promise: تقویم همچنان کار می‌کند — the calendar still works, and a card

@@ -14,6 +14,8 @@ defmodule Kati.Search.Query do
   pulled into the empty-database migration.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   import Kati.Search, only: [long_enough?: 1, tier: 3]
 
   @doc """
@@ -71,13 +73,31 @@ defmodule Kati.Search.Query do
   end
 
   @doc """
-  How many results each scope chip stands for, `All` first.
+  How many results each scope chip stands for, `All` first — one per scope.
 
   Derived from the rows themselves rather than counted separately: a chip that
   says 4 over a list of 3 is the drawing lying about the store, which is the
   whole reason screen 88 specifies the chips as counts of the result set.
+
+  ## Every scope, including the three with no group behind them
+
+  `Kati.Search.chip_keys/0` and not a list of the four `run/1` builds. Board 19
+  drew four chips and board 90 draws eight, and 90 is the later capture: it
+  puts **موسیقی ۰**, **وعده ۰** and **مالی ۰** on the row beside the four that
+  count. Board 312 assumes the same eight in the sentence it rules with —
+  *"eight zeroes read as an empty app"* — which is why counts are withheld
+  while the field is empty rather than why three chips are.
+
+  A zero on an unbuilt scope is true rather than polite: nothing on the device
+  is in it, so nothing matched. And the chip is not inert. Board 322 rules that
+  a chip with nothing behind it *"keeps its tap"*, and pressing this one
+  narrows to a scope with no group, which `Kati.Screens.Search.state_or_groups/3`
+  answers with board 89's cross-scope row — *nothing in Music, 6 matches in
+  Screen* — rather than with the *matched nothing* card. That row is the reason
+  the three can be offered at all; before it existed, `Kati.Search.narrowable/1`
+  had to swallow them.
   """
-  @spec chip_counts(map()) :: [{String.t(), non_neg_integer()}]
+  @spec chip_counts(map()) :: [{atom(), String.t(), non_neg_integer()}]
   def chip_counts(%{titles: titles, calendar: calendar} = results) do
     titles = titles || []
     books = Map.get(results, :books) || []
@@ -87,20 +107,24 @@ defmodule Kati.Search.Query do
     # function, and a required key would raise on the board's own path.
     notes = Map.get(results, :notes) || []
 
+    counted = %{
+      screen: length(titles),
+      books: length(books),
+      calendar: length(calendar),
+      notes: length(notes)
+    }
+
+    all = counted |> Map.values() |> Enum.sum()
+
     # `{key, label, count}`. The KEY is what the chip's tap is named after and
     # what `Kati.Screens.Search.visible_groups/2` filters on; the label is a
     # translation. They were one string, so a Persian reader's every chip
     # answered `_all` and every scope showed the whole result set —
     # mishka-group/kati#103, the same defect `Kati.Screens.Library` carries the
     # note for.
-    [
-      {:all, Kati.Search.scope_label(:all),
-       length(titles) + length(books) + length(calendar) + length(notes)},
-      {:screen, Kati.Search.scope_label(:screen), length(titles)},
-      {:books, Kati.Search.scope_label(:books), length(books)},
-      {:calendar, Kati.Search.scope_label(:calendar), length(calendar)},
-      {:notes, Kati.Search.scope_label(:notes), length(notes)}
-    ]
+    for key <- Kati.Search.chip_keys() do
+      {key, Kati.Search.scope_label(key), if(key == :all, do: all, else: counted[key] || 0)}
+    end
   end
 
   # Everything in the media cache AND on the book shelf whose title matches,
@@ -461,11 +485,23 @@ defmodule Kati.Search.Query do
 
   defp day_label(nil), do: ""
 
+  # `Kati.Locale` rather than `strftime/2` and `String.upcase/1`, which is what
+  # both of these were. A Calendar hit is the one row on screen 19 that carries
+  # a real date off the device, and it drew **12 AUG** in Latin digits under a
+  # Persian heading — the Gregorian calendar, the Latin month name and the
+  # capitals, all three of which `Kati.Locale.date/2` and `eyebrow_label/1`
+  # answer per script. `:short_padded` is the 44pt column's own leading zero and
+  # degrades to `:short` in Shamsi, where the numerals are already even-width.
+  # mishka-group/kati#103.
   defp day_label(at),
-    do: at |> DateTime.to_date() |> Calendar.strftime("%d %b") |> String.upcase()
+    do:
+      at
+      |> DateTime.to_date()
+      |> Kati.Locale.date(:short_padded)
+      |> Kati.UI.eyebrow_label()
 
   defp time_label(nil), do: ""
-  defp time_label(at), do: Calendar.strftime(at, "%H:%M")
+  defp time_label(at), do: Kati.Locale.time(at)
 
   # Every note and every review that matched, best first. There is no take.
   #
@@ -574,6 +610,20 @@ defmodule Kati.Search.Query do
   book has been deleted is `NOTE · 6 AUG`, and one with neither is the bare
   word it was.
 
+  ## Three msgids rather than one joined with a separator
+
+  The separator is inside the translation, which is what lets a script put the
+  parts in a different order or use a different mark. It is also the SAME three
+  msgids `Kati.Screens.Search.drawn_results/0` composes the board's own eyebrow
+  from, so the drawing and the device word this line once.
+
+  The casing and the date go through `Kati.UI.eyebrow_label/1` and
+  `Kati.Locale.date/2`. Both were `String.upcase/1` and a hand-built
+  `day <> " " <> (month_name |> upcase |> slice(0, 3))`, so a Persian reader's note
+  hit was headed **NOTE · 6 AUG · THE LONG HOLLOW** — the Latin word, the
+  Gregorian date and capitals Persian does not have — over a paragraph in their
+  own script. mishka-group/kati#103.
+
       iex> Kati.Search.Query.note_eyebrow(%{inserted_at: ~U[2026-08-06 09:00:00Z], book: %{title: "The Long Hollow"}})
       "NOTE · 6 AUG · THE LONG HOLLOW"
 
@@ -589,18 +639,27 @@ defmodule Kati.Search.Query do
     # slot, named for what it is on each row (#114).
     subject = Map.get(note, :about) || Map.get(note, :book)
 
-    ["NOTE", note_date(Map.get(note, :inserted_at)), note_book(subject)]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join(" · ")
+    note
+    |> Map.get(:inserted_at)
+    |> note_date()
+    |> case do
+      nil ->
+        gettext("Note")
+
+      date ->
+        case note_book(subject) do
+          nil -> gettext("Note · %{date}", date: date)
+          title -> gettext("Note · %{date} · %{title}", date: date, title: title)
+        end
+    end
+    |> Kati.UI.eyebrow_label()
   end
 
   defp note_date(%DateTime{} = at),
-    do: "#{at.day} #{at.month |> Kati.Time.month_name() |> String.upcase() |> String.slice(0, 3)}"
+    do: at |> DateTime.to_date() |> Kati.Locale.date(:short)
 
   defp note_date(_absent), do: nil
 
-  defp note_book(%{title: title}) when is_binary(title) and title != "",
-    do: String.upcase(title)
-
+  defp note_book(%{title: title}) when is_binary(title) and title != "", do: title
   defp note_book(_absent), do: nil
 end

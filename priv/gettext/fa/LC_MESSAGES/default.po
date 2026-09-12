@@ -443,6 +443,9 @@ msgid "Hide titles I marked private"
 msgstr "عنوان‌های خصوصی پنهان شوند"
 
 #: lib/kati/screens/pushed.ex:184
+#: lib/kati/screens/search.ex:157
+#: lib/kati/screens/search.ex:356
+#: lib/kati/screens/search.ex:557
 #: lib/kati/shell.ex:80
 #, elixir-autogen, elixir-format
 msgid "Home"
@@ -942,6 +945,9 @@ msgstr "آن فهرست هنگام ساخت از THIRD_PARTY_NOTICES.md تولی
 #: lib/kati/library/sample.ex:155
 #: lib/kati/library/sample.ex:224
 #: lib/kati/screens/onboarding_first_title.ex:148
+#: lib/kati/screens/search.ex:230
+#: lib/kati/screens/search.ex:254
+#: lib/kati/screens/search.ex:275
 #, elixir-autogen, elixir-format
 msgid "The Long Hollow"
 msgstr "گودال بلند"
@@ -3596,6 +3602,8 @@ msgstr "سه‌شنبه بارانی در استودیو پیدایش کردم. 
 
 #: lib/kati/library/sample.ex:198
 #: lib/kati/music/sample.ex:178
+#: lib/kati/screens/search.ex:239
+#: lib/kati/screens/search.ex:262
 #, elixir-autogen, elixir-format
 msgid "Hollow Season"
 msgstr "فصل گودال"
@@ -3972,7 +3980,7 @@ msgstr "این سریال هنوز در کتابخانه‌ی شما نیست."
 
 #: lib/kati/library/sample.ex:248
 #: lib/kati/screens/series.ex:686
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "%{n} min"
 msgstr "%{n} دقیقه"
 
@@ -4025,3 +4033,232 @@ msgstr "پس‌کشند"
 #, elixir-autogen, elixir-format
 msgid "Mark episode %{n} watched"
 msgstr "قسمت %{n} را دیده‌ام"
+
+#: lib/kati/screens/search.ex:967
+#, elixir-autogen, elixir-format
+msgid "%{n} match in %{scope}"
+msgid_plural "%{n} matches in %{scope}"
+msgstr[0] "%{n} نتیجه در %{scope}"
+msgstr[1] "%{n} نتیجه در %{scope}"
+
+#: lib/kati/screens/search.ex:253
+#, elixir-autogen, elixir-format
+msgid "%{title} S%{s}E%{e} airs"
+msgstr "%{title} قسمت %{e} فصل %{s} پخش می‌شود"
+
+#: lib/kati/screens/search.ex:262
+#, elixir-autogen, elixir-format
+msgid "%{title} — watched"
+msgstr "%{title} — دیده شد"
+
+#: lib/kati/screens/search.ex:241
+#, elixir-autogen, elixir-format
+msgid "Episode · S%{s}E%{e} · watched %{date}"
+msgstr "قسمت %{e} فصل %{s} · %{date} دیده شد"
+
+#: lib/kati/screens/search.ex:273
+#: lib/kati/search/query.ex:652
+#, elixir-autogen, elixir-format
+msgid "Note · %{date} · %{title}"
+msgstr "یادداشت · %{date} · %{title}"
+
+#: lib/kati/screens/search.ex:965
+#, elixir-autogen, elixir-format
+msgid "Nothing in %{scope}. "
+msgstr "چیزی در %{scope} نیست. "
+
+#: lib/kati/screens/search.ex:232
+#, elixir-autogen, elixir-format
+msgid "Series · S%{n} · %{status}"
+msgstr "سریال · فصل %{n} · %{status}"
+
+#: lib/kati/search.ex:160
+#, elixir-autogen, elixir-format
+msgid "album"
+msgstr "آلبوم"
+
+#: lib/kati/search.ex:143
+#, elixir-autogen, elixir-format
+msgid "alt titles"
+msgstr "عنوان‌های دیگر"
+
+#: lib/kati/search.ex:161
+#, elixir-autogen, elixir-format
+msgid "artist"
+msgstr "هنرمند"
+
+#: lib/kati/search.ex:152
+#, elixir-autogen, elixir-format
+msgid "author"
+msgstr "نویسنده"
+
+#: lib/kati/search.ex:145
+#, elixir-autogen, elixir-format
+msgid "cast"
+msgstr "بازیگران"
+
+#: lib/kati/search.ex:144
+#, elixir-autogen, elixir-format
+msgid "episode titles"
+msgstr "عنوان قسمت‌ها"
+
+#: lib/kati/search.ex:167
+#, elixir-autogen, elixir-format
+msgid "event title"
+msgstr "عنوان رویداد"
+
+#: lib/kati/search.ex:176
+#, elixir-autogen, elixir-format
+msgid "every cream card in the app"
+msgstr "هر کارت کرم‌رنگ در برنامه"
+
+#: lib/kati/screens/search.ex:226
+#: lib/kati/screens/search.ex:279
+#, elixir-autogen, elixir-format
+msgid "hollow"
+msgstr "گودال"
+
+#: lib/kati/search.ex:173
+#, elixir-autogen, elixir-format
+msgid "ingredients"
+msgstr "مواد لازم"
+
+#: lib/kati/screens/search.ex:280
+#, elixir-autogen, elixir-format
+msgid "is a character, not a place. Watch E1 again before S3."
+msgstr "یک شخصیت است، نه یک مکان. قسمت اول را قبل از فصل ۳ دوباره ببین."
+
+#: lib/kati/search.ex:168
+#, elixir-autogen, elixir-format
+msgid "location"
+msgstr "مکان"
+
+#: lib/kati/search.ex:173
+#, elixir-autogen, elixir-format
+msgid "meal name"
+msgstr "نام وعده"
+
+#: lib/kati/search.ex:170
+#, elixir-autogen, elixir-format
+msgid "never invitee names"
+msgstr "هرگز نام مهمانان"
+
+#: lib/kati/search.ex:169
+#, elixir-autogen, elixir-format
+msgid "notes"
+msgstr "یادداشت‌ها"
+
+#: lib/kati/search.ex:142
+#, elixir-autogen, elixir-format
+msgid "original title"
+msgstr "عنوان اصلی"
+
+#: lib/kati/search.ex:153
+#, elixir-autogen, elixir-format
+msgid "series"
+msgstr "مجموعه"
+
+#: lib/kati/search.ex:174
+#, elixir-autogen, elixir-format
+msgid "service name"
+msgstr "نام سرویس"
+
+#: lib/kati/search.ex:141
+#: lib/kati/search.ex:151
+#, elixir-autogen, elixir-format
+msgid "title"
+msgstr "عنوان"
+
+#: lib/kati/search.ex:162
+#, elixir-autogen, elixir-format
+msgid "track"
+msgstr "آهنگ"
+
+#: lib/kati/search.ex:155
+#: lib/kati/search.ex:163
+#, elixir-autogen, elixir-format
+msgid "your notes"
+msgstr "یادداشت‌های شما"
+
+#: lib/kati/search.ex:156
+#, elixir-autogen, elixir-format
+msgid "your quotes"
+msgstr "نقل‌قول‌های شما"
+
+#: lib/kati/search.ex:147
+#, elixir-autogen, elixir-format
+msgid "your review"
+msgstr "نقد شما"
+
+#: lib/kati/search.ex:146
+#, elixir-autogen, elixir-format
+msgid "your tags"
+msgstr "برچسب‌های شما"
+
+#: lib/kati/screens/search.ex:278
+#, elixir-autogen, elixir-format
+msgid "…the"
+msgstr "…"
+
+#: lib/kati/search.ex:218
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "All"
+msgstr "همه"
+
+#: lib/kati/search.ex:149
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "Books"
+msgstr "کتاب"
+
+#: lib/kati/search.ex:165
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "Calendar"
+msgstr "تقویم"
+
+#: lib/kati/search.ex:172
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "Meals"
+msgstr "وعده"
+
+#: lib/kati/search.ex:174
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "Money"
+msgstr "مالی"
+
+#: lib/kati/search.ex:158
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "Music"
+msgstr "موسیقی"
+
+#: lib/kati/search.ex:175
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "Notes"
+msgstr "یادداشت‌ها"
+
+#: lib/kati/search.ex:139
+#, elixir-autogen, elixir-format
+msgctxt "search scope"
+msgid "Screen"
+msgstr "نمایش"
+
+#: lib/kati/screens/search.ex:358
+#, elixir-autogen, elixir-format
+msgid "Recent"
+msgstr "اخیر"
+
+#: lib/kati/search/query.ex:647
+#, elixir-autogen, elixir-format
+msgid "Note"
+msgstr "یادداشت"
+
+#: lib/kati/search/query.ex:651
+#, elixir-autogen, elixir-format
+msgid "Note · %{date}"
+msgstr "یادداشت · %{date}"

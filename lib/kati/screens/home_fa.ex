@@ -1121,7 +1121,7 @@ defmodule Kati.Screens.HomeFa do
   # reader — `Kati.Screens.Fa` records that failure for the آمار tab's old
   # stand-in, and it is the same failure here.
   def handle_info({:tap, :open_search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
 
   # Board 317's two doors, borrowed with 158's page. Answered here because
   # `self()` inside `Kati.Screens.HomeFaEmpty.content/1` is this screen when
