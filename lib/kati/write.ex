@@ -51,6 +51,18 @@ defmodule Kati.Write do
   @spec message(term()) :: String.t()
   def message({:error, :nothing_to_save}), do: gettext("Nothing to save yet.")
 
+  # Screen 04's three refusals, each of which a reader can act on — which is
+  # what `AGENTS.md`'s copy rule asks of an error and what the generic sentence
+  # below cannot give. `:not_tracked` is the one a reader meets: the page is
+  # drawing its fixture, so there is no series to tick against, and *add it to
+  # your library* is the fix. `Kati.Screens.SeriesFa` worded it and screen 04
+  # fell through to the generic; mishka-group/kati#103 folded the mirror in.
+  def message({:error, :not_tracked}), do: gettext("This series is not in your library yet.")
+  def message({:error, :no_episode}), do: gettext("There is no episode to mark.")
+
+  def message({:error, :no_episode_id}),
+    do: gettext("Kati has no id for this episode, so a tick would have nothing to name.")
+
   def message({:error, %{errors: [%{message: text} | _rest]}}) when is_binary(text) do
     # Ash carries its messages as TEMPLATES — `"must be one of %{atom_list},
     # got: %{value}"` — with the values in a separate `vars` key. Rendering the
@@ -72,7 +84,7 @@ defmodule Kati.Write do
 
   def message(_other), do: generic()
 
-  defp generic, do: "That did not save. Your text is still here — try again."
+  defp generic, do: gettext("That did not save. Your text is still here — try again.")
 
   @doc """
   Log a failed write, and hand back the tuple unchanged.

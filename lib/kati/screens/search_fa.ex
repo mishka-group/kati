@@ -969,11 +969,11 @@ defmodule Kati.Screens.SearchFa do
         {:noreply, Kati.Screens.SearchFa.pick_recent(index, socket)}
 
       # Both hits are the same series in Persian — a title and one of its
-      # episodes — so both open `Kati.Screens.SeriesFa` rather than its English
+      # episodes — so both open `Kati.Screens.Series` rather than its English
       # sibling. A mirror that pushed an LTR screen would change the reader's
       # language mid-navigation.
       "hit_" <> _index ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa, %{back: "جست‌وجو"})}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series, %{back: "جست‌وجو"})}
 
       _other ->
         {:noreply, socket}

@@ -1,4 +1,4 @@
-defmodule Kati.SeriesFaTickTest do
+defmodule Kati.SeriesPersianTickTest do
   @moduledoc """
   Marking an episode watched on the Persian series page writes it.
 
@@ -22,11 +22,16 @@ defmodule Kati.SeriesFaTickTest do
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
-  alias Kati.Screens.SeriesFa
+  alias Kati.Screens.Series
 
   @prefix "series-fa-tick-"
 
+  # Board 58 is screen 04 under `:fa` since mishka-group/kati#103 folded
+  # `Kati.Screens.SeriesFa` away, so this file reads as a Persian reader.
   setup do
+    Kati.Locale.put(:fa)
+    Kati.Locale.activate()
+
     on_exit(fn ->
       Kati.Repo.query!(
         "DELETE FROM media_watches WHERE tracked_title_id IN " <>
@@ -44,18 +49,23 @@ defmodule Kati.SeriesFaTickTest do
 
   describe "the row the Persian page draws" do
     test "carries what a tick is written against", %{tracked: tracked} do
-      [first | _rest] = SeriesFa.series(tracked.id).episodes
+      [first | _rest] = Series.series(tracked.id).episodes
 
       assert first.source_id == @prefix <> "ep1"
       assert first.season == 1
-      assert first.number == 1
+      assert first.n == 1
     end
 
-    test "and its Persian numeral is beside the integer, not instead of it", %{tracked: tracked} do
-      [first | _rest] = SeriesFa.series(tracked.id).episodes
+    test "and its numeral is the reader's while the row stays an integer",
+         %{tracked: tracked} do
+      [first | _rest] = Series.series(tracked.id).episodes
 
-      assert first.n == "۱"
-      assert first.number == 1
+      # The row carries the INTEGER — `Kati.Screens.Series.tick/2` writes
+      # against it — and the screen converts at the draw site. The mirror
+      # carried both, a `number` beside an `n` string, because it could not
+      # convert where it drew.
+      assert first.n == 1
+      assert Kati.Locale.number(first.n) == "۱"
     end
   end
 
@@ -63,7 +73,7 @@ defmodule Kati.SeriesFaTickTest do
     test "writes a watch row", %{tracked: tracked} do
       socket = mounted(tracked)
 
-      _ticked = SeriesFa.tick(socket, 0)
+      _ticked = Series.tick(socket, "0")
 
       assert [%{episode_source_id: source_id, season_number: 1, episode_number: 1}] =
                Ash.read!(Watch)
@@ -72,21 +82,21 @@ defmodule Kati.SeriesFaTickTest do
     end
 
     test "so the English page shows it too", %{tracked: tracked} do
-      _ticked = SeriesFa.tick(mounted(tracked), 0)
+      _ticked = Series.tick(mounted(tracked), "0")
 
       episode = Kati.Screens.Series.series(tracked.id).episodes |> hd()
       assert episode.watched
     end
 
     test "and ticking it again takes the row away", %{tracked: tracked} do
-      ticked = SeriesFa.tick(mounted(tracked), 0)
-      _untick = SeriesFa.tick(ticked, 0)
+      ticked = Series.tick(mounted(tracked), "0")
+      _untick = Series.tick(ticked, "0")
 
       assert Ash.read!(Watch) == []
     end
 
     test "the ring follows the store, not the tap", %{tracked: tracked} do
-      ticked = SeriesFa.tick(mounted(tracked), 0)
+      ticked = Series.tick(mounted(tracked), "0")
 
       assert hd(ticked.assigns.series.episodes).watched
       assert ticked.assigns.save_error == nil
@@ -99,7 +109,7 @@ defmodule Kati.SeriesFaTickTest do
       # zero-width non-joiner that keeps قسمت‌ها one word, and `inspect`
       # escapes it to `\\u200C` — so a literal in the source never matches a
       # literal in an inspected tree, however right the screen is.
-      drawn = text(SeriesFa.episodes(%{episodes: [], tracked_id: "x"}))
+      drawn = text(Series.episodes(%{episodes: [], tracked_id: "x"}))
 
       assert drawn =~ "هنوز فهرست قسمت‌ها نیست."
       assert drawn =~ "این را دستی اضافه کرده‌اید"
@@ -109,21 +119,21 @@ defmodule Kati.SeriesFaTickTest do
         assert drawn =~ row, "board 249's #{row} row is missing"
       end
 
-      assert drawn =~ "اینجا دکمه اصلی نیست."
+      assert drawn =~ "اینجا دکمهٔ اصلی نیست."
     end
 
     test "and its chevrons point the way a Persian reader travels" do
       # `chevron_left`, not `chevron_right`. A container mirrors under RTL and a
       # glyph does not — board 156's caption calls that the commonest RTL bug
       # there is, and board 249 draws the mirrored one.
-      drawn = inspect(SeriesFa.episodes(%{episodes: [], tracked_id: "x"}), limit: :infinity)
+      drawn = inspect(Series.episodes(%{episodes: [], tracked_id: "x"}), limit: :infinity)
 
       assert drawn =~ Kati.Icons.glyph("chevron_left")
       refute drawn =~ Kati.Icons.glyph("chevron_right")
     end
 
     test "and the three rows act rather than being a picture of three rows" do
-      drawn = inspect(SeriesFa.episodes(%{episodes: [], tracked_id: "x"}), limit: :infinity)
+      drawn = inspect(Series.episodes(%{episodes: [], tracked_id: "x"}), limit: :infinity)
 
       for tag <- [":rate_title", ":open_drop_sheet", ":remove_title"] do
         assert drawn =~ tag, "board 249's row for #{tag} carries no tap"
@@ -131,7 +141,7 @@ defmodule Kati.SeriesFaTickTest do
     end
 
     test "and a drawn series carries none, because there is nothing to act on" do
-      drawn = inspect(SeriesFa.episodes(%{episodes: [], tracked_id: nil}), limit: :infinity)
+      drawn = inspect(Series.episodes(%{episodes: [], tracked_id: nil}), limit: :infinity)
 
       refute drawn =~ ":rate_title"
       refute drawn =~ ":remove_title"
@@ -139,13 +149,13 @@ defmodule Kati.SeriesFaTickTest do
 
     test "and its rows are set in the Persian face without saying so on each Text" do
       # The point of `K-48 locale-face`, and the reason this state is the first
-      # thing in `Kati.Screens.SeriesFa` built out of the SHARED components:
+      # thing in `Kati.Screens.Series` built out of the SHARED components:
       # `Kati.UI.SettingsList` builds its own `Text` nodes with no
       # `font_family`, and the root's declared face is what they resolve to.
       # `Kati.PersianFontTest` is the sweep that holds it for every screen.
       assert Kati.Locale.face_for(:fa) == "fa"
 
-      tree = tree(mount_screen(SeriesFa))
+      tree = tree(mount_screen(Series))
 
       assert Map.get(tree.props, :font_family) == "fa",
              "screen 58's root does not declare the face its unmarked Texts fall back to"
@@ -155,12 +165,12 @@ defmodule Kati.SeriesFaTickTest do
   describe "a series that is only a drawing" do
     test "writes nothing and says so in Persian" do
       socket =
-        Kati.Screens.SeriesFa
+        Kati.Screens.Series
         |> Mob.Socket.new()
-        |> Mob.Socket.assign(:series, SeriesFa.drawn_series())
+        |> Mob.Socket.assign(:series, Series.drawn_series())
         |> Mob.Socket.assign(:save_error, nil)
 
-      refused = SeriesFa.tick(socket, 0)
+      refused = Series.tick(socket, "0")
 
       assert Ash.read!(Watch) == []
       assert refused.assigns.save_error == "این سریال هنوز در کتابخانه‌ی شما نیست."
@@ -173,7 +183,7 @@ defmodule Kati.SeriesFaTickTest do
 
   defp mounted(tracked) do
     {:ok, socket} =
-      SeriesFa.mount(%{id: tracked.id}, %{}, Mob.Socket.new(Kati.Screens.SeriesFa))
+      Series.mount(%{id: tracked.id}, %{}, Mob.Socket.new(Kati.Screens.Series))
 
     socket
   end

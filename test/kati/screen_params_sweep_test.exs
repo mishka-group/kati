@@ -425,8 +425,8 @@ defmodule Kati.ScreenParamsSweepTest do
     # "جست‌وجو"}` so the Persian series page's pill says where the reader came
     # from instead of `کتابخانه`, and that is an origin, not a subject — see
     # `no_subject?/1` and `subject_args/1` for why it leaves these two here.
-    {Kati.Screens.SearchFa, :hit_0, Kati.Screens.SeriesFa},
-    {Kati.Screens.SearchFa, :hit_1, Kati.Screens.SeriesFa}
+    {Kati.Screens.SearchFa, :hit_0, Kati.Screens.Series},
+    {Kati.Screens.SearchFa, :hit_1, Kati.Screens.Series}
   ]
 
   # Every door into a params reader that names its subject and hands the reader
@@ -543,12 +543,12 @@ defmodule Kati.ScreenParamsSweepTest do
     # The tags are the titles with their spaces replaced (`poster_tag/1`,
     # `library_fa.ex:744-753`), which is also why they are the tiles' identity
     # in this list and not in the push.
-    {Kati.Screens.LibraryFa, :open_series_بارش_خاکستر, Kati.Screens.SeriesFa},
-    {Kati.Screens.LibraryFa, :open_series_بندر_آرام, Kati.Screens.SeriesFa},
-    {Kati.Screens.LibraryFa, :open_series_ساعت_آبی, Kati.Screens.SeriesFa},
-    {Kati.Screens.LibraryFa, :open_series_نمک_و_آهن, Kati.Screens.SeriesFa},
-    {Kati.Screens.LibraryFa, :open_series_پرندگان_شب, Kati.Screens.SeriesFa},
-    {Kati.Screens.LibraryFa, :open_series_گودال_بلند, Kati.Screens.SeriesFa},
+    {Kati.Screens.LibraryFa, :open_series_بارش_خاکستر, Kati.Screens.Series},
+    {Kati.Screens.LibraryFa, :open_series_بندر_آرام, Kati.Screens.Series},
+    {Kati.Screens.LibraryFa, :open_series_ساعت_آبی, Kati.Screens.Series},
+    {Kati.Screens.LibraryFa, :open_series_نمک_و_آهن, Kati.Screens.Series},
+    {Kati.Screens.LibraryFa, :open_series_پرندگان_شب, Kati.Screens.Series},
+    {Kati.Screens.LibraryFa, :open_series_گودال_بلند, Kati.Screens.Series},
 
     # ── Screen 77's four album rows.
     #

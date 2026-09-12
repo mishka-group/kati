@@ -112,10 +112,10 @@ defmodule Kati.Screens.Fa do
   Text-free, so the font rule never bites:
 
     * `MishkaThemeIcon` — every icon tile and state ring: `tab/1` here,
-      `Kati.Screens.SettingsFa.leading/1`, `Kati.Screens.SeriesFa.check/1`,
+      `Kati.Screens.SettingsFa.leading/1`, board 58's check disc,
       `Kati.Screens.TodayFa`'s three meal-card rings.
     * `MishkaActionIcon` — every header disc: `disc/2` here (so 55, 56, 57, 59,
-      60, 61 and 62 at once) and `Kati.Screens.SeriesFa.more/0` and its
+      60, 61 and 62 at once) and board 58's overflow disc and its
       bookmark.
     * `MishkaAvatar` — `Kati.Screens.SettingsFa.avatar/1`.
     * `MishkaSeparator` with `render: :box` — every hairline in a card:
@@ -430,7 +430,7 @@ defmodule Kati.Screens.Fa do
   radius and the tap — so the drawn result is the node this function replaced
   plus one bare `Row` around the glyph, which has no size, no background and no
   padding of its own. That wrapper is not a new risk: `MishkaActionIcon` with a
-  symbol child is what `Kati.Screens.SeriesFa.more/0` has been rendering
+  symbol child is what board 58's overflow disc has been rendering
   against the captured frames since the last pass.
 
   `tag` defaults to `nil`, and `Kati.Components.Event.handler/1` maps `nil` to

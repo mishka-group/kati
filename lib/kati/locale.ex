@@ -27,11 +27,28 @@ defmodule Kati.Locale do
         l
 
       _none ->
-        case Mob.State.get(:locale, @default) do
-          l when l in @locales -> l
-          _ -> @default
-        end
+        stored()
     end
+  end
+
+  # A read that cannot reach its store answers the default rather than raising.
+  #
+  # `Mob.State` is a GenServer, and a pure unit test — one with no
+  # `Mob.ScreenCase` and no store — has none. Every fixture in the app went
+  # through `gettext/1` during mishka-group/kati#103, so every such test began
+  # calling this, and a locale lookup taking a test down is the wrong failure
+  # to have: the answer with no store is `:en`, which is exactly what
+  # `Kati.Theme.Mode.choice/0` and `Kati.Screens.Settings.last_backup/0` do
+  # with the same store.
+  defp stored do
+    case Mob.State.get(:locale, @default) do
+      l when l in @locales -> l
+      _ -> @default
+    end
+  rescue
+    _error -> @default
+  catch
+    :exit, _reason -> @default
   end
 
   @doc """

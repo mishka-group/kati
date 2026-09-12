@@ -523,6 +523,23 @@ defmodule Kati.DesignLiterals do
       # the frozen `Show all 47` still belongs, over an empty one.
       # mishka-group/kati#103.
       {"97", "نمایش همه ۴۷"},
+      # ── Board 58's three dates, and why the fold writes them differently.
+      #
+      # **The Shamsi year.** `Kati.Locale.date/2`'s `:long` carries the year in
+      # Persian and not in English, and its own doc gives the reason: *the
+      # difference between a calendar whose year the reader knows by heart and
+      # one whose year they do not.* Board 58 was drawn without it, and the
+      # ruling is newer than the board — so the next-air line reads
+      # **پنج‌شنبه ۲۹ مرداد ۱۴۰۵** and the two unaired episodes carry their year
+      # too.
+      #
+      # **Episode six.** Board 58 draws it unaired and board 04 draws it aired,
+      # at `55 min · 20 Aug`. One fixture cannot be both, and the English board
+      # is the one `Kati.Library.Sample.series/0` was captured from — the
+      # counter on both boards reads *5 of 7*, which only works with six aired.
+      {"58", "قسمت بعد پنجشنبه ۲۹ مرداد، ساعت ۲۰:۰۰"},
+      {"58", "پخش ۲۹ مرداد"},
+      {"58", "پخش ۵ شهریور"},
       # ── Board 176's annotation, seven runs of it.
       #
       # `Kati.Screens.BooksFa` drew the board's own caption ON THE SCREEN — a

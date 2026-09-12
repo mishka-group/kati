@@ -1118,7 +1118,7 @@ defmodule Kati.SheetRowIdentityTest do
         )
 
       assert moved.__mob__.nav_action ==
-               {:push, Kati.Screens.SeriesFa, %{id: "row-identity-title-three"}}
+               {:push, Kati.Screens.Series, %{id: "row-identity-title-three"}}
 
       # The untitled tile is one tile like any other: `poster_tag/1` falls back
       # to `:open_series` for a row whose cache row lost its name, and a tag
@@ -1126,7 +1126,7 @@ defmodule Kati.SheetRowIdentityTest do
       bare = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.LibraryFa), :titles, [])
       {:noreply, nothing} = Kati.Screens.LibraryFa.handle_info({:tap, :open_series}, bare)
 
-      assert nothing.__mob__.nav_action == {:push, Kati.Screens.SeriesFa, %{}}
+      assert nothing.__mob__.nav_action == {:push, Kati.Screens.Series, %{}}
     end
 
     test "the drawn shelf names nothing, which is what every capture was taken from" do
@@ -1204,7 +1204,7 @@ defmodule Kati.SheetRowIdentityTest do
 
       assert Kati.Screens.Film.film(gone) == Kati.Screens.Film.drawn_film()
       assert Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series()
-      assert Kati.Screens.SeriesFa.series(gone) == Kati.Screens.SeriesFa.drawn_series()
+      assert Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series()
 
       assert Kati.Screens.Season.season(%{title_id: gone}) ==
                Kati.Screens.Season.drawn_season()

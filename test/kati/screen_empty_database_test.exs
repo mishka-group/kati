@@ -369,7 +369,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"56", Kati.Screens.ScheduleFa},
     {"57", Kati.Screens.LibraryFa},
     # 58 is 04 in Persian and reads through 04 — see the note above.
-    {"58", Kati.Screens.SeriesFa},
+    # 58 was `Kati.Screens.Series` until mishka-group/kati#103 folded that
+    # mirror away. It is screen 04 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"58", Kati.Screens.Series},
     # The Books domain's three screens, and 66 and 70 are the pair this file was
     # written for: 66 falls back to `Kati.Books.Sample.detail/0` for the whole
     # page, and 70 falls back for the book it is about to write a session
@@ -2337,8 +2340,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # different defects: a lost Persian fallback, and an English one — the
       # mirror cannot keep drawing its drawing if `tracked_series/0` stops
       # answering `nil` on an empty store.
-      {"58", Kati.Screens.SeriesFa, &Kati.Screens.SeriesFa.series/0,
-       &Kati.Screens.SeriesFa.drawn_series/0}
+      {"58", Kati.Screens.Series, &Kati.Screens.Series.series/0,
+       &Kati.Screens.Series.drawn_series/0}
     ]
   end
 
@@ -3006,7 +3009,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(60 62 69 72 76 82 97 103 137 156 164 165 166 176)
+  @fa_numbers ~w(58 60 62 69 72 76 82 97 103 137 156 164 165 166 176)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

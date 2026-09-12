@@ -194,7 +194,7 @@ defmodule Kati.Screens.HomeFa do
     # Board 317: *«همان خواندنی که ۱۳۹ برای انگلیسی استفاده می‌کند»* — the same
     # read 139 uses in English, so the two languages have ONE gate and not two.
     # `Kati.Screens.Home.nothing_kept?/1` is that read, called rather than
-    # restated for the reason `Kati.Screens.SeriesFa` reads through
+    # restated for the reason board 58 reads through
     # `Kati.Screens.Series`: a second copy is a second thing that can drift.
     |> Mob.Socket.assign(:nothing_kept, Kati.Screens.Home.nothing_kept?(timeline))
     |> then(&{:ok, &1})

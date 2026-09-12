@@ -64,7 +64,7 @@ defmodule Kati.PushedFrameTest do
     # would put a band of paper above a picture that is meant to bleed. Its
     # content column below the artwork carries the 21pt sides like everything
     # else.
-    Kati.Screens.SeriesFa,
+    Kati.Screens.Series,
     # Screen 09's timeline bleeds to both edges on purpose, so the side padding
     # is on an inner column and the rule the sides run through — the hour rail
     # — is not inset with the text. The outer column still carries 64 above and

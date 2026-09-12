@@ -152,15 +152,31 @@ defmodule Kati.Library.Sample do
   @spec series() :: map()
   def series do
     %{
-      title: "The Long Hollow",
+      title: gettext("The Long Hollow"),
       seed: "hollow71",
-      meta: "2024 · DRAMA · LUMEN+ · 3 SEASONS",
-      season: "Season 2",
+      # `LUMEN+` is a service's own name and stays; the year, the genre and the
+      # season count are Kati's.
+      meta:
+        gettext("%{year} · %{genre} · LUMEN+ · %{seasons}",
+          year: Kati.Locale.year(2024),
+          genre: Kati.UI.eyebrow_label(gettext("Drama")),
+          seasons:
+            Kati.UI.eyebrow_label(
+              ngettext("%{n} season", "%{n} seasons", 3, n: Kati.Locale.number(3))
+            )
+        ),
+      season: gettext("Season %{n}", n: Kati.Locale.number(2)),
+      # `S1`/`S2`/`S3` are tap tags as well as labels and stay ASCII —
+      # `Kati.Screens.Series.season_pill_label/1` is what the reader sees.
       seasons: ["S1", "S2", "S3"],
       current_season: "S2",
       watched: 5,
       total: 7,
-      next_air: "Thu 20 Aug, 20:00",
+      next_air:
+        gettext("%{date}, %{time}",
+          date: Kati.Locale.date(~D[2026-08-20], :long),
+          time: Kati.Locale.time(~T[20:00:00])
+        ),
       # Board 34's Season 2, which is the only board that NAMES these episodes
       # — screen 04's frame draws `{{ ep.title }}` and nothing else, so it has
       # no opinion about them and this fixture invented seven of its own.
@@ -175,13 +191,13 @@ defmodule Kati.Library.Sample do
       # and 04 draws no badge to say a row is one. Seven rows either way, so
       # the drawing's `5 of 7 watched` and its three row states are untouched.
       episodes: [
-        %{n: 1, title: "Low Water", sub: "54 min · 9 Jul", watched: true},
-        %{n: 2, title: "The Cull", sub: "49 min · 16 Jul", watched: true},
-        %{n: 3, title: "Blackthorn", sub: "52 min · 23 Jul", watched: true},
-        %{n: 4, title: "What the Tide Left", sub: "51 min · 30 Jul", watched: true},
-        %{n: 5, title: "Hollow Season", sub: "47 min · 6 Aug", watched: true},
-        %{n: 6, title: "The Undertow", sub: "55 min · 20 Aug", watched: false},
-        %{n: 7, title: "Long Hollow", sub: "Airs Thu 27 Aug", watched: false, aired: false}
+        aired_episode(1, gettext("Low Water"), 54, ~D[2026-07-09]),
+        aired_episode(2, gettext("The Cull"), 49, ~D[2026-07-16]),
+        aired_episode(3, gettext("Blackthorn"), 52, ~D[2026-07-23]),
+        aired_episode(4, gettext("What the Tide Left"), 51, ~D[2026-07-30]),
+        aired_episode(5, gettext("Hollow Season"), 47, ~D[2026-08-06]),
+        %{aired_episode(6, gettext("The Undertow"), 55, ~D[2026-08-20]) | watched: false},
+        upcoming_episode(7, gettext("Long Hollow"), ~D[2026-08-27])
       ]
     }
   end
@@ -201,23 +217,50 @@ defmodule Kati.Library.Sample do
   @spec season_episodes(String.t()) :: [map()]
   def season_episodes("S1") do
     [
-      %{n: 1, title: "Low Water", sub: "46 min · 4 Jun", watched: true},
-      %{n: 2, title: "The Ferry Road", sub: "44 min · 11 Jun", watched: true},
-      %{n: 3, title: "Marram", sub: "49 min · 18 Jun", watched: true},
-      %{n: 4, title: "Every Quiet Thing", sub: "45 min · 25 Jun", watched: true},
-      %{n: 5, title: "The Long Hollow", sub: "58 min · 2 Jul", watched: true}
+      aired_episode(1, gettext("Low Water"), 46, ~D[2026-06-04]),
+      aired_episode(2, gettext("The Ferry Road"), 44, ~D[2026-06-11]),
+      aired_episode(3, gettext("Marram"), 49, ~D[2026-06-18]),
+      aired_episode(4, gettext("Every Quiet Thing"), 45, ~D[2026-06-25]),
+      aired_episode(5, gettext("The Long Hollow"), 58, ~D[2026-07-02])
     ]
   end
 
   def season_episodes("S3") do
     [
-      %{n: 1, title: "Undertow", sub: "Airs Thu 27 Aug", watched: false, aired: false},
-      %{n: 2, title: "The Bell Buoy", sub: "Airs Thu 3 Sep", watched: false, aired: false},
-      %{n: 3, title: "Saltings", sub: "Airs Thu 10 Sep", watched: false, aired: false}
+      upcoming_episode(1, gettext("Undertow"), ~D[2026-08-27]),
+      upcoming_episode(2, gettext("The Bell Buoy"), ~D[2026-09-03]),
+      upcoming_episode(3, gettext("Saltings"), ~D[2026-09-10])
     ]
   end
 
   def season_episodes(_s2), do: series().episodes
+
+  # One drawn episode row, composed rather than written out: the runtime and the
+  # date are the reader's numerals and the reader's calendar. It was two frozen
+  # strings apiece, which is why board 58's mirror kept a second copy of all
+  # fifteen rows.
+  defp aired_episode(n, title, minutes, on) do
+    %{
+      n: n,
+      title: title,
+      sub:
+        gettext("%{runtime} · %{date}",
+          runtime: gettext("%{n} min", n: Kati.Locale.number(minutes)),
+          date: Kati.Locale.date(on, :short)
+        ),
+      watched: true
+    }
+  end
+
+  defp upcoming_episode(n, title, on) do
+    %{
+      n: n,
+      title: title,
+      sub: gettext("Airs %{date}", date: Kati.Locale.date(on, :long)),
+      watched: false,
+      aired: false
+    }
+  end
 
   @doc """
   The new-releases inbox, screen 05: three titles out now and three coming up.

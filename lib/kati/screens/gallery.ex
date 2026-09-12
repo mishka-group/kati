@@ -84,7 +84,9 @@ defmodule Kati.Screens.Gallery do
     {"55", "خانه", Kati.Screens.HomeFa, :push},
     {"56", "برنامه", Kati.Screens.ScheduleFa, :push},
     {"57", "کتابخانه", Kati.Screens.LibraryFa, :push},
-    {"58", "سریال", Kati.Screens.SeriesFa, :push},
+    # mishka-group/kati#103's fold of screen 58. Board 58 is screen 04 under
+    # `:fa`, with "58" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"58", "سریال", Kati.Screens.Series, :push},
     # mishka-group/kati#103. Board 59 is screen 43 under `:fa`.
     {"59", "امروز — Meals today, RTL", Kati.Screens.MealsToday, :push},
     {"60", "وعده‌ها", Kati.Screens.MealPlan, :push},

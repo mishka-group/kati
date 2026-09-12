@@ -887,7 +887,7 @@ defmodule Kati.Screens.LibraryFa do
       {:noreply,
        Mob.Socket.push_screen(
          socket,
-         Kati.Screens.SeriesFa,
+         Kati.Screens.Series,
          Kati.Screens.Series.params_for(
            Kati.Screens.LibraryFa.tapped(:open_series, socket.assigns.titles)
          )
@@ -969,7 +969,7 @@ defmodule Kati.Screens.LibraryFa do
         {:noreply,
          Mob.Socket.push_screen(
            socket,
-           Kati.Screens.SeriesFa,
+           Kati.Screens.Series,
            Kati.Screens.Series.params_for(
              Kati.Screens.LibraryFa.tapped(tag, socket.assigns.titles)
            )

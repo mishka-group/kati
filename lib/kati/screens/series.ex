@@ -108,6 +108,7 @@ defmodule Kati.Screens.Series do
   feature; the drawing never shows that state, so nothing reads it yet.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   # No `require Ash.Query`: every read below is an action by name, so nothing
@@ -155,7 +156,7 @@ defmodule Kati.Screens.Series do
 
   The English page. `tracked_series/1` is the half that reads the store and it
   answers in no language at all; everything below this line is presentation,
-  which is what lets `Kati.Screens.SeriesFa` share the reads without sharing
+  which is what lets board 58 share the reads without sharing
   the wording.
 
   `id` is the tracked row a poster carried here. Without one the referent is
@@ -191,7 +192,10 @@ defmodule Kati.Screens.Series do
 
         {label,
          %{
-           season: "Season " <> String.trim_leading(label, "S"),
+           season:
+             gettext("Season %{n}",
+               n: Kati.Locale.number(String.trim_leading(label, "S"))
+             ),
            total: length(episodes),
            episodes: episodes
          }}
@@ -243,7 +247,7 @@ defmodule Kati.Screens.Series do
   What `Kati.Media` knows about the series this screen draws, or `nil`.
 
   **The facts, in no language.** Numbers, resolutions and booleans — no
-  formatted date, no pluralised noun, no `Season 2`. `Kati.Screens.SeriesFa`
+  formatted date, no pluralised noun, no `Season 2`. board 58
   calls this rather than copying the query, the way
   `Kati.Screens.LibraryFa` calls `Kati.Screens.Library.shelf/0`: one series,
   read once, presented twice. A second query written out over there could
@@ -580,7 +584,7 @@ defmodule Kati.Screens.Series do
       # would say how the row got here rather than where you are in it". One
       # more fact this map used to forget.
       status: Map.get(facts, :status),
-      title: facts.title || "Untitled",
+      title: facts.title || gettext("Untitled"),
       seed: facts.seed,
       meta: meta_line(facts),
       season: view.season,
@@ -605,7 +609,7 @@ defmodule Kati.Screens.Series do
       # the number spelled out when it did not. `Kati.Media.CachedSeason`
       # declines to invent this on purpose: "a screen that wants `Season 2` out
       # of a bare number is the thing that knows what its own heading reads".
-      season: season.name || "Season #{season.number}",
+      season: season.name || gettext("Season %{n}", n: Kati.Locale.number(season.number)),
       total: season.total,
       episodes: Enum.map(season.episodes, &episode_row(&1, zone))
     }
@@ -655,8 +659,11 @@ defmodule Kati.Screens.Series do
   end
 
   defp episode_title(%{title: title}) when is_binary(title) and title != "", do: title
-  defp episode_title(%{number: n}) when is_integer(n), do: "Episode #{n}"
-  defp episode_title(_episode), do: "Untitled"
+
+  defp episode_title(%{number: n}) when is_integer(n),
+    do: gettext("Episode %{n}", n: Kati.Locale.number(n))
+
+  defp episode_title(_episode), do: gettext("Untitled")
 
   # `Airs Thu 20 Aug` ahead of time and `48 min · 2 Jul` behind it, which are
   # the drawing's own two sub-lines. Both halves of the second are nullable — a
@@ -665,7 +672,7 @@ defmodule Kati.Screens.Series do
   defp episode_sub(%{airing: :upcoming} = episode, zone) do
     case air_label(episode.air, :long, zone) do
       nil -> ""
-      label -> "Airs " <> label
+      label -> gettext("Airs %{date}", date: label)
     end
   end
 
@@ -675,7 +682,9 @@ defmodule Kati.Screens.Series do
     |> Enum.join(" · ")
   end
 
-  defp runtime_label(m) when is_integer(m) and m > 0, do: "#{m} min"
+  defp runtime_label(m) when is_integer(m) and m > 0,
+    do: gettext("%{n} min", n: Kati.Locale.number(m))
+
   defp runtime_label(_minutes), do: nil
 
   @doc """
@@ -693,23 +702,32 @@ defmodule Kati.Screens.Series do
     |> Enum.join(" · ")
   end
 
-  defp genre_label(genres) when is_binary(genres) and genres != "", do: String.upcase(genres)
+  defp genre_label(genres) when is_binary(genres) and genres != "",
+    do: Kati.UI.eyebrow_label(genres)
+
   defp genre_label(_genres), do: nil
 
   # `0` is `Kati.Media.CachedSeason.count/1` saying *nothing to say* rather than
   # *a series with no seasons*, so it produces no clause at all.
-  defp seasons_label(1), do: "1 SEASON"
-  defp seasons_label(n) when is_integer(n) and n > 1, do: "#{n} SEASONS"
+  defp seasons_label(n) when is_integer(n) and n > 0,
+    do:
+      Kati.UI.eyebrow_label(ngettext("%{n} season", "%{n} seasons", n, n: Kati.Locale.number(n)))
+
   defp seasons_label(_none), do: nil
 
   # `Thu 20 Aug, 20:00` — the drawing's own format, and the only one of these
   # that carries an hour, because it is the only place a resolution precise
   # enough to have one is drawn.
   defp next_air_label({:exact, at, _origin}, zone) do
-    at |> Kati.Time.in_zone(zone) |> Calendar.strftime("%a %-d %b, %H:%M")
+    at = Kati.Time.in_zone(at, zone)
+
+    gettext("%{date}, %{time}",
+      date: Kati.Locale.date(DateTime.to_date(at), :long),
+      time: Kati.Locale.time(at)
+    )
   end
 
-  defp next_air_label({:day, date, _origin}, _zone), do: Calendar.strftime(date, "%a %-d %b")
+  defp next_air_label({:day, date, _origin}, _zone), do: Kati.Locale.date(date, :long)
   defp next_air_label({:approximate, period, _origin}, _zone), do: period_label(period)
   defp next_air_label(:unknown, _zone), do: nil
 
@@ -724,15 +742,28 @@ defmodule Kati.Screens.Series do
   defp air_label({:approximate, period, _origin}, _style, _zone), do: period_label(period)
   defp air_label(:unknown, _style, _zone), do: nil
 
-  defp day_label(date, :short), do: Calendar.strftime(date, "%-d %b")
-  defp day_label(date, :long), do: Calendar.strftime(date, "%a %-d %b")
+  defp day_label(date, :short), do: Kati.Locale.date(date, :short)
+  defp day_label(date, :long), do: Kati.Locale.date(date, :long)
 
+  # A coarse air date is a MONTH, a QUARTER or a YEAR, and each is a fact about
+  # the Gregorian broadcast calendar rather than a day in the reader's life —
+  # `Kati.Locale.year/1`'s rule, one resolution coarser. The digits are the
+  # reader's and the reckoning is not.
   defp period_label({:month, year, month}) do
-    year |> Date.new!(month, 1) |> Calendar.strftime("%b %Y")
+    gettext("%{month} %{year}",
+      month: Kati.Time.month_name(month) |> String.slice(0, 3),
+      year: Kati.Locale.year(year)
+    )
   end
 
-  defp period_label({:quarter, year, quarter}), do: "Q#{quarter} #{year}"
-  defp period_label({:year, year}), do: "#{year}"
+  defp period_label({:quarter, year, quarter}),
+    do:
+      gettext("Q%{q} %{year}",
+        q: Kati.Locale.number(quarter),
+        year: Kati.Locale.year(year)
+      )
+
+  defp period_label({:year, year}), do: Kati.Locale.year(year)
 
   # ── The drawn page ──────────────────────────────────────────────────────────
 
@@ -850,7 +881,7 @@ defmodule Kati.Screens.Series do
           <Spacer size={9} />
           <Text
             text={s.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(s.meta)}
             text_size={11.5}
             text_color={Palette.meta()}
             max_lines={1}
@@ -902,8 +933,8 @@ defmodule Kati.Screens.Series do
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
           <Text
-            text="No poster"
-            font_family="mono"
+            text={Kati.Screens.Series.no_poster_label()}
+            font_family={Kati.Locale.mono_face()}
             text_size={11}
             text_color={Palette.rail_idle()}
             max_lines={1}
@@ -955,6 +986,82 @@ defmodule Kati.Screens.Series do
   end
 
   @doc """
+  `5 of 7 watched` — the counter over the ring.
+
+      iex> Kati.Screens.Series.watched_line(5, 7)
+      "5 of 7 watched"
+  """
+  @spec watched_line(non_neg_integer(), non_neg_integer()) :: String.t()
+  def watched_line(watched, total),
+    do:
+      gettext("%{watched} of %{total} watched",
+        watched: Kati.Locale.number(watched),
+        total: Kati.Locale.number(total)
+      )
+
+  @doc """
+  The season strip's pill, as the reader reads it.
+
+  `S2` is a label AND a tap tag: the tag has to stay ASCII, which is what
+  `String.to_atom/1` and the accessibility id need, and the label does not.
+  Persian writes the season as **ف۲** — the initial of فصل — so the letter is
+  translated and the number is `Kati.Locale.number/1`'s.
+  """
+  @spec season_pill_label(String.t()) :: String.t()
+  def season_pill_label("S" <> number),
+    do: pgettext("season pill", "S") <> Kati.Locale.number(number)
+
+  def season_pill_label(label), do: label
+
+  @doc """
+  The primary button's word: the episode it would tick, by number.
+
+      iex> Kati.Screens.Series.mark_next_label(%{episodes: []})
+      "Mark next watched"
+
+  Board 58 names the number — *قسمت ۶ را دیده‌ام* — and board 04 says *Mark next
+  watched*, and the number is the better copy in both: it is the one thing that
+  tells you what the button is about to do before you press it. So the folded
+  screen takes board 58's wording, and falls back to the bare sentence when
+  there is no next episode to name.
+  """
+  @spec mark_next_label(map()) :: String.t()
+  def mark_next_label(series) do
+    case Kati.Screens.Series.next_unwatched(series) do
+      nil ->
+        gettext("Mark next watched")
+
+      position ->
+        case Enum.at(Map.get(series, :episodes, []), position) do
+          %{n: n} -> gettext("Mark episode %{n} watched", n: Kati.Locale.number(n))
+          _none -> gettext("Mark next watched")
+        end
+    end
+  end
+
+  @doc false
+  @spec no_list_label() :: String.t()
+  def no_list_label, do: gettext("No episode list yet.")
+
+  @doc false
+  @spec no_poster_label() :: String.t()
+  def no_poster_label, do: gettext("No poster")
+
+  @doc false
+  @spec episodes_eyebrow() :: String.t()
+  def episodes_eyebrow, do: Kati.UI.eyebrow_label(gettext("Episodes"))
+
+  @doc """
+  The lead of the *next episode airs …* line, with its own trailing space.
+
+  Two `Text` nodes because the date beside it is bold, and the space belongs to
+  the first: a translation that needs the date FIRST — which Persian does not,
+  but a future language might — changes this string rather than the markup.
+  """
+  @spec next_airs_lead() :: String.t()
+  def next_airs_lead, do: gettext("Next episode airs ")
+
+  @doc """
   A stored status in the shelf's own words.
 
       iex> Kati.Screens.Series.status_label(:not_started)
@@ -962,19 +1069,24 @@ defmodule Kati.Screens.Series do
 
       iex> Kati.Screens.Series.status_label(:watching)
       "Watching"
+
+  `pgettext/2` and not `gettext/1`: these five are the SHELF's words. Board 69's
+  book pill says تمام شد where board 04's series chip says تمام‌شده, and one
+  msgid cannot answer both — `Kati.Books.Sample.statuses/0` records the same
+  split for books.
   """
   @spec status_label(atom()) :: String.t()
-  def status_label(:not_started), do: "Not started"
-  def status_label(:watching), do: "Watching"
-  def status_label(:paused), do: "Paused"
-  def status_label(:finished), do: "Finished"
-  def status_label(:dropped), do: "Dropped"
+  def status_label(:not_started), do: pgettext("shelf status", "Not started")
+  def status_label(:watching), do: pgettext("shelf status", "Watching")
+  def status_label(:paused), do: pgettext("shelf status", "Paused")
+  def status_label(:finished), do: pgettext("shelf status", "Finished")
+  def status_label(:dropped), do: pgettext("shelf status", "Dropped")
   def status_label(other), do: other |> to_string() |> String.capitalize()
 
   # The floating chrome. `arrow_back_ios_new` rather than a chevron, because
   # that is the glyph the drawing names.
   @doc false
-  def chrome(menu?, label \\ "Library", s \\ %{}) do
+  def chrome(menu?, label \\ gettext("Library"), s \\ %{}) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     lift = "0 6 16 -8 #991A1917"
@@ -1049,10 +1161,10 @@ defmodule Kati.Screens.Series do
       trigger,
       menu?,
       [
-        Kati.UI.Menu.item("info", "Show details", :show_details),
-        Kati.UI.Menu.item("checklist", "Episode order", :episode_order),
+        Kati.UI.Menu.item("info", gettext("Show details"), :show_details),
+        Kati.UI.Menu.item("checklist", gettext("Episode order"), :episode_order),
         Kati.UI.Menu.rule(),
-        Kati.UI.Menu.item("tune", "Show settings", :open_settings),
+        Kati.UI.Menu.item("tune", gettext("Show settings"), :open_settings),
         # #94's row. `Kati.Screens.DropSheet`'s drawn entry is a Drop action on
         # this board, which is not a gesture 04, 66 or 74 draw, so it was
         # reachable only from the developer gallery that #94 deletes. A menu
@@ -1067,7 +1179,7 @@ defmodule Kati.Screens.Series do
         # placeholder until 04 drew the gesture; the gesture is drawn, in
         # `rating_column/1`, one per episode, so the row's exit condition has
         # been met and the row is gone. You rate the episode you tapped.
-        Kati.UI.Menu.item("do_not_disturb_on", "Drop this show", :open_drop_sheet),
+        Kati.UI.Menu.item("do_not_disturb_on", gettext("Drop this show"), :open_drop_sheet),
         # The same row screen 08 carries, for the same reason: a series is as
         # private as a film, and screen 98's *Hide titles I marked private* has
         # to be able to reach both or it is a switch about half a shelf.
@@ -1114,8 +1226,8 @@ defmodule Kati.Screens.Series do
           />
           <Spacer weight={1.0} />
           <Text
-            text={"#{s.watched} of #{s.total} watched"}
-            font_family="mono"
+            text={Kati.Screens.Series.watched_line(s.watched, s.total)}
+            font_family={Kati.Locale.mono_face()}
             text_size={11.5}
             text_color={Palette.sub()}
             max_lines={1}
@@ -1155,7 +1267,7 @@ defmodule Kati.Screens.Series do
         <Box width={6} height={6} corner_radius={3} background={Palette.accent()} />
         <Spacer size={8} />
         <Text
-          text="Next episode airs "
+          text={Kati.Screens.Series.next_airs_lead()}
           text_size={12.5}
           text_color={Palette.ink_soft()}
           max_lines={1}
@@ -1214,7 +1326,7 @@ defmodule Kati.Screens.Series do
   # `test/design/screens/04.html:33` draws this button as `onClick="{{ markNext
   # }}"` — one of only five onClick attributes in the whole board set, so the
   # drawing names the handler rather than leaving it to be inferred. The tag is
-  # built into a variable first, the way `Kati.Screens.SeriesFa.actions/1`
+  # built into a variable first, the way board 58's action row
   # already does for the mirror of this same button.
   #
   # `actions/1` takes the series, and did not: the mark button acts on the
@@ -1256,7 +1368,7 @@ defmodule Kati.Screens.Series do
             {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
             <Spacer size={8} />
             <Text
-              text="Mark next watched"
+              text={Kati.Screens.Series.mark_next_label(s)}
               text_size={14}
               font_weight="bold"
               text_color={Palette.on_ink()}
@@ -1370,10 +1482,10 @@ defmodule Kati.Screens.Series do
         <Box width={13} height={2} corner_radius={1} background={Palette.accent()} />
         <Spacer size={9} />
         <Text
-          text="EPISODES"
-          font_family="mono"
+          text={Kati.Screens.Series.episodes_eyebrow()}
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
         <Spacer weight={1.0} />
@@ -1412,7 +1524,16 @@ defmodule Kati.Screens.Series do
 
     ~MOB"""
     <Box width={30} height={28} corner_radius={10} background={bg} align="center" on_tap={tap}>
-      <Text text={label} font_family="mono" text_size={11.5} text_color={fg} max_lines={1} />
+      {# The season pill's `S2` is a LABEL and a tap tag at once — ASCII by
+       # construction, which is what `String.to_atom/1` and the accessibility id
+       # need. The reader sees the number in their own digits; the tag does not.}
+      <Text
+        text={Kati.Screens.Series.season_pill_label(label)}
+        font_family={Kati.Locale.mono_face(Kati.Screens.Series.season_pill_label(label))}
+        text_size={11.5}
+        text_color={fg}
+        max_lines={1}
+      />
     </Box>
     """
   end
@@ -1459,7 +1580,7 @@ defmodule Kati.Screens.Series do
     <Column fill_width={true}>
       {@card}
       <Spacer size={16} />
-      {Kati.UI.SettingsList.eyebrow_muted("What still works")}
+      {Kati.UI.SettingsList.eyebrow_muted(gettext("What still works"))}
       {@group}
       <Spacer size={14} />
       {Kati.UI.SettingsList.note("info", Kati.Screens.Series.no_primary_note())}
@@ -1495,7 +1616,7 @@ defmodule Kati.Screens.Series do
         </Box>
         <Spacer size={13} />
         <Text
-          text="No episode list yet."
+          text={Kati.Screens.Series.no_list_label()}
           text_size={13.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -1504,7 +1625,7 @@ defmodule Kati.Screens.Series do
       </Row>
       <Spacer size={11} />
       <Text
-        text="You added this by hand, so Kati has no seasons or episodes for it. If a source finds it later, they arrive here and nothing you typed changes."
+        text={Kati.Screens.Series.by_hand_note()}
         text_size={12}
         line_height={1.55}
         text_color={Palette.sub()}
@@ -1527,19 +1648,22 @@ defmodule Kati.Screens.Series do
     Kati.UI.SettingsList.card([
       Kati.UI.SettingsList.row(
         Kati.UI.SettingsList.icon_tile("replay"),
-        Kati.UI.SettingsList.body("Log a watch", "Works without an episode list"),
+        Kati.UI.SettingsList.body(
+          gettext("Log a watch"),
+          gettext("Works without an episode list")
+        ),
         Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
         on_tap: tap.(:rate_title)
       ),
       Kati.UI.SettingsList.row(
         Kati.UI.SettingsList.icon_tile("do_not_disturb_on"),
-        Kati.UI.SettingsList.body("Drop this show", "Keeps where you stopped"),
+        Kati.UI.SettingsList.body(gettext("Drop this show"), gettext("Keeps where you stopped")),
         Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
         on_tap: tap.(:open_drop_sheet)
       ),
       Kati.UI.SettingsList.row(
         Kati.UI.SettingsList.icon_tile("delete"),
-        Kati.UI.SettingsList.body("Remove from library"),
+        Kati.UI.SettingsList.body(gettext("Remove from library")),
         Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
         rule: false,
         on_tap: tap.(:remove_title)
@@ -1547,12 +1671,29 @@ defmodule Kati.Screens.Series do
     ])
   end
 
+  @doc """
+  Board 249's explanation of why this series has no episode list.
+
+  Whose doing it is, and what happens if a source turns up later — the two
+  things a reader typing a title by hand needs to know, and neither of them is
+  an apology.
+  """
+  @spec by_hand_note() :: String.t()
+  def by_hand_note,
+    do:
+      gettext(
+        "You added this by hand, so Kati has no seasons or episodes for it. " <>
+          "If a source finds it later, they arrive here and nothing you typed changes."
+      )
+
   @doc "Board 248's dashed footnote, one `Text` so every bold run is findable."
   @spec no_primary_note() :: String.t()
   def no_primary_note do
-    "No primary button here. There is no next episode to mark, and a primary " <>
-      "that refuses is worse than none. 04\u2019s one primary slot stays empty " <>
-      "\u2014 which is what makes this a state of 04 rather than a page of its own."
+    gettext(
+      "No primary button here. There is no next episode to mark, and a primary " <>
+        "that refuses is worse than none. 04’s one primary slot stays empty " <>
+        "— which is what makes this a state of 04 rather than a page of its own."
+    )
   end
 
   @doc false
@@ -1579,8 +1720,8 @@ defmodule Kati.Screens.Series do
       >
         <Column width={22}>
           <Text
-            text={"#{ep.n}"}
-            font_family="mono"
+            text={Kati.Locale.number(ep.n)}
+            font_family={Kati.Locale.mono_face(Kati.Locale.number(ep.n))}
             text_size={12}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -1599,7 +1740,7 @@ defmodule Kati.Screens.Series do
           <Spacer size={4} />
           <Text
             text={ep.sub}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(ep.sub)}
             text_size={10.5}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -1675,7 +1816,7 @@ defmodule Kati.Screens.Series do
     <Row align="center">
       <Text
         text={@label}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@label)}
         text_size={12}
         text_color={Palette.meta()}
         max_lines={1}
@@ -1889,7 +2030,7 @@ defmodule Kati.Screens.Series do
   # rule is kept.
   #
   # A season with nothing left to mark answers by doing nothing rather than by
-  # wrapping round to the first episode — `Kati.Screens.SeriesFa`'s clause for
+  # wrapping round to the first episode — board 58's clause for
   # the mirror of this button answers the same way.
   def handle_info({:tap, :mark_next}, socket) do
     case Kati.Screens.Series.next_unwatched(socket.assigns.series) do

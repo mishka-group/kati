@@ -284,7 +284,7 @@ defmodule Kati.Screens.LogListen do
   on, and the same ring with the glyph at zero alpha when off — the invisible
   glyph holds the ring's inner metrics identical so the column does not shift.
   Reproduced literally rather than tidied away, exactly as
-  `Kati.Screens.SeriesFa` reproduces it.
+  board 58 reproduces it.
   """
   @spec track_row(map(), boolean()) :: map()
   def track_row(track, on?) do

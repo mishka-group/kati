@@ -108,8 +108,14 @@ defmodule Kati.LocaleFaceTest do
       # mirror is the Persian page, so it is Persian in an English app too.
       # Their frames hard-code the face for exactly the reason they hard-code
       # the direction.
+      #
+      # `Kati.Screens.Series` was on this list until mishka-group/kati#103
+      # folded board 58 into it, and a FOLDED screen is the opposite claim: its
+      # root follows the reader, so in an English app it says `sans` and it is
+      # right to. The list shrinks with every fold and goes with the last
+      # mirror.
       ScreenSweep.with_locale(:en, fn ->
-        for module <- [Kati.Screens.HomeFa, Kati.Screens.LibraryFa, Kati.Screens.SeriesFa] do
+        for module <- [Kati.Screens.HomeFa, Kati.Screens.LibraryFa] do
           root = safe_root(module)
           assert root, "#{inspect(module)} did not render"
 
@@ -149,7 +155,6 @@ defmodule Kati.LocaleFaceTest do
       # 14 and 19 are all Movies & Series — and each had the glyph written out.
       for module <- [
             Kati.Screens.AddByHand,
-            Kati.Screens.Series,
             Kati.Screens.Film,
             Kati.Screens.SeriesMeta,
             Kati.Screens.Search,

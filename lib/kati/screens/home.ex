@@ -56,7 +56,7 @@ defmodule Kati.Screens.Home do
   `Kati.Screens.Gallery` under its own number, it is `root: :home` so the dock
   and the FAB sit on it exactly as they do here, and
   `Kati.ScreenEmptyDatabaseTest` renders it under `"139"`. The module that owns
-  an artboard owns its copy — the same rule that makes `Kati.Screens.SeriesFa`
+  an artboard owns its copy — the same rule that makes board 58
   read through `Kati.Screens.Series` rather than restate it — and the artboard
   here is 139's. So Home holds the *condition* and HomeEmpty holds the *page*,
   and there is exactly one copy of 139 in the app. A second column of

@@ -196,7 +196,7 @@ msgstr ""
 msgid "Book covers, editions and ISBNs."
 msgstr ""
 
-#: lib/kati/screens/books.ex:534
+#: lib/kati/screens/books.ex:539
 #: lib/kati/screens/pick_sections/sample.ex:47
 #: lib/kati/screens/pushed.ex:178
 #: lib/kati/settings/sample.ex:216
@@ -314,6 +314,7 @@ msgstr ""
 msgid "Documentary"
 msgstr ""
 
+#: lib/kati/library/sample.ex:162
 #: lib/kati/stats/sample.ex:21
 #: lib/kati/stats/share_sample.ex:70
 #, elixir-autogen, elixir-format
@@ -535,9 +536,10 @@ msgid "Kind"
 msgstr ""
 
 #: lib/kati/meals/sample_today.ex:104
-#: lib/kati/screens/books.ex:436
+#: lib/kati/screens/books.ex:441
 #: lib/kati/screens/library.ex:785
 #: lib/kati/screens/pushed.ex:188
+#: lib/kati/screens/series.ex:1089
 #: lib/kati/shell.ex:78
 #, elixir-autogen, elixir-format
 msgid "Library"
@@ -571,6 +573,7 @@ msgstr ""
 msgid "Make it and add"
 msgstr ""
 
+#: lib/kati/library/sample.ex:222
 #: lib/kati/screens/onboarding_first_title.ex:150
 #, elixir-autogen, elixir-format
 msgid "Marram"
@@ -606,7 +609,7 @@ msgstr ""
 msgid "Money"
 msgstr ""
 
-#: lib/kati/screens/books.ex:534
+#: lib/kati/screens/books.ex:539
 #: lib/kati/screens/pick_sections/sample.ex:48
 #: lib/kati/screens/pushed.ex:193
 #: lib/kati/settings/sample.ex:223
@@ -830,7 +833,7 @@ msgstr ""
 msgid "Save image"
 msgstr ""
 
-#: lib/kati/screens/books.ex:534
+#: lib/kati/screens/books.ex:539
 #: lib/kati/screens/pick_sections/sample.ex:46
 #: lib/kati/settings/sample.ex:209
 #: lib/kati/stats/share_sample.ex:31
@@ -933,6 +936,8 @@ msgstr ""
 msgid "That list is generated from THIRD_PARTY_NOTICES.md at build time, never typed by hand."
 msgstr ""
 
+#: lib/kati/library/sample.ex:155
+#: lib/kati/library/sample.ex:224
 #: lib/kati/screens/onboarding_first_title.ex:148
 #, elixir-autogen, elixir-format
 msgid "The Long Hollow"
@@ -1180,11 +1185,13 @@ msgid "Data sources"
 msgstr ""
 
 #: lib/kati/screens/pushed.ex:181
+#: lib/kati/screens/series.ex:1165
 #, elixir-autogen, elixir-format
 msgid "Episode order"
 msgstr ""
 
 #: lib/kati/screens/pushed.ex:182
+#: lib/kati/screens/series.ex:1052
 #, elixir-autogen, elixir-format
 msgid "Episodes"
 msgstr ""
@@ -3133,7 +3140,7 @@ msgid "I am now on page"
 msgstr ""
 
 #: lib/kati/screens/book_detail.ex:1210
-#: lib/kati/screens/books.ex:440
+#: lib/kati/screens/books.ex:445
 #: lib/kati/screens/log_progress.ex:212
 #, elixir-autogen, elixir-format
 msgid "Log progress"
@@ -3371,6 +3378,8 @@ msgstr ""
 
 #: lib/kati/books/sample.ex:41
 #: lib/kati/books/sample.ex:170
+#: lib/kati/library/sample.ex:194
+#: lib/kati/library/sample.ex:220
 #: lib/kati/music/sample.ex:151
 #, elixir-autogen, elixir-format
 msgid "Low Water"
@@ -3571,6 +3580,7 @@ msgstr ""
 msgid "Bight"
 msgstr ""
 
+#: lib/kati/library/sample.ex:196
 #: lib/kati/music/sample.ex:169
 #, elixir-autogen, elixir-format
 msgid "Blackthorn"
@@ -3581,6 +3591,7 @@ msgstr ""
 msgid "Found this on a wet Tuesday in the studio. Played track three until it stopped meaning anything."
 msgstr ""
 
+#: lib/kati/library/sample.ex:198
 #: lib/kati/music/sample.ex:178
 #, elixir-autogen, elixir-format
 msgid "Hollow Season"
@@ -3626,6 +3637,7 @@ msgstr ""
 msgid "Spring Tide"
 msgstr ""
 
+#: lib/kati/library/sample.ex:195
 #: lib/kati/music/sample.ex:160
 #, elixir-autogen, elixir-format
 msgid "The Cull"
@@ -3647,6 +3659,7 @@ msgstr ""
 msgid "Tracklist · %{tracks}"
 msgstr ""
 
+#: lib/kati/library/sample.ex:197
 #: lib/kati/music/sample.ex:187
 #, elixir-autogen, elixir-format
 msgid "What the Tide Left"
@@ -3669,7 +3682,7 @@ msgid "yesterday"
 msgstr ""
 
 #: lib/kati/books/sample.ex:68
-#: lib/kati/screens/books.ex:316
+#: lib/kati/screens/books.ex:321
 #, elixir-autogen, elixir-format
 msgid "%{n} book"
 msgid_plural "%{n} books"
@@ -3677,7 +3690,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/kati/books/sample.ex:69
-#: lib/kati/screens/books.ex:317
+#: lib/kati/screens/books.ex:322
 #, elixir-autogen, elixir-format
 msgid "%{n} reading"
 msgstr ""
@@ -3730,45 +3743,282 @@ msgstr ""
 msgid "to read"
 msgstr ""
 
-#: lib/kati/screens/books.ex:429
+#: lib/kati/screens/books.ex:434
 #, elixir-autogen, elixir-format
 msgid "Add the first one with +. Kati invents no cover and no page count — it keeps what you typed."
 msgstr ""
 
-#: lib/kati/screens/books.ex:419
+#: lib/kati/screens/books.ex:424
 #, elixir-autogen, elixir-format
 msgid "An empty shelf"
 msgstr ""
 
-#: lib/kati/screens/books.ex:423
+#: lib/kati/screens/books.ex:428
 #, elixir-autogen, elixir-format
 msgid "No books yet"
 msgstr ""
 
 #: lib/kati/books/sample.ex:107
-#: lib/kati/screens/books.ex:347
+#: lib/kati/screens/books.ex:352
 #, elixir-autogen, elixir-format
 msgctxt "shelf filter"
 msgid "All"
 msgstr ""
 
 #: lib/kati/books/sample.ex:109
-#: lib/kati/screens/books.ex:350
+#: lib/kati/screens/books.ex:355
 #, elixir-autogen, elixir-format
 msgctxt "shelf filter"
 msgid "Finished"
 msgstr ""
 
 #: lib/kati/books/sample.ex:108
-#: lib/kati/screens/books.ex:348
+#: lib/kati/screens/books.ex:353
 #, elixir-autogen, elixir-format
 msgctxt "shelf filter"
 msgid "Reading"
 msgstr ""
 
 #: lib/kati/books/sample.ex:110
-#: lib/kati/screens/books.ex:351
+#: lib/kati/screens/books.ex:356
 #, elixir-autogen, elixir-format
 msgctxt "shelf filter"
 msgid "To read"
+msgstr ""
+
+#: lib/kati/library/sample.ex:176
+#: lib/kati/screens/series.ex:724
+#, elixir-autogen, elixir-format
+msgid "%{date}, %{time}"
+msgstr ""
+
+#: lib/kati/screens/series.ex:753
+#, elixir-autogen, elixir-format
+msgid "%{month} %{year}"
+msgstr ""
+
+#: lib/kati/library/sample.ex:165
+#: lib/kati/screens/series.ex:714
+#, elixir-autogen, elixir-format
+msgid "%{n} season"
+msgid_plural "%{n} seasons"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/series.ex:997
+#, elixir-autogen, elixir-format
+msgid "%{watched} of %{total} watched"
+msgstr ""
+
+#: lib/kati/library/sample.ex:259
+#: lib/kati/screens/series.ex:675
+#, elixir-autogen, elixir-format
+msgid "Airs %{date}"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1182
+#: lib/kati/screens/series.ex:1660
+#, elixir-autogen, elixir-format
+msgid "Drop this show"
+msgstr ""
+
+#: lib/kati/screens/series.ex:664
+#, elixir-autogen, elixir-format
+msgid "Episode %{n}"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1660
+#, elixir-autogen, elixir-format
+msgid "Keeps where you stopped"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1652
+#, elixir-autogen, elixir-format
+msgid "Log a watch"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1032
+#: lib/kati/screens/series.ex:1037
+#, elixir-autogen, elixir-format
+msgid "Mark next watched"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1062
+#, elixir-autogen, elixir-format
+msgid "Next episode airs "
+msgstr ""
+
+#: lib/kati/screens/series.ex:1044
+#, elixir-autogen, elixir-format
+msgid "No episode list yet."
+msgstr ""
+
+#: lib/kati/screens/series.ex:1048
+#, elixir-autogen, elixir-format
+msgid "No poster"
+msgstr ""
+
+#: lib/kati/screens/series.ex:761
+#, elixir-autogen, elixir-format
+msgid "Q%{q} %{year}"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1666
+#, elixir-autogen, elixir-format
+msgid "Remove from library"
+msgstr ""
+
+#: lib/kati/library/sample.ex:168
+#: lib/kati/screens/series.ex:196
+#: lib/kati/screens/series.ex:612
+#, elixir-autogen, elixir-format
+msgid "Season %{n}"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1164
+#, elixir-autogen, elixir-format
+msgid "Show details"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1167
+#, elixir-autogen, elixir-format
+msgid "Show settings"
+msgstr ""
+
+#: lib/kati/screens/series.ex:587
+#: lib/kati/screens/series.ex:666
+#, elixir-autogen, elixir-format
+msgid "Untitled"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1579
+#, elixir-autogen, elixir-format
+msgid "What still works"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1653
+#, elixir-autogen, elixir-format
+msgid "Works without an episode list"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1012
+#, elixir-autogen, elixir-format
+msgctxt "season pill"
+msgid "S"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1083
+#, elixir-autogen, elixir-format
+msgctxt "shelf status"
+msgid "Dropped"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1082
+#, elixir-autogen, elixir-format
+msgctxt "shelf status"
+msgid "Finished"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1079
+#, elixir-autogen, elixir-format
+msgctxt "shelf status"
+msgid "Not started"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1081
+#, elixir-autogen, elixir-format
+msgctxt "shelf status"
+msgid "Paused"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1080
+#, elixir-autogen, elixir-format
+msgctxt "shelf status"
+msgid "Watching"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1692
+#, elixir-autogen, elixir-format
+msgid "No primary button here. There is no next episode to mark, and a primary that refuses is worse than none. 04’s one primary slot stays empty — which is what makes this a state of 04 rather than a page of its own."
+msgstr ""
+
+#: lib/kati/write.ex:87
+#, elixir-autogen, elixir-format
+msgid "That did not save. Your text is still here — try again."
+msgstr ""
+
+#: lib/kati/screens/series.ex:1684
+#, elixir-autogen, elixir-format
+msgid "You added this by hand, so Kati has no seasons or episodes for it. If a source finds it later, they arrive here and nothing you typed changes."
+msgstr ""
+
+#: lib/kati/write.ex:64
+#, elixir-autogen, elixir-format
+msgid "Kati has no id for this episode, so a tick would have nothing to name."
+msgstr ""
+
+#: lib/kati/write.ex:61
+#, elixir-autogen, elixir-format
+msgid "There is no episode to mark."
+msgstr ""
+
+#: lib/kati/write.ex:60
+#, elixir-autogen, elixir-format
+msgid "This series is not in your library yet."
+msgstr ""
+
+#: lib/kati/library/sample.ex:248
+#: lib/kati/screens/series.ex:686
+#, elixir-autogen, elixir-format
+msgid "%{n} min"
+msgstr ""
+
+#: lib/kati/library/sample.ex:247
+#, elixir-autogen, elixir-format
+msgid "%{runtime} · %{date}"
+msgstr ""
+
+#: lib/kati/library/sample.ex:160
+#, elixir-autogen, elixir-format
+msgid "%{year} · %{genre} · LUMEN+ · %{seasons}"
+msgstr ""
+
+#: lib/kati/library/sample.ex:223
+#, elixir-autogen, elixir-format
+msgid "Every Quiet Thing"
+msgstr ""
+
+#: lib/kati/library/sample.ex:200
+#, elixir-autogen, elixir-format
+msgid "Long Hollow"
+msgstr ""
+
+#: lib/kati/library/sample.ex:232
+#, elixir-autogen, elixir-format
+msgid "Saltings"
+msgstr ""
+
+#: lib/kati/library/sample.ex:231
+#, elixir-autogen, elixir-format
+msgid "The Bell Buoy"
+msgstr ""
+
+#: lib/kati/library/sample.ex:221
+#, elixir-autogen, elixir-format
+msgid "The Ferry Road"
+msgstr ""
+
+#: lib/kati/library/sample.ex:199
+#, elixir-autogen, elixir-format
+msgid "The Undertow"
+msgstr ""
+
+#: lib/kati/library/sample.ex:230
+#, elixir-autogen, elixir-format
+msgid "Undertow"
+msgstr ""
+
+#: lib/kati/screens/series.ex:1036
+#, elixir-autogen, elixir-format
+msgid "Mark episode %{n} watched"
 msgstr ""

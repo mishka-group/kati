@@ -93,17 +93,22 @@ defmodule Kati.BackLabelTest do
     end
   end
 
-  describe "the Persian series page" do
+  # Board 58 is screen 04 under `:fa` since mishka-group/kati#103 folded
+  # `Kati.Screens.SeriesFa` away, so the pill is the same assign asked in the
+  # other script — `socket.assigns.back`, not a `back` key on the series map.
+  describe "board 58 — the same page in Persian" do
     test "opened from Persian search, the pill says search" do
       {:ok, socket} =
-        Kati.Screens.SeriesFa.mount(%{back: "جست‌وجو"}, %{}, Mob.Socket.new(Kati.Screens.SeriesFa))
+        Kati.Screens.Series.mount(%{back: "جست‌وجو"}, %{}, Mob.Socket.new(Kati.Screens.Series))
 
-      assert socket.assigns.series.back == "جست‌وجو"
+      assert socket.assigns.back == "جست‌وجو"
     end
 
     test "a bare mount keeps the board's word" do
-      {:ok, socket} = Kati.Screens.SeriesFa.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.SeriesFa))
-      assert socket.assigns.series.back == "کتابخانه"
+      Kati.Locale.as(:fa, fn ->
+        {:ok, socket} = Kati.Screens.Series.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.Series))
+        assert socket.assigns.back == "کتابخانه"
+      end)
     end
   end
 
