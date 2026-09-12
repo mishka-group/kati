@@ -26,10 +26,34 @@ defmodule Kati.Screens.MealSwap do
       padding and the flexible one takes the rest.
 
   No dock, so the frame ends at 40 rather than 132.
+
+  ## The copy, in both scripts
+
+  Every word on this page is `Kati.Meals.SampleSwap`'s — the fixture is a
+  transcription of board 46 — and the fixture holds English literals. They are
+  translated where they are **drawn**, through `copy/1`, rather than in the
+  fixture: `Kati.Screens.MealReminders.copy/1` is the same function for the
+  same reason, and `Kati.Screens.MealLibrary`'s moduledoc states the rule from
+  the other side — the fixture's `Dinner 9` reads `شام ۹` without the fixture
+  changing at all. It is the only arrangement available here anyway, since
+  `Kati.Meals.SampleSwap` is drawn by this screen and owned by nobody on it.
+
+  The two lines with **numbers** in them cannot go that way and are built in
+  the reader's language where they are composed — `replaced_macros/1`,
+  `candidate_macros/1` and `delta_label/1`, all reached from `swap/1`, which
+  `mount/3` calls after `Kati.Locale.activate/0`. A number cannot be recovered
+  from a finished sentence, so a line that interpolates one has to be
+  translated at the point it is assembled. `copy/1` still carries a clause for
+  each of the fixture's seven — four macro lines and three deltas — and every
+  one of those clauses calls the same builder with the drawing's own figures,
+  so the drawn page and a real one are one sentence with different numbers in
+  it. `copy/1` is idempotent on its own output, which is what makes it safe to
+  run over a row this screen built itself.
   """
   # Not `Kati.Screens.Pushed`: this screen dismisses with its own close
   # button, and the drawing has exactly one dismissal.
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
@@ -102,9 +126,14 @@ defmodule Kati.Screens.MealSwap do
       %{
         slot_id: slot.id,
         replacing: %{
+          # The eyebrow as the SCREEN spells it, not as it is drawn — `copy/1`
+          # at the render is where it becomes a word, which is the same split
+          # `Kati.Screens.MealLibrary.shaped/2` makes for its slot name. A
+          # fixed phrase is translated once, where it is drawn, and a real row
+          # and a drawn one then reach the catalogue by the same door.
           label: "Replacing",
           title: recipe.title,
-          macros: macro_line(figures),
+          macros: replaced_macros(figures),
           seed: recipe.photo_seed
         },
         candidates: candidates_for(recipe, figures),
@@ -203,8 +232,12 @@ defmodule Kati.Screens.MealSwap do
       %{
         id: recipe.id,
         title: recipe.title,
+        # `BEST` as the screen spells it, for `copy/1` to draw — see the
+        # `:label` above, and `Kati.MealSwapTest`, which reads this key off the
+        # socket and is asking which candidate is badged rather than what the
+        # badge says.
         badge: if(i == 0, do: "BEST"),
-        macros: String.downcase(macro_line(theirs)),
+        macros: candidate_macros(theirs),
         delta: delta_label(theirs.kcal - figures.kcal),
         delta_color: if(theirs.kcal <= figures.kcal, do: Sample.green(), else: Sample.red()),
         selected?: i == 0,
@@ -218,12 +251,66 @@ defmodule Kati.Screens.MealSwap do
   # The drawing writes a signed number with a MINUS SIGN, not a hyphen — the
   # same character `Kati.Meals.SampleSwap` types, and the reason the two agree
   # is that this is where a real delta has to look like the drawn one.
-  defp delta_label(0), do: "same"
-  defp delta_label(diff) when diff < 0, do: "−#{abs(diff)} kcal"
-  defp delta_label(diff), do: "+#{diff} kcal"
+  #
+  # `%{count} kcal` is the meals screens' own entry rather than three new ones:
+  # `Kati.Screens.Health`, `Kati.Screens.MealLibrary`, `Kati.Screens.MealsDay`
+  # and `Kati.Screens.MealsToday` all draw a figure through it, and a delta is
+  # a number of calories like any other. One page naming them کالری while
+  # another named them something else is the disagreement a shared msgid
+  # prevents.
+  defp delta_label(0), do: pgettext("a swap that costs the day nothing", "same")
 
-  defp macro_line(f) do
-    "#{f.kcal} KCAL · #{grams(f.protein_mg)}P #{grams(f.carbs_mg)}C #{grams(f.fat_mg)}F"
+  defp delta_label(diff) when diff < 0,
+    do: gettext("%{count} kcal", count: signed("−", abs(diff)))
+
+  defp delta_label(diff), do: gettext("%{count} kcal", count: signed("+", diff))
+
+  # The SIGN goes inside the interpolated value and through `Kati.Locale.ltr/1`,
+  # which is the move `Kati.Screens.MealLibrary.kcal_line/2` makes for its `~`
+  # and for the same reason. `+` and `−` are bidi-NEUTRAL: a bare one in front
+  # of a figure on a Persian page takes the PARAGRAPH's direction and is laid
+  # out at the far end of the number — `۱۵− کالری`, which reads as a mark
+  # against the word rather than against the figure it qualifies. The isolate
+  # resolves it against the digits instead, and is a no-op under `:en`, where
+  # this still answers `−15 kcal` byte for byte.
+  defp signed(sign, figure), do: Kati.Locale.ltr(sign <> Kati.Locale.number(figure))
+
+  # The two macro lines the drawing writes, and they differ only in the case of
+  # the unit: the card being replaced carries `620 KCAL · 52P 64C 17F` and a
+  # candidate row `605 kcal · 48P 61C 16F`.
+  #
+  # Two msgids rather than one and a `String.downcase/1`, which is what stood
+  # here. Case is a LATIN property — Persian has none, so both answer
+  # `۶۲۰ کالری · ۵۲پ ۶۴ک ۱۷چ` and the second entry costs the translator
+  # nothing — and downcasing the FINISHED line also lowercased the macro
+  # letters, so a candidate built from a real recipe drew `48p 61c 16f` where
+  # the board draws `48P 61C 16F`. The lowercase msgid is
+  # `Kati.Screens.Plans.targets_line/1`'s own, shared rather than opened a
+  # second time; its comment carries the argument for why the macro letters sit
+  # INSIDE the msgid — board 294 writes ۱۶۸پ ۲۱۰ک ۷۰چ, the initials of
+  # پروتئین، کربوهیدرات، چربی.
+  defp replaced_macros(f),
+    do: replaced_macros(f.kcal, grams(f.protein_mg), grams(f.carbs_mg), grams(f.fat_mg))
+
+  defp replaced_macros(kcal, protein, carbs, fat) do
+    gettext("%{kcal} KCAL · %{protein}P %{carbs}C %{fat}F",
+      kcal: Kati.Locale.number(kcal),
+      protein: Kati.Locale.number(protein),
+      carbs: Kati.Locale.number(carbs),
+      fat: Kati.Locale.number(fat)
+    )
+  end
+
+  defp candidate_macros(f),
+    do: candidate_macros(f.kcal, grams(f.protein_mg), grams(f.carbs_mg), grams(f.fat_mg))
+
+  defp candidate_macros(kcal, protein, carbs, fat) do
+    gettext("%{kcal} kcal · %{protein}P %{carbs}C %{fat}F",
+      kcal: Kati.Locale.number(kcal),
+      protein: Kati.Locale.number(protein),
+      carbs: Kati.Locale.number(carbs),
+      fat: Kati.Locale.number(fat)
+    )
   end
 
   defp grams(mg), do: round(mg / 1000)
@@ -235,6 +322,14 @@ defmodule Kati.Screens.MealSwap do
   def render(assigns) do
     candidates = assigns.candidates
     picked = assigns.picked
+    # The meal this screen is a swap OF. `mount/3` has resolved it on to the
+    # socket since the screen was written and the card never read it: it drew
+    # `Kati.Meals.SampleSwap`'s salmon whatever the plan held, so a reader
+    # swapping Tuesday's lunch was shown a dinner they had never planned, with
+    # the real meal's own figures nowhere on the page. This is the call that
+    # reads the assign.
+    replacing = assigns.replacing
+    effect_on_today = gettext("Effect on today")
 
     ~MOB"""
     <Box
@@ -254,11 +349,11 @@ defmodule Kati.Screens.MealSwap do
           padding_bottom={40}
         >
           {Kati.Screens.MealSwap.header()}
-          {Kati.Screens.MealSwap.replacing()}
+          {Kati.Screens.MealSwap.replacing(replacing)}
           {Kati.Screens.MealSwap.arrow()}
           {Kati.Screens.MealSwap.filters()}
           {Kati.Screens.MealSwap.candidates(candidates, picked)}
-          {Kati.Screens.MealSwap.muted_eyebrow("Effect on today")}
+          {Kati.Screens.MealSwap.muted_eyebrow(effect_on_today)}
           {Kati.Screens.MealSwap.effect()}
           {Kati.Screens.MealSwap.commit()}
         </Column>
@@ -271,13 +366,15 @@ defmodule Kati.Screens.MealSwap do
   # the frame rather than against what is left of it.
   @doc false
   def header do
+    heading = copy(Sample.heading())
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         {Kati.Screens.MealSwap.close_button()}
         <Spacer weight={1.0} />
         <Text
-          text={Kati.Meals.SampleSwap.heading()}
+          text={heading}
           text_size={15}
           font_weight="bold"
           text_color={:on_surface}
@@ -316,9 +413,33 @@ defmodule Kati.Screens.MealSwap do
     )
   end
 
-  @doc false
-  def replacing do
-    from = Sample.replacing()
+  @doc """
+  The card at the top: the meal this swap is a swap OF.
+
+  Takes the meal rather than reading the fixture, and the default is what it
+  read before — the drawing, which is what `swap/1` assigns when there is no
+  plan and no slot. With one, the argument is the real meal's own name and its
+  own figures; drawing the fixture's salmon over a resolved slot was the page
+  telling a reader their Tuesday lunch was a dinner they had never planned.
+
+  `label`, `title` and `macros` all go through `copy/1`: on the drawn page they
+  are `Kati.Meals.SampleSwap`'s English and become words there, and on a real
+  one the first is this screen's own spelling of the eyebrow while the other
+  two are already in the reader's language and fall through it unchanged.
+  """
+  def replacing(from \\ Sample.replacing()) do
+    # The eyebrow asks the three questions `Kati.UI.eyebrow_label/1`'s doc
+    # lists: upcasing is a Latin operation and a no-op on a script with no
+    # case, `kati_mono.ttf` carries no Persian glyph, and `.14em` of tracking
+    # breaks the joins between Persian letters. The 9.5pt size is NOT picked
+    # up the way `Kati.UI.eyebrow/2` picks 10.5 up to 11: that half-point is
+    # the SECTION eyebrow's, where Vazirmatn sits beside DM Mono at the same
+    # optical weight, and the small label inside a card stays 9.5 in both
+    # scripts everywhere the app draws one — `Kati.Screens.AlbumDetail`'s four
+    # are the nearest neighbours.
+    label = Kati.UI.eyebrow_label(copy(from.label))
+    title = copy(from.title)
+    macros = copy(from.macros)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -334,16 +455,16 @@ defmodule Kati.Screens.MealSwap do
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text
-            text={String.upcase(from.label)}
-            font_family="mono"
+            text={label}
+            font_family={Kati.Locale.mono_face(label)}
             text_size={9.5}
-            letter_spacing={0.14}
+            letter_spacing={Kati.Locale.tracking(0.14)}
             text_color={Palette.eyebrow()}
             max_lines={1}
           />
           <Spacer size={4} />
           <Text
-            text={from.title}
+            text={title}
             text_size={14}
             font_weight="bold"
             text_color={:on_surface}
@@ -351,8 +472,8 @@ defmodule Kati.Screens.MealSwap do
           />
           <Spacer size={4} />
           <Text
-            text={from.macros}
-            font_family="mono"
+            text={macros}
+            font_family={Kati.Locale.mono_face(macros)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -380,7 +501,10 @@ defmodule Kati.Screens.MealSwap do
 
   @doc false
   def filters do
-    [first | rest] = Sample.filters()
+    # The chips are drawn, not applied — nothing sorts on them yet — so the
+    # label is the whole of each one and `copy/1` is where all three become
+    # words. The first is the one in force, which is the drawing's.
+    [first | rest] = Enum.map(Sample.filters(), &copy/1)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -477,6 +601,16 @@ defmodule Kati.Screens.MealSwap do
     on? = if is_integer(picked), do: index == picked, else: row.selected?
     border = if on?, do: 2, else: 0
     tap = {self(), String.to_atom("pick_" <> Integer.to_string(index))}
+    # Four `copy/1` calls and not one of them can be skipped: on the drawn page
+    # all four are `Kati.Meals.SampleSwap`'s English. On a real row only the
+    # badge is still a word to translate — `candidates_for/2` spells it `BEST`
+    # for exactly this call — while the title is a recipe's own name and the
+    # macro and delta lines were composed in the reader's language upstream, so
+    # those three fall through `copy/1`'s last clause unchanged.
+    title = copy(row.title)
+    macros = copy(row.macros)
+    delta = copy(row.delta)
+    badge = copy(row.badge)
 
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
@@ -498,18 +632,18 @@ defmodule Kati.Screens.MealSwap do
         <Column weight={1.0}>
           <Row fill_width={true} align="center">
             <Text
-              text={row.title}
+              text={title}
               text_size={13.5}
               font_weight="bold"
               text_color={:on_surface}
               max_lines={1}
             />
-            {Kati.Screens.MealSwap.badge(row.badge)}
+            {Kati.Screens.MealSwap.badge(badge)}
           </Row>
           <Spacer size={4} />
           <Text
-            text={row.macros}
-            font_family="mono"
+            text={macros}
+            font_family={Kati.Locale.mono_face(macros)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -517,8 +651,8 @@ defmodule Kati.Screens.MealSwap do
         </Column>
         <Spacer size={13} />
         <Text
-          text={row.delta}
-          font_family="mono"
+          text={delta}
+          font_family={Kati.Locale.mono_face(delta)}
           text_size={11}
           font_weight="medium"
           text_color={row.delta_color}
@@ -531,7 +665,10 @@ defmodule Kati.Screens.MealSwap do
   end
 
   # `BEST` is the drawing's own capitalisation — there is no text-transform on
-  # it — so it is content rather than styling, and stays as written.
+  # it — so it is content rather than styling, and stays as written. That is
+  # also why it is not `Kati.UI.eyebrow_label/1`'d on the way in: the caps are
+  # the word, not a rule applied to it, and the Persian بهترین is the word with
+  # no caps to apply. `copy/1` in `candidate/3` is where it becomes one.
   #
   # The token itself is `Kati.Components.MishkaPill`, which is precisely what a
   # pill is in this port: a compact label, no selected state, no tap. (The
@@ -549,6 +686,12 @@ defmodule Kati.Screens.MealSwap do
   # bridge pads before it sizes. `align: :center` stands in for the Row's
   # `align="center"` — horizontally the content box is exactly the Text's
   # width, so only the vertical half of it has anything to do.
+  #
+  # The pill takes its label as a STRING and builds the `Text` itself, so there
+  # is no `font_family` for this screen to set on it — which is exactly the
+  # case `K-48 locale-face-root` exists for: the family the root declares is
+  # the one every unmarked `Text` under it resolves to, so بهترین is set in
+  # Vazirmatn without the component knowing anything about scripts.
   @doc false
   def badge(nil), do: ~MOB"<Spacer size={0} />"
 
@@ -594,18 +737,32 @@ defmodule Kati.Screens.MealSwap do
 
   # Kati.UI.eyebrow's dash is always the accent, and orange means new or now.
   # The effect on today is a consequence, not an event, so it takes #C4BDB3.
+  #
+  # Everything else about the label is `Kati.UI.eyebrow/2`'s, down to the two
+  # values it picks by script — 11pt semibold in Persian where Latin takes 10.5
+  # normal — and `Kati.Screens.Meal.muted_eyebrow/1` copies the same two for the
+  # same reason. A section label that is a different size on this page from
+  # every other page is the one difference a reader of either script cannot
+  # help seeing, and the three type questions under it are the ones
+  # `Kati.UI.Eyebrow.quiet/1`'s moduledoc lists: upcasing a script with no case
+  # is a no-op that reads as a rule being applied, `kati_mono.ttf` carries no
+  # Persian glyph, and `.16em` of tracking breaks the joins between Persian
+  # letters.
   @doc false
   def muted_eyebrow(label) do
+    text = Kati.UI.eyebrow_label(label)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={text}
+          font_family={Kati.Locale.mono_face(text)}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
       </Row>
@@ -617,6 +774,21 @@ defmodule Kati.Screens.MealSwap do
   @doc false
   def effect do
     effect = Sample.effect()
+    label = copy(effect.label)
+    verdict = copy(effect.verdict)
+
+    # The two figures are the fixture's own and go through `Kati.Locale.number/1`
+    # rather than the catalogue: `2,085` and `/ 2,100` are digits, a grouping
+    # comma and a slash, and none of the three is a word to translate. The
+    # digits convert and the comma does not — board 59 draws ۱,۴۸۰ with a Latin
+    # comma — and the slash stays out of the catalogue for the reason
+    # `Kati.Screens.Health.target_run/1` gives at length: it is punctuation
+    # between two runs on one baseline, and ` / %{count}` is exactly the shape
+    # `mix gettext.merge` fuzzy-matches onto anything. Nothing mirrors it
+    # either; this is a `Row`, so `layout_direction` puts the target run to the
+    # LEFT under `:fa` and the line still reads ۲,۰۸۵ / ۲,۱۰۰ from the right.
+    total = Kati.Locale.number(effect.total)
+    target = Kati.Locale.number(effect.target)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -629,7 +801,7 @@ defmodule Kati.Screens.MealSwap do
       >
         <Row fill_width={true} align="center">
           <Text
-            text={effect.label}
+            text={label}
             text_size={13}
             font_weight="semibold"
             text_color={:on_surface}
@@ -637,15 +809,15 @@ defmodule Kati.Screens.MealSwap do
           />
           <Spacer weight={1.0} />
           <Text
-            text={effect.total}
-            font_family="mono"
+            text={total}
+            font_family={Kati.Locale.mono_face(total)}
             text_size={12}
             text_color={Palette.ink_soft()}
             max_lines={1}
           />
           <Text
-            text={effect.target}
-            font_family="mono"
+            text={target}
+            font_family={Kati.Locale.mono_face(target)}
             text_size={12}
             text_color={Palette.rail_idle()}
             max_lines={1}
@@ -662,7 +834,7 @@ defmodule Kati.Screens.MealSwap do
           {Kati.UI.symbol("check_circle", size: 15, color: Palette.green(), fill: true)}
           <Spacer size={7} />
           <Text
-            text={effect.verdict}
+            text={verdict}
             text_size={11.5}
             text_color={Palette.ink_soft()}
             weight={1.0}
@@ -684,7 +856,9 @@ defmodule Kati.Screens.MealSwap do
 
   @doc false
   def commit do
-    {once, forever} = Sample.commit()
+    {drawn_once, drawn_forever} = Sample.commit()
+    once = copy(drawn_once)
+    forever = copy(drawn_forever)
     once_tap = {self(), :swap_once}
     forever_tap = {self(), :swap_forever}
 
@@ -734,6 +908,69 @@ defmodule Kati.Screens.MealSwap do
     </Row>
     """
   end
+
+  # Board 46's copy, in the reader's language, at the one place each string is
+  # drawn. `Kati.Screens.MealReminders.copy/1` is the same function for the same
+  # reason: the words are `Kati.Meals.SampleSwap`'s and the fixture holds them
+  # as English literals, so this is the door between the two.
+  #
+  # The order is the board's, top to bottom.
+  defp copy("Swap dinner"), do: pgettext("the title of the meal-swap screen", "Swap dinner")
+
+  defp copy("Replacing"),
+    do: pgettext("the eyebrow over the meal being swapped out", "Replacing")
+
+  # The meal titles are the catalogue's already — board 43's timeline and board
+  # 44's plan draw the salmon, and `Kati.Meals.SamplePlan` and
+  # `Kati.Meals.SampleToday` opened the entry between them. One meal named
+  # سالمون میسو، سبزیجات، برنج on one page and something else on this one is
+  # the disagreement a shared msgid prevents, so this reaches for the existing
+  # one rather than writing a fourth.
+  defp copy("Miso salmon, greens, rice"), do: gettext("Miso salmon, greens, rice")
+  defp copy("620 KCAL · 52P 64C 17F"), do: replaced_macros(620, 52, 64, 17)
+
+  # The three filters, and the context is shared because all three are one row
+  # of chips. `Faster` alone is a single word that `mix gettext.merge` would
+  # fuzzy-match onto anything, and `Recently eaten` is one letter of difference
+  # from the shelf's `Recently added`, which is `pgettext/2` for exactly this
+  # reason.
+  defp copy("Closest macros"), do: pgettext("a swap-candidate filter", "Closest macros")
+  defp copy("Faster"), do: pgettext("a swap-candidate filter", "Faster")
+  defp copy("Recently eaten"), do: pgettext("a swap-candidate filter", "Recently eaten")
+
+  defp copy("Cod, new potatoes, peas"), do: gettext("Cod, new potatoes, peas")
+  defp copy("BEST"), do: pgettext("the badge on the closest swap candidate", "BEST")
+  defp copy("605 kcal · 48P 61C 16F"), do: candidate_macros(605, 48, 61, 16)
+  defp copy("−15 kcal"), do: delta_label(-15)
+
+  defp copy("Tofu poke bowl"), do: gettext("Tofu poke bowl")
+  defp copy("640 kcal · 38P 72C 19F"), do: candidate_macros(640, 38, 72, 19)
+  defp copy("+20 kcal"), do: delta_label(20)
+
+  defp copy("Steak, sweet potato"), do: gettext("Steak, sweet potato")
+  defp copy("710 kcal · 55P 52C 30F"), do: candidate_macros(710, 55, 52, 30)
+  defp copy("+90 kcal"), do: delta_label(90)
+
+  defp copy("Daily total"), do: pgettext("the day's energy on the swap screen", "Daily total")
+
+  defp copy("Still inside every target for today"),
+    do: gettext("Still inside every target for today")
+
+  defp copy("Swap just today"), do: gettext("Swap just today")
+
+  # Two words, and the catalogue already holds `Every week, indefinitely` and
+  # `Every week, %{count} weeks` for a merge to land this on. The context also
+  # says which of the two commitments it is, which is the thing a translator
+  # cannot see from a button label two words long.
+  defp copy("Every week"), do: pgettext("the swap that repeats on the plan", "Every week")
+
+  # A string this screen does not know, drawn as it is stored: a recipe's own
+  # title, a line this screen composed in the reader's language already, or a
+  # row added to `Kati.Meals.SampleSwap` tomorrow — none of which may take the
+  # whole page down with a `FunctionClauseError`.
+  # `Kati.Screens.MealReminders.copy/1` keeps the same last clause for the same
+  # reason.
+  defp copy(other), do: other
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 

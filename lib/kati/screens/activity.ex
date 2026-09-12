@@ -232,7 +232,9 @@ defmodule Kati.Screens.Activity do
   @spec entries(Date.t()) :: map()
   def entries(today \\ Kati.Time.today()) do
     zone = Kati.Time.device_zone()
-    month = Date.beginning_of_month(today)
+    # The first of the READER's month, which is not the first of the Gregorian
+    # one under `:fa` — see `month_start/1`.
+    month = month_start(today)
 
     watches = watches()
     events = events()
@@ -1110,6 +1112,39 @@ defmodule Kati.Screens.Activity do
   # no-op that reads in the diff as a decision somebody made.
   defp date_stamp(date), do: Kati.UI.eyebrow_label(Kati.Locale.date(date, :short_padded))
 
+  # The first of the reader's OWN month, and the edge `earlier` is cut at.
+  #
+  # Every stamp in that group is already the reader's calendar — `date_stamp/1`
+  # is `Kati.Locale.date/2` precisely so that 12 August draws as ۲۱ مرداد — and
+  # the eyebrow over them says *this month*. The boundary was
+  # `Date.beginning_of_month/1`, so the heading and the rows underneath it were
+  # counted in two different calendars, and the gap between them is not small:
+  # on 21 Shahrivar 1405 the reader's month opened on 23 August and the
+  # Gregorian one on 1 September, so nine days of the reader's own month were
+  # neither `today` nor `earlier` and fell out of BOTH comprehensions. Those
+  # rows did not move to another group, they left the page — while `count` and
+  # `entries_line/1` above went on counting them, which is a header promising
+  # more entries than the screen can show. MOVIES-AND-TV.md #58 is the same
+  # shape of defect one scope up.
+  #
+  # Shaped after `Kati.Locale.year_start/1`, which answers this question a year
+  # up: a Gregorian `Date` in both scripts, because everything downstream
+  # compares in one calendar and names in the other.
+  defp month_start(date), do: Kati.Locale.pick(Date.beginning_of_month(date), shamsi_first(date))
+
+  # A Shamsi year the Nowruz table does not cover falls back to the Gregorian
+  # first — the answer every reader got before this — rather than raising. It is
+  # wrong about where the month's edge is and never about which rows are recent,
+  # which is the failure `Kati.Locale.year_start/1` chooses too.
+  defp shamsi_first(date) do
+    {year, month, _day} = Kati.Calendar.Shamsi.from_gregorian(date)
+
+    case Kati.Calendar.Shamsi.to_gregorian(year, month, 1) do
+      {:ok, first} -> first
+      {:error, _outside} -> Date.beginning_of_month(date)
+    end
+  end
+
   # `21:12`, the gutter Today draws, in the reader's own digits.
   #
   # Separate from `stamped/2`, which keeps the ASCII `%H:%M` it formats: that
@@ -1248,6 +1283,22 @@ defmodule Kati.Screens.Activity do
            s: Kati.Locale.number(s),
            e: Kati.Locale.number(e)
          )
+
+  # A season with no episode behind it — `Finished · Season 1`, which is board
+  # 15's own *Nightbirds — Season 1* row and the one drawn line `Kati.Media.Event`
+  # can store and this could not print. The clause above wants BOTH numbers, so
+  # a season-only event fell through to the catch-all and the row drew the bare
+  # title: the reader was told a season finished and not which one.
+  # `episode_label/1` has had exactly this pair of clauses all along, and
+  # `Kati.Media.Event` is explicit that `episode_number` is nil "for a film, and
+  # for anything that has no position" — a whole season is one of those.
+  #
+  # `Season %{n}` rather than a msgid of this screen's own: `Kati.Screens.Series`,
+  # `Kati.Screens.Season` and `Kati.Screens.Inbox` all draw that one already, and
+  # a second Persian word for a season is a season spelled two ways. Plain
+  # `gettext/1` for the same reason — the shared msgid carries no context.
+  defp event_position(%{season_number: s}) when is_integer(s),
+    do: gettext("Season %{n}", n: Kati.Locale.number(s))
 
   defp event_position(_event), do: nil
 

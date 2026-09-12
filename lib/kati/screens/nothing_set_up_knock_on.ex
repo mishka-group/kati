@@ -119,9 +119,11 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Screens.MyServices
   alias Kati.Screens.WhatFits
+  alias Kati.Services.Service
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -131,6 +133,21 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
 
   @doc false
   @spec content(map()) :: map()
+  # The four eyebrows keep their board numbers INSIDE the msgid rather than
+  # interpolating them, because a board number is an identifier and not a
+  # quantity: `۰۸ جزئیات فیلم` is how the catalogue already writes one
+  # — `lib/kati/screens/add_title_music.ex`'s *04 for a series, 08 for a film*
+  # is the entry to compare against — and splitting it out would leave the
+  # translator a fragment with no sentence around it.
+  #
+  # Band 13's count is the other case and goes the other way. `11` and `0` are
+  # figures a reader reads as figures, so they travel through
+  # `Kati.Locale.number/1` and the msgid holds the shape rather than the
+  # digits. The two values stay literal because they are board 96's caption,
+  # not this evening's arithmetic — `Kati.Screens.WhatFits.Sample` says
+  # `3 episodes fit` for the very window drawn above, and which of the two a
+  # reference sheet should print is a question for whoever settles the four
+  # disagreements the moduledoc already lists, not for the translation.
   def content(assigns) do
     ~MOB"""
     <Scroll>
@@ -142,31 +159,47 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Nothing set up", "What four screens look like on day one", nil, :name)}
-        {UI.eyebrow("08 Film detail · Where to watch")}
+        {SettingsList.title(
+          gettext("Nothing set up"),
+          gettext("What four screens look like on day one"),
+          nil,
+          :name
+        )}
+        {UI.eyebrow(gettext("08 Film detail · Where to watch"))}
         {Kati.Screens.NothingSetUpKnockOn.prompt(
-          "Set up your services to see where this is streaming",
-          "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for.",
+          gettext("Set up your services to see where this is streaming"),
+          gettext(
+            "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
+          ),
           :my_services_where_to_watch
         )}
-        {SettingsList.eyebrow_muted("11 Discover · Leaving soon")}
+        {SettingsList.eyebrow_muted(gettext("11 Discover · Leaving soon"))}
         {Kati.Screens.NothingSetUpKnockOn.prompt(
-          "Nothing to leave yet",
-          "Leaving-soon warnings need at least one subscribed service — there is nothing to count down from.",
+          gettext("Nothing to leave yet"),
+          gettext(
+            "Leaving-soon warnings need at least one subscribed service — there is nothing to count down from."
+          ),
           :my_services_leaving_soon
         )}
-        {SettingsList.eyebrow_muted("13 What fits tonight")}
+        {SettingsList.eyebrow_muted(gettext("13 What fits tonight"))}
         {WhatFits.window(assigns.tonight)}
         {Kati.Screens.NothingSetUpKnockOn.prompt(
-          "11 episodes fit — 0 you can watch",
-          "Kati can size the gap but not fill it. Set up your services and this becomes a shortlist instead of a count.",
+          gettext("%{fit} episodes fit — %{watchable} you can watch",
+            fit: Kati.Locale.number(11),
+            watchable: Kati.Locale.number(0)
+          ),
+          gettext(
+            "Kati can size the gap but not fill it. Set up your services and this becomes a shortlist instead of a count."
+          ),
           :my_services_what_fits
         )}
-        {SettingsList.eyebrow_muted("23 Subscriptions · an empty ledger")}
+        {SettingsList.eyebrow_muted(gettext("23 Subscriptions · an empty ledger"))}
         {Kati.Screens.NothingSetUpKnockOn.ledger()}
         {SettingsList.note(
           "info",
-          "The empty ledger hides the delta badge, the per-service rows and the Worth-a-look card entirely — a “down 0%” chip would be noise. All four routes lead to one place."
+          gettext(
+            "The empty ledger hides the delta badge, the per-service rows and the Worth-a-look card entirely — a “down 0%” chip would be noise. All four routes lead to one place."
+          )
         )}
       </Column>
     </Scroll>
@@ -185,9 +218,20 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
   `align="top"` on the row is what keeps the 40pt tile on the *first line* of a
   three-line paragraph rather than floating to the middle of the block; it is
   the same fix `note/2` needed and got as `content_align: :top`.
+
+  Both strings arrive as arguments and neither is translated here: three of the
+  four callers are the screens these bands are drawings OF — `Film`, `Discover`
+  and `WhatFits` — and each owns the sentence it hands over. A `gettext/1` in
+  this function could not extract anything anyway; the msgid has to be a
+  literal at the call site.
   """
   @spec prompt(String.t(), String.t(), atom()) :: map()
   def prompt(title, body, tag) do
+    # The paragraph's leading is the design's 1.55 in Latin and Vazirmatn's own
+    # in Persian — `Kati.Locale.leading/1`, the same call `SettingsList.note/2`
+    # makes on the footnote at the bottom of this sheet. A fixed 1.55 set the
+    # three-line explanation this card exists to carry too tight for a script
+    # whose ascenders and descenders are not Plus Jakarta's.
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -203,7 +247,12 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
           <Column weight={1.0}>
             <Text text={title} text_size={13.5} font_weight="bold" text_color={:on_surface} />
             <Spacer size={5} />
-            <Text text={body} text_size={12.5} line_height={1.55} text_color={Palette.sub()} />
+            <Text
+              text={body}
+              text_size={12.5}
+              line_height={Kati.Locale.leading(1.55)}
+              text_color={Palette.sub()}
+            />
           </Column>
         </Row>
         <Spacer size={14} />
@@ -252,6 +301,27 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
   """
   @spec ledger() :: map()
   def ledger do
+    # The zero goes through the app's one money formatter rather than staying a
+    # typed `£0.00`. `Kati.Services.Service.format/2` is what draws every other
+    # figure on screen 23, and it is not a digit swap: under `:fa` the symbol
+    # TRAILS and the decimal mark is U+066B, so the sentence reads `۰٫۰۰ £` the
+    # way board 97 writes a price and not `£0.00` in Latin numerals inside a
+    # Persian line. English is byte-for-byte what it was.
+    #
+    # Not wrapped in `Kati.Locale.ltr/1` for exactly that reason — `format/2`
+    # has already put the run in the order the Persian board draws, and an
+    # isolate would pin it back to the Latin one.
+    #
+    # The title's `-0.02` becomes `Kati.Locale.tracking/1` and the sentence's
+    # `1.55` becomes `Kati.Locale.leading/1`: tracking prises apart the joins
+    # that make Persian legible, and Vazirmatn wants the taller line. Both are
+    # the Latin number in Latin, so this band draws exactly as it did.
+    empty_total =
+      gettext(
+        "An empty ledger, not %{total} a month — there is nothing here to be zero.",
+        total: Service.format(0, "GBP")
+      )
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -273,18 +343,18 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
         </Row>
         <Spacer size={13} />
         <Text
-          text="No subscriptions yet"
+          text={gettext("No subscriptions yet")}
           text_size={14.5}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
-          text="An empty ledger, not £0.00 a month — there is nothing here to be zero."
+          text={empty_total}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -328,7 +398,7 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
     >
       <Spacer weight={1.0} />
       <Text
-        text="My services"
+        text={gettext("My services")}
         text_size={text_size}
         font_weight="bold"
         text_color={Palette.on_ink()}

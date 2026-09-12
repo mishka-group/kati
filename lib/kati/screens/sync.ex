@@ -123,6 +123,7 @@ defmodule Kati.Screens.Sync do
       about the queue.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -254,14 +255,24 @@ defmodule Kati.Screens.Sync do
   def account_label(%Account{account_name: name}) when is_binary(name) and name != "", do: name
   def account_label(%Account{provider: provider}), do: Kati.Screens.Sync.provider_label(provider)
 
-  @doc "The word for a provider, in the user's language rather than the column's."
+  @doc """
+  The word for a provider, in the user's language rather than the column's.
+
+  Two of the six are **not** msgids and stay in Latin in both scripts:
+  *Google Calendar* and *Outlook* are the products' own names for themselves,
+  and a Persian page that spelled a service one way here and another way in
+  `Kati.Services.Service` — which no msgid reaches — would be naming one thing
+  twice. `CalDAV` is the same argument inside a sentence that IS translated:
+  the protocol keeps its own letters and the words around it do not.
+  mishka-group/kati#103.
+  """
   @spec provider_label(atom()) :: String.t()
-  def provider_label(:local), do: "This device"
-  def provider_label(:android_provider), do: "The phone's calendars"
-  def provider_label(:caldav), do: "A CalDAV calendar"
+  def provider_label(:local), do: gettext("This device")
+  def provider_label(:android_provider), do: gettext("The phone's calendars")
+  def provider_label(:caldav), do: gettext("A CalDAV calendar")
   def provider_label(:google), do: "Google Calendar"
   def provider_label(:graph), do: "Outlook"
-  def provider_label(_other), do: "A calendar account"
+  def provider_label(_other), do: gettext("A calendar account")
 
   @doc """
   The 30pt tile's glyph, derived from `Kati.Calendars.Account.provider`.
@@ -297,8 +308,9 @@ defmodule Kati.Screens.Sync do
 
     %{
       id: calendar.id,
-      title: calendar.display_name || "Untitled calendar",
-      account: if(account, do: Kati.Screens.Sync.account_label(account), else: "This device"),
+      title: calendar.display_name || gettext("Untitled calendar"),
+      account:
+        if(account, do: Kati.Screens.Sync.account_label(account), else: gettext("This device")),
       kind: calendar.kind,
       read_only: calendar.read_only,
       writeback_policy: calendar.writeback_policy,
@@ -329,7 +341,7 @@ defmodule Kati.Screens.Sync do
   """
   @spec stored_entries([CalendarRow.t()], [map()], [map()]) :: [map()]
   def stored_entries(calendars, models, conflicts) do
-    titles = Map.new(calendars, &{&1.id, &1.display_name || "Untitled calendar"})
+    titles = Map.new(calendars, &{&1.id, &1.display_name || gettext("Untitled calendar")})
     all = Kati.Screens.Sync.all_entries()
     done = MapSet.new(Enum.filter(all, &(&1.state == :done)), & &1.id)
     open = Enum.reject(all, &(&1.state == :done))
@@ -344,7 +356,7 @@ defmodule Kati.Screens.Sync do
         state: entry.state,
         attempts: entry.attempt_count,
         last_error: entry.last_error,
-        calendar: Map.get(titles, entry.calendar_id, "A calendar Kati no longer has"),
+        calendar: Map.get(titles, entry.calendar_id, gettext("A calendar Kati no longer has")),
         title: Map.get(summaries, entry.event_uid) || entry.event_uid,
         waiting_on: entry.depends_on != nil and not MapSet.member?(done, entry.depends_on),
         conflicted: MapSet.member?(conflicted, entry.event_uid),
@@ -441,7 +453,7 @@ defmodule Kati.Screens.Sync do
 
     Map.merge(question, %{
       title: event.summary || event.uid,
-      calendar: calendar.display_name || "Untitled calendar",
+      calendar: calendar.display_name || gettext("Untitled calendar"),
       event: event,
       calendar_row: calendar
     })
@@ -475,7 +487,13 @@ defmodule Kati.Screens.Sync do
   """
   @spec question(Event.t(), CalendarRow.t(), Operation.t() | nil) :: map()
   def question(event, calendar, operation) do
-    name = calendar.display_name || "the calendar"
+    # `pgettext/2` rather than `gettext/1`: two words is short enough that
+    # `mix gettext.merge` would fuzzy-match it onto any sentence ending in one,
+    # and this one is a NOUN PHRASE dropped into the middle of four different
+    # sentences — the context is what tells a translator that.
+    name =
+      calendar.display_name ||
+        pgettext("a calendar with no name of its own, named inside a sentence", "the calendar")
 
     cond do
       operation == nil or operation.base_icalendar == nil ->
@@ -492,19 +510,26 @@ defmodule Kati.Screens.Sync do
     end
   end
 
+  # The calendar's name is INTERPOLATED rather than concatenated, here and in
+  # the three questions below. A concatenation fixes the word order of the
+  # English sentence into every language that gets it: *"Your version and the
+  # one on Work differ"* puts the name in the middle, and Persian puts it
+  # elsewhere. `%{calendar}` is the half a translator has to be able to move.
   @doc false
   def no_base_question(name) do
     %{
       kind: :no_base,
       icon: "help",
-      headline: "There is no record of what this looked like before the edit.",
+      headline: gettext("There is no record of what this looked like before the edit."),
       detail:
-        "Kati keeps the version an edit started from, so that a disagreement can be a " <>
-          "three-way merge rather than a guess. This one has none — the queued change was " <>
-          "quarantined, or the edit is older than the queue. Your version and the one on " <>
-          name <>
-          " differ, and two versions that differ say nothing about who moved, so " <>
-          "Kati will not choose between them for you."
+        gettext(
+          "Kati keeps the version an edit started from, so that a disagreement can be a " <>
+            "three-way merge rather than a guess. This one has none — the queued change was " <>
+            "quarantined, or the edit is older than the queue. Your version and the one on " <>
+            "%{calendar} differ, and two versions that differ say nothing about who moved, so " <>
+            "Kati will not choose between them for you.",
+          calendar: name
+        )
     }
   end
 
@@ -513,12 +538,15 @@ defmodule Kati.Screens.Sync do
     %{
       kind: :delete_edit,
       icon: "event_busy",
-      headline: "You deleted this. " <> name <> " changed it.",
+      headline: gettext("You deleted this. %{calendar} changed it.", calendar: name),
       detail:
-        "There is no property merge for a delete. Sending it destroys an edit that a " <>
-          "tombstone cannot carry; ignoring it brings back something you removed on purpose. " <>
-          "Keep both is the answer neither side's rule can express: " <>
-          name <> " keeps its version, and yours comes back as a separate Kati event."
+        gettext(
+          "There is no property merge for a delete. Sending it destroys an edit that a " <>
+            "tombstone cannot carry; ignoring it brings back something you removed on " <>
+            "purpose. Keep both is the answer neither side's rule can express: %{calendar} " <>
+            "keeps its version, and yours comes back as a separate Kati event.",
+          calendar: name
+        )
     }
   end
 
@@ -526,11 +554,14 @@ defmodule Kati.Screens.Sync do
     %{
       kind: :delete_edit,
       icon: "event_busy",
-      headline: name <> " deleted this. You changed it.",
+      headline: gettext("%{calendar} deleted this. You changed it.", calendar: name),
       detail:
-        "There is no property merge for a delete. Taking the deletion throws away the edit " <>
-          "you made; refusing it puts back something that was removed elsewhere. Keep both " <>
-          "leaves " <> name <> " as it is and keeps your version here as a Kati event."
+        gettext(
+          "There is no property merge for a delete. Taking the deletion throws away the edit " <>
+            "you made; refusing it puts back something that was removed elsewhere. Keep both " <>
+            "leaves %{calendar} as it is and keeps your version here as a Kati event.",
+          calendar: name
+        )
     }
   end
 
@@ -566,29 +597,49 @@ defmodule Kati.Screens.Sync do
     %{
       kind: :entangled_timing,
       icon: "event_repeat",
-      headline: "You changed " <> mine <> ". " <> name <> " changed " <> theirs <> ".",
+      headline:
+        gettext("You changed %{mine}. %{calendar} changed %{theirs}.",
+          mine: mine,
+          calendar: name,
+          theirs: theirs
+        ),
+      # The seven names come off `entangled/0` rather than being written out
+      # again. The moduledoc already worries about `@entangled` being a
+      # SECOND copy of `Kati.Sync.Merge`'s list; spelling the same seven into
+      # a sentence made a third, and a third copy inside a msgid is the one a
+      # translator would have to keep in step by hand. `list_names/1` also
+      # puts the commas and the *and* in the reader's own script.
       detail:
-        "Those are different property names and one description. DTSTART, DTEND, DURATION, " <>
-          "RRULE, RDATE, EXDATE and RECURRENCE-ID together say when this happens, so merging " <>
-          "a move on one side with a repeat rule from the other produces a series neither of " <>
-          "you wrote. Kati would rather ask than invent one."
+        gettext(
+          "Those are different property names and one description. %{properties} together " <>
+            "say when this happens, so merging a move on one side with a repeat rule from " <>
+            "the other produces a series neither of you wrote. Kati would rather ask than " <>
+            "invent one.",
+          properties: Kati.Screens.Sync.list_names(@entangled)
+        )
     }
   end
 
   @doc false
   def overlap_question(name, local, remote) do
     both = Enum.filter(local, &(&1 in remote))
-    named = if both == [], do: "the same event", else: Kati.Screens.Sync.list_names(both)
+
+    named =
+      if both == [],
+        do: pgettext("what a conflict is about when no property name is known", "the same event"),
+        else: Kati.Screens.Sync.list_names(both)
 
     %{
       kind: :overlap,
       icon: "call_merge",
-      headline: "You and " <> name <> " both changed " <> named <> ".",
+      headline: gettext("You and %{calendar} both changed %{what}.", calendar: name, what: named),
       detail:
-        "Everything the two of you touched separately has already been merged and kept. " <>
-          "This is what is left: one value, changed on both sides, where taking either one " <>
-          "means the other is set aside. Whichever you pick, the one you did not pick is " <>
-          "kept below rather than dropped."
+        gettext(
+          "Everything the two of you touched separately has already been merged and kept. " <>
+            "This is what is left: one value, changed on both sides, where taking either one " <>
+            "means the other is set aside. Whichever you pick, the one you did not pick is " <>
+            "kept below rather than dropped."
+        )
     }
   end
 
@@ -645,15 +696,31 @@ defmodule Kati.Screens.Sync do
 
   def remote_deleted?(_event), do: false
 
-  @doc "One, two or many property names, as a sentence rather than a list."
+  @doc """
+  One, two or many property names, as a sentence rather than a list.
+
+  Every name is an RFC 5545 identifier — `DTSTART`, `RECURRENCE-ID` — and stays
+  in Latin in both scripts, because it is what the document itself says and the
+  reader will meet it again in an `.ics` file. What changes around them is the
+  punctuation: `Kati.Locale.ltr/1` keeps each run's own direction so the hyphen
+  in `RECURRENCE-ID` does not migrate to the far edge, and the comma between
+  them is the Persian `،` rather than the Latin one.
+
+  The two-name clause is gone rather than kept: `Enum.split/2` already answers
+  `{["A"], ["B"]}` for it, and one joiner msgid is one thing a translator has
+  to get right instead of two.
+  """
   @spec list_names([String.t()]) :: String.t()
-  def list_names([]), do: "something"
-  def list_names([one]), do: one
-  def list_names([one, two]), do: one <> " and " <> two
+  def list_names([]), do: pgettext("a property whose name is not known", "something")
+  def list_names([one]), do: Kati.Locale.ltr(one)
 
   def list_names(names) do
     {first, [last]} = Enum.split(names, length(names) - 1)
-    Enum.join(first, ", ") <> " and " <> last
+
+    pgettext("a list of property names", "%{list} and %{last}",
+      list: Enum.map_join(first, Kati.Locale.pick(", ", "، "), &Kati.Locale.ltr/1),
+      last: Kati.Locale.ltr(last)
+    )
   end
 
   # ── Kept edits ─────────────────────────────────────────────────────────────
@@ -683,7 +750,7 @@ defmodule Kati.Screens.Sync do
       names: names,
       entangled: names != [] and Enum.all?(names, &(&1 in @entangled)),
       title: (event && event.summary) || row.event_uid,
-      calendar: calendar.display_name || "Untitled calendar",
+      calendar: calendar.display_name || gettext("Untitled calendar"),
       kept_at: row.inserted_at,
       writable: event != nil and Ownership.writable?(event, calendar),
       event: event,
@@ -735,14 +802,28 @@ defmodule Kati.Screens.Sync do
   Upper case and abbreviated, which is what that slot is on every other screen
   in the Settings subtree — 24's `1,204 ENTRIES · SYNCED 2 MIN AGO`, 32's
   connected line.
+
+  `Kati.UI.eyebrow_label/1` over the composed line rather than `String.upcase/1`
+  over a hand-built one, which is exactly the shape `Kati.Screens.Settings.meta/2`
+  landed on and for the same two reasons. Persian has no upper case, so the
+  upcasing is a no-op that has to be *declared* as one; and the singular/plural
+  fork was an `if` choosing between two English suffixes, which is `ngettext/4`
+  written by hand and wrong for every language whose plural rule is not
+  English's. The empty line stays one msgid in capitals — a handful of this
+  app's eyebrows are written that way — because it is one fixed sentence with
+  nothing to compose.
   """
   @spec subtitle(map()) :: String.t()
-  def subtitle(%{calendars: []}), do: "NO CALENDAR CONNECTED · NOTHING LEAVES THIS DEVICE"
+  def subtitle(%{calendars: []}),
+    do: gettext("NO CALENDAR CONNECTED · NOTHING LEAVES THIS DEVICE")
 
   def subtitle(state) do
     count = length(state.calendars)
-    noun = if count == 1, do: " CALENDAR · LAST SENT ", else: " CALENDARS · LAST SENT "
-    Integer.to_string(count) <> noun <> String.upcase(Kati.Screens.Sync.ago(state.last_sync_at))
+
+    Kati.UI.eyebrow_label(
+      ngettext("%{n} calendar", "%{n} calendars", count, n: Kati.Locale.number(count)) <>
+        " · " <> gettext("last sent %{ago}", ago: Kati.Screens.Sync.ago(state.last_sync_at))
+    )
   end
 
   @doc """
@@ -751,18 +832,25 @@ defmodule Kati.Screens.Sync do
   A screen may read a wall clock; `Kati.SyncBoundaryTest` forbids it only in
   the four modules that decide whose edit survives, and none of them is this
   one. Nothing here feeds a decision — it is a label.
+
+  The figure goes through `Kati.Locale.number/1`, and it is a sentence's
+  numeral rather than a mono one: the line this lands in is set in
+  `Kati.Locale.mono_face/0`, which is Vazirmatn under `:fa` and has every
+  Persian digit — the DM Mono exception that keeps Latin digits does not reach
+  here. `never` keeps its lower case because it is read mid-sentence in two of
+  its three slots (*last checked never*) and only the subtitle upcases it.
   """
   @spec ago(DateTime.t() | nil) :: String.t()
-  def ago(nil), do: "never"
+  def ago(nil), do: pgettext("when a calendar last synced", "never")
 
   def ago(%DateTime{} = at) do
     seconds = DateTime.diff(Kati.Time.now(), at, :second)
 
     cond do
-      seconds < 60 -> "just now"
-      seconds < 3600 -> Integer.to_string(div(seconds, 60)) <> "m ago"
-      seconds < 86_400 -> Integer.to_string(div(seconds, 3600)) <> "h ago"
-      true -> Integer.to_string(div(seconds, 86_400)) <> "d ago"
+      seconds < 60 -> gettext("just now")
+      seconds < 3600 -> gettext("%{n}m ago", n: Kati.Locale.number(div(seconds, 60)))
+      seconds < 86_400 -> gettext("%{n}h ago", n: Kati.Locale.number(div(seconds, 3600)))
+      true -> gettext("%{n}d ago", n: Kati.Locale.number(div(seconds, 86_400)))
     end
   end
 
@@ -775,63 +863,108 @@ defmodule Kati.Screens.Sync do
     |> List.first()
   end
 
-  @doc "What a calendar's row says under its name."
+  @doc """
+  What a calendar's row says under its name.
+
+  The account's name is `%{account}` rather than a prefix glued on with `<>`,
+  which is the same call the conflict questions make: a concatenation pins the
+  English order into every other language, and this line is the one on the page
+  where a Persian reader most needs the name to sit where their grammar puts it.
+  """
   @spec calendar_line(map()) :: String.t()
   def calendar_line(%{writeback_policy: :none} = c) do
-    c.account <> " · write-back is off, so changes stay on this device"
+    gettext("%{account} · write-back is off, so changes stay on this device", account: c.account)
   end
 
   def calendar_line(%{kind: :local} = c) do
-    c.account <> " · local calendar, nothing is ever sent"
+    gettext("%{account} · local calendar, nothing is ever sent", account: c.account)
   end
 
   def calendar_line(%{partially_synced: [_ | _]} = c) do
-    c.account <>
-      " · " <>
-      Kati.Screens.Sync.plural(length(c.partially_synced), "change") <> " only half landed"
+    gettext("%{account} · %{changes} only half landed",
+      account: c.account,
+      changes: Kati.Screens.Sync.plural(length(c.partially_synced), "change")
+    )
   end
 
   def calendar_line(%{blocked: b, failed: f} = c) when b + f > 0 do
-    c.account <> " · " <> Kati.Screens.Sync.plural(b + f, "change") <> " stuck"
+    gettext("%{account} · %{changes} stuck",
+      account: c.account,
+      changes: Kati.Screens.Sync.plural(b + f, "change")
+    )
   end
 
   def calendar_line(%{pending: p} = c) when p > 0 do
-    c.account <> " · " <> Kati.Screens.Sync.plural(p, "change") <> " waiting"
+    gettext("%{account} · %{changes} waiting",
+      account: c.account,
+      changes: Kati.Screens.Sync.plural(p, "change")
+    )
   end
 
   def calendar_line(c) do
-    c.account <> " · nothing waiting · last sent " <> Kati.Screens.Sync.ago(c.last_sync_at)
+    gettext("%{account} · nothing waiting · last sent %{ago}",
+      account: c.account,
+      ago: Kati.Screens.Sync.ago(c.last_sync_at)
+    )
   end
 
-  @doc "The pill at the end of a calendar's row: label, ink, ground."
+  @doc """
+  The pill at the end of a calendar's row: label, ink, ground.
+
+  Every label takes the `sync pill` context, and it earns it twice over. These
+  are one and two words each, which is short enough for `mix gettext.merge` to
+  fuzzy-match onto an unrelated sentence; and *Clear* here is a STATE — nothing
+  is waiting — while the app's existing bare `Clear` is the verb on a button
+  that empties a cache. One msgid cannot be both.
+  """
   @spec calendar_pill(map()) :: {String.t(), pos_integer(), pos_integer()}
-  def calendar_pill(%{writeback_policy: :none}), do: {"Read only", Palette.sub(), Palette.paper()}
-  def calendar_pill(%{kind: :local}), do: {"On device", Palette.sub(), Palette.paper()}
+  def calendar_pill(%{writeback_policy: :none}),
+    do: {pgettext("sync pill", "Read only"), Palette.sub(), Palette.paper()}
+
+  def calendar_pill(%{kind: :local}),
+    do: {pgettext("sync pill", "On device"), Palette.sub(), Palette.paper()}
 
   def calendar_pill(%{partially_synced: [_ | _]}),
-    do: {"Half sent", Palette.red(), Palette.red_wash_strong()}
+    do: {pgettext("sync pill", "Half sent"), Palette.red(), Palette.red_wash_strong()}
 
   def calendar_pill(%{blocked: b, failed: f}) when b + f > 0,
-    do: {"Stuck", Palette.red(), Palette.red_wash_strong()}
+    do: {pgettext("sync pill", "Stuck"), Palette.red(), Palette.red_wash_strong()}
 
   def calendar_pill(%{pending: p}) when p > 0,
-    do: {"Waiting", Palette.accent(), Palette.accent_wash()}
+    do: {pgettext("sync pill", "Waiting"), Palette.accent(), Palette.accent_wash()}
 
-  def calendar_pill(_calendar), do: {"Clear", Palette.green_text(), Palette.green_wash()}
+  def calendar_pill(_calendar),
+    do: {pgettext("sync pill", "Clear"), Palette.green_text(), Palette.green_wash()}
 
   @doc "What an account's row says under its name."
   @spec account_line(map()) :: String.t()
   def account_line(a) do
-    Kati.Screens.Sync.plural(a.calendars, "calendar") <>
-      " · last checked " <> Kati.Screens.Sync.ago(a.last_sync_at)
+    gettext("%{calendars} · last checked %{ago}",
+      calendars: Kati.Screens.Sync.plural(a.calendars, "calendar"),
+      ago: Kati.Screens.Sync.ago(a.last_sync_at)
+    )
   end
 
-  @doc "The pill at the end of an account's row."
+  @doc """
+  The pill at the end of an account's row.
+
+  `account sync pill` rather than this screen's own `sync pill` context,
+  because screen 32 draws Live and Stale off the same column and the catalogue
+  already holds both words under that name. Two contexts for one pill would be
+  two Persian words for one state, which is the thing a context exists to stop.
+  """
   @spec account_pill(map()) :: {String.t(), pos_integer(), pos_integer()}
-  def account_pill(%{state: :live}), do: {"Live", Palette.green_text(), Palette.green_wash()}
-  def account_pill(%{state: :stale}), do: {"Stale", Palette.red(), Palette.red_wash_strong()}
-  def account_pill(%{state: :error}), do: {"Error", Palette.red(), Palette.red_wash_strong()}
-  def account_pill(_account), do: {"Off", Palette.sub(), Palette.paper()}
+  def account_pill(%{state: :live}),
+    do: {pgettext("account sync pill", "Live"), Palette.green_text(), Palette.green_wash()}
+
+  def account_pill(%{state: :stale}),
+    do: {pgettext("account sync pill", "Stale"), Palette.red(), Palette.red_wash_strong()}
+
+  def account_pill(%{state: :error}),
+    do: {pgettext("account sync pill", "Error"), Palette.red(), Palette.red_wash_strong()}
+
+  def account_pill(_account),
+    do: {pgettext("account sync pill", "Off"), Palette.sub(), Palette.paper()}
 
   @doc "The glyph on an outbox row: what the change is, not how it is going."
   @spec op_icon(atom()) :: String.t()
@@ -840,12 +973,19 @@ defmodule Kati.Screens.Sync do
   def op_icon(:delete), do: "delete"
   def op_icon(_op), do: "sync"
 
-  @doc "The verb an outbox row leads with."
+  @doc """
+  The verb an outbox row leads with.
+
+  Contexted for the reason the pills are: *Changed* and *Deleted* are single
+  words that a merge would happily attach to any other, and all four are one
+  set of four — a translator choosing a word for one of them is choosing
+  against the other three.
+  """
   @spec op_label(atom()) :: String.t()
-  def op_label(:create), do: "New event"
-  def op_label(:update), do: "Changed"
-  def op_label(:delete), do: "Deleted"
-  def op_label(_op), do: "Change"
+  def op_label(:create), do: pgettext("what a queued change did", "New event")
+  def op_label(:update), do: pgettext("what a queued change did", "Changed")
+  def op_label(:delete), do: pgettext("what a queued change did", "Deleted")
+  def op_label(_op), do: pgettext("what a queued change did", "Change")
 
   @doc """
   Why an entry is where it is, in a sentence.
@@ -858,34 +998,39 @@ defmodule Kati.Screens.Sync do
   """
   @spec entry_line(map()) :: String.t()
   def entry_line(%{waiting_on: true} = e) do
-    e.calendar <> " · waiting for an earlier change to land first"
+    gettext("%{calendar} · waiting for an earlier change to land first", calendar: e.calendar)
   end
 
-  def entry_line(%{state: :in_flight} = e), do: e.calendar <> " · sending now"
+  def entry_line(%{state: :in_flight} = e),
+    do: gettext("%{calendar} · sending now", calendar: e.calendar)
 
   def entry_line(%{state: :blocked, conflicted: true} = e) do
-    e.calendar <> " · blocked until you answer the question below"
+    gettext("%{calendar} · blocked until you answer the question below", calendar: e.calendar)
   end
 
   def entry_line(%{state: :blocked} = e) do
-    e.calendar <>
-      " · blocked · " <>
-      Kati.Screens.Sync.reason(e.last_error) <>
-      " — trying again cannot fix this on its own"
+    gettext("%{calendar} · blocked · %{reason} — trying again cannot fix this on its own",
+      calendar: e.calendar,
+      reason: Kati.Screens.Sync.reason(e.last_error)
+    )
   end
 
   def entry_line(%{state: :push_failed} = e) do
-    e.calendar <>
-      " · gave up after " <>
-      Kati.Screens.Sync.plural(e.attempts, "attempt") <>
-      " · " <> Kati.Screens.Sync.reason(e.last_error)
+    gettext("%{calendar} · gave up after %{attempts} · %{reason}",
+      calendar: e.calendar,
+      attempts: Kati.Screens.Sync.plural(e.attempts, "attempt"),
+      reason: Kati.Screens.Sync.reason(e.last_error)
+    )
   end
 
-  def entry_line(%{attempts: 0} = e), do: e.calendar <> " · queued, nothing has been lost"
+  def entry_line(%{attempts: 0} = e),
+    do: gettext("%{calendar} · queued, nothing has been lost", calendar: e.calendar)
 
   def entry_line(e) do
-    e.calendar <>
-      " · trying again · " <> Kati.Screens.Sync.plural(e.attempts, "attempt") <> " so far"
+    gettext("%{calendar} · trying again · %{attempts} so far",
+      calendar: e.calendar,
+      attempts: Kati.Screens.Sync.plural(e.attempts, "attempt")
+    )
   end
 
   @doc """
@@ -896,37 +1041,63 @@ defmodule Kati.Screens.Sync do
   so this maps the three it knows and passes anything else through rather than
   flattening it to "an error" — a message nobody can act on is the failure this
   whole page exists to remove.
+
+  The pass-through arm goes through `Kati.Locale.ltr/1` and is not translated,
+  which is the honest answer twice: `inspect/1` of a transport's own reply is
+  machine text that no catalogue can hold — `gettext(text)` would not compile
+  either, since a msgid has to be a literal — and dropping a Latin run like
+  `HTTP 507 Insufficient Storage` unisolated into a Persian sentence hands its
+  digits and its punctuation to the bidi algorithm, which lays them out at the
+  wrong edge. A no-op in English.
   """
   @spec reason(String.t() | nil) :: String.t()
-  def reason(nil), do: "no reason was recorded"
-  def reason("delete_edit"), do: "a deletion met an edit"
-  def reason("no_base"), do: "the version this edit started from is missing"
-  def reason("unparseable"), do: "one of the two versions could not be read"
+  def reason(nil), do: gettext("no reason was recorded")
+  def reason("delete_edit"), do: gettext("a deletion met an edit")
+  def reason("no_base"), do: gettext("the version this edit started from is missing")
+  def reason("unparseable"), do: gettext("one of the two versions could not be read")
 
   def reason(text) when is_binary(text) do
     if String.contains?(text, "remote_moved") do
-      "the calendar moved under this change"
+      gettext("the calendar moved under this change")
     else
-      text
+      Kati.Locale.ltr(text)
     end
   end
 
-  @doc "What a kept edit's row says under the event's name."
+  @doc """
+  What a kept edit's row says under the event's name.
+
+  One whole msgid per side, where this used to compose a possessive — `"Your"`
+  or `"The calendar's"` — and glue the property names on after it. A possessive
+  is the one thing concatenation cannot carry across scripts: English puts the
+  owner in front of what is owned and Persian puts it behind, so
+  `owner <> " " <> names` is *Your LOCATION* in one language and nothing at all
+  in the other. `kept_owner/1` is gone with the concatenation that needed it.
+
+  Both clauses are still keyed on the `side` enum and there is still no third,
+  deliberately: `Kati.Sync.RejectedChange.side` has exactly two values, and a
+  catch-all here would answer *Your* for a value the schema cannot produce —
+  quietly telling the reader an edit was theirs when nobody knows whose it was.
+  """
   @spec kept_line(map()) :: String.t()
-  def kept_line(row) do
-    Kati.Screens.Sync.kept_owner(row.side) <>
-      " " <>
-      Kati.Screens.Sync.kept_names(row) <>
-      ", kept " <>
-      Kati.Screens.Sync.ago(row.kept_at) <> " · " <> Kati.Screens.Sync.why(row.reason)
+  def kept_line(%{side: :local} = row) do
+    gettext("Your %{names}, kept %{ago} · %{why}",
+      names: Kati.Screens.Sync.kept_names(row),
+      ago: Kati.Screens.Sync.ago(row.kept_at),
+      why: Kati.Screens.Sync.why(row.reason)
+    )
+  end
+
+  def kept_line(%{side: :remote} = row) do
+    gettext("The calendar's %{names}, kept %{ago} · %{why}",
+      names: Kati.Screens.Sync.kept_names(row),
+      ago: Kati.Screens.Sync.ago(row.kept_at),
+      why: Kati.Screens.Sync.why(row.reason)
+    )
   end
 
   @doc false
-  def kept_owner(:local), do: "Your"
-  def kept_owner(:remote), do: "The calendar's"
-
-  @doc false
-  def kept_names(%{names: []}), do: "edit"
+  def kept_names(%{names: []}), do: pgettext("a kept change with no property names", "edit")
   def kept_names(%{names: names}), do: Kati.Screens.Sync.list_names(names)
 
   @doc """
@@ -937,14 +1108,46 @@ defmodule Kati.Screens.Sync do
   at creation, never the calendar's colour and never which app wrote the row.
   """
   @spec why(atom()) :: String.t()
-  def why(:ownership_kati), do: "this is a Kati event, so Kati's version won"
-  def why(:ownership_mirror), do: "this event is mirrored, so the calendar's version won"
-  def why(:delete_edit), do: "a deletion met an edit"
-  def why(:user_choice), do: "you chose the other one"
-  def why(_reason), do: "set aside by a rule"
+  def why(:ownership_kati), do: gettext("this is a Kati event, so Kati's version won")
+  def why(:ownership_mirror), do: gettext("this event is mirrored, so the calendar's version won")
+  # The same msgid `reason("delete_edit")` uses, on purpose. The two columns are
+  # written by different modules and mean the identical thing, and a second
+  # entry would be a second Persian sentence for one verdict.
+  def why(:delete_edit), do: gettext("a deletion met an edit")
+  def why(:user_choice), do: gettext("you chose the other one")
+  def why(_reason), do: gettext("set aside by a rule")
 
-  @doc "`1 change` / `2 changes`, without a formatter for two words."
+  @doc """
+  `1 change` / `2 changes`, in the reader's language and digits.
+
+  This was a hand-rolled pluraliser — `n == 1` or an `s` on the end — which is
+  English's rule written out as code, and under `:fa` it produced *3 changes*
+  in Latin in the middle of a Persian row. `ngettext/4` is the right answer and
+  could not be reached directly, because a msgid must be a LITERAL at the call
+  site and `overflow/3` receives its noun as a runtime argument.
+
+  So the dispatch happens here: each noun this screen actually uses gets a
+  clause whose msgid is a literal, and the generic pair stays underneath as the
+  honest last resort for a noun nobody has translated yet. Persian does not
+  inflect a noun after a numeral, so both plural forms are usually the same
+  word — which is precisely what `ngettext/4` exists to let a catalogue say.
+  """
   @spec plural(integer(), String.t()) :: String.t()
+  def plural(n, "change"),
+    do: ngettext("%{n} change", "%{n} changes", n, n: Kati.Locale.number(n))
+
+  def plural(n, "calendar"),
+    do: ngettext("%{n} calendar", "%{n} calendars", n, n: Kati.Locale.number(n))
+
+  def plural(n, "attempt"),
+    do: ngettext("%{n} attempt", "%{n} attempts", n, n: Kati.Locale.number(n))
+
+  def plural(n, "question"),
+    do: ngettext("%{n} question", "%{n} questions", n, n: Kati.Locale.number(n))
+
+  def plural(n, "edit"),
+    do: ngettext("%{n} edit", "%{n} edits", n, n: Kati.Locale.number(n))
+
   def plural(1, noun), do: "1 " <> noun
   def plural(n, noun), do: Integer.to_string(n) <> " " <> noun <> "s"
 
@@ -966,19 +1169,19 @@ defmodule Kati.Screens.Sync do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 42)}
-        {SettingsList.title("Sync", subtitle)}
+        {SettingsList.title(gettext("Sync"), subtitle)}
         {Kati.Screens.Sync.tallies(s)}
         {Kati.Screens.Sync.notice(message)}
         {Kati.Screens.Sync.footnote("shield", Kati.Screens.Sync.ownership_note())}
-        {UI.eyebrow("Accounts")}
+        {UI.eyebrow(pgettext("eyebrow", "Accounts"))}
         {Kati.Screens.Sync.accounts(s.accounts)}
-        {UI.eyebrow("Calendars")}
+        {UI.eyebrow(gettext("Calendars"))}
         {Kati.Screens.Sync.calendars(s.calendars)}
-        {UI.eyebrow("Waiting to send")}
+        {UI.eyebrow(gettext("Waiting to send"))}
         {Kati.Screens.Sync.outbox(s.outbox)}
-        {UI.eyebrow("Needs you")}
+        {UI.eyebrow(pgettext("eyebrow", "Needs you"))}
         {Kati.Screens.Sync.questions(s.conflicts)}
-        {SettingsList.eyebrow_muted("Kept, not sent")}
+        {SettingsList.eyebrow_muted(gettext("Kept, not sent"))}
         {Kati.Screens.Sync.kept(s.rejected)}
         {Kati.Screens.Sync.footnote("call_merge", Kati.Screens.Sync.merge_note())}
       </Column>
@@ -996,19 +1199,23 @@ defmodule Kati.Screens.Sync do
   """
   @spec ownership_note() :: String.t()
   def ownership_note do
-    "This device holds the original. A calendar you connect is somewhere else Kati copies " <>
-      "to and cannot lock, so a disagreement here almost always means that calendar changed " <>
-      "under something you did — not that two equal copies drifted apart. Kati sends only " <>
-      "the events it created, unless you turn write-back on for a calendar."
+    gettext(
+      "This device holds the original. A calendar you connect is somewhere else Kati copies " <>
+        "to and cannot lock, so a disagreement here almost always means that calendar changed " <>
+        "under something you did — not that two equal copies drifted apart. Kati sends only " <>
+        "the events it created, unless you turn write-back on for a calendar."
+    )
   end
 
   @doc "The sentence the Kept group exists to make true."
   @spec merge_note() :: String.t()
   def merge_note do
-    "Nothing above was thrown away. Every edit that lost is kept here with the version it " <>
-      "started from, so putting one back is the same three-way merge as any other edit — it " <>
-      "goes through the queue, it can be refused, and it will not overwrite whatever the " <>
-      "winner left behind."
+    gettext(
+      "Nothing above was thrown away. Every edit that lost is kept here with the version it " <>
+        "started from, so putting one back is the same three-way merge as any other edit — it " <>
+        "goes through the queue, it can be refused, and it will not overwrite whatever the " <>
+        "winner left behind."
+    )
   end
 
   @doc """
@@ -1021,9 +1228,9 @@ defmodule Kati.Screens.Sync do
   """
   @spec tallies(map()) :: term()
   def tallies(s) do
-    waiting = Kati.Screens.Sync.tally(s.waiting, "WAITING")
-    stuck = Kati.Screens.Sync.tally(s.stuck, "STUCK")
-    asking = Kati.Screens.Sync.tally(length(s.conflicts), "TO ANSWER")
+    waiting = Kati.Screens.Sync.tally(s.waiting, pgettext("sync tally", "WAITING"))
+    stuck = Kati.Screens.Sync.tally(s.stuck, pgettext("sync tally", "STUCK"))
+    asking = Kati.Screens.Sync.tally(length(s.conflicts), pgettext("sync tally", "TO ANSWER"))
 
     ~MOB"""
     <Column fill_width={true}>
@@ -1050,9 +1257,22 @@ defmodule Kati.Screens.Sync do
     """
   end
 
+  # Three things move with the locale here, and none of them is the layout.
+  #
+  #   * The figure is `Kati.Locale.number/1`. It is a 26pt display numeral in
+  #     the root face — Vazirmatn under `:fa`, which has ۰–۹ — not a DM Mono
+  #     one, so the digits convert.
+  #   * Both `letter_spacing`s go through `Kati.Locale.tracking/1`. The 0.14 on
+  #     the unit is the one that would actually break: positive tracking pulls
+  #     Persian letters apart at the joins, so **در انتظار** would come out as
+  #     disconnected letterforms rather than a word.
+  #   * The unit's `font_family` is `Kati.Locale.mono_face/0`. `kati_mono.ttf`
+  #     carries no Persian glyph at all, and a label hard-coded to `mono` is
+  #     handed to Android's substitute face — legible, and in a typeface that
+  #     is not Kati's, beside a figure that is.
   @doc false
   def tally(count, unit) do
-    text = Integer.to_string(count)
+    text = Kati.Locale.number(count)
     ink = if count == 0, do: Palette.tertiary(), else: Palette.ink()
 
     number = ~MOB"""
@@ -1060,7 +1280,7 @@ defmodule Kati.Screens.Sync do
       text={text}
       text_size={26}
       font_weight="bold"
-      letter_spacing={-0.03}
+      letter_spacing={Kati.Locale.tracking(-0.03)}
       text_color={ink}
       max_lines={1}
     />
@@ -1069,9 +1289,9 @@ defmodule Kati.Screens.Sync do
     label = ~MOB"""
     <Text
       text={unit}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face()}
       text_size={9.5}
-      letter_spacing={0.14}
+      letter_spacing={Kati.Locale.tracking(0.14)}
       text_color={Palette.eyebrow()}
       max_lines={1}
     />
@@ -1108,8 +1328,8 @@ defmodule Kati.Screens.Sync do
   def accounts([]) do
     Kati.Screens.Sync.empty_card(
       "person",
-      "No account is connected",
-      "Kati is complete with none. Connect one in Calendars and it will appear here."
+      gettext("No account is connected"),
+      gettext("Kati is complete with none. Connect one in Calendars and it will appear here.")
     )
   end
 
@@ -1141,8 +1361,10 @@ defmodule Kati.Screens.Sync do
   def calendars([]) do
     Kati.Screens.Sync.empty_card(
       "calendar_month",
-      "No calendar is connected",
-      "Everything you add stays on this device, which is where Kati keeps the original anyway."
+      gettext("No calendar is connected"),
+      gettext(
+        "Everything you add stays on this device, which is where Kati keeps the original anyway."
+      )
     )
   end
 
@@ -1180,8 +1402,8 @@ defmodule Kati.Screens.Sync do
   def outbox([]) do
     Kati.Screens.Sync.empty_card(
       "cloud_done",
-      "Nothing is waiting",
-      "Every change Kati has made has already left this device, or never needed to."
+      gettext("Nothing is waiting"),
+      gettext("Every change Kati has made has already left this device, or never needed to.")
     )
   end
 
@@ -1213,7 +1435,9 @@ defmodule Kati.Screens.Sync do
     SettingsList.row(
       SettingsList.icon_tile(Kati.Screens.Sync.op_icon(e.op)),
       Kati.Screens.Sync.body(
-        Kati.Screens.Sync.op_label(e.op) <> " · " <> e.title,
+        # `%{title}` is the event's own summary, or its UID when the row is
+        # gone — user content either way, drawn exactly as it is stored.
+        gettext("%{op} · %{title}", op: Kati.Screens.Sync.op_label(e.op), title: e.title),
         Kati.Screens.Sync.entry_line(e)
       ),
       Kati.Screens.Sync.outbox_trailing(e),
@@ -1224,29 +1448,49 @@ defmodule Kati.Screens.Sync do
   end
 
   @doc false
-  def outbox_trailing(%{state: :push_failed}), do: SettingsList.action_pill("Retry")
+  def outbox_trailing(%{state: :push_failed}), do: SettingsList.action_pill(gettext("Retry"))
 
   def outbox_trailing(%{half_landed: true}),
-    do: SettingsList.status_pill("Half sent", Palette.red(), Palette.red_wash_strong())
+    do:
+      SettingsList.status_pill(
+        pgettext("sync pill", "Half sent"),
+        Palette.red(),
+        Palette.red_wash_strong()
+      )
 
   def outbox_trailing(%{state: :blocked}),
-    do: SettingsList.status_pill("Blocked", Palette.red(), Palette.red_wash_strong())
+    do:
+      SettingsList.status_pill(
+        pgettext("sync pill", "Blocked"),
+        Palette.red(),
+        Palette.red_wash_strong()
+      )
 
   def outbox_trailing(%{state: :in_flight}),
-    do: SettingsList.status_pill("Sending", Palette.accent(), Palette.accent_wash())
+    do:
+      SettingsList.status_pill(
+        pgettext("sync pill", "Sending"),
+        Palette.accent(),
+        Palette.accent_wash()
+      )
 
   def outbox_trailing(%{waiting_on: true}),
-    do: SettingsList.status_pill("After", Palette.sub(), Palette.paper())
+    do: SettingsList.status_pill(pgettext("sync pill", "After"), Palette.sub(), Palette.paper())
 
   def outbox_trailing(_entry),
-    do: SettingsList.status_pill("Queued", Palette.accent(), Palette.accent_wash())
+    do:
+      SettingsList.status_pill(
+        pgettext("sync pill", "Queued"),
+        Palette.accent(),
+        Palette.accent_wash()
+      )
 
   @doc false
   def questions([]) do
     Kati.Screens.Sync.empty_card(
       "check_circle",
-      "Nothing is waiting on you",
-      "Kati asks only when it genuinely cannot decide without inventing something."
+      gettext("Nothing is waiting on you"),
+      gettext("Kati asks only when it genuinely cannot decide without inventing something.")
     )
   end
 
@@ -1284,7 +1528,11 @@ defmodule Kati.Screens.Sync do
       SettingsList.row(
         SettingsList.icon_tile(c.icon),
         Kati.Screens.Sync.body(c.title, c.calendar),
-        SettingsList.status_pill("Needs you", Palette.accent(), Palette.accent_wash()),
+        SettingsList.status_pill(
+          pgettext("sync pill", "Needs you"),
+          Palette.accent(),
+          Palette.accent_wash()
+        ),
         padding: 13,
         rule: true
       )
@@ -1300,6 +1548,11 @@ defmodule Kati.Screens.Sync do
     """
   end
 
+  # Both lines are PARAGRAPHS that wrap, and both are the widest thing in the
+  # card, so both take `Kati.Locale.leading/1` rather than the flat number:
+  # Vazirmatn's ascenders and descenders are not Plus Jakarta's, and 1.35 and
+  # 1.55 measured against the English question set the Persian one solid. The
+  # drawing's own values stay at the call site, which is what that helper is for.
   @doc false
   def question_body(headline, detail) do
     ~MOB"""
@@ -1308,11 +1561,16 @@ defmodule Kati.Screens.Sync do
         text={headline}
         text_size={13.5}
         font_weight="semibold"
-        line_height={1.35}
+        line_height={Kati.Locale.leading(1.35)}
         text_color={:on_surface}
       />
       <Spacer size={7} />
-      <Text text={detail} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+      <Text
+        text={detail}
+        text_size={12.5}
+        line_height={Kati.Locale.leading(1.55)}
+        text_color={Palette.ink_soft()}
+      />
     </Column>
     """
   end
@@ -1330,25 +1588,30 @@ defmodule Kati.Screens.Sync do
   def answers(c, index) do
     name = c.calendar
 
+    # `Keep mine` and `Keep both` are the import wizard's own two words and take
+    # its msgids — `Kati.Import.Job` and screen 37 already draw them, and the
+    # moduledoc says this page borrows 37's vocabulary on purpose. The third is
+    # this screen's own, because 37's *Take file* names a CSV and there is none
+    # here; `%{calendar}` is what replaces it.
     [
       Kati.Screens.Sync.answer_row(
         "phone_iphone",
-        "Keep mine",
-        "Send your version. Theirs is kept below.",
+        gettext("Keep mine"),
+        gettext("Send your version. Theirs is kept below."),
         {self(), :"keep_mine_#{index}"},
         true
       ),
       Kati.Screens.Sync.answer_row(
         "cloud",
-        "Take " <> name <> "'s",
-        "Drop the queued change. Yours is kept below.",
+        gettext("Take %{calendar}'s", calendar: name),
+        gettext("Drop the queued change. Yours is kept below."),
         {self(), :"take_theirs_#{index}"},
         true
       ),
       Kati.Screens.Sync.answer_row(
         "call_split",
-        "Keep both",
-        "Theirs stays. Yours becomes a new event.",
+        gettext("Keep both"),
+        gettext("Theirs stays. Yours becomes a new event."),
         {self(), :"keep_both_#{index}"},
         false
       )
@@ -1371,8 +1634,10 @@ defmodule Kati.Screens.Sync do
   def kept([]) do
     Kati.Screens.Sync.empty_card(
       "history",
-      "Nothing has been set aside",
-      "When two changes cannot both survive, the one that loses is kept here rather than lost."
+      gettext("Nothing has been set aside"),
+      gettext(
+        "When two changes cannot both survive, the one that loses is kept here rather than lost."
+      )
     )
   end
 
@@ -1416,16 +1681,21 @@ defmodule Kati.Screens.Sync do
   def kept_icon(_row), do: "history"
 
   @doc false
-  def kept_trailing(%{writable: true}), do: SettingsList.action_pill("Re-apply")
+  def kept_trailing(%{writable: true}), do: SettingsList.action_pill(gettext("Re-apply"))
 
   def kept_trailing(_row),
-    do: SettingsList.status_pill("Kept", Palette.sub(), Palette.paper())
+    do: SettingsList.status_pill(pgettext("sync pill", "Kept"), Palette.sub(), Palette.paper())
 
   @doc """
   The row a truncated list ends with, or nothing.
 
   A cap that hid its own existence would make a queue of two hundred look like
   a queue of twelve, which is the one thing a page about a queue must not do.
+
+  `noun` stays a runtime string and the count is pluralised by `plural/2`
+  rather than by an `ngettext/4` here, because a msgid has to be a literal at
+  its own call site and this function serves three different nouns. See
+  `plural/2` for where the three literals actually live.
   """
   @spec overflow([term()], pos_integer(), String.t()) :: [term()]
   def overflow(rows, limit, noun) do
@@ -1435,7 +1705,9 @@ defmodule Kati.Screens.Sync do
       [
         SettingsList.row(
           SettingsList.icon_tile("more_horiz"),
-          SettingsList.body_muted(Kati.Screens.Sync.plural(hidden, noun) <> " more, not shown"),
+          SettingsList.body_muted(
+            gettext("%{count} more, not shown", count: Kati.Screens.Sync.plural(hidden, noun))
+          ),
           nil,
           padding: 13,
           rule: false
@@ -1495,6 +1767,11 @@ defmodule Kati.Screens.Sync do
   characters of 11.5pt text. The longest line this screen builds — a kept
   edit's properties, when it was kept, and which rule set it aside — runs to
   ninety-odd. At two lines it ellipsised exactly the half that says *why*.
+
+  The second line takes `Kati.Locale.leading/1`, which is what
+  `Kati.UI.SettingsList.body/2` already does with its own 1.4: this is the one
+  text on the page that wraps on every row, and Vazirmatn set at Plus Jakarta's
+  leading crowds three lines into the space two want.
   """
   @spec body(String.t(), String.t()) :: term()
   def body(title, sub) do
@@ -1508,7 +1785,13 @@ defmodule Kati.Screens.Sync do
         max_lines={1}
       />
       <Spacer size={3} />
-      <Text text={sub} text_size={11.5} line_height={1.35} text_color={Palette.sub()} max_lines={3} />
+      <Text
+        text={sub}
+        text_size={11.5}
+        line_height={Kati.Locale.leading(1.35)}
+        text_color={Palette.sub()}
+        max_lines={3}
+      />
     </Column>
     """
   end
@@ -1529,7 +1812,7 @@ defmodule Kati.Screens.Sync do
       <Text
         text={sub}
         text_size={11.5}
-        line_height={1.35}
+        line_height={Kati.Locale.leading(1.35)}
         text_color={Palette.muted()}
         max_lines={3}
       />
@@ -1578,7 +1861,10 @@ defmodule Kati.Screens.Sync do
 
     case Kati.Screens.Sync.at(rows, index) do
       nil ->
-        Kati.Screens.Sync.settle(socket, "That row is no longer here. The page has been re-read.")
+        Kati.Screens.Sync.settle(
+          socket,
+          gettext("That row is no longer here. The page has been re-read.")
+        )
 
       row ->
         Kati.Screens.Sync.settle(socket, Kati.Screens.Sync.attempt(fun, row))
@@ -1593,7 +1879,7 @@ defmodule Kati.Screens.Sync do
       nil ->
         Kati.Screens.Sync.settle(
           socket,
-          "That question is no longer here. The page has been re-read."
+          gettext("That question is no longer here. The page has been re-read.")
         )
 
       row ->
@@ -1614,14 +1900,20 @@ defmodule Kati.Screens.Sync do
   def attempt(fun, row) do
     fun.(row)
   rescue
-    error -> "That did not go through: " <> Exception.message(error)
+    # `Kati.Locale.ltr/1` around the exception's own words: it is a developer's
+    # English inside a Persian sentence, and without the isolate its trailing
+    # punctuation resolves against the page and lands at the far edge.
+    error ->
+      gettext("That did not go through: %{error}",
+        error: Kati.Locale.ltr(Exception.message(error))
+      )
   end
 
   @doc "`Kati.Sync.Outbox.retry/1` — the one control a quarantined entry gets."
   @spec retry(map()) :: String.t()
   def retry(row) do
     Kati.Sync.Outbox.retry(row.entry)
-    "Queued again. Kati will try to send it the next time it syncs."
+    gettext("Queued again. Kati will try to send it the next time it syncs.")
   end
 
   @doc """
@@ -1635,24 +1927,36 @@ defmodule Kati.Screens.Sync do
   @spec answer(map(), :keep_mine | :take_file | :keep_both) :: String.t()
   def answer(row, choice) do
     case Kati.Sync.resolve(row.event, row.calendar_row, choice) do
-      {:ok, _event} -> Kati.Screens.Sync.answered(row, choice)
-      {:error, reason} -> Kati.Screens.Sync.refused(reason)
-      _other -> "Kati could not tell whether that went through, so nothing has been assumed."
+      {:ok, _event} ->
+        Kati.Screens.Sync.answered(row, choice)
+
+      {:error, reason} ->
+        Kati.Screens.Sync.refused(reason)
+
+      _other ->
+        gettext("Kati could not tell whether that went through, so nothing has been assumed.")
     end
   end
 
   @doc false
   def answered(row, :keep_mine) do
-    "Your version is queued again. What " <> row.calendar <> " had is kept below."
+    gettext("Your version is queued again. What %{calendar} had is kept below.",
+      calendar: row.calendar
+    )
   end
 
   def answered(row, :take_file) do
-    row.calendar <> "'s version is what stays. Your edit is kept below, not discarded."
+    gettext("%{calendar}'s version is what stays. Your edit is kept below, not discarded.",
+      calendar: row.calendar
+    )
   end
 
   def answered(row, :keep_both) do
-    row.calendar <>
-      " keeps its version, and yours is now a separate Kati event with its own identifier."
+    gettext(
+      "%{calendar} keeps its version, and yours is now a separate Kati event with its own " <>
+        "identifier.",
+      calendar: row.calendar
+    )
   end
 
   @doc """
@@ -1667,18 +1971,25 @@ defmodule Kati.Screens.Sync do
   """
   @spec reapply(map()) :: String.t()
   def reapply(%{event: nil}) do
-    "The event this edit belonged to is no longer on the device, so there is nothing to put " <>
-      "it back into."
+    gettext(
+      "The event this edit belonged to is no longer on the device, so there is nothing to put " <>
+        "it back into."
+    )
   end
 
   def reapply(row) do
     with :ok <- Ownership.authorise(row.event, row.calendar_row),
          {:ok, properties} <- Kati.Sync.reapply(row.rejected),
          {:ok, _event} <- Kati.Sync.edit(row.event, row.calendar_row, %{properties: properties}) do
-      "Put back and queued. It goes out as an ordinary edit, merged against what is there now."
+      gettext(
+        "Put back and queued. It goes out as an ordinary edit, merged against what is there now."
+      )
     else
-      {:error, reason} -> Kati.Screens.Sync.refused(reason)
-      _other -> "Kati could not read what was kept, so nothing has been changed."
+      {:error, reason} ->
+        Kati.Screens.Sync.refused(reason)
+
+      _other ->
+        gettext("Kati could not read what was kept, so nothing has been changed.")
     end
   end
 
@@ -1692,12 +2003,15 @@ defmodule Kati.Screens.Sync do
   """
   @spec refused(term()) :: String.t()
   def refused({:not_writable, %{reason: reason}}) when is_binary(reason),
-    do: "Kati did not send that: " <> reason <> "."
+    do: gettext("Kati did not send that: %{reason}.", reason: reason)
 
   def refused({:read_only_transport, _detail}),
-    do: "That calendar cannot be written to at all, so nothing was queued."
+    do: gettext("That calendar cannot be written to at all, so nothing was queued.")
 
-  def refused(reason), do: "That did not go through: " <> inspect(reason)
+  # The same msgid `attempt/2`'s rescue uses — one sentence, two ways of
+  # arriving at it — and the same isolate around the machine text inside.
+  def refused(reason),
+    do: gettext("That did not go through: %{error}", error: Kati.Locale.ltr(inspect(reason)))
 
   @doc false
   @spec at([map()], String.t()) :: map() | nil

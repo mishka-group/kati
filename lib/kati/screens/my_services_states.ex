@@ -157,9 +157,49 @@ defmodule Kati.Screens.MyServicesStates do
   swallow one. 67's reason, and it has teeth here: the live `Undo` on screen 92
   would put the region back, and a specimen control that moved a device's region
   would change what every other screen in the app calls watchable.
+
+  ## Reading it in Persian
+
+  Every sentence on the sheet is a msgid; four kinds of thing are not.
+
+    * **Service names.** `Lumen+`, `Orbit` and the typed `mubi plus` are
+      brands, and board 127 draws `Lumen+` in Latin on a Persian page for the
+      reason a provider's name never reaches a catalogue: a transliterated one
+      spells a real service a second way. `Orbit` moved out of the two
+      sentences that named it and into an interpolation to keep that true —
+      and, being read off `Kati.Screens.MyServices.drawn/0` now, it follows the
+      fixture the band two states above draws its own rows from. That is the
+      argument the region already had, applied to the other retyped name.
+    * **`JustWatch` and `TMDB`** stay inside their msgid rather than being
+      interpolated out of it. They are named so the reader can go and look, and
+      screen 92's one-sentence version of the same answer is already in the
+      catalogue with both spelled in Latin.
+    * **The figures.** `43` goes through `Kati.Locale.number/1` and reads ۴۳;
+      the prices arrive from `Kati.Services.Service.format/2`, which already
+      converts its digits and moves the symbol to the trailing edge; the two
+      country names arrive from `Kati.Services.region_name/1`. `15` is the one
+      numeral that stays inside a msgid, because it is a screen reference in a
+      sentence rather than a figure this page computes, and the translator
+      writes it in the reader's own digits.
+    * **The two split sentences.** `Kati.UI.rich_text/1` takes runs, so the
+      reassurance card and the search answer are three msgids each. Splitting a
+      sentence across msgids is normally how a translation gets a word order it
+      cannot fix, and it is safe in both here for the reason
+      `Kati.Screens.DataSourcesStates.bad_key/0` writes down: Persian is
+      verb-final, so its verb lands in the LAST run, which is where English has
+      already put its tail. The search answer pays for that with a
+      one-character msgid — `pgettext/2`, because a bare `.` is exactly what
+      `mix gettext.merge` fuzzy-matches against any sentence ending in one, and
+      because the Persian tail is a verb rather than a full stop.
+
+  The four paragraph line heights are `Kati.Locale.leading/1` rather than the
+  drawing's own number. Vazirmatn's metrics are not Plus Jakarta's, so a
+  paragraph measured against the Latin sheet sets too tight on its Persian
+  twin; `Kati.Theme.fa_line_height/0` carries the long version.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Screens.DataSourcesStates
   alias Kati.Screens.MyServices
@@ -171,6 +211,15 @@ defmodule Kati.Screens.MyServicesStates do
   @doc false
   @spec content(map()) :: map()
   def content(_assigns) do
+    # `pgettext/2` for two words, and it is the only eyebrow on the sheet short
+    # enough to need it: `mix gettext.merge` fuzzy-matches at that length, and
+    # the catalogue already holds a bare `Region`. The context is also the
+    # thing a translator cannot get from the words — this eyebrow REPORTS a
+    # switch that has already landed, which is why the card under it carries an
+    # `Undo` rather than a control that makes one. See the moduledoc's argument
+    # about why even this state takes 27's grey dash.
+    changed = pgettext("the state where the region has already been switched", "Region changed")
+
     ~MOB"""
     <Scroll>
       <Column
@@ -181,16 +230,16 @@ defmodule Kati.Screens.MyServicesStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("My services", "five states", nil, :name)}
-        {UI.eyebrow("Region set, no services — a legitimate middle")}
+        {SettingsList.title(gettext("My services"), gettext("five states"), nil, :name)}
+        {UI.eyebrow(gettext("Region set, no services — a legitimate middle"))}
         {Kati.Screens.MyServicesStates.region_set()}
-        {SettingsList.eyebrow_muted("Search with no match")}
+        {SettingsList.eyebrow_muted(gettext("Search with no match"))}
         {Kati.Screens.MyServicesStates.no_match()}
-        {SettingsList.eyebrow_muted("Provider list unavailable")}
+        {SettingsList.eyebrow_muted(gettext("Provider list unavailable"))}
         {Kati.Screens.MyServicesStates.provider_list_down()}
-        {SettingsList.eyebrow_muted("Region changed")}
+        {SettingsList.eyebrow_muted(changed)}
         {Kati.Screens.MyServicesStates.region_changed()}
-        {SettingsList.eyebrow_muted("A service removed while history references it")}
+        {SettingsList.eyebrow_muted(gettext("A service removed while history references it"))}
         {Kati.Screens.MyServicesStates.removed_service()}
       </Column>
     </Scroll>
@@ -214,6 +263,14 @@ defmodule Kati.Screens.MyServicesStates do
   """
   @spec region_set() :: map()
   def region_set do
+    # NEITHER OF THE FIRST ROW'S TWO STRINGS IS THIS SCREEN'S TO TRANSLATE.
+    #
+    # `Kati.Services.region_name/1` already answers بریتانیا under `:fa` off the
+    # same seven-country table screen 94 offers, and
+    # `Kati.UI.SettingsList.chevron/0` already asks `Kati.Locale.forward_chevron/0`
+    # — a row that OPENS something points the reading direction, which is
+    # leftward in Persian. Wrapping either here would be a second answer to a
+    # question that has one.
     rows = [
       SettingsList.row(
         MyServices.flag_tile(Services.flag("GB")),
@@ -223,8 +280,8 @@ defmodule Kati.Screens.MyServicesStates do
       SettingsList.row(
         Kati.Screens.MyServicesStates.glyph_tile("payments"),
         SettingsList.body(
-          "Nothing to add up yet",
-          "Free-with-ads only counts as watchable, not payable",
+          gettext("Nothing to add up yet"),
+          gettext("Free-with-ads only counts as watchable, not payable"),
           lines: 2
         ),
         SettingsList.trailing(nil),
@@ -279,14 +336,39 @@ defmodule Kati.Screens.MyServicesStates do
   """
   @spec reassurance() :: map()
   def reassurance do
-    body = [text_size: 12.5, line_height: 1.55, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.ink_soft()
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # THREE RUNS, THREE MSGIDS, AND THE ORDER SURVIVES THE FOLD.
+    #
+    # The run boundaries are kept because the emphasis is what the sentence
+    # MEANS — see the moduledoc — and splitting a sentence across msgids is
+    # otherwise how a translation gets a word order it cannot fix. It is safe
+    # here for the reason `Kati.Screens.DataSourcesStates.bad_key/0` writes
+    # down: Persian is verb-final, so *is enough* lands at the end of the third
+    # run and the emphasised phrase stays exactly where English put it, between
+    # *enough for* and the second noun.
+    #
+    # The spaces either side of the emphasis are concatenated at the call site
+    # rather than left on the ends of two msgids, because a trailing space is
+    # the kind of thing a catalogue loses in a merge and nothing on screen says
+    # so afterwards — it reads as one run-together word.
+    #
+    # `leaving soon` takes `pgettext/2`. It is two words, and the catalogue
+    # already holds `Leaving soon` twice — a WATCHER KIND on screen 86 and a
+    # section heading on Discover. Same Persian, but a heading is not a phrase
+    # inside a sentence, and at that length `mix gettext.merge` is happy to
+    # decide they are the same string.
     message =
       UI.rich_text([
-        {"Availability already works — region alone is enough for ", body},
-        {"leaving soon", strong},
-        {" and rental prices.", body}
+        {gettext("Availability already works — region alone is enough for") <> " ", body},
+        {pgettext("the phrase the reassurance card bolds", "leaving soon"), strong},
+        {" " <> gettext("and rental prices."), body}
       ])
 
     ~MOB"""
@@ -323,24 +405,47 @@ defmodule Kati.Screens.MyServicesStates do
   """
   @spec no_match() :: map()
   def no_match do
-    body = [text_size: 12, line_height: 1.55, text_color: Palette.sub()]
+    body = [text_size: 12, line_height: Kati.Locale.leading(1.55), text_color: Palette.sub()]
     strong = [text_size: 12, font_weight: "semibold", text_color: Palette.ink()]
 
+    # THE TAIL IS A `pgettext/2` AND NOT A LITERAL FULL STOP.
+    #
+    # English puts *add it as* in front of the emphasised row name and leaves a
+    # bare `.` behind it. Persian is verb-final — «آن را با … اضافه کنید» — so
+    # the verb belongs AFTER the name, which means the third run is where the
+    # sentence actually finishes and a hardcoded "." would strand it. A
+    # one-character msgid is also precisely what `mix gettext.merge`
+    # fuzzy-matches against any sentence ending in one, so it carries a context
+    # for both reasons at once.
+    #
+    # `JustWatch` and `TMDB` stay inside the first msgid rather than being
+    # interpolated out of it: the sentence names the catalogue's owners so the
+    # reader can go and look, and screen 92's one-sentence version of this same
+    # answer is already in the catalogue with both spelled in Latin. `Something
+    # else` is the row screen 92 draws, and reusing its msgid is what keeps the
+    # two pages calling it one thing.
     message =
       UI.rich_text([
-        {"Kati uses JustWatch’s list through TMDB. If it is a real service they do not track, add it as ",
-         body},
-        {"Something else", strong},
-        {".", body}
+        {gettext(
+           "Kati uses JustWatch’s list through TMDB. If it is a real service " <>
+             "they do not track, add it as"
+         ) <> " ", body},
+        {gettext("Something else"), strong},
+        {pgettext("the tail of the search answer, after the bolded row name", "."), body}
       ])
 
+    # `mubi plus` is not a msgid. It is a service name typed into a search box —
+    # MUBI is a real service and the tier is the invented half — and a
+    # transliterated brand spells one thing two ways, which is the rule board
+    # 127 keeps `Lumen+` in Latin for. The moduledoc's third refusal covers why
+    # the field is not read either.
     field = Kati.Screens.MyServicesStates.query_field("mubi plus")
 
     answer =
       Kati.Screens.MyServicesStates.advice(
         "search",
         Palette.sub(),
-        "No service called that",
+        gettext("No service called that"),
         message,
         title_size: 13,
         gap: 5
@@ -450,6 +555,14 @@ defmodule Kati.Screens.MyServicesStates do
   """
   @spec unreachable() :: map()
   def unreachable do
+    # *Provider list* is «فهرست سرویس‌ها» and not a second word for a provider.
+    # The catalogue already renders screen 92's *JustWatch's list* that way, and
+    # `Kati.Screens.DataSourcesStates`'s `Provider failing` — منبع — is about a
+    # DATA SOURCE rather than a streaming service. Two Persian words for one
+    # English one is correct here; one Persian word for both would not be.
+    title = gettext("Can’t reach the provider list")
+    line = gettext("Your saved services still show, and still toggle")
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -461,20 +574,15 @@ defmodule Kati.Screens.MyServicesStates do
       {UI.symbol("cloud_off", size: 20, color: Palette.gold_icon())}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text
-          text="Can’t reach the provider list"
-          text_size={13}
-          font_weight="bold"
-          text_color={:on_surface}
-          max_lines={1}
-        />
+        <Text text={title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer size={3} />
-        <Text
-          text="Your saved services still show, and still toggle"
-          text_size={11.5}
-          text_color={Palette.cream_sub()}
-          max_lines={2}
-        />
+        {# Two lines, which the badge already allowed and which the Persian
+         # needs: this line is a CLAIM rather than a label — it is the whole
+         # reason the card is drawn above the two services rather than below
+         # them — and cut short it stops being the promise it is here to make.
+         # `Kati.Screens.DataSourcesStates.offline/0` and screen 20's badge cap
+         # their own second line at two for the same reason.}
+        <Text text={line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={2} />
       </Column>
     </Row>
     """
@@ -500,23 +608,47 @@ defmodule Kati.Screens.MyServicesStates do
   """
   @spec region_changed() :: map()
   def region_changed do
-    body = [text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      text_color: Palette.ink_soft()
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
     region = Services.region_name("IR")
 
+    # THE COUNTRY IS AN INTERPOLATION IN BOTH SENTENCES, NOT A `#{}`.
+    #
+    # It was composed already, for the reason the moduledoc gives — a retyped
+    # country name goes stale the first time the table is edited — and the only
+    # thing that changes under the fold is that it arrives as a gettext binding
+    # instead of a string interpolation. It has to: a `#{region}` inside a
+    # msgid freezes the English name into the catalogue and a Persian reader
+    # gets *Iran* in Latin in the middle of a Persian sentence. It needs no
+    # `Kati.Locale.ltr/1`, because `Kati.Services.region_name/1` answers ایران
+    # under `:fa` and there is no Latin run left to isolate.
+    #
+    # `three` stays a word in the msgid rather than becoming a figure. The
+    # moduledoc's argument is why it is a word at all — a specimen sentence on
+    # a device with one service would print a true count against an event that
+    # never happened — and a word does not go through `Kati.Locale.number/1`;
+    # the Persian spells سه the same way.
     message =
       UI.rich_text([
-        {"What counts as watchable changes everywhere. ", body ++ [base: true]},
-        {"Your library, ratings, notes and history do not change at all", strong},
-        {" — three of your services are not listed in #{region} and switch to Something else.",
-         body}
+        {gettext("What counts as watchable changes everywhere.") <> " ", body ++ [base: true]},
+        {gettext("Your library, ratings, notes and history do not change at all"), strong},
+        {" — " <>
+           gettext(
+             "three of your services are not listed in %{region} and switch to Something else.",
+             region: region
+           ), body}
       ])
 
     card =
       Kati.Screens.MyServicesStates.advice(
         "public",
         Palette.gold_icon(),
-        "Region is now #{region}",
+        gettext("Region is now %{region}", region: region),
         message,
         footer: Kati.Screens.MyServicesStates.answers()
       )
@@ -545,8 +677,37 @@ defmodule Kati.Screens.MyServicesStates do
   """
   @spec answers() :: map()
   def answers do
-    got_it = DataSourcesStates.answer("Got it", Palette.ink_fill(), Palette.on_ink(), :bold, true)
-    undo = DataSourcesStates.answer("Undo", Palette.paper(), Palette.ink_soft(), :semibold, false)
+    # BOTH LABELS ARE PLAIN `gettext/1` AND NEITHER TAKES A CONTEXT.
+    #
+    # `Undo` is already in the catalogue as برگرداندن, from
+    # `Kati.Screens.DataSourcesStates` — the sheet this pill itself is borrowed
+    # from — and from `Kati.Screens.LogProgressStates` and
+    # `Kati.Screens.ShelfSelection`. A context here would invent a second
+    # Persian word for a button three screens already name.
+    # `Got it` is new, and it is left plain for the mirror-image reason:
+    # `Kati.Screens.EpisodeRatings` and `Kati.Components.MishkaPopover` both
+    # draw the same two words for the same job, so one entry is what keeps the
+    # three of them saying one thing. That is the opposite call to
+    # `Kati.Screens.DataSourcesStates.confirm/0`'s `Keep them`, which is a
+    # context precisely because it is the safe answer to a DESTRUCTIVE
+    # question and nothing else in the app asks that.
+    got_it =
+      DataSourcesStates.answer(
+        gettext("Got it"),
+        Palette.ink_fill(),
+        Palette.on_ink(),
+        :bold,
+        true
+      )
+
+    undo =
+      DataSourcesStates.answer(
+        gettext("Undo"),
+        Palette.paper(),
+        Palette.ink_soft(),
+        :semibold,
+        false
+      )
 
     ~MOB"""
     <Column fill_width={true}>
@@ -578,22 +739,80 @@ defmodule Kati.Screens.MyServicesStates do
   """
   @spec removed_service() :: map()
   def removed_service do
+    # THE SERVICE NAME IS COMPOSED NOW, AND NEVER REACHES THE CATALOGUE.
+    #
+    # Two reasons, and the moduledoc already makes both of them about other
+    # things on this sheet. It is a real service name, so it stays Latin in
+    # Persian the way board 127 draws `Lumen+` — a catalogue entry containing
+    # `Orbit` is an invitation to spell a brand a second way, and a fixture that
+    # transliterated would have this page and screen 92 naming two services.
+    # And it is read off `Kati.Screens.MyServices.drawn/0` rather than retyped,
+    # which is the argument `Region is now Iran` already carries: the band two
+    # states up draws its own rows from that list, so a literal here would
+    # switch off a service the sheet had just drawn under another name.
+    #
+    # `Kati.Locale.ltr/1` because it is a Latin run inside a Persian sentence.
+    # The comma after it in the title is NEUTRAL to the bidi algorithm and
+    # resolves against the paragraph rather than against the name, which lays it
+    # at the left edge — in front of the word it follows. Screen 83's licence
+    # notices are where that was found.
+    service = Kati.Locale.ltr(removed_name())
+
+    # `15` stays inside the msgid. It is an ordinary numeral in a sentence — a
+    # screen reference, the way `Kati.Screens.MyServices.credit/0` writes
+    # *credited on 83* — rather than a figure this page computes, so the
+    # translator writes it in the reader's own digits. Screen 20's note makes
+    # the same call about its own board numbers.
+    sentence =
+      gettext(
+        "Those stay exactly as they were. Kati never rewrites what happened — " <>
+          "15 is append-only. %{service} simply stops counting as watchable from today.",
+        service: service
+      )
+
     message =
       ~MOB"""
       <Text
-        text="Those stay exactly as they were. Kati never rewrites what happened — 15 is append-only. Orbit simply stops counting as watchable from today."
+        text={sentence}
         text_size={12.5}
-        line_height={1.6}
+        line_height={Kati.Locale.leading(1.6)}
         text_color={Palette.ink_soft()}
       />
       """
 
-    Kati.Screens.MyServicesStates.advice(
-      "history",
-      Palette.sub(),
-      "Orbit is off, but 43 entries mention it",
-      message
-    )
+    # `ngettext/4` rather than `gettext/2`, even though the count is fixed:
+    # English inflects the noun after it and Persian does not, so the two
+    # Persian forms are the same sentence and that is not a mistake in the
+    # catalogue. `Kati.Screens.DataSourcesStates.wipe/0` records the same shape
+    # for its own frozen three.
+    #
+    # The 43 is the moduledoc's invented figure and is still not read — but it
+    # is PRINTED, so it goes through `Kati.Locale.number/1` and reads ۴۳ beside
+    # a Persian sentence instead of sitting in Latin numerals in the middle of
+    # one.
+    title =
+      ngettext(
+        "%{service} is off, but %{n} entry mentions it",
+        "%{service} is off, but %{n} entries mention it",
+        43,
+        service: service,
+        n: Kati.Locale.number(43)
+      )
+
+    Kati.Screens.MyServicesStates.advice("history", Palette.sub(), title, message)
+  end
+
+  # The subscription this state switches off: `Kati.Screens.MyServices.drawn/0`'s
+  # second, which is the second of the two rows `provider_list_down/0` draws and
+  # the one the board names. A literal fallback rather than a `hd`/`at` that can
+  # raise — a reference sheet is a picture of a state, and a picture that brings
+  # the screen down because a fixture shrank is a worse failure than one naming
+  # a service the list no longer holds.
+  defp removed_name do
+    case Enum.at(MyServices.drawn().subscribed, 1) do
+      %{name: name} when is_binary(name) -> name
+      _none -> "Orbit"
+    end
   end
 
   @doc """

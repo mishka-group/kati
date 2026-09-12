@@ -59,8 +59,68 @@ defmodule Kati.Screens.States do
   specimen itself* in its own first paragraph. The one thing that would change
   this is a **live** states screen — the app showing its own current condition —
   and that is a different screen from the sheet the design draws.
+
+  ## What this file translates, and what it only typesets
+
+  mishka-group/kati#103. This screen owns seven strings — its title, its
+  subtitle and the five band eyebrows — and those are `gettext/1` here. Every
+  other word on the sheet is `Kati.Settings.StatesSample`'s: the empty state's
+  four lines, the offline badge, the failed check with its last-success line,
+  the undo bar, and the retired band's title, paragraph and example tile are
+  copy typed once from `27.html` and owned by that module, so they are
+  translated **there** and not here. A msgid has to be a literal at its own call
+  site, so there is no way to wrap them from this file that would not also move
+  the copy out of the specimen — which is the one thing the specimen exists to
+  hold. `Kati.Screens.DropStates` makes the same split against
+  `Kati.Settings.DropStatesSample`, and states the argument at the same length.
+
+  What this file does own for that copy is its **typesetting**, and that is the
+  half that breaks silently — the words arrive correct and the page is wrong:
+
+    * `Kati.Locale.tracking/1` on both card headings' negative letter-spacing.
+      Tightening by a fraction of an em is a Latin move; in the Arabic script it
+      pulls letters apart at the joins that make a word one shape.
+    * `Kati.Locale.leading/1` on both paragraphs. Vazirmatn's metrics are not
+      Plus Jakarta's, so the design's own 1.55 and 1.6 set Persian too tight.
+    * `Kati.Locale.pick/2` on the retired paragraph's `max_lines`. Six lines
+      holds the English with one to spare; a Persian sentence that ran one line
+      longer would drop the clause about what tapping the tile does, which is
+      the half of the band a static picture cannot show.
+
+  Nothing else on this sheet needs asking for. There is no number and no date
+  this file renders, so neither `Kati.Locale.number/1` nor `date/2` is called
+  here — the one figure that looks like a measurement, *Last success 6h ago*, is
+  the specimen's, and the four paragraphs above say why it is not read from
+  `Kati.Calendars.Account`. The one mono line is the subtitle, and
+  `Kati.UI.SettingsList.subtitle/2` already asks `Kati.Locale.mono_face/0` for
+  it, so `reference sheet` is handed over as words and typeset there. And there
+  is no directional glyph: the dashed tile opens something but carries no
+  chevron, and the empty state's primary action leads with `add`, which is the
+  same shape in both directions.
+
+  ## Two strings stay Latin because they are keys, not copy
+
+    * `handle_tap/2` pushes `%{section: "Sleep"}`. That is matched against the
+      untranslated names `Kati.Health.Sample.sections/0` stores, and
+      `Kati.Screens.RetiredTile` draws its own translated label off the id it
+      finds — see `Kati.Retired`'s moduledoc for the long version of *a label
+      doubling as compared state*, which is the defect this fold is about.
+    * `back: "Settings"` is the same shape of key.
+      `Kati.Screens.Pushed.back_label/2` translates it at render time through a
+      `msgctxt "back pill"` lookup, so the pill reads Persian without the word
+      in this file moving.
+
+  ## One defect this file can see and cannot fix
+
+  `Kati.UI.SettingsList.eyebrow_muted/1` still writes `String.upcase(label)` and
+  a hardcoded `letter_spacing={0.16}` where `Kati.UI.eyebrow/2` has since grown
+  `Kati.UI.eyebrow_label/1` and `Kati.Locale.tracking/1`. Three of this sheet's
+  five eyebrows go through the muted one, so under `:fa` they are set with the
+  Latin small-caps tracking that breaks Arabic-script joins. The fix is one
+  helper changed once, in that file, rather than a fork of the grey dash here.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Settings.StatesSample, as: Sample
   alias Kati.UI
@@ -82,6 +142,50 @@ defmodule Kati.Screens.States do
   def content(assigns) do
     s = assigns.states
 
+    # The seven strings this screen owns, bound out here rather than written
+    # inside the sigil's `{...}` — both compile, and this way the whole of what
+    # the file translates reads as one list somebody can check against
+    # `test/design/screens/27.html`. `Kati.Screens.DropStates.content/1` does the
+    # same for the same reason.
+    #
+    # Three shapes of lookup, and the split is the fuzzy-matching rule rather
+    # than taste:
+    #
+    #   * The five band eyebrows are plain `gettext/1`. Each is a phrase long
+    #     enough that `mix gettext.merge` has nothing to confuse it with, and two
+    #     of the five are already in the catalogue under exactly this msgid —
+    #     `Kati.Screens.BookDetailStates` draws *Loading — skeleton, never a
+    #     spinner* and `Kati.Screens.ShelfSelection` draws *Undo — every
+    #     destructive action*, both quoting this sheet, which is what a reference
+    #     sheet is for. An exact msgid always beats a fuzzy one, and a contexted
+    #     twin here would mint a second Persian sentence for a band the app has
+    #     already worded once.
+    #   * `States` is `pgettext/2`, and it is the one that would have gone wrong
+    #     quietly. It is a single word, there is no plain `States` in the
+    #     catalogue, and there are five near neighbours — *Eight states*, *Two
+    #     states*, *five states*, *six states*, *seven states* — every one of
+    #     them a sibling reference board's title or subtitle. `gettext.merge`
+    #     fuzzy-matches a msgid that short onto its neighbour, and a sheet headed
+    #     **هفت حالت** is a wrong word no test here would catch, because nothing
+    #     on this screen is asserted against a string. `msgctxt "screen title"`
+    #     is the context `Kati.Screens.Money` and `Kati.Screens.Gallery` already
+    #     use for exactly this.
+    #   * `reference sheet` takes a context for the same reason at two words,
+    #     and it is the mono line under the title rather than the title, so it
+    #     gets its own rather than sharing one.
+    #
+    # `_band` on the five rather than the bare word: this module defines
+    # `empty/1`, `offline/1`, `undo/1` and `retired/1`, and a variable that
+    # shares a builder's name reads as that builder at a glance even though the
+    # arities keep them apart.
+    title = pgettext("screen title", "States")
+    subtitle = pgettext("screen subtitle", "reference sheet")
+    empty_band = gettext("Empty — nothing added yet")
+    loading_band = gettext("Loading — skeleton, never a spinner")
+    offline_band = gettext("Offline — the library still works")
+    undo_band = gettext("Undo — every destructive action")
+    retired_band = gettext("Not in this version — drawn, not built")
+
     ~MOB"""
     <Scroll>
       <Column
@@ -92,24 +196,29 @@ defmodule Kati.Screens.States do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("States", "reference sheet", nil, :meta_tight)}
-        {UI.eyebrow("Empty — nothing added yet")}
+        {SettingsList.title(title, subtitle, nil, :meta_tight)}
+        {UI.eyebrow(empty_band)}
         {Kati.Screens.States.empty(s.empty)}
-        {UI.eyebrow("Loading — skeleton, never a spinner")}
+        {UI.eyebrow(loading_band)}
         {Kati.Screens.States.skeletons(s.skeletons)}
-        {SettingsList.eyebrow_muted("Offline — the library still works")}
+        {SettingsList.eyebrow_muted(offline_band)}
         {Kati.Screens.States.offline(s.offline)}
         {Kati.Screens.States.error(s.error)}
-        {SettingsList.eyebrow_muted("Undo — every destructive action")}
+        {SettingsList.eyebrow_muted(undo_band)}
         {Kati.Screens.States.undo(s.undo)}
         <Spacer size={26} />
-        {SettingsList.eyebrow_muted("Not in this version — drawn, not built")}
+        {SettingsList.eyebrow_muted(retired_band)}
         {Kati.Screens.States.retired(s.retired)}
       </Column>
     </Scroll>
     """
   end
 
+  # The copy is `Kati.Settings.StatesSample.empty/0`'s and is translated there.
+  # What changes here is the two props that are about the script rather than
+  # about the words: the heading's `-0.02` tracking goes to zero under `:fa`
+  # because tightening breaks the joins between Persian letters, and the body's
+  # 1.55 leading goes to Vazirmatn's own. Neither number moves in English.
   @doc false
   def empty(e) do
     ~MOB"""
@@ -136,7 +245,7 @@ defmodule Kati.Screens.States do
           text={e.title}
           text_size={17}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
@@ -144,7 +253,7 @@ defmodule Kati.Screens.States do
         <Text
           text={e.body}
           text_size={13}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={0xFF8A8479}
           text_align="center"
         />
@@ -347,6 +456,18 @@ defmodule Kati.Screens.States do
   `Kati.Screens.Health.tile/1` on purpose — that builder reads a live section
   list, and a reference sheet that reported today's sections would stop being a
   reference the day one of them turned on.
+
+  ## `max_lines` is 6 in English and 8 in Persian, and that is not a fudge
+
+  The paragraph is the rule another screen has to follow, and its last clause —
+  *tapping it opens one sheet that names what it is, why it is not here, and
+  what Kati can do instead today* — is the half of the treatment the tile below
+  cannot draw. Six lines holds the English with one to spare, which is why the
+  cap was six; a Persian sentence one line longer would lose that clause
+  silently, with no ellipsis on a line that is already the last. `pick/2` rather
+  than a bigger number for both, so the English rendering is byte-identical to
+  what the board was signed off against and only the script that needs the room
+  gets it. mishka-group/kati#103.
   """
   @spec retired(map()) :: map()
   def retired(r) do
@@ -362,11 +483,17 @@ defmodule Kati.Screens.States do
         text={r.title}
         text_size={15}
         font_weight="bold"
-        letter_spacing={-0.01}
+        letter_spacing={Kati.Locale.tracking(-0.01)}
         text_color={:on_surface}
       />
       <Spacer size={8} />
-      <Text text={r.body} text_size={13} line_height={1.6} text_color={0xFF8A8479} max_lines={6} />
+      <Text
+        text={r.body}
+        text_size={13}
+        line_height={Kati.Locale.leading(1.6)}
+        text_color={0xFF8A8479}
+        max_lines={Kati.Locale.pick(6, 8)}
+      />
       <Spacer size={16} />
       {Kati.Screens.States.dashed_tile(r.example)}
     </Column>
@@ -415,6 +542,15 @@ defmodule Kati.Screens.States do
 
   # The tap the band exists to demonstrate. Pushed with the section the example
   # tile names, so the sheet that opens is the one screen 42 would have opened.
+  #
+  # `"Sleep"` is a KEY and stays Latin in both scripts. `Kati.Screens.RetiredTile`
+  # matches it against the untranslated `name` on `Kati.Health.Sample.sections/0`
+  # and then draws its own `label/1` off the id it finds, so the sheet's header
+  # is Persian while the lookup that gets there is not. Translating this literal
+  # would not produce a Persian header — it would produce a sheet with no
+  # paragraph on it, which is the exact defect `Kati.Retired`'s moduledoc names:
+  # a label doubling as compared state fails silently, because a miss is
+  # indistinguishable from a section nobody wrote copy for. mishka-group/kati#103.
   @impl true
   def handle_tap(:open_retired, socket) do
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Sleep"})}

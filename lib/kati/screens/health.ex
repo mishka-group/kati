@@ -1283,8 +1283,22 @@ defmodule Kati.Screens.Health do
   def handle_tap(:open_medication, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Medication)}
 
+  # `%{back: "Health"}` where the pushes around it pass nothing, and the
+  # difference is not style: `Kati.Screens.Habits` declares `back: "Stats"`, so
+  # the Habits tile on this grid opened a screen whose pill offered to take you
+  # back to a page you were never on — while the phone's own back gesture pops
+  # one screen, to 42. The word and the behaviour disagreed, which is the exact
+  # defect `Kati.Screens.Pushed.back_label/2` was written to settle: the pushing
+  # screen is the only thing that knows where you came FROM, so it says so. The
+  # *My services* row two clauses down already makes this call.
+  #
+  # `Kati.Screens.MealsToday`, `Kati.Screens.Weight` and
+  # `Kati.Screens.Medication` all declare `back: "Health"` themselves, so they
+  # are right without a param and are left alone. **Health** is already in
+  # `Kati.Screens.Pushed.back_vocabulary/0`, so the pill arrives as **سلامت**
+  # rather than as an English word over a Persian page. mishka-group/kati#103.
   def handle_tap(:open_habits, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits, %{back: "Health"})}
 
   def handle_tap(:open_retired, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile)}

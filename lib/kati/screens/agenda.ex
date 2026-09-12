@@ -32,8 +32,46 @@ defmodule Kati.Screens.Agenda do
   design's `rgba(26,25,23,.16)`. The intent (an outline that reads as a
   placeholder rather than a control) mostly survives; the literal dash does
   not, and is recorded here rather than faked with a row of small boxes.
+
+  ## Which words on this page are this file's
+
+  One: the heading. Everything else this screen draws is a string it was
+  handed, and the two places they come from are both outside this file.
+
+  `Kati.Calendar.SampleAgenda` owns every kicker, every subtitle, every row —
+  the times, the titles, the `Lumen+` line, and the footer's
+  `Nothing else until 12 Sep`. This screen receives them already rendered and
+  `gettext/1` cannot take a variable, so they can only be wrapped where they
+  are written. That module has not been folded yet (nothing under
+  `lib/kati/calendar/` has), and until it is, a Persian reader gets a Persian
+  frame around an English drawing — the same honest half-state
+  `Kati.Screens.EventDetail` records for `Kati.Calendar.SampleEvent`.
+
+  `Kati.Screens.ViewSwitcher` owns the Day/Week/Month/Agenda strip, and its
+  four labels are **deliberately still Latin**. `bar/1` builds each segment's
+  tap tag out of the word it prints — `String.to_atom("view_" <> label)` — and
+  `ViewSwitcher.screen/1` matches those English words to route it. Translating
+  the labels here would rename three live controls to `:view_روز`,
+  `:view_هفته`, `:view_ماه` under `:fa`: `screen/1` would answer `nil` and the
+  strip would go dead on the Persian page, and the tags would fail the sweep in
+  `test/kati/screen_tap_sweep_test.exs` that forbids a control named after the
+  word printed on it, for exactly this reason — a control that renames itself
+  with the language is a control no device test can type. The fix is one prop
+  upstream (a `{label, tag, selected?}` triple, so the tag stops being the
+  copy), it belongs in the file that builds the tag, and screens 16 and 17 draw
+  the same strip and will want it too. Until then the heading says `فهرست` and
+  the segment under it says `Agenda`, which is the visible cost and is
+  preferable to three dead segments.
+
+  What the fold did reach here: the heading through `Kati.Gettext`, and the
+  three mono slots — the kicker, its subtitle and the row's time — through
+  `Kati.Locale.mono_face/1` and `Kati.Locale.tracking/1`, so they are already
+  right on the day `Kati.Calendar.SampleAgenda` starts answering in Persian.
+
+  mishka-group/kati#103.
   """
   use Kati.Screens.Root, root: :calendar
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Calendar.SampleAgenda
   alias Kati.Components.MishkaActionIcon
@@ -68,16 +106,20 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
+  # The one word on this page this file writes. `tracking/1` rather than the
+  # bare -0.03: the design tightens its headings by a fraction of an em, and
+  # the same fraction applied to Vazirmatn pulls the letters apart at the
+  # joins, which is a different word rather than a tighter one.
   @doc false
   def header do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Text
-          text="Agenda"
+          text={gettext("Agenda")}
           text_size={24}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
           max_lines={1}
         />
@@ -134,6 +176,13 @@ defmodule Kati.Screens.Agenda do
     )
   end
 
+  # These four stay in Latin, and it is not an oversight — see the moduledoc.
+  # `Kati.Screens.ViewSwitcher.bar/1` builds each segment's tap tag out of the
+  # label it prints and `ViewSwitcher.screen/1` routes on the English word, so
+  # a `gettext/1` here renames three live controls per language: the strip goes
+  # dead under `:fa` and the tags fail `test/kati/screen_tap_sweep_test.exs`'s
+  # "no control is named after the word printed on it". The translation waits
+  # on a stable tag in the module that builds it.
   @doc false
   def switcher do
     bar =
@@ -180,6 +229,18 @@ defmodule Kati.Screens.Agenda do
 
   # Two mono labels on one baseline: the day in ink, its weight in #A0998F —
   # `eyebrow`, the mono section label, which is what the second one is.
+  #
+  # Both faces ask the STRING, not the reader. `kati_mono.ttf` carries no
+  # Persian glyph, so a Persian kicker set in `mono` is handed to Android's own
+  # substitute face and lands in a typeface that is not Kati's — but `TODAY`
+  # and `20 Aug · 14 items · 2 clashes` are pure ASCII today, and DM Mono has
+  # every glyph they need. `Kati.Locale.mono_face/1` answers `"mono"` for those
+  # and Vazirmatn for whatever replaces them, so this slot is already right on
+  # the day `Kati.Calendar.SampleAgenda` folds and needs no second edit here.
+  #
+  # The tracking asks the reader instead, because that is the question it is:
+  # 0.16em opens the gaps between Latin capitals and breaks the joins between
+  # Arabic-script letters, so there is no value that is right for both.
   @doc false
   def kicker(group) do
     ~MOB"""
@@ -187,16 +248,16 @@ defmodule Kati.Screens.Agenda do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Text
           text={group.kicker}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(group.kicker)}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={:on_surface}
           max_lines={1}
         />
         <Spacer size={9} />
         <Text
           text={group.sub}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(group.sub)}
           text_size={10.5}
           text_color={Palette.eyebrow()}
           max_lines={1}
@@ -207,6 +268,13 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
+  # The clock stays in Latin digits under both scripts and that is the rule,
+  # not an omission: `kati_mono.ttf` carries none of U+06F0–U+06F9, so a time
+  # put through `Kati.Locale.number/1` would be Persian numerals in a face that
+  # has no Persian numeral. `Kati.Locale.mono_face/1` keeps the column in DM
+  # Mono for `20:00` and hands the one row that draws an em dash instead of a
+  # time to the reader's own face, which is the only glyph in this column that
+  # is not ASCII.
   @doc false
   def row(row, rule?) do
     ~MOB"""
@@ -215,7 +283,7 @@ defmodule Kati.Screens.Agenda do
         <Column width={38}>
           <Text
             text={row.time}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.time)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}

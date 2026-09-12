@@ -70,6 +70,7 @@ defmodule Kati.Screens.QuickAdd do
   does, and it is the first thing on this screen that should.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
@@ -136,7 +137,7 @@ defmodule Kati.Screens.QuickAdd do
 
     %{
       query: Kati.Screens.QuickAdd.echo(typed, read.spans),
-      title: read.title || "Nothing to add yet",
+      title: read.title || gettext("Nothing to add yet"),
       kind: Kati.Screens.QuickAdd.kind_line(read),
       facts: Kati.Screens.QuickAdd.facts(read),
       clash: Kati.Screens.QuickAdd.clash_for(read),
@@ -183,11 +184,20 @@ defmodule Kati.Screens.QuickAdd do
   @doc """
   The mono line under the title: what Kati will make, in capitals, the way
   board 18 types it.
+
+  The capitals are in the MSGID rather than in an `String.upcase/1` around it,
+  because there is no `text-transform` on that line in the drawing — the copy
+  itself is typed in capitals, which is the same reading
+  `Kati.Screens.QuickAdd.Sample`'s own moduledoc gives it. Persian has no case,
+  so the translation carries none and nothing has to be undone at the leaf;
+  `Kati.UI.eyebrow_label/1` exists for the other shape, where a sentence in
+  ordinary case is upcased for display and the upcasing is a no-op in Persian
+  that reads as one.
   """
   @spec kind_line(map()) :: String.t()
-  def kind_line(%{date: nil}), do: "NEEDS A DAY"
-  def kind_line(%{time: nil}), do: "ALL-DAY EVENT"
-  def kind_line(_read), do: "PERSONAL EVENT"
+  def kind_line(%{date: nil}), do: gettext("NEEDS A DAY")
+  def kind_line(%{time: nil}), do: gettext("ALL-DAY EVENT")
+  def kind_line(_read), do: gettext("PERSONAL EVENT")
 
   @doc """
   The chips: the day, the hours, the alert. Each one dropped when it is not
@@ -197,7 +207,15 @@ defmodule Kati.Screens.QuickAdd do
   @spec facts(map()) :: [[{String.t(), String.t()}]]
   def facts(read) do
     [
-      read.date && {"calendar_today", Calendar.strftime(read.date, "%a %-d %b")},
+      # `Kati.Locale.date/2`'s `:long` IS `%a %-d %b` in Latin, so the drawn
+      # `Thu 20 Aug` is unchanged, and it is `پنج‌شنبه ۲۹ مرداد ۱۴۰۵` in
+      # Persian — a different calendar rather than the same date translated.
+      # The Persian form carries its year where the Latin one does not, which
+      # is `date/2`'s own decision and is why there is no `:dated` on that
+      # side: a reader knows this year in Gregorian by heart and does not in
+      # Shamsi. It makes this chip the widest thing on the card in Persian, and
+      # the chip's `max_lines={1}` is what that rests on.
+      read.date && {"calendar_today", Kati.Locale.date(read.date, :long)},
       Kati.Screens.QuickAdd.hours(read),
       read.remind && {"notifications", Kati.Screens.QuickAdd.alert_line(read)}
     ]
@@ -209,18 +227,32 @@ defmodule Kati.Screens.QuickAdd do
   def hours(%{time: nil}), do: nil
 
   def hours(%{time: time, minutes: nil}),
-    do: {"schedule", Calendar.strftime(time, "%H:%M")}
+    do: {"schedule", Kati.Locale.time(time)}
 
   def hours(%{time: time, minutes: minutes}) do
     ends = Time.add(time, minutes * 60)
-    {"schedule", Calendar.strftime(time, "%H:%M") <> " – " <> Calendar.strftime(ends, "%H:%M")}
+
+    # The range is one msgid and not a join, so a script that puts the two
+    # hours the other way round can say so. `Kati.Screens.Calendar` and
+    # `Kati.Screens.EventDetail` already draw their hours through this exact
+    # msgid — the catalogue keeps the en dash under `:fa` — so the three cannot
+    # come out writing one range three ways.
+    {"schedule",
+     gettext("%{from} – %{to}", from: Kati.Locale.time(time), to: Kati.Locale.time(ends))}
   end
 
   @doc false
-  def alert_line(%{time: nil, remind: minutes}), do: "#{minutes}m before"
+  # Both forms carry a placeholder, and both take a context: `mix gettext.merge`
+  # fuzzy-matches a short msgid against any sentence resembling it, and
+  # `%{n} days before` (screen 21's watcher) is already in the catalogue for
+  # the first of these to be captured by.
+  def alert_line(%{time: nil, remind: minutes}),
+    do: pgettext("quick add alert chip", "%{n}m before", n: Kati.Locale.number(minutes))
 
   def alert_line(%{time: time, remind: minutes}) do
-    Calendar.strftime(Time.add(time, -minutes * 60), "%H:%M") <> " alert"
+    pgettext("quick add alert chip", "%{at} alert",
+      at: Kati.Locale.time(Time.add(time, -minutes * 60))
+    )
   end
 
   @doc """
@@ -231,14 +263,37 @@ defmodule Kati.Screens.QuickAdd do
   button says what is missing instead of naming a day nobody typed.
   """
   @spec cta(map(), Date.t()) :: String.t()
-  def cta(%{date: nil}, _today), do: "Say when, and Kati will add it"
+  def cta(%{date: nil}, _today), do: gettext("Say when, and Kati will add it")
 
   def cta(%{date: date}, today) do
     cond do
-      date == today -> "Add to today"
-      date == Date.add(today, 1) -> "Add to tomorrow"
-      true -> "Add to " <> Calendar.strftime(date, "%A")
+      date == today -> gettext("Add to today")
+      date == Date.add(today, 1) -> gettext("Add to tomorrow")
+      # Three msgids rather than one with a hole and *today* poured into it:
+      # Persian says به امروز and به پنج‌شنبه with no preposition change, but
+      # the two near days are the ones a language is most likely to want a
+      # different word for, and a hole would have decided for it.
+      true -> gettext("Add to %{day}", day: Kati.Screens.QuickAdd.weekday(date))
     end
+  end
+
+  @doc false
+  # A weekday NAMED, with no day of the month beside it — the one shape
+  # `Kati.Locale` has no helper for: `weekday_initial/1` is a chart axis's
+  # single letter and `date/2`'s `:full` carries the day and the month as well.
+  # So the pick is here, over the same two tables those two read, exactly as
+  # `Kati.Screens.Meal`'s own `weekday/1` does it.
+  #
+  # `Calendar.strftime(date, "%A")` was the English name in BOTH scripts, which
+  # is what this replaces: `%A` has no locale to consult — Elixir's default
+  # calendar names its days in English and nothing about `:fa` changes that —
+  # so a Persian reader's commit button read `افزودن به Thursday`.
+  @spec weekday(Date.t()) :: String.t()
+  def weekday(%Date{} = date) do
+    Kati.Locale.pick(
+      Kati.Time.day_name(date),
+      Kati.Calendar.Shamsi.weekday_name(Kati.Calendar.Shamsi.weekday_index(date))
+    )
   end
 
   def render(assigns) do
@@ -267,9 +322,9 @@ defmodule Kati.Screens.QuickAdd do
           {Kati.Screens.QuickAdd.input(sentence)}
           {Kati.Screens.QuickAdd.field(draft)}
           {Kati.Screens.QuickAdd.refusal(save_error)}
-          {UI.eyebrow("Kati read that as")}
+          {UI.eyebrow(gettext("Kati read that as"))}
           {Kati.Screens.QuickAdd.parsed(draft)}
-          {UI.eyebrow("Or file it as")}
+          {UI.eyebrow(gettext("Or file it as"))}
           {Kati.Screens.QuickAdd.kinds(draft, Map.get(assigns, :filed_as, :event))}
           {Kati.Screens.QuickAdd.actions(draft)}
         </Column>
@@ -301,9 +356,49 @@ defmodule Kati.Screens.QuickAdd do
       iex> {_pid, tag} = Kati.Screens.QuickAdd.kind_tap("Reminder")
       iex> tag
       :file_as_reminder
+
+  The label it is handed is the ENGLISH one, always — see `kind_label/1`.
   """
   @spec kind_tap(String.t()) :: {pid(), atom()}
   def kind_tap(label), do: {self(), String.to_atom("file_as_" <> String.downcase(label))}
+
+  @doc """
+  What a kind chip is CALLED, from what it IS.
+
+  On this screen a chip's label is its STATE as well as its copy: `kind_tap/1`
+  builds `:file_as_event` out of it and `filing/1` matches on it, and
+  `Kati.Screens.QuickAdd.Sample.kinds/0` is where the six words come from. So a
+  chip translated at the source would send `:"file_as_رویداد"`, `filing/1`
+  would fall through to `nil`, and a Persian reader tapping **Note** would
+  light the chip and still file an event — the quiet failure, and one that also
+  mints an atom per label per language.
+
+  The six therefore stay English wherever they are identity and are translated
+  here, once, at the one place they are read. `Kati.Screens.AddTitle.filter_label/1`
+  is the same arrangement over its three filters, and the reason is the same.
+
+  `pgettext/2` on all six rather than `gettext/1`. Each is one word, and
+  `mix gettext.merge` fuzzy-matches a one-word msgid against any sentence that
+  resembles it — `Event` has `Edit event` and `Delete event` waiting for it in
+  the catalogue. The context also leaves **Title** free to mean *a film or a
+  book* here, which is what tapping it does (it opens screen 06), while the
+  bare `Title` msgid goes on meaning the field label on screen 156.
+
+      iex> Kati.Screens.QuickAdd.kind_label("Habit")
+      "Habit"
+
+  An unrecognised label is drawn as it came, rather than raising: this row is
+  lent whole to screen 124, and a seventh chip added there should appear
+  untranslated instead of taking the screen down.
+  """
+  @spec kind_label(String.t()) :: String.t()
+  def kind_label("Event"), do: pgettext("quick add chip", "Event")
+  def kind_label("Reminder"), do: pgettext("quick add chip", "Reminder")
+  def kind_label("Title"), do: pgettext("quick add chip", "Title")
+  def kind_label("Habit"), do: pgettext("quick add chip", "Habit")
+  def kind_label("Note"), do: pgettext("quick add chip", "Note")
+  def kind_label("Expense"), do: pgettext("quick add chip", "Expense")
+  def kind_label(other) when is_binary(other), do: other
 
   @doc """
   The `Kati.Calendars.Event.kind` a chip files the sentence as, or `nil`.
@@ -458,6 +553,14 @@ defmodule Kati.Screens.QuickAdd do
   for a reason the reader cannot act on — there is no *make a calendar* screen
   in this app. The first local calendar wins if one exists, so somebody who
   has synced keeps their own.
+
+  **`display_name` is written in English and is not a `gettext/1` call**, even
+  under `:fa`. It is a row in the database, not a string on a screen: a name
+  translated at the write would freeze whichever language the reader happened
+  to be in when they first quick-added, and would then disagree with itself the
+  day they switched. `Kati.Screens.Calendars.copy/1` already maps this exact
+  word — `copy("Personal"), do: gettext("Personal")` — so the calendar is named
+  in Persian where it is READ, which is the half that follows the setting.
   """
   @spec personal_calendar() :: struct()
   def personal_calendar do
@@ -472,16 +575,23 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   @doc false
+  # `Kati.Locale.tracking/1` rather than the flat `-0.03`: tightening by a
+  # fraction of an em breaks the joins between Persian letters, which is a
+  # different defect from looking wrong — افزودن سریع comes apart into
+  # letterforms. `max_lines={1}` because the Persian title is the longer of the
+  # two and this Row has a 44pt disc on the end of it that must not be pushed
+  # off; the heading had none because `Quick add` has never needed one.
   def header do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Text
-          text="Quick add"
+          text={gettext("Quick add")}
           text_size={26}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
+          max_lines={1}
         />
         <Spacer weight={1.0} />
         {Kati.Screens.QuickAdd.close_disc()}
@@ -541,9 +651,26 @@ defmodule Kati.Screens.QuickAdd do
   # 18 is drawn MID-TYPING and its sentence is the clearest statement of the
   # syntax this screen has, so somebody who opens the page and types nothing is
   # looking at the example they need.
+  #
+  # **And it stays in Latin under `:fa`, isolated rather than translated.**
+  # This placeholder is not a sentence about the screen, it is an EXECUTABLE
+  # example of the one syntax the screen has, and `Kati.QuickAdd.Parse` reads
+  # English tokens only — `thu`, `11am`, `for 45m`, `remind 1h before` are the
+  # four regexes in that module and it has no Persian table for any of them. A
+  # translated placeholder would teach a Persian reader a syntax this app
+  # answers with nothing, which is worse than a foreign example that works.
+  # `Kati.Locale.ltr/1` is what stops it reading as broken meanwhile: the comma
+  # is a bidi neutral and resolves to the paragraph's direction, so an RTL
+  # field would lay it out at the left edge — the failure `Kati.Locale.ltr/1`'s
+  # own doc names on screen 83's licence notices. The day the parser learns
+  # Persian, this becomes a `gettext/1` and the two land together.
   @spec input(String.t()) :: map()
   def input(sentence) do
-    assigns = %{sentence: sentence, on_change: {self(), :sentence}}
+    assigns = %{
+      sentence: sentence,
+      example: Kati.Locale.ltr("dentist thu 11am for 45m, remind 1h before"),
+      on_change: {self(), :sentence}
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -563,7 +690,7 @@ defmodule Kati.Screens.QuickAdd do
       >
         <TextField
           value={@sentence}
-          placeholder="dentist thu 11am for 45m, remind 1h before"
+          placeholder={@example}
           return_key="done"
           weight={1.0}
           accessibility_id="quick_add_sentence"
@@ -683,6 +810,18 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   @doc false
+  # The kind line asks the STRING which face it wants rather than the reader —
+  # `Kati.Locale.mono_face/1` and not `mono_face/0` — because this one slot
+  # holds both kinds of thing. `kind_line/1` puts translated copy in it, which
+  # under `:fa` is Persian and has no glyph in `kati_mono.ttf`; screen 124 puts
+  # `EXPENSE · BOOKS` in it through `Kati.Screens.QuickAdd.Sample`, which is
+  # pure ASCII and belongs in DM Mono in either script. Deciding by script is
+  # what lets one Text serve both, and is the rule screen 80's provider list
+  # states.
+  #
+  # The title's tracking follows `Kati.Locale.tracking/1` for the same reason
+  # the header's does: the title is the reader's own typed words, so it is
+  # Persian whenever they are, and -0.02em pulls the joins apart.
   def parsed(draft) do
     ~MOB"""
     <Column fill_width={true}>
@@ -701,14 +840,14 @@ defmodule Kati.Screens.QuickAdd do
               text={draft.title}
               text_size={16}
               font_weight="bold"
-              letter_spacing={-0.02}
+              letter_spacing={Kati.Locale.tracking(-0.02)}
               text_color={:on_surface}
               max_lines={1}
             />
             <Spacer size={3} />
             <Text
               text={draft.kind}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(draft.kind)}
               text_size={10.5}
               text_color={Palette.cream_meta()}
               max_lines={1}
@@ -841,8 +980,25 @@ defmodule Kati.Screens.QuickAdd do
     Kati.Calendars.Today.timed(date)
     |> Enum.find(&Kati.Screens.QuickAdd.overlaps?(&1, from, to))
     |> case do
-      nil -> nil
-      event -> {"Clashes with", event.summary || "another event", "— add anyway?"}
+      nil ->
+        nil
+
+      event ->
+        # The sentence is already broken in three for the bolding, so each
+        # piece is translated where it stands. `pgettext/2` on all of them
+        # because each is two or three words, and `mix gettext.merge`
+        # fuzzy-matches a short msgid against any sentence resembling it —
+        # `— add anyway?` would have been captured by `No goals set — Kati
+        # counts anyway`, a different screen saying a different thing.
+        #
+        # The middle piece is the event's OWN summary and is never translated:
+        # it is what the reader wrote on their own calendar. Under `:fa` the
+        # three sit in a Row the root has already mirrored, so the lead lands
+        # on the right and the question mark at the far left, which is where a
+        # Persian sentence ends.
+        {pgettext("quick add clash", "Clashes with"),
+         event.summary || pgettext("quick add clash", "another event"),
+         pgettext("quick add clash", "— add anyway?")}
     end
   rescue
     _error -> nil
@@ -942,6 +1098,11 @@ defmodule Kati.Screens.QuickAdd do
   # they change what the sentence became: four of the six are one value of
   # `Kati.Calendars.Event.kind`, Title is a door onto screen 06 and Expense one
   # onto 124. See `kind_tap/1` and `filing/1`.
+  #
+  # `label` is the English word throughout — it is what `kind_tap/1` turns into
+  # a tag and what `filing/1` matches — and `kind_label/1` is what the reader
+  # is shown. The two must not be the same string, which is the whole of that
+  # function's doc.
   @doc false
   def kind(chip, live? \\ true)
 
@@ -959,7 +1120,7 @@ defmodule Kati.Screens.QuickAdd do
       {Kati.UI.symbol(icon, size: 16, color: Palette.on_ink())}
       <Spacer size={7} />
       <Text
-        text={label}
+        text={Kati.Screens.QuickAdd.kind_label(label)}
         text_size={12.5}
         font_weight="semibold"
         text_color={Palette.on_ink()}
@@ -984,7 +1145,7 @@ defmodule Kati.Screens.QuickAdd do
       {Kati.UI.symbol(icon, size: 16, color: Palette.sub())}
       <Spacer size={7} />
       <Text
-        text={label}
+        text={Kati.Screens.QuickAdd.kind_label(label)}
         text_size={12.5}
         font_weight="semibold"
         text_color={Palette.ink_soft()}

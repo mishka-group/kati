@@ -90,6 +90,7 @@ defmodule Kati.Screens.Music do
   album would not wrap onto a second line — it would narrow the other three.
   """
   use Kati.Screens.Root, root: :library
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Music.Album
@@ -242,7 +243,8 @@ defmodule Kati.Screens.Music do
 
   The word is upper-cased here rather than in the render because the export
   writes `41 PLAYS` into the markup, where `This month` beside it is
-  `text-transform:uppercase` — `Kati.Music.Sample`'s own note.
+  `text-transform:uppercase` — `Kati.Music.Sample`'s own note. Upper-cased by
+  `Kati.UI.eyebrow_label/1` and not by `String.upcase/1`: see `plays_label/1`.
   """
   @spec shaped(Album.t(), %{optional(String.t()) => Artist.t()}) :: map()
   def shaped(%Album{} = album, artists) do
@@ -263,6 +265,20 @@ defmodule Kati.Screens.Music do
   @doc """
   The tile's third line, in the drawing's own capitals.
 
+  **Screen 74's own msgid**, `%{n} play` / `%{n} plays` — the same string
+  `Kati.Screens.AlbumDetail` prints under the record this tile prints over, for
+  the reason `shaped/2` gives about the number itself. One tap separates the
+  two lines and a second msgid would let one journey word one fact two ways.
+
+  `ngettext/4` and not the two clauses this had, which matched on 1 and wrote
+  the English rule into Elixir. Persian does not inflect a noun after a
+  numeral — ۱ پخش and ۴۱ پخش are the same word — so which form a count takes
+  belongs to the translation rather than to this file.
+
+  `Kati.UI.eyebrow_label/1` and not `String.upcase/1`: the capitals are the
+  export's, and upper-casing is a Latin operation that does nothing to a
+  Persian line except read as a no-op. The drawing's `41 PLAYS` is unchanged.
+
       iex> Kati.Screens.Music.plays_label(41)
       "41 PLAYS"
 
@@ -270,28 +286,65 @@ defmodule Kati.Screens.Music do
       "1 PLAY"
   """
   @spec plays_label(non_neg_integer()) :: String.t()
-  def plays_label(1), do: "1 PLAY"
-  def plays_label(count), do: "#{count} PLAYS"
+  def plays_label(count) do
+    UI.eyebrow_label(ngettext("%{n} play", "%{n} plays", count, n: Kati.Locale.number(count)))
+  end
 
   @doc """
   The header's mono line: `418 albums · 61h this year`.
 
   Counted, where `Kati.Music.Sample.subtitle/0` is a literal — see the
   moduledoc on why the drawing's `418` is not arithmetic and a real shelf's
-  count is. `Kati.Screens.Books.subtitle/1` is the same line one shelf over,
-  and keeps the plural for a shelf of one for the same reason: the drawing
-  writes one word there and a screen is not the place to grow a second.
+  count is. `Kati.Screens.Books.subtitle/1` is the same line one shelf over.
+
+  It keeps the plural for a shelf of one, which is why this is `gettext/1` and
+  not the `ngettext/4` Books reaches for: the drawing writes one word there and
+  a screen is not the place to grow a second, so a shelf of one says
+  `1 albums` and that is the decision rather than a forgotten plural.
+  `Kati.MusicTest` reads the line back and holds it to it. Persian does not
+  inflect after a numeral either — ۱ آلبوم and ۴۱۸ آلبوم are the same word —
+  so one form is also the right Persian.
 
       iex> Kati.Screens.Music.subtitle([%{}, %{}], [])
       "2 albums · 0h this year"
   """
   @spec subtitle([Album.t()], [Listen.t()]) :: String.t()
   def subtitle(albums, listens) do
-    year = Kati.Time.today().year
-    minutes = listens |> Enum.filter(&(&1.listened_on.year == year)) |> Listen.total_minutes()
+    # `Kati.Locale.year_start/1` and not `Kati.Time.today().year`, which is the
+    # GREGORIAN year. This line says *this year*, and a Persian reader reads
+    # امسال — the Shamsi year, which opens at Nowruz and straddles two
+    # Gregorian ones. Filtering on `listened_on.year` under that word both
+    # leaves out the sittings between Nowruz and 1 January, which are this
+    # reader's year, and counts the ones between 1 January and Nowruz, which
+    # are last year's: nine months wrong in one direction and three in the
+    # other, on a figure nobody can check. `Kati.Screens.Stats.range/1` asks
+    # the same function the same question for board 61's header.
+    #
+    # Unchanged in Latin, where `year_start/1` is 1 January.
+    since = Kati.Locale.year_start(Kati.Time.today())
 
-    "#{length(albums)} albums · #{Listen.hours_label(minutes)} this year"
+    minutes =
+      listens
+      |> Enum.filter(&(Date.compare(&1.listened_on, since) != :lt))
+      |> Listen.total_minutes()
+
+    gettext("%{n} albums", n: Kati.Locale.number(length(albums))) <>
+      " · " <> gettext("%{hours} this year", hours: hours_label(minutes))
   end
+
+  # `61h`, in the reader's own digits and word.
+  #
+  # `Kati.Music.Listen.hours_label/1` is where this figure was formatted and it
+  # answers `"#{div(minutes, 60)}h"` — Latin digits, a Latin letter, and no
+  # seam a translator can reach. That is the defect
+  # `Kati.Screens.ArtistDetail.shaped/2` writes down at length in this same
+  # domain: a formatted string used as a value. So the DIVISION stays shared
+  # arithmetic and the LABEL is built here, where the locale is known, exactly
+  # as screen 77's `hours_label/1` does with the figure it carries.
+  #
+  # `%{n}h` is `Kati.Music.Sample.album/0`'s msgid — the same `61h` on screen
+  # 74's artist line — so the header and the detail page name an hour alike.
+  defp hours_label(minutes), do: gettext("%{n}h", n: Kati.Locale.number(div(minutes, 60)))
 
   @doc """
   The listening card: its label, this month's total, the window and the bars.
@@ -309,7 +362,10 @@ defmodule Kati.Screens.Music do
     month = Listen.in_month(listens, today)
 
     %{
-      label: "This month",
+      # The card's own SECTION word, and `Kati.Music.Sample.listening/0` writes
+      # the same one — one msgid, so the drawn card and the counted one cannot
+      # head the same figure with two different words.
+      label: gettext("This month"),
       total: Kati.Screens.Music.clock(Listen.total_minutes(month)),
       # The month's sittings and not every sitting ever: the card says *This
       # month* over both figures, and a window averaged over three years under
@@ -326,9 +382,14 @@ defmodule Kati.Screens.Music do
 
   Both halves always, including the zeroes: the card's 30pt slot is the one
   number on the screen and a bare `0m` in it reads as a missing value rather
-  than as a quiet month. `Kati.Music.Listen.hours_label/1` is the header's
-  coarser form of the same figure and stays where it is — the header says
-  `61h` and this says `9h 12m`, which is the drawing's own asymmetry.
+  than as a quiet month. The header's coarser form of the same figure is
+  `hours_label/1` above, and the asymmetry the drawing draws is unchanged: the
+  header says `61h` where this says `9h 12m`.
+
+  `%{h}h %{m}m` is `Kati.Screens.Stats.hours_and_minutes/1`'s msgid for board
+  61's hero, so the two big durations in the app are one string a translator
+  shapes once. The `h` and the `m` were two Latin letters glued to two Latin
+  numbers, which is what put `9h 12m` on a Persian page.
 
       iex> Kati.Screens.Music.clock(552)
       "9h 12m"
@@ -337,7 +398,12 @@ defmodule Kati.Screens.Music do
       "0h 0m"
   """
   @spec clock(non_neg_integer()) :: String.t()
-  def clock(minutes), do: "#{div(minutes, 60)}h #{rem(minutes, 60)}m"
+  def clock(minutes) do
+    gettext("%{h}h %{m}m",
+      h: Kati.Locale.number(div(minutes, 60)),
+      m: Kati.Locale.number(rem(minutes, 60))
+    )
+  end
 
   @doc """
   `mostly 21:00–23:00` — the two hours most listening starts in.
@@ -377,18 +443,31 @@ defmodule Kati.Screens.Music do
           |> Enum.min_by(fn {hour, count} -> {-count, hour} end)
           |> elem(0)
 
-        "mostly #{Kati.Screens.Music.oclock(hour)}–#{Kati.Screens.Music.oclock(rem(hour + 2, 24))}"
+        gettext("mostly %{from}–%{to}",
+          from: Kati.Screens.Music.oclock(hour),
+          to: Kati.Screens.Music.oclock(rem(hour + 2, 24))
+        )
     end
   end
 
   @doc """
   `21:00`, zero-padded, from an hour.
 
+  The digits follow the reader's script — `۲۱:۰۰` — which is what
+  `Kati.Locale.time/1` does with a real `Time`, and this is the same clock read
+  off an hour the frequency count answered with rather than off a struct. The
+  colon stays: 24-hour is the design's choice in both scripts, and the en dash
+  between two of these is `window/1`'s.
+
       iex> Kati.Screens.Music.oclock(9)
       "09:00"
   """
   @spec oclock(0..23) :: String.t()
-  def oclock(hour), do: String.pad_leading(Integer.to_string(hour), 2, "0") <> ":00"
+  def oclock(hour) do
+    padded = String.pad_leading(Integer.to_string(hour), 2, "0")
+
+    Kati.Locale.number(padded <> ":00")
+  end
 
   @doc """
   Twenty days of listening, as `{height, tone}` in the 40pt field.
@@ -482,6 +561,22 @@ defmodule Kati.Screens.Music do
     _error -> []
   end
 
+  @doc """
+  The word over the shelf — **Library**, on all three of them.
+
+  `Kati.Screens.Books.page_title/0` is the same function one shelf over and
+  they share the msgid rather than the function: the three shelves are one
+  header drawn three times, and a reader crossing from Books to Music must not
+  watch the page's own name change spelling.
+  """
+  @spec page_title() :: String.t()
+  def page_title, do: gettext("Library")
+
+  # The three section labels are `Kati.UI.eyebrow/2` and `Kati.UI.Eyebrow.quiet/1`
+  # rather than hand-built `<Text>`s, and that is what makes them translatable
+  # without touching this function: both ask `Kati.UI.eyebrow_label/1`, the
+  # face helper and `Kati.Locale.tracking/1` the three questions a Persian
+  # section label has — no case, no DM Mono, no tracking.
   @doc false
   def content(assigns) do
     page = assigns.page
@@ -497,17 +592,27 @@ defmodule Kati.Screens.Music do
       >
         {Kati.Screens.Music.header(page.subtitle)}
         {Kati.Screens.Music.segments()}
-        {UI.eyebrow("On repeat this week")}
+        {UI.eyebrow(gettext("On repeat this week"))}
         {Kati.Screens.Music.tiles(page.albums)}
-        {UI.eyebrow("Listening time")}
+        {UI.eyebrow(gettext("Listening time"))}
         {Kati.Screens.Music.listening_card(page.listening)}
-        {Kati.UI.Eyebrow.quiet("New from artists you follow")}
+        {Kati.UI.Eyebrow.quiet(gettext("New from artists you follow"))}
         {Kati.Screens.Music.releases(page.releases)}
       </Column>
     </Scroll>
     """
   end
 
+  # `Kati.Locale.tracking/1` on the 28pt title and `Kati.Locale.mono_face/1` on
+  # the line under it, which is the pair board 176 draws one shelf over:
+  # **کتابخانه** is set in Vazirmatn with `letter-spacing:0`, and so is
+  # **۶۴ کتاب · ۲ در حال خواندن** in the slot the Latin board sets in DM Mono.
+  # `kati_mono.ttf` has no Persian glyph, and tracking a Persian word apart
+  # breaks the joins between its letters.
+  #
+  # `max_lines={1}` on the title is new: **Library** is one short word and
+  # کتابخانه is longer, and a heading that wraps pushes the segmented control
+  # down the page. The subtitle already had one.
   @doc false
   def header(subtitle) do
     ~MOB"""
@@ -515,17 +620,18 @@ defmodule Kati.Screens.Music do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Library"
+            text={Kati.Screens.Music.page_title()}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={subtitle}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(subtitle)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -567,6 +673,9 @@ defmodule Kati.Screens.Music do
     )
   end
 
+  # The same three words screens 03 and 20 write in their own troughs, and the
+  # same three msgids — the control is one control drawn three times, so
+  # **موسیقی** is lit here and idle there rather than being translated twice.
   @doc false
   def segments do
     ~MOB"""
@@ -578,11 +687,11 @@ defmodule Kati.Screens.Music do
         padding={4}
         align="center"
       >
-        {Kati.Screens.Music.segment("movie", "Screen", false, :segment_screen)}
+        {Kati.Screens.Music.segment("movie", gettext("Screen"), false, :segment_screen)}
         <Spacer size={4} />
-        {Kati.Screens.Music.segment("menu_book", "Books", false, :segment_books)}
+        {Kati.Screens.Music.segment("menu_book", gettext("Books"), false, :segment_books)}
         <Spacer size={4} />
-        {Kati.Screens.Music.segment("graphic_eq", "Music", true, :segment_music)}
+        {Kati.Screens.Music.segment("graphic_eq", gettext("Music"), true, :segment_music)}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -744,6 +853,12 @@ defmodule Kati.Screens.Music do
     end
   end
 
+  # `Kati.Locale.mono_face/1` on the plays line and not `mono_face/0`: the slot
+  # asks the STRING's script rather than the reader's, because the two things
+  # that reach it are not in the same one. A shelf tile carries `plays_label/1`,
+  # which is the reader's language; a drawn tile carries
+  # `Kati.Music.Sample.albums/0`'s own field, which is `41 PLAYS` in ASCII —
+  # and DM Mono is the right face for that on either page.
   @doc false
   def album(nil), do: ~MOB"<Column weight={1.0} />"
 
@@ -764,7 +879,7 @@ defmodule Kati.Screens.Music do
       <Spacer size={3} />
       <Text
         text={item.plays}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(item.plays)}
         text_size={10}
         text_color={Palette.accent()}
         max_lines={1}
@@ -802,6 +917,21 @@ defmodule Kati.Screens.Music do
     end
   end
 
+  # The card's own eyebrow, drawn inline rather than through `Kati.UI.eyebrow/2`
+  # because it has no dash — so it has to ask the same three questions that
+  # component asks. `Kati.UI.eyebrow_label/1` for the capitals the export puts
+  # in CSS (`text-transform:uppercase`, which is a no-op on a script with no
+  # case), `Kati.Locale.mono_face/1` for the face, and `Kati.Locale.tracking/1`
+  # for the `.14em` — Latin small-caps spacing that pulls Persian letters apart
+  # at the joins.
+  #
+  # **No `max_lines` on the 30pt total, and that is deliberate.** `9h 12m` is
+  # ۹ ساعت ۱۲ دقیقه in Persian — three times the characters in the one slot on
+  # this card that carries a figure — and at 30pt it will not fit the width the
+  # window line leaves it. Wrapping makes the card taller; `max_lines={1}`
+  # would ellipsize the number itself, and a listening total the reader cannot
+  # read is worse than a card that grew. The heading above the shelf takes the
+  # opposite answer for the opposite reason: it is a word, not a value.
   @doc false
   def listening_card(l) do
     ~MOB"""
@@ -816,10 +946,10 @@ defmodule Kati.Screens.Music do
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
             <Text
-              text={String.upcase(l.label)}
-              font_family="mono"
+              text={Kati.UI.eyebrow_label(l.label)}
+              font_family={Kati.Locale.mono_face(l.label)}
               text_size={10}
-              letter_spacing={0.14}
+              letter_spacing={Kati.Locale.tracking(0.14)}
               text_color={Palette.cream_meta()}
             />
             <Spacer size={6} />
@@ -827,14 +957,14 @@ defmodule Kati.Screens.Music do
               text={l.total}
               text_size={30}
               font_weight="extrabold"
-              letter_spacing={-0.04}
+              letter_spacing={Kati.Locale.tracking(-0.04)}
               text_color={:on_surface}
             />
           </Column>
           <Spacer size={12} />
           <Text
             text={l.window}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(l.window)}
             text_size={11}
             text_color={Palette.cream_meta()}
             max_lines={1}
@@ -977,9 +1107,20 @@ defmodule Kati.Screens.Music do
   # itself three times rather than leaving 19 to guess for all three. The empty
   # query is said out loud because a disc has nothing typed behind it, and
   # silence is what lets 19 open on whatever was last handed over.
+  #
+  # `gettext/1` around the word, because this one is DRAWN: screen 19 renders
+  # `back` in its own pill (`Kati.Screens.Search.back/1`), and a Persian reader
+  # arriving there was met with **Music** in Latin on a pill whose glyph had
+  # already flipped. `Kati.Screens.Pushed.back_vocabulary/0` lists the word for
+  # exactly this, and `Kati.Screens.Library` hands over `gettext("Library")`
+  # the same way.
   def handle_tap(:open_search, socket),
     do:
-      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Music"})}
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{
+         query: "",
+         back: gettext("Music")
+       })}
 
   # The sort disc, and the sheet it was drawn for. Board 145 is titled **Sort &
   # filter** and its caption is explicit: *one sheet for screens 03, 20 and 21 —
