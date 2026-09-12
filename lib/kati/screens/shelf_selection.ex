@@ -185,9 +185,41 @@ defmodule Kati.Screens.ShelfSelection do
   no `AnnotatedString`: every run renders at one style, so the four spans the
   drawing sets in `#1A1917` semibold render in the paragraph's own ink but
   not any heavier. The words survive; the emphasis does not yet.
+
+  ## Under `:fa`, and the three decisions inside the fold
+
+  mishka-group/kati#103 left this screen rendering its English module with the
+  locale set to Persian, so every sentence on it is a `gettext/1` now. Three
+  of the changes are worth naming here because they are decisions rather than
+  wrapping:
+
+    * **Every number on the page goes through `Kati.Locale.number/1`** — the
+      41, the 418, the count on the header, the count in the undo pill, and
+      the 4, the 2 and the 143 frozen into the cream note. A Persian
+      paragraph carrying the only Latin numerals on the page is the
+      half-folded sentence this whole exercise exists to stop, and the fact
+      that a figure is the board's rather than the reader's changes nothing
+      about which digits it is set in.
+    * **`count_word/1` is clauses, not a map.** `gettext/1` inside a module
+      attribute is evaluated at COMPILE time and freezes in whichever locale
+      the compiler was in, so the `@count_words` table that turned 4 into
+      *four* could not hold a translated word. Its own doc has the long
+      version.
+    * **Two paragraphs, two different answers about splitting a sentence
+      across msgids.** `filter_note/0`'s run boundaries survive Persian word
+      order and stay where the drawing put them; `sort_note/0`'s did not, so
+      its bold run grew from the one word *persists* to the clause that word
+      is the verb of. Both are commented where they are.
+
+  The three names the board writes that are NOT this module's — the sort's
+  name off `Kati.Library.ShelfFiltersSample.sort_options/0`, the tile titles
+  and the `S2 · 5/7` captions off `Kati.Library.Sample.selection_shelf/0` —
+  are interpolated rather than reworded, so they arrive folded on the day
+  those modules are and this screen has nothing to change.
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
@@ -198,19 +230,6 @@ defmodule Kati.Screens.ShelfSelection do
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
-
-  @count_words %{
-    1 => "one",
-    2 => "two",
-    3 => "three",
-    4 => "four",
-    5 => "five",
-    6 => "six",
-    7 => "seven",
-    8 => "eight",
-    9 => "nine",
-    10 => "ten"
-  }
 
   # Board 145's own `showing 41 of 418`, and the only number on this screen
   # that is a literal rather than a read. See the moduledoc.
@@ -337,7 +356,7 @@ defmodule Kati.Screens.ShelfSelection do
   def resting_header_still do
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Resting header — sort persists and says so")}
+      {UI.eyebrow(gettext("Resting header — sort persists and says so"))}
       {Kati.Screens.ShelfSelection.library_header()}
       <Spacer size={11} />
       {Kati.Screens.ShelfSelection.sort_note()}
@@ -350,6 +369,21 @@ defmodule Kati.Screens.ShelfSelection do
   def library_header do
     line = sort_line()
 
+    # WHAT THE FOLD CHANGED ON A STILL OF SOMEBODY ELSE'S HEADER.
+    #
+    # The title takes `Kati.Locale.tracking/1` and `max_lines={1}`, which is
+    # what `Kati.Screens.Library.header/2` — the header this is a picture of —
+    # already carries on its own 28pt: negative tracking breaks the joins
+    # between Persian letters, and *کتابخانه* is one word that must not be
+    # allowed to wrap beside two 40pt discs. Adding the cap is the one
+    # behaviour change on this band, and it makes the still agree with the
+    # live header it quotes rather than disagree with it.
+    #
+    # The mono line asks `mono_face/1` about ITS OWN script rather than about
+    # the reader's: `41 OF 418 · RECENTLY ADDED` is ASCII and stays in DM Mono
+    # in both languages, and the same line with Persian digits in it does not,
+    # because `kati_mono.ttf` carries no U+06F0–U+06F9. Screen 03 sets its own
+    # subtitle exactly this way.
     ~MOB"""
     <Row
       fill_width={true}
@@ -361,17 +395,18 @@ defmodule Kati.Screens.ShelfSelection do
     >
       <Column weight={1.0}>
         <Text
-          text="Library"
+          text={gettext("Library")}
           text_size={22}
           max_font_scale={1.6}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
+          max_lines={1}
         />
         <Spacer size={5} />
         <Text
           text={line}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(line)}
           text_size={10.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -391,12 +426,36 @@ defmodule Kati.Screens.ShelfSelection do
   The shelf's size and the sort's name come from board 145's own facets, so a
   rename there lands here rather than leaving two boards disagreeing about
   what the shelf is sorted by.
+
+  ## Upcased in one script only, and interpolated rather than glued
+
+  `Kati.UI.eyebrow_label/1` replaces the `String.upcase/1` this was: Arabic
+  script has no case, so upcasing a Persian line does nothing at all — which
+  is worse than it sounds, because the call site still *says* the line is
+  upcased and nobody reading it can tell that half the app's readers see a
+  decision that was never applied. `eyebrow_label/1` upcases in Latin and
+  hands the line back untouched in Persian, which is what every other mono
+  eyebrow in the app now does.
+
+  Both figures go through `Kati.Locale.number/1` — a Persian page reading
+  `41 از 418` with Latin numerals in it is the same half-folded sentence.
+
+  The sort's NAME does not. It is `Kati.Library.ShelfFiltersSample.
+  sort_options/0`'s string, that module owns it, and interpolating rather
+  than re-wording it means this screen has nothing to change on the day it is
+  folded: the Persian arrives through the same hole the English does.
   """
   @spec sort_line() :: String.t()
   def sort_line do
     {_key, sort} = hd(ShelfFiltersSample.sort_options())
 
-    String.upcase("#{@drawn_showing} of #{ShelfFiltersSample.total()} · #{sort}")
+    UI.eyebrow_label(
+      gettext("%{shown} of %{total} · %{sort}",
+        shown: Kati.Locale.number(@drawn_showing),
+        total: Kati.Locale.number(ShelfFiltersSample.total()),
+        sort: sort
+      )
+    )
   end
 
   # 40pt where `Kati.Screens.Library.disc/2` is 44 — this board's own number —
@@ -418,15 +477,40 @@ defmodule Kati.Screens.ShelfSelection do
 
   @doc false
   def sort_note do
-    base = [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft(), base: true]
+    base = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.ink_soft(),
+      base: true
+    ]
+
     emphasis = [font_weight: "semibold", text_color: :on_surface]
 
+    # TWO MSGIDS, AND THE BOLD RUN GREW FROM A WORD TO A CLAUSE.
+    #
+    # The drawing bolds the single word *persists*, and a run boundary drawn
+    # around that one word does not survive the fold. Persian is verb-final:
+    # *ترتیب چیدمان بین بازدیدها پایدار می‌ماند* puts the verb after *between
+    # visits*, so the three fragments would have to be resequenced by a
+    # translator, who cannot reorder them — a msgid's place in the list is
+    # fixed by the code. Splitting a sentence across msgids is exactly how a
+    # translation gets a word order it cannot fix; `Kati.Screens.
+    # DataSourcesStates.bad_key/0` takes the same decision the other way,
+    # where the boundary happened to survive, and says so at length.
+    #
+    # So the emphasis is the whole opening clause instead. It is the same
+    # sentence and the same paragraph either way, and `Kati.UI.rich_text/1`
+    # flattens every run to one style today regardless (see its moduledoc and
+    # this screen's), so nothing on screen changes in either language — what
+    # changes is that the Persian can be written.
     body =
       UI.rich_text([
-        {"Sort ", base},
-        {"persists", emphasis},
-        {" between visits — resetting it every time is annoying — so the mono line names it. " <>
-           "A silent persistent sort is the confusing option; a named one is not.", base}
+        {gettext("Sort persists between visits"), emphasis},
+        {" — " <>
+           gettext(
+             "resetting it every time is annoying — so the mono line names it. " <>
+               "A silent persistent sort is the confusing option; a named one is not."
+           ), base}
       ])
 
     ~MOB"""
@@ -459,9 +543,16 @@ defmodule Kati.Screens.ShelfSelection do
   def one_selected_still(1), do: ~MOB"<Spacer size={0} />"
 
   def one_selected_still(_count) do
+    # `selection_label(1)` and not the literal `One selected` this carried.
+    # The still's eyebrow and the live band's are the board's same label at
+    # the same count — which is the argument `selection_bar/1` already makes
+    # for building it from the count rather than picking it from a pair — and
+    # written out here it was a second msgid saying exactly what the first
+    # one says, free to be translated into a different Persian word. One
+    # builder, one msgid, and the same `ONE SELECTED` on screen as before.
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.eyebrow_muted("One selected")}
+      {SettingsList.eyebrow_muted(Kati.Screens.ShelfSelection.selection_label(1))}
       {Kati.Screens.ShelfSelection.header_card(1, false)}
       <Spacer size={14} />
     </Column>
@@ -494,10 +585,26 @@ defmodule Kati.Screens.ShelfSelection do
   Zero is this screen's own extrapolation and reads `Nothing selected`, not
   `0 selected`: an eyebrow is a sentence about the band under it, and a
   numeral there would be the only one in any eyebrow in the app.
+
+  ## One msgid, not a word glued to a word
+
+  `count_word(count) <> " selected"` is a sentence a translation cannot reach:
+  the join is in the code, so a language that puts the number after the word,
+  or needs a preposition between them, has nowhere to say so. The whole label
+  is one msgid with the count word interpolated into it instead.
+
+  `pgettext/2` rather than `gettext/1` because `%{word} selected` is two
+  tokens long and `mix gettext.merge` fuzzy-matches a msgid that short
+  against any sentence that resembles it — and this screen has a second,
+  genuinely different *selected* line one card below (`selection_count/1`).
+  The contexts are what keep the eyebrow and the count apart.
   """
   @spec selection_label(non_neg_integer()) :: String.t()
-  def selection_label(0), do: "Nothing selected"
-  def selection_label(count), do: count_word(count) <> " selected"
+  def selection_label(0), do: gettext("Nothing selected")
+
+  def selection_label(count),
+    do:
+      pgettext("the eyebrow over a selection header", "%{word} selected", word: count_word(count))
 
   @doc false
   def header_card(count, live?) do
@@ -582,40 +689,87 @@ defmodule Kati.Screens.ShelfSelection do
   # glyph and the action pills, which are fixed shapes. That is fence `K-29`'s
   # split and 147 draws it as cleanly as any board in the set.
   def count_body(count) when count > 1 do
+    counted = selection_count(count)
+
+    # The tracking goes through `Kati.Locale.tracking/1` and the `max_lines`
+    # stays off. Two different rules meeting on one node: -0.02em pulls
+    # Persian letters apart at the joins that make them one word, so it is
+    # spent in Latin only — and 147's caption names this count as the one
+    # thing on the bar guaranteed never to clip, so it is still allowed to
+    # grow to as many lines as the reader's text size needs.
+    applies = gettext("Actions apply to all %{word}", word: count_word(count))
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={"#{count} selected"}
+        text={counted}
         text_size={15}
         font_weight="bold"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={:on_surface}
       />
       <Spacer size={3} />
-      <Text
-        text={"Actions apply to all #{Kati.Screens.ShelfSelection.count_word(count)}"}
-        text_size={11}
-        text_color={Palette.sub()}
-      />
+      <Text text={applies} text_size={11} text_color={Palette.sub()} />
     </Column>
     """
   end
 
   def count_body(count) do
+    counted = selection_count(count)
+
     ~MOB"""
     <Text
-      text={"#{count} selected"}
+      text={counted}
       text_size={15}
       font_weight="bold"
-      letter_spacing={-0.02}
+      letter_spacing={Kati.Locale.tracking(-0.02)}
       text_color={:on_surface}
     />
     """
   end
 
-  @doc false
+  @doc """
+  `4 selected` — the one thing this bar exists to say, in the reader's digits.
+
+  Its own function because the cream note at the foot of the page QUOTES it,
+  and a caption describing the header in one wording while the header says
+  another is the drift this screen is built to avoid. One call, two places.
+  """
+  @spec selection_count(non_neg_integer()) :: String.t()
+  def selection_count(count),
+    do: pgettext("the count on a selection header", "%{n} selected", n: Kati.Locale.number(count))
+
+  @doc """
+  The board's own `four`, or a numeral once the words run out.
+
+  ## Why this is clauses and not the `@count_words` map it was
+
+  `gettext/1` in a module attribute is evaluated when the module COMPILES and
+  freezes in whichever locale the compiler happened to be in — so a table of
+  ten translated words held in `@count_words` would have shipped one language
+  to both readers, silently and permanently. The table is the function.
+
+  `pgettext/2` for every one of them: `one` … `ten` are single words, and
+  `mix gettext.merge` fuzzy-matches a msgid that short against any sentence
+  in the catalogue that resembles it. The context is what stops `one` from
+  being merged into something that merely ends in it.
+
+  Past ten there is no word left to write out and the numeral is the answer —
+  through `Kati.Locale.number/1` rather than `Integer.to_string/1`, which
+  draws `11` in the middle of a Persian eyebrow.
+  """
   @spec count_word(non_neg_integer()) :: String.t()
-  def count_word(n), do: Map.get(@count_words, n, Integer.to_string(n))
+  def count_word(1), do: pgettext("a small count written out as a word", "one")
+  def count_word(2), do: pgettext("a small count written out as a word", "two")
+  def count_word(3), do: pgettext("a small count written out as a word", "three")
+  def count_word(4), do: pgettext("a small count written out as a word", "four")
+  def count_word(5), do: pgettext("a small count written out as a word", "five")
+  def count_word(6), do: pgettext("a small count written out as a word", "six")
+  def count_word(7), do: pgettext("a small count written out as a word", "seven")
+  def count_word(8), do: pgettext("a small count written out as a word", "eight")
+  def count_word(9), do: pgettext("a small count written out as a word", "nine")
+  def count_word(10), do: pgettext("a small count written out as a word", "ten")
+  def count_word(n), do: Kati.Locale.number(n)
 
   @doc """
   Three pills at one selected, two past it, none at zero.
@@ -632,9 +786,9 @@ defmodule Kati.Screens.ShelfSelection do
   def actions(1, live?) do
     ~MOB"""
     <Row align="center">
-      {Kati.Screens.ShelfSelection.pill("Add to list", :add_to_list, live?)}
+      {Kati.Screens.ShelfSelection.pill(gettext("Add to list"), :add_to_list, live?)}
       <Spacer size={7} />
-      {Kati.Screens.ShelfSelection.pill("Status", :change_status, live?)}
+      {Kati.Screens.ShelfSelection.pill(gettext("Status"), :change_status, live?)}
       <Spacer size={7} />
       {Kati.Screens.ShelfSelection.remove_pill(live?)}
     </Row>
@@ -644,7 +798,7 @@ defmodule Kati.Screens.ShelfSelection do
   def actions(_count, live?) do
     ~MOB"""
     <Row align="center">
-      {Kati.Screens.ShelfSelection.pill("Add to list", :add_to_list, live?)}
+      {Kati.Screens.ShelfSelection.pill(gettext("Add to list"), :add_to_list, live?)}
       <Spacer size={7} />
       {Kati.Screens.ShelfSelection.remove_pill(live?)}
     </Row>
@@ -684,7 +838,7 @@ defmodule Kati.Screens.ShelfSelection do
   @doc false
   def remove_pill_body do
     MishkaPill.pill(
-      label: "Remove",
+      label: gettext("Remove"),
       background: Palette.red_wash(),
       color: Palette.red(),
       corner_radius: 15,
@@ -789,6 +943,14 @@ defmodule Kati.Screens.ShelfSelection do
     tap = {self(), Kati.Screens.ShelfSelection.toggle_tag(index)}
     ring? = MapSet.member?(selected, item.id)
 
+    # Read once, because the face is decided BY the line. `shelf/0` hands back
+    # the reader's own shelf wherever there is one, so this caption is either
+    # `S2 · 5/7` — ASCII, and DM Mono has every glyph it needs — or the folded
+    # `تمام‌شده`, which DM Mono would set as a row of empty boxes. Asking
+    # `mono_face/1` about the string rather than about the reader is what gets
+    # both of those right on the same shelf; screen 03's tile does the same.
+    meta = Kati.Screens.ShelfSelection.display_meta(item)
+
     ~MOB"""
     <Column weight={1.0} on_tap={tap}>
       {Kati.Screens.ShelfSelection.poster(item, ring?)}
@@ -797,14 +959,14 @@ defmodule Kati.Screens.ShelfSelection do
         text={item.title}
         text_size={12.5}
         font_weight="bold"
-        letter_spacing={-0.01}
+        letter_spacing={Kati.Locale.tracking(-0.01)}
         text_color={:on_surface}
         max_lines={1}
       />
       <Spacer size={3} />
       <Text
-        text={Kati.Screens.ShelfSelection.display_meta(item)}
-        font_family="mono"
+        text={meta}
+        font_family={Kati.Locale.mono_face(meta)}
         text_size={10.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -876,8 +1038,28 @@ defmodule Kati.Screens.ShelfSelection do
     )
   end
 
-  @doc "`done` once `Status` has flipped it; the sample's own season/episode line otherwise."
-  def display_meta(%{done?: true}), do: "done"
+  @doc """
+  `done` once `Status` has flipped it; the sample's own season/episode line
+  otherwise.
+
+  `pgettext/2` for a one-word msgid, for `count_word/1`'s reason: `mix
+  gettext.merge` fuzzy-matches anything this short against any sentence in
+  the catalogue that ends in it.
+
+  The Persian is `تمام‌شده`, which is the word the catalogue already carries
+  for `Kati.Screens.Library.tile_meta/1`'s `finished`. Two English words for
+  one state — the board writes `done` and screen 03 writes `finished` — and a
+  reader meeting two Persian words for it would go looking for a difference
+  that is not there. The scripts stay as the two boards drew them; the
+  meaning does not fork.
+
+  The other clause is NOT translated here and must not be: `meta` is either
+  `Kati.Library.Sample.selection_shelf/0`'s `S2 · 5/7`, which that module
+  owns, or `Kati.Screens.Library.shelf/0`'s line off the reader's own row.
+  """
+  def display_meta(%{done?: true}),
+    do: pgettext("a shelf tile's mono line once Status has marked it complete", "done")
+
   def display_meta(%{meta: meta}), do: meta
 
   # ── The undo pill (screen 27's, see the moduledoc) ─────────────────────
@@ -896,7 +1078,7 @@ defmodule Kati.Screens.ShelfSelection do
 
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.eyebrow_muted("Undo — every destructive action")}
+      {SettingsList.eyebrow_muted(gettext("Undo — every destructive action"))}
       {Kati.Screens.ShelfSelection.undo_pill(drawn, false)}
       <Spacer size={14} />
     </Column>
@@ -906,7 +1088,7 @@ defmodule Kati.Screens.ShelfSelection do
   def undo_band(%{count: count}) do
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.eyebrow_muted("Undo — every destructive action")}
+      {SettingsList.eyebrow_muted(gettext("Undo — every destructive action"))}
       {Kati.Screens.ShelfSelection.undo_pill(count, true)}
       <Spacer size={14} />
     </Column>
@@ -915,7 +1097,17 @@ defmodule Kati.Screens.ShelfSelection do
 
   @doc false
   def undo_pill(count, live?) do
-    message = "Removed #{count} #{title_word(count)}"
+    # `ngettext/4` in place of the `title_word/1` this glued on. A count and a
+    # noun joined in Elixir is a sentence no catalogue can reach: the plural
+    # rule was English's, hardcoded at one and above, and the word order was
+    # English's too. Gettext owns both now.
+    #
+    # Persian's plural form is the same string as its singular — a noun after
+    # a numeral does not inflect — so `msgstr[0]` and `msgstr[1]` both read
+    # `%{n} عنوان حذف شد`, which is what the catalogue already says for
+    # screen 03's own `%{n} title`.
+    message =
+      ngettext("Removed %{n} title", "Removed %{n} titles", count, n: Kati.Locale.number(count))
 
     ~MOB"""
     <Row
@@ -948,7 +1140,7 @@ defmodule Kati.Screens.ShelfSelection do
   def undo_word(false) do
     ~MOB"""
     <Text
-      text="Undo"
+      text={gettext("Undo")}
       text_size={12.5}
       font_weight="bold"
       text_color={Palette.accent()}
@@ -963,7 +1155,7 @@ defmodule Kati.Screens.ShelfSelection do
     ~MOB"""
     <Row on_tap={undo_tap} align="center">
       <Text
-        text="Undo"
+        text={gettext("Undo")}
         text_size={12.5}
         font_weight="bold"
         text_color={Palette.accent()}
@@ -973,28 +1165,59 @@ defmodule Kati.Screens.ShelfSelection do
     """
   end
 
-  @doc false
-  def title_word(1), do: "title"
-  def title_word(_n), do: "titles"
-
   # ── The cream note (see the moduledoc for why this is not 143's) ──────
 
   @doc false
   def filter_note do
-    base = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body(), base: true]
+    base = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.cream_body(),
+      base: true
+    ]
+
     emphasis = [font_weight: "semibold", text_color: :on_surface]
 
+    # THE NOTE QUOTES THE HEADER RATHER THAN RETYPING IT.
+    #
+    # `4 selected` was a literal here and a second literal on the bar above,
+    # which is two msgids for one sentence and two chances for the caption to
+    # describe the header in words the header does not use. `selection_count/1`
+    # is the call the live bar makes, so there is one wording in each script.
+    #
+    # The 4 and the 2 are the board's own frozen figures — nothing on this
+    # screen counts them, the same way `@drawn_showing` is not counted — and
+    # they go through `Kati.Locale.number/1` so a Persian paragraph does not
+    # carry the only two Latin numerals on the page. The quotation marks come
+    # off `Kati.Locale.quoted/1`, which is “…” in Latin and «…» in Persian; a
+    # Persian reader meets the curly pair as a foreign mark.
+    #
+    # EVERY RUN BOUNDARY HERE SURVIVES THE FOLD, which is why splitting this
+    # paragraph across msgids is safe where `sort_note/0`'s was not. Two of
+    # them sit either side of a noun and Persian keeps the noun where English
+    # has it: *long press a* | **tile** | *selects* comes out as *فشار طولانی
+    # روی* | **کاشی** | *انتخاب می‌کند*, in that order. The third sits after a
+    # verb of saying, and a Persian quotation follows *می‌گوید* exactly as an
+    # English one follows *reading*. So there is nothing in this list a
+    # translator would need to reorder — which they could not do anyway, since
+    # a msgid's place in the paragraph is fixed by the code.
     body =
       UI.rich_text([
-        {"Selection survives a filter change. ", emphasis},
-        {"Filter four selected titles out of view and the header keeps reading ", base},
-        {"4 selected", emphasis},
-        {" with a “2 hidden by filters” note — silently dropping a selection loses work the user already did. Gesture rule: long press a ",
+        {gettext("Selection survives a filter change.") <> " ", emphasis},
+        {gettext("Filter four selected titles out of view and the header keeps reading") <> " ",
          base},
-        {"tile", emphasis},
-        {" selects; long press an ", base},
-        {"episode row", emphasis},
-        {" rates. Also on 143.", base}
+        {selection_count(4), emphasis},
+        {" " <>
+           gettext(
+             "with a %{note} note — silently dropping a selection loses work the user " <>
+               "already did.",
+             note: Kati.Locale.quoted(gettext("%{n} hidden by filters", n: Kati.Locale.number(2)))
+           ) <> " ", base},
+        {gettext("Gesture rule: long press a") <> " ", base},
+        {pgettext("the thing a long press on a shelf selects", "tile"), emphasis},
+        {" " <> gettext("selects; long press an") <> " ", base},
+        {pgettext("the thing a long press in a season rates", "episode row"), emphasis},
+        {" " <> gettext("rates. Also on %{board}.", board: Kati.Locale.number(143)), base}
       ])
 
     ~MOB"""

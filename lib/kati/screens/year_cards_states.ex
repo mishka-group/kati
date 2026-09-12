@@ -169,11 +169,68 @@ defmodule Kati.Screens.YearCardsStates do
   `Kati.Screens.Pushed` asks for: a catch-all no-op here would silence the one
   report that catches a control wired to nothing, and there is nothing on this
   sheet for it to catch.
+
+  ## What this sheet translates, and what it only typesets
+
+  mishka-group/kati#103. The sheet owns its own chrome and all five captions —
+  the title, the subtitle, the five eyebrows, the three caption paragraphs, the
+  quoted line on the first card and the whole of the failure card — and those
+  are `gettext/1` here.
+
+  Some of the words drawn on these cards are **not** this file's to translate,
+  and the reuse argued for above is exactly why:
+
+    * `Your year` and the `Kati` wordmark are
+      `Kati.Stats.ShareSample.field_face/0`'s; the three ranked titles and
+      their rank numerals are that module's `top_titles/0`, set by
+      `Kati.Screens.YearShare.rank_row/1`. A msgid has to be a literal at its
+      own call site, so the only way to wrap them from here would be to retype
+      the copy — which forks the specimen this sheet's whole claim depends on
+      being the same one screen 100 draws.
+    * `Kati` is a wordmark in any event, and stays Latin on a Persian page for
+      board 127's reason: a name a thing calls itself is spelled one way.
+
+  What this file does own for those words is their **typesetting**, and that is
+  the half that fails silently:
+
+    * `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` on the field
+      card's label. The Arabic script has no case, so upper-casing **سال شما**
+      is a no-op that reads as one.
+    * `Kati.Locale.mono_face/1` rather than `font_family="mono"` on every mono
+      slot. `kati_mono.ttf` carries no Persian glyph and none of
+      U+06F0–U+06F9, so a Persian line left in it comes back in Android's
+      substitute face or as empty boxes. The **arity-1** form takes the two
+      strings that are the sample's: they are pure ASCII today and stay in DM
+      Mono, and they move to Vazirmatn on the day the sample folds without this
+      file changing, which is the whole reason that arity exists. The arity-0
+      form takes the four mono lines this file writes itself, which are the
+      reader's own language by construction.
+    * `Kati.Locale.tracking/1` on the `.14em` and `.1em` labels. Letter-spacing
+      is a Latin small-caps effect and it pulls Persian letters apart at their
+      joins.
+    * `Kati.Locale.number/1` on all three of the board's figures — `3` weeks,
+      `34 WEEKS TO GO` and `1 HIDDEN`. That they are drawn rather than computed
+      changes nothing about which digits a Persian reader counts in.
+    * `Kati.Locale.leading/1` on every paragraph, for the reason
+      `Kati.Theme.fa_line_height/0` gives: Vazirmatn's metrics are not Plus
+      Jakarta's. The one tile that holds a paragraph absorbs the difference in
+      a `Spacer weight`, so the 4:5 canvas is untouched by it.
+
+  Nothing on this sheet draws a chevron or an arrow, so none of it needs
+  `Kati.Locale.forward_chevron/0`; the fan's `offset_x` needs no mirror either,
+  because the bridge lays it out with `Modifier.offset` rather than
+  `absoluteOffset` and the collage therefore turns around with the page.
+
+  The one thing on the sheet that the fold would have *broken* rather than left
+  in Latin is `private?/1`, which used to compare a drawn rank against the
+  literal `"2"`. Its own doc has the argument.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Design.Images
+  alias Kati.I18n.Digits
   alias Kati.Music.Sample, as: MusicSample
   alias Kati.Screens.YearShare
   alias Kati.Stats.ShareSample
@@ -202,6 +259,35 @@ defmodule Kati.Screens.YearCardsStates do
   @doc false
   @spec content(map()) :: map()
   def content(_assigns) do
+    # Bound out here rather than written inside the sigil's `{...}`, in the
+    # shape `Kati.Screens.DropStates.content/1` uses: both compile, and this
+    # way the seven msgids the chrome owns read as one list somebody can check
+    # against board 101.
+    #
+    # `Year cards` is already in the catalogue — `Kati.Settings.Sample` names
+    # this very sheet from the Settings list — and an exact msgid always beats
+    # minting a second Persian word for a thing the app has already named.
+    #
+    # The subtitle is typed in capitals because `SettingsList.subtitle/2` does
+    # not upcase for the caller, and the four muted eyebrows are typed in
+    # sentence case because `SettingsList.eyebrow_muted/1` does. Neither
+    # matters under `:fa`, where there is no case to apply.
+    #
+    # `Rendering` is the one that takes a context. It is a single word, there
+    # is no plain `Rendering` in the catalogue, and `mix gettext.merge` scores
+    # it 0.76 against the existing `Reading` (**در حال خواندن**) — close enough
+    # to the 0.8 fuzzy line that one more neighbour arriving would tip it, and
+    # a card state called *در حال خواندن* is a wrong word nothing on this sheet
+    # asserts against. Everything else here is a phrase long enough that no
+    # msgid in the catalogue comes near it.
+    title = gettext("Year cards")
+    subtitle = gettext("FIVE STATES")
+    not_enough = gettext("Not enough data")
+    partial = gettext("Partial year — deliberate, not broken")
+    private = gettext("A private title")
+    rendering = pgettext("a card mid-draw", "Rendering")
+    unsupported = gettext("Save not supported yet")
+
     ~MOB"""
     <Scroll>
       <Column
@@ -212,16 +298,16 @@ defmodule Kati.Screens.YearCardsStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Year cards", "FIVE STATES")}
-        {UI.eyebrow("Not enough data")}
+        {SettingsList.title(title, subtitle)}
+        {UI.eyebrow(not_enough)}
         {Kati.Screens.YearCardsStates.not_enough_data()}
-        {SettingsList.eyebrow_muted("Partial year — deliberate, not broken")}
+        {SettingsList.eyebrow_muted(partial)}
         {Kati.Screens.YearCardsStates.partial_year()}
-        {SettingsList.eyebrow_muted("A private title")}
+        {SettingsList.eyebrow_muted(private)}
         {Kati.Screens.YearCardsStates.private_title()}
-        {SettingsList.eyebrow_muted("Rendering")}
+        {SettingsList.eyebrow_muted(rendering)}
         {Kati.Screens.YearCardsStates.rendering()}
-        {SettingsList.eyebrow_muted("Save not supported yet")}
+        {SettingsList.eyebrow_muted(unsupported)}
         {Kati.Screens.YearCardsStates.save_unsupported()}
       </Column>
     </Scroll>
@@ -249,9 +335,9 @@ defmodule Kati.Screens.YearCardsStates do
       </Row>
       <Spacer size={12} />
       <Text
-        text="Not much to show yet"
+        text={gettext("Not much to show yet")}
         text_size={12.5}
-        line_height={1.5}
+        line_height={Kati.Locale.leading(1.5)}
         font_weight="semibold"
         text_color={:on_surface}
         text_align="center"
@@ -259,6 +345,22 @@ defmodule Kati.Screens.YearCardsStates do
       <Spacer weight={1.0} />
     </Column>
     """
+
+    # The caption quotes the card's own sentence back, so the figure inside it
+    # goes through `Kati.Locale.number/1` rather than sitting frozen in the
+    # msgid: **۳** is what a Persian reader counts in, and a msgstr carrying a
+    # Latin `3` would be one more place to forget. Interpolated even though the
+    # figure never moves — see the moduledoc on why nothing here is computed —
+    # because that is the rule `Kati.Screens.BackupStates` already follows for
+    # its own four drawn counts.
+    #
+    # The English quotes are typographic and the Persian ones are guillemets;
+    # both live inside their own msgid, which is where a mark that differs by
+    # script belongs.
+    quoted =
+      gettext("“Not much to show yet — Kati has %{n} weeks of your year.”",
+        n: Kati.Locale.number(3)
+      )
 
     caption = ~MOB"""
     <Column
@@ -269,17 +371,17 @@ defmodule Kati.Screens.YearCardsStates do
       shadow={Kati.Theme.shadow_card_soft()}
     >
       <Text
-        text="“Not much to show yet — Kati has 3 weeks of your year.”"
+        text={quoted}
         text_size={12.5}
-        line_height={1.6}
+        line_height={Kati.Locale.leading(1.6)}
         text_color={Palette.ink_soft()}
       />
       <Spacer size={10} />
       <Text
-        text="SAVE STAYS AVAILABLE"
-        font_family="mono"
+        text={gettext("SAVE STAYS AVAILABLE")}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Palette.tertiary()}
         max_lines={1}
       />
@@ -300,16 +402,30 @@ defmodule Kati.Screens.YearCardsStates do
   def partial_year do
     face = ShareSample.field_face()
 
-    label = String.upcase(face.title)
+    # The two words on this card are the sample's and stay the sample's — see
+    # the moduledoc. What this file owns is how they are set, and both halves
+    # of that break silently under `:fa`: `Kati.UI.eyebrow_label/1` upper-cases
+    # only where upper case exists, and `Kati.Locale.mono_face/1` asks the
+    # STRING's script rather than the reader's, which is the right question for
+    # a slot holding somebody else's copy. Both are ASCII today and stay in DM
+    # Mono; the day `Kati.Stats.ShareSample.field_face/0` folds, the label moves
+    # to Vazirmatn and this call site does not change.
+    label = UI.eyebrow_label(face.title)
     wordmark = face.wordmark
+
+    # The board's own figure, taken as drawn — the moduledoc says why 42 of 104
+    # and 34 weeks are not reconciled, and localising a number does not reopen
+    # that. The line moves to Vazirmatn with its digits, because `kati_mono.ttf`
+    # carries neither a Persian letter nor one of U+06F0–U+06F9.
+    weeks = gettext("%{n} WEEKS TO GO", n: Kati.Locale.number(34))
 
     body = ~MOB"""
     <Column fill_width={true} fill_height={true} padding={18}>
       <Text
         text={label}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(label)}
         text_size={10}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={Palette.muted()}
         max_lines={1}
       />
@@ -318,8 +434,8 @@ defmodule Kati.Screens.YearCardsStates do
       <Spacer weight={1.0} />
       <Row fill_width={true} align="center">
         <Text
-          text="34 WEEKS TO GO"
-          font_family="mono"
+          text={weeks}
+          font_family={Kati.Locale.mono_face()}
           text_size={10}
           text_color={Palette.muted()}
           max_lines={1}
@@ -329,7 +445,7 @@ defmodule Kati.Screens.YearCardsStates do
         <Spacer size={6} />
         <Text
           text={wordmark}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(wordmark)}
           text_size={10.5}
           text_color={Palette.sub()}
           max_lines={1}
@@ -340,9 +456,17 @@ defmodule Kati.Screens.YearCardsStates do
 
     caption =
       Kati.Screens.YearCardsStates.caption([
-        {"Empty cells keep their hairline so the year reads as ", :body},
-        {"unfinished", :strong},
-        {", not as missing data. The caption counts what is left.", :body}
+        {gettext("Empty cells keep their hairline so the year reads as "), :body},
+        # One word, and the one `mix gettext.merge` would actually get wrong:
+        # `unfinished` scores 0.87 against the catalogue's `finished`
+        # (**تمام‌شده**), which is the precise opposite of what this caption
+        # says, and a caption asserting the year is finished is a defect no
+        # test on this sheet could catch because nothing here is asserted
+        # against a string. The context names the sentence the word is
+        # emphasised inside, the way
+        # `Kati.Screens.BackupStates.export_unavailable/0` names its own.
+        {pgettext("emphasis in “the year reads as unfinished”", "unfinished"), :strong},
+        {gettext(", not as missing data. The caption counts what is left."), :body}
       ])
 
     Kati.Screens.YearCardsStates.state(Kati.Screens.YearCardsStates.tile(190, body), caption)
@@ -359,13 +483,26 @@ defmodule Kati.Screens.YearCardsStates do
   """
   @spec private_title() :: map()
   def private_title do
+    # `Top titles` rather than a new `TOP TITLES`: screen 98 already draws this
+    # face's label and it is already **عنوان‌های برتر** in the catalogue, so the
+    # capitals are applied by `Kati.UI.eyebrow_label/1` — where there are
+    # capitals to apply — instead of being frozen into a second msgid that
+    # would need the same Persian written twice.
+    label = UI.eyebrow_label(gettext("Top titles"))
+
+    # The board's own count, kept as drawn like the other two figures, with its
+    # numeral asked of the reader. `gettext/1` rather than `ngettext/3`:
+    # `HIDDEN` is a past participle and does not inflect for the count in
+    # either language, so there is no second form for a plural to choose.
+    hidden = gettext("%{n} HIDDEN", n: Kati.Locale.number(1))
+
     body = ~MOB"""
     <Column fill_width={true} fill_height={true} padding={18}>
       <Text
-        text="TOP TITLES"
-        font_family="mono"
+        text={label}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={Palette.muted()}
         max_lines={1}
       />
@@ -375,8 +512,8 @@ defmodule Kati.Screens.YearCardsStates do
       {YearShare.ranks()}
       <Spacer size={10} />
       <Text
-        text="1 HIDDEN"
-        font_family="mono"
+        text={hidden}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
         text_color={Palette.muted()}
         max_lines={1}
@@ -386,8 +523,10 @@ defmodule Kati.Screens.YearCardsStates do
 
     caption =
       Kati.Screens.YearCardsStates.caption([
-        {"The slot stays, filled with paper and a lock. Removing it would silently " <>
-           "change the collage’s shape.", :body}
+        {gettext(
+           "The slot stays, filled with paper and a lock. Removing it would silently " <>
+             "change the collage’s shape."
+         ), :body}
       ])
 
     Kati.Screens.YearCardsStates.state(Kati.Screens.YearCardsStates.tile(190, body), caption)
@@ -418,10 +557,15 @@ defmodule Kati.Screens.YearCardsStates do
     </Column>
     """
 
+    # **چرخنده** for *spinner*, which is the word screen 87 already uses for
+    # 27's same rule — *Searching — skeleton, never a spinner*. Two Persian
+    # words for one design principle stated twice would read as two principles.
     caption =
       Kati.Screens.YearCardsStates.caption([
-        {"The card’s own shape, shimmering. Never a spinner — the user already " <>
-           "knows what is coming.", :body}
+        {gettext(
+           "The card’s own shape, shimmering. Never a spinner — the user already " <>
+             "knows what is coming."
+         ), :body}
       ])
 
     Kati.Screens.YearCardsStates.state(Kati.Screens.YearCardsStates.tile(190, body), caption)
@@ -442,19 +586,39 @@ defmodule Kati.Screens.YearCardsStates do
   """
   @spec save_unsupported() :: map()
   def save_unsupported do
+    soft = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      text_color: Palette.ink_soft()
+    ]
+
+    strong = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      font_weight: "semibold",
+      text_color: :on_surface
+    ]
+
+    # The full stop is left as a bare literal on purpose, and it is the one run
+    # here that is NOT a msgid. Persian closes a sentence with the same U+002E
+    # this does, so there is nothing to translate; and `"."` is precisely the
+    # one-character msgid `mix gettext.merge` fuzzy-matches onto any sentence
+    # ending in one. `Kati.Screens.Goals` had to wrap its own period because
+    # Persian word order moved a verb into it — nothing moves into this one,
+    # because the emphasised run already ends on its verb.
+    #
+    # Bidi needs no help either: a neutral at the end of an RTL paragraph
+    # resolves RTL and lands at the left edge, which is where a Persian full
+    # stop belongs. `Kati.Locale.ltr/1` is for a Latin run sitting INSIDE a
+    # Persian sentence, and there is none on this card.
     body =
       UI.rich_text([
-        {"Saving files needs a platform capability Kati does not have on this version. " <>
-           "Until it lands, a screenshot of this card is the same picture — ",
-         [text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft()]},
-        {"the card is drawn at full quality on screen",
-         [
-           text_size: 12.5,
-           line_height: 1.6,
-           font_weight: "semibold",
-           text_color: :on_surface
-         ]},
-        {".", [text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft()]}
+        {gettext(
+           "Saving files needs a platform capability Kati does not have on this version. " <>
+             "Until it lands, a screenshot of this card is the same picture — "
+         ), soft},
+        {gettext("the card is drawn at full quality on screen"), strong},
+        {".", soft}
       ])
 
     ~MOB"""
@@ -470,7 +634,7 @@ defmodule Kati.Screens.YearCardsStates do
         <Spacer size={11} />
         <Column weight={1.0}>
           <Text
-            text="Kati can’t write the image yet"
+            text={gettext("Kati can’t write the image yet")}
             text_size={13.5}
             font_weight="bold"
             text_color={:on_surface}
@@ -489,7 +653,7 @@ defmodule Kati.Screens.YearCardsStates do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Show me the card full-screen"
+          text={gettext("Show me the card full-screen")}
           text_size={12.5}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -563,7 +727,12 @@ defmodule Kati.Screens.YearCardsStates do
   """
   @spec caption([{String.t(), :body | :strong}]) :: map()
   def caption(runs) do
-    body = [text_size: 12, line_height: 1.55, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.ink_soft()
+    ]
+
     strong = Keyword.merge(body, font_weight: "semibold", text_color: :on_surface)
 
     runs
@@ -689,7 +858,7 @@ defmodule Kati.Screens.YearCardsStates do
     shadow = poster_shadow()
 
     art =
-      if title.rank == @private_rank do
+      if Kati.Screens.YearCardsStates.private?(title.rank) do
         UI.symbol("lock", size: 18, color: Palette.rail_idle())
       else
         Kati.Screens.YearCardsStates.poster_art(Images.poster(title.seed))
@@ -711,6 +880,27 @@ defmodule Kati.Screens.YearCardsStates do
     </Box>
     """
   end
+
+  @doc """
+  Whether this rank is the one the board locks.
+
+  `rank` is a **display** string off `Kati.Stats.ShareSample.top_titles/0`, and
+  comparing it straight to a Latin `"2"` is a label being used as state. It
+  holds today only because the sample has not folded yet: the moment that
+  module routes its ranks through `Kati.Locale.number/1` — which every other
+  drawn figure in this file now goes through — the second title's rank reads
+  `۲` under `:fa`, the comparison stops matching, and the lock quietly leaves
+  the collage. That draws the three posters this whole band exists to argue
+  against, on the one locale where nobody is looking for it, and the reader
+  gets no signal at all that a title was taken out.
+
+  `Kati.I18n.Digits.fold/1` asks the digits rather than the glyphs. It is a
+  no-op on ASCII, so `:en` is unchanged to the character, and it keeps the
+  moduledoc's *the second title is private* reading rather than trading it for
+  a position in a list that could be reordered underneath it.
+  """
+  @spec private?(String.t()) :: boolean()
+  def private?(rank), do: Digits.fold(rank) == @private_rank
 
   @doc false
   @spec poster_art(String.t() | nil) :: map()

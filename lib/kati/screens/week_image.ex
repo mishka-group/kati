@@ -155,8 +155,34 @@ defmodule Kati.Screens.WeekImage do
   screens 69 and 76 hand-roll what they cannot pass a face to.
 
   No dock on a pushed screen, so the frame closes at 40 rather than 132.
+
+  ## What follows the reader, and what stays a specimen — mishka-group/kati#103
+
+  This is one of the handful of screens `Kati.Locale.as/2`'s own doc names as
+  drawing **both** languages at once and meaning to, so the fold splits this
+  file in two rather than translating it:
+
+    * **The two cards are specimens.** `page_en/0` is the English page whatever
+      the reader's language is — that is what `Kati.Locale.as(:en, …)` is doing
+      around it — and `page_fa/0` is the Persian one whatever the reader's
+      language is. Translating either would leave the screen holding two copies
+      of the same card and nothing left to compare, which is the entire subject
+      of `rtl_eyebrow/0` and `restart_note/0`. So `WEEK OF 17 AUG`, `MON`–`SUN`,
+      `PLANNED`/`FREE`/`APPROX` and the English dish table stay Latin on a
+      Persian page on purpose, exactly as `Lumen+` does on board 127.
+    * **Everything outside the cards follows the reader**: the screen's own
+      heading and mono line, the save button, the eyebrow over the second card,
+      both notes and every sentence `handle_tap/2` can put on screen.
+
+  `Kati` in the footer is the third case and belongs to neither: it is a
+  wordmark, so it is Latin on both cards and in DM Mono on both — which is why
+  `mark/1`, `approx/1` and `legend_swatch/1` ask `Kati.Locale.mono_face/1` about
+  their own ASCII rather than `mono_face/0` about the reader. The arity-0 call
+  answers `fa` for a Persian reader, and it was answering it for the English
+  card too.
   """
   use Kati.Screens.Pushed, back: "Plans"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaSeparator
   alias Kati.Fa.SampleWeek
@@ -243,12 +269,23 @@ defmodule Kati.Screens.WeekImage do
   A map rather than two arguments because that is 44's signature, and 44's
   builder is what draws it: the same 28pt bold title over the same mono line in
   the same `muted`, which is the recipe every pushed screen in this family
-  opens with. The mono line is stored already upper-cased, since it is a fixed
-  mark on this one screen rather than a label that is also read as a sentence
-  somewhere else.
+  opens with.
+
+  This is the screen's own chrome rather than part of either card, so both
+  lines follow the reader — see the moduledoc for the split. The mono line used
+  to be stored already upper-cased; it is raised by `Kati.UI.eyebrow_label/1`
+  now instead, because `String.upcase/1` on Persian is a no-op that *reads* as
+  a decision, and a msgid stored shouting is a msgid a translator has to undo.
+  A function, not a module attribute: `gettext/1` in an attribute freezes at
+  compile time in whichever locale the compiler was in.
   """
   @spec heading() :: map()
-  def heading, do: %{title: "The week as an image", subtitle: "ONE PAGE, FRIDGE-SIZED"}
+  def heading do
+    %{
+      title: gettext("The week as an image"),
+      subtitle: UI.eyebrow_label(gettext("One page, fridge-sized"))
+    }
+  end
 
   @doc """
   The English page: the plan as screen 44 knows it, printed Monday first.
@@ -685,6 +722,12 @@ defmodule Kati.Screens.WeekImage do
   happens to be approximate is still planned, so the tray keeps its fill. The
   mark stays in the mono face on both pages: it is an ASCII tilde, and the one
   Persian glyph rule that could have bitten here does not reach it.
+
+  `Kati.Locale.mono_face/1`, not `mono_face/0`, and the difference is the whole
+  sentence above. The arity-0 call asks the READER's language and answers `fa`
+  for a Persian one — which would have taken DM Mono off the tilde on the
+  ENGLISH card as well, on a screen whose point is that the two cards differ
+  only where they have to. The arity-1 call asks the string, and `~` is ASCII.
   """
   @spec approx(boolean()) :: map()
   def approx(false), do: ~MOB"<Spacer size={0} />"
@@ -695,7 +738,7 @@ defmodule Kati.Screens.WeekImage do
       <Spacer size={1} />
       <Text
         text="~"
-        font_family={Kati.Locale.mono_face()}
+        font_family={Kati.Locale.mono_face("~")}
         text_size={6.5}
         text_color={Palette.gold_icon()}
         text_align="center"
@@ -785,7 +828,8 @@ defmodule Kati.Screens.WeekImage do
   A 9pt square at radius 2 rather than screen 44's 7pt dot, and the difference
   is the point: this key is a chip cut out of the grid above it, so a reader
   matches it against a cell by shape. `:approx` has no swatch at all — its mark
-  *is* the glyph, so the key shows the glyph.
+  *is* the glyph, so the key shows the glyph, in the same DM Mono the cells set
+  it in and for the reason `approx/1` spells out.
   """
   @spec legend_swatch(atom()) :: map()
   def legend_swatch(:planned) do
@@ -796,7 +840,7 @@ defmodule Kati.Screens.WeekImage do
     ~MOB"""
     <Text
       text="~"
-      font_family={Kati.Locale.mono_face()}
+      font_family={Kati.Locale.mono_face("~")}
       text_size={10}
       text_color={Palette.gold_icon()}
       max_lines={1}
@@ -824,6 +868,12 @@ defmodule Kati.Screens.WeekImage do
   Persian page and stays in the mono face there: a wordmark is a mark, which is
   the rule board 76 records for the Latin word printed on an
   album cover.
+
+  The catalogue writes the app's name as کاتی in eighty-eight *sentences*, and
+  that is not a contradiction of the line above: prose names the app, a
+  wordmark **is** the app, and this footer draws the wordmark. Which is also
+  why the face is `Kati.Locale.mono_face/1` asking about `p.mark` rather than
+  `mono_face/0` asking about the reader — see `approx/1`.
   """
   @spec mark(map()) :: map()
   def mark(p) do
@@ -833,7 +883,7 @@ defmodule Kati.Screens.WeekImage do
       ~MOB"""
       <Text
         text={p.mark}
-        font_family={Kati.Locale.mono_face()}
+        font_family={Kati.Locale.mono_face(p.mark)}
         text_size={9.5}
         text_color={Palette.sub()}
         max_lines={1}
@@ -907,6 +957,14 @@ defmodule Kati.Screens.WeekImage do
   It is wired even though nothing happens yet: `handle_tap/2` says why, and a
   control that draws correctly and is not wired at all is the failure
   `Kati.Screens.Pushed`'s DEAD TAP report exists to catch.
+
+  The one control on the screen is also the one thing here a reader has to be
+  able to act on, so its label follows the reader rather than either card. The
+  msgid is board 98's own — `Save image` is already in the catalogue from
+  `Kati.Screens.YearShare` — because two buttons that do the same thing in the
+  same words should not arrive as two entries a translator can drift apart.
+  No `font_family`: `Kati.Screens.Pushed.chrome/3` puts `Kati.Locale.face_prop/0`
+  on the root and every `Text` outside the two cards falls back to it.
   """
   @spec save_button() :: map()
   def save_button do
@@ -923,7 +981,7 @@ defmodule Kati.Screens.WeekImage do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Save image"
+          text={gettext("Save image")}
           text_size={14.5}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -947,15 +1005,43 @@ defmodule Kati.Screens.WeekImage do
   no Arabic-script code point, so 44's builder would draw four empty boxes at
   the end of the line.
 
-  So the Latin run keeps the mono face and the drawing's `.16em`, and the
+  So the lead run keeps the mono face and the drawing's `.16em`, and the
   Persian word is a second `Text` in `fa` with no tracking. A `Row` can hold
   two runs where a paragraph cannot — see `restart_note/0` — because this line
   never wraps. The cost is a hair of baseline difference between two faces at
   one size, which is smaller than the cost of the word being unreadable.
+
+  ## Two runs in both scripts — mishka-group/kati#103
+
+  The eyebrow labels the card below it, so it is the screen's chrome and not
+  part of either specimen: a Persian reader gets a Persian label over a Persian
+  card. That did not need a second shape, because the Persian sentence happens
+  to end on the same word the English one does — *آغاز دوبارهٔ هفته از* then
+  *شنبه*, where the English is *…RESTARTS AT* then *شنبه* — so the same two
+  runs serve both and nothing here has to ask which page it is drawing. The
+  translator is the one who has to keep that true, which is why the msgid ends
+  in a space rather than in the day.
+
+  This node sits **outside** the card, so it is the one row on the screen
+  `order/2` must not touch: the root's `layout_direction` already reverses it
+  under `:fa` — `Kati.Screens.Pushed.chrome/3` sets the prop from
+  `Kati.Locale.direction_prop/0` — and reversing it again by hand would put the
+  dash back on the left. `order/2` exists only because the two cards are drawn
+  in a direction the root does not have.
+
+  Three values move with the script rather than one, and they are the three
+  `Kati.UI.eyebrow_label/1`'s doc names: Vazirmatn wants 11 over DM Mono's
+  10.5, semibold over normal, and no tracking. The face already asked —
+  `Kati.Locale.mono_face/0` answers `fa` for a Persian reader, which is right
+  here and is exactly what the *cards* must not do; see `approx/1` for the
+  other half of that. The day keeps the lead's size rather than its own, since
+  it is one word set beside another on one line.
   """
   @spec rtl_eyebrow() :: map()
   def rtl_eyebrow do
-    latin = String.upcase("RTL — the week restarts at ")
+    lead = UI.eyebrow_label(gettext("RTL — the week restarts at "))
+    size = Kati.Locale.pick(10.5, 11)
+    weight = Kati.Locale.pick("normal", "semibold")
 
     ~MOB"""
     <Column fill_width={true}>
@@ -963,17 +1049,19 @@ defmodule Kati.Screens.WeekImage do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={latin}
+          text={lead}
           font_family={Kati.Locale.mono_face()}
-          text_size={10.5}
-          letter_spacing={0.16}
+          text_size={size}
+          font_weight={weight}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
           max_lines={1}
         />
         <Text
           text="شنبه"
           font_family="fa"
-          text_size={10.5}
+          text_size={size}
+          font_weight={weight}
           text_color={Palette.eyebrow()}
           max_lines={1}
         />
@@ -1000,13 +1088,35 @@ defmodule Kati.Screens.WeekImage do
 
   The drawing bolds *restarts the sequence at شنبه*; `MobText` takes one weight
   for the whole string, so the emphasis is dropped rather than orphaned.
+
+  The paragraph is the screen talking about its own cards rather than anything
+  printed on one, so it follows the reader. One msgid and no interpolation, and
+  the board number is written into the sentence the way `Kati.Screens.Money`
+  and `Kati.Screens.BookDetail` write theirs — *Prices are owned by 92* comes
+  back as `صفحهٔ ۹۲`, so the digits are the translator's to shape and not a
+  `Kati.Locale.number/1` call this file has to remember to make. `شنبه` stays
+  Persian in the English msgid for the same reason it is drawn at all: the
+  sentence is about that word.
+
+  `font_family="fa"` stays hardcoded rather than becoming `face_prop/0`,
+  because it is not a fact about the reader here. It is a fact about the
+  string: this paragraph contains شنبه in **both** languages, and Plus Jakarta
+  Sans has no glyph for it in either.
+
+  Which is also why `line_height` stays 1.85 instead of taking
+  `Kati.Locale.leading/1` the way `Kati.UI.SettingsList.note_text/1`'s does.
+  That helper exists because Vazirmatn's metrics are not Plus Jakarta's, so a
+  Latin paragraph's leading is wrong under its Persian twin — and this
+  paragraph has been Vazirmatn on both pages since before the fold. 1.85 is the
+  drawing's number measured on the face it is still set in; putting the
+  correction on top of it would apply it twice.
   """
   @spec restart_note() :: map()
   def restart_note do
     text =
-      "Mirroring alone would put Monday on the right and still be wrong. " <>
-        "The Persian page restarts the sequence at شنبه — the same correction " <>
-        "60 makes for the in-app matrix."
+      gettext(
+        "Mirroring alone would put Monday on the right and still be wrong. The Persian page restarts the sequence at شنبه — the same correction 60 makes for the in-app matrix."
+      )
 
     ~MOB"""
     <Column fill_width={true}>
@@ -1034,15 +1144,24 @@ defmodule Kati.Screens.WeekImage do
   same frame, which is the reason its two-point disagreements with this drawing
   are left alone — see the moduledoc. Its two bold runs go the way
   `restart_note/0`'s does.
+
+  The component already carries the two things this note needs from the fold:
+  `note_text/1` sets its leading with `Kati.Locale.leading/1`, and it names no
+  face, so it takes the root's. What is left is the sentence, which is the
+  screen's own claim about what a page can do — chrome, not specimen — and so
+  it follows the reader. `44` and `48px` are written into the msgid rather than
+  interpolated, as `restart_note/0` explains; the `~` is left as the ASCII
+  tilde it names, and needs no `Kati.Locale.ltr/1` because it sits between two
+  Persian words in the translation rather than at either edge, so the bidi
+  algorithm has no neutral to strand.
   """
   @spec page_note() :: map()
   def page_note do
     SettingsList.note(
       "info",
-      "A page, not a screen, so cells carry names rather than state dots — " <>
-        "44’s matrix could not, at 48px a column. Free slots stay outlined so a " <>
-        "gap reads as a choice. The ~ mark rides along, because an approximate " <>
-        "plan printed as exact is the same lie on paper."
+      gettext(
+        "A page, not a screen, so cells carry names rather than state dots — 44’s matrix could not, at 48px a column. Free slots stay outlined so a gap reads as a choice. The ~ mark rides along, because an approximate plan printed as exact is the same lie on paper."
+      )
     )
   end
 
@@ -1110,9 +1229,18 @@ defmodule Kati.Screens.WeekImage do
   # what happened, and whether anything was lost. Nothing ever is — the capture
   # writes to the cache and the picker is the only thing that writes anywhere
   # else — so every one of these ends by saying so.
-  defp message(:no_activity), do: "Kati is not on screen. Nothing was saved."
-  defp message(:nothing_drawn), do: "There was nothing to capture. Nothing was saved."
-  defp message(:timeout), do: "The page took too long to capture. Nothing was saved."
-  defp message(:no_bridge), do: "Saving images does not work here yet."
-  defp message(_other), do: "That did not save. The page is unchanged."
+  #
+  # All five follow the reader. A refusal is the one thing on this screen that
+  # is neither card, and a reader who cannot read the sentence explaining why
+  # nothing saved is in exactly the position `handle_tap/2`'s doc says this
+  # whole branch exists to prevent.
+  #
+  # `کاتی` in the Persian, not `Kati`: the app's name is a wordmark in the
+  # footer of a page and a WORD in a sentence, and the catalogue already writes
+  # it the second way eighty-eight times. `mark/1` carries the other half.
+  defp message(:no_activity), do: gettext("Kati is not on screen. Nothing was saved.")
+  defp message(:nothing_drawn), do: gettext("There was nothing to capture. Nothing was saved.")
+  defp message(:timeout), do: gettext("The page took too long to capture. Nothing was saved.")
+  defp message(:no_bridge), do: gettext("Saving images does not work here yet.")
+  defp message(_other), do: gettext("That did not save. The page is unchanged.")
 end

@@ -133,7 +133,11 @@ defmodule Kati.Screens.GoalsEmpty do
   @spec counted() :: [map()]
   def counted do
     Enum.map(@counted, fn {kind, count, detail, glyph, tag} ->
-      %{title: "#{count} #{Goal.unit(kind)}", detail: detail, glyph: glyph, tag: tag}
+      # `Kati.Locale.number/1` because `Goal.unit/1` answers «کتاب» under `:fa`
+      # and `52 کتاب` would be one word in each script.
+      title = "#{Kati.Locale.number(count)} #{Goal.unit(kind)}"
+
+      %{title: title, detail: detail, glyph: glyph, tag: tag}
     end)
   end
 

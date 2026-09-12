@@ -15,8 +15,14 @@ defmodule Kati.Screens.Widgets do
 
     * the eyebrow above **Share sheet** has a `#C4BDB3` dash rather than the
       accent one, because that section is descriptive rather than actionable.
-      `Kati.UI.eyebrow/2` always draws the accent dash, so `quiet_eyebrow/1`
-      here is the muted variant;
+      `Kati.UI.eyebrow/2` takes a `dash:` option — this bullet used to say it
+      always drew the accent one, and that stopped being true — so what keeps
+      `quiet_eyebrow/1` here is the rest of the node rather than the colour:
+      the helper adds a weighted `Spacer` and a trailing slot and closes on a
+      `Box`, where this pins its label to `max_lines={1}` and closes on a
+      `Spacer`. Everything here that is NOT the dash now follows the helper
+      exactly, which is the collapse `Kati.Screens.Account.quiet_eyebrow/1`
+      made on the same node;
     * the widget captions (`UP NEXT`, `TONIGHT`, `STREAK`, `TODAY · WIDE`) are
       capitals in the drawing's own copy, not `text-transform`, so they are
       capitals in the data.
@@ -47,11 +53,12 @@ defmodule Kati.Screens.Widgets do
 
   ## Audited: drawn copy — the tiles are pictures of widgets, not widgets
 
-  **Every string on this screen is `Kati.Widgets.Sample`, and it stays that
-  way.** The eyebrow says **Sizes** and the export's own caption says *"four
-  widget sizes off one data model"*: what is being shown is the same content at
-  four scales, which is a claim about layout rather than about this user's
-  evening.
+  **Every value the four tiles draw is `Kati.Widgets.Sample`'s, and it stays
+  that way** — the page's own chrome is this file's, and the section below
+  draws that line. The eyebrow says **Sizes** and the export's own caption says
+  *"four widget sizes off one data model"*: what is being shown is the same
+  content at four scales, which is a claim about layout rather than about this
+  user's evening.
 
   Three of the four could be read today — `Long Hollow · S2E6` is the hero
   `Kati.Screens.UpNext.queue/0` already assembles from `Kati.Media`, and
@@ -69,8 +76,72 @@ defmodule Kati.Screens.Widgets do
   there is no voice layer in `lib/` at all, so *"Hey Siri, what's next?"* is
   describing a surface Kati does not yet have rather than a setting it keeps.
   A stored boolean would arm nothing.
+
+  ## Which half of the copy this file owns, after the fold
+
+  mishka-group/kati#103 folded the 33 Persian mirrors away, so this module is
+  board 39 in both languages and every word it writes has to come from
+  `Kati.Gettext`. Two modules hold the words on this page and only one of them
+  is this one — `Kati.Screens.AutoDetect` says the same thing about board 36
+  and its Sample, for the same reason.
+
+  **This file owns the chrome**: the 28pt title, the mono line under it, and
+  the three section labels — *Sizes*, *Shortcuts*, *Share sheet*. Those are
+  literals at these call sites, so they are the msgids this file carries, and
+  *Widgets* is deliberately the msgid `Kati.Settings.Sample` already holds for
+  the row that pushes here — ابزارک‌ها — so the row a reader taps and the
+  heading they land on are the same word rather than two translations of it.
+
+  The back pill's *Settings* is a literal here too and is **not** wrapped: it
+  lands in `@back_label` on the way through `use Kati.Screens.Pushed`, and
+  `gettext/1` inside a module attribute is evaluated at COMPILE time and frozen
+  in whichever locale the compiler happened to be in.
+  `Kati.Screens.Pushed.back_vocabulary/0` is what keeps that msgid alive for
+  the extractor, and `back_label/2` looks it up at runtime.
+
+  **`Kati.Widgets.Sample` owns the drawing**, and its words are still English
+  literals: the four captions (`UP NEXT`, `TONIGHT`, `STREAK`, `TODAY · WIDE`),
+  *Long Hollow* and its `S2E6`, both count lines, the wide widget's two events,
+  the four shortcut rows with their spoken phrases, and the share card's three
+  strings. Those belong to that module the way `Kati.Settings.DetectSample`'s
+  rows belong to it, and the split is the one `Kati.Screens.NumberingScheme`
+  states for its own fixture: one msgid per string, wherever the string lives.
+  A `gettext/1` here could not reach them anyway — its argument has to be a
+  literal at the call site for `mix gettext.extract` to see a msgid at all, and
+  what this file holds is a map key — and a screen that made its own copy of a
+  fixture's copy would be two strings to keep in step.
+
+  What this file DOES owe those strings is the typesetting, which is why the
+  mechanical half of the fold is all on this side of the line:
+
+    * every mono slot the fixture fills asks `Kati.Locale.mono_face/1` about
+      the run it was handed rather than naming `mono` outright.
+      `kati_mono.ttf` carries no glyph in U+0600–U+06FF, so the moment the
+      Sample says «امشب» that line is handed to Android's own substitute face,
+      beside Kati's. Deciding by the STRING's script rather than the reader's
+      is what keeps `S2E6` — an episode code, not copy — in DM Mono in both
+      scripts, exactly as screen 80's provider names stay;
+    * the two tile counts and the wide widget's two clocks go through
+      `Kati.Locale.number/1`, so a Persian reader is given ۶, ۱۱ and ۲۰:۰۰
+      rather than Latin numerals under a Persian heading. `Kati.Music.Sample`
+      writes its track durations the same way, and `mono_face/1` then answers
+      `fa` for the converted run, which is where those digits exist;
+    * every `letter_spacing` is `Kati.Locale.tracking/1`. Arabic script has no
+      tracking tradition and a negative em pulls the letters out of their
+      joins — the one typographic setting that does not merely look wrong in
+      the script but stops the word being one word;
+    * the share card's paragraph takes `Kati.Locale.leading/1`, because 1.55
+      was measured against Plus Jakarta's metrics and Vazirmatn's are not
+      those;
+    * the Automations row's chevron is `Kati.Locale.forward_chevron/0`. It
+      points the way the reader is going, and Material Symbols are text in a
+      font: they auto-mirror nothing unless asked.
   """
+  # `back: "Settings"` stays the English word and is translated at RUNTIME by
+  # `Kati.Screens.Pushed` — see the moduledoc: the label lands in a module
+  # attribute on the way, where a `gettext/1` would freeze at compile time.
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaSwitch
@@ -97,12 +168,12 @@ defmodule Kati.Screens.Widgets do
       >
         {Kati.Screens.Widgets.header()}
         {Kati.Screens.Widgets.title()}
-        {UI.eyebrow("Sizes")}
+        {UI.eyebrow(gettext("Sizes"))}
         {Kati.Screens.Widgets.sizes(w)}
         {Kati.Screens.Widgets.wide(w)}
-        {UI.eyebrow("Shortcuts")}
+        {UI.eyebrow(gettext("Shortcuts"))}
         {Kati.Screens.Widgets.shortcuts(w)}
-        {Kati.Screens.Widgets.quiet_eyebrow("Share sheet")}
+        {Kati.Screens.Widgets.quiet_eyebrow(gettext("Share sheet"))}
         {Kati.Screens.Widgets.share(w)}
       </Column>
     </Scroll>
@@ -176,22 +247,44 @@ defmodule Kati.Screens.Widgets do
     )
   end
 
-  @doc false
+  @doc """
+  The page's own title, and the mono line under it.
+
+  `gettext("Widgets")` is deliberately the msgid `Kati.Settings.Sample` already
+  carries for the settings row that pushes here — ابزارک‌ها — so the row a
+  reader taps and the heading they land on are the same word rather than two
+  translations of it.
+
+  Three things moved and none of them moves for an English reader:
+
+    * `Kati.Locale.tracking/1`, because -0.03em pulls Persian letters out of
+      their joins — the one typographic setting that does not merely look
+      wrong in the Arabic script but stops the word being one word;
+    * `max_lines={1}`, which this display heading had none of. A 28pt title
+      handed a longer word should truncate rather than wrap a second line down
+      into the first row of widget tiles, which are `aspect_ratio`-measured and
+      would be pushed whole;
+    * `Kati.Locale.mono_face/0` for the strap, since `kati_mono.ttf` has no
+      Persian glyph at all. The arity-0 form and not `mono_face/1`: this line
+      is product copy in the reader's own script, never a provider's ASCII
+      name.
+  """
   def title do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Widgets"
+        text={gettext("Widgets")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
       <Text
-        text="add to home screen"
-        font_family="mono"
+        text={gettext("add to home screen")}
+        font_family={Kati.Locale.mono_face()}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -201,7 +294,28 @@ defmodule Kati.Screens.Widgets do
     """
   end
 
-  @doc "The muted eyebrow: the design's `#C4BDB3` dash instead of the accent."
+  @doc """
+  The muted eyebrow: the design's `#C4BDB3` dash instead of the accent.
+
+  This page draws three section labels — two accent, one muted — and only the
+  dash is supposed to tell the kinds apart. So everything here that is not the
+  dash now follows `Kati.UI.eyebrow/1` exactly, and every one of those calls
+  answers the value this wrote by hand when the reader is English:
+
+    * `Kati.UI.eyebrow_label/1` in place of `String.upcase/1`. Persian has no
+      letter case, so upcasing a Persian label is a no-op — one that still
+      *reads* as one beside the two accent eyebrows above it, which is why the
+      call has to be the shared one rather than a conditional here;
+    * `Kati.Locale.mono_face/0`, since `kati_mono.ttf` has no Persian glyph.
+      The arity-0 form and not `mono_face/1`, matching `Kati.UI.eyebrow/1`:
+      the one label this screen passes is product copy in the reader's own
+      script, never a provider's ASCII name;
+    * Vazirmatn at 11/semibold rather than DM Mono at 10.5/normal, which is
+      what the mirrored boards drew — the Persian face reads thin at an eyebrow
+      size that suits DM Mono;
+    * no tracking at all under `:fa`. 0.16em between Persian letters breaks the
+      joins that make them one word.
+  """
   def quiet_eyebrow(label) do
     ~MOB"""
     <Column fill_width={true}>
@@ -209,10 +323,11 @@ defmodule Kati.Screens.Widgets do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face()}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
           max_lines={1}
         />
@@ -278,6 +393,11 @@ defmodule Kati.Screens.Widgets do
   # `justify-content:space-between`, and both collapse to nothing the moment
   # the tile wraps its content. The modifier chain is weight → aspect_ratio,
   # so the square is measured off the width the Row actually granted.
+  #
+  # Both mono slots ask `Kati.Locale.mono_face/1` about the STRING rather than
+  # about the reader: `S2E6` is an episode code and stays in DM Mono in both
+  # scripts, where the caption becomes Vazirmatn the day `Kati.Widgets.Sample`
+  # says بعدی — DM Mono has no glyph in that block at all.
   @doc false
   def up_next_tile(tile) do
     ~MOB"""
@@ -291,9 +411,9 @@ defmodule Kati.Screens.Widgets do
       <Column fill_width={true} fill_height={true} padding={13}>
         <Text
           text={tile.label}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(tile.label)}
           text_size={9}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.eyebrow()}
           max_lines={1}
         />
@@ -310,7 +430,7 @@ defmodule Kati.Screens.Widgets do
         <Spacer size={2} />
         <Text
           text={tile.episode}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(tile.episode)}
           text_size={9}
           text_color={Palette.muted()}
           max_lines={1}
@@ -337,6 +457,15 @@ defmodule Kati.Screens.Widgets do
   # function rather than being copied — the drawing's own structure.
   @doc false
   def count_tile(tile, background, label_color, number_color, line_color) do
+    # The figure is the one thing on this tile a Persian reader must not be
+    # shown in Latin: 6 and 11 are quantities in a sentence the tile makes with
+    # its line under them, not a code. `Kati.Locale.number/1`'s caveat about
+    # keeping Latin digits is about a figure the design sets in DM MONO — this
+    # one carries no `font_family` and is drawn in the reader's own face, which
+    # has ۶ and ۱۱. `Kati.Screens.Goals` converts its Sample's progress the
+    # same way.
+    count = Kati.Locale.number(tile.count)
+
     ~MOB"""
     <Box
       weight={1.0}
@@ -348,18 +477,18 @@ defmodule Kati.Screens.Widgets do
       <Column fill_width={true} fill_height={true} padding={13}>
         <Text
           text={tile.label}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(tile.label)}
           text_size={9}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={label_color}
           max_lines={1}
         />
         <Spacer weight={1.0} />
         <Text
-          text={tile.count}
+          text={count}
           text_size={34}
           font_weight="extrabold"
-          letter_spacing={-0.04}
+          letter_spacing={Kati.Locale.tracking(-0.04)}
           text_color={number_color}
           max_lines={1}
         />
@@ -384,9 +513,9 @@ defmodule Kati.Screens.Widgets do
         <Row fill_width={true} align="center">
           <Text
             text={w.today_label}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(w.today_label)}
             text_size={9}
-            letter_spacing={0.14}
+            letter_spacing={Kati.Locale.tracking(0.14)}
             text_color={Palette.eyebrow()}
             max_lines={1}
           />
@@ -410,14 +539,23 @@ defmodule Kati.Screens.Widgets do
 
   @doc false
   def wide_event(event) do
+    # A clock, in the reader's own digits: ۲۰:۰۰ rather than 20:00, which is
+    # what `Kati.Locale.time/1` answers everywhere the app formats one and what
+    # `Kati.Music.Sample` writes its durations as. The face has to be asked
+    # about the CONVERTED string — `mono_face/1` answers `mono` for the ASCII
+    # form and `fa` for the Persian one, because U+06F0–U+06F9 is exactly what
+    # `kati_mono.ttf` does not carry; asking about `event.time` instead would
+    # set Persian numerals in a font with no numerals to set them in.
+    time = Kati.Locale.number(event.time)
+
     ~MOB"""
     <Row weight={1.0} align="center">
       <Box width={2.5} height={26} corner_radius={2} background={event.color} />
       <Spacer size={9} />
       <Column weight={1.0}>
         <Text
-          text={event.time}
-          font_family="mono"
+          text={time}
+          font_family={Kati.Locale.mono_face(time)}
           text_size={9.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -460,6 +598,12 @@ defmodule Kati.Screens.Widgets do
     """
   end
 
+  # Both strings are `Kati.Widgets.Sample.shortcuts/0`'s and neither is wrapped
+  # here — a map key cannot be a msgid. Nothing needs typesetting either: this
+  # row is the one place on the board with no mono slot, no tracking and no
+  # multi-line paragraph. The quotation marks around a spoken phrase are the
+  # fixture's to fold with `Kati.Locale.quoted/1`, which draws the guillemets a
+  # Persian reader expects rather than U+201C/U+201D.
   @doc false
   def shortcut_row(row, i, rule?) do
     tap = Kati.Screens.Widgets.shortcut_tap(row, i)
@@ -515,10 +659,16 @@ defmodule Kati.Screens.Widgets do
   end
 
   # A switch when the row is a state, a chevron when it leads somewhere.
+  #
+  # `Kati.Locale.forward_chevron/0` rather than `"chevron_right"`: the chevron
+  # on the Automations row points the way the reader is GOING, so it has to be
+  # `chevron_left` on an RTL page. `layout_direction` mirrors a layout and
+  # cannot mirror a picture, and a Material Symbol is text in a font — nothing
+  # auto-mirrors here unless it is asked for.
   @doc false
   def trailing(row) do
     case Map.get(row, :toggle) do
-      nil -> Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
+      nil -> Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())
       on? -> Kati.Screens.Widgets.toggle(on?)
     end
   end
@@ -580,7 +730,26 @@ defmodule Kati.Screens.Widgets do
     )
   end
 
-  @doc false
+  @doc """
+  The share extension, described in a card.
+
+  All three strings are `Kati.Widgets.Sample.share/0`'s and none of them is
+  wrapped here: they arrive as runtime values and `gettext/1` needs a literal
+  at the call site, so the msgids belong to the module that writes them. What
+  belongs here is the typography carrying them, and the paragraph is the one
+  slot on this screen that needed it — `Kati.Locale.leading/1`, because 1.55 is
+  a ratio measured against Plus Jakarta's metrics and Vazirmatn's ascender and
+  descender are not those. Three Persian lines at the Latin leading close up.
+
+  The note is the only multi-line paragraph on the board, which is why nothing
+  else here asks for a leading. What it must NOT get is `Kati.Locale.ltr/1`
+  around the whole paragraph: this is the screen's body copy rather than a
+  Latin run inside a Persian sentence, and once the Sample folds its own full
+  stop belongs to a Persian sentence and resolves correctly on its own.
+  Isolating it would then pin a Persian paragraph to LTR. Until that fold the
+  note is an English sentence on a Persian page and its terminating period sits
+  at the left edge — screen 83's symptom, fixed where the string lives.
+  """
   def share(w) do
     s = w.share
 
@@ -611,7 +780,12 @@ defmodule Kati.Screens.Widgets do
       </Row>
       {Kati.Screens.Widgets.hairline(true)}
       <Spacer size={13} />
-      <Text text={s.note} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+      <Text
+        text={s.note}
+        text_size={12.5}
+        line_height={Kati.Locale.leading(1.55)}
+        text_color={Palette.ink_soft()}
+      />
     </Column>
     """
   end

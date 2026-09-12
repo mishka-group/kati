@@ -71,8 +71,20 @@ defmodule Kati.Screens.Calendars do
       `Kati.Calendars.Calendar.writeback_policy` is per *calendar*, which is
       the wrong axis and would answer a different question than the one the
       group asks.
+
+  ## And which of the three groups is translated
+
+  That same split decides the copy. Two of the groups are the drawing's own
+  words and are said in the reader's language by `copy/1`, which is the only
+  place a msgid can live when the literal itself sits in
+  `Kati.Settings.CalendarsSample`. The middle group is half and half: the four
+  the drawing supplies are copy, and a row that came out of
+  `Kati.Calendars.Calendar` carries a name its OWNER typed on their phone and
+  is drawn exactly as it is stored — see `calendar_name/1`, which splits the
+  two on the same `:id` `row_tag/2` splits them on. mishka-group/kati#103.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   # Deliberately aliased away from `Calendar`: the bare name is Elixir's own
   # module, and shadowing it here would be a trap for the next function that
@@ -203,6 +215,20 @@ defmodule Kati.Screens.Calendars do
   def content(assigns) do
     c = assigns.calendars
 
+    # The page's own three words, bound out here rather than written into the
+    # markup, the way `Kati.Screens.MealReminders.content/1` binds its two: a
+    # `{...}` that both translates and lays out stops being one readable line.
+    #
+    # `Calendars` takes the bare msgid rather than a context of its own.
+    # `Kati.Settings.Sample` already declares that word for the Settings row
+    # that OPENS this screen, and two Persians for one page — one on the door
+    # and one on the sign inside, a tap apart — is exactly the drift a shared
+    # msgid prevents. `Kati.Screens.MealReminders` makes the same argument about
+    # its own title and screen 43's menu item.
+    title = gettext("Calendars")
+    connected = copy(c.connected)
+    note = copy(c.note)
+
     ~MOB"""
     <Scroll>
       <Column
@@ -213,14 +239,14 @@ defmodule Kati.Screens.Calendars do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Calendars", c.connected, nil, :meta_tight)}
-        {UI.eyebrow("Accounts")}
+        {SettingsList.title(title, connected, nil, :meta_tight)}
+        {UI.eyebrow(pgettext("eyebrow", "Accounts"))}
         {Kati.Screens.Calendars.accounts(c)}
-        {UI.eyebrow("Which calendars show")}
+        {UI.eyebrow(gettext("Which calendars show"))}
         {Kati.Screens.Calendars.calendars(c.calendars)}
-        {SettingsList.eyebrow_muted("Write back")}
+        {SettingsList.eyebrow_muted(pgettext("eyebrow", "Write back"))}
         {Kati.Screens.Calendars.write_back(c.write_back)}
-        {SettingsList.note("lock", c.note)}
+        {SettingsList.note("lock", note)}
       </Column>
     </Scroll>
     """
@@ -244,18 +270,29 @@ defmodule Kati.Screens.Calendars do
   def account_row(a) do
     SettingsList.row(
       SettingsList.icon_tile(a.icon),
-      SettingsList.body(a.title, a.sub),
+      # The TITLE is not translated and the line under it is. An account's name
+      # here is a service's or a protocol's — iCloud, Google, CalDAV — and a
+      # service is spelled one way in both scripts: board 127 draws `Lumen+` in
+      # Latin on a Persian page for the same reason, and a screen that
+      # transliterated would have the app spelling one provider two ways. The
+      # sub-line is Kati's own sentence ABOUT that account, so it is copy.
+      SettingsList.body(a.title, copy(a.sub)),
       Kati.Screens.Calendars.status(a.status, a.state),
       padding: 13
     )
   end
 
+  # The pill's word comes through `copy/1` and its colour still comes from the
+  # state atom beside it. Those are two different facts and the sample carries
+  # both — `status: "Live", state: :live` — so nothing here reads a label as a
+  # state, which is the defect that would have folded badly: a Persian «به‌روز»
+  # matched against `"Live"` picks no clause at all.
   @doc false
   def status(label, :live),
-    do: SettingsList.status_pill(label, Palette.green_text(), Palette.green_wash())
+    do: SettingsList.status_pill(copy(label), Palette.green_text(), Palette.green_wash())
 
   def status(label, :stale),
-    do: SettingsList.status_pill(label, Palette.red(), Palette.red_wash_strong())
+    do: SettingsList.status_pill(copy(label), Palette.red(), Palette.red_wash_strong())
 
   # The one row with no trailing control and no filled tile: a dashed square
   # that reads as a slot waiting to be filled rather than a button.
@@ -263,7 +300,7 @@ defmodule Kati.Screens.Calendars do
   def add_row(label) do
     SettingsList.row(
       Kati.Screens.Calendars.add_tile(),
-      SettingsList.body_muted(label),
+      SettingsList.body_muted(copy(label)),
       nil,
       padding: 13,
       rule: false
@@ -372,8 +409,24 @@ defmodule Kati.Screens.Calendars do
   # A calendar that is not drawn has a grey title as well as a grey swatch, so
   # the row reads as off at a glance rather than only at the switch.
   @doc false
-  def calendar_title(%{on: true, title: title}), do: SettingsList.body(title)
-  def calendar_title(%{title: title}), do: SettingsList.body_muted(title)
+  def calendar_title(%{on: true} = row), do: SettingsList.body(calendar_name(row))
+  def calendar_title(row), do: SettingsList.body_muted(calendar_name(row))
+
+  # A STORED calendar's name is drawn exactly as it is stored, and only the
+  # DRAWING's four are copy.
+  #
+  # The middle group is the one group with a resource behind it, so it is the
+  # one group whose rows can hold a name nobody in this repo wrote: *Personal*
+  # off `Kati.Calendars.Calendar.display_name` is whatever the reader called a
+  # calendar on their phone, and translating a reader's own words is the one
+  # thing a fold must never do — they would watch a calendar they named rename
+  # itself when they changed language. `copy/1` cannot tell the two apart from
+  # the string, so the split is made on the same key `row_tag/2` splits on: a
+  # row with a binary `:id` came out of the store, and `Kati.Settings.CalendarsSample`
+  # carries no id at all. The two functions agreeing matters — a row tagged as
+  # stored and translated as drawn would be the worst of both.
+  defp calendar_name(%{id: id, title: title}) when is_binary(id), do: title
+  defp calendar_name(%{title: title}), do: copy(title)
 
   @doc false
   def write_back(rows) do
@@ -392,11 +445,14 @@ defmodule Kati.Screens.Calendars do
     """
   end
 
+  # Both halves are copy here, unlike `account_row/1`'s: a write-back row names
+  # one of Kati's OWN event categories — air dates, habits, renewals — and
+  # nothing about it is a provider's word.
   @doc false
   def write_row(row, rule?) do
     SettingsList.row(
       SettingsList.icon_tile(row.icon),
-      SettingsList.body(row.title, row.sub),
+      SettingsList.body(copy(row.title), copy(row.sub)),
       SettingsList.switch(row.on),
       padding: 13,
       rule: rule?
@@ -456,5 +512,112 @@ defmodule Kati.Screens.Calendars do
     error ->
       Kati.Write.note({:error, error}, "calendar visible")
       socket
+  end
+
+  # ── The sample's words, said in the reader's own script ─────────────────────
+
+  # `Kati.Settings.CalendarsSample` holds almost every word this page draws —
+  # the count under the title, all three account lines, the add row, the four
+  # calendar names, the three write-back rows and the footnote — as English
+  # LITERALS, and a literal in another file is the one thing `gettext/1` cannot
+  # reach: a msgid has to be at the call site, and `gettext(row.title)` does not
+  # compile. The sample keeps the drawing's own copy, which is what it is for —
+  # `test/design/screens/32.html` is compared against it line by line — and this
+  # is where it is said. `Kati.Screens.MealReminders.copy/1` and
+  # `Kati.Screens.ReleaseWatcher.copy/1` are the same arrangement over the same
+  # kind of store, and the second carries the argument at more length.
+  #
+  # What is NOT translated is as deliberate as what is. The three account names
+  # are handled at the call site — see `account_row/1` — and the two mail
+  # addresses and `fastmail` are addresses. Each Latin run that ends up inside a
+  # Persian line goes through `Kati.Locale.ltr/1`, because the bidi algorithm
+  # otherwise hangs the `·` and the address's own dots off the wrong end of the
+  # run: `jo@icloud.com` would come out `icloud.com@jo` shaped.
+  #
+  # A bare msgid where the catalogue already holds the word, a context where it
+  # does not. *Personal* is `Kati.Screens.Calendar`'s filter chip — the same
+  # word for the same calendar, one screen away — and *Habits* is declared in
+  # five files already; taking either again under a context of this screen's own
+  # would put a second Persian beside a first that is already right. *Air dates*
+  # and *Renewals* get one, and not because they are ambiguous:
+  # `mix gettext.merge` fuzzy-matches anything this short onto any entry it
+  # resembles, and each resembles one the catalogue holds — *Air dates, episode
+  # lists*, and the release watcher's own `msgctxt "watcher kind"` *Renewals*.
+  # *Live* needs its own for the ordinary reason: the catalogue's *Live* is the
+  # now-playing pill, «در حال پخش», and an account that is live is not playing.
+  #
+  # `ngettext/4` for the calendar count and nowhere else. One of the drawing's
+  # two mail accounts holds exactly one calendar, so English genuinely needs
+  # both forms; every other figure on this page is the drawing's frozen one and
+  # is never 1 — the reading `Kati.Screens.MealReminders.copy/1` takes of its
+  # own. Persian does not inflect a noun after a numeral either way, so its two
+  # forms are one string.
+  defp copy("3 connected"), do: gettext("%{n} connected", n: Kati.Locale.number(3))
+
+  defp copy("jo@icloud.com · 2 calendars"), do: account_line("jo@icloud.com", 2)
+
+  defp copy("work@studio.co · 1 calendar"), do: account_line("work@studio.co", 1)
+
+  # The one account line that counts nothing. `%{n}h ago` is
+  # `Kati.Screens.Stats`' msgid and is taken rather than reopened, so two pages
+  # cannot end up disagreeing about what four hours is called.
+  defp copy("fastmail · last sync 4h ago") do
+    Kati.Locale.ltr("fastmail") <>
+      " · " <> gettext("last sync %{ago}", ago: gettext("%{n}h ago", n: Kati.Locale.number(4)))
+  end
+
+  defp copy("Live"), do: pgettext("account sync pill", "Live")
+  defp copy("Stale"), do: pgettext("account sync pill", "Stale")
+
+  defp copy("Add an account"), do: gettext("Add an account")
+
+  defp copy("Personal"), do: gettext("Personal")
+  defp copy("Work"), do: pgettext("calendar name", "Work")
+  defp copy("Family"), do: pgettext("calendar name", "Family")
+  defp copy("Birthdays"), do: pgettext("calendar name", "Birthdays")
+
+  defp copy("Air dates"), do: pgettext("write-back category", "Air dates")
+  defp copy("Habits"), do: gettext("Habits")
+  defp copy("Renewals"), do: pgettext("write-back category", "Renewals")
+
+  # One msgid with two holes rather than a join, because Persian puts the verb
+  # after both of them and a screen that concatenates has already decided where
+  # the verb goes. The account is a service's name and stays Latin; the calendar
+  # is the same *Personal* the group above it draws, so it takes the same msgid
+  # and the two lines cannot come out saying different words for one calendar.
+  defp copy("Push to iCloud · Personal") do
+    gettext("Push to %{account} · %{calendar}",
+      account: Kati.Locale.ltr("iCloud"),
+      calendar: gettext("Personal")
+    )
+  end
+
+  defp copy("Keep inside Kati only"), do: gettext("Keep inside Kati only")
+
+  # Matched on its opening clause rather than on the whole paragraph, so the
+  # sample and the msgid cannot drift apart over a comma and leave the footnote
+  # silently English — `Kati.Screens.MealReminders.copy/1` matches its own note
+  # the same way, for the same reason.
+  defp copy("Kati reads your calendars" <> _rest) do
+    gettext(
+      "Kati reads your calendars to draw the day. It only writes back what you " <>
+        "tick above, and never touches an event it did not create."
+    )
+  end
+
+  # A string this screen does not know, drawn as it is stored. Every clause
+  # above is `Kati.Settings.CalendarsSample`'s, and a row added there tomorrow
+  # must not take the whole page down with a `FunctionClauseError` — the
+  # fallback `Kati.Screens.MealReminders.copy/1` keeps, for the same reason.
+  # It is also what draws a stored account's own line unchanged if the accounts
+  # group ever moves off the sample.
+  defp copy(other), do: other
+
+  # `address` first and the count second, which is the order both scripts read
+  # them in: the separator sits between two runs and neither language moves it.
+  defp account_line(address, calendars) do
+    Kati.Locale.ltr(address) <>
+      " · " <>
+      ngettext("%{n} calendar", "%{n} calendars", calendars, n: Kati.Locale.number(calendars))
   end
 end

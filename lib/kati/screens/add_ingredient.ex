@@ -88,9 +88,31 @@ defmodule Kati.Screens.AddIngredient do
   stating: the preview here says `UNCATEGORISED · FREE TEXT` and the row it
   becomes reads `OTHER · FREE TEXT` in the meal. Same bucket, two words for it,
   and the shopping list groups by the atom.
+
+  ## What is DRAWN is translated; what is STORED is not
+
+  mishka-group/kati#103. Every word on this sheet comes from
+  `Kati.Meals.SampleLibrary`, and that fixture carries the stored vocabulary as
+  well as the drawing's: `aisle_value/1` maps `Fish & meat` onto
+  `:fish_and_meat`, `unit_value/1` maps a drawn unit onto the resource's own,
+  `amount_mg/1` parses a numeral out of the quantity, and a chip's tap tag is
+  its aisle's name with the spaces swapped for underscores. So the assigns hold
+  the ENGLISH token and only the render sites translate — `aisle_label/1`,
+  `unit_label/1`, `quantity_label/1`. A localised aisle would drop through
+  `aisle_value/1`'s catch-all and file *every* chip under `:other`, which is
+  the one failure this sheet can least afford: the whole page exists to say
+  that an ingredient filed nowhere vanishes off the shopping list.
+
+  The name is the single exception and it goes the other way — `ingredient_name/1`
+  translates it and the WRITE takes the translated string, because nothing
+  parses a name and because the bottom half of this sheet is a picture of the
+  row Save is about to add. A preview reading `برگ کاری` over a row that landed
+  as `Curry leaves` is the defect this screen was rewritten to fix, one frame
+  further on.
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Meals.Recipe
@@ -124,7 +146,12 @@ defmodule Kati.Screens.AddIngredient do
   end
 
   def render(assigns),
-    do: Sheet.sheet("Add an ingredient", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    do:
+      Sheet.sheet(
+        gettext("Add an ingredient"),
+        body(assigns),
+        Kati.Screens.Identity.of(__MODULE__)
+      )
 
   @doc false
   def body(assigns) do
@@ -132,16 +159,16 @@ defmodule Kati.Screens.AddIngredient do
     <Column fill_width={true}>
       {Kati.Screens.AddIngredient.fields(assigns.draft)}
       <Spacer size={18} />
-      {UI.eyebrow("Aisle")}
+      {UI.eyebrow(pgettext("ingredient field", "Aisle"))}
       {Kati.Screens.AddIngredient.aisles(assigns.aisle)}
       <Spacer size={18} />
-      {UI.eyebrow("Nutrition per 100 g")}
+      {UI.eyebrow(gettext("Nutrition per %{n} g", n: Kati.Locale.number(100)))}
       {Kati.Screens.AddIngredient.nutrition()}
       <Spacer size={18} />
       {Kati.Screens.AddIngredient.preview(assigns.draft, assigns.aisle)}
       <Spacer size={16} />
       {Kati.Screens.AddIngredient.save_notice(assigns.save_error)}
-      {Sheet.commit("Save", :save)}
+      {Sheet.commit(gettext("Save"), :save)}
     </Column>
     """
   end
@@ -172,7 +199,7 @@ defmodule Kati.Screens.AddIngredient do
         text={@message}
         text_size={12.5}
         font_weight="semibold"
-        line_height={1.45}
+        line_height={Kati.Locale.leading(1.45)}
         text_color={Kati.Theme.Palette.red()}
       />
       <Spacer size={12} />
@@ -193,26 +220,82 @@ defmodule Kati.Screens.AddIngredient do
     rows = [
       SettingsList.row(
         nil,
-        SettingsList.body("Name", nil),
-        SettingsList.trailing(Kati.Screens.AddIngredient.value(draft.name)),
+        SettingsList.body(pgettext("ingredient field", "Name"), nil),
+        SettingsList.trailing(
+          Kati.Screens.AddIngredient.value(Kati.Screens.AddIngredient.ingredient_name(draft.name))
+        ),
         on_tap: {self(), :edit_name}
       ),
       SettingsList.row(
         nil,
-        SettingsList.body("Quantity", nil),
-        SettingsList.trailing(Kati.Screens.AddIngredient.value(draft.quantity)),
+        SettingsList.body(pgettext("ingredient field", "Quantity"), nil),
+        SettingsList.trailing(
+          Kati.Screens.AddIngredient.value(
+            Kati.Screens.AddIngredient.quantity_label(draft.quantity)
+          )
+        ),
         on_tap: {self(), :edit_quantity}
       ),
       SettingsList.row(
         nil,
-        SettingsList.body("Unit", nil),
-        SettingsList.trailing(Kati.Screens.AddIngredient.unit_trailing(draft.unit)),
+        SettingsList.body(pgettext("ingredient field", "Unit"), nil),
+        SettingsList.trailing(
+          Kati.Screens.AddIngredient.unit_trailing(
+            Kati.Screens.AddIngredient.unit_label(draft.unit)
+          )
+        ),
         on_tap: {self(), :edit_unit}
       )
     ]
 
     SettingsList.card(rows)
   end
+
+  @doc """
+  The drawn ingredient's name, in the reader's language.
+
+  The one string on this sheet that is translated for the WRITE as well as for
+  the drawing — see the moduledoc. The mapping lives here rather than in
+  `Kati.Meals.SampleLibrary.draft/0` because that fixture is screens 116, 118
+  and 119's shared copy AND their shared stored vocabulary, and only this sheet
+  can say which of its six keys is a word and which is a token. Keyed on the
+  literal because that is what `gettext/1` requires: a msgid must be a literal
+  at the call site, so `gettext(draft.name)` does not compile.
+
+  Anything else falls through untranslated, which is the right answer for the
+  day these rows become real fields: what a person typed is theirs.
+  """
+  @spec ingredient_name(String.t()) :: String.t()
+  def ingredient_name("Curry leaves"), do: pgettext("ingredient name", "Curry leaves")
+  def ingredient_name(typed), do: typed
+
+  @doc """
+  The drawn quantity, in the reader's words and the reader's digits.
+
+  `a few` is not a measurement — it is the app's way of saying *the quantity is
+  words*, and `Kati.Screens.MealEdit.amount_line/1` prints the same phrase for
+  the row this becomes, so both come off the one msgid. A quantity that IS a
+  figure keeps its shape and changes only its numerals.
+
+  Drawn only. `amount_mg/1` still parses `draft.quantity`, the English token,
+  because `Float.parse/1` cannot read `۱۸۰`.
+  """
+  @spec quantity_label(String.t()) :: String.t()
+  def quantity_label("a few"), do: pgettext("ingredient amount", "a few")
+  def quantity_label(quantity), do: Kati.Locale.number(quantity)
+
+  @doc """
+  The drawn unit.
+
+  `free` is the drawing's word for *the quantity is words* rather than a unit —
+  `unit_value/1` is where that is said in full. Drawn only, for the reason
+  `quantity_label/1` gives: `unit_value/1` matches on the eight English tokens
+  `Kati.Meals.RecipeIngredient` allows, and a translated `ml` would fall
+  through its catch-all and be stored as grams.
+  """
+  @spec unit_label(String.t()) :: String.t()
+  def unit_label("free"), do: pgettext("ingredient unit", "free")
+  def unit_label(unit), do: unit
 
   @doc false
   def value(text) do
@@ -223,6 +306,11 @@ defmodule Kati.Screens.AddIngredient do
     """
   end
 
+  # Takes the DRAWN unit — `unit_label/1`'s answer, not the stored token — and
+  # asks the string which face it needs. `kati_mono.ttf` carries no Arabic
+  # glyph, so a hardcoded `"mono"` set `آزاد` as empty boxes beside a Latin
+  # `unfold_more`, which is the worst of the two outcomes because it looks
+  # deliberate. `Kati.Locale.mono_face/1` keeps DM Mono for `g` and `ml`.
   @doc false
   def unit_trailing(unit) do
     assigns = %{unit: unit}
@@ -231,7 +319,7 @@ defmodule Kati.Screens.AddIngredient do
     <Row align="center">
       <Text
         text={@unit}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@unit)}
         text_size={12.5}
         text_color={Kati.Theme.Palette.sub()}
         max_lines={1}
@@ -254,7 +342,13 @@ defmodule Kati.Screens.AddIngredient do
     chips =
       SampleLibrary.aisles()
       |> Enum.map(fn aisle ->
-        UI.chip(aisle,
+        # The LABEL is translated and everything else on the chip stays the
+        # English token: the selection compares against `assigns.aisle`, the
+        # tag round-trips through `handle_info/2` back into that assign, and
+        # `aisle_value/1` turns it into a `Kati.Meals.Aisle`. Tagging a chip
+        # `دسته‌بندی‌نشده` instead would have filed every ingredient under
+        # `:other`, silently, in one script only.
+        UI.chip(Kati.Screens.AddIngredient.aisle_label(aisle),
           selected: aisle == active,
           on_toggle: String.to_atom("aisle_" <> String.replace(aisle, " ", "_"))
         )
@@ -271,6 +365,32 @@ defmodule Kati.Screens.AddIngredient do
   end
 
   @doc """
+  A chip's word for its aisle, in the reader's language.
+
+  The five msgids are `Kati.Screens.Shopping.aisle_name/1`'s, deliberately:
+  `Produce`, `Cupboard` and `Fish & meat` are the same aisle on both screens
+  and must not acquire a second Persian word. The other two are this sheet's
+  own vocabulary and get msgids of their own — `Dairy` is not `Dairy & eggs`
+  and `Uncategorised` is not `Other`, which is the distinction the moduledoc
+  spends a section on, and Persian keeps both pairs apart exactly as English
+  does rather than collapsing either.
+
+  `pgettext/2` throughout because every one of them is a noun of one or two
+  words, and `mix gettext.merge` fuzzy-matches a short msgid against anything
+  that ends in it.
+
+  The catch-all is `aisle_value/1`'s catch-all, in words: an aisle this sheet
+  does not recognise draws `Uncategorised` and stores `:other`, which is the
+  one pairing that keeps the row on the shopping list.
+  """
+  @spec aisle_label(String.t()) :: String.t()
+  def aisle_label("Produce"), do: pgettext("aisle", "Produce")
+  def aisle_label("Cupboard"), do: pgettext("aisle", "Cupboard")
+  def aisle_label("Fish & meat"), do: pgettext("aisle", "Fish & meat")
+  def aisle_label("Dairy"), do: pgettext("aisle", "Dairy")
+  def aisle_label(_uncategorised), do: pgettext("aisle", "Uncategorised")
+
+  @doc """
   The three ways to get nutrition figures, two of them not in v1.
 
   Drawn rather than hidden, because the two that do not exist are the two
@@ -283,7 +403,11 @@ defmodule Kati.Screens.AddIngredient do
       Enum.map(SampleLibrary.nutrition_paths(), fn path ->
         SettingsList.row(
           SettingsList.icon_tile(path.icon),
-          SettingsList.body(path.title, path.sub, lines: 2),
+          SettingsList.body(
+            Kati.Screens.AddIngredient.path_title(path.title),
+            Kati.Screens.AddIngredient.path_sub(path.sub),
+            lines: 2
+          ),
           SettingsList.trailing(Kati.Screens.AddIngredient.path_trailing(path.built?)),
           on_tap: Kati.Screens.AddIngredient.path_tap(path.built?)
         )
@@ -292,6 +416,49 @@ defmodule Kati.Screens.AddIngredient do
     SettingsList.card(rows)
   end
 
+  @doc """
+  A nutrition path's title.
+
+  Keyed on the fixture's literal because `gettext/1` needs one at the call site
+  and `Kati.Meals.SampleLibrary.nutrition_paths/0` hands these over as data.
+  `pgettext/2` because all three are short imperative phrases, and a bare
+  `Type it in` is exactly the length `mix gettext.merge` offers as a fuzzy
+  match for a longer sentence ending the same way.
+  """
+  @spec path_title(String.t()) :: String.t()
+  def path_title("Type it in"), do: pgettext("nutrition path", "Type it in")
+  def path_title("Scan a barcode"), do: pgettext("nutrition path", "Scan a barcode")
+
+  def path_title("Search a food database"),
+    do: pgettext("nutrition path", "Search a food database")
+
+  def path_title(title), do: title
+
+  @doc """
+  Why a nutrition path is not built, or what the built one does.
+
+  These are the sentences the moduledoc calls *printed rather than implied*, so
+  they are translated as sentences rather than shortened: a reason a reader
+  cannot read is the same as no reason at all.
+  """
+  @spec path_sub(String.t()) :: String.t()
+  def path_sub("kcal and macros, by hand"), do: gettext("kcal and macros, by hand")
+
+  def path_sub("Needs a food database Kati has not chosen"),
+    do: gettext("Needs a food database Kati has not chosen")
+
+  def path_sub("Licence, coverage and rate limits unresolved"),
+    do: gettext("Licence, coverage and rate limits unresolved")
+
+  def path_sub(sub), do: sub
+
+  # The badge, worded and typeset exactly as `Kati.Screens.DataSources.not_in_v1/0`
+  # words and typesets it: one msgid, `Kati.UI.eyebrow_label/1` for the case
+  # Persian does not have, `Kati.Locale.mono_face/0` because `kati_mono.ttf`
+  # has no Arabic glyph, and no tracking under `:fa` because letter-spacing
+  # breaks the joins between Persian letters. *Designed, not built* has to mean
+  # one thing app-wide, which is the moduledoc's own argument for the badge and
+  # is now an argument about its words as well as its pill.
   @doc false
   def path_trailing(true), do: SettingsList.chevron()
 
@@ -306,10 +473,10 @@ defmodule Kati.Screens.AddIngredient do
       align="center"
     >
       <Text
-        text="NOT IN V1"
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(gettext("Not in v1"))}
+        font_family={Kati.Locale.mono_face()}
         text_size={9}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Kati.Theme.Palette.sub()}
         max_lines={1}
       />
@@ -331,15 +498,28 @@ defmodule Kati.Screens.AddIngredient do
   """
   @spec preview(map(), String.t()) :: map()
   def preview(draft, aisle) do
-    meta = String.upcase(aisle <> " · Free text")
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`, and
+    # `Kati.Screens.MealEdit.state_label/1` rather than a `Free text` of this
+    # sheet's own. Persian has no case, so upcasing a Persian meta line is a
+    # no-op that reads as one — the helper upcases Latin and leaves the
+    # Arabic-script half alone, which is the treatment screen 118 gives the
+    # same line. The state word comes off 118's function for the reason the
+    # glyph does: the preview and the row it previews cannot be allowed to
+    # diverge, and two copies of `Free text` are two things to keep in step.
+    # The aisle word is the one half that differs, and the moduledoc says why.
+    meta =
+      Kati.UI.eyebrow_label(
+        Kati.Screens.AddIngredient.aisle_label(aisle) <>
+          " · " <> MealEdit.state_label(:free_text)
+      )
 
     assigns = %{
       row:
         MealEdit.ingredient_row(
           %{
-            name: draft.name,
+            name: Kati.Screens.AddIngredient.ingredient_name(draft.name),
             meta: meta,
-            amount: draft.quantity,
+            amount: Kati.Screens.AddIngredient.quantity_label(draft.quantity),
             state: :free_text
           },
           false
@@ -350,7 +530,7 @@ defmodule Kati.Screens.AddIngredient do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([@row])}
       <Spacer size={11} />
-      {Kati.UI.SettingsList.note("info", "This is how the row will look in the meal. It adds no numbers, so the meal total stays approximate — and it still lands on the shopping list.")}
+      {Kati.UI.SettingsList.note("info", gettext("This is how the row will look in the meal. It adds no numbers, so the meal total stays approximate — and it still lands on the shopping list."))}
     </Column>
     """
   end
@@ -455,12 +635,24 @@ defmodule Kati.Screens.AddIngredient do
   `shop_for` is the resource's own default and is left alone deliberately: the
   sheet's sharp end is that **a dropped ingredient vanishes from the shopping
   list**, and an ingredient added here has never been ticked off one.
+
+  ## The name is the DRAWN one; the other three are the stored ones
+
+  `ingredient_name/1` and not `draft.name`, because the row this writes is the
+  row the preview above it is showing and a name is the one field on this sheet
+  that nothing parses. The quantity, the unit and the aisle go in as the
+  fixture's English tokens on purpose — `amount_mg/1` reads a numeral out of
+  the first, `unit_value/1` matches the second against the eight
+  `Kati.Meals.RecipeIngredient` allows, and `aisle_value/1` maps the third onto
+  a `Kati.Meals.Aisle`. A translated token would pass all three by their
+  catch-alls and store a plausible wrong answer rather than raise, which is
+  exactly the failure mishka-group/kati#103 is most able to hide.
   """
   @spec line_attrs(Recipe.t(), map()) :: map()
   def line_attrs(%Recipe{} = recipe, %{draft: draft, aisle: aisle}) do
     %{
       position: next_position(recipe),
-      name: draft.name,
+      name: Kati.Screens.AddIngredient.ingredient_name(draft.name),
       amount_mg: Kati.Screens.AddIngredient.amount_mg(draft.quantity),
       unit: Kati.Screens.AddIngredient.unit_value(draft.unit),
       aisle: Kati.Screens.AddIngredient.aisle_value(aisle)

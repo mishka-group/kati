@@ -41,6 +41,7 @@ defmodule Kati.Screens.MealsDay do
       switch between them.
   """
   use Kati.Screens.Pushed, back: "Calendar"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Calendar.SampleMealDay
   alias Kati.Meals.MealLog
@@ -129,8 +130,17 @@ defmodule Kati.Screens.MealsDay do
   # `Kati.Screens.Day` makes about its all-day band and its headline.
   defp empty(date) do
     %{
-      title: Calendar.strftime(date, "%a %-d %b"),
-      subtitle: "NOTHING ON THIS DAY",
+      # `Kati.Locale.date/2`'s `:long` rather than the `%a %-d %b` this wrote by
+      # hand: mishka-group/kati#103 made the Gregorian calendar a rendering
+      # decision rather than the only one there is, and a Persian reader's
+      # 17 August is ۲۶ مرداد ۱۴۰۴ — a different calendar, not a translation of
+      # this one. `:long` is the same three parts the strftime asked for.
+      title: Kati.Locale.date(date, :long),
+      # Upper case in the drawing, and upper case is a LATIN typographic
+      # effect: `Kati.UI.eyebrow_label/1` upcases in English and leaves Persian
+      # alone, so the English pixels are the ones that were here and the
+      # Persian is not a no-op `String.upcase/1` pretending to be a decision.
+      subtitle: Kati.UI.eyebrow_label(gettext("Nothing on this day")),
       chips: [{"All", nil}],
       rows: [],
       collapsed: nil,
@@ -144,8 +154,8 @@ defmodule Kati.Screens.MealsDay do
     others = length(rows) - length(meals)
 
     %{
-      title: Calendar.strftime(date, "%a %-d %b"),
-      subtitle: "#{tally(length(meals), "meal")} · #{tally(others, "other item")}",
+      title: Kati.Locale.date(date, :long),
+      subtitle: joined(meals_tally(length(meals)), others_tally(others)),
       chips: chips_for(rows),
       rows: rows,
       collapsed: collapsed_for(meals),
@@ -154,17 +164,40 @@ defmodule Kati.Screens.MealsDay do
     }
   end
 
-  defp tally(1, noun), do: "1 #{noun}"
-  defp tally(n, noun), do: "#{n} #{noun}s"
+  # `tally/2` took the noun as an argument and pluralised it with an `s`, which
+  # is two things gettext cannot do: a msgid has to be a literal at the call
+  # site — `gettext(noun)` does not compile — and an `s` is English's plural
+  # rule rather than every language's. Persian does not inflect a noun after a
+  # numeral at all, so both `ngettext` forms come back the same word; that is
+  # the catalogue's answer to say, not this function's.
+  defp meals_tally(n), do: ngettext("%{n} meal", "%{n} meals", n, n: Kati.Locale.number(n))
+
+  defp others_tally(n),
+    do: ngettext("%{n} other item", "%{n} other items", n, n: Kati.Locale.number(n))
+
+  # The `·` is the separator in both scripts — board 56 draws
+  # `عادت · ۱۲ روز پیاپی` and screen 44 `امروز · ۱۹۶۰ کالری` — so it is
+  # punctuation between two translated halves rather than copy of its own. Kept
+  # out of the msgids deliberately: folding the two halves into one sentence
+  # would multiply two plural rules into a single four-form entry, and a
+  # two-placeholder msgid that is nothing but a middot is exactly the tiny
+  # string `mix gettext.merge` fuzzy-matches onto something else.
+  defp joined(left, right), do: left <> " · " <> right
 
   # Only the sections that have something in them. A chip that empties the
   # spine is a control that looks broken, and the drawing never draws one.
+  #
+  # The LABEL stays the English key — `kind/1` answers it, `visible/2` compares
+  # it and `chip/3` builds `filter_<label>` out of it — and only the count is
+  # put into the reader's digits. `chip_label/1` is where the word itself
+  # becomes Persian, and its doc says at length why that is the last moment and
+  # not an earlier one.
   defp chips_for(rows) do
     counted =
       for label <- ~w(Meals Screen Personal),
           n = Enum.count(rows, &(Kati.Screens.MealsDay.kind(&1) == label)),
           n > 0,
-          do: {label, "#{n}"}
+          do: {label, Kati.Locale.number(n)}
 
     [{"All", nil} | counted]
   end
@@ -179,13 +212,40 @@ defmodule Kati.Screens.MealsDay do
     kcal = Enum.reduce(meals, 0, &(&2 + Map.get(&1, :kcal, 0)))
     eaten = Enum.count(meals, &(&1.check == :eaten))
 
+    # Upper case in the drawing, so `Kati.UI.eyebrow_label/1` rather than a
+    # msgid written in capitals: the English line is still
+    # `1 EATEN · NEXT AT 10:30` and the Persian is a sentence, because Arabic
+    # script has no case and upcasing it is a no-op that reads as a decision
+    # nobody took.
+    #
+    # `time` is already `clock/1`'s, which is `Kati.Locale.time/1`, so the clock
+    # arrives in the reader's own digits and needs no second conversion here.
     sub =
       case Enum.find(meals, &(&1.check == :todo)) do
-        %{time: time} when time != "" -> "#{eaten} EATEN · NEXT AT #{time}"
-        _none -> "#{eaten} EATEN"
+        %{time: time} when time != "" ->
+          Kati.UI.eyebrow_label(
+            gettext("%{n} eaten · next at %{time}", n: Kati.Locale.number(eaten), time: time)
+          )
+
+        _none ->
+          # A context, because two words around a placeholder is short enough
+          # for `mix gettext.merge` to fuzzy-match onto the longer line above.
+          Kati.UI.eyebrow_label(
+            pgettext("collapsed meals", "%{n} eaten", n: Kati.Locale.number(eaten))
+          )
       end
 
-    %{rule: @meal, title: "#{tally(length(meals), "meal")} · #{kcal} kcal", sub: sub}
+    %{
+      rule: @meal,
+      title:
+        joined(
+          meals_tally(length(meals)),
+          # The msgid `Kati.Screens.MealsToday` already carries for a calorie
+          # figure, so one word names calories across both meal screens.
+          gettext("%{count} kcal", count: Kati.Locale.number(kcal))
+        ),
+      sub: sub
+    }
   end
 
   # The day's meals and everything else on the calendar, in one clock order —
@@ -202,11 +262,16 @@ defmodule Kati.Screens.MealsDay do
       # A skipped meal has no calories, so printing a number would be a lie —
       # `Kati.Screens.MealsToday`'s own reasoning, and the reason it contributes
       # nothing to the collapsed row's total either.
+      #
+      # `SKIPPED` is upper case in the drawing and goes through
+      # `Kati.UI.eyebrow_label/1` for the reason the collapsed row's sub-line
+      # does — and it is the same msgid screen 44 already carries, so the two
+      # meal screens say `رد شد` in one voice.
       {state, check, sub, kcal} =
         case log.state do
-          :eaten -> {:past, :eaten, "#{log.kcal} kcal", log.kcal}
-          :skipped -> {:past, :none, "SKIPPED", 0}
-          _planned -> {:live, :todo, "#{log.kcal} kcal", log.kcal}
+          :eaten -> {:past, :eaten, calories(log.kcal), log.kcal}
+          :skipped -> {:past, :none, Kati.UI.eyebrow_label(gettext("Skipped")), 0}
+          _planned -> {:live, :todo, calories(log.kcal), log.kcal}
         end
 
       %{
@@ -226,6 +291,8 @@ defmodule Kati.Screens.MealsDay do
   rescue
     _error -> []
   end
+
+  defp calories(kcal), do: gettext("%{count} kcal", count: Kati.Locale.number(kcal))
 
   defp meal_title(log) do
     [log.slot_name, log.title]
@@ -265,8 +332,21 @@ defmodule Kati.Screens.MealsDay do
   defp rule(:habit), do: Palette.green()
   defp rule(_kind), do: Palette.ink()
 
+  # `Kati.Locale.time/1` rather than `strftime/2`, which is the same call
+  # `Kati.Calendars.Today.row/2` makes for the event rows this sorts beside: the
+  # clock is 24-hour in both scripts and what changes is the numerals, so a
+  # gutter reading ۰۷:۳۰ against a meal reading 07:30 would be one column in two
+  # numeral systems.
+  #
+  # **And it is what puts the spine back in clock order under `:fa`.**
+  # `spine/1` sorts on the time STRING, and U+06F0–U+06F9 sit above ASCII `0`–`9`
+  # in every comparison — so with the events already digited by
+  # `Kati.Calendars.Today` and the meals still Latin, every meal sorted after
+  # every event and the day's whole argument, that meals need no lane of their
+  # own because they sit in clock order with everything else, came apart in the
+  # one language it was not checked in.
   defp clock(nil), do: ""
-  defp clock(%Time{} = time), do: Calendar.strftime(time, "%H:%M")
+  defp clock(%Time{} = time), do: Kati.Locale.time(time)
 
   @doc false
   def content(assigns) do
@@ -370,6 +450,19 @@ defmodule Kati.Screens.MealsDay do
     )
   end
 
+  # Two localisations on a heading and a sub-line, and both are about shape
+  # rather than words:
+  #
+  #   * The design tightens its 28pt headings by 0.03em. Arabic script joins its
+  #     letters, and tracking prises those joins apart — so `Kati.Locale.tracking/1`
+  #     hands the Persian heading 0. `max_lines={1}` was already here, which is
+  #     what keeps ۲۶ مرداد ۱۴۰۴ on one line rather than wrapping under itself.
+  #   * `kati_mono.ttf` carries no Arabic glyph, so a Persian sub-line asked for
+  #     in `mono` is handed to whatever face Android substitutes — it renders,
+  #     legibly, in a typeface that is not Kati's. `mono_face/1` asks the STRING
+  #     rather than the reader, which is the right question here: a stored day's
+  #     subtitle is Persian and takes Vazirmatn, and the drawn day's is still
+  #     `Kati.Calendar.SampleMealDay`'s ASCII and keeps DM Mono.
   @doc false
   def title(day) do
     ~MOB"""
@@ -379,14 +472,14 @@ defmodule Kati.Screens.MealsDay do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
         max_lines={1}
       />
       <Spacer size={5} />
       <Text
         text={day.subtitle}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(day.subtitle)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -418,6 +511,7 @@ defmodule Kati.Screens.MealsDay do
     # The tag carries the label, so one clause serves every chip and a new
     # section in the data needs no new code here.
     tap = {self(), String.to_atom("filter_" <> label)}
+    word = Kati.Screens.MealsDay.chip_label(label)
     background = if on?, do: Palette.ink_fill(), else: Palette.card()
     color = if on?, do: Palette.on_ink(), else: Palette.ink_soft()
     shadow = if on?, do: nil, else: Theme.shadow_card_soft()
@@ -433,11 +527,45 @@ defmodule Kati.Screens.MealsDay do
       align="center"
       on_tap={tap}
     >
-      <Text text={label} text_size={12} font_weight="semibold" text_color={color} max_lines={1} />
+      <Text text={word} text_size={12} font_weight="semibold" text_color={color} max_lines={1} />
       {Kati.Screens.MealsDay.chip_count(count)}
     </Row>
     """
   end
+
+  @doc """
+  A chip's word, in the reader's language — translated HERE and nowhere earlier.
+
+  `label` is this screen's section KEY as much as it is its word. `kind/1`
+  answers one of these four strings off a row's lane colour, `visible/2`
+  compares the active filter against that answer, and `chip/3` above builds
+  `filter_<label>` into an atom that `handle_tap/2` splits back apart. Translate
+  it anywhere upstream of this function and all three break at once: `visible/2`
+  compares وعده‌ها against `kind/1`'s `"Meals"`, matches nothing, and every chip
+  but `All` empties the spine — a control that looks broken, which is the exact
+  failure `chips_for/1` already refuses to ship by dropping empty sections. The
+  atom would be built out of Persian too, so the tap would name a tag no clause
+  in `handle_tap/2` can read.
+
+  So the key travels English the whole way down and becomes a word at the last
+  possible moment, which is this one call site.
+
+  None of the four words is a new msgid. `All`, `Screen` and `Personal` are the
+  ones `Kati.Screens.Calendar` draws on its own section chips — this screen is
+  that screen's meals row opened, so a section cannot be called one thing on
+  the calendar and another one tap in — and `Meals` is what the back pill, the
+  tab and `Kati.Calendars.Today.kind_label/1` all already say.
+
+  The catch-all returns the label untouched: a section this screen has no word
+  for reads as it was stored, which is what gettext does with a missing msgid
+  anyway.
+  """
+  @spec chip_label(String.t()) :: String.t()
+  def chip_label("All"), do: gettext("All")
+  def chip_label("Meals"), do: gettext("Meals")
+  def chip_label("Screen"), do: gettext("Screen")
+  def chip_label("Personal"), do: gettext("Personal")
+  def chip_label(other), do: other
 
   # The count is the label at 60% — `opacity:.6` on the same colour, which as
   # ARGB is the alpha, not a lighter grey.
@@ -448,6 +576,12 @@ defmodule Kati.Screens.MealsDay do
   # which is not the literal 52.html draws — and light mode may not move.
   # 52.html's resting screen has `All` selected and `All` carries no count, so
   # the drawing never shows a count on ink; the pairing stays as drawn.
+  #
+  # `mono_face/1` on the count for the reason `title/1`'s sub-line takes it:
+  # `chips_for/1` now digits the count, and DM Mono carries none of
+  # U+06F0–U+06F9, so ۵ asked for in `mono` would come back as Android's own
+  # substitute face beside a Persian chip label set in Vazirmatn. Asking the
+  # STRING keeps the drawn day's `"5"` in DM Mono exactly as it is.
   @doc false
   def chip_count(nil), do: ~MOB"<Spacer size={0} />"
 
@@ -457,7 +591,7 @@ defmodule Kati.Screens.MealsDay do
       <Spacer size={6} />
       <Text
         text={count}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(count)}
         text_size={10}
         text_color={Palette.count_idle()}
         max_lines={1}
@@ -484,6 +618,12 @@ defmodule Kati.Screens.MealsDay do
   the stripe cannot drift apart. A habit's green and an appointment's ink both
   fall to `Personal`, which is the same bucket `Kati.Screens.Calendar.visible/2`
   puts them in.
+
+  **These three strings are keys, not copy, and stay English in every locale.**
+  They are what `visible/2` compares a filter against and what `chip/3` builds
+  `filter_<label>` out of; `chip_label/1` is the one place a Persian reader ever
+  sees a word instead, and it is the last thing that happens before the chip is
+  drawn.
   """
   @spec kind(map()) :: String.t()
   def kind(%{rule: @meal}), do: "Meals"
@@ -516,6 +656,13 @@ defmodule Kati.Screens.MealsDay do
   no stored event behind it has no page to open and no log to write.
   """
   def row(row) do
+    # The two mono slots — the 44pt clock gutter and the sub-line — ask the
+    # STRING for its face rather than the reader. Both hold a mixture on one
+    # page: a stored meal's `۱۹:۳۰` and `۶۲۰ کالری` need Vazirmatn because
+    # `kati_mono.ttf` has no glyph for either, while a drawn row is still
+    # `Kati.Calendar.SampleMealDay`'s Latin and has to stay in DM Mono, and an
+    # event's sub-line is whatever `Kati.Calendars.Today.meta/1` made of the
+    # user's own location. `Kati.Locale.mono_face/1` answers each one for itself.
     background = if row.state == :past, do: Palette.card_settled(), else: Palette.card()
     shadow = if row.state == :past, do: nil, else: Theme.shadow_card_soft()
     color = if row.state == :past, do: Palette.settled_ink(), else: Palette.ink()
@@ -527,7 +674,7 @@ defmodule Kati.Screens.MealsDay do
         <Column width={44} padding_top={13}>
           <Text
             text={row.time}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.time)}
             text_size={12}
             text_color={Palette.muted()}
             max_lines={1}
@@ -560,7 +707,7 @@ defmodule Kati.Screens.MealsDay do
               <Spacer size={4} />
               <Text
                 text={row.sub}
-                font_family="mono"
+                font_family={Kati.Locale.mono_face(row.sub)}
                 text_size={10.5}
                 text_color={Palette.tertiary()}
                 max_lines={1}
@@ -677,6 +824,18 @@ defmodule Kati.Screens.MealsDay do
 
   # Kati.UI.eyebrow's dash is always the accent, and orange here would claim
   # the collapsed meals are new. The design draws this one #C4BDB3.
+  #
+  # The label itself takes `Kati.UI.eyebrow/2`'s own Persian recipe rather than
+  # this one with the family swapped, because DM Mono at 10.5 with 0.16em of
+  # tracking is a LATIN small-caps effect and none of its three parts survives
+  # the crossing: the face has no Arabic glyph, the upper case is a no-op, and
+  # the tracking prises apart joins that Arabic script requires. Vazirmatn at
+  # 11/semibold with no tracking is what the mirrors drew and what
+  # `Kati.Screens.AddByHand.labelled/4` argues at length. So the four props swap
+  # through the same four helpers `Kati.UI.eyebrow/2` uses and the word itself
+  # goes through `Kati.UI.eyebrow_label/1`, which keeps this eyebrow and every
+  # other one in the app one thing in both scripts. The dash and the 11pt tail
+  # are still this function's own, which is why it is still a function.
   @doc false
   def muted_eyebrow(label) do
     ~MOB"""
@@ -685,10 +844,11 @@ defmodule Kati.Screens.MealsDay do
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face()}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
       </Row>
@@ -701,7 +861,9 @@ defmodule Kati.Screens.MealsDay do
   # heading over nothing is worse than no heading.
   @doc false
   def collapse_eyebrow(%{collapsed: nil}), do: ~MOB"<Spacer size={0} />"
-  def collapse_eyebrow(_day), do: Kati.Screens.MealsDay.muted_eyebrow("Collapse meals")
+
+  def collapse_eyebrow(_day),
+    do: Kati.Screens.MealsDay.muted_eyebrow(gettext("Collapse meals"))
 
   # The `expand_more` chevron is the density control's other face and does the
   # same thing, under its own name: the same tag on both made the disc and the
@@ -741,7 +903,7 @@ defmodule Kati.Screens.MealsDay do
         <Spacer size={4} />
         <Text
           text={collapsed.sub}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(collapsed.sub)}
           text_size={10.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -754,7 +916,11 @@ defmodule Kati.Screens.MealsDay do
   end
 
   # The note is the design's caption — an argument about the drawing rather
-  # than a fact about anyone's day — so a stored day does not carry one.
+  # than a fact about anyone's day — so a stored day does not carry one. The
+  # sentence is `Kati.Calendar.SampleMealDay`'s and is translated there; what is
+  # this function's to decide is the LEADING, because Vazirmatn's metrics are
+  # not Plus Jakarta's and a paragraph measured against the Latin drawing sets
+  # its Persian twin too tight to read.
   @doc false
   def note(%{note: nil}), do: ~MOB"<Spacer size={0} />"
 
@@ -768,7 +934,7 @@ defmodule Kati.Screens.MealsDay do
         <Text
           text={day.note}
           text_size={11.5}
-          line_height={1.45}
+          line_height={Kati.Locale.leading(1.45)}
           text_color={Palette.sub()}
           weight={1.0}
         />

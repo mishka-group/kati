@@ -68,6 +68,7 @@ defmodule Kati.Screens.ShelfFilters do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Library.ShelfFiltersSample, as: Sample
@@ -157,13 +158,20 @@ defmodule Kati.Screens.ShelfFilters do
   end
 
   def render(assigns),
-    do: Sheet.sheet("Sort & filter", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    do: Sheet.sheet(gettext("Sort & filter"), body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do
+    # `pgettext/2` on the two one-word section eyebrows — `Sort` here and
+    # `Filters` below. `Kati.Screens.NewGoal.body/1` carries the argument for
+    # the same three-word rule on its own eyebrows: `mix gettext.merge` fuzzy-
+    # matches a msgid this short against any entry near it, and a bare `Sort`
+    # sitting one edit away from `Sort & filter` — the title of this very sheet
+    # — is exactly the pair that would arrive translated to the wrong one and
+    # marked fuzzy. The Ranges eyebrow is a whole clause and needs no context.
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Sort")}
+      {UI.eyebrow(pgettext("sort & filter sheet section", "Sort"))}
       {Kati.Screens.ShelfFilters.sort_card(assigns.sort, assigns.direction)}
       <Spacer size={16} />
       {Kati.Screens.ShelfFilters.ranges(assigns)}
@@ -185,11 +193,60 @@ defmodule Kati.Screens.ShelfFilters do
       options
       |> Enum.with_index()
       |> Enum.map(fn {{key, label}, i} ->
-        Kati.Screens.ShelfFilters.sort_row(key, label, selected, direction, i != last)
+        Kati.Screens.ShelfFilters.sort_row(
+          key,
+          Kati.Screens.ShelfFilters.sort_label(key, label),
+          selected,
+          direction,
+          i != last
+        )
       end)
 
     SettingsList.card(rows)
   end
+
+  @doc """
+  The reader's own word for a sort row `Kati.Library.ShelfFiltersSample` names.
+
+  The sample is board 145 written out and it stays in the board's English,
+  because what travels out of it is a **key**: `:your_rating` is what
+  `sort_row/5` compares against `selected` to decide which row carries the
+  check, what `handle_info/2` matches in `sort_keys/0`, and what
+  `stored_sort/1` turns into `Kati.Library.ShelfFilters`' own name for it. A
+  key that translated itself would break all three the moment the reader chose
+  Persian, and would break them silently — the rows would still draw.
+
+  `Kati.Screens.AnimeFilter.sample_text/1` is the same split one module further
+  out and carries the long version of the argument; `Kati.Screens.NewGoal`'s
+  `period_label/1` is the same shape over `Kati.Goals.Goal.kinds/0`, which is
+  the tuple shape this sample was built to match.
+
+  A key with no clause of its own comes back with the sample's own label, so a
+  sixth sort row added tomorrow draws in English rather than raising — the
+  right failure for a design fixture, since `mix gettext.extract` reads literal
+  call sites and could not have a msgid for it either way.
+  """
+  @spec sort_label(atom(), String.t()) :: String.t()
+  # `pgettext/2` on the first two: `Recently added` is one word from
+  # `Recently watched`, which the catalogue already holds, and `Release date`
+  # is close to both `Release watcher` and `Released`. A fuzzy merge would
+  # hand either of them somebody else's Persian.
+  def sort_label(:recently_added, _label), do: pgettext("a shelf sort key", "Recently added")
+  def sort_label(:release_date, _label), do: pgettext("a shelf sort key", "Release date")
+
+  # These two are already in the catalogue as bare msgids — `عنوان` and
+  # `امتیاز شما` — and reusing them is what keeps one sort key from being
+  # spelled two ways across the app.
+  def sort_label(:your_rating, _label), do: gettext("Your rating")
+  def sort_label(:title, _label), do: gettext("Title")
+
+  # `Runtime` is one word and new, so it takes a context for the same reason
+  # the eyebrows do. Board 145 draws the Library instance, where this row is a
+  # film's length; Books would print Pages and Music Length in its place, and
+  # `Length` is already in the catalogue meaning a track's.
+  def sort_label(:runtime, _label), do: pgettext("a shelf sort key", "Runtime")
+
+  def sort_label(_key, label), do: label
 
   @doc false
   def sort_row(key, label, selected, direction, rule?) do
@@ -236,10 +293,17 @@ defmodule Kati.Screens.ShelfFilters do
   @doc "The DESC/ASC pill beside the active sort row. See the moduledoc for the turned arrow."
   @spec direction_pill(boolean()) :: map()
   def direction_pill(desc?) do
-    assigns = %{
-      label: if(desc?, do: "DESC", else: "ASC"),
-      rotate: if(desc?, do: 0.0, else: 180.0)
-    }
+    # `DESC`/`ASC` are words on a pill, not values — the direction itself is
+    # the `:desc`/`:asc` atom the caller hands in, and it stays that way. Both
+    # take a context: two four-letter runs one edit apart from each other are
+    # exactly what `mix gettext.merge` fuzzy-matches, and the pair must not be
+    # allowed to collapse into one word.
+    label =
+      if desc?,
+        do: pgettext("sort direction", "DESC"),
+        else: pgettext("sort direction", "ASC")
+
+    assigns = %{label: label, rotate: if(desc?, do: 0.0, else: 180.0)}
 
     ~MOB"""
     <Row
@@ -256,7 +320,7 @@ defmodule Kati.Screens.ShelfFilters do
       <Spacer size={5} />
       <Text
         text={@label}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={10.5}
         text_color={Palette.ink_soft()}
         max_lines={1}
@@ -267,27 +331,123 @@ defmodule Kati.Screens.ShelfFilters do
 
   @doc false
   def decade_row(selected) do
-    Kati.Screens.ShelfFilters.chip_row(Sample.decades(), fn key -> key == selected end)
+    Sample.decades()
+    |> Kati.Screens.ShelfFilters.read_facets()
+    |> Kati.Screens.ShelfFilters.chip_row(fn key -> key == selected end)
   end
 
   @doc false
   def rating_row(selected) do
-    Kati.Screens.ShelfFilters.chip_row(Sample.ratings(), fn key -> key == selected end)
+    Sample.ratings()
+    |> Kati.Screens.ShelfFilters.read_facets()
+    |> Kati.Screens.ShelfFilters.chip_row(fn key -> key == selected end)
   end
 
   @doc false
   def genre_row(selected) do
-    Kati.Screens.ShelfFilters.chip_row(Sample.genres(), fn key ->
+    Sample.genres()
+    |> Kati.Screens.ShelfFilters.read_facets()
+    |> Kati.Screens.ShelfFilters.chip_row(fn key ->
       MapSet.member?(selected, key)
     end)
   end
 
   @doc false
   def service_row(selected) do
-    Kati.Screens.ShelfFilters.chip_row(Sample.services(), fn key ->
+    Sample.services()
+    |> Kati.Screens.ShelfFilters.read_facets()
+    |> Kati.Screens.ShelfFilters.chip_row(fn key ->
       MapSet.member?(selected, key)
     end)
   end
+
+  @doc """
+  The board's `{key, label, count}` triples with the labels read out loud.
+
+  The sample keeps its English, because the first element of every triple is a
+  **key** — it is what `chip_row/2`'s `selected?` closure tests, what
+  `handle_info/2` matches against `decade_keys/0` and the three lists beside
+  it, and what `facet_count/2` filters on. Only the second element is a word,
+  and this is the one place one becomes the reader's own. See `sort_label/2`
+  for the long version of the same split.
+  """
+  @spec read_facets([{atom(), String.t(), non_neg_integer()}]) ::
+          [{atom(), String.t(), non_neg_integer()}]
+  def read_facets(facets) do
+    Enum.map(facets, fn {key, label, count} ->
+      {key, Kati.Screens.ShelfFilters.facet_label(key, label), count}
+    end)
+  end
+
+  @doc """
+  The reader's own word for one of board 145's chips.
+
+  Four of the genres are already in the catalogue as bare msgids — `درام`,
+  `انیمه`, `مستند`, `کمدی` — and `Dropped` is already there under the
+  `shelf status` context that `Kati.Screens.Series` writes it in, which is the
+  same thing this chip means: not *where* a title is, but *what happened to
+  it*. `Gone cold` joins that context rather than starting a second one, so
+  the pair that the sample's own doc groups together stays grouped.
+  """
+  @spec facet_label(atom(), String.t()) :: String.t()
+  def facet_label(:decade_2020s, _label), do: Kati.Screens.ShelfFilters.decade_label(2020)
+  def facet_label(:decade_2010s, _label), do: Kati.Screens.ShelfFilters.decade_label(2010)
+  def facet_label(:decade_2000s, _label), do: Kati.Screens.ShelfFilters.decade_label(2000)
+
+  def facet_label(:decade_older, _label),
+    do: pgettext("a decade bucket — everything before the ones named", "Older")
+
+  def facet_label(:rating_4, _label), do: Kati.Screens.ShelfFilters.rating_label(4)
+  def facet_label(:rating_3, _label), do: Kati.Screens.ShelfFilters.rating_label(3)
+  def facet_label(:rating_unrated, _label), do: pgettext("a rating bucket", "Unrated")
+
+  def facet_label(:genre_drama, _label), do: gettext("Drama")
+  def facet_label(:genre_anime, _label), do: gettext("Anime")
+  def facet_label(:genre_documentary, _label), do: gettext("Documentary")
+  def facet_label(:genre_comedy, _label), do: gettext("Comedy")
+
+  def facet_label(:status_dropped, _label), do: pgettext("shelf status", "Dropped")
+  def facet_label(:status_gone_cold, _label), do: pgettext("shelf status", "Gone cold")
+
+  # NO CLAUSE FOR `:service_lumen` OR `:service_orbit`, and that is the point.
+  #
+  # `Lumen+` and `Orbit` are the names services call themselves. A real one
+  # comes off `Kati.Services.Service` and no msgid can reach it, so a fixture
+  # that transliterated would spell one service two ways depending on whether
+  # the reader happened to be looking at the board or at their own shelf.
+  # Board 127 draws `Lumen+` in Latin on a Persian page for exactly this
+  # reason, and the catalogue already carries both names translated to
+  # themselves for `Kati.Money.Sample`.
+  #
+  # The same fallthrough is what a sixth chip added to the sample tomorrow
+  # gets: the board's own English, drawn rather than raised.
+  def facet_label(_key, label), do: label
+
+  @doc """
+  A decade as the reader writes it — `2020s`, `دههٔ ۲۰۲۰`.
+
+  Latin builds the word out of the number with an `s`; Persian puts the noun
+  in front and inflects nothing, so this cannot be `Kati.Locale.number/1`
+  followed by a literal suffix. One msgid, used by both the board's four
+  frozen buckets and `decade_facets/2`'s real ones, so the two rows cannot
+  drift apart.
+  """
+  @spec decade_label(integer()) :: String.t()
+  def decade_label(decade),
+    do: pgettext("a decade bucket", "%{decade}s", decade: Kati.Locale.number(decade))
+
+  @doc """
+  A rating bucket as the reader writes it — `4★ and up`, `★۴ و بالاتر`.
+
+  One msgid with the stars as a binding rather than two literals: `4★ and up`
+  and `3★ and up` are a single character apart, which is the pair a fuzzy
+  `mix gettext.merge` would match against each other the moment one of them
+  changed. The star's side of the numeral is the catalogue's own — `Yours
+  ★%{mine} · file says ★%{theirs}` already puts it there in both scripts.
+  """
+  @spec rating_label(pos_integer()) :: String.t()
+  def rating_label(stars),
+    do: pgettext("a rating bucket", "%{n}★ and up", n: Kati.Locale.number(stars))
 
   # One non-wrapping Row per literal chip line — the board never puts more
   # chips on a row than fit, so there is nothing here for `Row` to wrap and
@@ -344,14 +504,31 @@ defmodule Kati.Screens.ShelfFilters do
       padding_y: 0,
       text_size: 12,
       max_lines: 1,
-      trailing: UI.chip_count(Integer.to_string(count), count_color)
+      # `Kati.Locale.number/1` rather than `Integer.to_string/1`: the badge is
+      # set in the sheet's own face — `chip_count/2` declares no `font_family`
+      # and inherits the reader's — so a Persian reader gets `۰` and the
+      # `rail_idle` branch above still says what it is there to say.
+      trailing: UI.chip_count(Kati.Locale.number(count), count_color)
     )
   end
 
   @doc "The `showing N of 418` line and the Reset tap, in their own card."
   @spec count_card(non_neg_integer(), pos_integer()) :: map()
   def count_card(showing, total) do
-    assigns = %{text: "showing #{showing} of #{total}"}
+    # Both numerals go through `Kati.Locale.number/1` and the line drops out of
+    # DM Mono with them. `Kati.Locale.mono_face/0`'s own doc states the rule
+    # this obeys: `kati_mono.ttf` carries no Persian glyph and none of
+    # U+06F0–U+06F9 either, so a Persian `نمایش ۴۱ از ۴۱۸` left in `mono` would
+    # be handed to Android's substitute face whole. The whole line is the
+    # reader's script here — it is a sentence, not a bare figure — so this is
+    # `mono_face/0` rather than `mono_face/1`.
+    assigns = %{
+      text:
+        gettext("showing %{showing} of %{total}",
+          showing: Kati.Locale.number(showing),
+          total: Kati.Locale.number(total)
+        )
+    }
 
     ~MOB"""
     <Box
@@ -362,11 +539,17 @@ defmodule Kati.Screens.ShelfFilters do
       shadow={Kati.Theme.shadow_card_soft()}
     >
       <Row fill_width={true} align="center">
-        <Text text={@text} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={@text}
+          font_family={Kati.Locale.mono_face()}
+          text_size={13}
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
         <Row align="center" on_tap={{self(), :reset}}>
           <Text
-            text="Reset"
+            text={pgettext("clears every filter on the sheet", "Reset")}
             text_size={12.5}
             font_weight="semibold"
             text_color={Palette.sub()}
@@ -394,7 +577,7 @@ defmodule Kati.Screens.ShelfFilters do
   def ranges(%{facets: nil} = assigns) do
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.eyebrow_muted("Ranges — buckets, not sliders")}
+      {SettingsList.eyebrow_muted(gettext("Ranges — buckets, not sliders"))}
       {Kati.Screens.ShelfFilters.decade_row(assigns.decade)}
       <Spacer size={11} />
       {Kati.Screens.ShelfFilters.rating_row(assigns.rating)}
@@ -408,7 +591,7 @@ defmodule Kati.Screens.ShelfFilters do
   def ranges(assigns) do
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.eyebrow_muted("Ranges — buckets, not sliders")}
+      {SettingsList.eyebrow_muted(gettext("Ranges — buckets, not sliders"))}
       {Kati.Screens.ShelfFilters.decade_facets(assigns.decades, assigns.decade)}
       <Spacer size={16} />
     </Column>
@@ -432,7 +615,12 @@ defmodule Kati.Screens.ShelfFilters do
   """
   @spec decade_facets([{integer(), non_neg_integer()}], integer() | nil) :: map()
   def decade_facets(decades, chosen) do
-    chips = Enum.map(decades, fn {decade, n} -> {decade_tag(decade), "#{decade}s", n} end)
+    # `decade_label/1` and not `"#{decade}s"`: the decade is a NUMBER the sheet
+    # prints, so it takes the reader's own numerals, and Persian names a decade
+    # with a noun in front rather than a suffix behind. The board's four frozen
+    # buckets go through the same call from `facet_label/2`, so a device's real
+    # decades and the drawing's cannot be worded two different ways.
+    chips = Enum.map(decades, fn {decade, n} -> {decade_tag(decade), decade_label(decade), n} end)
 
     Kati.Screens.ShelfFilters.chip_row(chips, fn key -> decade_of(key) == chosen end)
   end
@@ -473,7 +661,7 @@ defmodule Kati.Screens.ShelfFilters do
   def filters(%{facets: nil} = assigns) do
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.eyebrow_muted("Filters")}
+      {SettingsList.eyebrow_muted(pgettext("sort & filter sheet section", "Filters"))}
       {Kati.Screens.ShelfFilters.genre_row(assigns.genres)}
       <Spacer size={11} />
       {Kati.Screens.ShelfFilters.service_row(assigns.services)}
@@ -487,7 +675,7 @@ defmodule Kati.Screens.ShelfFilters do
   def filters(assigns) do
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.eyebrow_muted("Filters")}
+      {SettingsList.eyebrow_muted(pgettext("sort & filter sheet section", "Filters"))}
       {Kati.Screens.ShelfFilters.facet_row(assigns.facets, assigns.genres)}
       <Spacer size={16} />
     </Column>
@@ -497,6 +685,13 @@ defmodule Kati.Screens.ShelfFilters do
   @doc "One chip per genre the shelf holds, with how many titles carry it."
   @spec facet_row([{String.t(), non_neg_integer()}], MapSet.t()) :: map()
   def facet_row(facets, selected) do
+    # NO `facet_label/2` HERE. These genres are not the board's four — they are
+    # whatever `Kati.Media.CachedTitle.genres` holds for this reader's own
+    # titles, which is a provider's free text arriving from TMDB. There is no
+    # msgid for a string that does not exist until a title is cached, and
+    # guessing one would spell `Sci-Fi & Fantasy` two ways depending on whether
+    # the catalogue happened to have been asked about it. The COUNT beside it
+    # is this app's own and is localised, in `facet_chip/4`.
     chips = Enum.map(facets, fn {genre, n} -> {facet_tag(genre), genre, n} end)
 
     Kati.Screens.ShelfFilters.chip_row(chips, fn key ->
@@ -528,11 +723,15 @@ defmodule Kati.Screens.ShelfFilters do
 
   @doc false
   def note_text(nil) do
-    "Ranges are chip buckets, not sliders — the app has no slider in its component table, and a bucket carries a count while a slider cannot. Count badges exist so a chip that would empty the shelf says so before it is tapped: Comedy reads 0 in hairline grey."
+    gettext(
+      "Ranges are chip buckets, not sliders — the app has no slider in its component table, and a bucket carries a count while a slider cannot. Count badges exist so a chip that would empty the shelf says so before it is tapped: Comedy reads 0 in hairline grey."
+    )
   end
 
   def note_text(_facets) do
-    "Genres and release years come from the provider, so these are the ones your own shelf carries. Streaming service is not offered: nothing in Kati holds a catalogue."
+    gettext(
+      "Genres and release years come from the provider, so these are the ones your own shelf carries. Streaming service is not offered: nothing in Kati holds a catalogue."
+    )
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
@@ -671,7 +870,26 @@ defmodule Kati.Screens.ShelfFilters do
     }
 
     if socket.assigns.facets do
-      restated(Kati.Screens.ShelfFilters.put_sort(socket, sort, direction), stored)
+      # `put_sort/3` AFTER `restated/2`, not before it.
+      #
+      # The two speak different vocabularies on purpose. This card draws five
+      # rows keyed `:recently_added | :release_date | :your_rating | :title |
+      # :runtime`, and `Kati.Library.ShelfFilters` stores four — `stored_sort/1`
+      # is the bridge, and its doc says why the board can offer one the store
+      # cannot answer. `restated/2` assigns `:sort` from the STORE's word, so
+      # running it last wrote `:rating` into an assign that `sort_row/5`
+      # compares against the five row keys: no row matched, so tapping *Your
+      # rating* left the card with nothing checked and no direction pill, and
+      # the next tap could not flip the direction because `assigns.sort` never
+      # equalled the key that had been pressed. *Release date* had the milder
+      # version — the check appeared on *Recently added*, which is not the row
+      # the reader touched.
+      #
+      # Re-applying the screen's own key last is the whole fix. Nothing about
+      # what is stored changes; `stored` is still the store's four-key word.
+      socket
+      |> restated(stored)
+      |> Kati.Screens.ShelfFilters.put_sort(sort, direction)
     else
       Kati.Screens.ShelfFilters.put_sort(socket, sort, direction)
     end

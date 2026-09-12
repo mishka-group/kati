@@ -64,8 +64,27 @@ defmodule Kati.Screens.Accessibility do
   So a flip here is honestly local: it moves a thumb, and **Increase contrast**
   additionally darkens this screen's own rules. Nothing is stored because
   nothing would read it, and there is no resource to name.
+
+  ## Under `:fa` the sample is a set of KEYS, and `spec_text/1` is the seam
+
+  mishka-group/kati#103 folded the 33 Persian mirrors away, so this module is
+  now the Persian screen as well as the English one. The sample did not move
+  with it: `Kati.Accessibility.Sample` still holds `test/design/screens/41.html`'s
+  own English, and `spec_text/1` — one clause per string, at the leaf — is the
+  only place a guarantee becomes a word somebody reads. That split is not
+  tidiness. `contrast?/1` matches a row by its title, so the sample's
+  `"Increase contrast"` is a key as much as a label, and a sample that
+  translated itself would leave the switch flipping and the hairlines no
+  longer following it.
+
+  The numbers and the one date go the same way and are the part a catalogue
+  cannot do: `235%` is ۲۳۵٪, `44×44` is ۴۴×۴۴, and *Airs 20 August* is
+  *پخش ۲۹ مرداد* — the same day, counted in the calendar the reader keeps.
+  `voiceover_line/0` is where the quotation is rebuilt, and its own doc says
+  why a frozen quotation is still not a Latin one.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Accessibility.Sample
   alias Kati.Components.MishkaSeparator
@@ -73,6 +92,32 @@ defmodule Kati.Screens.Accessibility do
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme.Palette
   alias Kati.UI
+
+  # The air date the VoiceOver quotation names, as a DATE rather than as the
+  # two words `20 August`. It is `Kati.Library.Sample`'s own episode 6 —
+  # `aired_episode(6, gettext("The Undertow"), 55, ~D[2026-08-20])` — which is
+  # the episode this screen's specimen card is drawing, so the two cannot
+  # disagree about which day it is. A Persian reader keeps a different
+  # calendar, and `20 August` is a Gregorian instruction: `voiceover_line/0`
+  # asks `Kati.Locale` for the day and the month instead, so the same instant
+  # reads `20 August` in Latin and ۲۹ مرداد in Persian.
+  #
+  # A module attribute is safe here where one holding `gettext/1` would not
+  # be: a `Date` is not a translation and freezes nothing in the compiler's
+  # locale.
+  @airs ~D[2026-08-20]
+
+  # The two strings from `Kati.Accessibility.Sample` too long to read inside a
+  # function head, written out here so `spec_text/1` has a literal to match on.
+  # Both hold the sample's ENGLISH, which is a key rather than a translation —
+  # so the compile-time freeze that makes `gettext/1` in a module attribute a
+  # bug does not apply here: nothing in either is locale-dependent, and the
+  # words that are come off `spec_text/1` at render.
+  @note "At the largest sizes, rows become stacks and icon-only buttons grow " <>
+          "labels. Nothing truncates — cards get taller instead."
+
+  @reads "“Episode 6, The Undertow. 55 minutes. Airs 20 August. Not watched. " <>
+           "Double-tap to mark watched.”"
 
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :spec, Sample.spec())
@@ -95,9 +140,9 @@ defmodule Kati.Screens.Accessibility do
         {Kati.Screens.Accessibility.title(spec)}
         {Kati.Screens.Accessibility.up_next(spec, contrast?)}
         {Kati.Screens.Accessibility.note(spec)}
-        {UI.eyebrow("Built in")}
+        {UI.eyebrow(gettext("Built in"))}
         {Kati.Screens.Accessibility.built_in(spec, contrast?)}
-        {Kati.Screens.Accessibility.quiet_eyebrow("VoiceOver reads")}
+        {Kati.Screens.Accessibility.quiet_eyebrow(gettext("VoiceOver reads"))}
         {Kati.Screens.Accessibility.voiceover(spec)}
       </Column>
     </Scroll>
@@ -111,10 +156,181 @@ defmodule Kati.Screens.Accessibility do
   state, and a copy of it would be one more thing to keep in step. The title
   is the design's own label, matched here rather than an index so reordering
   the guarantees cannot silently move the effect to another row.
+
+  ## The title compared here is a KEY, and stays English
+
+  `Kati.Accessibility.Sample` is the BOARD written out, in the board's own
+  English, and it stays that way: `spec_text/1` is the only place a guarantee
+  becomes a word the reader can read, and it runs at the leaf. So this
+  comparison is against `"Increase contrast"` in both scripts, which is what
+  keeps the contrast row's consequence attached to the contrast row under
+  `:fa`.
+
+  `Kati.Screens.Library.chip_counts/1` carries the long version of the
+  argument, because the shelf already paid for it: its four filters were one
+  string doing both jobs, so the Persian shelf's filter was «همه» and every
+  clause of `matching/2` fell through. Translating the sample would break this
+  function the same way, and just as quietly — the switch would still flip,
+  and only the hairlines would stop following it.
   """
   @spec contrast?(map()) :: boolean()
   def contrast?(spec) do
     Enum.any?(spec.built_in, fn row -> row.title == "Increase contrast" and row.toggle end)
+  end
+
+  @doc """
+  The reader's own word for a string `Kati.Accessibility.Sample` hands over.
+
+  The sample is the BOARD written out — `test/design/screens/41.html`'s own
+  copy, in the board's own English — and it stays that way, for the reason
+  `contrast?/1` gives: what travels out of it is a KEY as well as a word, and
+  a key that translated itself would move this screen's one consequence off
+  the row that promises it. `Kati.Screens.AnimeFilter.sample_text/1` is the
+  same split one board over, and carries the long version of the argument.
+
+  So the sample keeps the English and this is the only place that turns one
+  into a sentence. Five of these clauses do more than look a word up, because
+  five of the board's strings carry a number or a date a Persian reader counts
+  differently:
+
+    * the sub-line and the **Dynamic Type** row both state `235%`, and both
+      take `Kati.Locale.number/1` — ۲۳۵٪, with U+066A, which is what
+      *Follows system · up to 235%* already draws one screen up in
+      `Kati.Settings.Sample`.
+    * **Touch targets** states `44×44`. That is a measurement, so it is a
+      number the reader reads rather than a figure the design sets.
+    * the Up next card's meta block is `Season 2, episode 6` over
+      `18 minutes left` — two sentences in one `Text`. They are two msgids
+      joined by the newline rather than one msgid containing it, because a
+      `\\n` inside a msgid is the first thing a translation loses.
+    * the VoiceOver quotation names an air date; `voiceover_line/0` owns it.
+
+  A string with no clause of its own comes back untouched. A seventh guarantee
+  added to the sample tomorrow then draws in English rather than raising,
+  which is the right failure for a design fixture to have: `mix gettext.extract`
+  reads literal call sites and could not have a msgid for it either way.
+  """
+  @spec spec_text(String.t()) :: String.t()
+  def spec_text("Dynamic Type at 235%"),
+    do: gettext("Dynamic Type at %{n}%", n: Kati.Locale.number(235))
+
+  # The eyebrow on the specimen card is the shelf's own word for the same
+  # section, so it takes the shelf's own msgid rather than a second one:
+  # `Kati.Screens.Library` already draws *Up next*, and one word written twice
+  # is one word that can be translated two ways. Same for the show's name,
+  # which `Kati.Library.Sample` has carried in Persian since it was folded —
+  # the specimen must be the same title the rest of the app spells.
+  def spec_text("Up next"), do: gettext("Up next")
+  def spec_text("The Long Hollow"), do: gettext("The Long Hollow")
+
+  def spec_text("Season 2, episode 6\n18 minutes left") do
+    gettext("Season %{s}, episode %{e}", s: Kati.Locale.number(2), e: Kati.Locale.number(6)) <>
+      "\n" <> gettext("%{n} minutes left", n: Kati.Locale.number(18))
+  end
+
+  # `pgettext/2` for the two buttons, and both times because of a near
+  # neighbour rather than an ambiguity in the word itself. `mix gettext.merge`
+  # fuzzy-matches a new msgid against the catalogue: `Resume` sits two edits
+  # from `Remove` and `Rename`, and `Mark watched` sits one word from
+  # `Mark next watched`, `Mark all` and `Mark eaten` — so it would arrive here
+  # carrying «قسمت بعدی را دیده‌ام», marked fuzzy, on the button that marks
+  # this one.
+  def spec_text("Resume"), do: pgettext("the Up next card’s primary button", "Resume")
+
+  def spec_text("Mark watched"),
+    do: pgettext("the Up next card’s secondary button", "Mark watched")
+
+  def spec_text(@note),
+    do:
+      gettext(
+        "At the largest sizes, rows become stacks and icon-only buttons grow labels. Nothing truncates — cards get taller instead."
+      )
+
+  # The six guarantees, in the sample's order. `Reduce motion` is deliberately
+  # a plain `gettext/1` and not a context: `Kati.Settings.Sample` declares that
+  # exact msgid for the switch one screen up, and this row is a claim about the
+  # same behaviour. The other five sit beside it in one list, so they take the
+  # same plain form — contexting half a list is how one list comes back in two
+  # voices.
+  def spec_text("VoiceOver"), do: gettext("VoiceOver")
+
+  def spec_text("Every control labelled · posters described"),
+    do: gettext("Every control labelled · posters described")
+
+  def spec_text("Dynamic Type"), do: gettext("Dynamic Type")
+
+  def spec_text("Up to 235% · no truncation"),
+    do: gettext("Up to %{n}% · no truncation", n: Kati.Locale.number(235))
+
+  def spec_text("Reduce motion"), do: gettext("Reduce motion")
+
+  def spec_text("Cross-fades instead of slides"), do: gettext("Cross-fades instead of slides")
+
+  def spec_text("Increase contrast"), do: gettext("Increase contrast")
+
+  def spec_text("Hairlines darken, shadows drop"), do: gettext("Hairlines darken, shadows drop")
+
+  def spec_text("Touch targets"), do: gettext("Touch targets")
+
+  def spec_text("Nothing under 44×44"),
+    do: gettext("Nothing under %{w}×%{h}", w: Kati.Locale.number(44), h: Kati.Locale.number(44))
+
+  def spec_text("Colour is never alone"), do: gettext("Colour is never alone")
+
+  def spec_text("Every dot has a label or icon"), do: gettext("Every dot has a label or icon")
+
+  # The sample writes this one uppercase because the drawing does. The msgid is
+  # the words in their own case and `Kati.UI.eyebrow_label/1` — in `voiceover/1`,
+  # where the other eyebrow label gets it too — does the upcasing, so the
+  # catalogue holds a phrase a translator can read and Persian is spared a
+  # transformation that does nothing to it.
+  #
+  # `pgettext/2` because `Episode row` is one edit from `Episode order`, which
+  # is already in the catalogue as a back-pill label.
+  def spec_text("EPISODE ROW"), do: pgettext("the VoiceOver quotation’s label", "Episode row")
+
+  def spec_text(@reads), do: Kati.Screens.Accessibility.voiceover_line()
+
+  def spec_text(other), do: other
+
+  @doc """
+  The sentence VoiceOver speaks, with its numbers and its date rebuilt.
+
+  The sample writes it as fixed prose and the moduledoc says why: the card
+  above quotes one known episode, and a quotation naming a different one is a
+  worse accessibility spec than a frozen one. Frozen is not the same as Latin,
+  though — every figure in it is read aloud to a person, so every figure is
+  the reader's own. `Episode 6` and `55 minutes` take `Kati.Locale.number/1`,
+  the episode's name takes `Kati.Library.Sample`'s own msgid, and `20 August`
+  is asked for as a day and a month rather than written, so a Persian reader
+  gets ۲۹ مرداد — the same day, counted in the calendar they keep.
+
+  `Kati.Locale.quoted/1` rather than the sample's own `“…”`: Persian meets the
+  Latin marks as foreign, and writes a quotation in guillemets. The whole
+  sentence is a quotation, which is exactly what that function is for.
+
+  ## One msgid, not five
+
+  The parts are interpolated into a single sentence rather than concatenated,
+  because the order of them is not the same in the two scripts and a
+  translator needs to be able to move the date inside the sentence. `%{day}`
+  and `%{month}` are separate for the same reason — `Kati.Locale.date/2` has
+  no style that gives a full month name and no weekday, which is the shape
+  this sentence wants, so `Kati.Screens.LogWeight.taken_line/0`'s composition
+  is the one followed here.
+  """
+  @spec voiceover_line() :: String.t()
+  def voiceover_line do
+    Kati.Locale.quoted(
+      gettext(
+        "Episode %{n}, %{title}. %{minutes} minutes. Airs %{day} %{month}. Not watched. Double-tap to mark watched.",
+        n: Kati.Locale.number(6),
+        title: gettext("The Undertow"),
+        minutes: Kati.Locale.number(55),
+        day: Kati.Locale.day_of_month(@airs),
+        month: Kati.Locale.month_name(@airs)
+      )
+    )
   end
 
   @doc """
@@ -205,20 +421,31 @@ defmodule Kati.Screens.Accessibility do
 
   @doc false
   def title(spec) do
+    # The mono sub-line is `Dynamic Type at 235%` and it is the reader's own
+    # script once `spec_text/1` has it, so the face is asked for rather than
+    # named: `kati_mono.ttf` carries no Persian glyph and none of U+06F0–U+06F9,
+    # so `font_family="mono"` here would hand the whole line to Android's own
+    # substitute face — legible, correctly shaped, and in a typeface that is
+    # not Kati's, which is the failure `Kati.PersianFontTest` exists to catch.
+    # `mono_face/1` rather than `mono_face/0` so a sub-line that is still Latin
+    # — an untranslated locale falling back to the msgid — keeps DM Mono.
+    subtitle = Kati.Screens.Accessibility.spec_text(spec.subtitle)
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Accessibility"
+        text={gettext("Accessibility")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={5} />
       <Text
-        text={spec.subtitle}
-        font_family="mono"
+        text={subtitle}
+        font_family={Kati.Locale.mono_face(subtitle)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -228,18 +455,43 @@ defmodule Kati.Screens.Accessibility do
     """
   end
 
-  @doc "The muted eyebrow: the design's `#C4BDB3` dash instead of the accent."
+  @doc """
+  The muted eyebrow: the design's `#C4BDB3` dash instead of the accent.
+
+  Everything except that dash is now `Kati.UI.eyebrow/2`'s, value for value,
+  and deliberately so — the two sit eleven points apart on this screen, and an
+  eyebrow that was 11pt semibold in Vazirmatn above the switch list while its
+  twin below was 10.5pt in DM Mono would read as two different section marks
+  rather than one, loud and one quiet. `Kati.UI.eyebrow/2` cannot simply be
+  called: it always draws the accent dash, which is the one thing this variant
+  exists to change.
+
+  The four things the fold changed here, all of them that function's answers:
+
+    * `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`. Persian has no
+      case, so upcasing it is a no-op that reads as one.
+    * `Kati.Locale.mono_face/1` rather than `"mono"`. `kati_mono.ttf` carries
+      no Persian glyph at all, so Android substitutes its own face for the one
+      label — `Kati.PersianFontTest`'s moduledoc is where that failure is
+      written down.
+    * `Kati.Locale.tracking/1` rather than a bare `0.16`. Letter spacing pulls
+      Arabic-script letters apart at the joins, which is a different word.
+    * the size and weight, which Vazirmatn needs a step of at this size.
+  """
   def quiet_eyebrow(label) do
+    drawn = Kati.UI.eyebrow_label(label)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          text={drawn}
+          font_family={Kati.Locale.mono_face(drawn)}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
           max_lines={1}
         />
@@ -250,11 +502,25 @@ defmodule Kati.Screens.Accessibility do
   end
 
   # No max_lines anywhere in this card: the whole demonstration is that text
-  # wraps and the card grows rather than the words being cut.
+  # wraps and the card grows rather than the words being cut. That is also why
+  # the screen's own 28pt heading took a `max_lines={1}` in this round and this
+  # card's 30pt one did not — they are opposite claims about the same font
+  # scale, and only one of them is this card's.
+  #
+  # The two-line meta block takes `Kati.Locale.leading/1` and the 30pt title
+  # does not. The title's `1.2` is already `Kati.Theme.fa_line_height/0` — the
+  # value that constant declares for Persian — so it needs nothing; the meta
+  # block's `1.35` at 22pt is a Latin measurement, and Vazirmatn's descenders
+  # at that size meet the line under them. Opening the block is the correct
+  # consequence on the one card whose promise is that it grows instead of
+  # cutting.
   @doc false
   def up_next(spec, contrast?) do
     u = spec.up_next
     shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_card_soft(), contrast?)
+
+    label = Kati.UI.eyebrow_label(Kati.Screens.Accessibility.spec_text(u.label))
+    lines = Kati.Screens.Accessibility.spec_text(u.lines)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -266,23 +532,28 @@ defmodule Kati.Screens.Accessibility do
         padding={18}
       >
         <Text
-          text={String.upcase(u.label)}
-          font_family="mono"
+          text={label}
+          font_family={Kati.Locale.mono_face(label)}
           text_size={12}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
         <Spacer size={12} />
         <Text
-          text={u.title}
+          text={Kati.Screens.Accessibility.spec_text(u.title)}
           text_size={30}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           line_height={1.2}
           text_color={:on_surface}
         />
         <Spacer size={10} />
-        <Text text={u.lines} text_size={22} line_height={1.35} text_color={Palette.ink_soft()} />
+        <Text
+          text={lines}
+          text_size={22}
+          line_height={Kati.Locale.leading(1.35)}
+          text_color={Palette.ink_soft()}
+        />
         <Spacer size={18} />
         <Box
           fill_width={true}
@@ -294,7 +565,12 @@ defmodule Kati.Screens.Accessibility do
           <Row align="center">
             {Kati.UI.symbol("play_arrow", size: 26, color: Palette.on_ink(), fill: true)}
             <Spacer size={10} />
-            <Text text={u.resume} text_size={19} font_weight="bold" text_color={Palette.on_ink()} />
+            <Text
+              text={Kati.Screens.Accessibility.spec_text(u.resume)}
+              text_size={19}
+              font_weight="bold"
+              text_color={Palette.on_ink()}
+            />
           </Row>
         </Box>
         <Spacer size={10} />
@@ -308,7 +584,12 @@ defmodule Kati.Screens.Accessibility do
           <Row align="center">
             {Kati.UI.symbol("check", size: 24)}
             <Spacer size={10} />
-            <Text text={u.mark} text_size={19} font_weight="bold" text_color={:on_surface} />
+            <Text
+              text={Kati.Screens.Accessibility.spec_text(u.mark)}
+              text_size={19}
+              font_weight="bold"
+              text_color={:on_surface}
+            />
           </Row>
         </Box>
       </Column>
@@ -325,9 +606,9 @@ defmodule Kati.Screens.Accessibility do
         {Kati.UI.symbol("info", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
         <Text
-          text={spec.note}
+          text={Kati.Screens.Accessibility.spec_text(spec.note)}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.cream_body()}
           weight={1.0}
         />
@@ -383,14 +664,19 @@ defmodule Kati.Screens.Accessibility do
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text
-            text={row.title}
+            text={Kati.Screens.Accessibility.spec_text(row.title)}
             text_size={13.5}
             font_weight="semibold"
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+          <Text
+            text={Kati.Screens.Accessibility.spec_text(row.sub)}
+            text_size={11.5}
+            text_color={Palette.sub()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Accessibility.toggle(row.toggle)}
@@ -511,18 +797,25 @@ defmodule Kati.Screens.Accessibility do
     # this still reads at about 4.8:1, so the unchanged value is not a hole.
     meta = 0xFF6A6560
 
+    label = Kati.UI.eyebrow_label(Kati.Screens.Accessibility.spec_text(v.label))
+
     ~MOB"""
     <Column fill_width={true} background={Palette.ink_fill()} corner_radius={20} padding={17}>
       <Text
-        text={v.label}
-        font_family="mono"
+        text={label}
+        font_family={Kati.Locale.mono_face(label)}
         text_size={10}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={meta}
         max_lines={1}
       />
       <Spacer size={10} />
-      <Text text={v.reads} text_size={13.5} line_height={1.6} text_color={Palette.on_ink_glyph()} />
+      <Text
+        text={Kati.Screens.Accessibility.spec_text(v.reads)}
+        text_size={13.5}
+        line_height={Kati.Locale.leading(1.6)}
+        text_color={Palette.on_ink_glyph()}
+      />
     </Column>
     """
   end

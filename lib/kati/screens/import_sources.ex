@@ -33,7 +33,7 @@ defmodule Kati.Screens.ImportSources do
       rule under its own muted eyebrow — a footnote to the grid rather than a
       twelfth source in it.
 
-  Both are drawn as the same single-row card shape the grid's "Five more
+  Both are drawn as the same single-row card shape the grid's "Four more
   sources" summary uses (`Kati.UI.SettingsList.card/1` + `row/4`), which is
   deliberately *not* the grid's own card: the ten real sources are six-plus-
   five identical tiles naming a file; these two are prose naming a decision.
@@ -69,13 +69,15 @@ defmodule Kati.Screens.ImportSources do
   the columns yourself"*, which is what screen 37 shows.
 
   `A Kati backup` is the one tap that is not a stand-in. It pushes to
-  `Kati.Screens.Backup`, which is where the drawing's own sub-line says it
-  goes — restore, not import.
+  `Kati.Screens.Restore`, which is where the drawing's own sub-line says it
+  goes — restore, not import. (The moduledoc named `Kati.Screens.Backup` here
+  until the Persian fold read it against `fallback/2`; `Backup` is the screen
+  that *writes* a backup, and nothing has ever pushed it from this row.)
 
-  ## The rule under "Five more sources", and why its colour is a literal
+  ## The rule under "Four more sources", and why its colour is a literal
 
   `rgba(26,25,23,.12)` — 12% ink — is the "full rule" the design's own caption
-  names, separating the grid-plus-five-more group above from *Not on the
+  names, separating the grid-plus-four-more group above from *Not on the
   list* below. `Kati.Theme.Palette`'s ink-tint ladder is dense but not
   continuous: `hairline` 7%, `hairline_soft` 8%, `hairline_strong` 10%,
   `border_soft` 14%, `border` 16%, `border_strong` 18%, `border_stronger` 20%,
@@ -127,9 +129,29 @@ defmodule Kati.Screens.ImportSources do
   `Kati.Screens.MyServices`'s `@rules` and `Kati.Screens.Attribution`'s
   `@sources` sit in their own screens — a screen's file still holds every
   literal its drawing contains.
+
+  ## What stays Latin when this page renders under `:fa`
+
+  mishka-group/kati#103. The chrome of this screen translates — its heading,
+  its step kicker, its two eyebrows, its three prose rows and the note at the
+  bottom. What does **not** is everything in `@commonest`: the six names are
+  trade names and the six sub-lines are filenames a reader has to type or
+  recognise in a file picker, and `Kati.Screens.MoreSources`'s moduledoc is
+  where the rule is written down — board 278 transliterated the overflow four
+  («سیمکل») and board 328 ruled against it, because a transliterated export
+  name matches no file on the phone. `Kati.Locale.mono_face/1` rather than a
+  hardcoded `"mono"` at both of those call sites all the same: it asks the
+  STRING and not the reader, so every value this table holds today keeps DM
+  Mono and a name added tomorrow that is not pure ASCII is typeset in
+  Vazirmatn instead of Android's substitute face.
+
+  `@commonest` is therefore still an attribute rather than a function — the
+  compile-time freeze `gettext/1` suffers inside `@foo` cannot bite a table
+  with no `gettext/1` in it.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
@@ -164,22 +186,44 @@ defmodule Kati.Screens.ImportSources do
         {Kati.Screens.ImportSources.steps()}
         {Kati.Screens.ImportSources.title()}
         {Kati.Screens.ImportSources.kati_backup()}
-        {UI.eyebrow("The six commonest")}
+        {UI.eyebrow(gettext("The six commonest"))}
         {Kati.Screens.ImportSources.grid()}
         {Kati.Screens.ImportSources.more()}
         {Kati.Screens.ImportSources.full_rule()}
-        {SettingsList.eyebrow_muted("Not on the list")}
+        {SettingsList.eyebrow_muted(gettext("Not on the list"))}
         {Kati.Screens.ImportSources.something_else()}
-        {SettingsList.note(
-          "info",
-          "The sub-line names the file, not the format — one rule for all eleven. " <>
-            "“CSV export” is short and useless; goodreads_library_export.csv stops " <>
-            "the commonest failure here, which is bringing the wrong file, before " <>
-            "the picker even opens."
-        )}
+        {Kati.Screens.ImportSources.note()}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The caption at the foot of the page — the drawing's own argument for why a
+  sub-line names a file rather than a format.
+
+  Its own function rather than a `SettingsList.note/2` call inside `content/1`'s
+  sigil, which is where it used to sit, for two reasons that arrived together:
+  the sentence now carries an interpolation, and the interpolation needs the
+  comment below to survive. A `#` comment is not valid inside a `~MOB` sigil,
+  so a wrapped string that needs explaining has to be built outside one — the
+  same shape every other block on this screen already has.
+  """
+  def note do
+    # `Kati.Locale.ltr/1` around the filename, and it is the full stop before
+    # `csv` that needs it rather than the letters. A period is a bidi NEUTRAL:
+    # dropped into a right-to-left paragraph it takes the paragraph's direction,
+    # so `goodreads_library_export.csv` is laid out with its dot on the wrong
+    # side of the word. Screen 83's five licence notices are where this was
+    # first caught, and `Kati.Locale.ltr/1`'s own doc carries the long version.
+    # A no-op in English, so the Latin page is byte-for-byte what it was.
+    SettingsList.note(
+      "info",
+      gettext(
+        "The sub-line names the file, not the format — one rule for all eleven. “CSV export” is short and useless; %{file} stops the commonest failure here, which is bringing the wrong file, before the picker even opens.",
+        file: Kati.Locale.ltr("goodreads_library_export.csv")
+      )
+    )
   end
 
   @doc """
@@ -201,20 +245,56 @@ defmodule Kati.Screens.ImportSources do
 
   @doc false
   def title do
+    # THE HEADING KEEPS ITS WRAP AND LOSES ITS TRACKING.
+    #
+    # `Kati.Locale.tracking/1` on the 28pt question, for the reason
+    # `Kati.Screens.ImportRecognised.title/1` and `Kati.Screens.AddByHand`
+    # already give: the design tightens its display type by a fraction of an em
+    # and Arabic script has no such tradition — negative spacing pulls Vazirmatn's
+    # letters out of their joins, so «از کجا می‌آیید؟» would come apart rather
+    # than tighten.
+    #
+    # No `max_lines={1}`, which every other display heading in this app carries.
+    # This one is a SENTENCE and not a name: *Where are you coming from?* is 26
+    # characters at 28pt bold and does not fit 360pt of content width, so it is
+    # drawn on two lines on the board itself. Pinning it to one line to protect
+    # the Persian — which does fit, at roughly half the width — would truncate
+    # the English page this screen is built from. The rule the other headings
+    # follow is about a word growing longer in translation; here the Latin side
+    # is the long one.
+    #
+    # The kicker takes `Kati.Locale.mono_face/0` rather than `mono_face/1`:
+    # unlike the tiles below it, every character of this line is translated, so
+    # the question is the READER's script and not the string's. `kati_mono.ttf`
+    # carries no Persian glyph and no U+06F0–U+06F9 digit, so a Persian kicker
+    # left in `"mono"` is handed to Android's substitute face and its numerals
+    # come back empty — which is also why the two figures go through
+    # `Kati.Locale.number/1` rather than sitting in the msgid: `۰` and `۴` are
+    # the reader's own digits, and under `mono_face/0` there is a face that can
+    # draw them.
+    assigns = %{
+      heading: gettext("Where are you coming from?"),
+      kicker:
+        gettext("STEP %{step} OF %{total} · PICK ONE AND KATI DOES THE MAPPING",
+          step: Kati.Locale.number(0),
+          total: Kati.Locale.number(4)
+        )
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Where are you coming from?"
+        text={@heading}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
       />
       <Spacer size={6} />
       <Text
-        text="STEP 0 OF 4 · PICK ONE AND KATI DOES THE MAPPING"
-        font_family="mono"
+        text={@kicker}
+        font_family={Kati.Locale.mono_face()}
         text_size={11.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -229,12 +309,30 @@ defmodule Kati.Screens.ImportSources do
   sits above the grid rather than inside it.
   """
   def kati_backup do
+    # `pgettext/2` on a three-word title, and the neighbour is the reason.
+    # `Restore a Kati backup` is already in the catalogue — it is the Settings
+    # row in `Kati.Settings.Sample` — and `mix gettext.merge` fuzzy-matches at
+    # 0.8 similarity, which *A Kati backup* is well inside. A bare msgid would
+    # come back from the next extract carrying that row's whole sentence marked
+    # fuzzy, and this row would say *restore a backup* where the drawing says
+    # *a backup exists*. A context is gettext's own answer and costs one line.
+    #
+    # `.json` goes through `Kati.Locale.ltr/1` for the note's reason one screen
+    # down: the LEADING dot is a bidi neutral, and in a right-to-left row it
+    # resolves against the paragraph and is drawn on the far side of the word —
+    # `json.` rather than `.json`, which is a file extension a reader cannot
+    # match against anything.
+    assigns = %{
+      title: pgettext("import source", "A Kati backup"),
+      sub: gettext("Your own %{file} — goes to Restore instead", file: Kati.Locale.ltr(".json"))
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       {SettingsList.card([
         SettingsList.row(
           SettingsList.icon_tile("cloud_done"),
-          SettingsList.body("A Kati backup", "Your own .json — goes to Restore instead"),
+          SettingsList.body(@title, @sub),
           SettingsList.trailing(SettingsList.chevron()),
           rule: false,
           on_tap: {self(), :kati_backup}
@@ -272,6 +370,14 @@ defmodule Kati.Screens.ImportSources do
   @doc """
   One card of the grid: a 34pt paper tile carrying a mono letter, the source's
   name, and the exact file it expects — never the format.
+
+  Nothing in here is wrapped for translation and the moduledoc says why: both
+  lines are a trade name and a filename, and board 328 is the finding that
+  transliterating either makes the Persian page name a file that is not on the
+  phone. `letter_spacing` stays the literal for the same reason and not by
+  oversight — `Kati.Locale.tracking/1` exists to drop the Latin design's
+  tightening off text that turns into Persian, and this text never does, so
+  asking would only loosen a Latin word on a Persian page.
   """
   def source_tile(source) do
     ~MOB"""
@@ -296,7 +402,7 @@ defmodule Kati.Screens.ImportSources do
       <Spacer size={5} />
       <Text
         text={source.file}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(source.file)}
         text_size={10.5}
         line_height={1.5}
         text_color={Palette.sub()}
@@ -319,8 +425,19 @@ defmodule Kati.Screens.ImportSources do
 
   @doc false
   def source_letter_text(letter) do
+    # `mono_face/1` asks the LETTER and not the reader, so every initial
+    # `@commonest` holds today — all six pure ASCII — keeps DM Mono in both
+    # scripts, exactly as drawn, and a source added later whose initial is not
+    # takes Vazirmatn rather than an empty box. `Kati.Locale.mono_face/1`'s own
+    # doc is where that distinction is argued.
     ~MOB"""
-    <Text text={letter} font_family="mono" text_size={14} text_color={Palette.ink()} max_lines={1} />
+    <Text
+      text={letter}
+      font_family={Kati.Locale.mono_face(letter)}
+      text_size={14}
+      text_color={Palette.ink()}
+      max_lines={1}
+    />
     """
   end
 
@@ -337,6 +454,14 @@ defmodule Kati.Screens.ImportSources do
   screen for none of them.
   """
   def more do
+    # Neither half of this row is this screen's string to wrap.
+    # `Kati.Screens.MoreSources.heading/0` builds *Four more sources* by
+    # counting its own list through `Kati.Screens.SearchSpec.word/1`, and
+    # `names/0` joins the four trade names — both are that module's, and 328's
+    # whole point is that they are built there so the count and the names
+    # cannot drift apart. Wrapping the result here would not help either: a
+    # msgid has to be a literal at the call site, and `gettext(heading())` does
+    # not compile. Board 328's own file is where that row learns Persian.
     ~MOB"""
     <Column fill_width={true}>
       {SettingsList.card([
@@ -379,12 +504,27 @@ defmodule Kati.Screens.ImportSources do
   the moduledoc.
   """
   def something_else do
+    # `pgettext/2` on *Something else*, and this one is a genuine two-boards
+    # collision rather than a precaution. `Kati.Screens.MyServices` already owns
+    # the bare msgid — its *Not mine* row, translated «چیز دیگری» — and screen
+    # 141 points at THIS row by name: `Kati.Screens.ImportRecognised`'s three
+    # refusal sentences all end *"or choose Something else to map a file by
+    # hand"*, and the catalogue renders that quotation «چیز دیگر». One msgid
+    # cannot be both, and a button spelled one way in the sentence that tells
+    # you to press it and another way on the button is the failure that reads
+    # as two different controls. The context takes 141's spelling, because 141
+    # is the page that sends a reader here.
+    assigns = %{
+      title: pgettext("import source", "Something else"),
+      sub: gettext("Any CSV — map the columns yourself")
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       {SettingsList.card([
         SettingsList.row(
           SettingsList.icon_tile("edit_note"),
-          SettingsList.body("Something else", "Any CSV — map the columns yourself"),
+          SettingsList.body(@title, @sub),
           SettingsList.trailing(SettingsList.chevron()),
           rule: false,
           on_tap: {self(), :something_else}
@@ -472,6 +612,17 @@ defmodule Kati.Screens.ImportSources do
   and changes nothing; anything else is reported in the words
   `Kati.Screens.Import` would have used, because the reader is owed the same
   sentence wherever the refusal happens.
+
+  ## `:notice` is assigned and nothing on this screen draws it
+
+  The cancel clause sets `:notice`, and `content/1` takes `_assigns` and reads
+  none of them — so the sentence is written to the socket and never rendered.
+  It is wrapped in `gettext/1` regardless: it is reader-facing copy by intent,
+  and a string left in Latin *because* it is currently invisible is exactly the
+  one that ships untranslated the day somebody draws it. The missing half is
+  `Kati.Screens.Restore`'s, which keeps its notice in a map and has a banner to
+  put it in (`Kati.Screens.Restore.put/3`); wiring one here is a change to what
+  this board draws and is not the Persian fold's to make.
   """
   @impl true
   def handle_info({:files, :picked, [item | _rest]}, socket) do
@@ -487,8 +638,10 @@ defmodule Kati.Screens.ImportSources do
      })}
   end
 
+  # Wrapped even though nothing on this screen draws it — see `handle_info/2`'s
+  # doc above for what `:notice` is and is not.
   def handle_info({:files, :cancelled}, socket),
-    do: {:noreply, Mob.Socket.assign(socket, :notice, "No file was chosen.")}
+    do: {:noreply, Mob.Socket.assign(socket, :notice, gettext("No file was chosen."))}
 
   def handle_info(message, socket), do: super(message, socket)
 

@@ -47,6 +47,7 @@ defmodule Kati.Goals.Goal do
   """
 
   use Ash.Resource, domain: Kati.Goals, data_layer: AshSqlite.DataLayer
+  use Gettext, backend: Kati.Gettext
 
   sqlite do
     table "goals"
@@ -127,34 +128,113 @@ defmodule Kati.Goals.Goal do
   @spec sections() :: [String.t()]
   def sections, do: @kinds |> Enum.map(&elem(&1, 1)) |> Enum.uniq()
 
-  @doc "The unit a kind counts: `films`, `pages`, `minutes read`."
+  @doc """
+  The unit a kind counts, in the reader's language: `films`, «فیلم».
+
+  The table keeps English because element 0's atoms are an Ash constraint read
+  at compile time and element 1 is the key `Kati.Screens.NewGoal.kind_group/2`
+  groups on — and because a `gettext/1` inside a module attribute is evaluated
+  once, at compile time, in whatever locale the compiler happened to be in.
+  So the words are literals here instead, one clause each, and every render
+  site gets the translation without knowing it asked.
+  """
   @spec unit(atom()) :: String.t()
   def unit(kind) do
     case Enum.find(@kinds, &(elem(&1, 0) == kind)) do
-      {_kind, _section, unit, _counts} -> unit
-      nil -> "items"
+      {_kind, _section, unit, _counts} -> unit_label(unit)
+      nil -> gettext("items")
     end
   end
+
+  defp unit_label("films"), do: gettext("films")
+  defp unit_label("episodes"), do: gettext("episodes")
+  defp unit_label("hours watched"), do: gettext("hours watched")
+  defp unit_label("books"), do: gettext("books")
+  defp unit_label("pages"), do: gettext("pages")
+  defp unit_label("minutes read"), do: gettext("minutes read")
+  defp unit_label("albums"), do: gettext("albums")
+  defp unit_label("minutes listened"), do: gettext("minutes listened")
+  defp unit_label("meals cooked"), do: gettext("meals cooked")
+  defp unit_label("habit days"), do: gettext("habit days")
+
+  @doc """
+  A section name, in the reader's language: `Screen` → «تماشا».
+
+  `sections/0` still answers the four English keys, because that is what
+  `kind_group/2` filters `kinds/0` on. This is the drawn half of the same word.
+  """
+  @spec section_label(String.t()) :: String.t()
+  def section_label("Screen"), do: pgettext("goal section", "Screen")
+  def section_label("Books"), do: pgettext("goal section", "Books")
+  def section_label("Music"), do: pgettext("goal section", "Music")
+  def section_label("Health"), do: pgettext("goal section", "Health")
+  def section_label(other) when is_binary(other), do: other
 
   @doc "The sentence under a card that says what counts. Never empty."
   @spec counts(atom()) :: String.t()
   def counts(kind) do
     case Enum.find(@kinds, &(elem(&1, 0) == kind)) do
-      {_kind, _section, _unit, counts} -> counts
-      nil -> "Counts what you log."
+      {_kind, _section, _unit, counts} -> counts_label(counts)
+      nil -> gettext("Counts what you log.")
     end
   end
 
-  @doc "The card's title: `52 books this year`."
+  defp counts_label("Counts a film once, however many times you watch it."),
+    do: gettext("Counts a film once, however many times you watch it.")
+
+  defp counts_label("Counts every tick, including rewatches."),
+    do: gettext("Counts every tick, including rewatches.")
+
+  defp counts_label("Dropped shows keep the hours they earned. Nothing is taken back."),
+    do: gettext("Dropped shows keep the hours they earned. Nothing is taken back.")
+
+  @books_counts "Counts finished books only. A book you did not finish counts its pages toward the pages goal, not this one."
+
+  defp counts_label(@books_counts),
+    do:
+      gettext(
+        "Counts finished books only. A book you did not finish counts its pages toward the pages goal, not this one."
+      )
+
+  defp counts_label("Counts every page logged, finished or not."),
+    do: gettext("Counts every page logged, finished or not.")
+
+  defp counts_label(
+         "Counts timed sittings only — a session logged by page has no minutes to give."
+       ),
+       do:
+         gettext("Counts timed sittings only — a session logged by page has no minutes to give.")
+
+  defp counts_label("Counts an album the first time you play it in the period."),
+    do: gettext("Counts an album the first time you play it in the period.")
+
+  defp counts_label("Counts every logged listen."), do: gettext("Counts every logged listen.")
+
+  defp counts_label("Counts a meal logged from a recipe you own."),
+    do: gettext("Counts a meal logged from a recipe you own.")
+
+  defp counts_label("Counts a day on which every habit was ticked."),
+    do: gettext("Counts a day on which every habit was ticked.")
+
+  @doc """
+  The card's title: `52 books this year`, «۵۲ کتاب امسال».
+
+  One msgid per period rather than a phrase glued onto a figure: Persian puts
+  امسال where English puts *this year*, and a sentence assembled in Latin order
+  and then translated a word at a time is the half-translated page this fold
+  exists to remove. The figure goes through `Kati.Locale.number/1` so the count
+  is in the reader's digits too.
+  """
   @spec title(t()) :: String.t()
   def title(%__MODULE__{kind: kind, target: target, period: period}) do
-    "#{target} #{unit(kind)} #{period_phrase(period)}"
+    bindings = %{count: Kati.Locale.number(target), unit: unit(kind)}
+    period_phrase(period, bindings)
   end
 
-  defp period_phrase(:week), do: "this week"
-  defp period_phrase(:month), do: "a month"
-  defp period_phrase(:year), do: "this year"
-  defp period_phrase(:custom), do: "this period"
+  defp period_phrase(:week, b), do: gettext("%{count} %{unit} this week", b)
+  defp period_phrase(:month, b), do: gettext("%{count} %{unit} a month", b)
+  defp period_phrase(:year, b), do: gettext("%{count} %{unit} this year", b)
+  defp period_phrase(:custom, b), do: gettext("%{count} %{unit} this period", b)
 
   @doc """
   Where you land if you carry on at this rate, given the day.
