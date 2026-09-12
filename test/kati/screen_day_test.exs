@@ -153,16 +153,28 @@ defmodule Kati.ScreenDayTest do
       # gone and the test fails on the way out with every assertion passed.
       previous = Kati.Locale.current()
 
-      card =
+      # The three titles are asked of the CATALOGUE inside the `:fa` block
+      # rather than spelled here, because `Kati.Calendar.SampleDay` wraps them
+      # in `gettext/1` — mishka-group/kati#103's fixtures phase — so a Persian
+      # reader opens the group on «خاکستربار», not on `Ashfall`. Spelling the
+      # English here and asserting it under `:fa` would be asserting that the
+      # fixture is NOT translated, which is the opposite of what this test is
+      # for: that the same three members open, in the reader's language.
+      {card, expected} =
         try do
           Kati.Locale.put(:fa)
-          opened() |> tree() |> group_card()
+
+          {opened() |> tree() |> group_card(),
+           Enum.map(@members, fn {title, _meta, _time, _seed} ->
+             Gettext.gettext(Kati.Gettext, title)
+           end)}
         after
           Kati.Locale.put(previous)
         end
 
-      for {title, _meta, _time, _seed} <- @members do
-        assert length(find_all(card, :text, text: title)) == 1
+      for title <- expected do
+        assert length(find_all(card, :text, text: title)) == 1,
+               "the Persian group is missing #{title}"
       end
     end
   end

@@ -496,8 +496,23 @@ defmodule Kati.Screens.MoneyDay do
 
       iex> Kati.Screens.MoneyDay.expand_tag(%{})
       :toggle_density
+
+  ## The KEY where the row has one, never the drawn title
+
+  A merged row's title is a msgid — `Kati.Money.DaySample` counts the
+  commitments with `ngettext/4` — so building the tag out of it renamed the
+  control to `:toggle_density_۳_تمدید` the moment the page was read in
+  Persian. A control whose identity moves with the language cannot be typed by
+  a device test. `Kati.Screens.MealEdit.ingredient_tag/1` is the same answer
+  one screen over, and `Kati.Screens.AddByHand.tag/2` builds both.
+
+      iex> Kati.Screens.MoneyDay.expand_tag(%{key: :renewals})
+      :toggle_density_renewals
   """
   @spec expand_tag(map()) :: atom()
+  def expand_tag(%{key: key}) when is_atom(key) and not is_nil(key),
+    do: Kati.Screens.AddByHand.tag("toggle_density_", key)
+
   def expand_tag(row) do
     case row |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
       "" -> :toggle_density

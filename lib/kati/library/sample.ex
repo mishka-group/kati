@@ -68,51 +68,85 @@ defmodule Kati.Library.Sample do
   # `:ashfall` and `:vellum` are not on the board. It crops to three posters
   # at a 402pt frame and still reads "4 selected" — so two more names are
   # selected off the visible edge, the same way a real shelf's selection runs
-  # past whatever a phone happens to be showing. Both are titles `@titles`
+  # past whatever a phone happens to be showing. Both are titles `titles/0`
   # already carries, given a season/episode line here since 146's grid is not
   # 03's grid and does not print a percentage.
-  @selection_shelf [
-    %{
-      id: :hollow,
-      title: "The Long Hollow",
-      seed: "hollow71",
-      meta: "S2 · 5/7",
-      selected?: true,
-      done?: false
-    },
-    %{
-      id: :saltiron,
-      title: "Salt & Iron",
-      seed: "saltiron33",
-      meta: "S1 · 3/8",
-      selected?: true,
-      done?: false
-    },
-    %{
-      id: :nightbirds,
-      title: "Nightbirds",
-      seed: "nightbirds24",
-      meta: "done",
-      selected?: false,
-      done?: false
-    },
-    %{
-      id: :ashfall,
-      title: "Ashfall",
-      seed: "ashfall42",
-      meta: "S1 · 2/6",
-      selected?: true,
-      done?: false
-    },
-    %{
-      id: :vellum,
-      title: "Vellum",
-      seed: "vellum97",
-      meta: "not started",
-      selected?: true,
-      done?: false
-    }
-  ]
+  #
+  # A FUNCTION and not the `@selection_shelf` attribute this was, for
+  # `drawn_titles/0`'s reason: `gettext/1` inside a module attribute is
+  # evaluated at COMPILE time, so five titles and five captions would freeze in
+  # whichever locale `mix compile` happened to be in. mishka-group/kati#103.
+  defp drawn_selection_shelf do
+    [
+      %{
+        id: :hollow,
+        title: gettext("The Long Hollow"),
+        seed: "hollow71",
+        meta: season_fraction(2, 5, 7),
+        selected?: true,
+        done?: false
+      },
+      %{
+        id: :saltiron,
+        title: gettext("Salt & Iron"),
+        seed: "saltiron33",
+        meta: season_fraction(1, 3, 8),
+        selected?: true,
+        done?: false
+      },
+      %{
+        id: :nightbirds,
+        title: gettext("Nightbirds"),
+        seed: "nightbirds24",
+        # The board's own caption for this tile is the WORD `done`, and
+        # `Kati.Screens.ShelfSelection.display_meta/1` already holds a msgid for
+        # it — the one it draws once `Status` has flipped `done?`. Reused rather
+        # than restated, because the reader meets one tile saying تمام‌شده
+        # either way and two Persian words for one state would send them looking
+        # for a difference that is not there. (`done?` stays `false`: it is what
+        # `change_status/2` flips, and the drawing has no control to be one.)
+        meta: pgettext("a shelf tile's mono line once Status has marked it complete", "done"),
+        selected?: false,
+        done?: false
+      },
+      %{
+        id: :ashfall,
+        title: gettext("Ashfall"),
+        seed: "ashfall42",
+        meta: season_fraction(1, 2, 6),
+        selected?: true,
+        done?: false
+      },
+      %{
+        id: :vellum,
+        title: gettext("Vellum"),
+        seed: "vellum97",
+        # `Kati.Screens.Library.tile_meta/1`'s own msgid for the same state, for
+        # the reason `done` above takes `display_meta/1`'s: screen 03 and this
+        # grid say *not started* about one shelf row, and one thing gets one
+        # word.
+        meta: gettext("not started"),
+        selected?: true,
+        done?: false
+      }
+    ]
+  end
+
+  # `S2 · 5/7` — the season and the episode fraction board 146 captions a tile
+  # with. One msgid rather than three fragments glued together here: Persian
+  # writes the fraction with a word (*۵ از ۷*) where English writes a solidus,
+  # and a fixture that concatenated would have decided that for the translator.
+  #
+  # `pgettext/2` because the msgid is two tokens and two placeholders.
+  # `mix gettext.merge` fuzzy-matches anything that short, and the catalogue
+  # already holds `S%{s} · E%{e}` — a different separator for a different row.
+  defp season_fraction(season, watched, total) do
+    pgettext("a shelf tile's season and episode fraction", "S%{s} · %{watched}/%{total}",
+      s: Kati.Locale.number(season),
+      watched: Kati.Locale.number(watched),
+      total: Kati.Locale.number(total)
+    )
+  end
 
   @doc """
   The shelf `Kati.Screens.ShelfSelection` draws: three tiles the board shows
@@ -128,7 +162,7 @@ defmodule Kati.Library.Sample do
   for the sheet 146 does not draw behind its own `Status` pill.
   """
   @spec selection_shelf() :: [map()]
-  def selection_shelf, do: @selection_shelf
+  def selection_shelf, do: drawn_selection_shelf()
 
   @doc "The header's mono subtitle: `9 titles · 4 in progress`."
   @spec subtitle() :: String.t()
@@ -146,7 +180,13 @@ defmodule Kati.Library.Sample do
   end
 
   @doc "Filter chips with their counts, the first one selected."
-  @spec chips() :: [{String.t(), non_neg_integer()}]
+  # `{tag, label, count}` and not `{label, count}`: the tag is what a tap is
+  # keyed on and the label is what the reader sees, and those stopped being one
+  # string the day the label went through `gettext/1` — a chip keyed on its own
+  # Persian word is `Kati.Screens.Books.chip_counts/1`'s recorded failure. The
+  # spec had not been told; it said two elements and the list has held three
+  # since.
+  @spec chips() :: [{atom(), String.t(), non_neg_integer()}]
   def chips do
     [
       {:all, gettext("All"), length(drawn_titles())},
@@ -288,27 +328,63 @@ defmodule Kati.Library.Sample do
       watching: 24,
       out_now: [
         %{
-          title: "The Long Hollow",
+          title: gettext("The Long Hollow"),
           seed: "hollow71",
-          line: "S2 E6 — The Undertow",
-          meta: "48 min · LUMEN+ · aired 20:00",
+          line: episode_line(2, 6, gettext("The Undertow")),
+          meta:
+            facts([
+              gettext("%{n} min", n: Kati.Locale.number(48)),
+              service("LUMEN+"),
+              pgettext("out now row", "aired %{time}", time: Kati.Locale.time(~T[20:00:00]))
+            ]),
           dot: 0xFFE8823C
         },
         %{
-          title: "Blue Hour",
+          title: gettext("Blue Hour"),
           seed: "bluehour58",
-          line: "Premiere",
-          meta: "1h 52m · CINEMA · out today",
+          # The green dot's row: a film opening rather than an episode landing.
+          # `pgettext/2` on a one-word line, because `mix gettext.merge` fuzzy
+          # matches a msgid that short and the catalogue already holds
+          # `Kati.Settings.Sample`'s *Premieres* — the notification the reader
+          # switches on, which is a different noun from what this row IS.
+          line: pgettext("an out now row's reason", "Premiere"),
+          meta:
+            facts([
+              runtime(1, 52),
+              # `CINEMA` is not a service's name — it is Kati's word for the
+              # room, and `Kati.Money.Sample` already says سینما for the same
+              # place. So it translates where `LUMEN+` beside it does not.
+              Kati.UI.eyebrow_label(pgettext("where a film is showing", "Cinema")),
+              pgettext("an out now row, for a film released today", "out today")
+            ]),
           dot: 0xFF4E9A73
         },
         %{
-          title: "Paper Cities",
+          title: gettext("Paper Cities"),
           seed: "cartog60",
-          line: "S1 E2 — The Cartographer",
-          meta: "44 min · LUMEN+ · aired 19:00",
+          line: episode_line(1, 2, gettext("The Cartographer")),
+          meta:
+            facts([
+              gettext("%{n} min", n: Kati.Locale.number(44)),
+              service("LUMEN+"),
+              pgettext("out now row", "aired %{time}", time: Kati.Locale.time(~T[19:00:00]))
+            ]),
           dot: 0xFFE8823C
         }
       ],
+      # NOT translated, and deliberately: nothing draws these.
+      # `Kati.Screens.Inbox.drawn_inbox/0` lays `coming_up_rows/0` over this key
+      # on every path into the screen — that function's own doc says it is
+      # stated there "rather than taken from `Kati.Library.Sample`, whose list
+      # had drifted to a different three titles" — so no reader, in either
+      # script, ever meets these three rows.
+      #
+      # They are also the wrong SHAPE for the card that would draw them:
+      # `upcoming_row/2` reads `row.armed` to pick the bell and these carry no
+      # such key, so a render would raise rather than print Latin. Wrapping them
+      # in `gettext/1` would put six msgids in the catalogue for copy nobody can
+      # see and would not make the rows drawable; deleting them is a change to a
+      # public fixture's shape and belongs with whoever removes the override.
       coming_up: [
         %{
           month: "AUG",
@@ -323,63 +399,146 @@ defmodule Kati.Library.Sample do
     }
   end
 
+  # `S2 E6 — The Undertow`, composed the way `Kati.Screens.Inbox.episode_line/1`
+  # composes a real row's: the number through the msgid that screen already
+  # draws for it, and an em dash joining two facts rather than making a sentence
+  # a translator could want to reorder. `Kati.DrawnSeasonAgreementTest` asks
+  # that this line still END in an episode of the season screens 04 and 34 draw,
+  # which is why the title goes last in both scripts.
+  defp episode_line(season, number, title) do
+    pgettext("episode number", "S%{s} E%{e}",
+      s: Kati.Locale.number(season),
+      e: Kati.Locale.number(number)
+    ) <> " — " <> title
+  end
+
   @doc """
   Search results for screen 06, mid-query on "quiet".
 
   Two states are drawn and both appear here: a title not in the library yet
   (ink `add` button) and one already added (muted `check`), because the design
   distinguishes them and a list of four identical rows would not exercise it.
+
+  **`kind` is new and is load-bearing.** These four rows had none, so
+  `Kati.Screens.AddTitle.kind_of/1` fell through to its last resort and read the
+  WORDS out of `meta` — `String.contains?(meta, "SERIES")`. That worked only
+  while the line was Latin, and its own doc says so in as many words: *"the
+  fallback stays, and stays English, because the rows that reach it are
+  English"*. `سریال` contains neither `SERIES` nor `FILM`, so a Persian reader
+  who tapped **Series** over these four would have got the empty list that
+  screen's `visible/2` was rewritten to prevent — and a hand-added row would
+  have been stored as a film. The kind is stated on the row now, which is where
+  `kind_of/1` looks first and the one answer that does not change with the
+  locale.
   """
   @spec search_results() :: [map()]
   def search_results do
     [
       %{
-        title: "The Quiet Coast",
+        title: gettext("The Quiet Coast"),
         seed: "quieterplace8",
-        meta: "2023 · SERIES · 2 SEASONS",
-        note: "Drama · Lumen+",
+        kind: :tv,
+        meta: facts([Kati.Locale.year(2023), gettext("SERIES"), seasons(2)]),
+        note: facts([gettext("Drama"), service("Lumen+")]),
         added: false
       },
       %{
-        title: "Quiet Earth",
+        title: gettext("Quiet Earth"),
         seed: "quietones12",
-        meta: "2019 · FILM · 1h 48m",
-        note: "Science fiction",
+        kind: :movie,
+        meta: facts([Kati.Locale.year(2019), gettext("FILM"), runtime(1, 48)]),
+        note: gettext("Science fiction"),
         added: false
       },
       %{
-        title: "A Quiet Place to Land",
+        title: gettext("A Quiet Place to Land"),
         seed: "quieterplace8",
-        meta: "2021 · FILM · 2h 04m",
-        note: "Drama · Cinema",
+        kind: :movie,
+        # `Kati.Locale.pick/2` on the padded minutes and not `number("04")`.
+        # The leading zero is a LATIN typographic choice — the drawing pads so a
+        # column of runtimes lines up — and `Kati.Locale.date/2` makes the same
+        # call about `:short_padded`: Persian numerals are already even-width,
+        # so ۰۴ is a zero the reader has no use for. Both values stay at the
+        # call site, which is what `pick/2` is for.
+        meta:
+          facts([
+            Kati.Locale.year(2021),
+            gettext("FILM"),
+            runtime(2, Kati.Locale.pick("04", 4))
+          ]),
+        note: facts([gettext("Drama"), pgettext("where a film is showing", "Cinema")]),
         added: true
       },
       %{
-        title: "Quietus",
+        title: gettext("Quietus"),
         seed: "quietus39",
-        meta: "2024 · SERIES · 1 SEASON",
-        note: "Thriller · Northlight",
+        kind: :tv,
+        meta: facts([Kati.Locale.year(2024), gettext("SERIES"), seasons(1)]),
+        # `Northlight` is a service's own name and stays — see `service/1`. It
+        # needs no isolate: it ends in a letter, so there is no neutral for the
+        # bidi algorithm to carry to the wrong edge.
+        note: facts([gettext("Thriller"), "Northlight"]),
         added: false
       }
     ]
   end
 
-  @doc "One film, as screen 08 draws it."
+  @doc """
+  One film, as screen 08 draws it.
+
+  `12 Aug` is the date twice over — the green pill and the note's eyebrow — and
+  it is one `Date` here rather than two strings, because it is one evening:
+  under `:fa` both read ۲۱ مرداد, which is the same day in the reader's own
+  calendar rather than a Gregorian one spelled in Persian.
+  `Kati.Screens.Film.note_date/2` names that exact line in its own comment.
+  """
   @spec film() :: map()
   def film do
+    watched_on = ~D[2026-08-12]
+
     %{
-      title: "Blue Hour",
+      title: gettext("Blue Hour"),
       seed: "bluehour58",
-      meta: "2025 · 1H 52M · DRAMA",
-      watched: "Watched 12 Aug",
+      # `2025 · 1H 52M · DRAMA`, composed out of the three msgids
+      # `Kati.Screens.Film.meta_line/1` builds a real film's line from, so the
+      # drawn page and the tracked page cannot come to say a runtime two ways.
+      # `Kati.Locale.year/1` and never `date/2` on the 2025: a release year is a
+      # fact printed on the film, so the digits change and the calendar does
+      # not.
+      meta:
+        facts([
+          Kati.Locale.year(2025),
+          Kati.UI.eyebrow_label(runtime(1, 52)),
+          Kati.UI.eyebrow_label(gettext("Drama"))
+        ]),
+      watched: gettext("Watched %{date}", date: Kati.Locale.date(watched_on, :short)),
       stars: 4,
-      seen: "2 times",
-      note_date: "Note · 12 Aug",
+      # `ngettext/4` rather than the frozen `2 times`: English inflects the noun
+      # after a numeral and Persian does not, and both of `%{n} بار`'s forms are
+      # the same words. `Kati.Screens.Film.seen_line/1`'s msgid, because a
+      # rewatch count is the same sentence on the drawn page and the real one.
+      seen: ngettext("%{n} time", "%{n} times", 2, n: Kati.Locale.number(2)),
+      note_date: gettext("Note · %{date}", date: Kati.Locale.date(watched_on, :short)),
+      # One literal and not the `<>` pair this was: `gettext/1` takes its msgid
+      # from a LITERAL at the call site, and a sentence split across two of them
+      # is a sentence no translator can join. Board 08 draws it as one line.
       note:
-        "Saw it at the Rex with Jo. The last twenty minutes are the whole film " <>
-          "— worth a rewatch on a proper screen.",
+        gettext(
+          "Saw it at the Rex with Jo. The last twenty minutes are the whole film — worth a rewatch on a proper screen."
+        ),
       where: [
-        %{badge: "L", name: "Lumen+", price: "included"},
+        # `line` and not `price`, which is a fix rather than a wrapping.
+        # `included` is a WORD and `£9.99` is a FIGURE, and
+        # `Kati.Screens.Film.where_value/1` typesets the two slots differently
+        # on purpose: the price goes to DM Mono because the drawing sets it
+        # there and `£` is not Persian, while the word takes
+        # `Kati.Locale.mono_face/1` because `kati_mono.ttf` has no glyph for a
+        # letter of با اشتراک. Carried in the price slot, the Persian word was
+        # handed to DM Mono and came out as Android's substitute face — the
+        # exact failure that comment is written to prevent. The msgid is
+        # `Kati.Screens.SeriesMeta.where_rows/1`'s, so screen 14 and screen 08
+        # name one offer with one word.
+        %{badge: "L", name: service("Lumen+"), line: pgettext("where to watch", "included")},
         %{badge: "K", name: "Kino store", price: "£9.99"}
       ],
       # `{icon, tag}` rather than `{icon, label}`, matching
@@ -387,12 +546,69 @@ defmodule Kati.Library.Sample do
       # `Kati.Screens.Film.action_label/2` because it depends on whether the
       # film has been seen — a *rewatch* is a second watch, and this drawing's
       # film has two, so board 08's word is unchanged.
+      #
+      # All three labels go through the catalogue, and they are the SAME three
+      # entries `Kati.Screens.Film.action_row/0` draws for a real film — the
+      # *Schedule* under its own context, because that one is the verb and
+      # `Kati.Screens.Calendar` already holds the noun. `action_label/3` hands
+      # the drawn label straight back for the two that carry no tag, so these
+      # are what the reader sees; wrapping them here rather than mapping them
+      # back to msgids in the screen is that function's own instruction — the
+      # fixture owns its literals.
       actions: [
-        {"replay", "Log rewatch", :log_watch},
-        {"event", "Schedule", nil},
-        {"ios_share", "Share", nil}
+        {"replay", gettext("Log rewatch"), :log_watch},
+        {"event", pgettext("film action pill", "Schedule"), nil},
+        {"ios_share", gettext("Share"), nil}
       ],
       seen_count: 2
     }
   end
+
+  # ── Shared pieces of a meta line ───────────────────────────────────────────
+
+  # Facts on one line, joined by the design's middot.
+  #
+  # Joined here rather than held as one `%{a} · %{b} · %{c}` msgid, and
+  # `Kati.Screens.AddTitle.meta_line/1` is where the argument is written out:
+  # the middot is a bidi NEUTRAL sitting between a number and a word, so it
+  # takes the paragraph's direction and a Persian line lays out right-to-left in
+  # the order it was written. There is nothing here for a translator to
+  # reorder, and a msgid that is three interpolations and two middots is exactly
+  # what `mix gettext.merge` fuzzy-matches against every other `·` line in the
+  # catalogue. Each FACT is its own msgid; the punctuation between them is not.
+  defp facts(parts), do: Enum.join(parts, " · ")
+
+  # `1h 52m`, through the msgid screen 08, screen 13, screen 61 and
+  # `Kati.Screens.SeriesMeta.runtime_label/1` all draw a duration with. Lower
+  # case, because the capitals belong to `Kati.UI.eyebrow_label/1` at the call
+  # sites that want them — board 08 sets its runtime in caps and board 06 does
+  # not, and Persian has no case for either of them to apply.
+  defp runtime(hours, minutes),
+    do: gettext("%{h}h %{m}m", h: Kati.Locale.number(hours), m: Kati.Locale.number(minutes))
+
+  # `2 SEASONS`. `ngettext/4` and not a hand-picked plural: English inflects the
+  # noun after a numeral and Persian does not, so `۲ فصل` and `۱ فصل` are the
+  # same words and a fixture that chose the form itself would have chosen it for
+  # one language.
+  defp seasons(n),
+    do:
+      Kati.UI.eyebrow_label(ngettext("%{n} season", "%{n} seasons", n, n: Kati.Locale.number(n)))
+
+  # A service's own name, kept in its own script and isolated from the sentence
+  # around it.
+  #
+  # `LUMEN+`, `Lumen+`, `Kino store` and `Northlight` are **names**. A real one
+  # comes off `Kati.Services.Service` and no msgid reaches it, so a fixture that
+  # transliterated would spell one service two ways across the app — the reason
+  # `Kati.Screens.Film.where_row/2` and `Kati.Screens.SeriesMeta.where_rows/1`
+  # both give, and the reason board 127, the Persian Money page, draws `Lumen+`
+  # in Latin. `Kati.DesignLiterals` carries the same decision as an exemption
+  # for board 55's `لومن‌پلاس`.
+  #
+  # `Kati.Locale.ltr/1` because these runs sit inside a Persian line and one of
+  # them ENDS in a neutral: `+` takes the direction of the paragraph rather than
+  # of the word before it, so `LUMEN+` is laid out as `+LUMEN` on an RTL page.
+  # `U+2066…U+2069` makes the run resolve against itself, and is a no-op in
+  # Latin so the English render is unchanged to the byte.
+  defp service(name), do: Kati.Locale.ltr(name)
 end

@@ -577,6 +577,13 @@ defmodule Kati.Screens.Home do
   def header do
     {date_line, greeting} = today()
 
+    # The date line's `.14em` is Latin tracking, and board 55 draws the same
+    # line at `letter-spacing:0`. Persian letters JOIN: a tenth of an em
+    # between them cuts every join in `یکشنبه ۲۵ مرداد ۱۴۰۵` into separate
+    # letterforms, which is the one failure on this page that reads as a broken
+    # font rather than as a design choice. `Kati.Locale.tracking/1` keeps 01's
+    # number where 01 is drawn and drops it where 55 is — the greeting below
+    # has taken it since the fold and the eyebrow above it had not.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -585,7 +592,7 @@ defmodule Kati.Screens.Home do
             text={Kati.UI.eyebrow_label(date_line)}
             font_family={Kati.Locale.mono_face(date_line)}
             text_size={11}
-            letter_spacing={0.14}
+            letter_spacing={Kati.Locale.tracking(0.14)}
             text_color={Palette.muted()}
           />
           <Spacer size={7} />
@@ -839,10 +846,22 @@ defmodule Kati.Screens.Home do
   def hero_checked(nil), do: ~MOB"<Spacer size={0} />"
 
   def hero_checked(text) do
+    # `kati_mono.ttf` carries none of U+06F0–U+06F9, so `آخرین بررسی ۱۸:۰۲`
+    # pinned to `mono` is handed to Android's own fallback face — it renders,
+    # in a typeface that is not Kati's, beside the Latin figures that are.
+    # `Kati.Locale.mono_face/1` asks the STRING's script rather than the
+    # reader's, which is the right question here: this slot holds a clock, and
+    # a Latin `last check 18:02` stays in DM Mono exactly as board 01 draws it.
+    # `Kati.PersianFontTest` is what keeps the other half.
     ~MOB"""
     <Row align="center">
       <Spacer size={10} />
-      <Text text={text} font_family="mono" text_size={11} text_color={Palette.cream_meta()} />
+      <Text
+        text={text}
+        font_family={Kati.Locale.mono_face(text)}
+        text_size={11}
+        text_color={Palette.cream_meta()}
+      />
     </Row>
     """
   end
@@ -861,6 +880,9 @@ defmodule Kati.Screens.Home do
     """
   end
 
+  # The hero's 21pt heading. `-.025em` is board 01's; board 55 draws
+  # `۳ قسمت تازه` at `letter-spacing:0`, because tightening a joined script
+  # pulls its letters apart rather than closer together.
   @doc false
   def headline(line) do
     ~MOB"""
@@ -868,7 +890,7 @@ defmodule Kati.Screens.Home do
       text={line}
       text_size={21}
       font_weight="bold"
-      letter_spacing={-0.025}
+      letter_spacing={Kati.Locale.tracking(-0.025)}
       line_height={1.2}
       text_color={:on_surface}
       max_lines={1}
@@ -995,6 +1017,11 @@ defmodule Kati.Screens.Home do
     # `drawn_continue_watching/0`, and correct for both of them.
     tap = {self(), Kati.Screens.Library.poster_tag(row)}
 
+    # The title's `-.02em` is board 01's and board 55 draws `گودال بلند` at 0.
+    # The card's title is a READ — `Kati.Media.CachedTitle`'s own name for the
+    # row — so it is Persian on a Persian install whether or not the drawing
+    # ever showed one, which is what makes this tracking a device fault rather
+    # than a fidelity one.
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
       <Box fill_width={true} background={card} corner_radius={20} shadow={shadow} padding={11}>
@@ -1007,7 +1034,7 @@ defmodule Kati.Screens.Home do
             text={row.title}
             text_size={14.5}
             font_weight="bold"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -1027,12 +1054,18 @@ defmodule Kati.Screens.Home do
   def watch_meta(nil), do: ~MOB"<Spacer size={0} />"
 
   def watch_meta(meta) do
+    # Board 01 sets this line in DM Mono and board 55 sets its own —
+    # `فصل ۲ · قسمت ۶` — in Vazirmatn, and the reason is the face rather than
+    # the drawing: `kati_mono.ttf` has no glyph for a Persian numeral, let alone
+    # for فصل. `Kati.Locale.mono_face/1` reads the line's own script, so
+    # `S2 · E6 · 18m left` keeps DM Mono and the Persian one does not get set in
+    # whatever Android substitutes.
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={3} />
       <Text
         text={meta}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(meta)}
         text_size={10.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -1183,6 +1216,10 @@ defmodule Kati.Screens.Home do
     shadow = Theme.shadow_card_soft()
     tap = {self(), tag}
 
+    # `وعده‌ها` and `عادت‌ها` are two of the three words on this band and both
+    # are joined throughout, so the title's `-.01em` comes off under `:fa` the
+    # way board 55 draws it. `max_lines={1}` was already here and stays: the
+    # Persian words are shorter than the English ones, so nothing new wraps.
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
       <Box
@@ -1206,7 +1243,7 @@ defmodule Kati.Screens.Home do
             text={title}
             text_size={12.5}
             font_weight="bold"
-            letter_spacing={-0.01}
+            letter_spacing={Kati.Locale.tracking(-0.01)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -1225,12 +1262,18 @@ defmodule Kati.Screens.Home do
   def tile_meta(nil), do: ~MOB"<Spacer size={0} />"
 
   def tile_meta(meta) do
+    # `شام ۱۹:۳۰` and `۲ مورد مانده` are what board 55 puts in this slot, both
+    # in Vazirmatn where board 01 has DM Mono. Same reason as `watch_meta/1`:
+    # the mono face carries neither the Persian words nor the Persian numerals.
+    # Nothing on a device reaches this — `tile_rows/0` sends no meta and the
+    # moduledoc says why — but `drawn_tiles/0` does, and the drawing is compared
+    # under `:fa` as well as `:en`.
     ~MOB"""
     <Column>
       <Spacer size={3} />
       <Text
         text={meta}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(meta)}
         text_size={9.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -1258,7 +1301,15 @@ defmodule Kati.Screens.Home do
   def drawn_rows do
     [
       %{
-        time: "20:00",
+        # `Kati.Locale.time/1` and not the literal `"20:00"`. Board 55 draws
+        # this column `۲۰:۰۰`, and a bare string cannot be two things — so the
+        # transcription froze the Latin half and the Persian page printed
+        # Western digits down the one column of it that is nothing but digits.
+        # `drawn_hero/0` has composed its `18:02` this way since the fold and
+        # `Kati.Calendars.Today.row/2` composes a real row's the same way, so
+        # this is the fixture catching up with both its neighbours rather than a
+        # new rule. The board is still the specification: 20:00 is its number.
+        time: Kati.Locale.time(~T[20:00:00]),
         title:
           gettext("%{title} — S%{s}E%{e}",
             title: gettext("The Long Hollow"),
@@ -1271,7 +1322,14 @@ defmodule Kati.Screens.Home do
         # page for exactly that reason. Board 55 transliterates it, and
         # `DesignLiterals.retired_lines/0` carries why that line does not
         # survive the fold.
-        meta: gettext("Airs tonight · %{service}", service: "Lumen+"),
+        #
+        # `Kati.Locale.ltr/1` around it, though. The name ends in a `+`, and a
+        # `+` is a NEUTRAL in the bidirectional algorithm: inside
+        # `امشب پخش می‌شود · Lumen+` it resolves against the paragraph and is
+        # laid out at the left of the run — `+Lumen` — which is the same defect
+        # that put a full stop at the head of all five of screen 83's licence
+        # notices. The isolate costs nothing in Latin, where it is a no-op.
+        meta: gettext("Airs tonight · %{service}", service: Kati.Locale.ltr("Lumen+")),
         # The kind the board draws, which the transcription had been missing:
         # `Airs tonight` is an air date and `Repeats weekly` is a reminder, and
         # `Kati.Calendars.Today.row/2` puts that field on every real row. It was
@@ -1282,7 +1340,8 @@ defmodule Kati.Screens.Home do
         now?: true
       },
       %{
-        time: "21:30",
+        # `۲۱:۳۰` on board 55, for the reason the row above carries.
+        time: Kati.Locale.time(~T[21:30:00]),
         title: gettext("Call Mum"),
         meta: gettext("Repeats weekly"),
         kind: :reminder,
@@ -1388,13 +1447,29 @@ defmodule Kati.Screens.Home do
     # doc for why the id is in the atom and why it is optional.
     tap = {self(), Kati.Screens.Calendar.tag(row)}
 
+    # The time column is the one node on this page where the mono face was
+    # wrong on a REAL device rather than only under the fixture:
+    # `Kati.Calendars.Today.row/2` has built its `:time` with
+    # `Kati.Locale.time/1` since before the fold, so a Persian install has been
+    # handing `۲۰:۰۰` to a face — `kati_mono.ttf` — that carries none of
+    # U+06F0–U+06F9 for as long as the calendar has had a row on it. Android
+    # substitutes rather than drawing boxes, which is why it survived a walk on
+    # the Pixel 9a: the digits appear, in somebody else's typeface, beside the
+    # Latin ones on screens that had been fixed.
+    #
+    # `mono_face/1` and not `mono_face/0`: the same column holds Latin digits
+    # for an English reader, and board 01 sets those in DM Mono.
+    #
+    # The title takes `tracking/1` for the reason the cards above it do — board
+    # 55 draws `گودال بلند — فصل ۲ قسمت ۶` at `letter-spacing:0`, and this row's
+    # title is a read as well as a transcription.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14} on_tap={tap}>
         <Box width={40}>
           <Text
             text={row.time}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.time)}
             text_size={12}
             text_color={Palette.muted()}
             max_lines={1}
@@ -1408,7 +1483,7 @@ defmodule Kati.Screens.Home do
             text={row.title}
             text_size={14}
             font_weight="semibold"
-            letter_spacing={-0.01}
+            letter_spacing={Kati.Locale.tracking(-0.01)}
             text_color={:on_surface}
             max_lines={1}
           />

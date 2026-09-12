@@ -1,4 +1,6 @@
 defmodule Kati.Discover.Filters do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Board 169's choice, and the TMDB request it becomes.
 
@@ -244,11 +246,52 @@ defmodule Kati.Discover.Filters do
 
       iex> Kati.Discover.Filters.sort_label(:top_rated)
       {"Highest rated", "200+ votes, so one perfect score cannot win"}
+
+  ## Why the label has to stand twice
+
+  It is drawn in two places and reads in both: as a row on board 169's sheet,
+  and as the FIRST WORD of `Kati.Screens.Discover.asked_line/1`'s rail heading,
+  whose template is `%{sort} %{noun}` over *films* or *series*. English gets
+  that for free. Persian only gets it if each label is a superlative that can
+  both stand alone and qualify a noun — `جدیدترین` is *Newest* on the sheet and
+  *newest …* in the heading, and `محبوب‌ترین فیلم‌ها` is the same construction
+  the heading's own catalogue entry already assumes.
+
+  `pgettext/2` on all six strings, for the reason
+  `Kati.Screens.ShelfFilters.sort_label/2` gives about its own sort keys: three
+  of them are one or two words, and `TMDB's own ordering` opens on the same
+  three characters as `Kati.Screens.DiscoverFilters.rating_note/0`'s sentence
+  one card below it — which is exactly the pair a fuzzy `mix gettext.merge`
+  reaches for. The context also puts a row and its line next to each other in
+  the catalogue, which is how a translator needs to read them.
+
+  The vote floor is INTERPOLATED rather than written into the line, so a
+  Persian reader is told ۲۰۰ and not 200 — the same call `rating_note/0` makes
+  for the same figure, and the reason `@vote_floor` is reached for here rather
+  than a second `200` typed into a sentence.
   """
   @spec sort_label(atom()) :: {String.t(), String.t()}
-  def sort_label(:newest), do: {"Newest", "Out already, most recent first"}
-  def sort_label(:top_rated), do: {"Highest rated", "200+ votes, so one perfect score cannot win"}
-  def sort_label(_popular), do: {"Most popular", "TMDB's own ordering"}
+  def sort_label(:newest) do
+    {pgettext("a discover sort key", "Newest"),
+     pgettext("a discover sort key's line", "Out already, most recent first")}
+  end
+
+  def sort_label(:top_rated) do
+    {pgettext("a discover sort key", "Highest rated"),
+     pgettext("a discover sort key's line", "%{n}+ votes, so one perfect score cannot win",
+       n: Kati.Locale.number(@vote_floor)
+     )}
+  end
+
+  def sort_label(_popular) do
+    # `TMDB` stays Latin inside the Persian line. It is a service's name for
+    # itself — `Kati.Services.Service` never translates one — and the catalogue
+    # already writes it that way in ten other Persian strings. No `ltr/1`
+    # around it either: it ends the phrase and carries no punctuation of its
+    # own, so there is nothing for the bidi algorithm to move to the wrong edge.
+    {pgettext("a discover sort key", "Most popular"),
+     pgettext("a discover sort key's line", "TMDB's own ordering")}
+  end
 
   @doc """
   What a rating bucket says. **Out of ten, and it says so.**
@@ -263,21 +306,34 @@ defmodule Kati.Discover.Filters do
   this suits *you* — and the number underneath is nothing of the kind: it is
   everybody's average out of ten. So the units are TMDB's, and the sheet's
   section note names whose average it is.
+
+  The figure goes through `Kati.Locale.number/1`, which converts the separator
+  as well as the digits: Persian writes this as `۸٫۰` with U+066B, not `۸.۰`,
+  and board 115 draws it that way. The bucket is a chip and a heading fragment,
+  never a mono figure, so there is no `mono_face/1` question here —
+  `Kati.Screens.DiscoverFilters.chip/3` sets no `font_family` at all.
   """
   @spec rating_label(atom()) :: String.t()
-  def rating_label(:r8), do: "8.0 and up"
-  def rating_label(:r7), do: "7.0 and up"
-  def rating_label(_six), do: "6.0 and up"
+  def rating_label(:r8), do: bucket_label("8.0")
+  def rating_label(:r7), do: bucket_label("7.0")
+  def rating_label(_six), do: bucket_label("6.0")
 
   @doc """
   What a Kind chip says.
 
       iex> Kati.Discover.Filters.kind_label(:tv)
       "Series"
+
+  Plain `gettext/1` and not `pgettext/2`, which is the opposite call from
+  `sort_label/1`'s three rows: the app already names these two kinds in a
+  dozen places — screen 07's meta line, the add-by-hand picker, the stats
+  totals — and the catalogue has carried `Film` → `فیلم` and `Series` →
+  `سریال` since long before board 169. A context here would mint a second
+  Persian word for *film*, which is the drift the fold was for.
   """
   @spec kind_label(atom()) :: String.t()
-  def kind_label(:tv), do: "Series"
-  def kind_label(_movie), do: "Film"
+  def kind_label(:tv), do: gettext("Series")
+  def kind_label(_movie), do: gettext("Film")
 
   # ── The three toggles, each of which turns itself off when pressed twice ──
 
@@ -323,6 +379,20 @@ defmodule Kati.Discover.Filters do
   # ── Private ──────────────────────────────────────────────────────────────
 
   defp sanitise(value, allowed), do: if(value in allowed, do: value, else: nil)
+
+  # ONE msgid with the figure as a binding rather than three literals, for the
+  # reason `Kati.Screens.ShelfFilters.rating_label/1` gives on board 145's own
+  # buckets: `8.0 and up` and `7.0 and up` are one character apart, which is
+  # the pair a fuzzy `mix gettext.merge` matches against each other the moment
+  # one of them changes.
+  #
+  # Its OWN context, and deliberately not that board's `a rating bucket`. The
+  # library's bucket is `%{n}★ and up` — stars out of five, the reader's own
+  # rating — and this one is TMDB's crowd average out of ten with no star in
+  # it. Two entries a character apart under one context is the same fuzzy trap
+  # again, and a translator handed both needs to see which is which.
+  defp bucket_label(figure),
+    do: pgettext("a rating bucket, out of ten", "%{n} and up", n: Kati.Locale.number(figure))
 
   defp rating_param(:r8), do: [{:"vote_average.gte", "8"}]
   defp rating_param(:r7), do: [{:"vote_average.gte", "7"}]

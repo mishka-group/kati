@@ -1237,10 +1237,17 @@ defmodule Kati.Screens.SeriesMeta do
   def price(nil), do: ~MOB"<Spacer size={0} />"
 
   def price(value) do
+    # `Kati.Locale.mono_face/1` about the VALUE and not a pinned `"mono"`: this
+    # cell held only `£14.99` and `owned` while the page was English, and the
+    # second of those is copy — it is `دارید` now, which `kati_mono.ttf` cannot
+    # set, so Android would substitute its own face for one word beside
+    # sentences in Kati's. A price keeps DM Mono because a price is ASCII.
+    assigns = %{value: Kati.Locale.ltr(value), face: Kati.Locale.mono_face(value)}
+
     ~MOB"""
     <Text
-      text={Kati.Locale.ltr(value)}
-      font_family="mono"
+      text={@value}
+      font_family={@face}
       text_size={11}
       text_color={Palette.muted()}
       max_lines={1}

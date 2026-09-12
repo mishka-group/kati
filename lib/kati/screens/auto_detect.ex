@@ -61,19 +61,28 @@ defmodule Kati.Screens.AutoDetect do
   answers. All of those are literals written here and all of them now go
   through `gettext/1`.
 
-  **`Kati.Settings.DetectSample` owns the drawing**, and its words are still
-  English literals: `3 sources`, `41 EPISODES TICKED FOR YOU`, *The Long
-  Hollow* and its `S2E6 · LUMEN+ · APPLE TV`, the four source rows with their
-  tick counts, the three rule rows, and the Marram question with its three
-  answers. Those belong to that module the way `Kati.Music.Sample`'s tracklist
-  belongs to it; inlining them here would put two copies of the drawing's copy
-  in the repository, which is how a fixture and a screen start disagreeing
-  about what the board says.
+  **`Kati.Settings.DetectSample` owns the drawing**: `3 sources`, `41 EPISODES
+  TICKED FOR YOU`, *The Long Hollow* and its `S2E6 · LUMEN+ · APPLE TV`, the
+  four source rows with their tick counts, the three rule rows, and the Marram
+  question with its three answers. Those belong to that module the way
+  `Kati.Music.Sample`'s tracklist belongs to it; inlining them here would put
+  two copies of the drawing's copy in the repository, which is how a fixture
+  and a screen start disagreeing about what the board says.
+
+  **This paragraph used to end *and its words are still English literals*.**
+  They are not: the Sample went through the same fold this file did and every
+  word it writes is a msgid now, which its own moduledoc states along with the
+  two lookups that had to move with them — `row_tap/1` and `answer_tag/1`, both
+  documented below. What is still Latin there is what is still Latin here: a
+  service's name for itself. `Lumen+`, `Apple TV`, `Chromecast` and `Orbit` are
+  the drawing's four and `app_name/1` carries the argument for all of them.
 
   What this file does for those strings is typeset them correctly whichever
   language they arrive in: every mono slot asks `Kati.Locale.mono_face/1` about
-  the run it was handed rather than naming `mono` outright, and the elapsed
-  clock is isolated so an RTL page cannot swap its two halves.
+  the run it was handed rather than naming `mono` outright, every Latin name
+  that sits inside a line the rest of which can be Persian is isolated with
+  `Kati.Locale.ltr/1`, and the elapsed clock is isolated so an RTL page cannot
+  swap its two halves.
   """
   use Kati.Screens.Pushed, back: "Settings"
   use Gettext, backend: Kati.Gettext
@@ -240,7 +249,22 @@ defmodule Kati.Screens.AutoDetect do
 
   @doc false
   def session_meta(session) do
-    [session.subtitle, Kati.Screens.AutoDetect.app_name(session.app)]
+    # `Kati.Locale.ltr/1` around the app name, for the reason
+    # `Kati.Settings.DetectSample.playing_meta/0` gives about `Lumen+`: a name
+    # that ends in a NEUTRAL has that character resolved against the PARAGRAPH
+    # rather than against the run it belongs to, so under `:fa` the mark jumps
+    # to the far side and the line reads `+Disney`. `Disney+` is the one of
+    # `app_name/1`'s eight that ends in a mark, and the package fallback can
+    # end in anything at all — it is whatever the phone announced.
+    #
+    # Isolated AFTER the empty check and not before it: under `:fa`
+    # `Kati.Locale.ltr("")` is U+2066 followed by U+2069, which is two
+    # characters rather than `""`, so a session that named no package would
+    # survive `Enum.reject/2` and leave the line a dangling ` · ` with nothing
+    # after it.
+    app = Kati.Screens.AutoDetect.app_name(session.app)
+
+    [session.subtitle, if(app == "", do: nil, else: Kati.Locale.ltr(app))]
     |> Enum.reject(&(&1 in [nil, ""]))
     |> Enum.join(" · ")
     # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`. The board sets
@@ -326,7 +350,16 @@ defmodule Kati.Screens.AutoDetect do
       |> Enum.map(fn app ->
         %{
           icon: "play_circle",
-          title: Kati.Screens.AutoDetect.app_name(app),
+          # `Kati.Locale.ltr/1` even though a row title is the whole of its own
+          # `<Text>`. `Kati.Settings.DetectSample` argues that a lone title
+          # needs no isolate because it has no Persian run beside it for a
+          # neutral to resolve against — true of `Apple TV` and `Chromecast`,
+          # and not of a name that ends in one. A paragraph takes the PAGE's
+          # direction whatever is in it, so under `:fa` the trailing `+` of
+          # `Disney+` resolves right-to-left and the row reads `+Disney`. The
+          # package fallback is the other half: it is whatever the phone
+          # announced and can end in any character at all.
+          title: Kati.Locale.ltr(Kati.Screens.AutoDetect.app_name(app)),
           # Two words, so `pgettext/2` — and the context is also the only thing
           # that separates this from `real_now_playing/1`'s *Live* pill, which
           # says the same fact about the same session in a different register.
@@ -422,8 +455,21 @@ defmodule Kati.Screens.AutoDetect do
           # the guillemets as their own; `quoted/1` is where the app already
           # settles that, and keeping the marks out of the msgid means a
           # translator cannot accidentally drop one half of the pair.
+          #
+          # `Kati.Locale.ltr/1` INSIDE the marks and not around them. What a
+          # media app announced is arbitrary text — `9-1-1` and `S.W.A.T.` are
+          # two real ones — and a Latin run made largely of neutrals dropped
+          # into a Persian sentence has every one of them resolved against the
+          # page: the hyphens and the stops land at the wrong edge of the name
+          # the reader is being asked about. The quotation marks belong to the
+          # Persian sentence rather than to the name, so they stay outside the
+          # isolate; `Kati.Screens.Service` wraps a service's own name the same
+          # way, and `Kati.Screens.MedicationDetail` a medicine the reader
+          # typed.
           question:
-            gettext("%{title} — is that something you keep?", title: Kati.Locale.quoted(title)),
+            gettext("%{title} — is that something you keep?",
+              title: Kati.Locale.quoted(Kati.Locale.ltr(title))
+            ),
           sub: Kati.Screens.AutoDetect.decision_sub(suggestions),
           suggestions: suggestions,
           # `{label, tag}` and not a bare label. The tag used to be DERIVED
@@ -602,6 +648,20 @@ defmodule Kati.Screens.AutoDetect do
     elapsed = Kati.Locale.ltr(n.elapsed)
     elapsed_face = Kati.Locale.mono_face(n.elapsed)
 
+    # The meta's face is asked the same question, and the isolates have to come
+    # out of the string before it is asked. Both producers wrap a service name
+    # in `Kati.Locale.ltr/1` — `session_meta/1` because `Disney+` ends in a
+    # mark, `Kati.Settings.DetectSample.playing_meta/0` because `Lumen+` does —
+    # so a finished meta can carry U+2066 around a run that is otherwise pure
+    # ASCII. Handing that to `mono_face/1` would answer `fa` for
+    # `S2E6 · NETFLIX` and push a Latin eyebrow out of DM Mono, which is the
+    # one run boards 36 and 150 both keep there in both scripts. Stripping the
+    # two isolates asks the question about the characters a reader can see.
+    # Escapes rather than the characters themselves, which is how
+    # `Kati.Locale.ltr/1` writes the same two: an isolate is invisible, and a
+    # pair of them sitting in a source line is a line nobody can review.
+    meta_face = Kati.Locale.mono_face(String.replace(n.meta, ["\u2066", "\u2069"], ""))
+
     bar =
       MishkaProgress.progress(
         value: n.progress,
@@ -636,7 +696,7 @@ defmodule Kati.Screens.AutoDetect do
             <Spacer size={4} />
             <Text
               text={n.meta}
-              font_family={Kati.Locale.mono_face(n.meta)}
+              font_family={meta_face}
               text_size={10.5}
               text_color={Palette.muted()}
               max_lines={1}
@@ -787,10 +847,19 @@ defmodule Kati.Screens.AutoDetect do
   `Kati.Screens.RetiredTile.label/1` is the fix applied there.
 
   So the rows `real_sources/2` and `real_rules/0` build carry `:tap`
-  themselves. `Kati.Settings.DetectSample`'s rows do not and will not: that
-  module is the drawing, its words are English literals by design — see the
-  moduledoc — and `tap/1` still reads them exactly as it always did. Hence two
-  clauses rather than one rewritten lookup.
+  themselves — **and so do the drawing's**. This paragraph used to say
+  `Kati.Settings.DetectSample`'s rows *do not and will not*, on the grounds
+  that the Sample's words were English literals by design; they are msgids now,
+  its own moduledoc names this lookup as one of the two things that had to move
+  with them, and all seven of its rows carry the key. Every row on this screen
+  therefore answers on the second clause.
+
+  Which leaves `tap/1` reached by nothing, and it is kept rather than deleted
+  for one reason: the Sample's moduledoc cites it by name as the lookup it
+  moved off, and this module cannot edit that file to say otherwise. Do not
+  route a new row through it. A row that grows a control grows a `:tap` in the
+  same map, because a title is a word on a screen and a tag is a name in the
+  program — see `answer_tag/1`, which is the identical mistake made twice.
   """
   @spec row_tap(map()) :: {pid(), atom()} | nil
   # A row that carries the key at all has answered, and `nil` is an answer.
@@ -799,24 +868,23 @@ defmodule Kati.Screens.AutoDetect do
   def row_tap(row), do: Kati.Screens.AutoDetect.tap(row.title)
 
   @doc """
-  The tap a DRAWN row carries, or `nil` for the rows that carry none.
+  The three taps a row used to get from its own English title. **Dead.**
 
-  One row here promises something that is not in this version: **Browser
-  extension**, drawn `Not installed` with a `Get` pill that led nowhere. That
-  is the same dead control screen 42's dashed tiles were, and it gets the same
-  answer — `Kati.Screens.RetiredTile`, the sheet that says *X isn't in this
-  version* and why. #22 asks for the treatment to be applied consistently to
-  exactly this row rather than left as a Health one-off.
+  `row_tap/1` says why in full: every row on both sides of this screen names
+  its `:tap` now, so nothing reaches here, and the three literals below are
+  keys on a language rather than copy — under `:fa` a row's title is
+  **این گوشی**, which matches no clause, and the tap is lost without a sound.
+  It is left in place only because `Kati.Settings.DetectSample`'s moduledoc
+  points at it by name and that file belongs to another change.
 
-  Matched on the title because that is what `Kati.Settings.DetectSample` keys
-  its rows by; `nil` rather than an inert tag, so a row with nowhere to go
-  draws no tap at all and `Kati.ScreenTapSweepTest` has nothing to report.
-
-  These three literals are the Sample's OWN English and are not copy this
-  module draws any more — `row_tap/1` reaches this only for a row that named no
-  tap of its own, and the only such rows are the drawing's. So they stay
-  Latin: translating them would key a lookup on one language and feed it
-  another.
+  The row it was written for is worth keeping written down. **Browser
+  extension** promises something that is not in this version — drawn
+  `Not installed` with a `Get` pill that led nowhere, the same dead control
+  screen 42's dashed tiles were — and it gets the same answer,
+  `Kati.Screens.RetiredTile`, the sheet that says *X isn't in this version* and
+  why. #22 asks for that treatment to be applied to exactly this row rather
+  than left as a Health one-off, and the Sample now carries
+  `tap: :open_retired` on the row itself, which is what actually opens it.
   """
   @spec tap(String.t()) :: {pid(), atom()} | nil
   def tap("Browser extension"), do: {self(), :open_retired}
