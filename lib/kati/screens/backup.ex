@@ -168,6 +168,7 @@ defmodule Kati.Screens.Backup do
   still a literal this screen draws when it does.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Backup.Error
   alias Kati.Backup.Sample
@@ -215,6 +216,12 @@ defmodule Kati.Screens.Backup do
   def content(assigns) do
     s = assigns.backup
 
+    # Bound out of the sigil rather than called inside it: the pair runs past
+    # the formatter's column once both halves are `gettext/1` calls, and a
+    # `~MOB` interpolation cannot be wrapped the way an ordinary call can.
+    title = gettext("Back up everything")
+    kicker = gettext("ONE FILE, KEPT WHEREVER YOU LIKE")
+
     ~MOB"""
     <Scroll>
       <Column
@@ -225,12 +232,12 @@ defmodule Kati.Screens.Backup do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil)}
-        {SettingsList.title("Back up everything", "ONE FILE, KEPT WHEREVER YOU LIKE")}
+        {SettingsList.title(title, kicker)}
         {Kati.Screens.Backup.notice_block(s.notice)}
         {Kati.Screens.Backup.status_card()}
-        {UI.eyebrow("What travels with it")}
+        {UI.eyebrow(gettext("What travels with it"))}
         {Kati.Screens.Backup.travels_card()}
-        {SettingsList.eyebrow_muted("Format")}
+        {SettingsList.eyebrow_muted(pgettext("backup file format", "Format"))}
         {Kati.Screens.Backup.format_card(s.format)}
         {Kati.Screens.Backup.save_button()}
         {Kati.Screens.Backup.preview_card(s.preview)}
@@ -262,6 +269,11 @@ defmodule Kati.Screens.Backup do
   @doc false
   def status_frame(made?, at \\ nil)
 
+  # `pgettext/2` for the one word, the call `Kati.Screens.BackupStates.never/0`
+  # already made for the identical value on board 130: the catalogue holds
+  # *Never backed up* and *never checked*, and a bare `Never` is exactly the
+  # size `mix gettext.merge` fuzzy-matches against either. The context names
+  # which never this is — the answer to *when was the last backup*.
   def status_frame(false, nil) do
     Kati.Screens.Backup.status_frame(
       Palette.cream(),
@@ -270,8 +282,8 @@ defmodule Kati.Screens.Backup do
       Palette.cream_sub(),
       "cloud_off",
       Palette.gold_icon(),
-      "Never",
-      "STILL ONLY ON THIS PHONE"
+      pgettext("last backup", "Never"),
+      gettext("STILL ONLY ON THIS PHONE")
     )
   end
 
@@ -290,30 +302,41 @@ defmodule Kati.Screens.Backup do
 
   @doc false
   def status_frame(bg, meta_color, value_color, caption_color, icon, icon_color, value, caption) do
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: Persian has no
+    # case, so upcasing it is a no-op that reads at the call site as though
+    # something happened. The helper supplies the drawing's caps in Latin and
+    # leaves the Arabic script alone.
+    label = UI.eyebrow_label(gettext("Last backup"))
+
+    # `Kati.Locale.mono_face/1` on all three, asked of the STRING rather than of
+    # the reader: `kati_mono.ttf` carries no Persian glyph, so a translated
+    # label or a Shamsi date set in `mono` is handed to Android's own substitute
+    # face. Arity 1 rather than 0 so a line that is still ASCII — an English
+    # build, or a msgid with no entry yet — keeps the DM Mono the board draws.
     body = ~MOB"""
     <Column weight={1.0}>
       <Text
-        text={String.upcase("Last backup")}
-        font_family="mono"
+        text={label}
+        font_family={Kati.Locale.mono_face(label)}
         text_size={10}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={meta_color}
         max_lines={1}
       />
       <Spacer size={9} />
       <Text
         text={value}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(value)}
         text_size={22}
         font_weight="medium"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={value_color}
         max_lines={1}
       />
       <Spacer size={6} />
       <Text
         text={caption}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(caption)}
         text_size={11}
         text_color={caption_color}
         max_lines={1}
@@ -343,16 +366,30 @@ defmodule Kati.Screens.Backup do
     """
   end
 
-  @doc "`14 Aug` — day then short month, `Kati.Screens.Settings.backup_line/1`'s own form."
+  @doc """
+  `14 Aug` — day then short month, `Kati.Screens.Settings.backup_line/1`'s own
+  form, and now literally its own call.
+
+  `Kati.Locale.date/2` at `:short` rather than `Kati.Time.month_name/1` sliced
+  to three characters, for the reason `backup_line/1` writes out at length:
+  slicing to three is a LATIN abbreviation rule, and board 62 draws this same
+  fact as **۱۴ مرداد** — the Shamsi month, whole, because Persian month names
+  are one short word already and مرداد cut to three letters is مرد, a
+  different word. Under `:en` the two expressions are the same characters, so
+  `Kati.ScreenDesignLiteralTest`'s `14 Aug` is untouched.
+  """
   @spec date_text(DateTime.t()) :: String.t()
-  def date_text(%DateTime{} = at) do
-    date = DateTime.to_date(at)
-    "#{date.day} #{String.slice(Kati.Time.month_name(date.month), 0, 3)}"
-  end
+  def date_text(%DateTime{} = at), do: Kati.Locale.date(DateTime.to_date(at), :short)
 
   @doc """
   `2 WEEKS AGO · 214 MB` — or just the relative half, when there is no byte
   ledger to read a size from.
+
+  The relative phrase is still `Kati.Screens.UpNext.age/1` and is still
+  English-only: that ladder belongs to screen 07 and a second copy here would
+  be a second place for the two to drift, which is the whole reason the call is
+  here. It reads Persian on the day its own module folds, and nothing on this
+  screen has to change for that to happen.
   """
   @spec caption(DateTime.t()) :: String.t()
   def caption(%DateTime{} = at) do
@@ -364,15 +401,24 @@ defmodule Kati.Screens.Backup do
     end
   end
 
-  @doc "Bytes to `214 MB` or `8 KB` — decimal, rounded, and `nil` stays `nil`."
+  @doc """
+  Bytes to `214 MB` or `8 KB` — decimal, rounded, and `nil` stays `nil`.
+
+  Two msgids rather than a unit appended to a number, because the unit is a
+  WORD in Persian — مگابایت, not MB — and `Kati.Settings.Sample`'s own
+  `Last backup %{date} · %{n} MB` already spells it that way. The figure goes
+  through `Kati.Locale.number/1` so the digits follow the reader; the caption
+  that carries it asks `Kati.Locale.mono_face/1` for its face, so ۲۱۴ lands in
+  Vazirmatn rather than in a DM Mono that has no glyph for it.
+  """
   @spec format_size(non_neg_integer() | nil) :: String.t() | nil
   def format_size(nil), do: nil
 
   def format_size(bytes) when bytes < 1_000_000 do
-    "#{max(div(bytes, 1000), 1)} KB"
+    gettext("%{n} KB", n: Kati.Locale.number(max(div(bytes, 1000), 1)))
   end
 
-  def format_size(bytes), do: "#{round(bytes / 1_000_000)} MB"
+  def format_size(bytes), do: gettext("%{n} MB", n: Kati.Locale.number(round(bytes / 1_000_000)))
 
   @doc "The byte count from the last completed Save As, or `nil` — see the moduledoc."
   @spec last_backup_bytes() :: non_neg_integer() | nil
@@ -474,7 +520,7 @@ defmodule Kati.Screens.Backup do
       <Text
         text={sub}
         text_size={11}
-        line_height={1.5}
+        line_height={Kati.Locale.leading(1.5)}
         text_color={sub_color}
         max_lines={sub_lines}
       />
@@ -513,13 +559,19 @@ defmodule Kati.Screens.Backup do
 
   @doc false
   def stays_label do
+    # `Kati.UI.eyebrow_label/1` for the caps and `Kati.Locale.tracking/1` for
+    # the .14em: Arabic script joins its letters and tracking pulls the joins
+    # apart, so the drawing's number is kept where it means something and
+    # dropped where it would break the word. Same pair as `status_frame/8`.
+    label = UI.eyebrow_label(gettext("Does not travel"))
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={String.upcase("Does not travel")}
-        font_family="mono"
+        text={label}
+        font_family={Kati.Locale.mono_face(label)}
         text_size={10}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
@@ -613,7 +665,7 @@ defmodule Kati.Screens.Backup do
         align="center"
       >
         <Text
-          text="Save a backup"
+          text={gettext("Save a backup")}
           text_size={14.5}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -632,28 +684,48 @@ defmodule Kati.Screens.Backup do
   cannot. See the moduledoc.
   """
   def footnote do
+    # `font_family: "sans"` was Plus Jakarta Sans by name, and Plus Jakarta
+    # carries no Arabic glyph at all — `Kati.Locale.face_prop/0`'s own doc is
+    # where that is written down. `rich_text/1` only falls back to the reader's
+    # face when the base run names none, so a hardcoded `"sans"` here reached
+    # the bridge and Android substituted a typeface that is not Kati's.
+    # `Kati.Screens.AutoDetectMusic.apps_note/0` — which cites this function by
+    # name for its own bold run — already made the identical change.
     body = [
       text_size: 12.5,
-      line_height: 1.65,
+      line_height: Kati.Locale.leading(1.65),
       text_color: Palette.ink_soft(),
-      font_family: "sans"
+      font_family: Kati.Locale.face_prop(),
+      # `base: true` rather than letting `rich_text/1` pick the longest run.
+      # The bridge has no per-run styling, so one run's style becomes the
+      # paragraph's, and "longest" is an arithmetic that happens to be the body
+      # copy in English: a Persian translation that came out shorter than its
+      # bold clause would silently set the whole footnote semibold in ink.
+      base: true
     ]
 
     strong = [
       font_weight: "semibold",
       text_color: Palette.ink(),
       text_size: 12.5,
-      line_height: 1.65,
-      font_family: "sans"
+      line_height: Kati.Locale.leading(1.65),
+      font_family: Kati.Locale.face_prop()
     ]
 
+    # The spaces stay OUTSIDE the msgids, so no catalogue entry carries a
+    # leading or trailing blank the translator has to remember. The three runs
+    # are concatenated before they are drawn, so each translation is written to
+    # read as one sentence in that order.
     paragraph =
       UI.rich_text([
-        {"Kati has no server, so a backup is ", body},
-        {"a file you keep", strong},
-        {" — not something stored for you. Put it on a cloud drive, a computer, " <>
-           "anywhere that is not only this phone. A backup that lives on the phone " <>
-           "it is backing up is not a backup.", body}
+        {gettext("Kati has no server, so a backup is") <> " ", body},
+        {gettext("a file you keep"), strong},
+        {" " <>
+           gettext(
+             "— not something stored for you. Put it on a cloud drive, a computer, " <>
+               "anywhere that is not only this phone. A backup that lives on the phone " <>
+               "it is backing up is not a backup."
+           ), body}
       ])
 
     Kati.Components.MishkaPill.pill(
@@ -705,15 +777,24 @@ defmodule Kati.Screens.Backup do
     Kati.Screens.Backup.put_preview(socket, preview)
   end
 
-  @doc "`2,481 records across 29 tables` — one sentence for the whole manifest."
+  @doc """
+  `2,481 records across 29 tables` — one sentence for the whole manifest.
+
+  One msgid rather than four fragments joined by ` records across `: the
+  separator is not punctuation, it is the middle of a sentence, and a Persian
+  reader meets the whole line as one phrase with its own word order. Not
+  `ngettext/4` either — there are TWO counts here and that macro inflects
+  against one, and English draws the plural form at every value it can reach
+  (`0 records across 34 tables` is what `Kati.ScreenBackupTest` pins).
+  """
   @spec preview_sub(map() | nil) :: String.t()
-  def preview_sub(nil), do: "Every table, totalled"
+  def preview_sub(nil), do: gettext("Every table, totalled")
 
   def preview_sub(preview) do
-    records = Kati.Screens.Backup.group(preview.total)
-    tables = Kati.Screens.Backup.group(preview.tables)
-
-    records <> " records across " <> tables <> " tables"
+    gettext("%{records} records across %{tables} tables",
+      records: Kati.Screens.Backup.group(preview.total),
+      tables: Kati.Screens.Backup.group(preview.tables)
+    )
   end
 
   @doc """
@@ -764,9 +845,11 @@ defmodule Kati.Screens.Backup do
   def preview_body([], _empty, _dropped) do
     [
       Kati.Screens.Backup.paragraph(
-        "Nothing is stored on this device yet. A backup taken now would be a real " <>
-          "file with real structure and no rows in it — it would restore, and it " <>
-          "would restore nothing."
+        gettext(
+          "Nothing is stored on this device yet. A backup taken now would be a real " <>
+            "file with real structure and no rows in it — it would restore, and it " <>
+            "would restore nothing."
+        )
       )
     ]
   end
@@ -791,6 +874,13 @@ defmodule Kati.Screens.Backup do
     """
   end
 
+  # The table name is NOT copy and is not translated: `watch_events`,
+  # `meal_logs` — these are `Kati.Backup.Catalog`'s own `snake_case` internals,
+  # and `Kati.Backup.Sample`'s moduledoc is explicit that no catalog entry is a
+  # product noun. A reader comparing this panel against a file they opened in a
+  # text editor has to see the same word. `Kati.Locale.mono_face/1` answers
+  # `"mono"` for them because they are pure ASCII, so they keep DM Mono in both
+  # scripts; the count beside them does not, once its digits are Persian.
   @doc false
   def table_line(table, count) do
     number = Kati.Screens.Backup.group(count)
@@ -799,7 +889,7 @@ defmodule Kati.Screens.Backup do
     <Row fill_width={true} align="center" padding_top={4} padding_bottom={4}>
       <Text
         text={table}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(table)}
         text_size={11}
         text_color={Palette.meta()}
         max_lines={1}
@@ -808,7 +898,7 @@ defmodule Kati.Screens.Backup do
       <Spacer size={12} />
       <Text
         text={number}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(number)}
         text_size={11}
         font_weight="semibold"
         text_color={:on_surface}
@@ -822,15 +912,25 @@ defmodule Kati.Screens.Backup do
   def empty_line(0), do: ~MOB"<Spacer size={0} />"
 
   def empty_line(count) do
-    tables = if count == 1, do: " table is empty", else: " tables are empty"
-    text = Kati.Screens.Backup.group(count) <> tables
+    # `ngettext/4` rather than the `if` that picked between two suffixes: the
+    # count and the noun are one clause, and Persian does not inflect a noun
+    # after a numeral — which is the whole reason a hand-rolled `if count == 1`
+    # cannot be translated, since it has no place to say so. English draws the
+    # same two sentences it drew before.
+    text =
+      ngettext(
+        "%{n} table is empty",
+        "%{n} tables are empty",
+        count,
+        n: Kati.Screens.Backup.group(count)
+      )
 
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={10} />
       <Text
         text={text}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(text)}
         text_size={10.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -857,17 +957,41 @@ defmodule Kati.Screens.Backup do
   def dropped_line(dropped) when map_size(dropped) == 0, do: ~MOB"<Spacer size={0} />"
 
   def dropped_line(dropped) do
-    names = dropped |> Map.keys() |> Enum.sort() |> Enum.join(", ")
+    # `calendar_accounts.credentials_ref` is a column PATH, not a noun, so it
+    # stays exactly as `Kati.Backup.Catalog` spells it — and it is then a Latin
+    # run inside a Persian sentence, where the `.` between the table and the
+    # column is a bidi neutral. Left bare it resolves against the page and
+    # lands at the wrong edge of the name; `Kati.Locale.ltr/1` isolates the run
+    # so the dot stays where the identifier put it. A no-op under `:en`.
+    #
+    # The separator is a GLYPH rather than a word — Persian's comma is U+060C —
+    # and a msgid of `", "` is exactly the two-character kind
+    # `mix gettext.merge` fuzzy-matches against any sentence ending in one.
+    # `Kati.Locale.pick/2` is what this codebase already uses where a drawing
+    # and its mirror differ by a mark; `Kati.Screens.BackupStates.stale/0`
+    # makes the same call for its own list.
+    names =
+      dropped
+      |> Map.keys()
+      |> Enum.sort()
+      |> Enum.map_join(Kati.Locale.pick(", ", "، "), &Kati.Locale.ltr/1)
 
     text =
-      "Left out on purpose: " <>
-        names <>
-        ". These are handles into this phone and would not open on another one."
+      gettext(
+        "Left out on purpose: %{columns}. These are handles into this phone and " <>
+          "would not open on another one.",
+        columns: names
+      )
 
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={12} />
-      <Text text={text} text_size={11.5} line_height={1.5} text_color={Palette.sub()} />
+      <Text
+        text={text}
+        text_size={11.5}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.sub()}
+      />
     </Column>
     """
   end
@@ -886,11 +1010,13 @@ defmodule Kati.Screens.Backup do
   def passphrase_field(s) do
     Kati.Screens.Backup.field(
       s.passphrase,
-      "Passphrase",
+      gettext("Passphrase"),
       :export_passphrase,
-      "The key comes from this passphrase and nothing else — never from the phone — " <>
-        "so the file opens on the next one. There is no recovery: a forgotten " <>
-        "passphrase loses the backup as completely as losing the phone did."
+      gettext(
+        "The key comes from this passphrase and nothing else — never from the phone — " <>
+          "so the file opens on the next one. There is no recovery: a forgotten " <>
+          "passphrase loses the backup as completely as losing the phone did."
+      )
     )
   end
 
@@ -925,16 +1051,16 @@ defmodule Kati.Screens.Backup do
     [
       %{
         icon: "upload",
-        title: "Save a file",
-        sub: "You choose where it goes",
-        control: SettingsList.action_pill("Save"),
+        title: gettext("Save a file"),
+        sub: gettext("You choose where it goes"),
+        control: SettingsList.action_pill(gettext("Save")),
         tap: :save_file
       },
       %{
         icon: "ios_share",
-        title: "Share a copy",
-        sub: "Android cannot confirm it arrived",
-        control: SettingsList.action_pill("Share"),
+        title: gettext("Share a copy"),
+        sub: gettext("Android cannot confirm it arrived"),
+        control: SettingsList.action_pill(gettext("Share")),
         tap: :share_file
       }
     ]
@@ -995,7 +1121,12 @@ defmodule Kati.Screens.Backup do
     <Column fill_width={true}>
       {input}
       <Spacer size={9} />
-      <Text text={hint} text_size={11.5} line_height={1.5} text_color={Palette.sub()} />
+      <Text
+        text={hint}
+        text_size={11.5}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.sub()}
+      />
       <Spacer size={22} />
     </Column>
     """
@@ -1013,7 +1144,7 @@ defmodule Kati.Screens.Backup do
         text={text}
         text_size={13.5}
         font_weight="bold"
-        letter_spacing={-0.01}
+        letter_spacing={Kati.Locale.tracking(-0.01)}
         text_color={tint}
         max_lines={2}
         weight={1.0}
@@ -1061,7 +1192,7 @@ defmodule Kati.Screens.Backup do
         text={notice.title}
         text_size={13.5}
         font_weight="bold"
-        letter_spacing={-0.01}
+        letter_spacing={Kati.Locale.tracking(-0.01)}
         text_color={tint}
         max_lines={2}
         weight={1.0}
@@ -1083,6 +1214,12 @@ defmodule Kati.Screens.Backup do
   def tint(:refused), do: Palette.ink()
   def tint(:info), do: Palette.ink_soft()
 
+  # The meta line is a FILENAME or a path in every branch that sets one — see
+  # `hand_off_notice/2` and `apply_event/2` — so `Kati.Locale.mono_face/1`
+  # answers `"mono"` for it and the drawing's DM Mono survives in both scripts.
+  # Arity 1 rather than 0 for exactly that: this is the one mono line on the
+  # page whose content is never the reader's own language, and asking the
+  # reader would have set a Latin filename in Vazirmatn.
   @doc false
   def notice_meta(nil), do: ~MOB"<Spacer size={0} />"
 
@@ -1092,9 +1229,9 @@ defmodule Kati.Screens.Backup do
       <Spacer size={10} />
       <Text
         text={text}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(text)}
         text_size={10.5}
-        line_height={1.5}
+        line_height={Kati.Locale.leading(1.5)}
         text_color={Palette.muted()}
       />
     </Column>
@@ -1104,7 +1241,12 @@ defmodule Kati.Screens.Backup do
   @doc false
   def paragraph(text) do
     ~MOB"""
-    <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+    <Text
+      text={text}
+      text_size={12.5}
+      line_height={Kati.Locale.leading(1.55)}
+      text_color={Palette.ink_soft()}
+    />
     """
   end
 
@@ -1203,13 +1345,24 @@ defmodule Kati.Screens.Backup do
   def save_as(format, socket) do
     row = Enum.find(Sample.formats(), &(&1.tag == format))
 
+    # `Everything (JSON)` was written into this sentence as a literal and is now
+    # read off the row it names. Both halves of the notice quote a format's
+    # title, and one of them quoting a hardcoded copy of it is exactly the drift
+    # `Kati.Backup.Sample`'s moduledoc exists to prevent — the row's title is
+    # translated by the module that owns it, and a second English copy frozen in
+    # this msgid would leave one format spelled two ways on one card.
+    json = Enum.find(Sample.formats(), &(&1.tag == :json))
+
     Kati.Screens.Backup.put_notice(socket, %{
       tone: :info,
       icon: "info",
-      title: "#{row.title} is not built yet",
+      title: gettext("%{format} is not built yet", format: row.title),
       body:
-        "Kati can only write the full Everything (JSON) file today — the one that " <>
-          "restores. Choose it above and Save a backup again."
+        gettext(
+          "Kati can only write the full %{format} file today — the one that " <>
+            "restores. Choose it above and Save a backup again.",
+          format: json.title
+        )
     })
   end
 
@@ -1228,11 +1381,13 @@ defmodule Kati.Screens.Backup do
       Kati.Screens.Backup.put_notice(socket, %{
         tone: :refused,
         icon: "lock",
-        title: "There is no passphrase to seal it with",
+        title: gettext("There is no passphrase to seal it with"),
         body:
-          "The passphrase switch is on and the field is empty. Kati will not write a " <>
-            "file that claims to be encrypted and is not, and it will not quietly " <>
-            "write one in the clear either. Nothing has been exported."
+          gettext(
+            "The passphrase switch is on and the field is empty. Kati will not write a " <>
+              "file that claims to be encrypted and is not, and it will not quietly " <>
+              "write one in the clear either. Nothing has been exported."
+          )
       })
     else
       Kati.Screens.Backup.hand_off_now(call, socket, s)
@@ -1257,17 +1412,28 @@ defmodule Kati.Screens.Backup do
   def passphrase_opts(false, _passphrase), do: []
   def passphrase_opts(true, passphrase), do: [passphrase: passphrase]
 
+  # The count moves from a concatenation into an interpolation, so the figure
+  # can sit wherever the sentence puts it — Persian does not put it where
+  # English does — and so the digits go through `Kati.Locale.number/1` on the
+  # way, which `group/1` now does for every caller.
+  #
+  # `error.message` in the two error clauses is NOT wrapped: it is written by
+  # `Kati.Backup.Error`, which owns those sentences and is the module that has
+  # to translate them. Wrapping a runtime value here would not compile, and a
+  # lookup table of another module's copy would be a second place for it to
+  # live.
   @doc false
   def hand_off_notice(:save, {:ok, summary}) do
     %{
       tone: :info,
       icon: "upload",
-      title: "Choose where to keep it",
+      title: gettext("Choose where to keep it"),
       body:
-        "Kati has written " <>
-          Kati.Screens.Backup.group(summary.total_records) <>
-          " records and the system dialog is open. The backup exists once you have " <>
-          "picked a folder — until then nothing has left the app.",
+        gettext(
+          "Kati has written %{n} records and the system dialog is open. The backup " <>
+            "exists once you have picked a folder — until then nothing has left the app.",
+          n: Kati.Screens.Backup.group(summary.total_records)
+        ),
       meta: summary.filename
     }
   end
@@ -1276,11 +1442,13 @@ defmodule Kati.Screens.Backup do
     %{
       tone: :info,
       icon: "ios_share",
-      title: "The sheet is open — this is not a backup",
+      title: gettext("The sheet is open — this is not a backup"),
       body:
-        "Android returns the same answer whether a share completes or the sheet is " <>
-          "dismissed, so Kati cannot tell you this arrived anywhere. Use Save a backup " <>
-          "for the copy you are relying on.",
+        gettext(
+          "Android returns the same answer whether a share completes or the sheet is " <>
+            "dismissed, so Kati cannot tell you this arrived anywhere. Use Save a backup " <>
+            "for the copy you are relying on."
+        ),
       meta: summary.filename
     }
   end
@@ -1289,14 +1457,19 @@ defmodule Kati.Screens.Backup do
     %{
       tone: :info,
       icon: "info",
-      title: "The file is written and waiting",
+      title: gettext("The file is written and waiting"),
       body: error.message,
       meta: error.details[:path]
     }
   end
 
   def hand_off_notice(_call, {:error, %Error{} = error}) do
-    %{tone: :error, icon: "error", title: "Kati could not make the backup", body: error.message}
+    %{
+      tone: :error,
+      icon: "error",
+      title: gettext("Kati could not make the backup"),
+      body: error.message
+    }
   end
 
   # ── Messages from the device ────────────────────────────────────────────────
@@ -1346,10 +1519,13 @@ defmodule Kati.Screens.Backup do
     Kati.Screens.Backup.put_notice(socket, %{
       tone: :ok,
       icon: "check_circle",
-      title: "Saved",
+      title: gettext("Saved"),
       body:
-        "#{Kati.Screens.Backup.group(item.bytes)} bytes were written where you chose. " <>
-          "That file is the backup — keep it somewhere that is not only this phone.",
+        gettext(
+          "%{n} bytes were written where you chose. That file is the backup — keep it " <>
+            "somewhere that is not only this phone.",
+          n: Kati.Screens.Backup.group(item.bytes)
+        ),
       meta: item.name
     })
   end
@@ -1358,8 +1534,8 @@ defmodule Kati.Screens.Backup do
     Kati.Screens.Backup.put_notice(socket, %{
       tone: :info,
       icon: "info",
-      title: "The backup was not saved",
-      body: "You closed the folder chooser, so nothing was written outside Kati."
+      title: gettext("The backup was not saved"),
+      body: gettext("You closed the folder chooser, so nothing was written outside Kati.")
     })
   end
 
@@ -1372,8 +1548,8 @@ defmodule Kati.Screens.Backup do
     Kati.Screens.Backup.put_notice(socket, %{
       tone: :info,
       icon: "info",
-      title: "The receiving app took it",
-      body: "That is not the same as a backup — Save a backup is the one that counts.",
+      title: gettext("The receiving app took it"),
+      body: gettext("That is not the same as a backup — Save a backup is the one that counts."),
       meta: item.name
     })
   end
@@ -1382,18 +1558,21 @@ defmodule Kati.Screens.Backup do
     Kati.Screens.Backup.put_notice(socket, %{
       tone: :info,
       icon: "info",
-      title: "The share sheet closed",
-      body: "Android does not say whether the file was sent or the sheet was dismissed.",
+      title: gettext("The share sheet closed"),
+      body: gettext("Android does not say whether the file was sent or the sheet was dismissed."),
       meta: item.name
     })
   end
 
+  # `inspect(reason)` stays as it is: it is a term the bridge handed back, not
+  # a sentence, and there is no msgid for a stack of Erlang. It draws in the
+  # mono meta line, which `Kati.Locale.mono_face/1` keeps in DM Mono for it.
   def apply_event({:error, reason}, socket) do
     Kati.Screens.Backup.put_notice(socket, %{
       tone: :error,
       icon: "error",
-      title: "The system dialog failed",
-      body: "Nothing on this device has changed.",
+      title: gettext("The system dialog failed"),
+      body: gettext("Nothing on this device has changed."),
       meta: inspect(reason)
     })
   end
@@ -1401,9 +1580,27 @@ defmodule Kati.Screens.Backup do
   def apply_event(_other, socket), do: socket
 
   @doc """
-  `1,480`, never `1480`. Written here rather than taken from `Cldr.Number` for
-  the reason `Kati.Screens.MealsToday` gives: this screen is the English one
-  and the sweep renders it directly.
+  `1,480`, never `1480` — and `۱,۴۸۰` rather than either under `:fa`.
+
+  Written here rather than taken from `Cldr.Number` for the reason
+  `Kati.Screens.MealsToday` gives. The doc used to add *this screen is the
+  English one and the sweep renders it directly*, and mishka-group/kati#103
+  retired that half: there is no English screen any more, this one renders
+  under both locales, and every figure it drew came out in Latin numerals
+  under a Persian heading.
+
+  **The two steps happen in this order and cannot be swapped.**
+  `Kati.Locale.number/1` deliberately converts the decimal mark and NOT the
+  group separator — its own doc gives the reason, that board 59 draws ۱,۴۸۰
+  with a Latin comma while board 115 draws ۷۶٫۰ with U+066B — so a comma
+  inserted after the digits had converted would be inserted by a regex that
+  matches only ASCII ones and would find nothing to match.
+  `Kati.Screens.BackupStates.finished/0` writes the identical pair for board
+  130's restore summary.
+
+  Every mono call site — `table_line/2`, `empty_line/1` — asks
+  `Kati.Locale.mono_face/1` about the RESULT, so `1,480` stays in DM Mono and
+  ۱,۴۸۰, which DM Mono cannot draw at all, takes Vazirmatn.
   """
   @spec group(integer()) :: String.t()
   def group(number) when is_integer(number) do
@@ -1412,5 +1609,6 @@ defmodule Kati.Screens.Backup do
     |> String.reverse()
     |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
     |> String.reverse()
+    |> Kati.Locale.number()
   end
 end

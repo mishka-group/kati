@@ -13,6 +13,15 @@ defmodule Kati.UI.Eyebrow do
   So this is not a second eyebrow style, it is the same eyebrow with its one
   meaningful bit turned off, and keeping it here means the three screens agree
   rather than each inventing a grey dash of its own.
+
+  ## The three things it has to ask the reader
+
+  `String.upcase/1` is `Kati.UI.eyebrow_label/1`, `font_family="mono"` is
+  `Kati.Locale.mono_face/1` and the 0.16 tracking is `Kati.Locale.tracking/1` —
+  the same three `Kati.UI.eyebrow/2` asks. `kati_mono.ttf` carries no Persian
+  glyph, so a Persian section label set in it is handed to Android's own
+  substitute face; upcasing a script with no case is a no-op that reads as one;
+  and tracking a Persian run apart breaks the joins between its letters.
   """
 
   import Mob.Sigil
@@ -34,10 +43,10 @@ defmodule Kati.UI.Eyebrow do
         <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(label)}
+          font_family={Kati.Locale.mono_face(label)}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={label_color}
         />
       </Row>

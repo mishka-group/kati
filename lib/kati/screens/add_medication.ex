@@ -276,9 +276,9 @@ defmodule Kati.Screens.AddMedication do
     <Column fill_width={true}>
       <Text
         text={@label}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@label)}
         text_size={10}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Palette.muted()}
         max_lines={1}
       />
@@ -528,9 +528,9 @@ defmodule Kati.Screens.AddMedication do
     <Column fill_width={true}>
       <Text
         text={@text}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@text)}
         text_size={9.5}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Palette.tertiary()}
         max_lines={1}
       />

@@ -45,8 +45,38 @@ defmodule Kati.Screens.AutoDetect do
       flight, and nothing anywhere holds one. `Watch` records a tick after the
       fact, so a screen reading it would be drawing something already finished
       under a heading that says it is happening.
+
+  ## Which half of the copy this file owns, after the fold
+
+  mishka-group/kati#103 folded the 33 Persian mirrors away, so this module is
+  now board 36 in both languages and every word it writes has to come from
+  `Kati.Gettext`. Two modules hold the words on this page and only one of them
+  is this one — `Kati.Screens.AutoDetectMusic` says the same thing about board
+  150 and its Sample, for the same reason.
+
+  **This file owns the chrome and everything a device answers**: the 28pt
+  title and the mono line under it, the three eyebrows, the banner's headline
+  and its earned count, the *Now playing* pill and rule, the permission row and
+  the threshold row, and the question an unplaced name becomes with its two
+  answers. All of those are literals written here and all of them now go
+  through `gettext/1`.
+
+  **`Kati.Settings.DetectSample` owns the drawing**, and its words are still
+  English literals: `3 sources`, `41 EPISODES TICKED FOR YOU`, *The Long
+  Hollow* and its `S2E6 · LUMEN+ · APPLE TV`, the four source rows with their
+  tick counts, the three rule rows, and the Marram question with its three
+  answers. Those belong to that module the way `Kati.Music.Sample`'s tracklist
+  belongs to it; inlining them here would put two copies of the drawing's copy
+  in the repository, which is how a fixture and a screen start disagreeing
+  about what the board says.
+
+  What this file does for those strings is typeset them correctly whichever
+  language they arrive in: every mono slot asks `Kati.Locale.mono_face/1` about
+  the run it was handed rather than naming `mono` outright, and the elapsed
+  clock is isolated so an RTL page cannot swap its two halves.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaProgress
   alias Kati.Components.MishkaToggle
@@ -122,8 +152,8 @@ defmodule Kati.Screens.AutoDetect do
       "not allowed to look yet"
   """
   @spec sources_line(atom()) :: String.t()
-  def sources_line(:granted), do: "watching this phone"
-  def sources_line(_denied), do: "not allowed to look yet"
+  def sources_line(:granted), do: gettext("watching this phone")
+  def sources_line(_denied), do: gettext("not allowed to look yet")
 
   @doc """
   The cream banner: the master switch, and the count it earned.
@@ -138,7 +168,7 @@ defmodule Kati.Screens.AutoDetect do
     count = Kati.Media.Detect.detected_count()
 
     %{
-      title: "Detect what you play",
+      title: gettext("Detect what you play"),
       meta: Kati.Screens.AutoDetect.ticked_line(count),
       on: Kati.Media.Detect.on?()
     }
@@ -152,9 +182,27 @@ defmodule Kati.Screens.AutoDetect do
       "1 EPISODE TICKED FOR YOU"
   """
   @spec ticked_line(non_neg_integer()) :: String.t()
-  def ticked_line(0), do: "NOTHING TICKED FOR YOU YET"
-  def ticked_line(1), do: "1 EPISODE TICKED FOR YOU"
-  def ticked_line(n), do: "#{n} EPISODES TICKED FOR YOU"
+  def ticked_line(0), do: gettext("NOTHING TICKED FOR YOU YET")
+
+  # `ngettext/4` in place of the `1` clause and the interpolated one. Persian
+  # does not inflect a noun after a numeral — `۱ قسمت` and `۴۱ قسمت` take the
+  # same word — so the two forms are one sentence there and two here, which is
+  # the whole of what a plural entry is for. A pattern match on `1` would have
+  # to be repeated, wrongly, in every language that disagrees with English.
+  #
+  # `Kati.Locale.number/1` on the numeral because this line is set in the
+  # reader's own script the moment it stops being ASCII: `banner/2` asks
+  # `Kati.Locale.mono_face/1` about the finished string, so Persian words and
+  # Persian digits travel into Vazirmatn together rather than leaving `41`
+  # behind in a face the sentence around it is not in.
+  def ticked_line(n) do
+    ngettext(
+      "%{n} EPISODE TICKED FOR YOU",
+      "%{n} EPISODES TICKED FOR YOU",
+      n,
+      n: Kati.Locale.number(n)
+    )
+  end
 
   @doc """
   The *Now playing* card, or nothing at all.
@@ -174,10 +222,19 @@ defmodule Kati.Screens.AutoDetect do
       seed: nil,
       title: session.title,
       meta: Kati.Screens.AutoDetect.session_meta(session),
-      status: if(session.playing?, do: "Live", else: "Paused"),
+      # `pgettext/2` for both: one word each, and `mix gettext.merge` fuzzy-
+      # matches a msgid that short against any longer entry containing it —
+      # the catalogue already holds three different `Paused` entries, each with
+      # its own context, because a book, a shelf and a subscription do not
+      # pause in the same word. A media session is a fourth.
+      status:
+        if(session.playing?,
+          do: pgettext("now playing pill", "Live"),
+          else: pgettext("now playing pill", "Paused")
+        ),
       progress: (percent || 0) / 100,
       elapsed: Kati.Screens.AutoDetect.elapsed(session),
-      rule: "ticks at #{Kati.Media.Detect.threshold()}%"
+      rule: gettext("ticks at %{n}%", n: Kati.Locale.number(Kati.Media.Detect.threshold()))
     }
   end
 
@@ -186,7 +243,14 @@ defmodule Kati.Screens.AutoDetect do
     [session.subtitle, Kati.Screens.AutoDetect.app_name(session.app)]
     |> Enum.reject(&(&1 in [nil, ""]))
     |> Enum.join(" · ")
-    |> String.upcase()
+    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`. The board sets
+    # this line in caps — `S2E6 · LUMEN+ · APPLE TV` — and Arabic script has no
+    # case at all, so upcasing a Persian episode title is a no-op that still
+    # reads as one: it leaves the app name beside it shouting while the half
+    # the reader is actually reading cannot. `eyebrow_label/1` upcases in Latin
+    # and returns the Persian untouched, which is the rule every other eyebrow
+    # in the app already follows.
+    |> Kati.UI.eyebrow_label()
   end
 
   @doc """
@@ -196,6 +260,13 @@ defmodule Kati.Screens.AutoDetect do
   which is wrong, so the handful worth naming are named and everything else
   falls back to the package. A wrong friendly name is worse than a package
   name: one is a mistake and the other is obviously a machine talking.
+
+  None of the eight goes through `gettext/1` and none ever should. These are
+  the names the services call themselves, the same rule board 127 draws
+  `Lumen+` in Latin on a Persian page for: a transliteration would spell one
+  thing two ways across the app, and the package fallback is an identifier
+  rather than a word. `Kati.Locale.mono_face/1` is what makes them legible on
+  a Persian page — they are pure ASCII, so they keep DM Mono in both scripts.
 
       iex> Kati.Screens.AutoDetect.app_name("com.netflix.mediaclient")
       "Netflix"
@@ -256,17 +327,31 @@ defmodule Kati.Screens.AutoDetect do
         %{
           icon: "play_circle",
           title: Kati.Screens.AutoDetect.app_name(app),
-          sub: "Playing now",
-          control: nil
+          # Two words, so `pgettext/2` — and the context is also the only thing
+          # that separates this from `real_now_playing/1`'s *Live* pill, which
+          # says the same fact about the same session in a different register.
+          # English keeps them apart by word order and Persian need not; a
+          # translator reading two bare msgids would have to guess which is the
+          # pill and which is the row.
+          sub: pgettext("a source Kati has heard from", "Playing now"),
+          control: nil,
+          # Nothing to open: this row reports what Kati heard rather than
+          # offering a setting. An explicit `nil` because `row_tap/1` reads the
+          # KEY — a row that carries one has answered, including with *none*.
+          tap: nil
         }
       end)
 
     [
       %{
         icon: "phone_iphone",
-        title: "This phone",
+        title: pgettext("detection source", "This phone"),
         sub: Kati.Screens.AutoDetect.access_line(access),
-        control: if(access == :granted, do: {:switch, Kati.Media.Detect.on?()}, else: :chevron)
+        control: if(access == :granted, do: {:switch, Kati.Media.Detect.on?()}, else: :chevron),
+        # The row NAMES its tap rather than leaving `row/1` to recognise its
+        # title. See `row_tap/1`: a title is a drawn string now, and a drawn
+        # string is translated.
+        tap: :open_media_access
       }
     ] ++ heard
   end
@@ -276,8 +361,8 @@ defmodule Kati.Screens.AutoDetect do
       "Detects audio from any app"
   """
   @spec access_line(atom()) :: String.t()
-  def access_line(:granted), do: "Detects audio from any app"
-  def access_line(_denied), do: "Needs notification access — tap to allow"
+  def access_line(:granted), do: gettext("Detects audio from any app")
+  def access_line(_denied), do: gettext("Needs notification access — tap to allow")
 
   @doc """
   The Rules card. Two of the board's three, and the third is dropped.
@@ -294,9 +379,19 @@ defmodule Kati.Screens.AutoDetect do
     [
       %{
         icon: "percent",
-        title: "Tick at",
-        sub: "#{Kati.Media.Detect.threshold()}% watched",
-        control: :chevron
+        # Two words and a preposition left dangling, which is exactly the kind
+        # of msgid `mix gettext.merge` fuzzy-matches against a longer sentence.
+        # The context also says what the row IS, which `Tick at` on its own
+        # does not: a Persian translator reading the msgid alone cannot tell a
+        # threshold from a time of day.
+        title: pgettext("the detection threshold row", "Tick at"),
+        # The same msgid `Kati.Screens.Library` writes over a progress bar, and
+        # deliberately the same: one figure, one sentence, one entry. The
+        # numeral goes through `Kati.Locale.number/1` because this is a sans
+        # sub-line rather than a mono one, so Persian digits belong in it.
+        sub: gettext("%{n}% watched", n: Kati.Locale.number(Kati.Media.Detect.threshold())),
+        control: :chevron,
+        tap: :cycle_threshold
       }
     ]
   end
@@ -322,10 +417,22 @@ defmodule Kati.Screens.AutoDetect do
         %{
           seed: nil,
           heard: title,
-          question: "“#{title}” — is that something you keep?",
+          # `Kati.Locale.quoted/1` rather than a pair of `“…”` in the msgid.
+          # A Persian reader meets the Latin curly quote as a foreign mark and
+          # the guillemets as their own; `quoted/1` is where the app already
+          # settles that, and keeping the marks out of the msgid means a
+          # translator cannot accidentally drop one half of the pair.
+          question:
+            gettext("%{title} — is that something you keep?", title: Kati.Locale.quoted(title)),
           sub: Kati.Screens.AutoDetect.decision_sub(suggestions),
           suggestions: suggestions,
-          options: ["Add it", "Not mine"],
+          # `{label, tag}` and not a bare label. The tag used to be DERIVED
+          # from the label — see `answer_tag/1` — which is a lookup keyed on a
+          # drawn string, and a drawn string is translated.
+          options: [
+            {gettext("Add it"), :answer_add_it},
+            {gettext("Not mine"), :answer_not_mine}
+          ],
           chosen: nil
         }
     end
@@ -339,8 +446,8 @@ defmodule Kati.Screens.AutoDetect do
       "Kati heard it play — tap the one it is, or add it"
   """
   @spec decision_sub([map()]) :: String.t()
-  def decision_sub([]), do: "Kati heard it play and found nothing on your shelf"
-  def decision_sub(_some), do: "Kati heard it play — tap the one it is, or add it"
+  def decision_sub([]), do: gettext("Kati heard it play and found nothing on your shelf")
+  def decision_sub(_some), do: gettext("Kati heard it play — tap the one it is, or add it")
 
   @doc false
   def content(assigns) do
@@ -356,14 +463,14 @@ defmodule Kati.Screens.AutoDetect do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Auto-detect", d.sources_line, nil, :meta_tight)}
+        {SettingsList.title(gettext("Auto-detect"), d.sources_line, nil, :meta_tight)}
         {Kati.UI.Segmented.plain(Kati.Screens.AutoDetectMusic.modes(), :tv)}
         <Spacer size={20} />
         {Kati.Screens.AutoDetect.banner(d.banner, Kati.Screens.AutoDetect.live?(d))}
         {Kati.Screens.AutoDetect.playing_band(d)}
-        {UI.eyebrow("Sources")}
+        {UI.eyebrow(gettext("Sources"))}
         {Kati.Screens.AutoDetect.group(d.sources)}
-        {SettingsList.eyebrow_muted("Rules")}
+        {SettingsList.eyebrow_muted(gettext("Rules"))}
         {Kati.Screens.AutoDetect.group(d.rules)}
         {Kati.Screens.AutoDetect.decision_band(d)}
       </Column>
@@ -384,7 +491,20 @@ defmodule Kati.Screens.AutoDetect do
   """
   @spec banner(map(), boolean()) :: map()
   def banner(b, live? \\ false) do
-    assigns = %{b: b, tap: if(live?, do: {self(), :toggle_detect})}
+    # The meta line asks the STRING which face it needs rather than naming
+    # `mono`: `kati_mono.ttf` carries no Persian glyph and none of U+06F0–U+06F9
+    # either, so `۴۱ قسمت برایتان تیک خورد` set in it is handed to Android's own
+    # substitute face beside sentences that are in Kati's. The board's own
+    # `41 EPISODES TICKED FOR YOU` is pure ASCII and keeps DM Mono in both
+    # scripts, which is what `test/design/screens/36.html` draws.
+    #
+    # Computed here rather than inside the sigil because `@b` there is an
+    # ASSIGN, and an assign is what the whole map is for.
+    assigns = %{
+      b: b,
+      meta_face: Kati.Locale.mono_face(b.meta),
+      tap: if(live?, do: {self(), :toggle_detect})
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -410,7 +530,7 @@ defmodule Kati.Screens.AutoDetect do
           <Spacer size={4} />
           <Text
             text={@b.meta}
-            font_family="mono"
+            font_family={@meta_face}
             text_size={10.5}
             text_color={Palette.cream_meta()}
             max_lines={1}
@@ -466,6 +586,22 @@ defmodule Kati.Screens.AutoDetect do
   a live one fixed.
   """
   def now_playing(n) do
+    # `41:02 / 55:00` is two number runs with a neutral ` / ` between them, and
+    # a neutral that is not directly between two numbers takes the PARAGRAPH's
+    # direction rather than theirs. Under `:fa` the page is RTL, so the bidi
+    # algorithm lays the pair out right-to-left and the card reads
+    # `55:00 / 41:02` — the elapsed and the duration swapped, the position of
+    # the bar above it contradicted, and legible enough that nobody files it.
+    # `Kati.Locale.ltr/1` opens an isolate around the run so the neutrals
+    # resolve against it instead; it is a no-op in English.
+    #
+    # The FACE is asked of the raw string and not of the isolated one. U+2066
+    # and U+2069 are not ASCII, so `mono_face/1` would answer `fa` for a clock
+    # that is pure Latin digits and push it out of DM Mono — which is the one
+    # thing board 36 and board 150 both keep in DM Mono in both scripts.
+    elapsed = Kati.Locale.ltr(n.elapsed)
+    elapsed_face = Kati.Locale.mono_face(n.elapsed)
+
     bar =
       MishkaProgress.progress(
         value: n.progress,
@@ -500,7 +636,7 @@ defmodule Kati.Screens.AutoDetect do
             <Spacer size={4} />
             <Text
               text={n.meta}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(n.meta)}
               text_size={10.5}
               text_color={Palette.muted()}
               max_lines={1}
@@ -514,8 +650,8 @@ defmodule Kati.Screens.AutoDetect do
         <Spacer size={9} />
         <Row fill_width={true} align="center">
           <Text
-            text={n.elapsed}
-            font_family="mono"
+            text={elapsed}
+            font_family={elapsed_face}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -523,7 +659,7 @@ defmodule Kati.Screens.AutoDetect do
           <Spacer weight={1.0} />
           <Text
             text={n.rule}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(n.rule)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -572,7 +708,7 @@ defmodule Kati.Screens.AutoDetect do
 
   def playing_band(d) do
     assigns = %{
-      eyebrow: UI.eyebrow("Now playing"),
+      eyebrow: UI.eyebrow(gettext("Now playing")),
       card: Kati.Screens.AutoDetect.now_playing(d.now_playing)
     }
 
@@ -596,7 +732,7 @@ defmodule Kati.Screens.AutoDetect do
 
   def decision_band(d) do
     assigns = %{
-      eyebrow: UI.eyebrow("Needs a decision"),
+      eyebrow: UI.eyebrow(gettext("Needs a decision")),
       card: Kati.Screens.AutoDetect.decision(d.decision, Kati.Screens.AutoDetect.live?(d))
     }
 
@@ -633,12 +769,37 @@ defmodule Kati.Screens.AutoDetect do
       Kati.Screens.AutoDetect.control(row.control),
       padding: 13,
       rule: rule?,
-      on_tap: Kati.Screens.AutoDetect.tap(row.title)
+      on_tap: Kati.Screens.AutoDetect.row_tap(row)
     )
   end
 
   @doc """
-  The tap a row carries, or `nil` for the rows that carry none.
+  The tap a row carries: the one it names, or the one its title implies.
+
+  `tap/1` recognised the row by its English TITLE, and mishka-group/kati#103 is
+  what turns that shortcut into a defect: a title is a drawn string now, a
+  drawn string goes through `gettext/1`, and under `:fa` *This phone* is
+  **این گوشی** and *Tick at* is **تیک زدن در**. Every clause would fall through
+  to `nil`, so the permission row and the threshold row lose their taps on
+  exactly the page a reader opened in order to grant the permission — silently,
+  because a row with no tap is indistinguishable from a row that never had one.
+  `Kati.Retired`'s moduledoc states the same rule about tile names, and
+  `Kati.Screens.RetiredTile.label/1` is the fix applied there.
+
+  So the rows `real_sources/2` and `real_rules/0` build carry `:tap`
+  themselves. `Kati.Settings.DetectSample`'s rows do not and will not: that
+  module is the drawing, its words are English literals by design — see the
+  moduledoc — and `tap/1` still reads them exactly as it always did. Hence two
+  clauses rather than one rewritten lookup.
+  """
+  @spec row_tap(map()) :: {pid(), atom()} | nil
+  # A row that carries the key at all has answered, and `nil` is an answer.
+  def row_tap(%{tap: nil}), do: nil
+  def row_tap(%{tap: tag}) when is_atom(tag), do: {self(), tag}
+  def row_tap(row), do: Kati.Screens.AutoDetect.tap(row.title)
+
+  @doc """
+  The tap a DRAWN row carries, or `nil` for the rows that carry none.
 
   One row here promises something that is not in this version: **Browser
   extension**, drawn `Not installed` with a `Get` pill that led nowhere. That
@@ -650,6 +811,12 @@ defmodule Kati.Screens.AutoDetect do
   Matched on the title because that is what `Kati.Settings.DetectSample` keys
   its rows by; `nil` rather than an inert tag, so a row with nowhere to go
   draws no tap at all and `Kati.ScreenTapSweepTest` has nothing to report.
+
+  These three literals are the Sample's OWN English and are not copy this
+  module draws any more — `row_tap/1` reaches this only for a row that named no
+  tap of its own, and the only such rows are the drawing's. So they stay
+  Latin: translating them would key a lookup on one language and feed it
+  another.
   """
   @spec tap(String.t()) :: {pid(), atom()} | nil
   def tap("Browser extension"), do: {self(), :open_retired}
@@ -673,7 +840,9 @@ defmodule Kati.Screens.AutoDetect do
 
     buttons =
       d.options
-      |> Enum.map(fn o -> Kati.Screens.AutoDetect.choice(o, o == d.chosen, live?) end)
+      |> Enum.map(fn o ->
+        Kati.Screens.AutoDetect.choice(o, Kati.Screens.AutoDetect.chosen?(o, d.chosen), live?)
+      end)
       |> Enum.intersperse(Kati.Screens.AutoDetect.choice_gap())
 
     ~MOB"""
@@ -830,8 +999,25 @@ defmodule Kati.Screens.AutoDetect do
   for the hero's CTA pill — `background` and `label_color` the idle pair
   (`Palette.paper/0` / `Palette.ink_soft/0`, `#EFECE7` / `#5C574F`), and
   `pressed` picks between them exactly as the `if` did.
+
+  ## What an option is, since the labels stopped being English
+
+  Either a bare label or a `{label, tag}` pair. `real_decision/0` writes the
+  pair and `Kati.Settings.DetectSample` writes the bare label, and the bare
+  clause derives its tag through `answer_tag/1` exactly as this always did —
+  which is correct for the drawing and only for the drawing. `answer_tag/1`
+  says why.
   """
-  def choice(label, on?, live? \\ false) do
+  @spec choice(String.t() | {String.t(), atom()}, boolean(), boolean()) :: map()
+  def choice(option, on?, live? \\ false)
+
+  def choice(label, on?, live?) when is_binary(label) do
+    tag = Kati.Screens.AutoDetect.answer_tag(label)
+
+    Kati.Screens.AutoDetect.choice({label, tag}, on?, live?)
+  end
+
+  def choice({label, tag}, on?, live?) do
     button =
       MishkaToggle.toggle(
         label: label,
@@ -846,7 +1032,11 @@ defmodule Kati.Screens.AutoDetect do
         # answers to an ambiguous match and none of them carried a tap, so the
         # card the whole screen is arranged around — *a wrong tick pollutes a
         # watch history nobody audits* — could not be answered.
-        on_change: if(live?, do: {self(), Kati.Screens.AutoDetect.answer_tag(label)}),
+        #
+        # The tag comes from the OPTION now and not from the label. See
+        # `answer_tag/1`: a tag spelled out of a drawn string is a tag that
+        # changes with the language.
+        on_change: if(live?, do: {self(), tag}),
         color: Palette.ink_fill(),
         text_color: Palette.on_ink(),
         background: Palette.paper(),
@@ -868,6 +1058,21 @@ defmodule Kati.Screens.AutoDetect do
     </Box>
     """
   end
+
+  @doc """
+  Whether an answer is the one already chosen.
+
+      iex> Kati.Screens.AutoDetect.chosen?({"Not mine", :answer_not_mine}, "Not mine")
+      true
+
+  Compares the LABEL half, because an option is either a bare label or a
+  `{label, tag}` pair and `chosen` is a label in both cases — it is what the
+  drawing records, and the drawing is the only thing that arrives with one
+  already chosen.
+  """
+  @spec chosen?(String.t() | {String.t(), atom()}, String.t() | nil) :: boolean()
+  def chosen?({label, _tag}, chosen), do: label == chosen
+  def chosen?(label, chosen), do: label == chosen
 
   # `handle_tap/2` rather than a `handle_info/2` clause: `Kati.Screens.Pushed`
   # owns `handle_info/2` and its `:back` clause, and overriding it here would
@@ -961,6 +1166,13 @@ defmodule Kati.Screens.AutoDetect do
   def handle_tap(:open_music, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
 
+  # `"Browser extension"` here is a KEY and not copy. `Kati.Screens.RetiredTile`
+  # matches this exact English string in its `offsite/1` and then draws
+  # `gettext("Browser extension")` in its own header — its comment there states
+  # the pair in full: *the same string in English and two different jobs, which
+  # is exactly why one of them is translated and the other cannot be*. Sending
+  # a Persian key at a Latin match would fall through to the drawn subject and
+  # open a sheet about Sleep.
   def handle_tap(:open_retired, socket) do
     {:noreply,
      Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Browser extension"})}
@@ -984,10 +1196,22 @@ defmodule Kati.Screens.AutoDetect do
   end
 
   @doc """
-  The tag an answer pill sends, built from its own label.
+  The tag a DRAWN answer pill sends, built from its own label.
 
       iex> Kati.Screens.AutoDetect.answer_tag("Not mine")
       :answer_not_mine
+
+  This used to be how every answer got its tag, and mishka-group/kati#103 is
+  what makes that wrong twice over. Under `:fa` *Not mine* is
+  **مال من نیست**, so `String.to_atom("answer_" <> …)` mints an atom no
+  `handle_tap/2` clause matches and the pill answers nothing — and it MINTS
+  one, per label, per language, into a table that is never collected. A tag is
+  a name in the program; a label is a word on a screen; the two stopped being
+  the same string the day this screen had two languages.
+
+  So `real_decision/0` names `:answer_add_it` and `:answer_not_mine` itself and
+  this is what is left for `Kati.Settings.DetectSample`'s three English
+  answers, which are the drawing's and never move.
   """
   @spec answer_tag(String.t()) :: atom()
   def answer_tag(label) do
@@ -998,8 +1222,18 @@ defmodule Kati.Screens.AutoDetect do
   @spec asked_title(Mob.Socket.t()) :: String.t()
   def asked_title(socket) do
     case Kati.Media.Detect.unsure() do
-      [title | _rest] -> title
-      [] -> Map.get(socket.assigns.detect, :now_playing, %{}) |> then(&(&1 && &1.title)) || ""
+      [title | _rest] ->
+        title
+
+      # `Map.get/2` and not `Map.get(…, %{})`. The `%{}` default was a fallback
+      # that crashed when it was reached: an empty map is truthy, so
+      # `&1 && &1.title` asked `%{}` for a key it has not got and raised
+      # `KeyError` — the one path here that exists for the case where there is
+      # nothing to name. It is unreachable today because `detect/0` always
+      # writes `:now_playing`, which is why nothing has found it. `nil` falls
+      # through the `&&` to the `""` the clause already meant to answer.
+      [] ->
+        Map.get(socket.assigns.detect, :now_playing) |> then(&(&1 && &1.title)) || ""
     end
   end
 end

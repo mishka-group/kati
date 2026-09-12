@@ -186,11 +186,15 @@ defmodule Kati.BooksByHandTest do
         |> mount_screen()
         |> render_info({:change, :length, "380"})
 
-      assert find(tree(view), :text, text: "Length · pages") != nil
+      # The file reads as a Persian reader — see the `setup` — so the label is
+      # asked for in the language the page is drawn in. It said `Length · pages`
+      # while `length_label/1` was a literal, and passed for that reason rather
+      # than because the column was right.
+      assert find(tree(view), :text, text: AddByHandBook.length_label(:paperback)) != nil
 
       switched = render_info(view, {:tap, :edition_audiobook})
 
-      assert find(tree(switched), :text, text: "Length · minutes") != nil
+      assert find(tree(switched), :text, text: AddByHandBook.length_label(:audiobook)) != nil
       assert find(tree(switched), :text, text: "Length · pages") == nil
     end
 
@@ -218,7 +222,9 @@ defmodule Kati.BooksByHandTest do
         |> mount_screen()
         |> render_info({:tap, :add})
 
-      assert assigns(view).save_error == "A title is the one thing this needs."
+      assert assigns(view).save_error ==
+               Kati.Locale.as(:fa, fn -> AddByHandBook.no_title_error() end)
+
       assert shelf() == []
       refute match?({:push, _dest, _params}, pushed(view)), "a refused save leaves the form open"
     end
@@ -595,7 +601,20 @@ defmodule Kati.BooksByHandTest do
     test "the five Kind chips are the board's five, with Book the lit one" do
       labels = Enum.map(AddByHandBook.kind_list(), &elem(&1, 0))
 
-      assert labels == ["Film", "Series", "Book", "Album", "Artist"]
+      # The board's five, in the board's order, in the language this file reads
+      # in. Asserted as the five KINDS mapped through the one vocabulary rather
+      # than as five English words: `Kati.Screens.AddByHand.kind_label/1` is
+      # what both add-by-hand forms read, and it answered `Film` for three of
+      # the five until board 178 started asking it.
+      assert labels ==
+               Enum.map(
+                 [:movie, :tv, :book, :album, :artist],
+                 &Kati.Screens.AddByHand.kind_label/1
+               )
+
+      assert Kati.Locale.as(:en, fn ->
+               Enum.map(AddByHandBook.kind_list(), &elem(&1, 0))
+             end) == ["Film", "Series", "Book", "Album", "Artist"]
 
       # Board 155's resting band is unchanged: Film is still the default of the
       # form 154 draws, and 177 is a different screen rather than a new default.

@@ -84,6 +84,11 @@ defmodule Kati.Screens.ImportRecognised do
   a font table. `Kati.Screens.ShelfFilters` already ships `4★ and up` as the
   character, so this screen is the second, not the first.
 
+  **The mark is `kati_sans`'s, and the Persian page is not set in it.**
+  `kati_fa_400.ttf` carries neither U+2605 nor U+2192, so the Persian half of
+  `scale_line/1` says the conversion in words instead of mirroring the arrow —
+  the argument, with the second cmap, is in that function.
+
   ## `Not Goodreads? Change` pops the screen, honestly
 
   There is no source-picker screen or resource this can hand the guess back
@@ -121,9 +126,33 @@ defmodule Kati.Screens.ImportRecognised do
   *Publisher* should not be skipped has nowhere to say so. That is the same
   missing resource screen 37's own moduledoc names, and it is the one promise
   on this board the app does not keep.
+
+  ## What stays Latin when this page folds to Persian
+
+  mishka-group/kati#103. Three kinds of string on this screen are not copy and
+  do not take a msgid:
+
+    * **The source's name.** `source_name/1` answers `Goodreads`, `Letterboxd`,
+      `MyAnimeList` — a service's name for itself, and the same name the tile
+      on screen 140 carried. Board 127 draws `Lumen+` in Latin on a Persian
+      page for this reason. Every one of them is handed to `Kati.Locale.ltr/1`
+      on its way into a sentence instead, because a Latin run inside a Persian
+      line takes the line's direction for its neighbouring punctuation and
+      would otherwise put the full stop on the wrong edge.
+    * **The file's own name and its own headers.** `goodreads_library_export.csv`
+      and the nine column names down the left of the mapping table are what the
+      reader's file says, not what Kati says.
+    * **Everything `Kati.Import.Job` and `Kati.Import.Sample` write.** The
+      `Import 412` pill, `418 ROWS · 9 COLUMNS`, `STEP 1 OF 4`, the three
+      outcome labels and the field names on the right of each arrow are all
+      those modules' strings; they fold there, not here. What this screen owes
+      them is a TYPEFACE — `Kati.Locale.mono_face/1` asks each of those strings
+      what script it is in rather than asking the reader, because DM Mono
+      carries no Persian glyph and half of them will never be Persian.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
@@ -239,7 +268,7 @@ defmodule Kati.Screens.ImportRecognised do
       {looks_like, different_kind?} ->
         Kati.Screens.ImportRecognised.notice(
           "help",
-          "This looks like a #{looks_like} export",
+          gettext("This looks like a %{source} export", source: Kati.Locale.ltr(looks_like)),
           Kati.Screens.ImportRecognised.mismatch_line(looks_like, different_kind?)
         )
     end
@@ -280,7 +309,13 @@ defmodule Kati.Screens.ImportRecognised do
         padding_bottom={40}
       >
         <Spacer size={44} />
-        <Text text={@source} text_size={26} font_weight="bold" text_color={:on_surface} />
+        <Text
+          text={@source}
+          text_size={26}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={18} />
         {@card}
       </Column>
@@ -291,13 +326,35 @@ defmodule Kati.Screens.ImportRecognised do
   @doc false
   def mismatch_line(looks_like, true),
     do:
-      "Its columns are #{Kati.Screens.ImportRecognised.possessive(looks_like)}. Kati maps by " <>
-        "column name, so it will still read — but a books export has no watches in it."
+      gettext(
+        "Its columns are %{source}. Kati maps by column name, so it will still read — but a books export has no watches in it.",
+        source: Kati.Screens.ImportRecognised.owner(looks_like)
+      )
 
   def mismatch_line(looks_like, false),
     do:
-      "Its columns are #{Kati.Screens.ImportRecognised.possessive(looks_like)}. Kati maps by " <>
-        "column name, so it will still read."
+      gettext(
+        "Its columns are %{source}. Kati maps by column name, so it will still read.",
+        source: Kati.Screens.ImportRecognised.owner(looks_like)
+      )
+
+  @doc """
+  The source that owns the columns, spelled the way its own script spells it.
+
+  English marks possession on the noun — `Goodreads'` — and Persian marks it
+  inside the sentence, «ستون‌هایش مالِ …», with the name itself left plain. So
+  `possessive/1` is asked on the Latin side only; asking it on both would
+  print an apostrophe in a script that has no use for one.
+
+  `Kati.Locale.ltr/1` around the result, in both: the name is Latin on a
+  Persian page (see the moduledoc) and the full stop that follows it is a bidi
+  neutral, which resolves against the PARAGRAPH rather than against the word
+  in front of it and lands at the left edge of the line.
+  """
+  @spec owner(String.t()) :: String.t()
+  def owner(name) do
+    Kati.Locale.ltr(Kati.Locale.pick(Kati.Screens.ImportRecognised.possessive(name), name))
+  end
 
   @doc """
   A source's name, owning something — and `Goodreads` is why this is a function.
@@ -318,29 +375,67 @@ defmodule Kati.Screens.ImportRecognised do
       "Kati could not read that file"
   """
   @spec refusal_title(atom()) :: String.t()
-  def refusal_title(:unreadable), do: "That file could not be opened"
-  def refusal_title(:empty), do: "That file is empty"
-  def refusal_title(_unrecognised), do: "Kati could not read that file"
+  def refusal_title(:unreadable), do: gettext("That file could not be opened")
+  def refusal_title(:empty), do: gettext("That file is empty")
+  def refusal_title(_unrecognised), do: gettext("Kati could not read that file")
 
   @doc false
   def refusal_body(:unreadable, name),
     do:
-      "#{Kati.Screens.ImportRecognised.said(name)} Nothing on this device has changed. " <>
-        "Pick again, or choose Something else to map a file by hand."
+      Kati.Screens.ImportRecognised.after_said(
+        name,
+        gettext(
+          "Nothing on this device has changed. Pick again, or choose Something else to map a file by hand."
+        )
+      )
 
   def refusal_body(:empty, name),
     do:
-      "#{Kati.Screens.ImportRecognised.said(name)} It has no rows in it. " <>
-        "Pick again, or choose Something else to map a file by hand."
+      Kati.Screens.ImportRecognised.after_said(
+        name,
+        gettext(
+          "It has no rows in it. Pick again, or choose Something else to map a file by hand."
+        )
+      )
 
   def refusal_body(_unrecognised, name),
     do:
-      "#{Kati.Screens.ImportRecognised.said(name)} None of its column names is one Kati " <>
-        "knows, so there is nothing it could safely put on your shelf. Pick again, or " <>
-        "choose Something else to map it by hand."
+      Kati.Screens.ImportRecognised.after_said(
+        name,
+        gettext(
+          "None of its column names is one Kati knows, so there is nothing it could safely put on your shelf. Pick again, or choose Something else to map it by hand."
+        )
+      )
+
+  @doc """
+  The file's name, then the sentence — with the join between them, or without.
+
+  The three bodies interpolated `said/1` and then wrote a space and the rest of
+  the sentence, so a push that carried no name — `said/1` answers the empty
+  string to one — put a leading space on every one of them. That is invisible
+  in English and is not in Persian: the line is laid out from the right, so the
+  stray space indents the head of the sentence rather than trailing off the end
+  of one that is not there. The space is the JOINT between two sentences, so it
+  is written where the joint is and only when there are two.
+  """
+  @spec after_said(String.t() | nil, String.t()) :: String.t()
+  def after_said(name, sentence) do
+    case Kati.Screens.ImportRecognised.said(name) do
+      "" -> sentence
+      said -> said <> " " <> sentence
+    end
+  end
 
   @doc false
-  def said(name) when is_binary(name) and name != "", do: "You chose “#{name}”."
+  def said(name) when is_binary(name) and name != "",
+    do:
+      gettext("You chose %{name}.",
+        # `Kati.Locale.quoted/1` for the marks and `ltr/1` for what is inside
+        # them: Persian opens a quotation with «, and a file name is a Latin
+        # run whose dot would otherwise resolve against the Persian line.
+        name: Kati.Locale.quoted(Kati.Locale.ltr(name))
+      )
+
   def said(_none), do: ""
 
   @doc """
@@ -411,7 +506,7 @@ defmodule Kati.Screens.ImportRecognised do
       <Spacer size={14} />
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        {SettingsList.action_pill("Pick again", @tap)}
+        {SettingsList.action_pill(gettext("Pick again"), @tap)}
       </Row>
     </Column>
     """
@@ -489,11 +584,11 @@ defmodule Kati.Screens.ImportRecognised do
         {Kati.Screens.ImportRecognised.steps(job)}
         {Kati.Screens.ImportRecognised.file_card(job)}
         {Kati.Screens.ImportRecognised.matched_note(job)}
-        {UI.SettingsList.eyebrow_muted("Mapping — collapsed")}
+        {UI.SettingsList.eyebrow_muted(gettext("Mapping — collapsed"))}
         {Kati.Screens.ImportRecognised.mapping_collapsed(job)}
-        {UI.eyebrow("Mapping — expanded")}
+        {UI.eyebrow(gettext("Mapping — expanded"))}
         {Kati.Screens.ImportRecognised.mapping_expanded(job)}
-        {UI.SettingsList.eyebrow_muted("What will happen")}
+        {UI.SettingsList.eyebrow_muted(gettext("What will happen"))}
         {Kati.Screens.ImportRecognised.outcome(job)}
       </Column>
     </Scroll>
@@ -537,6 +632,19 @@ defmodule Kati.Screens.ImportRecognised do
   @spec live?(map()) :: boolean()
   def live?(job), do: is_map(Map.get(job, :job))
 
+  # `Kati.Locale.tracking/1` on the 28pt heading and `mono_face/1` on the step
+  # label under it, and the two ask different questions.
+  #
+  # The heading is a source's NAME and stays Latin, but the tightening is the
+  # Latin design's: Vazirmatn is not drawn to be tracked and negative spacing
+  # breaks the joins between Persian letters, so a page that ever put a
+  # translated word here would break rather than tighten. `max_lines={1}` for
+  # the same reason the other display headings carry one.
+  #
+  # The step label is `Kati.Import.Job`'s string, not this screen's, and that
+  # module folds on its own schedule — so the face is asked of the STRING
+  # rather than hardcoded: `STEP 1 OF 4` keeps DM Mono, and the day it reads
+  # «گام ۱ از ۴» it takes Vazirmatn instead of Android's substitute face.
   @doc false
   def title(job) do
     ~MOB"""
@@ -546,13 +654,14 @@ defmodule Kati.Screens.ImportRecognised do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={6} />
       <Text
         text={job.step_label}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(job.step_label)}
         text_size={11.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -627,7 +736,7 @@ defmodule Kati.Screens.ImportRecognised do
             <Spacer size={4} />
             <Text
               text={job.shape}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(job.shape)}
               text_size={10.5}
               text_color={Palette.muted()}
               max_lines={1}
@@ -722,32 +831,70 @@ defmodule Kati.Screens.ImportRecognised do
   """
   @spec words(map()) :: {String.t(), String.t()}
   def words(job) do
-    source = Map.get(job, :source) || "file"
+    # The name is a service's own (see the moduledoc) and goes into every one
+    # of these sentences as a Latin run, so it travels inside an isolate. The
+    # last-resort word is not a name at all and must not: wrapping a Persian
+    # word in `ltr/1` would hand it to the bidi algorithm as if it were Latin.
+    source =
+      case Map.get(job, :source) do
+        nil -> pgettext("a source that named itself nothing", "file")
+        name -> Kati.Locale.ltr(name)
+      end
+
+    # `columns_count` IS NOBODY'S KEY, AND THIS SUB-LINE HAS BEEN DRAWING 0.
+    #
+    # Neither producer writes one: `Kati.Import.Sample.recognised/0` and
+    # `Kati.Import.Job.recognised/1` both count the file's columns under
+    # `total_columns`. So `7 of 9 columns matched` — which is what board 141
+    # draws and what board 329 captured this card in — has rendered as `7 of 0
+    # columns matched` on every device the screen has ever been on, while the
+    # doctest below passed because it hands `columns_count` in by hand.
+    #
+    # The fallback rather than a rename, because `columns_count` is 329's own
+    # word for it and a job that starts carrying one should win.
+    columns = Map.get(job, :columns_count) || Map.get(job, :total_columns) || 0
 
     case Kati.Screens.ImportRecognised.shape(job) do
       :refused ->
-        {"Kati can’t read this file", Map.get(job, :refusal_detail) || "It ends part-way"}
+        {gettext("Kati can’t read this file"),
+         Map.get(job, :refusal_detail) || gettext("It ends part-way")}
 
       :mismatch ->
         {looks_like, _kind?} = Map.get(job, :mismatch)
 
-        {"You picked #{source} — this looks like #{looks_like}",
-         Map.get(job, :found_columns) || "Its columns are somebody else’s"}
+        {gettext("You picked %{source} — this looks like %{other}",
+           source: source,
+           other: Kati.Locale.ltr(looks_like)
+         ), Map.get(job, :found_columns) || gettext("Its columns are somebody else’s")}
 
       :partial ->
-        {"A #{source} export, from before #{Map.get(job, :export_era) || "2019"}",
-         "No #{Map.get(job, :missing_column)} column — everything else maps"}
+        {gettext("A %{source} export, from before %{year}",
+           source: source,
+           # `Kati.Locale.year/1`: a year an exporter stamped on a file is a
+           # citation, so its digits fold and its calendar does not.
+           year: Map.get(job, :export_era) || Kati.Locale.year(2019)
+         ),
+         gettext("No %{column} column — everything else maps",
+           column: Kati.Locale.ltr(to_string(Map.get(job, :missing_column)))
+         )}
 
       :said ->
-        {"The file says #{source}", "Header row claims it — columns agree"}
+        {gettext("The file says %{source}", source: source),
+         gettext("Header row claims it — columns agree")}
 
       :possessive ->
-        {"Read as your #{source} export",
-         "#{Map.get(job, :rows) || 0} rows · #{Map.get(job, :columns_count) || 0} columns"}
+        {gettext("Read as your %{source} export", source: source),
+         gettext("%{rows} rows · %{columns} columns",
+           rows: Kati.Locale.number(Map.get(job, :rows) || 0),
+           columns: Kati.Locale.number(columns)
+         )}
 
       :recognised ->
-        {"Read as a #{source} export",
-         "#{Map.get(job, :matched) || 0} of #{Map.get(job, :columns_count) || 0} columns matched"}
+        {gettext("Read as a %{source} export", source: source),
+         gettext("%{matched} of %{total} columns matched",
+           matched: Kati.Locale.number(Map.get(job, :matched) || 0),
+           total: Kati.Locale.number(columns)
+         )}
     end
   end
 
@@ -785,7 +932,10 @@ defmodule Kati.Screens.ImportRecognised do
       sub: sub,
       pill:
         if(Kati.Screens.ImportRecognised.guessed?(shape),
-          do: Kati.Screens.ImportRecognised.change_pill(Map.get(job, :source) || "this"),
+          # `nil` through rather than the word: the pill has to name what it is
+          # offering to change in the reader's own language, and a literal
+          # standing in for a missing name is copy. `change_pill/1` owns it.
+          do: Kati.Screens.ImportRecognised.change_pill(Map.get(job, :source)),
           else: nil
         )
     }
@@ -803,7 +953,7 @@ defmodule Kati.Screens.ImportRecognised do
         <Spacer size={4} />
         <Text
           text={@sub}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(@sub)}
           text_size={10.5}
           text_color={Kati.Theme.Palette.muted()}
           max_lines={1}
@@ -827,26 +977,50 @@ defmodule Kati.Screens.ImportRecognised do
   def shape_colour(_red), do: Palette.red()
 
   @doc """
-  `Read as a **Goodreads** export`, one bold run inside a running line.
+  `Read as a Goodreads export`, the running line under the file's own name.
 
-  `Kati.UI.rich_text/1`: the bridge has no per-run styling, so the whole line
-  takes one style — the regular run's, marked `base: true` because at this
-  length editing the source name could otherwise flip which run is longest.
+  `Kati.UI.rich_text/1`, still, because the paragraph has to wrap and a single
+  `Text` is the only node on this bridge that does — but one run now rather
+  than three, and `base: true` on it so the style is stated rather than won by
+  being the longest.
   """
   def source_line(source) do
     base = [text_size: 12.5, text_color: Palette.ink_soft()]
 
+    # ONE RUN NOW, AND THE SENTENCE IS `words/1`'s OWN MSGID.
+    #
+    # The three runs bought nothing the bridge draws — `rich_text/1`
+    # concatenates them and applies the base run's style to the lot, which is
+    # its own doc's first paragraph — and what they would have cost under `:fa`
+    # is a Persian page assembled in English word order, because `Read as a` +
+    # NAME + ` export` is only a sentence in one of the two scripts.
+    #
+    # Same msgid `words/1` draws for the same card, so the two cannot drift
+    # into two Persian sentences for one English one.
     UI.rich_text([
-      {"Read as a ", [base: true] ++ base},
-      {source, [font_weight: "semibold", text_color: :on_surface]},
-      {" export", base}
+      {gettext("Read as a %{source} export", source: Kati.Locale.ltr(source)),
+       [base: true] ++ base}
     ])
   end
 
-  @doc "The `Not <source>? Change` pill — screen `account.ex`'s `pill/1` recipe, with a real tap."
+  @doc """
+  The `Not <source>? Change` pill — screen `account.ex`'s `pill/1` recipe, with
+  a real tap.
+
+  `nil` for a push that named no tile. The pill still has to say what it is
+  offering to change and the only honest word left is the demonstrative, which
+  is copy in both scripts — so it is a `pgettext/2` rather than the `"this"`
+  the call site used to hand in, and it is NOT wrapped in `Kati.Locale.ltr/1`:
+  it is the one value in this slot that is not a Latin name.
+  """
   def change_pill(source) do
+    name =
+      if source,
+        do: Kati.Locale.ltr(source),
+        else: pgettext("the source this screen guessed", "this")
+
     MishkaPill.pill(
-      label: "Not #{source}? Change",
+      label: gettext("Not %{source}? Change", source: name),
       background: Palette.paper(),
       color: :on_surface,
       corner_radius: 15,
@@ -901,17 +1075,28 @@ defmodule Kati.Screens.ImportRecognised do
   def note(job) do
     body = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
 
-    UI.rich_text(
-      [
-        {"Kati matched ", [base: true] ++ body},
-        {"#{job.matched} of #{job.total_columns} columns", :semibold},
-        {" and set the conversions: ", body},
-        {Kati.Screens.ImportRecognised.scale_line(job), :semibold},
-        {", and dates read as ", body},
-        {Kati.Screens.ImportRecognised.date_line(job), :semibold},
-        {".", body}
-      ] ++ Kati.Screens.ImportRecognised.skipped_clause(job.skipped, body)
-    )
+    # ONE RUN, WHERE THE SENTENCE WAS SEVEN — `source_line/1`'s reason, on the
+    # longest paragraph this screen draws.
+    #
+    # `rich_text/1` renders no per-run emphasis, so the four `:semibold` runs
+    # were already drawn regular; what they still did was fix the order of the
+    # clauses in English. Persian puts the count before the verb and the verb
+    # at the end, so no arrangement of `Kati matched ` · COUNT · ` and set the
+    # conversions: ` is a Persian sentence — the whole of it has to be one
+    # msgid with the file's own facts interpolated into it.
+    sentence =
+      gettext(
+        "Kati matched %{matched} of %{total} columns and set the conversions: %{scale}, and dates read as %{dates}.",
+        matched: Kati.Locale.number(job.matched),
+        total: Kati.Locale.number(job.total_columns),
+        scale: Kati.Screens.ImportRecognised.scale_line(job),
+        dates: Kati.Screens.ImportRecognised.date_line(job)
+      )
+
+    UI.rich_text([
+      {sentence <> Kati.Screens.ImportRecognised.skipped_clause(job.skipped),
+       [base: true] ++ body}
+    ])
   end
 
   @doc """
@@ -928,17 +1113,64 @@ defmodule Kati.Screens.ImportRecognised do
     # `Map.get` with a default: board 141's own columns carry no `:sample` —
     # they are a mapping table, not a preview — and the drawing must keep its
     # sentence.
-    case Kati.Screens.ImportRecognised.sample_for(job, "Rating") do
-      nil -> "no rating column"
-      "" -> "10pt → 5★"
-      sample -> if String.contains?(sample, "."), do: "5★ → 10pt", else: "10pt → 5★"
+    #
+    # `pgettext/2` on all three: `10pt → 5★` is two tokens, and a msgid that
+    # short is what `mix gettext.merge` fuzzy-matches against any line ending
+    # the same way.
+    #
+    # THE PERSIAN SAYS IT IN WORDS — «از ۱۰ امتیازی به ۵ ستاره» — AND THE FONT
+    # TABLE IS WHY. "The star the font turned out to have" in this module's doc
+    # is about `kati_sans`; the face this sentence is set in under `:fa` is
+    # `kati_fa_400.ttf`, which carries **neither** U+2605 nor U+2192/U+2190:
+    #
+    #     android/app/src/main/res/font/kati_fa_400.ttf
+    #       cmap: U+2605 absent · U+2192 absent · U+2190 absent
+    #             (U+06F0–U+06F9 present, which is the other half of the fold)
+    #
+    # So an arrow and a star inside a Persian line are two characters handed to
+    # Android's own fallback face in the middle of a sentence set in Kati's —
+    # the failure `Kati.Locale.mono_face/0` exists to stop, one glyph at a time
+    # instead of one `Text` at a time. The mark was never the fact: the
+    # conversion is, Persian has words for both ends of it, and a mirrored
+    # arrow would have needed the glyph this face does not have either.
+    case Kati.Screens.ImportRecognised.sample_for(job, :rating) do
+      nil ->
+        pgettext("rating conversion", "no rating column")
+
+      "" ->
+        pgettext("rating conversion", "10pt → 5★")
+
+      sample ->
+        if String.contains?(sample, "."),
+          do: pgettext("rating conversion", "5★ → 10pt"),
+          else: pgettext("rating conversion", "10pt → 5★")
     end
   end
 
-  @doc false
-  @spec sample_for(map(), String.t()) :: String.t() | nil
-  def sample_for(job, field) do
-    case Enum.find(job.columns, &(&1.field == field)) do
+  @doc """
+  The first row's value for the column that maps to `field`, or `nil`.
+
+  Keyed on the field ATOM `Kati.Import.Mapping.field_for/1` answers for the
+  file's own header, rather than on the label drawn to the right of the arrow.
+  Two reasons, and the second is the one that was already showing:
+
+    * **The labels differ by kind.** Board 141's Goodreads columns map their
+      date to `Finished on` while `Kati.Import.Mapping`'s own label for it is
+      `Watched on`, so asking for the films label made `date_line/1` answer
+      *dates read as no date column* about a date column drawn three rows
+      above it — where board 141's own sentence says `YYYY/MM/DD`. A books
+      export has a date; only the word for it was a film's.
+    * **Those labels are copy.** `Kati.Import.Mapping`'s `@labels` and
+      `Kati.Import.Sample`'s `field:` values are what the mapping table prints,
+      so they fold to Persian with everything else — and a lookup by printed
+      label would then find nothing, under `:fa` and only under `:fa`, which is
+      the kind of defect this fold exists to stop making. A header belongs to
+      the file rather than to the reader, so the atom it maps to is the same
+      word in both scripts.
+  """
+  @spec sample_for(map(), atom()) :: String.t() | nil
+  def sample_for(job, field) when is_atom(field) and not is_nil(field) do
+    case Enum.find(job.columns, &(Kati.Import.Mapping.field_for(&1.column) == field)) do
       nil -> nil
       column -> Map.get(column, :sample, "")
     end
@@ -950,34 +1182,64 @@ defmodule Kati.Screens.ImportRecognised do
   `YYYY/MM/DD` on the board. Every shape `Kati.Import.Mapping.date/1` accepts
   is named here by what it looks like rather than by a parser flag, because
   this line is read by somebody checking that Kati understood their file.
+
+  Which is also why the shapes are translated rather than left as they are: a
+  reader checking that Kati understood their dates is being told *year, month,
+  day* and reads that word in their own language. The order is the file's and
+  survives, because the order is the whole fact — `سال/ماه/روز` and
+  `روز/ماه/سال` are as different from each other as their Latin twins are.
   """
   @spec date_line(map()) :: String.t()
   def date_line(job) do
-    case Kati.Screens.ImportRecognised.sample_for(job, "Watched on") do
+    case Kati.Screens.ImportRecognised.sample_for(job, :watched_on) do
       nil ->
-        "no date column"
+        pgettext("date shape", "no date column")
 
       sample ->
         cond do
           # `Regex.compile!` and not `~r{}`: the braces of a `{4}` quantifier
           # close the sigil. `Kati.QuickAdd.Parse` hit the same thing.
-          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d-")) -> "YYYY-MM-DD"
-          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d/")) -> "YYYY/MM/DD"
-          String.match?(sample, Regex.compile!("^\\d\\d?/")) -> "DD/MM/YYYY"
+          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d-")) ->
+            pgettext("date shape", "YYYY-MM-DD")
+
+          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d/")) ->
+            pgettext("date shape", "YYYY/MM/DD")
+
+          String.match?(sample, Regex.compile!("^\\d\\d?/")) ->
+            pgettext("date shape", "DD/MM/YYYY")
+
           # The board's own, for the board's own columns: 141 draws a mapping
           # table with no sampled values, and its sentence says YYYY/MM/DD.
-          sample == "" -> "YYYY/MM/DD"
-          true -> "as written"
+          sample == "" ->
+            pgettext("date shape", "YYYY/MM/DD")
+
+          true ->
+            pgettext("date shape", "as written")
         end
     end
   end
 
-  @doc false
-  def skipped_clause(0, _body), do: []
+  @doc """
+  ` Two columns are skipped.`, or nothing at all.
 
-  def skipped_clause(1, body), do: [{" One column is skipped.", body}]
+  A string rather than a `rich_text/1` run, because `note/1` is one run now and
+  the clause is the tail of its sentence. The leading space is the joint
+  between two sentences and stays at the call site's end of it.
 
-  def skipped_clause(n, body), do: [{" #{n} columns are skipped.", body}]
+  `ngettext/4` rather than a clause per count: English inflects the noun after
+  the numeral and Persian does not — `۱ ستون` and `۲ ستون` are both correct —
+  so the two Persian forms are the same words, and the catalogue is where that
+  is said rather than here.
+  """
+  @spec skipped_clause(non_neg_integer()) :: String.t()
+  def skipped_clause(0), do: ""
+
+  def skipped_clause(n),
+    do:
+      " " <>
+        ngettext("One column is skipped.", "%{n} columns are skipped.", n,
+          n: Kati.Locale.number(n)
+        )
 
   @doc """
   The mapping at rest: one row, the counts, and the chevron that opens it.
@@ -993,8 +1255,11 @@ defmodule Kati.Screens.ImportRecognised do
       SettingsList.row(
         SettingsList.icon_tile("checklist"),
         SettingsList.body(
-          "Check the mapping",
-          "#{job.matched} matched · #{job.skipped} skipped · still editable"
+          gettext("Check the mapping"),
+          gettext("%{matched} matched · %{skipped} skipped · still editable",
+            matched: Kati.Locale.number(job.matched),
+            skipped: Kati.Locale.number(job.skipped)
+          )
         ),
         SettingsList.chevron(),
         rule: false,
@@ -1037,13 +1302,29 @@ defmodule Kati.Screens.ImportRecognised do
   def map_row(row, rule?) do
     field_color = if row.skipped?, do: Palette.tertiary(), else: Palette.ink()
 
+    # AN ARROW IS A PICTURE, AND `layout_direction` MIRRORS NEITHER PICTURES
+    # NOR THE FONT THEY COME OUT OF.
+    #
+    # The row itself mirrors under `rtl` — the file's column moves to the right
+    # and Kati's field to the left — and an `arrow_forward` left alone in the
+    # middle of it would then be pointing back at the column it came from.
+    # `Kati.Locale.forward_glyph/0` is the answer `Kati.Screens.OnboardingWelcome`
+    # and `Kati.Screens.PickSections` take for the arrow on their primary pill,
+    # and the glyph in the middle of this row means the same word.
+    #
+    # Mapped here rather than in `Kati.Import.Mapping.columns/2`, which is
+    # where the name is written: that module decides whether a column maps at
+    # all — `arrow_forward` or `block` — and which way an arrow points on a
+    # page is this screen's question, not the mapper's.
+    icon = if row.icon == "arrow_forward", do: Kati.Locale.forward_glyph(), else: row.icon
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
         <Column weight={1.0}>
           <Text
             text={row.column}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.column)}
             text_size={11}
             text_color={:on_surface}
             max_lines={1}
@@ -1051,7 +1332,7 @@ defmodule Kati.Screens.ImportRecognised do
           {Kati.Screens.ImportRecognised.map_note(row.note)}
         </Column>
         <Spacer size={11} />
-        {UI.symbol(row.icon, size: 15, color: Palette.rail_idle())}
+        {UI.symbol(icon, size: 15, color: Palette.rail_idle())}
         <Spacer size={11} />
         <Column width={96}>
           <Text
@@ -1126,6 +1407,22 @@ defmodule Kati.Screens.ImportRecognised do
 
   @doc false
   def outcome_card(card) do
+    # `String.upcase/1` IS A NO-OP IN PERSIAN THAT READS AS ONE.
+    #
+    # Arabic script has no case, so upcasing `ادغام` returns `ادغام` — the
+    # label comes out at the eyebrow's size and tracking with none of the
+    # eyebrow's shouting, beside a Latin page where the same label is
+    # `MERGED`. `Kati.UI.eyebrow_label/1` is the app's answer: upcase on one
+    # side of the fold, leave alone on the other, and say so once.
+    #
+    # The label is `Kati.Import.Job.outcome/1`'s string and folds there; what
+    # this screen decides is the case and the FACE. `mono_face/1` asks each of
+    # the two strings rather than the reader, because they are not the same
+    # kind of string: `384` is a figure, and DM Mono keeps Latin digits in both
+    # scripts (`Kati.Locale.number/1`'s own note), while `Merged` is a word
+    # that becomes Persian and that DM Mono has no glyph for.
+    label = Kati.UI.eyebrow_label(card.label)
+
     ~MOB"""
     <Box weight={1.0}>
       <Column
@@ -1137,19 +1434,19 @@ defmodule Kati.Screens.ImportRecognised do
       >
         <Text
           text={card.value}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(card.value)}
           text_size={22}
           font_weight="medium"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={card.color}
           text_align="center"
         />
         <Spacer size={5} />
         <Text
-          text={String.upcase(card.label)}
-          font_family="mono"
+          text={label}
+          font_family={Kati.Locale.mono_face(label)}
           text_size={9.5}
-          letter_spacing={0.1}
+          letter_spacing={Kati.Locale.tracking(0.1)}
           text_color={Palette.muted()}
           text_align="center"
           max_lines={1}

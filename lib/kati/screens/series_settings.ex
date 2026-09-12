@@ -68,16 +68,57 @@ defmodule Kati.Screens.SeriesSettings do
   `region_band/1`. Over no show — the gallery, every sweep, a push that named
   nothing — it is board 35 whole, groups included.
 
-  Two sub-lines the board draws are still the board's on both branches: `S4
-  will appear when announced` and `Currently 5 of 7 in S2`. They belong to
-  rows whose switches now write, and they say what the switch DOES rather than
-  where this show is, so they are copy rather than a frozen claim.
+  One sub-line the board draws is still the board's on **both** branches: `S4
+  will appear when announced`, under *Auto-add new seasons*. It belongs to a
+  row whose switch now writes, and it says what the switch DOES rather than
+  where this show is, so it is copy rather than a frozen claim.
+
+  `Currently 5 of 7 in S2` is not its twin and this paragraph used to pair
+  them. It sits under *Reset progress*, in the group that goes: it is a claim
+  about where the reader is in a season, it has nothing behind it, and over a
+  real show it is not drawn at all. The distinction is the finding's own —
+  copy survives the fold, a figure does not — and pairing the two read as
+  though a frozen `5 of 7` were being shown to somebody whose show it is.
 
   A switch that flips and forgets would still be worse than one that visibly
   does nothing — that part of the old argument holds, and it is why `write/2`
   moves the control only after the store answers.
+
+  ## Which of board 35's words this file owns, and which it only draws
+
+  mishka-group/kati#103, and the line does **not** fall where `show/1`'s two
+  branches do:
+
+    * **This file** writes five strings, all of them chrome: the subtitle, the
+      *Status* and *Season pass* eyebrows, the *Region & availability* and
+      *This show* ones, and `Untitled`. Those are wrapped here.
+    * **`Kati.SeriesSettings.Sample`** writes every other word on the page —
+      the show's name, the three status labels, and the title and sub-line of
+      all eleven rows. `season_pass/1` and `status_tiles/1` keep reading them
+      over a REAL show as well, because what a switch does does not change
+      with whose show it is, so the Sample's strings are not the drawing's
+      alone: they are most of what a reader with a library sees here too.
+      They are wrapped where they are declared and not a second time here —
+      one msgid per string, wherever the string lives, and a screen that made
+      its own copy of a fixture's copy would be two strings to keep in step.
+
+  The show's own title is neither: `title_of/1` reads it out of the release
+  cache, and a name somebody's library holds is not a msgid.
   """
+  # `back: "Series"` stays the English label, and so does the `"Show settings"`
+  # handed to `Kati.Screens.ShowPages.handle/4` in `handle_tap/2`.
+  # `Kati.Screens.Pushed` translates a back-pill label at RUNTIME — its
+  # `translated/1` looks the ENGLISH up in the catalogue — and the label lands
+  # in a module attribute on the way, where `gettext/1` would be evaluated at
+  # COMPILE time and frozen in whichever locale the compiler was in.
+  #
+  # Something else has to keep the two msgids alive for the extractor, which
+  # reads literal call sites and nothing else: `Series` is in
+  # `Kati.Screens.Pushed.back_vocabulary/0`, and `Show settings` is not — it
+  # survives on screen 04's own menu row (`Kati.Screens.Series`) and nowhere
+  # else, which is thinner than the vocabulary list it belongs in.
   use Kati.Screens.Pushed, back: "Series"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaThemeIcon
   alias Kati.SeriesSettings.Sample
@@ -151,9 +192,15 @@ defmodule Kati.Screens.SeriesSettings do
   def shaped(tracked) do
     %{
       title: Kati.Screens.SeriesSettings.title_of(tracked),
-      subtitle: "show settings",
-      status_label: "Status",
-      season_pass_label: "Season pass",
+      # The board's own three words, written here rather than read off the
+      # Sample, because this is the branch the Sample never reaches — a real
+      # show draws its own name above them. Same msgids as
+      # `Kati.SeriesSettings.Sample.show/0`'s, so the catalogue holds one
+      # entry each and the two branches cannot say different things in
+      # Persian.
+      subtitle: gettext("show settings"),
+      status_label: gettext("Status"),
+      season_pass_label: gettext("Season pass"),
       region_label: nil,
       this_show_label: nil,
       tracked: tracked
@@ -172,10 +219,16 @@ defmodule Kati.Screens.SeriesSettings do
       # A tracked row whose cache entry has been evicted still has settings
       # worth changing, so the page opens with a name it can stand behind
       # rather than refusing to open at all.
-      _evicted -> "Untitled"
+      #
+      # The one word on this line that IS a msgid. Everything else `title_of/1`
+      # can answer is a name out of somebody's library, and a name is not
+      # translated — but *Untitled* is Kati saying it does not know one, which
+      # is the app's own sentence and reads as English on a Persian page.
+      # Five other screens already say بی‌عنوان for exactly this.
+      _evicted -> gettext("Untitled")
     end
   rescue
-    _error -> "Untitled"
+    _error -> gettext("Untitled")
   end
 
   # The four columns of the season pass, in the order the drawing lists their
@@ -312,11 +365,20 @@ defmodule Kati.Screens.SeriesSettings do
   @doc """
   What one tag changes, or `:error` for a tag this screen does not own.
 
-      iex> Kati.Screens.SeriesSettings.change_for(:status_Paused, %{})
+      iex> Kati.Screens.SeriesSettings.change_for(:status_paused, %{})
       {:ok, %{status: :paused}}
 
       iex> Kati.Screens.SeriesSettings.change_for(:something_else, %{})
       :error
+
+  The tag is `:status_paused` and not `:status_Paused`, which is what this
+  example used to claim: `status_tap/1` builds it out of the tile's `:status`
+  ATOM through `Kati.Screens.AddByHand.tag/2`, and the match below is against
+  `Atom.to_string(&1.status)` — so a capitalised tag answers `:error` and
+  writes nothing. The old example was the shape from before the tag stopped
+  being built out of the tile's LABEL, which is the same defect #157 records
+  for the Kind chips: a control that renames itself when the language changes.
+  Nothing doctests this module, so the example said so undisturbed.
   """
   @spec change_for(atom(), map()) :: {:ok, map()} | :error
   def change_for(tag, tracked) do
@@ -379,8 +441,14 @@ defmodule Kati.Screens.SeriesSettings do
   """
   @spec region_band(map()) :: map()
   def region_band(%{tracked: nil}) do
+    # A literal at the call site and not `show.region_label`, which carries the
+    # same words: `gettext/1`'s argument has to be a literal for
+    # `mix gettext.extract` to see a msgid at all, and the Sample's copy of the
+    # string is the one the drawing's *rows* are read from rather than one this
+    # band can reach. Same msgid either way, so one catalogue entry answers
+    # both.
     assigns = %{
-      eyebrow: UI.eyebrow("Region & availability"),
+      eyebrow: UI.eyebrow(gettext("Region & availability")),
       group: Kati.Screens.SeriesSettings.group(Sample.region())
     }
 
@@ -396,8 +464,14 @@ defmodule Kati.Screens.SeriesSettings do
 
   @doc false
   def this_show_band(%{tracked: nil}) do
+    # `Kati.UI.SettingsList.eyebrow_muted/1` still upcases what it is handed
+    # and still tracks it at .16em, which are both Latin small-caps effects and
+    # both no-ops or worse in Arabic script — `Kati.UI.eyebrow/2` above has
+    # already moved to `Kati.UI.eyebrow_label/1` and `Kati.Locale.tracking/1`
+    # for that reason. The fix belongs in that file rather than in a copy of
+    # the eyebrow made here; what this line owes the reader is the msgid.
     assigns = %{
-      eyebrow: SettingsList.eyebrow_muted("This show"),
+      eyebrow: SettingsList.eyebrow_muted(gettext("This show")),
       group: Kati.Screens.SeriesSettings.last_group(Sample.this_show())
     }
 

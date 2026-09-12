@@ -107,9 +107,40 @@ defmodule Kati.Screens.DropStates do
   closing note describes, belong to board 149, *"Dropping — the sheet and
   after,"* which is a different screen. Adding a tap here to anticipate it
   would be answering a question this sheet does not ask.
+
+  ## What this file translates, and what it only typesets
+
+  mishka-group/kati#103. This screen owns eight strings — its title, its
+  subtitle and the six section eyebrows — and those are `gettext/1` here.
+  Every other word on the sheet is `Kati.Settings.DropStatesSample`'s: the
+  fifteen `medium · line` rows, the six transitions, the two dashed footnotes
+  and the two cream notes are copy typed once from `148.html` and owned by
+  that module, so they are translated *there* and not here. A msgid has to be
+  a literal at its own call site, so there is no way to wrap them from this
+  file that would not also move the copy out of the specimen — which is the
+  one thing the specimen exists to hold.
+
+  What this file does own for those strings is their **typesetting**, and
+  that is the half that breaks silently:
+
+    * `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` on the medium
+      gutter — the Arabic script has no case, so upper-casing **کتاب** is a
+      no-op that reads as one.
+    * `Kati.Locale.mono_face/1` rather than `font_family="mono"` on all three
+      mono slots. `kati_mono.ttf` carries no Persian glyph; the arity-1 form
+      asks the STRING's script, so `Show` stays in DM Mono and **نمایش** does
+      not become a row of empty boxes.
+    * `Kati.Locale.tracking/1` on the gutter's `.1em`, which is a Latin
+      small-caps effect and pulls Persian letters apart at their joins.
+    * `Kati.Locale.forward_glyph/0` on the transitions arrow: `from → to`
+      reads right-to-left under `:fa`, and an arrow still pointing right
+      would draw every transition backwards.
+    * `Kati.Locale.leading/1` on all three paragraphs, and `base: true` on
+      the cream notes' body run — see `gone_cold_note/1`.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Settings.DropStatesSample, as: Sample
   alias Kati.Theme.Palette
@@ -136,6 +167,39 @@ defmodule Kati.Screens.DropStates do
   def content(assigns) do
     s = assigns.drop_states
 
+    # Bound out here rather than written inside the sigil's `{...}`: both
+    # compile, and this way the eight msgids the screen owns read as one list
+    # somebody can check against the board.
+    #
+    # Three shapes of lookup, for three reasons, and the split is deliberate.
+    #
+    #   * The title, the subtitle and the three long eyebrows are plain
+    #     `gettext/1`. Each is a sentence fragment long enough that no other
+    #     msgid in the catalogue comes near it, so `mix gettext.merge` has
+    #     nothing to fuzzy-match it onto.
+    #   * `Finished` is plain `gettext/1` *because* the msgid already exists —
+    #     `Kati.Library.Sample`, `Kati.Screens.AddByHand` and
+    #     `Kati.Screens.Library` all draw it and it is already **تمام‌شده**. An
+    #     exact msgid always beats a fuzzy one, so the short label is safe
+    #     here, and minting a contexted twin would be a second Persian word
+    #     for a thing the app has already named once.
+    #   * `Active` is `pgettext/2`, and it is the one that would actually have
+    #     gone wrong. There is no plain `Active` in the catalogue, there IS an
+    #     `Activity` (**فعالیت**), and a bare one-word msgid is exactly what
+    #     `gettext.merge` fuzzy-matches onto its neighbour. A drop state
+    #     called *فعالیت* is a wrong word no test on this sheet would catch,
+    #     because nothing here is asserted against a string. `Paused — chosen`
+    #     takes the same context for the same reason: two words is under the
+    #     line where a fuzzy match stops being a coincidence.
+    title = gettext("Five states, three media")
+    subtitle = gettext("GONE COLD IS OBSERVED · PAUSED AND DROPPED ARE CHOSEN")
+    active = pgettext("drop state", "Active")
+    paused = pgettext("drop state", "Paused — chosen")
+    gone_cold = gettext("Gone cold — observed, a suggestion not a status")
+    dropped = gettext("Dropped — chosen, always with a position")
+    finished = gettext("Finished")
+    transitions = gettext("Transitions — and what each captures")
+
     ~MOB"""
     <Scroll>
       <Column
@@ -146,32 +210,29 @@ defmodule Kati.Screens.DropStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil)}
-        {SettingsList.title(
-          "Five states, three media",
-          "GONE COLD IS OBSERVED · PAUSED AND DROPPED ARE CHOSEN"
-        )}
-        {UI.eyebrow("Active")}
+        {SettingsList.title(title, subtitle)}
+        {UI.eyebrow(active)}
         {SettingsList.card(Kati.Screens.DropStates.media_rows(s.active, false))}
         <Spacer size={20} />
-        {SettingsList.eyebrow_muted("Paused — chosen")}
+        {SettingsList.eyebrow_muted(paused)}
         {SettingsList.card(Kati.Screens.DropStates.media_rows(s.paused, false))}
         <Spacer size={20} />
-        {SettingsList.eyebrow_muted("Gone cold — observed, a suggestion not a status")}
+        {SettingsList.eyebrow_muted(gone_cold)}
         {SettingsList.card(Kati.Screens.DropStates.media_rows(s.gone_cold, true))}
         <Spacer size={11} />
         {Kati.Screens.DropStates.gone_cold_note(s.gone_cold_note)}
         <Spacer size={20} />
-        {UI.eyebrow("Dropped — chosen, always with a position")}
+        {UI.eyebrow(dropped)}
         {SettingsList.card(Kati.Screens.DropStates.media_rows(s.dropped, false))}
         <Spacer size={11} />
         {SettingsList.note("info", s.dropped_note)}
         <Spacer size={20} />
-        {SettingsList.eyebrow_muted("Finished")}
+        {SettingsList.eyebrow_muted(finished)}
         {SettingsList.card(Kati.Screens.DropStates.media_rows(s.finished, false))}
         <Spacer size={11} />
         {SettingsList.note("info", s.finished_note)}
         <Spacer size={20} />
-        {UI.eyebrow("Transitions — and what each captures")}
+        {UI.eyebrow(transitions)}
         {SettingsList.card(Kati.Screens.DropStates.transition_rows(s.transitions))}
         <Spacer size={14} />
         {Kati.Screens.DropStates.resume_note(s.resume_note)}
@@ -209,6 +270,20 @@ defmodule Kati.Screens.DropStates do
   `text_align`, per the rule that a `Text` given `text_align` fills its Row
   and starves everything beside it; this one only needs the *width*, not
   centring, so `weight` alone is correct and safer.
+
+  ## The gutter is an eyebrow in every particular, so it is typeset as one
+
+  `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: the Arabic script
+  has no case, so upper-casing **کتاب** changes nothing and the call is a
+  no-op that *reads* as a decision. `Kati.Locale.mono_face/1` rather than a
+  hardcoded `"mono"`, and the arity that asks the STRING rather than the
+  reader — `Show` is pure ASCII and DM Mono has every glyph it needs, while
+  **نمایش** in DM Mono is a row of empty boxes. And `Kati.Locale.tracking/1` on
+  the `.1em`, which is a Latin small-caps effect: Arabic letters join, and
+  spacing them apart breaks the joins.
+
+  The label is still whatever `Kati.Settings.DropStatesSample` hands over —
+  that module owns the word, this one owns how it is set.
   """
   @spec media_row(String.t(), String.t(), boolean(), boolean()) :: term()
   def media_row(label, value, light?, rule?) do
@@ -220,10 +295,10 @@ defmodule Kati.Screens.DropStates do
       <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
         <Column min_width={42}>
           <Text
-            text={String.upcase(label)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(label)}
+            font_family={Kati.Locale.mono_face(label)}
             text_size={9.5}
-            letter_spacing={0.1}
+            letter_spacing={Kati.Locale.tracking(0.1)}
             text_color={Palette.tertiary()}
             max_lines={1}
           />
@@ -268,6 +343,22 @@ defmodule Kati.Screens.DropStates do
   `from` is `Palette.ink_soft()`, `to` is `Palette.ink()` — the destination
   reads a shade darker than the state being left, the same weight the
   drawing gives an outcome over a starting point.
+
+  ## The arrow has to turn round, and it is the one thing here that is wrong rather than ugly
+
+  `Kati.Locale.forward_glyph/0` rather than a literal `arrow_forward`. Under
+  `:fa` the frame's root `Box` carries `layout_direction="rtl"`, so this Row
+  lays its three columns out right-to-left: `from` sits on the right and `to`
+  on the left, which is correct and needs no code. A `→` left as it was would
+  then point from the destination back at the origin and say the opposite of
+  what the row means — *Dropped → Active* drawn as *Active → Dropped*. Every
+  other locale slot on this sheet degrades the typography; this one inverts
+  the content, which is why it is called out separately.
+
+  `Kati.Locale.mono_face/1` on both state names for `media_row/4`'s reason,
+  and `Kati.Locale.leading/1` on the capture line because it is a paragraph
+  that wraps — no `max_lines` on purpose, the whole band exists to say what
+  is written down — and Vazirmatn's metrics are not Plus Jakarta's.
   """
   @spec transition_row(String.t(), String.t(), String.t(), boolean()) :: term()
   def transition_row(from, to, capture, rule?) do
@@ -276,7 +367,7 @@ defmodule Kati.Screens.DropStates do
       <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
         <Column min_width={62}>
           <Text
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(from)}
             text={from}
             text_size={10.5}
             text_color={Palette.ink_soft()}
@@ -284,11 +375,11 @@ defmodule Kati.Screens.DropStates do
           />
         </Column>
         <Spacer size={9} />
-        {Kati.UI.symbol("arrow_forward", size: 14, color: Palette.rail_idle())}
+        {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 14, color: Palette.rail_idle())}
         <Spacer size={9} />
         <Column min_width={62}>
           <Text
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(to)}
             text={to}
             text_size={10.5}
             text_color={Palette.ink()}
@@ -299,7 +390,7 @@ defmodule Kati.Screens.DropStates do
         <Text
           text={capture}
           text_size={11}
-          line_height={1.45}
+          line_height={Kati.Locale.leading(1.45)}
           text_color={Palette.sub()}
           weight={1.0}
         />
@@ -316,11 +407,42 @@ defmodule Kati.Screens.DropStates do
   ground, `Kati.UI.rich_text/1` for the paragraph, because a plain `Text`
   cannot mix weights and `SettingsList.note/2`'s frame is the dashed one,
   not this filled one.
+
+  ## `base: true` on the body, and it is not tidiness
+
+  `Kati.UI.rich_text/1` renders one `Text`, so it has to pick ONE of the run
+  styles for the whole paragraph; unmarked, it picks the LONGEST run. Today
+  that resolves to `mid_1`, the paragraph comes out body weight, and it is
+  right by accident. *Which run is longest* is a fact about English and not
+  about the sentence — the moment `Kati.Settings.DropStatesSample` is
+  translated, a `strong` run can take the crown, and then this whole footnote
+  renders semibold `Palette.ink/0`. That is not a cosmetic slip: the Gone
+  cold band's entire distinction is that it is set one step back from a
+  status, this note is the band's own explanation of why, and it would be
+  lost silently and in one locale only. Marking `body` pins it.
+  `Kati.Screens.RetiredTile.no_date/1` carries the same note for the reason.
+
+  `Kati.Locale.leading/1` rather than the drawing's flat 1.65: Vazirmatn's
+  ascenders, its descenders and the diacritics above both are not Plus
+  Jakarta's, and the Latin figure collides the lines of the longest paragraph
+  on the sheet. Nothing here is a fixed height, so it costs only the air it
+  needs.
   """
   @spec gone_cold_note(map()) :: term()
   def gone_cold_note(n) do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
-    strong = [font_weight: "semibold", text_color: Palette.ink(), text_size: 12.5]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.cream_body(),
+      base: true
+    ]
+
+    strong = [
+      font_weight: "semibold",
+      text_color: Palette.ink(),
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65)
+    ]
 
     runs = [
       {n.lead, body},
@@ -350,12 +472,31 @@ defmodule Kati.Screens.DropStates do
 
   Same shape as `gone_cold_note/1` — the board draws this one and Gone
   cold's footnote in the identical `#FBF1DE` frame, so the same builder
-  logic applies, just with two runs instead of three.
+  logic applies, just with two runs instead of three. `base: true` and
+  `Kati.Locale.leading/1` travel with that shape; the argument for both is
+  written out once, on `gone_cold_note/1`.
+
+  The margin is thinner here than it looks. `bold_1` is *resumes at the
+  captured position* — a whole clause, the longest emphasis on the sheet, and
+  already the same length as `lead` in English. Only `mid` keeps it off the
+  top, and `mid` is the run most likely to come out shorter in Persian: its
+  English carries two joining phrases that Persian does not need.
   """
   @spec resume_note(map()) :: term()
   def resume_note(n) do
-    body = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
-    strong = [font_weight: "semibold", text_color: Palette.ink(), text_size: 12.5]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.cream_body(),
+      base: true
+    ]
+
+    strong = [
+      font_weight: "semibold",
+      text_color: Palette.ink(),
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65)
+    ]
 
     runs = [
       {n.lead, body},

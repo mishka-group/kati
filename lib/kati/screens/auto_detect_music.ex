@@ -81,10 +81,13 @@ defmodule Kati.Screens.AutoDetectMusic do
   `Kati.UI.rich_text/1` instead. `apps_note/0` and `decision/1`'s closing
   paragraph both use it. Per `rich_text/1`'s own moduledoc the bold is an
   approximation, not a real span — the bridge has no `AnnotatedString`, so
-  the whole run gets one style, the longest run's, which for both paragraphs
-  here is the plain body copy the bold word sits inside. The layout is
-  correct; the emphasis is not drawn. That is the documented trade, not an
-  oversight of this file's.
+  the whole run gets one style, and both paragraphs now say **which** run that
+  is with `base: true` on their body copy rather than letting it fall out of
+  which run happens to be longest. In English the two answers were the same;
+  in Persian they need not be, and a translation that came out shorter than
+  its own bold word would have set the whole footnote semibold in ink. The
+  layout is correct; the emphasis is not drawn. That is the documented trade,
+  not an oversight of this file's.
 
   ## The decision card: same shape, a different question
 
@@ -103,9 +106,47 @@ defmodule Kati.Screens.AutoDetectMusic do
   ## Everything the board draws is here
 
   Nothing on `test/design/reference/150.html`'s frame was left unbuilt.
+
+  ## Which half of the copy this file owns, after the fold
+
+  mishka-group/kati#103 folded the 33 Persian mirrors away, so this module is
+  now both language's board 150 and every word on it has to come from
+  `Kati.Gettext` rather than from a literal. Two files hold those words and
+  only one of them is this one.
+
+  **This file owns its own chrome**: the 28pt title, the two segment labels
+  (`modes/0`, which `Kati.Screens.AutoDetect` draws as well), the four
+  eyebrows, and the two hand-assembled paragraphs — `apps_note/0`'s and
+  `decision/1`'s. All of those are literals written here and all of them now
+  go through `gettext/1`. The back pill's `Settings` is the exception that
+  needs nothing: `Kati.Screens.Pushed` translates a `back:` option at draw
+  time and declares the word in its own `back_vocabulary/0`, so the pill was
+  already Persian before this file was touched.
+
+  **`Kati.Settings.DetectMusicSample` owns the state**, and its words are
+  still English literals: the subtitle's three frozen counts, the now-playing
+  track, artist and album, the `Live` pill, the elapsed clock and the scrobble
+  rule, the `With art` eyebrow and its caption, the four app names and their
+  reasons, the four rule names and theirs, and the queued question with its
+  three release names. Those belong to that module the same way
+  `Kati.Music.Sample`'s album and tracklist belong to it — that one has
+  already folded, and `Kati.Locale.number/1` on its `4:12` and
+  `gettext("Low Water")` on its opening track are what this card's own copy
+  should read like when its turn comes. Inlining them here instead would put
+  two copies of the drawing's copy in the repository, which is exactly how the
+  fixture and the screen start disagreeing about what the board says —
+  `Kati.Screens.Activity.drawn/0` states that argument at length and keeps its
+  own Sample for it.
+
+  What this file does do for those strings is typeset them correctly whichever
+  language they arrive in: every mono slot asks `Kati.Locale.mono_face/1` about
+  the run it is handed rather than naming `mono` outright, so the day the
+  fixture folds, `کارهای جزر و مد` lands in Vazirmatn at the mono size and
+  `1:58 / 4:12` stays in DM Mono, with nothing here to change.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaProgress
@@ -142,27 +183,40 @@ defmodule Kati.Screens.AutoDetectMusic do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil)}
-        {SettingsList.title("Auto-detect", d.subtitle)}
+        {SettingsList.title(gettext("Auto-detect"), d.subtitle)}
         {Segmented.plain(Kati.Screens.AutoDetectMusic.modes(), :music)}
         <Spacer size={20} />
-        {UI.eyebrow("Now playing — no art, the common case")}
+        {UI.eyebrow(gettext("Now playing — no art, the common case"))}
         {Kati.Screens.AutoDetectMusic.now_playing(d.now_playing)}
         {Kati.Screens.AutoDetectMusic.with_art(d.with_art)}
-        {SettingsList.eyebrow_muted("Which apps")}
+        {SettingsList.eyebrow_muted(gettext("Which apps"))}
         {Kati.Screens.AutoDetectMusic.apps_card(d.apps)}
         {Kati.Screens.AutoDetectMusic.apps_note()}
-        {SettingsList.eyebrow_muted("Rules")}
+        {SettingsList.eyebrow_muted(gettext("Rules"))}
         {Kati.Screens.AutoDetectMusic.rules_card(d.rules)}
-        {UI.eyebrow("Needs a decision")}
+        {UI.eyebrow(gettext("Needs a decision"))}
         {Kati.Screens.AutoDetectMusic.decision(d.decision)}
       </Column>
     </Scroll>
     """
   end
 
-  @doc "The header switch's two tags. `:music` is this screen; `:tv` is screen 36."
+  @doc """
+  The header switch's two tags. `:music` is this screen; `:tv` is screen 36.
+
+  The TAG is the key and the LABEL is asked for here, which is the rule
+  mishka-group/kati#103 settled and `Kati.Screens.AddByHand.kind_list/0` states
+  at length: `handle_tap/2` matches on `:tv` and `:music` in every locale, and
+  a pair whose words were frozen into a module attribute would come out in
+  whichever language the compiler happened to be in. This is already a function
+  rather than an attribute, so the fold costs nothing here.
+
+  `Kati.Screens.AutoDetect` draws the same pair on board 36 with `:tv`
+  selected, so both segments fold on this one line rather than on two that can
+  disagree about what the other board is called.
+  """
   @spec modes() :: [{String.t(), atom()}]
-  def modes, do: [{"TV & film", :tv}, {"Music", :music}]
+  def modes, do: [{gettext("TV & film"), :tv}, {gettext("Music"), :music}]
 
   @doc """
   The no-art now-playing card — the primary state, drawn first and in full.
@@ -173,6 +227,24 @@ defmodule Kati.Screens.AutoDetectMusic do
   reaches, a shared 5pt thickness and 3pt radius on both bars, and `max: 1`
   rather than scaling to 100 so `fraction/1` never round-trips a float through
   a multiply-then-divide.
+
+  ## Three mono slots, and each one asks the STRING which face it needs
+
+  `meta`, `elapsed` and `rule` are all DM Mono on the board, and
+  `kati_mono.ttf` carries no Persian glyph at all — not a letter, and none of
+  U+06F0–U+06F9 either. So each of the three goes through
+  `Kati.Locale.mono_face/1`, which asks the run's own script rather than the
+  reader's language: `KELL OSTRAND · TIDAL WORKS` and `1:58 / 4:12` are pure
+  ASCII and keep DM Mono in both locales, exactly as board 150 draws them,
+  while the same three lines set in Persian take Vazirmatn at the mono size.
+  `Kati.Locale.mono_face/1`'s own doc argues the rule and `Kati.PersianFontTest`
+  is what keeps it; the alternative — a hardcoded `mono` — renders the Persian
+  half in Android's own substitute face beside the Latin half in Kati's, which
+  is the failure that looks deliberate.
+
+  The face is asked per string rather than once per card because the three do
+  not have to agree: the elapsed clock can stay Latin digits while the artist
+  and album line beside it is Persian, and on this card it does.
   """
   @spec now_playing(map()) :: map()
   def now_playing(n) do
@@ -210,7 +282,7 @@ defmodule Kati.Screens.AutoDetectMusic do
             <Spacer size={4} />
             <Text
               text={n.meta}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(n.meta)}
               text_size={10.5}
               text_color={Palette.muted()}
               max_lines={1}
@@ -225,7 +297,7 @@ defmodule Kati.Screens.AutoDetectMusic do
         <Row fill_width={true} align="center">
           <Text
             text={n.elapsed}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(n.elapsed)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -233,7 +305,7 @@ defmodule Kati.Screens.AutoDetectMusic do
           <Spacer weight={1.0} />
           <Text
             text={n.rule}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(n.rule)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -267,9 +339,26 @@ defmodule Kati.Screens.AutoDetectMusic do
   `albm1` is a shipped seed — `priv/sample/design/albm1_400x400.jpg` — so
   `art/4` resolves it to the real picture rather than to its own placeholder
   branch.
+
+  ## The eyebrow, three ways, and none of them is `String.upcase/1`
+
+  The board sets `WITH ART` as a spaced mono capital run, which is a Latin
+  typographic device three times over. `Kati.UI.eyebrow_label/1` upcases in
+  Latin and hands Persian back untouched — Arabic script has no case, so
+  `String.upcase/1` on it is a no-op that still reads, in a diff, as a decision
+  somebody made. `Kati.Locale.tracking/1` drops the 0.1 in Persian, because
+  tracking breaks the joins between Persian letters rather than airing them
+  out. And `Kati.Locale.mono_face/1` asks the finished label which face it
+  needs, for the reason `now_playing/1`'s doc gives in full.
+
+  All three are asked of the SAME string, so the label is built once above the
+  sigil rather than upcased twice inside it — once for the text and once for
+  the face, which is how the two would drift apart.
   """
   @spec with_art(map()) :: map()
   def with_art(w) do
+    eyebrow = UI.eyebrow_label(w.eyebrow)
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -284,10 +373,10 @@ defmodule Kati.Screens.AutoDetectMusic do
           <Spacer size={13} />
           <Column weight={1.0}>
             <Text
-              text={String.upcase(w.eyebrow)}
-              font_family="mono"
+              text={eyebrow}
+              font_family={Kati.Locale.mono_face(eyebrow)}
               text_size={9.5}
-              letter_spacing={0.1}
+              letter_spacing={Kati.Locale.tracking(0.1)}
               text_color={Palette.tertiary()}
               max_lines={1}
             />
@@ -353,6 +442,16 @@ defmodule Kati.Screens.AutoDetectMusic do
   @doc """
   The 30pt mono-initial tile — see `## Which apps: a letter, not an icon`
   above for why this is not `Kati.UI.SettingsList.icon_tile/1`.
+
+  The face is `Kati.Locale.mono_face/1` of the letter itself rather than a
+  hardcoded `mono`, because three of the four letters are the first character
+  of a brand — `S`, `Y`, `P` — and stay in DM Mono in both scripts, while the
+  fourth belongs to a row whose name is translated. `Kati.Music.Sample.album/0`
+  makes the same distinction one step earlier, taking its tile letter from
+  `String.first/1` of the album's own translated title so board 76 can draw
+  **ک** for کارهای جزر و مد; the letters here arrive already chosen by
+  `Kati.Settings.DetectMusicSample.apps/0`, so this end only has to typeset
+  whichever one it is handed.
   """
   @spec app_tile(String.t()) :: map()
   def app_tile(initial) do
@@ -360,7 +459,7 @@ defmodule Kati.Screens.AutoDetectMusic do
     <Box width={30} height={30} corner_radius={9} background={Palette.paper()} align="center">
       <Text
         text={initial}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(initial)}
         text_size={13}
         text_color={:on_surface}
         text_align="center"
@@ -374,30 +473,59 @@ defmodule Kati.Screens.AutoDetectMusic do
   `## The footnote's bold word` above for why this hand-assembles
   `Kati.Components.MishkaPill` instead of calling
   `Kati.UI.SettingsList.note/2`.
+
+  ## Three runs, three msgids, and the spaces between them are not translated
+
+  The bold word sits INSIDE the sentence, so the paragraph cannot be one
+  msgid. Each run is therefore its own `gettext/1` and the two joining spaces
+  stay outside them, which is the shape
+  `Kati.Screens.AddByHand.split_note/4`'s three calls already use: a msgid
+  with a trailing space is one a translator loses without noticing, and a
+  Persian sentence needs the join to be a space in exactly the same place
+  anyway. `Kati.UI.rich_text/1` concatenates in the order written, and that
+  order is the LOGICAL one — the bidi algorithm lays the Persian out
+  right-to-left from it without the runs having to be reversed here.
+
+  `Everything else` is the app's own existing msgid rather than a fourth one
+  of this screen's: `Kati.Stats.Sample.year/0` names the same catch-all on
+  board 33's breakdown, and two spellings of one word is how a catalogue
+  starts disagreeing with itself.
+
+  `base: true` on `body` rather than leaving the choice to run length. See
+  `## The footnote's bold word` above: `rich_text/1` takes its one style from
+  the longest run when nothing is marked, which is the plain body copy in
+  English and was only ever true by arithmetic — a Persian translation that
+  came out shorter than its bold word would silently set the whole paragraph
+  semibold in ink. Marking it says which run the style is, in every language.
   """
   @spec apps_note() :: map()
   def apps_note do
     body = [
       text_size: 12.5,
-      line_height: 1.65,
+      line_height: Kati.Locale.leading(1.65),
       text_color: Palette.ink_soft(),
-      font_family: "sans"
+      font_family: Kati.Locale.face_prop(),
+      base: true
     ]
 
     strong = [
       font_weight: "semibold",
       text_color: Palette.ink(),
       text_size: 12.5,
-      line_height: 1.65,
-      font_family: "sans"
+      line_height: Kati.Locale.leading(1.65),
+      font_family: Kati.Locale.face_prop()
     ]
 
     paragraph =
       UI.rich_text([
-        {"A per-app list does not scale to a phone with twelve music apps, so ", body},
-        {"Everything else", strong},
-        {" is a single catch-all and the named rows are exceptions above it — on by default for " <>
-           "the three Kati has seen.", body}
+        {gettext("A per-app list does not scale to a phone with twelve music apps, so") <> " ",
+         body},
+        {gettext("Everything else"), strong},
+        {" " <>
+           gettext(
+             "is a single catch-all and the named rows are exceptions above it — on by " <>
+               "default for the three Kati has seen."
+           ), body}
       ])
 
     note =
@@ -460,6 +588,12 @@ defmodule Kati.Screens.AutoDetectMusic do
   `:none` answers `nil`, which `Kati.UI.SettingsList.row/4` already turns into
   a zero-size spacer — the fourth rule, `A track skipped at 45%`, draws no
   trailing control on the board and gets none here.
+
+  The mono value asks `Kati.Locale.mono_face/1` which face it needs for the
+  reason `now_playing/1`'s doc gives: `30s` is ASCII and keeps DM Mono in both
+  scripts, and a value carrying a Persian numeral or a Persian unit takes
+  Vazirmatn at the mono size, because `kati_mono.ttf` has none of
+  U+06F0–U+06F9.
   """
   @spec rule_control({:value, String.t()} | {:switch, boolean()} | :none) :: map() | nil
   def rule_control(:none), do: nil
@@ -467,7 +601,13 @@ defmodule Kati.Screens.AutoDetectMusic do
 
   def rule_control({:value, text}) do
     ~MOB"""
-    <Text text={text} font_family="mono" text_size={12} text_color={Palette.meta()} max_lines={1} />
+    <Text
+      text={text}
+      font_family={Kati.Locale.mono_face(text)}
+      text_size={12}
+      text_color={Palette.meta()}
+      max_lines={1}
+    />
     """
   end
 
@@ -483,22 +623,36 @@ defmodule Kati.Screens.AutoDetectMusic do
       |> Enum.map(fn o -> Kati.Screens.AutoDetectMusic.choice(o, o == d.chosen) end)
       |> Enum.intersperse(Kati.Screens.AutoDetectMusic.choice_gap())
 
-    body = [text_size: 11.5, line_height: 1.5, text_color: Palette.sub(), font_family: "sans"]
+    body = [
+      text_size: 11.5,
+      line_height: Kati.Locale.leading(1.5),
+      text_color: Palette.sub(),
+      font_family: Kati.Locale.face_prop(),
+      base: true
+    ]
 
     strong = [
       font_weight: "semibold",
       text_color: Palette.ink(),
       text_size: 11.5,
-      line_height: 1.5,
-      font_family: "sans"
+      line_height: Kati.Locale.leading(1.5),
+      font_family: Kati.Locale.face_prop()
     ]
 
+    # `pgettext/2` for the two short runs rather than `gettext/1`. Both are
+    # fragments of a sentence split around its bold word — `which release` is
+    # two words and the tail is a clause opening on a comma — and
+    # `mix gettext.merge` fuzzy-matches a new short msgid against any longer
+    # one that resembles it. The context says which sentence they belong to, so
+    # neither can be handed the translation of some other board's `release`.
     paragraph =
       UI.rich_text([
-        {"Music’s ambiguity is not TV’s: the same track on the studio album, a live record and " <>
-           "a compilation. The three answers are ", body},
-        {"which release", strong},
-        {", not which title.", body}
+        {gettext(
+           "Music’s ambiguity is not TV’s: the same track on the studio album, a live record " <>
+             "and a compilation. The three answers are"
+         ) <> " ", body},
+        {pgettext("music disambiguation", "which release"), strong},
+        {pgettext("music disambiguation", ", not which title."), body}
       ])
 
     ~MOB"""

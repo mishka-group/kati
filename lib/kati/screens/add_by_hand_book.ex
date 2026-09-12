@@ -102,17 +102,25 @@ defmodule Kati.Screens.AddByHandBook do
   # Five, and the last two are drawn without a destination — see the moduledoc.
   # A function and not an `@` inside `~MOB`, where `@name` is an ASSIGN: the
   # trap `Kati.Screens.AddByHand.kind_list/0` records.
+  #
+  # `{key, glyph}` rather than `{label, key, glyph}` since mishka-group/kati#103.
+  # A label is a translation now, `gettext/1` resolves against the locale of the
+  # process that ASKS, and a module attribute is evaluated once at COMPILE time
+  # — so three lists of words here would freeze whichever locale the compiler
+  # happened to be in and every Persian reader would get that one. The KEY is
+  # the attribute and the WORD is asked for at draw time, which is exactly the
+  # arrangement `Kati.Screens.AddByHand`'s own `@kinds` moved to.
   @kinds [
-    {"Film", :movie, "movie"},
-    {"Series", :tv, "live_tv"},
-    {"Book", :book, "menu_book"},
-    {"Album", :album, "graphic_eq"},
-    {"Artist", :artist, "mic"}
+    {:movie, "movie"},
+    {:tv, "live_tv"},
+    {:book, "menu_book"},
+    {:album, "graphic_eq"},
+    {:artist, "mic"}
   ]
 
-  @editions [{"Paperback", :paperback}, {"Ebook", :ebook}, {"Audiobook", :audiobook}]
+  @editions [:paperback, :ebook, :audiobook]
 
-  @statuses [{"Not started", :not_started}, {"Reading", :reading}, {"Finished", :finished}]
+  @statuses [:not_started, :reading, :finished]
 
   @impl true
   def load(socket) do
@@ -130,39 +138,90 @@ defmodule Kati.Screens.AddByHandBook do
 
   @doc false
   @spec kind_list() :: [{String.t(), atom(), String.t()}]
-  def kind_list, do: @kinds
+  def kind_list, do: Enum.map(@kinds, fn {kind, icon} -> {kind_label(kind), kind, icon} end)
+
+  @doc """
+  What a Kind chip says.
+
+  The tap is named after the KEY and never after this — `Kati.Screens.AddByHand.kind_chip/5`
+  carries the argument in full: a tag built from the label made the Persian
+  form's control `:kind_کتاب`, a name no device test can type.
+
+  Not `Kati.Screens.AddByHand.kind_label/1`, which is the two-kind form's and
+  answers *Film* for anything that is not `:tv` — this row has five.
+  """
+  @spec kind_label(atom()) :: String.t()
+  # One table, `Kati.Screens.AddByHand.kind_label/1`. It was five clauses here
+  # and two there, which is how board 178 came to draw *Film* under a
+  # `menu_book` glyph the moment it started reading the shared one.
+  defdelegate kind_label(kind), to: AddByHand
 
   @doc false
   @spec edition_list() :: [{String.t(), atom()}]
-  def edition_list, do: @editions
+  def edition_list, do: Enum.map(@editions, &{edition_label(&1), &1})
+
+  @doc """
+  What an Edition chip says — screen 66's three words, in screen 66's spelling.
+
+  The same three msgids `Kati.Books.Sample.formats/0` declares, so a book's
+  edition is one word across the form that creates it and the screen that draws
+  it. Two spellings of *شمیز* would read as two different things.
+  """
+  @spec edition_label(atom()) :: String.t()
+  def edition_label(:ebook), do: gettext("Ebook")
+  def edition_label(:audiobook), do: gettext("Audiobook")
+  def edition_label(_paperback), do: gettext("Paperback")
 
   @doc false
   @spec status_list() :: [{String.t(), atom()}]
-  def status_list, do: @statuses
+  def status_list, do: Enum.map(@statuses, &{status_label(&1), &1})
+
+  @doc """
+  What a Status chip says, in screen 66's own book vocabulary.
+
+  `pgettext/2` under the `book status` context and not a bare `gettext/1`,
+  because the app holds three different *Reading*s and Persian keeps them
+  apart: reading a book is **در حال خواندن**, the shelf filter's chip is its
+  own entry, and screen 60's section of the day is **مطالعه**. The context is
+  `Kati.Screens.BookDetail`'s and `Kati.Books.Sample.statuses/0`'s — which is
+  the control this form's value ends up under, so the word a reader picks here
+  is the word they meet on 66.
+  """
+  @spec status_label(atom()) :: String.t()
+  def status_label(:reading), do: pgettext("book status", "Reading")
+  def status_label(:finished), do: pgettext("book status", "Finished")
+  def status_label(_not_started), do: pgettext("book status", "Not started")
 
   @doc false
   def content(assigns) do
     # The board draws its back pill in the flow at 64; the macro floats one at
     # 54, so the content starts at `content_top/0` to clear it — 154's note,
     # and the same pill.
+    #
+    # The ISBN specimen is `ltr/1`'d rather than translated. It is a number
+    # printed on a book and a translator has nothing to decide about it, but
+    # its hyphens are BIDI-neutral: dropped into an RTL field as a bare string
+    # the algorithm resolves them against the page and `978-0-571-33915-2`
+    # comes out with its groups in the wrong order. The isolate makes the run
+    # carry its own direction, which is `Kati.Locale.ltr/1`'s whole job.
     Kati.Screens.Pushed.page(
       ~MOB"""
       <Column fill_width={true}>
         {Kati.Screens.AddByHandBook.heading()}
-        {AddByHand.labelled("Title", AddByHand.field(:title, assigns.title, "The Salt Almanac"))}
-        {AddByHand.labelled("Kind", Kati.Screens.AddByHandBook.kinds())}
-        {AddByHand.labelled("Author", AddByHand.field(:author, assigns.author, "Ines Karvel"), "optional")}
-        {AddByHand.labelled("Year", AddByHand.field(:year, assigns.year, "2024"), "optional")}
-        {AddByHand.labelled("Edition", Kati.Screens.AddByHandBook.editions(assigns.edition))}
-        {AddByHand.labelled(Kati.Screens.AddByHandBook.length_label(assigns.edition), AddByHand.field(:length, assigns.length, Kati.Screens.AddByHandBook.length_placeholder(assigns.edition)), "optional")}
-        {AddByHand.labelled("ISBN", AddByHand.field(:isbn, assigns.isbn, "978-0-571-33915-2"), "optional")}
-        {AddByHand.labelled("Status", Kati.Screens.AddByHandBook.statuses(assigns.status))}
+        {AddByHand.labelled(gettext("Title"), AddByHand.field(:title, assigns.title, gettext("The Salt Almanac")))}
+        {AddByHand.labelled(gettext("Kind"), Kati.Screens.AddByHandBook.kinds())}
+        {AddByHand.labelled(gettext("Author"), AddByHand.field(:author, assigns.author, gettext("Ines Karvel")), gettext("optional"))}
+        {AddByHand.labelled(gettext("Year"), AddByHand.field(:year, assigns.year, gettext("2024")), gettext("optional"))}
+        {AddByHand.labelled(gettext("Edition"), Kati.Screens.AddByHandBook.editions(assigns.edition))}
+        {AddByHand.labelled(Kati.Screens.AddByHandBook.length_label(assigns.edition), AddByHand.field(:length, assigns.length, Kati.Screens.AddByHandBook.length_placeholder(assigns.edition)), gettext("optional"))}
+        {AddByHand.labelled(gettext("ISBN"), AddByHand.field(:isbn, assigns.isbn, Kati.Locale.ltr("978-0-571-33915-2")), gettext("optional"))}
+        {AddByHand.labelled(gettext("Status"), Kati.Screens.AddByHandBook.statuses(assigns.status))}
         {AddByHand.error(assigns.save_error)}
-        {Kati.UI.Sheet.commit("Add to library", :add)}
+        {Kati.UI.Sheet.commit(gettext("Add to library"), :add)}
         <Spacer size={14} />
         {Kati.Screens.AddByHandBook.closing_note()}
         <Spacer size={16} />
-        {Kati.UI.eyebrow("Refused", dash: Palette.rail_idle())}
+        {Kati.UI.eyebrow(gettext("Refused"), dash: Palette.rail_idle())}
         {Kati.Screens.AddByHandBook.refused_band()}
         <Spacer size={14} />
         {Kati.Screens.AddByHandBook.annotation()}
@@ -181,22 +240,37 @@ defmodule Kati.Screens.AddByHandBook do
   the family and the `margin-top` out of each board and compares them with what
   the screen rendered, so sharing 154's helper would fail here — correctly, on
   a board this screen is not drawn to.
+
+  **Neither `Text` names a `font_family`, and that is deliberate.** The bridge
+  resolves a missing family against the root's and `Kati.Screens.Pushed.chrome/3`
+  declares the root's as `Kati.Locale.face_prop/0`, so Persian arrives in
+  Vazirmatn without either line mentioning it — and an explicit `sans` here
+  would force Latin and draw the heading as empty boxes. The sweep above reads
+  an absent family as the design's default for the same reason.
+
+  Two things travel with the fold. `letter_spacing` goes through
+  `Kati.Locale.tracking/1`: the design tightens its 28pt headings by a fraction
+  of an em and the Arabic script joins its letters, so tracking a Persian
+  heading pulls the joins apart. And the title gains `max_lines={1}` — *Add by
+  hand* is three short words and **افزودن دستی** is one long one, and a display
+  line that wraps at 28pt takes the subtitle's gap with it.
   """
   @spec heading() :: map()
   def heading do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Add by hand"
+        text={gettext("Add by hand")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
+        max_lines={1}
         text_color={:on_surface}
       />
       <Spacer size={6} />
       <Text
-        text="For something Kati could not find. The title is the only thing it needs."
+        text={gettext("For something Kati could not find. The title is the only thing it needs.")}
         text_size={13.5}
         line_height={1.6}
         text_color={Palette.sub()}
@@ -212,13 +286,20 @@ defmodule Kati.Screens.AddByHandBook do
   Book is the screen, so the lit chip is a constant rather than an assign:
   changing kind here is a navigation, not a state — a Book form and a Film form
   ask different questions and draw different fields.
+
+  The fifth argument is the reader's face and was missing. `kind_chip/5` writes
+  `font_family` out explicitly and defaults it to `"sans"`, so five chips that
+  said nothing were five Persian words handed to Plus Jakarta Sans — a face
+  with no Arabic glyph at all, which draws them as empty boxes rather than
+  falling back. `Kati.Screens.AddByHand.kinds/1` passes `face_prop/0` for that
+  reason and this row now does too; `Kati.PersianFontTest` is what keeps it.
   """
   @spec kinds() :: map()
   def kinds do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHandBook.kind_list(), fn {label, kind, icon} ->
-        AddByHand.kind_chip(label, icon, kind == :book, kind)
+        AddByHand.kind_chip(label, icon, kind == :book, kind, Kati.Locale.face_prop())
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
@@ -283,26 +364,61 @@ defmodule Kati.Screens.AddByHandBook do
   Screen 66 restates the unit for the same reason: *380 pages* against
   *11h 20m*, so the number never looks like the other kind.
 
-      iex> Kati.Screens.AddByHandBook.length_label(:paperback)
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.AddByHandBook.length_label(:paperback) end)
       "Length · pages"
 
-      iex> Kati.Screens.AddByHandBook.length_label(:audiobook)
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.AddByHandBook.length_label(:audiobook) end)
       "Length · minutes"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.AddByHandBook.length_label(:paperback) end)
+      "طول · صفحه"
+
+  The locale is named rather than left to the ambient one. `Kati.BooksByHandTest`
+  hosts this doctest and sets `:fa` for the whole file — board 176 is screen 20
+  read as a Persian reader — so an example that did not say which language it
+  meant was asserting whichever one the host file happened to be in, and passed
+  only while this function was untranslated.
+
+  The whole label is one msgid rather than *Length* joined to a unit, because
+  the middle dot is part of what a translator is deciding: Persian reads
+  right-to-left and the separator has to sit between the two words in the order
+  the reader meets them, which a caller gluing two translations together in
+  Latin order cannot arrange.
   """
   @spec length_label(atom()) :: String.t()
-  def length_label(:audiobook), do: "Length · minutes"
-  def length_label(_format), do: "Length · pages"
+  def length_label(:audiobook), do: gettext("Length · minutes")
+  def length_label(_format), do: gettext("Length · pages")
 
-  @doc false
+  @doc """
+  The figure the empty extent field shows, in the reader's own numerals.
+
+  A specimen and not a msgid: there is nothing for a translator to decide about
+  380, and a three-character msgid is exactly what `mix gettext.merge` fuzzy-
+  matches against the wrong sentence. `Kati.Locale.number/1` is the whole of the
+  question — this is a numeral inside the reader's own script, so it is ۳۸۰
+  under `:fa` rather than a Latin figure sitting in a Persian field.
+
+  Unlike the Year field's placeholder, which IS a msgid: `Kati.Locale.year/1`'s
+  rule is that a publication year is a citation and never converts, so what the
+  Year field suggests is a decision about the calendar a reader types in and
+  board 156 answers it — ۱۴۰۳ — rather than a digit swap.
+  """
   @spec length_placeholder(atom()) :: String.t()
-  def length_placeholder(:audiobook), do: "680"
-  def length_placeholder(_format), do: "380"
+  def length_placeholder(:audiobook), do: Kati.Locale.number(680)
+  def length_placeholder(_format), do: Kati.Locale.number(380)
 
   @doc """
   The honest sentence under the button, in the board's own three runs.
 
   A card rather than 154's cream one, because the board draws it as a card: it
   states a fact about what was stored rather than carrying a warning.
+
+  Three msgids and not one, for `Kati.Screens.AddByHand.split_note/4`'s reason:
+  `Kati.ScreenDesignLiteralTest` compares a drawing's lines against the tree's,
+  and the board's `<strong>` splits the sentence into runs a single joined
+  string would no longer match. It costs the translator the sentence's shape —
+  154's Persian solves it by letting the bold run carry the verb
+  (*پوستر و فهرست قسمت ندارد*), and this one follows it.
   """
   @spec closing_note() :: map()
   def closing_note do
@@ -319,20 +435,20 @@ defmodule Kati.Screens.AddByHandBook do
       <Spacer size={11} />
       <Column weight={1.0}>
         <Text
-          text="A book typed by hand carries"
+          text={gettext("A book typed by hand carries")}
           text_size={12.5}
           line_height={1.65}
           text_color={Palette.ink_soft()}
         />
         <Text
-          text="no jacket and no page count"
+          text={gettext("no jacket and no page count")}
           text_size={12.5}
           line_height={1.65}
           font_weight="semibold"
           text_color={Palette.ink()}
         />
         <Text
-          text="unless you gave one. If Kati finds it later both arrive, and nothing you typed changes."
+          text={gettext("unless you gave one. If Kati finds it later both arrive, and nothing you typed changes.")}
           text_size={12.5}
           line_height={1.65}
           text_color={Palette.ink_soft()}
@@ -352,6 +468,16 @@ defmodule Kati.Screens.AddByHandBook do
   Drawn and not tappable. `Kati.Screens.AddByHandStates.drawn_chip/3` records
   the trap this avoids — *a preview is not a control* — so nothing here carries
   an `on_tap` or an `accessibility_id` that a sweep could address.
+
+  The title in it is the same specimen `Kati.Books.Sample` names, and it goes
+  through the same msgid: this band is a picture of the refusal a reader meets,
+  so a Latin book title inside a Persian card would be the one line on the page
+  that is not in their script. It is a fixture and not user-entered content —
+  the title `taken/1` quotes at runtime is what the reader typed, and that is
+  never translated.
+
+  The sentence under it is its own msgid rather than `taken/1`'s: the drawn one
+  has no `%{title}` in it, because the board puts the name on the line above.
   """
   @spec refused_band() :: map()
   def refused_band do
@@ -374,7 +500,12 @@ defmodule Kati.Screens.AddByHandBook do
         padding_right={13}
         align="center"
       >
-        <Text text="The Salt Almanac" text_size={14} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={gettext("The Salt Almanac")}
+          text_size={14}
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={2} />
         <Box width={2} height={18} background={Palette.accent()} />
       </Row>
@@ -384,14 +515,14 @@ defmodule Kati.Screens.AddByHandBook do
         <Spacer size={10} />
         <Column weight={1.0}>
           <Text
-            text="The Salt Almanac"
+            text={gettext("The Salt Almanac")}
             text_size={12.5}
             line_height={1.6}
             font_weight="semibold"
             text_color={Palette.ink()}
           />
           <Text
-            text="is already on your shelf. Nothing was written."
+            text={gettext("is already on your shelf. Nothing was written.")}
             text_size={12.5}
             line_height={1.6}
             text_color={Palette.ink_soft()}
@@ -408,21 +539,35 @@ defmodule Kati.Screens.AddByHandBook do
   Nine runs and not one paragraph: `Kati.ScreenDesignLiteralTest` compares a
   drawing's lines against the tree's, and the board's `<strong>`s split the
   sentence into runs a single joined string would no longer match.
+
+  So nine msgids, and three of them are two words or fewer. Those take
+  `pgettext/2`: `mix gettext.merge` fuzzy-matches a short new msgid against any
+  longer sentence that resembles it, and *three*, *one field* and *lands on 66.*
+  are exactly the size that goes wrong — a bare `three` would find any sentence
+  in the catalogue containing the word. The context names the board, because a
+  run is only a sentence fragment in the company of the other eight.
+
+  The board numbers stay numbers inside the msgid rather than being interpolated
+  through `Kati.Locale.number/1`: they are part of a sentence a translator is
+  rewriting whole, and the Persian catalogue already writes them in its own
+  digits — *صفحهٔ ۰۴*, *۱۵۸ در فارسی* — where the sentence puts them.
   """
   @spec annotation() :: map()
   def annotation do
     Kati.Screens.AddByHandBook.runs([
-      {"Three chips would be the reuse and five is the truth;", :plain},
-      {"three", :bold},
-      {"is drawn — Not started, Reading, Finished — because Paused and Did-not-finish belong to 66’s status control, and a book you are adding has not been paused.",
-       :plain},
-      {"Film stays the default", :bold},
-      {"on 155: 177 is drawn in Book so the fields are visible, exactly as 154 is drawn in Series. Length is",
-       :plain},
-      {"one field", :bold},
-      {"whose unit follows Edition — pages, or hours and minutes, never both.", :plain},
-      {"Add to library", :bold},
-      {"lands on 66.", :plain}
+      {gettext("Three chips would be the reuse and five is the truth;"), :plain},
+      {pgettext("board 177 annotation", "three"), :bold},
+      {gettext(
+         "is drawn — Not started, Reading, Finished — because Paused and Did-not-finish belong to 66’s status control, and a book you are adding has not been paused."
+       ), :plain},
+      {gettext("Film stays the default"), :bold},
+      {gettext(
+         "on 155: 177 is drawn in Book so the fields are visible, exactly as 154 is drawn in Series. Length is"
+       ), :plain},
+      {pgettext("board 177 annotation", "one field"), :bold},
+      {gettext("whose unit follows Edition — pages, or hours and minutes, never both."), :plain},
+      {gettext("Add to library"), :bold},
+      {pgettext("board 177 annotation", "lands on 66."), :plain}
     ])
   end
 
@@ -523,6 +668,16 @@ defmodule Kati.Screens.AddByHandBook do
   end
 
   @doc """
+  What the form says when Add is pressed with no title.
+
+  Public so a test can ask for the sentence rather than typing it: it is one
+  msgid and a test that spelled it out would be asserting the English on a page
+  a Persian reader sees in Persian.
+  """
+  @spec no_title_error() :: String.t()
+  def no_title_error, do: gettext("A title is the one thing this needs.")
+
+  @doc """
   Write the book, or say why not.
 
   Three outcomes and only one of them touches the store.
@@ -551,7 +706,7 @@ defmodule Kati.Screens.AddByHandBook do
 
     cond do
       title == "" ->
-        Mob.Socket.assign(socket, :save_error, "A title is the one thing this needs.")
+        Mob.Socket.assign(socket, :save_error, Kati.Screens.AddByHandBook.no_title_error())
 
       Kati.Screens.AddByHandBook.shelved?(title) ->
         Mob.Socket.assign(socket, :save_error, Kati.Screens.AddByHandBook.taken(title))
@@ -722,12 +877,23 @@ defmodule Kati.Screens.AddByHandBook do
   def pick_edition(socket, key),
     do: Kati.Screens.AddByHandBook.assign_key(socket, :edition, @editions, key)
 
-  @doc false
-  @spec assign_key(Mob.Socket.t(), atom(), [{String.t(), atom()}], String.t()) :: Mob.Socket.t()
-  def assign_key(socket, field, pairs, key) do
-    case Enum.find(pairs, fn {_label, value} -> Atom.to_string(value) == key end) do
-      {_label, value} -> Mob.Socket.assign(socket, field, value)
+  @doc """
+  Assign the value a chip's tag names, or leave the field alone.
+
+  A list of KEYS and not of `{label, value}` pairs since the labels moved out of
+  the module attributes and became translations. Matching on the value never
+  needed the word, and asking for it here would run three `gettext/1` lookups to
+  answer a tap that only ever compares atoms — `Kati.Screens.AddByHand.pick/2`
+  is the same shape over its own `@statuses`.
+
+  A tag Kati did not draw leaves the assign where it was rather than writing a
+  value `Kati.Books.Book` would refuse at save time.
+  """
+  @spec assign_key(Mob.Socket.t(), atom(), [atom()], String.t()) :: Mob.Socket.t()
+  def assign_key(socket, field, values, key) do
+    case Enum.find(values, &(Atom.to_string(&1) == key)) do
       nil -> socket
+      value -> Mob.Socket.assign(socket, field, value)
     end
   end
 end

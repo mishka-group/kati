@@ -20,12 +20,31 @@ defmodule Kati.Screens.Gallery do
   scaffolding, and `@doc false` so it never reads as part of the app.
   """
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme.Palette
   alias Kati.UI
 
   # Ordered by the design's own numbering, which is how the owner refers to
   # them and how `test/design/screens/NN.html` is named.
+  #
+  # The labels are NOT wrapped in `gettext/1`, and the reason is the one that
+  # keeps `TMDB` in Latin on a Persian page: each is the NAME OF A DRAWING —
+  # *Search — idle*, *Anime — a type, not a section* — rather than a sentence
+  # the app says to a reader. A person looking for board 86 is looking for what
+  # `test/design/screens/86.html` is called, and a msgid per row would spell one
+  # artefact two ways. `Kati.ScreenDesignLiteralTest` reads this table as the
+  # number → drawing registry rather than as copy, which is the same fact from
+  # the other side. `@undrawn` below is the same decision for the ten rows that
+  # have no drawing to be named after: they are the module's own name in the
+  # index, and both tables are ATTRIBUTES — a `gettext/1` in one would be
+  # evaluated once, at compile time, in whatever locale the compiler was in.
+  #
+  # That the Persian labels below stay Persian in an ENGLISH app is the same
+  # rule read the other way: a board drawn in Persian is named in Persian
+  # whoever is reading. `face/1` sets each label in the script it is written
+  # in; only the page's own chrome — the title, the count and the two eyebrows
+  # — follows the reader.
   @screens [
     {"01", "Home", Kati.Screens.Home, :root},
     {"02", "Schedule", Kati.Screens.Calendar, :root},
@@ -836,32 +855,70 @@ defmodule Kati.Screens.Gallery do
   """
   @spec header(non_neg_integer()) :: map()
   def header(count) do
-    assigns = %{count: count, top: Kati.Screens.Pushed.content_top()}
+    # Built once and assigned, rather than composed in the `text` slot the way
+    # it used to be: the line is now READ TWICE — once as the text and once by
+    # `mono_face/1`, which decides the face from the script the finished string
+    # is in. Building it in both places would be two chances for them to
+    # disagree, and the way they would disagree is a Persian line in DM Mono.
+    subtitle = Kati.Screens.Gallery.count_line(count)
+
+    assigns = %{subtitle: subtitle, top: Kati.Screens.Pushed.content_top()}
 
     ~MOB"""
     <Column fill_width={true}>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={@top}>
         <Text
-          text="All screens"
+          text={pgettext("screen title", "All screens")}
           text_size={28}
           max_font_scale={1.6}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
+          max_lines={1}
         />
         <Spacer size={5} />
         <Text
-          text={"#{@count} pages · tap to open"}
-          font_family="mono"
+          text={@subtitle}
+          font_family={Kati.Locale.mono_face(@subtitle)}
           text_size={11}
           text_color={Palette.muted()}
         />
         <Spacer size={20} />
-        {Kati.UI.eyebrow("Every page")}
+        {Kati.UI.eyebrow(pgettext("eyebrow", "Every page"))}
       </Column>
       {Kati.Screens.Gallery.cap()}
     </Column>
     """
+  end
+
+  @doc """
+  The header's mono line: `50 pages · tap to open`.
+
+  Counted rather than written down — `listed/0` plus `@undrawn` is exactly the
+  two groups this page draws — so a screen retired into `@routed` takes itself
+  out of the figure instead of leaving a number that used to be true.
+
+  `%{n} page` is the msgid screens 66 and 70 already own. A page of a book and
+  a page of the app are both **صفحه**, and a second entry would be a second
+  word for one word; the Gallery's own sense is fixed by the title above it.
+
+  ## Neither the face nor the digits is a constant here
+
+  `Kati.Locale.number/1` puts the count in the reader's own numerals, which is
+  a change of FACE as well as of glyph: `kati_mono.ttf` carries none of
+  U+06F0–U+06F9, so a Persian figure left in DM Mono is drawn by Android's
+  substitute face beside Latin ones that are not. `mono_face/1` at the call
+  site asks the finished string which script it is in — DM Mono while the line
+  is ASCII, Vazirmatn the moment it is not — which is the same answer screen
+  20's shelf line gives for the same reason.
+
+      iex> Kati.Screens.Gallery.count_line(2)
+      "2 pages · tap to open"
+  """
+  @spec count_line(non_neg_integer()) :: String.t()
+  def count_line(count) do
+    ngettext("%{n} page", "%{n} pages", count, n: Kati.Locale.number(count)) <>
+      " · " <> gettext("tap to open")
   end
 
   @doc """
@@ -919,7 +976,7 @@ defmodule Kati.Screens.Gallery do
     <Column fill_width={true}>
       <Column fill_width={true} padding_left={21} padding_right={21}>
         <Spacer size={20} />
-        {Kati.UI.eyebrow("Not yet drawn")}
+        {Kati.UI.eyebrow(pgettext("eyebrow", "Not yet drawn"))}
       </Column>
       {Kati.Screens.Gallery.cap()}
     </Column>
@@ -972,14 +1029,30 @@ defmodule Kati.Screens.Gallery do
   @doc """
   The face a registry label is set in: Vazirmatn once it carries any Persian.
 
-  Twenty-two of these rows are named in Persian, and three name a Persian
-  screen in both scripts at once. Left unmarked they came out in Android's
-  own fallback Arabic face — legible, and not the one the rest of the app is
-  set in, which is the failure `Kati.PersianFontTest` exists to make loud.
+  Twenty-nine of the registry's labels are written in Persian and nineteen of
+  those name a board in both scripts at once — `خانه — nothing stored, RTL` is
+  the shape. The counts were twenty-two and three when this was written and
+  mishka-group/kati#103 raised both, which is the direction they go: a board
+  drawn in Persian is named in Persian. Left unmarked they came out in
+  Android's own fallback Arabic face — legible, and not the one the rest of
+  the app is set in, which is the failure `Kati.PersianFontTest` exists to
+  make loud.
+
+  Only two of them are still LISTED — 158 and 159, the pair `@routed` has no
+  route for yet. The face is decided per label rather than per page all the
+  same, because `screens/0` is the registry three sweeps read and a number
+  comes back into the list the moment its route is withdrawn.
 
   Vazirmatn covers Latin and the em dash as well, so the mixed rows take it
   whole rather than being split into two `Text`s to keep three English words
   in Plus Jakarta Sans.
+
+  It asks the LABEL and not the reader, which is why it survived the fold: the
+  page's chrome follows `Kati.Locale` now, and every one of these labels names
+  a drawing instead — so `sans` here is a Latin name deliberately kept Latin
+  under a Persian root, not a screen that forgot to declare a face. The `sans`
+  it returns is what stops the frame's `fa` being inherited, and
+  `Kati.PersianFontTest` reads an explicit prop exactly that way.
   """
   @spec face(String.t()) :: String.t()
   def face(label) do
@@ -998,6 +1071,20 @@ defmodule Kati.Screens.Gallery do
     # `Kati.UI.SettingsList.chevron/0` makes.
     tint = if kind == :root, do: Palette.accent(), else: Palette.rail_idle()
 
+    # The number stays Latin digits in DM Mono in both scripts, where the
+    # header's count does not. It is not a quantity the reader is being told —
+    # it is the drawing's NAME, the `NN` of `test/design/screens/NN.html` and
+    # the number the owner says out loud — so converting it would make board ۸۶
+    # and board 86 two names for one file. `Kati.Locale.number/1`'s own docs
+    # draw the same line: the mono slot keeps Latin figures, and `--` on an
+    # undrawn row is not a numeral at all.
+    #
+    # The chevron does turn, because it is the one node here that points at
+    # something: every row OPENS a screen, and forward is the leading edge the
+    # reader is already travelling towards. A glyph is a codepoint in a font, so
+    # `layout_direction="rtl"` moves the Row's contents and leaves the arrow
+    # aimed the way it was drawn — the trap `Kati.Screens.Pushed.back_glyph/0`
+    # records for the back pill, and this is the same trap facing the other way.
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
@@ -1024,7 +1111,7 @@ defmodule Kati.Screens.Gallery do
           />
         </Column>
         <Spacer size={10} />
-        {UI.symbol("chevron_right", size: 18, color: tint)}
+        {UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: tint)}
       </Row>
       {Kati.Screens.Gallery.hairline(rule?)}
     </Column>

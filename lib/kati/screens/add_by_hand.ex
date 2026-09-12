@@ -284,9 +284,26 @@ defmodule Kati.Screens.AddByHand do
   @spec kind_list() :: [{String.t(), atom(), String.t()}]
   def kind_list, do: Enum.map(@kinds, fn {kind, icon} -> {kind_label(kind), kind, icon} end)
 
-  @doc "What a Kind chip says. The tap is named after `kind` and never after this — MOVIES-AND-TV.md #158."
+  @doc """
+  What a Kind chip says. The tap is named after `kind` and never after this —
+  MOVIES-AND-TV.md #158.
+
+  All five, though screen 154's own `@kinds` is two. The other three are drawn
+  by boards 177 and 178 — `Kati.Screens.AddByHandBook` and
+  `Kati.Screens.AddByHandRecord` reveal the same Kind row with five chips on it
+  — and they read this table rather than keeping one each, which is what stops
+  the same chip being two words in two forms.
+
+  It held the two clauses screen 154 needs and a catch-all answering `Film`, so
+  a caller passing `:book` got *Film*. Nothing caught it while the three extra
+  labels were literals on the other two screens; wiring those screens to this
+  function is what made the gap reachable.
+  """
   @spec kind_label(atom()) :: String.t()
   def kind_label(:tv), do: gettext("Series")
+  def kind_label(:book), do: gettext("Book")
+  def kind_label(:album), do: gettext("Album")
+  def kind_label(:artist), do: gettext("Artist")
   def kind_label(_movie), do: gettext("Film")
 
   @doc false

@@ -116,11 +116,44 @@ defmodule Kati.Screens.BackupDark do
   `Kati.Screens.Settings.last_backup/0` — that ledger stores a bare
   `DateTime`, with no byte count and no relative-time phrasing, and growing it
   to carry both is a bigger change than a dark-colourway screen should make on
-  its own. They are the same literal figures `Kati.Settings.Sample.data/0`
-  already gives the "Back up everything" row on screen 24, restated here
-  because both boards draw them character for character. `last_backup_meta/0`
-  names this plainly rather than pretending the card reads a live ledger it
-  does not.
+  its own. They are the same figures `Kati.Settings.Sample.data/0` already
+  gives the "Back up everything" row on screen 24, restated here because both
+  boards draw them character for character. `last_backup_date/0` and
+  `last_backup_meta/0` name this plainly rather than pretending the card reads
+  a live ledger it does not.
+
+  ## Under `:fa` this is one screen and not two
+
+  mishka-group/kati#103 folded the 33 Persian mirrors away, so every sentence
+  here reaches a Persian reader through `Kati.Gettext` and every figure through
+  `Kati.Locale`. Four of those are decisions rather than mechanics, and each is
+  argued where it is made:
+
+    * **The three lists are functions now.** `@travels`, `@not_travels` and
+      `@formats` held their copy in module attributes, and a `gettext/1` inside
+      one is evaluated at COMPILE time — the list would freeze in whichever
+      locale the compiler was in. See the comment above `travels/0`.
+    * **`14 Aug` is a `Date` and not a string.** `Kati.Locale.date/2` answers
+      ۲۳ مرداد under `:fa`, which is a different CALENDAR rather than the same
+      date translated. The `Date` itself is `Kati.Settings.Sample.data/0`'s own
+      `~D[2026-08-14]`, so the card and the row it pictures cannot drift; the
+      age and the byte count take the same msgids
+      `Kati.Screens.BackupStates.recent/0` takes, for the same reason.
+    * **Every mono line asks `Kati.Locale.mono_face/0`.** `kati_mono.ttf`
+      carries no Persian glyph and none of U+06F0–U+06F9, so a Persian line
+      left in `mono` renders in Android's substitute face beside cards that do
+      not. The `letter_spacing` beside each goes through
+      `Kati.Locale.tracking/1`, which keeps the design's fraction of an em in
+      Latin and drops it in a script whose letters join.
+    * **`(JSON)`, `(.ics)` and `.ics` are isolated runs.** Brackets and a full
+      stop are neutral characters, and two of them are mirrored — see
+      `format_title/1`, which is also why the format's name is one function
+      rather than a literal in four places.
+
+  What stays Latin is the file formats themselves — `JSON`, `CSV`, `.ics` —
+  and `TMDB`, for `Kati.Locale.mono_face/1`'s reason: they are a machine's
+  names for things, spelled one way everywhere, and a transliteration would
+  make the app disagree with the file it just wrote.
 
   ## What is real: the format choice and the save
 
@@ -156,6 +189,7 @@ defmodule Kati.Screens.BackupDark do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Backup.Error
   alias Kati.Backup.Transport
@@ -171,27 +205,79 @@ defmodule Kati.Screens.BackupDark do
   # token and is a different alpha — 16%, for a status pill's ground, not this
   # 24pt disc's.
 
-  @travels [
-    {"Every section", "Screen, Books, Music, Health"},
-    {"Ratings, reviews, notes", "With their dates"},
-    {"Sessions and habits", "Every tick, every streak"},
-    {"Meals and plans", "With their ingredients"},
-    {"Calendar events Kati owns", "Not your connected calendars"},
-    {"Settings", "Language, units, sections"}
-  ]
+  # THREE FUNCTIONS WHERE THERE WERE THREE MODULE ATTRIBUTES, and the reason is
+  # mishka-group/kati#103 rather than taste. A `@travels [...]` holding
+  # `gettext/1` calls is evaluated at COMPILE time: the list would freeze in
+  # whichever locale the compiler happened to be in and every reader on every
+  # device would get that one. A function asks `Kati.Gettext` on each render,
+  # which is the only shape that can answer two languages. Nothing else about
+  # the three lists moved — same order, same tuples, same call sites.
 
-  @not_travels [
-    {"Cached provider metadata", "Re-fetchable, and capped at six months by TMDB’s terms anyway"},
-    {"Connected tokens", "Revocable, and meant to be re-entered on the new device"}
-  ]
+  defp travels do
+    [
+      {gettext("Every section"), gettext("Screen, Books, Music, Health")},
+      {gettext("Ratings, reviews, notes"), gettext("With their dates")},
+      {gettext("Sessions and habits"), gettext("Every tick, every streak")},
+      {gettext("Meals and plans"), gettext("With their ingredients")},
+      {gettext("Calendar events Kati owns"), gettext("Not your connected calendars")},
+      {gettext("Settings"), gettext("Language, units, sections")}
+    ]
+  end
 
-  @formats [
-    {"description", :json, "Everything (JSON)", "The one that restores"},
-    {"upload_file", :csv, "Per-section CSV",
-     "For a spreadsheet or another app — does not restore"},
-    {"calendar_month", :ics, "Calendar (.ics)",
-     "Because Kati owns a calendar and .ics is what a calendar is"}
-  ]
+  defp not_travels do
+    [
+      {gettext("Cached provider metadata"),
+       gettext("Re-fetchable, and capped at six months by TMDB’s terms anyway")},
+      {gettext("Connected tokens"),
+       gettext("Revocable, and meant to be re-entered on the new device")}
+    ]
+  end
+
+  defp formats do
+    # `.ics` comes out of the sentence and back in through `Kati.Locale.ltr/1`,
+    # for that function's own reason: a full stop is a NEUTRAL character in the
+    # bidi algorithm, so a `.ics` left inside a Persian clause has its leading
+    # dot resolved right-to-left and laid out on the far side of the word —
+    # `ics.` in the middle of the line. The isolate gives the run its own
+    # direction, and costs English nothing, where `ltr/1` is identity.
+    ics_reason =
+      gettext("Because Kati owns a calendar and %{ext} is what a calendar is",
+        ext: Kati.Locale.ltr(".ics")
+      )
+
+    [
+      {"description", :json, Kati.Screens.BackupDark.format_title(:json),
+       gettext("The one that restores")},
+      {"upload_file", :csv, Kati.Screens.BackupDark.format_title(:csv),
+       gettext("For a spreadsheet or another app — does not restore")},
+      {"calendar_month", :ics, Kati.Screens.BackupDark.format_title(:ics), ics_reason}
+    ]
+  end
+
+  @doc """
+  What a format row calls itself, in one place because two things say it.
+
+  The row draws it and `format_unavailable_notice/1` names it back when the tap
+  cannot be answered, and those must not be two sentences that drift apart —
+  a notice naming a format the list does not have that name for is worse than
+  no notice.
+
+  `(JSON)` and `(.ics)` are handed to `Kati.Locale.ltr/1` WHOLE, brackets
+  included, rather than wrapped around the word inside them. Both brackets are
+  neutral characters and both are MIRRORED: inside a Persian line they resolve
+  to the page's direction and render as each other, so `همه‌چیز (JSON)` draws as
+  `همه‌چیز )JSON(`. Isolating the word alone does not fix it — the brackets are
+  still outside the isolate, still neutral, still mirrored — so the isolate has
+  to contain the punctuation it is there to protect.
+
+  `Per-section CSV` needs none of this and gets none: `CSV` is three Latin
+  letters with no neutral beside them, and a strong run inside an RTL line
+  places itself correctly with no help.
+  """
+  @spec format_title(:json | :csv | :ics) :: String.t()
+  def format_title(:json), do: gettext("Everything %{format}", format: Kati.Locale.ltr("(JSON)"))
+  def format_title(:csv), do: gettext("Per-section CSV")
+  def format_title(:ics), do: gettext("Calendar %{format}", format: Kati.Locale.ltr("(.ics)"))
 
   @doc """
   The board's two assigns, over a theme pinned dark.
@@ -214,6 +300,22 @@ defmodule Kati.Screens.BackupDark do
   @doc false
   @spec content(map()) :: map()
   def content(assigns) do
+    # `Kati.UI.eyebrow_label/1` rather than a second all-caps msgid, which is
+    # the call `Kati.Screens.BackupStates.content/1` makes and for the same
+    # reason: the Latin line is upper case because the design upcases it, and
+    # `String.upcase/1` on Arabic script is a no-op that still reads as one —
+    # a translator handed `ONE FILE, KEPT WHEREVER YOU LIKE` would reasonably
+    # shout back. English is byte-identical either way.
+    subtitle = UI.eyebrow_label(gettext("One file, kept wherever you like"))
+
+    # The second eyebrow takes `pgettext/2` where the first takes `gettext/1`.
+    # `Format` is one short word, and `mix gettext.merge` fuzzy-matches a msgid
+    # that short against anything — the rule this codebase already applies to
+    # `pgettext("eyebrow", "Restoring")` on screen 156. It also genuinely needs
+    # the context: the word here is a FILE format, and Persian would not
+    # necessarily choose the same word for the verb. Both notes sit above the
+    # sigil because a `#` comment is invalid at its top level.
+
     ~MOB"""
     <Scroll>
       <Column
@@ -224,12 +326,12 @@ defmodule Kati.Screens.BackupDark do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Back up everything", "ONE FILE, KEPT WHEREVER YOU LIKE")}
+        {SettingsList.title(gettext("Back up everything"), subtitle)}
         {Kati.Screens.BackupDark.notice_block(assigns.notice)}
         {Kati.Screens.BackupDark.summary_card()}
-        {Kati.Screens.BackupDark.section_label(Palette.accent(), "What travels with it")}
+        {Kati.Screens.BackupDark.section_label(Palette.accent(), gettext("What travels with it"))}
         {Kati.Screens.BackupDark.travels_card()}
-        {Kati.Screens.BackupDark.section_label(Palette.rail_idle(), "Format")}
+        {Kati.Screens.BackupDark.section_label(Palette.rail_idle(), pgettext("eyebrow", "Format"))}
         {Kati.Screens.BackupDark.format_card(assigns.format)}
         {Kati.Screens.BackupDark.save_button()}
         <Spacer size={16} />
@@ -243,9 +345,37 @@ defmodule Kati.Screens.BackupDark do
 
   # ── The summary card ────────────────────────────────────────────────────
 
+  @doc """
+  The day a backup was last taken — sample data; see the moduledoc.
+
+  A `Date` rather than the string `14 Aug`, and it is the same
+  `~D[2026-08-14]` `Kati.Settings.Sample.data/0` gives the *Back up everything*
+  row this card is a picture of, so the two cannot drift apart.
+  `Kati.Locale.date/2` answers `14 Aug` in Latin and ۲۳ مرداد in Shamsi — a
+  different CALENDAR rather than the same date translated, which is the half of
+  mishka-group/kati#103 gettext cannot do. `Kati.Screens.BackupStates.recent/0`
+  draws the same figure the same way.
+  """
+  @spec last_backup_date() :: String.t()
+  def last_backup_date, do: Kati.Locale.date(~D[2026-08-14], :short)
+
   @doc "The figures a backup would carry — sample data; see the moduledoc."
   @spec last_backup_meta() :: String.t()
-  def last_backup_meta, do: "2 WEEKS AGO · 214 MB"
+  def last_backup_meta do
+    # ONE MSGID RATHER THAN TWO JOINED BY A LITERAL `·`: the separator sits
+    # between two translated runs and a Persian reader meets the whole line as
+    # one phrase. Both figures are MEASUREMENTS and go through
+    # `Kati.Locale.number/1`, and the age reuses the catalogue's existing
+    # weeks-ago plural so this card and screen 07's *More numbers* say it with
+    # the same words. Byte for byte the msgids `Kati.Screens.BackupStates.recent/0`
+    # already uses — two pictures of one fixture should not be two entries.
+    UI.eyebrow_label(
+      gettext("%{ago} · %{n} MB",
+        ago: ngettext("%{n} week ago", "%{n} weeks ago", 2, n: Kati.Locale.number(2)),
+        n: Kati.Locale.number(214)
+      )
+    )
+  end
 
   @doc """
   The `Last backup` card: label, date, meta, and the done glyph — lifted with
@@ -254,7 +384,20 @@ defmodule Kati.Screens.BackupDark do
   """
   @spec summary_card() :: map()
   def summary_card do
-    assigns = %{meta: Kati.Screens.BackupDark.last_backup_meta()}
+    assigns = %{
+      label: UI.eyebrow_label(gettext("Last backup")),
+      date: Kati.Screens.BackupDark.last_backup_date(),
+      meta: Kati.Screens.BackupDark.last_backup_meta()
+    }
+
+    # All three lines ask `Kati.Locale.mono_face/0` rather than naming `mono`.
+    # `kati_mono.ttf` carries no Persian glyph and none of U+06F0–U+06F9, so
+    # ۲۳ مرداد and ۲ هفته پیش · ۲۱۴ مگابایت left in `mono` are handed to
+    # Android's own substitute face and render — correctly shaped, in a
+    # typeface that is not Kati's — beside three cards that are. The tracking
+    # goes the same way: `letter_spacing` opens the joins between Persian
+    # letters, so `Kati.Locale.tracking/1` keeps the design's fraction of an em
+    # in Latin and drops it in Arabic script. Both are no-ops under `:en`.
 
     ~MOB"""
     <Column fill_width={true}>
@@ -269,27 +412,27 @@ defmodule Kati.Screens.BackupDark do
         <Row fill_width={true} align="top">
           <Column weight={1.0}>
             <Text
-              text={String.upcase("Last backup")}
-              font_family="mono"
+              text={@label}
+              font_family={Kati.Locale.mono_face()}
               text_size={10}
-              letter_spacing={0.14}
+              letter_spacing={Kati.Locale.tracking(0.14)}
               text_color={Palette.muted()}
               max_lines={1}
             />
             <Spacer size={9} />
             <Text
-              text="14 Aug"
-              font_family="mono"
+              text={@date}
+              font_family={Kati.Locale.mono_face()}
               text_size={22}
               font_weight="medium"
-              letter_spacing={-0.02}
+              letter_spacing={Kati.Locale.tracking(-0.02)}
               text_color={Palette.ink()}
               max_lines={1}
             />
             <Spacer size={6} />
             <Text
               text={@meta}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face()}
               text_size={11}
               text_color={Palette.sub()}
               max_lines={1}
@@ -323,7 +466,12 @@ defmodule Kati.Screens.BackupDark do
   """
   @spec section_label(pos_integer(), String.t()) :: map()
   def section_label(dash_color, label) do
-    assigns = %{dash: dash_color, label: String.upcase(label)}
+    # `Kati.UI.eyebrow_label/1` where this upcased: the caps are the design's
+    # and `String.upcase/1` is a Latin operation, so the Persian label arrives
+    # here already in the only case its script has. The caller hands in a
+    # translated string, so the face is the READER's — `mono_face/0` — rather
+    # than the string's.
+    assigns = %{dash: dash_color, label: UI.eyebrow_label(label)}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -332,9 +480,9 @@ defmodule Kati.Screens.BackupDark do
         <Spacer size={9} />
         <Text
           text={@label}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
-          letter_spacing={0.16}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.muted()}
         />
       </Row>
@@ -385,6 +533,11 @@ defmodule Kati.Screens.BackupDark do
       rule: SettingsList.hairline(rule?)
     }
 
+    # `Kati.Locale.leading/1` on the sub-line: Vazirmatn's metrics are not Plus
+    # Jakarta's, so the 1.5 measured against the Latin row crowds the Persian
+    # one — the argument is `Kati.Theme.fa_line_height/0`'s. The title above it
+    # needs none: a line capped at one has no leading to set.
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top" padding_top={11} padding_bottom={11}>
@@ -402,7 +555,7 @@ defmodule Kati.Screens.BackupDark do
           <Text
             text={@sub}
             text_size={11}
-            line_height={1.5}
+            line_height={Kati.Locale.leading(1.5)}
             text_color={@sub_color}
             max_lines={@lines}
           />
@@ -421,19 +574,21 @@ defmodule Kati.Screens.BackupDark do
   """
   @spec travels_card() :: map()
   def travels_card do
-    last_travel = length(@travels) - 1
+    travelling = travels()
+    last_travel = length(travelling) - 1
 
     travel_rows =
-      @travels
+      travelling
       |> Enum.with_index()
       |> Enum.map(fn {{title, sub}, i} ->
         Kati.Screens.BackupDark.travel_row("check", true, title, sub, rule?: i < last_travel)
       end)
 
-    last_blocked = length(@not_travels) - 1
+    blocked = not_travels()
+    last_blocked = length(blocked) - 1
 
     blocked_rows =
-      @not_travels
+      blocked
       |> Enum.with_index()
       |> Enum.map(fn {{title, sub}, i} ->
         Kati.Screens.BackupDark.travel_row("block", false, title, sub,
@@ -481,13 +636,15 @@ defmodule Kati.Screens.BackupDark do
   @doc false
   @spec does_not_travel_label() :: map()
   def does_not_travel_label do
+    assigns = %{label: UI.eyebrow_label(gettext("Does not travel"))}
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={String.upcase("Does not travel")}
-        font_family="mono"
+        text={@label}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={Palette.muted()}
         max_lines={1}
       />
@@ -534,10 +691,11 @@ defmodule Kati.Screens.BackupDark do
   """
   @spec format_card(atom()) :: map()
   def format_card(current) do
-    last = length(@formats) - 1
+    choices = formats()
+    last = length(choices) - 1
 
     rows =
-      @formats
+      choices
       |> Enum.with_index()
       |> Enum.map(fn {{icon, format, title, sub}, i} ->
         Kati.Screens.BackupDark.format_row(icon, format, title, sub, current, i < last)
@@ -572,6 +730,12 @@ defmodule Kati.Screens.BackupDark do
   @doc "`Save a backup`: paper on near-black, `fab_fill`/`fab_glyph`, no shadow — see the moduledoc."
   @spec save_button() :: map()
   def save_button do
+    # `max_lines={1}` where the label carried none. The Row is pinned at 54pt,
+    # so a label that wraps does not make the pill taller — it is clipped by
+    # it, and the second line of a two-line Persian label would be the half
+    # that says what the button does. English never reaches two lines, so this
+    # changes nothing on the board it was drawn from.
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -584,10 +748,11 @@ defmodule Kati.Screens.BackupDark do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Save a backup"
+          text={gettext("Save a backup")}
           text_size={14.5}
           font_weight="bold"
           text_color={Palette.fab_glyph()}
+          max_lines={1}
         />
         <Spacer weight={1.0} />
       </Row>
@@ -611,14 +776,30 @@ defmodule Kati.Screens.BackupDark do
   """
   @spec no_server_note() :: map()
   def no_server_note do
-    body_style = [text_size: 12.5, line_height: 1.65, text_color: Palette.bar_ink()]
+    body_style = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.bar_ink()
+    ]
+
+    # THREE RUNS AND THREE MSGIDS, split where the bold run starts and stops.
+    # The first two are the sentences `Kati.Screens.Backup.no_server_note/0`
+    # and `Kati.Screens.BackupLarge`'s own footnote draw character for
+    # character, so the three screens share two catalogue entries rather than
+    # holding three translations of one clause that could drift. Only the third
+    # is this board's — 131 stops at the full stop where 128 argues on.
+    #
+    # A run boundary is not a word boundary in Persian either: each run is a
+    # clause that stands on its own, so the translation can put the bold noun
+    # phrase where Persian wants it without the marked-up half landing mid-word.
+    closing =
+      gettext(" — not something stored for you. Put it somewhere that is not only this phone.")
 
     paragraph =
       UI.rich_text([
-        {"Kati has no server, so a backup is ", body_style},
-        {"a file you keep", [font_weight: "semibold", text_color: Palette.ink()]},
-        {" — not something stored for you. Put it somewhere that is not only this phone.",
-         body_style}
+        {gettext("Kati has no server, so a backup is "), body_style},
+        {gettext("a file you keep"), [font_weight: "semibold", text_color: Palette.ink()]},
+        {closing, body_style}
       ])
 
     assigns = %{paragraph: %{paragraph | props: Map.put(paragraph.props, :weight, 1.0)}}
@@ -696,12 +877,22 @@ defmodule Kati.Screens.BackupDark do
     )
   end
 
-  @doc false
-  def format_unavailable_notice(:csv),
-    do: "Per-section CSV has no exporter yet. Nothing was written."
+  @doc """
+  The notice a format with no exporter answers a tap with.
 
-  def format_unavailable_notice(:ics),
-    do: "Calendar (.ics) has no exporter yet. Nothing was written."
+  One sentence where there were two, because the only thing that differed
+  between them was the format's own name and that name now has one home in
+  `format_title/1` — a notice that called the row something the row does not
+  call itself is the drift this closes. The guard keeps what the two clauses
+  kept: `:json` never arrives here (`save/1`'s first clause takes it) and a
+  fourth format would raise rather than be described wrongly.
+  """
+  @spec format_unavailable_notice(:csv | :ics) :: String.t()
+  def format_unavailable_notice(format) when format in [:csv, :ics] do
+    gettext("%{format} has no exporter yet. Nothing was written.",
+      format: Kati.Screens.BackupDark.format_title(format)
+    )
+  end
 
   @doc false
   def put_notice(socket, notice), do: Mob.Socket.assign(socket, :notice, notice)
