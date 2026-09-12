@@ -74,6 +74,36 @@ defmodule Kati.Screens.MarkAndroid do
   badge rather than writing `3` twice — two copies of one number is how a badge
   starts contradicting the sentence beside it.
 
+  ## A picture of a device, drawn in the language of whoever is holding it
+
+  Everything the drawing *writes* is copy and goes through `Kati.Gettext`: the
+  headline, the meal, the search pill's placeholder and seven of the eight icon
+  names. A Persian reader's launcher names its own apps in Persian — تقویم,
+  عکس‌ها, تنظیمات — so leaving `Calendar` and `Settings` in Latin under `:fa`
+  would not be *respecting somebody else's product name*, it would be drawing a
+  launcher no Persian reader has ever seen. The section above already says these
+  seven are furniture rather than brands, and that is exactly why they
+  translate: inventing seven brands was refused, so there is no brand here left
+  to protect.
+
+  **`Kati` is the one word that does not translate, and it appears twice** —
+  the widget's eyebrow and the icon's own name. It is the mark's name, and board
+  127's rule covers it: a product name spelled one way in Latin and another in
+  Persian is one thing spelled twice. The eyebrow therefore also keeps
+  `String.upcase/1` and its bare `font_family`/`letter_spacing`, which is
+  `Kati.Screens.LaunchScreen.line_name/0`'s case in full and the opposite of
+  what every translated eyebrow in the app does — see `widget_header/1`.
+
+  The date stopped being a string. `Sun 16 Aug` and یکشنبه ۲۵ مرداد ۱۴۰۵ are the
+  same evening in two different *calendars* rather than two spellings of one,
+  which is the half of mishka-group/kati#103 a catalogue cannot do, so `home/0`
+  holds the day itself and `Kati.Locale.date/2` writes it.
+
+  The airing row is the exception, and it is an exception about ownership rather
+  than about language: `6 episodes air` is `Kati.Screens.Lock.Sample.today/0`'s
+  copy, and it translates on the day screen 29 folds. Its *digits* are converted
+  here all the same — see `widget_row/1`.
+
   ## Nothing on this screen taps, and that is why there is no `handle_tap/2`
 
   `Kati.Screens.Pushed` defines none on purpose, and adding one here would be
@@ -160,6 +190,7 @@ defmodule Kati.Screens.MarkAndroid do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Screens.Lock
   alias Kati.Theme.Palette
@@ -208,6 +239,22 @@ defmodule Kati.Screens.MarkAndroid do
   # Kati ever puts on the home screen. One number, read twice — see `home/0`.
   @unread 3
 
+  # The pinned evening, as a DATE and not as `"Sun 16 Aug"`. Under `:fa` the
+  # widget's top line is a Shamsi date — a different calendar rather than a
+  # translation of this one — so the day has to survive as a day for
+  # `Kati.Locale.date/2` to have anything to convert.
+  #
+  # A literal here and not `Kati.Screens.Lock.Sample.clock/0`'s, which names the
+  # same evening: that one is already formatted, in English, in the `:full`
+  # style a lock screen's clock wants, and there is no day left inside it to
+  # ask. It is the one piece of this evening that is still written twice, and it
+  # stops being written twice when 29 folds and `Sample` starts answering a
+  # `Date`.
+  #
+  # Safe as an attribute where a `gettext/1` would not be: a sigil is data and
+  # freezes nothing. Every call that reads the locale is in a function body.
+  @drawn_day ~D[2026-08-16]
+
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :home, home())
 
@@ -226,6 +273,18 @@ defmodule Kati.Screens.MarkAndroid do
   The meal row is this screen's own: 29's second row is `Call Mum`, and 64
   picks a different second row on purpose, because a home widget's claim is
   *what airs and what you are eating* rather than *what is left of today*.
+
+  The map is built in the reader's language, which is why it is built in a
+  function and read on `load/1` rather than held as an attribute: `gettext/1`
+  in a module attribute is evaluated while the file compiles and freezes into
+  whichever locale the compiler happened to be in.
+
+  `ngettext/4` on the headline even though `@unread` is a frozen 3, and
+  `Kati.Screens.Home.headline_lines/1` makes the argument this follows: the
+  count is the sentence's own number, and one episode waiting is the ordinary
+  case rather than an edge one the moment this stops being a drawing. Persian
+  does not inflect a noun after a numeral, so both forms are one sentence there
+  — the plural exists for the English half.
   """
   @spec home() :: map()
   def home do
@@ -234,28 +293,57 @@ defmodule Kati.Screens.MarkAndroid do
     %{
       widget: %{
         eyebrow: "Kati",
-        date: "Sun 16 Aug",
-        headline: "#{@unread} new episodes waiting",
+        date: Kati.Locale.date(@drawn_day, :long),
+        headline:
+          ngettext(
+            "%{n} new episode waiting",
+            "%{n} new episodes waiting",
+            @unread,
+            n: Kati.Locale.number(@unread)
+          ),
         rows: [
           %{time: airing.time, title: airing.title, kind: :release},
-          %{time: "19:30", title: "Dinner — salmon", kind: :meal}
+          %{
+            time: Kati.Locale.time(~T[19:30:00]),
+            title: gettext("Dinner — salmon"),
+            kind: :meal
+          }
         ]
       },
       apps: [
         [
-          %{label: "Kati", icon: :mark, badge: Integer.to_string(@unread)},
-          %{label: "Calendar", icon: "calendar_month", badge: nil},
-          %{label: "Photos", icon: "movie", badge: nil},
-          %{label: "Play", icon: "play_arrow", badge: nil}
+          # `Kati` in both scripts, and the badge in the reader's digits: the
+          # name is the mark's and the count is the reader's.
+          %{label: "Kati", icon: :mark, badge: Kati.Locale.number(@unread)},
+          %{label: gettext("Calendar"), icon: "calendar_month", badge: nil},
+          %{label: gettext("Photos"), icon: "movie", badge: nil},
+          # `Play` and `Fit` take a context and the other five do not. Each is
+          # one short word that is a verb or an adjective in English before it
+          # is an app, and `mix gettext.merge` fuzzy-matches a msgid that short
+          # against any sentence that happens to end in it. `Calendar`, `Books`,
+          # `Notes` and `Settings` are labels this app already names: the
+          # entries exist with one Persian word each, and a bare `gettext/1`
+          # joins them rather than opening a second entry for the same word.
+          # `Photos` is new and still needs no context — no sentence in the
+          # catalogue ends in it.
+          %{
+            label: pgettext("an app icon on the home screen", "Play"),
+            icon: "play_arrow",
+            badge: nil
+          }
         ],
         [
-          %{label: "Books", icon: "menu_book", badge: nil},
-          %{label: "Fit", icon: "fitness_center", badge: nil},
-          %{label: "Notes", icon: "sticky_note_2", badge: nil},
-          %{label: "Settings", icon: "settings", badge: nil}
+          %{label: gettext("Books"), icon: "menu_book", badge: nil},
+          %{
+            label: pgettext("an app icon on the home screen", "Fit"),
+            icon: "fitness_center",
+            badge: nil
+          },
+          %{label: gettext("Notes"), icon: "sticky_note_2", badge: nil},
+          %{label: gettext("Settings"), icon: "settings", badge: nil}
         ]
       ],
-      search: "Search"
+      search: gettext("Search")
     }
   end
 
@@ -307,6 +395,11 @@ defmodule Kati.Screens.MarkAndroid do
   floating chrome surface with the wallpaper showing faintly through*, which is
   what a widget is. `Palette.card/1` would be the same ivory made opaque, which
   loses the one thing the alpha is saying.
+
+  The headline's `-0.02` tracking goes through `Kati.Locale.tracking/1`, which
+  answers 0 under `:fa`. Negative tracking on a Latin display line is what keeps
+  a bold 15pt sentence tight; on Arabic script it pulls the letters of a word
+  past the joins that make it one word, so قسمت comes apart into four shapes.
   """
   @spec widget(map()) :: map()
   def widget(w) do
@@ -324,7 +417,7 @@ defmodule Kati.Screens.MarkAndroid do
         text={w.headline}
         text_size={15}
         font_weight="bold"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={Kati.Theme.Palette.ink(:light)}
         max_lines={1}
       />
@@ -346,6 +439,37 @@ defmodule Kati.Screens.MarkAndroid do
   with `text-transform: uppercase` rather than typing capitals — the same
   distinction `Kati.Screens.Widgets` records for its own tile captions, landing
   the other way round.
+
+  ## `String.upcase/1` and **not** `Kati.UI.eyebrow_label/1`
+
+  Which is the opposite of what mishka-group/kati#103 asked of every other
+  eyebrow in the app, and the same exception `Kati.Screens.LaunchScreen`'s
+  `line_name/0` makes for `LADDER`. That helper leaves a Persian label's case
+  alone because Persian has none — right for an eyebrow whose words are
+  translated, and wrong for one whose word is a name. This eyebrow is the
+  mark's name, it is `Kati` in both scripts, and passing it through
+  `eyebrow_label/1` would draw `KATI` on the English page and `Kati` on the
+  Persian one: one product spelled two ways rather than one label cased two
+  ways.
+
+  `font_family="mono"` and the bare `letter_spacing` stay pinned for the same
+  reason and not by omission. DM Mono carries no Persian glyph and this word can
+  never be Persian, so `Kati.Locale.mono_face/1` has nothing to decide; tracking
+  is dropped where it would break the joins between Arabic letters, and `KATI`
+  has none to break under either locale.
+
+  The **date** opposite it is the other half of that rule and goes the other
+  way. It is Shamsi under `:fa` — یکشنبه ۲۵ مرداد ۱۴۰۵ — so its face is asked of
+  the string rather than pinned, or a Persian month name would be handed to DM
+  Mono and come back in whatever face Android substitutes, beside a widget set
+  in Vazirmatn. `Kati.Locale.mono_face/1` answers `mono` for the English `Sun 16
+  Aug`, which is the line the drawing draws.
+
+  `:long` in both, which is the style that carries the year in Shamsi and drops
+  it in Latin — `Kati.Locale.date/2` states that asymmetry and it is a property
+  of the calendars rather than of this widget: a Persian reader does not know
+  ۱۴۰۵ by heart the way a Latin one knows 2026. The header has the room; the
+  weighted `Spacer` before the date gives whatever is left to it.
   """
   @spec widget_header(map()) :: map()
   def widget_header(w) do
@@ -366,7 +490,7 @@ defmodule Kati.Screens.MarkAndroid do
       <Spacer weight={1.0} />
       <Text
         text={w.date}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(w.date)}
         text_size={10}
         text_color={Kati.Theme.Palette.tertiary(:light)}
         max_lines={1}
@@ -407,10 +531,33 @@ defmodule Kati.Screens.MarkAndroid do
   `Palette.bronze/0`, the token the table already reserves for *meals, money*.
   Two rails of one colour would say the two halves are the same kind of thing,
   and the caption says they are not.
+
+  ## The time is converted here, and the title is not
+
+  `Kati.Locale.number/1` on `row.time` at the RENDER site rather than where each
+  row is built, because the two rows are built in two different modules. The
+  meal is this screen's and comes through `Kati.Locale.time/1` already; the
+  airing row is `Kati.Screens.Lock.Sample.today/0`'s, which is not folded yet
+  and answers `20:00` in Latin digits in either language. Two times four points
+  apart in one widget, one of them `۱۹:۳۰` and the other `20:00`, is the kind of
+  disagreement the moduledoc says a single photograph of a single device must
+  not have — and asking again about a string that is already Persian costs
+  nothing, since `number/1` has no Latin digit left to convert.
+
+  The row's **title** is left exactly as it arrives. `6 episodes air` is 29's
+  copy and 29's msgid to add; translating it here would give one evening two
+  catalogue entries that could then disagree about the same sentence. It reads
+  English on the Persian page until screen 29 folds, and that is the honest
+  state of it.
+
+  The face follows the converted string rather than the locale, so the English
+  `20:00` stays in DM Mono and `۱۹:۳۰` — which DM Mono has no glyph for — does
+  not.
   """
   @spec widget_row(map()) :: map()
   def widget_row(row) do
     rail = rail_color(row.kind)
+    time = Kati.Locale.number(row.time)
 
     ~MOB"""
     <Row weight={1.0} align="center">
@@ -418,8 +565,8 @@ defmodule Kati.Screens.MarkAndroid do
       <Spacer size={8} />
       <Column weight={1.0}>
         <Text
-          text={row.time}
-          font_family="mono"
+          text={time}
+          font_family={Kati.Locale.mono_face(time)}
           text_size={9.5}
           text_color={Kati.Theme.Palette.muted(:light)}
           max_lines={1}
@@ -481,6 +628,14 @@ defmodule Kati.Screens.MarkAndroid do
   moduledoc: the shadow cannot be drawn, these eight labels sit in the band 29's
   scrim deliberately leaves alone, and the six points of alpha are what pays for
   that.
+
+  The `Box` stays 60 wide and the label stays at `max_lines={1}` now that seven
+  of the eight names are translated, which is the launcher's own behaviour and
+  not an oversight: an icon's name is clipped to its tile on a real home screen
+  rather than allowed to grow into its neighbour, and the grid here is
+  `space-between` with no slack to give. The Persian names were chosen to fit
+  that 60 — تقویم, عکس‌ها, کتاب‌ها, تنظیمات — and `Kati` is four Latin letters in
+  either language.
   """
   @spec app(map()) :: map()
   def app(app) do
@@ -561,6 +716,14 @@ defmodule Kati.Screens.MarkAndroid do
   merge into a warm photograph. The count itself is `Palette.on_ink/1` at the
   light literal, which is the ivory the table reserves for a label on a filled
   control; orange is a fill like any other here.
+
+  The count arrives already in the reader's digits — `home/0` puts it and the
+  headline through `Kati.Locale.number/1` together, since a badge reading `3`
+  beside a sentence reading ۳ is the contradiction this screen went to the
+  trouble of formatting one from the other to avoid. The face is then asked of
+  the string: `kati_mono.ttf` carries none of U+06F0–U+06F9, so ۳ requested in
+  DM Mono comes back in Android's own substitute face. Same pair in the same
+  order as `Kati.Screens.Day.chip_count/2`.
   """
   @spec badge(String.t()) :: map()
   def badge(count) do
@@ -577,7 +740,7 @@ defmodule Kati.Screens.MarkAndroid do
     >
       <Text
         text={count}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(count)}
         text_size={10}
         font_weight="medium"
         text_color={Kati.Theme.Palette.on_ink(:light)}

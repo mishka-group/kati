@@ -38,6 +38,16 @@ defmodule Kati.Screens.GoalsEmpty do
   interpolation has already happened and `34 books` is one `Text` like any
   other, so taking the noun from the table no longer buys a false report.
 
+  The second line of each row is composed the same way, and that is what
+  mishka-group/kati#103 moved here. `11,480 pages this year` is
+  `Kati.Goals.Goal`'s own period phrase over `Goal.unit(:pages)` — the one that
+  builds 104's `52 books this year` — and `312h 40m` and `61h` are the
+  `%{h}h %{m}m` and `%{n}h` runtimes eight other screens already ask the
+  catalogue for. So a Persian reader gets «۱۱,۴۸۰ صفحه امسال» without this
+  board inventing a second word for a page or an hour, and the English renders
+  the drawing's own three strings to the byte. See `detail/1` for why they
+  could not stay in `@counted`.
+
   ## Every figure is the drawing's, and that is a compromise rather than a rule
 
   Worth naming as one, because a list whose whole job is to support a claim is
@@ -103,6 +113,7 @@ defmodule Kati.Screens.GoalsEmpty do
   """
 
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Goals.Goal
@@ -110,16 +121,24 @@ defmodule Kati.Screens.GoalsEmpty do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  # The three media the list names, as `{kind, count, detail, glyph, tag}`.
+  # The three media the list names, as `{kind, count, glyph, tag}`.
   #
   # The first element is a `Kati.Goals.Goal` kind rather than a label, which is
   # what makes `counted/0` able to ask for the noun instead of writing one. The
-  # count and the detail line are the drawing's copy — see the moduledoc for why
-  # neither is read, and for what has to exist before they can be.
+  # count is the drawing's copy — see the moduledoc for why it is not read, and
+  # for what has to exist before it can be.
+  #
+  # The detail line USED to be a fifth element here and is `detail/1` now. It
+  # had to move: a `gettext/1` inside a module attribute is evaluated once, at
+  # COMPILE time, in whatever locale the compiler happened to be in, so a
+  # sentence translated in place here would ship in one language whichever the
+  # reader chose. `Kati.Goals.Goal.unit/1`'s doc states the same rule about
+  # `@kinds`, and for the same reason keeps its English in the table and its
+  # words in function clauses.
   @counted [
-    {:books, "34", "11,480 pages this year", "menu_book", :open_books},
-    {:films, "84", "312h 40m watched", "movie", :open_films},
-    {:albums, "418", "61h listened", "graphic_eq", :open_albums}
+    {:books, "34", "menu_book", :open_books},
+    {:films, "84", "movie", :open_films},
+    {:albums, "418", "graphic_eq", :open_albums}
   ]
 
   @doc """
@@ -129,16 +148,59 @@ defmodule Kati.Screens.GoalsEmpty do
   `Kati.Goals.Goal.kinds/0` without a device. It is also the one part of this
   board that changes when Books and Music can answer *this year*, and the change
   is meant to land here rather than in the markup below it.
+
+  Pure, but no longer locale-free: both lines of every row go through
+  `Kati.Gettext` and `Kati.Locale`, so a caller asserting against this gets the
+  language its own process is in. That is what `Kati.Locale.as/2` is for.
   """
   @spec counted() :: [map()]
   def counted do
-    Enum.map(@counted, fn {kind, count, detail, glyph, tag} ->
+    Enum.map(@counted, fn {kind, count, glyph, tag} ->
       # `Kati.Locale.number/1` because `Goal.unit/1` answers «کتاب» under `:fa`
-      # and `52 کتاب` would be one word in each script.
+      # and `34 کتاب` would be one word in each script.
       title = "#{Kati.Locale.number(count)} #{Goal.unit(kind)}"
 
-      %{title: title, detail: detail, glyph: glyph, tag: tag}
+      %{title: title, detail: detail(kind), glyph: glyph, tag: tag}
     end)
+  end
+
+  # A row's second line, at the drawing's own figures and in the reader's own
+  # words and digits.
+  #
+  # Every part of every one of these is already in the catalogue, which is the
+  # point — see the moduledoc. `%{count} %{unit} this year` is
+  # `Kati.Goals.Goal.title/1`'s yearly phrase, so the books row says *this
+  # year* in whatever way the reader's language says it (Persian puts امسال
+  # where English puts two words at the end) rather than having a Latin-ordered
+  # sentence translated a word at a time. `%{h}h %{m}m` and `%{n}h` are the
+  # durations eight other screens ask for, and they carry the units with them:
+  # `312h 40m` was two Latin letters glued to two Latin numbers, which is the
+  # defect `Kati.Screens.Stats.hours_and_minutes/1` names on board 61.
+  #
+  # `Goal.unit(:pages)` rather than the word *pages*, for the reason the
+  # moduledoc gives about the titles: nothing may appear on this list that you
+  # could not then set a goal for, and `pages` is one of the ten kinds screen
+  # 106 offers.
+  #
+  # The figures themselves are still the drawing's rather than reads — the
+  # moduledoc's *Every figure is the drawing's* says which of the three could
+  # be answered today and why one live row beside two fixtures would be worse
+  # than three fixtures.
+  defp detail(:books) do
+    gettext("%{count} %{unit} this year",
+      count: Kati.Locale.number("11,480"),
+      unit: Goal.unit(:pages)
+    )
+  end
+
+  defp detail(:films) do
+    gettext("%{hours} watched",
+      hours: gettext("%{h}h %{m}m", h: Kati.Locale.number(312), m: Kati.Locale.number(40))
+    )
+  end
+
+  defp detail(:albums) do
+    gettext("%{hours} listened", hours: gettext("%{n}h", n: Kati.Locale.number(61)))
   end
 
   @doc false
@@ -156,7 +218,7 @@ defmodule Kati.Screens.GoalsEmpty do
         {SettingsList.chrome(nil, 44)}
         {Kati.Screens.GoalsEmpty.title()}
         {Kati.Screens.GoalsEmpty.invitation()}
-        {SettingsList.eyebrow_muted("What Kati counts anyway")}
+        {SettingsList.eyebrow_muted(gettext("What Kati counts anyway"))}
         {Kati.Screens.GoalsEmpty.counted_list(Kati.Screens.GoalsEmpty.counted())}
       </Column>
     </Scroll>
@@ -171,18 +233,29 @@ defmodule Kati.Screens.GoalsEmpty do
   see the moduledoc. Every other number is 104's exactly, `max_font_scale`
   included, because the two boards are the same page and a title that changed
   size between them would read as a different screen.
+
+  The tracking is 104's too, by way of `Kati.UI.SettingsList.title_text/1`:
+  `Kati.Locale.tracking/1` keeps the drawing's -0.03em in Latin and drops it to
+  zero in Persian, where letter spacing does not tighten a heading, it breaks
+  the joins between the letters of one.
+
+  `max_lines={1}` is the one prop `title_text/1` does not carry, and it is not
+  a number that could disagree with 104: it is a guard on a heading whose
+  Persian is a different length from its English, so a page title can never
+  become two lines and push the card under it down the board.
   """
   @spec title() :: map()
   def title do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Goals"
+        text={gettext("Goals")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
+        max_lines={1}
       />
       <Spacer size={20} />
     </Column>
@@ -204,6 +277,14 @@ defmodule Kati.Screens.GoalsEmpty do
   the inner block, and it is the reason the card stands taller than its own
   padding: the heading needs room to read as a statement rather than as a label
   on a control.
+
+  Neither sentence in here takes a `max_lines`, unlike `title/0`'s heading and
+  `set_a_goal/0`'s label. Both are meant to wrap — the card has no fixed height
+  and the moduledoc's last section is about how they wrap, not whether — so a
+  cap would truncate the one thing on this board that is protected. The
+  paragraph's leading goes through `Kati.Locale.leading/1` for the same reason
+  it wraps freely: Vazirmatn's metrics are not Plus Jakarta's, and 1.55 set
+  against the Latin drawing crowds the Persian one.
   """
   @spec invitation() :: map()
   def invitation do
@@ -224,18 +305,18 @@ defmodule Kati.Screens.GoalsEmpty do
         </Row>
         <Spacer size={18} />
         <Text
-          text="No goals. Kati will still count everything."
+          text={gettext("No goals. Kati will still count everything.")}
           text_size={17}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_align="center"
           text_color={:on_surface}
         />
         <Spacer size={9} />
         <Text
-          text="A goal only decides what gets a progress bar. Nothing is lost by not setting one."
+          text={gettext("A goal only decides what gets a progress bar. Nothing is lost by not setting one.")}
           text_size={13}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_align="center"
           text_color={Palette.sub()}
         />
@@ -243,7 +324,7 @@ defmodule Kati.Screens.GoalsEmpty do
         {Kati.Screens.GoalsEmpty.set_a_goal()}
         <Spacer size={15} />
         <Text
-          text="or see what Kati already counts"
+          text={gettext("or see what Kati already counts")}
           text_size={12.5}
           font_weight="semibold"
           text_align="center"
@@ -308,7 +389,7 @@ defmodule Kati.Screens.GoalsEmpty do
       on_tap={{self(), :add}}
     >
       <Text
-        text="Set a goal"
+        text={gettext("Set a goal")}
         text_size={14.5}
         font_weight="bold"
         text_color={Palette.on_ink()}

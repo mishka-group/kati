@@ -51,6 +51,29 @@ defmodule Kati.Screens.Habits do
   inventing a weekday mapping the drawing does not carry. A toggle therefore
   moves the button, the streak line and the header — and leaves the week alone.
 
+  ## The same screen in both scripts
+
+  mishka-group/kati#103. Everything this screen prints is either a count it
+  derives or a string `Kati.Habits.Sample` holds, so the fold lands in two
+  places and nowhere else:
+
+    * **`habit_name/1` is a vocabulary with a fall-through.** The drawing's four
+      names and `add_habit/1`'s fifth are keys; anything else is returned
+      untouched, because the day this screen gets its habits off a
+      `Kati.Calendars.Event` those names are the reader's own words and running
+      them through a catalogue would be the worst kind of translation.
+      `Kati.Screens.Plans.saved_meta/1` is the same shape for the same reason.
+    * **`week_ruler/0` is PICKED, not translated.** `M T W T F S S` and
+      `ش ی د س چ پ ج` are seven columns each of a *different* seven days — a
+      Persian week opens on شنبه — so a catalogue pairing `M` with `ش` would
+      quietly move every tick two days. `Kati.Meals.SamplePlan.columns/0`
+      carries the long version of that argument and this follows it.
+
+  The numbers all go through `Kati.Locale.number/1`, so `12 days` is `۱۲ روز`
+  rather than Persian words around Latin figures, and the caption's month is
+  named out of a `Date` rather than the word *May*: the field's last month is
+  اردیبهشت on a Persian page, which no arithmetic on the number 5 produces.
+
   ## Why this screen is still on `Kati.Habits.Sample`
 
   It is not an oversight and it is not a stage to be passed through quietly:
@@ -84,6 +107,7 @@ defmodule Kati.Screens.Habits do
   per-day completion — not a column.
   """
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Habits.Sample
   alias Kati.Theme.Palette
@@ -95,6 +119,13 @@ defmodule Kati.Screens.Habits do
   @doc false
   def content(assigns) do
     habits = assigns.habits
+
+    # The field names its own window in its own eyebrow, and the window is
+    # interpolated rather than written into the sentence so the reader meets it
+    # in their own digits — `ثبات · ۱۳ هفته`. Thirteen is still the fixture's
+    # own count: `Kati.Habits.Sample.consistency/0` is 91 cells. The msgid is
+    # `Kati.Screens.Nutrition`'s, whose field is twelve weeks of the same shape.
+    consistency = gettext("Consistency · %{n} weeks", n: Kati.Locale.number(13))
 
     ~MOB"""
     <Scroll>
@@ -108,7 +139,7 @@ defmodule Kati.Screens.Habits do
         {Kati.Screens.Habits.back_gap()}
         {Kati.Screens.Habits.header(habits)}
         {Kati.Screens.Habits.cards(habits)}
-        {UI.eyebrow("Consistency · 13 weeks")}
+        {UI.eyebrow(consistency)}
         {Kati.Screens.Habits.consistency()}
       </Column>
     </Scroll>
@@ -124,22 +155,31 @@ defmodule Kati.Screens.Habits do
   def header(habits) do
     subtitle = subtitle(habits)
 
+    # `tracking/1` on the 28pt title and `max_lines={1}` under it: the design
+    # tightens its headings by a fraction of an em, which breaks the joins
+    # between Persian letters, and عادت‌ها is a longer word than *Habits* on a
+    # line that had nothing stopping it wrapping. `mono_face/1` rather than
+    # `/0` on the subtitle for the reason `Kati.Screens.Accessibility` records:
+    # `kati_mono.ttf` carries no Persian glyph and none of U+06F0–U+06F9, so a
+    # Persian line in `mono` is handed to Android's own substitute face — while
+    # a subtitle still falling back to its English msgid keeps DM Mono.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Habits"
+            text={gettext("Habits")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={subtitle}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(subtitle)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -218,6 +258,14 @@ defmodule Kati.Screens.Habits do
   def card(habit, index) do
     streak = streak_line(habit)
 
+    # The name is translated HERE rather than in `adopt/1`, so the list holds
+    # one canonical string per habit whatever script it is being drawn in.
+    # `add_habit/1` puts `New habit` into that list and `toggle_today/2`
+    # rewrites a row of it, so a locale changed between two taps would
+    # otherwise leave half the stack in the language it was mounted in.
+    name = habit_name(habit.name)
+    ruler = week_ruler()
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -229,17 +277,17 @@ defmodule Kati.Screens.Habits do
       <Row fill_width={true} align="center">
         <Column weight={1.0}>
           <Text
-            text={habit.name}
+            text={name}
             text_size={14}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={4} />
           <Text
             text={streak}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(streak)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -253,10 +301,10 @@ defmodule Kati.Screens.Habits do
         {Kati.Screens.Habits.week(habit.days)}
         <Spacer weight={1.0} />
         <Text
-          text={Kati.Habits.Sample.week_ruler()}
-          font_family="mono"
+          text={ruler}
+          font_family={Kati.Locale.mono_face(ruler)}
           text_size={9.5}
-          letter_spacing={0.08}
+          letter_spacing={Kati.Locale.tracking(0.08)}
           text_color={Palette.rail_idle()}
           max_lines={1}
         />
@@ -335,6 +383,26 @@ defmodule Kati.Screens.Habits do
   @doc false
   def day_gap, do: ~MOB"<Spacer size={5} />"
 
+  @doc """
+  The seven letters opposite a habit's week.
+
+  `Kati.Locale.pick/2` and **not** a msgid, which is the one decision in this
+  file a catalogue would have got wrong. `M T W T F S S` and `ش ی د س چ پ ج`
+  are not one ruler translated: an English week opens on Monday and a Persian
+  week on شنبه — board 137 makes that follow the language rather than a setting
+  of its own — so they are seven columns each of a *different* seven days.
+  Pairing `M` with `ش` in `default.po` would have moved every tick in the card
+  two days to the left and left the squares looking perfectly correct.
+  `Kati.Meals.SamplePlan.columns/0` made the same call for screen 44's grid and
+  writes the argument out in full.
+
+  The Latin side stays `Kati.Habits.Sample.week_ruler/0`'s, because it is the
+  export's own string and the export is what this screen reproduces; only the
+  half the drawing does not have is written here.
+  """
+  @spec week_ruler() :: String.t()
+  def week_ruler, do: Kati.Locale.pick(Sample.week_ruler(), "ش ی د س چ پ ج")
+
   # `0xFFFBFAF8` LEFT AS A LITERAL, for the reason `today_button/2` records: the
   # ground under this tick is `Kati.Habits.Sample.day_tone/1` — green, bronze or
   # the lapsed grey — and none of the three follows the mode, so the tick must
@@ -359,7 +427,9 @@ defmodule Kati.Screens.Habits do
   @doc false
   def consistency do
     rows = Sample.consistency() |> Enum.chunk_every(27)
-    {month, hit} = Sample.consistency_caption()
+    {drawn_month, drawn_hit} = Sample.consistency_caption()
+    month = caption_month(drawn_month)
+    hit = caption_hit(drawn_hit)
 
     ~MOB"""
     <Column
@@ -374,7 +444,7 @@ defmodule Kati.Screens.Habits do
       <Row fill_width={true} align="center">
         <Text
           text={month}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(month)}
           text_size={10}
           text_color={Palette.cream_meta()}
           max_lines={1}
@@ -382,7 +452,7 @@ defmodule Kati.Screens.Habits do
         <Spacer weight={1.0} />
         <Text
           text={hit}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(hit)}
           text_size={10}
           text_color={Palette.cream_meta()}
           max_lines={1}
@@ -488,13 +558,26 @@ defmodule Kati.Screens.Habits do
   def streak_days(%{base: base, today: true}), do: base + 1
   def streak_days(%{base: base, today: false}), do: base
 
-  @doc "That number as the card's mono line — the export's only two forms."
+  @doc """
+  That number as the card's mono line — the export's only two forms.
+
+  Two clauses rather than three now: `ngettext/4` is what chooses between
+  `1 day` and `12 days`, so the singular is no longer a case this function has
+  to remember. Persian does not inflect a noun after a numeral — `۱ روز` and
+  `۱۲ روز` — so the catalogue's two forms are one word.
+
+  `broken` takes a CONTEXT because it is one word. `mix gettext.merge`
+  fuzzy-matches a short msgid against any sentence that ends in something like
+  it, and this screen's `broken` is a streak that LAPSED rather than anything
+  that failed — `Kati.Screens.HomeOmittedSections`'s *"an empty row says
+  something is broken"* is a different word in Persian and must not be able to
+  claim this one.
+  """
   @spec streak_line(map()) :: String.t()
   def streak_line(habit) do
     case streak_days(habit) do
-      0 -> "broken"
-      1 -> "1 day"
-      n -> Integer.to_string(n) <> " days"
+      0 -> pgettext("a habit's streak, lapsed", "broken")
+      n -> ngettext("%{n} day", "%{n} days", n, n: Kati.Locale.number(n))
     end
   end
 
@@ -505,14 +588,76 @@ defmodule Kati.Screens.Habits do
   exactly what it cannot stay: pressing `+` moves the count and unticking the
   first card moves the best, and a constant would keep printing `4 active ·
   12-day best` over a screen showing neither.
+
+  Both numbers are interpolated rather than concatenated, so the reader meets
+  them in their own digits and the sentence can put them where Persian puts
+  them: `۴ فعال · بهترین رشته ۱۲ روز`.
   """
   @spec subtitle([map()]) :: String.t()
   def subtitle(habits) do
     best = habits |> Enum.map(&streak_days/1) |> Enum.max(fn -> 0 end)
 
-    Integer.to_string(length(habits)) <>
-      " active · " <> Integer.to_string(best) <> "-day best"
+    gettext("%{count} active · %{n}-day best",
+      count: Kati.Locale.number(length(habits)),
+      n: Kati.Locale.number(best)
+    )
   end
+
+  # ── The drawing's own strings, in the reader's language ───────────────────
+
+  # May, as a DATE rather than as the number 5 or the word. The caption names
+  # the month the 13-week field ends in, and 1 May 2026 falls in اردیبهشت — no
+  # arithmetic on 5 produces that, and `Kati.Locale.month_name/2`'s own doc is
+  # where the rule is written. Only which month contains the date matters, so
+  # the first of the drawing's month is enough.
+  @caption_month ~D[2026-05-01]
+
+  @doc """
+  A habit's name in the reader's language, when it is one of the drawing's.
+
+  A vocabulary with a fall-through, the shape `Kati.Screens.Plans.saved_meta/1`
+  uses: the fixture's own English is the key, and anything that is not one of
+  the five strings this screen can produce comes back untouched. That last
+  clause is the important one. The day `Kati.Calendars.Event` supplies these
+  names — the moduledoc's whole argument is that half of a habit is already
+  modelled — they are the reader's own words, and a catalogue is exactly the
+  wrong thing to put a person's own writing through.
+
+  The numbers inside a name are interpolated for the same reason the counts
+  are, so `Read 20 pages` is `خواندن ۲۰ صفحه` and the time in `No screens after
+  23:00` is `Kati.Locale.time/1`'s rather than two digits with a colon.
+  """
+  @spec habit_name(String.t()) :: String.t()
+  def habit_name("Morning run"), do: gettext("Morning run")
+
+  def habit_name("Read 20 pages"),
+    do: ngettext("Read %{n} page", "Read %{n} pages", 20, n: Kati.Locale.number(20))
+
+  def habit_name("No screens after 23:00"),
+    do: gettext("No screens after %{time}", time: Kati.Locale.time(~T[23:00:00]))
+
+  def habit_name("Water the plants"), do: gettext("Water the plants")
+  def habit_name("New habit"), do: gettext("New habit")
+  def habit_name(other), do: other
+
+  @doc "The month under the consistency field, named in the reader's calendar."
+  @spec caption_month(String.t()) :: String.t()
+  def caption_month("May"), do: Kati.Locale.month_name(@caption_month, :long)
+  def caption_month(other), do: other
+
+  @doc """
+  The hit rate under the consistency field.
+
+  84 stays the drawing's own figure and is not counted off
+  `Kati.Habits.Sample.consistency/0` — 91 cells in four tones, none of which is
+  a missed day, so nothing in the fixture adds up to 84% of anything. It is the
+  export's number, on a screen whose every number is the export's; the
+  moduledoc says why that is the whole screen's position rather than this
+  line's.
+  """
+  @spec caption_hit(String.t()) :: String.t()
+  def caption_hit("84% of days hit"), do: gettext("%{n}% of days hit", n: Kati.Locale.number(84))
+  def caption_hit(other), do: other
 
   # The seam. `Kati.Habits.Sample` stores a habit's streak the way the drawing
   # prints it, which is fine for a still picture and useless to a tap; this
@@ -520,6 +665,15 @@ defmodule Kati.Screens.Habits do
   # there. `Integer.parse/1` rather than `String.to_integer/1` because "broken"
   # is one of the sample's own values and a raise here happens in `mount/3`,
   # outside the tap rescue, where it would take the whole screen down.
+  #
+  # **The `:streak` strings in `Kati.Habits.Sample.habits/0` must stay Latin**,
+  # and that is this seam's one condition. `Integer.parse("۱۲ روز")` answers
+  # `:error`, which this reads as 0 — so a fixture whose streaks had been
+  # translated would draw four lapsed habits under a `0-day best`, in correct
+  # Persian, with nothing raising. Nothing in the sample is rendered as it is
+  # stored any more: the name goes through `habit_name/1` and the streak is
+  # recomputed by `streak_line/1`, so those strings are KEYS and a number now
+  # rather than copy, and translating them is what would break them.
   defp adopt(habit) do
     today = habit.today
 

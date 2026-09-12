@@ -121,12 +121,33 @@ defmodule Kati.Screens.WeightStates do
   `Kati.Screens.Root.rescue_tap/3` has no dead tag to report, and the footnote
   naming screen 54 is text rather than a link for the same reason: a sheet that
   navigated would be acting on a state the app is not in.
+
+  ## What the unit band keeps in Latin, and why only there
+
+  `kg`, `lb` and `st` stay Latin in the three tiles, and they are the one thing
+  on this sheet that does not fold. Two reasons point the same way. The tile is
+  30 square at `Kati.UI.SettingsList.icon_tile/1`'s own geometry, and
+  **کیلوگرم** is seven letters at 11pt in a box built to hold two — it does not
+  fit, and widening it would redraw the row every other settings group shares.
+  And `Kati.Health.Reading.figure/2` prints a stone as `11st 13.6`, with the
+  unit inside the numeral and no msgid reaching that file, so a tile reading
+  **کیلوگرم** over a value ending `11st` would spell one band's units two ways
+  on one card. `Kati.Screens.LogWeight.unit_word/1` already makes exactly that
+  argument for keeping `st` Latin on screen 111's switch; this applies it to
+  all three, because here all three are read as a column.
+
+  The hero's unit is a different slot and does take the word.
+  `weight_figure/2` is the node board 115 draws as **۷۶٫۰ کیلوگرم** — a figure
+  with its unit on the baseline, which is copy rather than a chip — so it asks
+  `unit_word/1` and the two boards agree about what a kilogram is called.
   """
 
   use Kati.Screens.Pushed, back: "Health"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Health.Reading
   alias Kati.Health.WeightSample
+  alias Kati.Screens.LogWeight
   alias Kati.Screens.Weight
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -168,6 +189,15 @@ defmodule Kati.Screens.WeightStates do
   def content(assigns) do
     g = assigns.grams
 
+    # `SIX STATES` is the drawing's word raised, not a word written in capitals:
+    # the board sets it upper-case where the five eyebrows under it get the same
+    # effect from `text-transform`. `Kati.UI.eyebrow_label/1` is that effect —
+    # `String.upcase/1` in Latin and nothing at all in a script with no raised
+    # form — so the catalogue keeps one entry, `six states`, which
+    # `Kati.Screens.BookDetailStates` already put there for its own six.
+    # Upper-casing Persian is a no-op that reads as one.
+    subtitle = UI.eyebrow_label(gettext("six states"))
+
     ~MOB"""
     <Scroll>
       <Column
@@ -178,17 +208,17 @@ defmodule Kati.Screens.WeightStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Weight", "SIX STATES")}
-        {UI.eyebrow("No entries")}
+        {SettingsList.title(gettext("Weight"), subtitle)}
+        {UI.eyebrow(gettext("No entries"))}
         {Kati.Screens.WeightStates.empty()}
-        {SettingsList.eyebrow_muted("One entry — no trend, said in words")}
+        {SettingsList.eyebrow_muted(gettext("One entry — no trend, said in words"))}
         {Kati.Screens.WeightStates.one_entry(g)}
-        {SettingsList.eyebrow_muted("A gap in the data")}
+        {SettingsList.eyebrow_muted(gettext("A gap in the data"))}
         {Kati.Screens.WeightStates.gap_chart()}
-        {SettingsList.eyebrow_muted("Unit switched")}
+        {SettingsList.eyebrow_muted(gettext("Unit switched"))}
         {Kati.Screens.WeightStates.units(g)}
         {Kati.Screens.WeightStates.units_note()}
-        {SettingsList.eyebrow_muted("Dark")}
+        {SettingsList.eyebrow_muted(gettext("Dark"))}
         {Kati.Screens.WeightStates.dark(g)}
       </Column>
     </Scroll>
@@ -229,18 +259,18 @@ defmodule Kati.Screens.WeightStates do
         </Row>
         <Spacer size={14} />
         <Text
-          text="Nothing logged yet"
+          text={gettext("Nothing logged yet")}
           text_size={14.5}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
-          text="One reading starts the record. Two make a trend."
+          text={gettext("One reading starts the record. Two make a trend.")}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -254,7 +284,7 @@ defmodule Kati.Screens.WeightStates do
         >
           <Spacer weight={1.0} />
           <Text
-            text="Log a weight"
+            text={gettext("Log a weight")}
             text_size={13}
             font_weight="bold"
             text_color={Palette.on_ink()}
@@ -313,20 +343,40 @@ defmodule Kati.Screens.WeightStates do
   first guess and is what these two size pairs want: `align="bottom"` bottoms
   out text *boxes*, and a small unit beside a big number lands below the
   number's baseline by roughly a fifth of the difference between them.
+
+  The number and the word take ONE face between them, because they are one
+  value: `Kati.Locale.mono_face/0` answers DM Mono to a Latin reader and
+  Vazirmatn at the mono size to a Persian one, which is the only way the digits
+  render at all — `kati_mono.ttf` carries none of U+06F0–U+06F9, and a figure
+  pinned to `mono` under `:fa` is handed to Android's own fallback face.
+  `Kati.PersianFontTest` is the sweep that keeps that found.
+
+  The tightening goes with the face. `Kati.Locale.tracking/1` gives the numeral
+  the design's −3% in Latin and nothing in Persian, which is board 115's own
+  arrangement read one step further: 115 sets its unit word at
+  `letter-spacing:0` beside a numeral it still tightens, because the tightening
+  is a property of the typeface being tightened and Vazirmatn is not drawn for
+  it. Three per cent of four digits is nobody's typography either way; what
+  matters is that the page has one answer for it.
   """
   @spec weight_figure(pos_integer(), :light | :dark) :: map()
   def weight_figure(grams, mode) do
     {size, unit_size} = if mode == :dark, do: {26, 14}, else: {30, 15}
     # `@selected` cannot be written inside the sigil — `@` there is an assign.
     shown = @selected
+    face = Kati.Locale.mono_face()
+    # The hero's unit is a word — **کیلوگرم**, which is what board 115 draws
+    # over the same figure — rather than the tile's Latin symbol. See the
+    # moduledoc for why the unit band's three tiles keep theirs.
+    word = LogWeight.unit_word(shown)
 
     number = ~MOB"""
     <Text
-      text={Reading.figure(grams, shown)}
-      font_family="mono"
+      text={Kati.Screens.WeightStates.figure(grams, shown)}
+      font_family={face}
       text_size={size}
       font_weight="medium"
-      letter_spacing={-0.03}
+      letter_spacing={Kati.Locale.tracking(-0.03)}
       text_color={Palette.ink(mode)}
       max_lines={1}
     />
@@ -334,8 +384,8 @@ defmodule Kati.Screens.WeightStates do
 
     unit = ~MOB"""
     <Text
-      text={Reading.unit_label(shown)}
-      font_family="mono"
+      text={word}
+      font_family={face}
       text_size={unit_size}
       text_color={Palette.sub(mode)}
       max_lines={1}
@@ -343,6 +393,28 @@ defmodule Kati.Screens.WeightStates do
     """
 
     UI.number_with_unit(number, unit, (size - unit_size) / 5)
+  end
+
+  @doc """
+  The stored grams printed in one unit, in the digits the reader reads.
+
+  `Kati.Health.Reading.figure/2` is the arithmetic and answers Latin digits
+  around a Latin decimal point; no msgid reaches that file and none should, so
+  the typography is composed here — `Kati.Locale.number/1` for the numerals and
+  the U+066B decimal mark, which is what board 115 writes as **۷۶٫۰**.
+
+  The isolate is for the stone. `Reading.figure/2` prints one as `11st 13.6`:
+  two number runs with a Latin word between them, and in an RTL paragraph the
+  space separating them resolves to the paragraph's own direction while the
+  runs either side resolve to the opposite one — so the bidi algorithm lays
+  them out right to left and the card reads `13.6 11st`, the pounds before the
+  stones. `Kati.Locale.ltr/1` opens a run with its own direction and is a no-op
+  in Latin. Kilograms and pounds do not need it and take it anyway, so the
+  three rows of the unit band cannot be typeset three different ways.
+  """
+  @spec figure(pos_integer(), :kg | :lb | :st) :: String.t()
+  def figure(grams, unit) do
+    grams |> Reading.figure(unit) |> Kati.Locale.number() |> Kati.Locale.ltr()
   end
 
   @doc """
@@ -359,11 +431,23 @@ defmodule Kati.Screens.WeightStates do
   """
   @spec no_trend() :: map()
   def no_trend do
-    body = [text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      text_color: Palette.ink_soft()
+    ]
 
+    # One msgid per RUN rather than one for the sentence: `rich_text/1`
+    # concatenates, so a sentence held whole would have to carry its own
+    # emphasis markup, and the helper has no way to read it. The space between
+    # the two runs is outside both msgids — a msgid whose first character is a
+    # space is one a translator drops without noticing, and the em dash that
+    # opens the second is inside it, the way screen 111's
+    # `— there is nothing to compare it with yet.` already is.
     UI.rich_text([
-      {"One reading, so no trend yet", [font_weight: "bold", text_color: Palette.ink()]},
-      {" — a chart with a single point would be a flat line that means nothing.", body}
+      {gettext("One reading, so no trend yet"), [font_weight: "bold", text_color: Palette.ink()]},
+      {" " <> gettext("— a chart with a single point would be a flat line that means nothing."),
+       body}
     ])
   end
 
@@ -389,7 +473,9 @@ defmodule Kati.Screens.WeightStates do
       >
         {Kati.Screens.WeightStates.chart(:light)}
         <Spacer size={13} />
-        {Kati.Screens.WeightStates.info_line("Three weeks unlogged — outlined, never interpolated")}
+        {Kati.Screens.WeightStates.info_line(
+          gettext("Three weeks unlogged — outlined, never interpolated")
+        )}
       </Column>
       <Spacer size={22} />
     </Column>
@@ -554,6 +640,10 @@ defmodule Kati.Screens.WeightStates do
   belong to the card they sit under — they say what its picture means — so they
   are set at the drawing's smaller 11.5pt with no frame around them, the way
   109's own chart caption is.
+
+  The sentence arrives translated. A msgid has to be a literal where
+  `mix gettext.extract` can see it, so both callers hold their own `gettext/1`
+  and this draws whatever it is handed.
   """
   @spec info_line(String.t()) :: map()
   def info_line(text) do
@@ -561,7 +651,13 @@ defmodule Kati.Screens.WeightStates do
     <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
       {UI.symbol("info", size: 15, color: Palette.tertiary())}
       <Spacer size={9} />
-      <Text text={text} text_size={11.5} line_height={1.45} text_color={Palette.sub()} weight={1.0} />
+      <Text
+        text={text}
+        text_size={11.5}
+        line_height={Kati.Locale.leading(1.45)}
+        text_color={Palette.sub()}
+        weight={1.0}
+      />
     </Row>
     """
   end
@@ -616,18 +712,27 @@ defmodule Kati.Screens.WeightStates do
   read as units rather than as an abbreviation someone chose. So the tile is
   built here at the helper's own geometry: 30 square, radius 9, and the paper
   fill inverting to ink for the unit in force.
+
+  The word is `Kati.Health.Reading.unit_label/1` in both scripts, which is the
+  one place on this sheet that does not fold — the moduledoc argues it, and the
+  face follows from it rather than from the page: `Kati.Locale.mono_face/1`
+  asks the STRING's script, so a tile holding two ASCII letters stays in DM
+  Mono under `:fa` the way a provider's name does, and the day `unit_label/1`
+  ever answers **کیلوگرم** the tile takes Vazirmatn without anybody deciding
+  again.
   """
   @spec unit_tile(:kg | :lb | :st) :: map()
   def unit_tile(unit) do
     selected? = unit == @selected
     background = if selected?, do: Palette.ink_fill(), else: Palette.paper()
     colour = if selected?, do: Palette.on_ink(), else: Palette.ink_soft()
+    label = Reading.unit_label(unit)
 
     ~MOB"""
     <Box width={30} height={30} corner_radius={9} background={background} align="center">
       <Text
-        text={Reading.unit_label(unit)}
-        font_family="mono"
+        text={label}
+        font_family={Kati.Locale.mono_face(label)}
         text_size={11}
         text_color={colour}
         max_lines={1}
@@ -643,6 +748,11 @@ defmodule Kati.Screens.WeightStates do
   full ink and the other two recede to `Kati.Theme.Palette.sub/0`, which is how
   the row says *this is what you would see* without hiding what you would see
   instead.
+
+  `figure/2` here rather than `Reading.figure/2` directly: the arithmetic is the
+  resource's and the digits are the reader's, and that split is argued where
+  the wrapper lives. The face goes with them — a Persian numeral pinned to
+  `mono` has no glyph to be set in.
   """
   @spec unit_value(pos_integer(), :kg | :lb | :st) :: map()
   def unit_value(grams, unit) do
@@ -650,8 +760,8 @@ defmodule Kati.Screens.WeightStates do
 
     ~MOB"""
     <Text
-      text={Reading.figure(grams, unit)}
-      font_family="mono"
+      text={Kati.Screens.WeightStates.figure(grams, unit)}
+      font_family={Kati.Locale.mono_face()}
       text_size={13.5}
       text_color={colour}
       max_lines={1}
@@ -666,12 +776,19 @@ defmodule Kati.Screens.WeightStates do
   that pushed into Settings would be a fifth way to reach one screen — but more
   than that, a reference sheet whose footnotes navigated would be acting rather
   than describing.
+
+  The path travels inside the msgid, arrows and screen number and all. Both
+  rows it names are copy a translator has to match — `Content` is
+  `Kati.Screens.Language`'s **محتوا** and `Units` is its **واحدها** — and the
+  arrow has to turn round with the page, which is what
+  `Kati.Screens.DataSources`' own `themoviedb.org → …` line already does by
+  writing U+2190 in its Persian.
   """
   @spec units_note() :: map()
   def units_note do
     note =
       Kati.Screens.WeightStates.info_line(
-        "Follows 54 → Content → Units. Stored readings never change — only the display."
+        gettext("Follows 54 → Content → Units. Stored readings never change — only the display.")
       )
 
     ~MOB"""

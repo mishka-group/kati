@@ -90,10 +90,13 @@ defmodule Kati.Screens.MarkIos do
       typeface, same tracking, different ground — and a lock eyebrow borrowed
       onto paper would be invisible. `Kati.UI.eyebrow/2` is not it either: that
       always draws the 13x2 accent dash, and this line's leading mark is the
-      Kati glyph at 15pt. `KATI · TONIGHT` is `String.upcase/1` over the
+      Kati glyph at 15pt. `KATI · TONIGHT` is `Kati.UI.eyebrow_label/1` over the
       drawing's `Kati · tonight`, which is `text-transform` in the CSS and so a
       styling rather than the copy — the distinction `Kati.Screens.Widgets`
-      records for its own captions, which are capitals in the copy.
+      records for its own captions, which are capitals in the copy. The helper
+      and not `String.upcase/1`, because Persian has no case to raise; `widget/1`
+      has the full version of that, including why it lands the opposite way from
+      board 64's eyebrow.
     * 29's `today_row/1`, `small_widgets/2` and the pixel field have no
       counterpart here. The home widget is two columns split by a rule, where
       29's is two rows split by a time gutter; reusing the row builder would
@@ -173,6 +176,38 @@ defmodule Kati.Screens.MarkIos do
     * labels at 94% take `Palette.lock_ink/0` at 100%, which buys back a little
       of what the missing text shadow cost them.
 
+  ## What translates on somebody else's home screen, and what cannot
+
+  Seven of the eight tile labels do. `Calendar`, `Notes`, `Camera`, `Music`,
+  `Books`, `Health` and `Settings` are not brands — they are the furniture a
+  launcher ships with, and a Persian reader's phone names them تقویم, دوربین,
+  تنظیمات. Leaving them Latin under `:fa` would not be *respecting somebody
+  else's product name*; it would be drawing a home screen no Persian reader has
+  ever seen. Board 64 makes the same call for the same eight-tile grid and
+  argues it at length: the neighbours are furniture, so there is no brand among
+  them left to protect.
+
+  **`Kati` is the one word that does not**, and it appears twice — the first
+  tile's label and the widget's eyebrow. It is the mark's name, and board 127's
+  rule covers it: a product spelled one way in Latin and another in Persian is
+  one thing spelled twice. So it lives in `@app_name` and is *interpolated* into
+  the eyebrow rather than sitting inside its msgid, which is the one arrangement
+  a later pass over the catalogue cannot undo. `Kati.Screens.MarkAndroid` holds
+  the same word out of the same catalogue for the same reason.
+
+  The unread `3` goes the other way and is the reader's: `Kati.Locale.number/1`
+  in `grid/0`, ۳ on the Persian page, with the face asked of the result. A name
+  is the mark's and a count is the reader's, and this screen draws one of each
+  on the same tile.
+
+  The airing half of the widget is the one line that stays English, and it is
+  about ownership rather than about language: `6 episodes air` is
+  `Kati.Screens.Lock.Sample.today/0`'s copy and 29's msgid to add, and
+  translating it here would give one evening two catalogue entries that could
+  then disagree. Its *digits* are converted all the same — `widget_column/1` has
+  that argument in full. The meal half needs nothing: `Kati.Meals.SamplePlan`
+  folded already and answers in the reader's language and digits both.
+
   ## Where the grid starts
 
   The drawing insets its content by 74, which is iOS's status-bar clearance —
@@ -188,6 +223,7 @@ defmodule Kati.Screens.MarkIos do
   block needs to sit against. 29 records the same trap for its wallpaper.
   """
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Meals.SamplePlan
   alias Kati.Screens.Lock
@@ -198,10 +234,15 @@ defmodule Kati.Screens.MarkIos do
   # one of its numbers, so the whole figure scales from this one divisor.
   @view_box 240
 
-  # The drawing's copy, in the case the drawing types it. The capitals are
-  # `text-transform` in the CSS rather than the words themselves, so they are
-  # applied at the call site by `String.upcase/1`.
-  @eyebrow "Kati · tonight"
+  # Kati's own name, in Latin in both scripts, and one literal because this
+  # screen draws it twice — the first tile's label and the widget's eyebrow.
+  # Board 127's rule covers it: a product spelled one way in Latin and another
+  # in Persian is one thing spelled twice. Board 64 keeps the same word out of
+  # the catalogue for the same reason.
+  #
+  # An attribute is safe here where a `gettext/1` would not be: a plain string
+  # freezes nothing, and every call that reads the locale is in a function body.
+  @app_name "Kati"
 
   @impl true
   def load(socket) do
@@ -259,21 +300,36 @@ defmodule Kati.Screens.MarkIos do
   drew them with what the font has: `movie` for Camera, `graphic_eq` for Music.
   Substituting a truer glyph would mean re-subsetting the font for two apps that
   are not Kati's, on a screen whose whole subject is the one tile that is.
+
+  A function read on `load/1`, and now it could not be anything else: seven of
+  the eight labels are `gettext/1`, and a `gettext/1` in a module attribute is
+  evaluated while the file compiles and freezes into whichever locale the
+  compiler happened to be in. Which seven, and why `Kati` is not among them, is
+  the language section of the moduledoc.
   """
   @spec grid() :: [[map()]]
   def grid do
     [
       [
-        %{label: "Kati", icon: :mark, badge: "3"},
-        %{label: "Calendar", icon: "calendar_month", badge: nil},
-        %{label: "Notes", icon: "sticky_note_2", badge: nil},
-        %{label: "Camera", icon: "movie", badge: nil}
+        # `Kati` in both scripts and the count in the reader's digits: the name
+        # is the mark's and the number is the reader's. Board 64 draws the same
+        # pair the same way round.
+        %{label: @app_name, icon: :mark, badge: Kati.Locale.number(3)},
+        %{label: gettext("Calendar"), icon: "calendar_month", badge: nil},
+        %{label: gettext("Notes"), icon: "sticky_note_2", badge: nil},
+        # `Camera` is the only one of the seven the catalogue has not met, and
+        # it still needs no context: `mix gettext.merge` fuzzy-matches a msgid
+        # this short against any sentence ending in the same word, and no
+        # sentence in the catalogue ends in it. The other six are labels this
+        # app already names, so a bare `gettext/1` joins their entries rather
+        # than opening a second one for the same word.
+        %{label: gettext("Camera"), icon: "movie", badge: nil}
       ],
       [
-        %{label: "Music", icon: "graphic_eq", badge: nil},
-        %{label: "Books", icon: "menu_book", badge: nil},
-        %{label: "Health", icon: "monitor_heart", badge: nil},
-        %{label: "Settings", icon: "settings", badge: nil}
+        %{label: gettext("Music"), icon: "graphic_eq", badge: nil},
+        %{label: gettext("Books"), icon: "menu_book", badge: nil},
+        %{label: gettext("Health"), icon: "monitor_heart", badge: nil},
+        %{label: gettext("Settings"), icon: "settings", badge: nil}
       ]
     ]
   end
@@ -435,6 +491,12 @@ defmodule Kati.Screens.MarkIos do
   the wallpaper, which puts the mark squarely in the family the palette calls
   `:media` — over a photograph, and so fixed in both modes for the reason the
   hue under it is fixed.
+
+  The count arrives already in the reader's digits — `grid/0` puts it through
+  `Kati.Locale.number/1` — and the **face** is then asked of that string rather
+  than of the reader: `kati_mono.ttf` carries none of U+06F0–U+06F9, so a ۳
+  requested in DM Mono comes back in whatever face Android substitutes, beside
+  a screen set in Vazirmatn. Same pair in the same order as board 64's badge.
   """
   @spec badge(String.t() | nil) :: term()
   def badge(nil), do: ~MOB"<Spacer size={0} />"
@@ -454,7 +516,7 @@ defmodule Kati.Screens.MarkIos do
     >
       <Text
         text={count}
-        font_family={Kati.Locale.mono_face()}
+        font_family={Kati.Locale.mono_face(count)}
         text_size={10}
         font_weight="medium"
         text_color={Palette.on_media()}
@@ -530,10 +592,33 @@ defmodule Kati.Screens.MarkIos do
   neighbours measure — a 10pt mono line, the 3pt gap, and a 12.5pt bold line.
   Screen 29 declares its two small widgets' height for the same reason and says
   so.
+
+  ## The eyebrow is a translated one, where board 64's is not
+
+  64 pins `String.upcase/1`, `font_family="mono"` and a bare `letter_spacing` on
+  its eyebrow, and says why at length: its eyebrow's only word is `Kati`, a name
+  that can never be Persian, so there is nothing for a locale helper to decide
+  and `Kati.UI.eyebrow_label/1` would only spell one product two ways — `KATI`
+  on the English page and `Kati` on the Persian one.
+
+  This eyebrow carries `tonight` as well, which is copy and is امشب on the
+  Persian page, so all three of those land the other way round:
+
+    * `Kati.UI.eyebrow_label/1` for the case, because Persian has none to raise
+      and upcasing it is a no-op that reads as one;
+    * the face asked of the **string** rather than pinned to `mono`, since DM
+      Mono carries no Persian glyph — the same question 64 asks of its date;
+    * `Kati.Locale.tracking/1`, which drops the 0.14 to zero under `:fa`, where
+      letter spacing breaks the joins between Arabic letters.
+
+  What comes out on the Persian page is `Kati · امشب`, spelling the name exactly
+  as the tile above it does — which is the property `@app_name` exists to hold.
+  No `Kati.Locale.ltr/1` around the name: it carries no neutral of its own, and
+  the `·` between the two runs sits between them under either direction.
   """
   @spec widget([map()]) :: term()
   def widget([left, right]) do
-    eyebrow = String.upcase(@eyebrow)
+    label = UI.eyebrow_label(eyebrow())
 
     ~MOB"""
     <Column
@@ -547,10 +632,10 @@ defmodule Kati.Screens.MarkIos do
         {Kati.Screens.MarkIos.mark(15, Palette.ink())}
         <Spacer size={9} />
         <Text
-          text={eyebrow}
-          font_family={Kati.Locale.mono_face()}
+          text={label}
+          font_family={Kati.Locale.mono_face(label)}
           text_size={9.5}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.eyebrow()}
           max_lines={1}
         />
@@ -573,14 +658,38 @@ defmodule Kati.Screens.MarkIos do
   Weighted rather than sized, so the two halves split whatever the device
   leaves after the 15pt padding and the rule — the reason `Kati.UI.even_row/2`
   gives at length for weighting anything that was measured off the 402dp frame.
+
+  ## The time is converted here, and the title is not
+
+  `Kati.Locale.number/1` on `row.time` at the RENDER site rather than in
+  `tonight/0`, because the two halves are built in two different modules. The
+  meal is `Kati.Meals.SamplePlan.day/0`'s and arrives through
+  `Kati.Locale.number/1` already; the media half is
+  `Kati.Screens.Lock.Sample.today/0`'s, which is not folded yet and answers
+  `20:00` in Latin digits in either language. Two times side by side on one
+  plate, one of them `۱۹:۳۰` and the other `20:00`, is the disagreement this
+  widget exists to make impossible — and asking again about a string that is
+  already Persian costs nothing, since `number/1` has no Latin digit left in it
+  to convert. It keeps answering correctly on the day 29 folds.
+
+  The row's **title** is left exactly as it arrives. `6 episodes air` is 29's
+  copy and 29's msgid to add; translating it here would give one evening two
+  catalogue entries that could then disagree about the same sentence. It reads
+  English on the Persian page until screen 29 folds, and that is the honest
+  state of it — board 64 records the same wait for the same row.
+
+  The face follows the converted string rather than the locale, so an English
+  `20:00` stays in DM Mono and `۱۹:۳۰`, which DM Mono has no glyph for, does not.
   """
   @spec widget_column(map()) :: term()
   def widget_column(row) do
+    time = Kati.Locale.number(row.time)
+
     ~MOB"""
     <Column weight={1.0}>
       <Text
-        text={row.time}
-        font_family={Kati.Locale.mono_face()}
+        text={time}
+        font_family={Kati.Locale.mono_face(time)}
         text_size={10}
         text_color={Palette.muted()}
         max_lines={1}
@@ -713,6 +822,25 @@ defmodule Kati.Screens.MarkIos do
   """
   @spec widget_shadow() :: String.t()
   def widget_shadow, do: "0 8 24 -10 #66" <> rgb(Palette.ink(:light))
+
+  # The drawing's own eyebrow, `Kati · tonight`. A function rather than the
+  # attribute it used to be: `gettext/1` in a module attribute is evaluated
+  # while the file compiles and freezes into whichever locale the compiler
+  # happened to be in.
+  #
+  # The name is INTERPOLATED rather than translated, which is the whole reason
+  # this is not one msgid. `tonight` is copy and becomes امشب; `Kati` is the
+  # mark's name and stays Latin, and interpolating it is what makes the eyebrow
+  # and the tile above it unable to spell it two ways, whatever a later hand
+  # does to the catalogue.
+  #
+  # `pgettext/3` and not `gettext/2` because what is left of the msgid is two
+  # words. `mix gettext.merge` fuzzy-matches a msgid that short against any
+  # sentence ending in the same word, and the catalogue already holds two —
+  # `Tomorrow — needs prep tonight` and `13 What fits tonight`.
+  defp eyebrow do
+    pgettext("the home screen widget's own label", "%{app} · tonight", app: @app_name)
+  end
 
   # The dinner half of the widget. `Dinner · 19:30` and `Miso salmon, greens,
   # rice` are one row of the meal plan, split at the separators the fixture

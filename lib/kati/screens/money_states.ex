@@ -84,9 +84,16 @@ defmodule Kati.Screens.MoneyStates do
   already two answers on the drawing board, and deriving a third one here would
   only add an answer. This card's subject is what the figure *excludes* rather
   than what it totals: `Aria’s £5.00` is the number on it doing work, and it is
-  the price the fixture carries.
+  the price the fixture carries — read off `drawn_service/1` rather than typed
+  into the sentence, so the total and the row above it cannot drift apart.
 
-  The label is `Kati.Money.Sample.monthly/0`'s, upcased. Screen 122's cream hero
+  Not computed is not the same as not formatted. Both figures are pence through
+  `Kati.Money.display/1`, which is what draws every price on 122, so under `:fa`
+  the card reads **۳۴٫۴۸ پوند** over **۵٫۰۰ پوند** — the board's own arithmetic
+  in the reader's numerals, decimal mark and currency word.
+
+  The label is `Kati.Money.Sample.monthly/0`'s, through
+  `Kati.UI.eyebrow_label/1`. Screen 122's cream hero
   says *Every month* over a figure that includes everything; this paper card says
   it over a figure that does not, and taking the words from the same fixture is
   what makes that a comparison rather than a coincidence. Paper and not cream,
@@ -142,6 +149,30 @@ defmodule Kati.Screens.MoneyStates do
   @doc false
   @spec content(map()) :: map()
   def content(_assigns) do
+    # THE TITLE IS SCREEN 122'S OWN MSGID, AND THE EYEBROW'S ZERO IS A PRICE.
+    #
+    # `pgettext("screen title", "Money")` is what `Kati.Screens.Money.content/1`
+    # heads the page with, and the catalogue holds three different Persian words
+    # under `Money` — پول for the screen, مالی for the Stats section and for the
+    # search scope. A sheet of a screen's states that picked a fourth, or picked
+    # the section's word, would name the page it pictures something the page
+    # does not call itself. So it takes the same context rather than a msgid of
+    # its own.
+    #
+    # The eyebrow's `£0.00` goes through `Kati.Money.display/1` for the reason
+    # `Kati.Screens.NothingSetUpKnockOn.ledger/0` writes down about its own
+    # typed zero: under `:fa` the figure is `۰٫۰۰ پوند` — Persian numerals, the
+    # U+066B decimal mark and the currency as a WORD after it — and a typed
+    # `£0.00` would sit in Latin digits behind a Latin symbol in the middle of a
+    # Persian line. English is byte-for-byte what the board draws. Not wrapped
+    # in `Kati.Locale.ltr/1`: `display/1` has already put the run in the order
+    # the Persian board draws it, and an isolate would pin it back to the Latin
+    # one.
+    #
+    # The three muted eyebrows stay sentence case at the call site because
+    # `Kati.UI.SettingsList.eyebrow_muted/1` upcases — a no-op on Persian, which
+    # has no case — and a msgid that arrived shouting would make the translator
+    # guess whether the shout is the copy or the styling.
     ~MOB"""
     <Scroll>
       <Column
@@ -152,14 +183,14 @@ defmodule Kati.Screens.MoneyStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Money", "FOUR STATES")}
-        {UI.eyebrow("Nothing set up — not £0.00")}
+        {SettingsList.title(pgettext("screen title", "Money"), gettext("FOUR STATES"))}
+        {UI.eyebrow(gettext("Nothing set up — not %{total}", total: Kati.Money.display(0)))}
         {Kati.Screens.MoneyStates.nothing_set_up()}
-        {SettingsList.eyebrow_muted("No watch hours yet — the first-week state")}
+        {SettingsList.eyebrow_muted(gettext("No watch hours yet — the first-week state"))}
         {Kati.Screens.MoneyStates.no_hours()}
-        {SettingsList.eyebrow_muted("Paused — excluded from the total")}
+        {SettingsList.eyebrow_muted(gettext("Paused — excluded from the total"))}
         {Kati.Screens.MoneyStates.paused()}
-        {SettingsList.eyebrow_muted("Cancelled, with history kept")}
+        {SettingsList.eyebrow_muted(gettext("Cancelled, with history kept"))}
         {Kati.Screens.MoneyStates.cancelled()}
       </Column>
     </Scroll>
@@ -227,6 +258,38 @@ defmodule Kati.Screens.MoneyStates do
   """
   @spec nothing_set_up() :: map()
   def nothing_set_up do
+    # THE TITLE AND THE BUTTON ARE BOTH MSGIDS THIS APP ALREADY HAS.
+    #
+    # `Nothing to add up yet` is `Kati.Screens.MyServicesStates.region_set/0`'s
+    # second row, word for word, and the doc above says why the two screens must
+    # say it the same way; reaching for the same msgid is what makes that true
+    # in Persian as well as in English, where it is only true because two people
+    # typed the same sentence. `My services` is `Kati.Screens.MyServices`'s own
+    # title. A second msgid for either would be this sheet naming a screen
+    # something that screen does not call itself.
+    #
+    # `zero pounds` stays WORDS and is not `Kati.Money.display(0)`, which is the
+    # opposite of the call the eyebrow above makes — and the board draws the
+    # difference on purpose. The eyebrow says *not £0.00* about a figure, and
+    # this sentence says *not zero pounds a month* about an idea; a formatter
+    # here would put `£0.00` into a sentence whose whole point is that the
+    # number is not the thing being denied.
+    #
+    # `-0.02` becomes `Kati.Locale.tracking/1` and `1.55` becomes
+    # `Kati.Locale.leading/1`: tracking prises apart the joins that make Persian
+    # legible, and Vazirmatn's metrics want the taller line. Both pass the Latin
+    # number through unchanged, so nothing on board 123 moves.
+    #
+    # Hoisted rather than called in the prop, as
+    # `Kati.Screens.NothingSetUpKnockOn.ledger/0` hoists its own: a `~MOB` prop
+    # is read a line at a time, and a call that wraps is a call the sigil does
+    # not see the end of.
+    sentence =
+      gettext(
+        "An empty ledger, not zero pounds a month. " <>
+          "Add the services you pay for and this fills in."
+      )
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -246,18 +309,18 @@ defmodule Kati.Screens.MoneyStates do
         </Row>
         <Spacer size={14} />
         <Text
-          text="Nothing to add up yet"
+          text={gettext("Nothing to add up yet")}
           text_size={15}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
-          text="An empty ledger, not zero pounds a month. Add the services you pay for and this fills in."
+          text={sentence}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -271,7 +334,7 @@ defmodule Kati.Screens.MoneyStates do
         >
           <Spacer weight={1.0} />
           <Text
-            text="My services"
+            text={gettext("My services")}
             text_size={13}
             font_weight="bold"
             text_color={Palette.on_ink()}
@@ -346,15 +409,55 @@ defmodule Kati.Screens.MoneyStates do
   """
   @spec rate_note() :: map()
   def rate_note do
-    body = [text_size: 12.5, line_height: 1.55, text_color: Palette.ink_soft()]
+    # `base: true` on the body run, because `Kati.UI.rich_text/1` otherwise
+    # takes its style from the LONGEST run and the em dash is one character in
+    # either script. English survives that by accident — the third run is the
+    # longest — and a Persian sentence that came out shorter than it would
+    # silently take the strong run's weight and lose the leading. The mark says
+    # which run is the paragraph.
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.ink_soft(),
+      base: true
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # TWO MSGIDS EITHER SIDE OF THE DASH, AND THE VERB CROSSES THE BOUNDARY.
+    #
+    # The run split is the card's subject — the moduledoc's *the bold spans are
+    # not bold* explains why the em dash is written as a run of its own — so it
+    # survives the fold rather than collapsing into one sentence. Splitting a
+    # sentence across msgids is normally how a translation gets a word order it
+    # cannot fix, and it is safe here for the same reason
+    # `Kati.Screens.MyServicesStates.reassurance/0` gives: Persian is
+    # verb-final, so *reads* moves to the far side of the dash — «هزینهٔ هر
+    # ساعت به‌شکل — نوشته می‌شود، …» — and the dash stays exactly where English
+    # put it, between the subject and the rest of the sentence.
+    #
+    # The spaces live INSIDE the msgids, as
+    # `Kati.Screens.ImportStates.wrong_guess/0` keeps its own: the two halves
+    # break differently in Persian, where the first run ends at a preposition
+    # and the second opens with the verb, and a space concatenated at the call
+    # site would put it in the one place neither script wants it.
+    #
+    # `pgettext/2` on the short half. Three words and a trailing space is
+    # exactly what `mix gettext.merge` will fuzzy-match onto some other screen's
+    # sentence, and the Persian is a fragment that means nothing away from the
+    # dash it leads into.
+    #
+    # `£0.00` is `Kati.Money.display/1` for the reason the eyebrow's is; see
+    # `content/1`.
     message =
       UI.rich_text([
-        {"The rate reads ", body},
+        {pgettext("screen 123’s rate note, before the em dash", "The rate reads "), body},
         {"—", strong},
-        {", never £0.00 and never infinity. Dividing by no hours has no answer, so Kati declines to invent one.",
-         body}
+        {gettext(
+           ", never %{zero} and never infinity. Dividing by no hours has no answer, " <>
+             "so Kati declines to invent one.",
+           zero: Kati.Money.display(0)
+         ), body}
       ])
 
     ~MOB"""
@@ -399,16 +502,54 @@ defmodule Kati.Screens.MoneyStates do
   @doc """
   The monthly figure, with the paused service's price named as the thing outside it.
 
-  The sentence names Aria and names £5.00, which is the only way a total can be
-  checked: a figure that merely claimed to exclude something would be asking to
-  be trusted about the one thing this band exists to show. See the moduledoc for
+  The sentence names Aria and names the row's own £5.00 — `drawn_service/1`'s,
+  not a second copy of it — which is the only way a total can be checked: a
+  figure that merely claimed to exclude something would be asking to be trusted
+  about the one thing this band exists to show. See the moduledoc for
   why £34.48 is the board's figure rather than a sum computed here, and why the
   label is taken from `Kati.Money.Sample.monthly/0` while the figure is not.
   """
   @spec monthly_without_paused() :: map()
   def monthly_without_paused do
-    label = String.upcase(Sample.monthly().label)
-    assigns = %{label: label}
+    # `Kati.UI.eyebrow_label/1` where this upcased by hand, which is screen
+    # 122's own expression for the same fixture word — its cream hero draws
+    # `eyebrow_label(@m.label)`. Persian has no case, so `String.upcase/1` on
+    # **هر ماه** returns it unchanged: the call did nothing and read as though
+    # something had been done. The helper says so out loud.
+    label = UI.eyebrow_label(Sample.monthly().label)
+
+    # The amount in the sentence is READ OFF THE FIXTURE rather than retyped,
+    # which is what the moduledoc already claims about it — *it is the price the
+    # fixture carries* — and was true of the drawing and not of the code. A
+    # sentence that names an amount as the thing a total excludes is checkable
+    # only if it is the same amount the row above it draws, and `£5.00` typed
+    # here would have gone on saying so after screen 92 repriced Aria.
+    #
+    # `Aria` stays inside the msgid rather than arriving as `%{service}`. The
+    # board writes the short form and the fixture carries `Aria Audio`, so
+    # interpolating would change the English copy to make the Persian easier;
+    # and the catalogue already answers **آریا آدیو** for that fixture name, so
+    # the translator writes the same آریا this sentence needs rather than
+    # inventing a second spelling. It is not one of the real provider names
+    # board 127 keeps in Latin — those are services that exist.
+    #
+    # No `Kati.Locale.ltr/1` around the amount: `display/1` has already laid the
+    # run out the way the Persian board draws a price, and an isolate would pin
+    # it back to the Latin order.
+    note =
+      gettext("Aria’s %{amount} is not in this figure while it is paused.",
+        amount: drawn_service("A").price
+      )
+
+    # The figure is still the board's `£34.48` and is still not a sum — see the
+    # moduledoc — but it is a PRICE, so it goes through the app's one money
+    # formatter rather than staying a typed string. `3448` is those pence, and
+    # under `:fa` the card reads **۳۴٫۴۸ پوند**: Persian numerals, U+066B for
+    # the point, the currency as a word after the figure, exactly as
+    # `Kati.Money.Sample.monthly/0` renders 122's own hero beside it. A typed
+    # `£34.48` would have been the one figure on a Persian page still in Latin
+    # digits behind a Latin symbol.
+    assigns = %{label: label, total: Kati.Money.display(3448), note: note}
 
     ~MOB"""
     <Column
@@ -423,12 +564,12 @@ defmodule Kati.Screens.MoneyStates do
           text={@label}
           font_family={Kati.Locale.mono_face()}
           text_size={10.5}
-          letter_spacing={0.14}
+          letter_spacing={Kati.Locale.tracking(0.14)}
           text_color={Palette.eyebrow()}
         />
         <Spacer weight={1.0} />
         <Text
-          text="£34.48"
+          text={@total}
           font_family={Kati.Locale.mono_face()}
           text_size={18}
           text_color={:on_surface}
@@ -437,9 +578,9 @@ defmodule Kati.Screens.MoneyStates do
       </Row>
       <Spacer size={10} />
       <Text
-        text="Aria’s £5.00 is not in this figure while it is paused."
+        text={@note}
         text_size={12}
-        line_height={1.5}
+        line_height={Kati.Locale.leading(1.5)}
         text_color={Palette.sub()}
       />
     </Column>
@@ -465,21 +606,64 @@ defmodule Kati.Screens.MoneyStates do
   """
   @spec cancelled() :: map()
   def cancelled do
-    body = [text_size: 12.5, line_height: 1.6, text_color: Palette.ink_soft()]
+    body = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.6),
+      text_color: Palette.ink_soft(),
+      base: true
+    ]
+
     strong = [text_size: 12.5, font_weight: "semibold", text_color: Palette.ink()]
 
+    # `ngettext/4` on the emphasised run, over the catalogue's existing
+    # `%{n} hour` — `Kati.Money.Sample.suggestion/0`'s own plural, which is the
+    # fixture this whole sheet is drawn from. The count is frozen at 31 and that
+    # is still the right form: English inflects the noun after a numeral and
+    # Persian does not, so both Persian forms are one sentence, which is what
+    # `Kati.Screens.MyServicesStates.removed_service/0` records for its own
+    # frozen count. The digits go through `Kati.Locale.number/1` inside it, so
+    # the run reads **۳۱ ساعت** rather than Latin numerals mid-sentence.
+    #
+    # `07` stays inside the third msgid. It is a screen reference in a sentence
+    # — the way `Kati.Screens.MyServices.credit/0` writes *credited on 83* and
+    # `removed_service/0` keeps its own `15` — rather than a figure this page
+    # computes, so the translator writes it in the reader's own digits.
+    #
+    # The two body runs keep their spaces inside the msgids, and the emphasis
+    # survives the fold for the reason it does in `rate_note/0`: Persian is
+    # verb-final, so *still count toward 07* lands after the hours exactly as
+    # English puts it, and *Its* moves to the far side of the boundary as a
+    # trailing آن. `base: true` for the same reason as well — the strong run is
+    # now a whole phrase, and in Persian it must not be allowed to win the
+    # longest-run vote and hand the paragraph its weight.
     message =
       UI.rich_text([
-        {"Out of the active list and out of the monthly figure. Its ", body},
-        {"31 hours", strong},
-        {" still count toward 07, because you did watch them.", body}
+        {gettext("Out of the active list and out of the monthly figure. Its "), body},
+        {ngettext("%{n} hour", "%{n} hours", 31, n: Kati.Locale.number(31)), strong},
+        {gettext(" still count toward 07, because you did watch them."), body}
       ])
 
-    MyServicesStates.advice(
-      "history",
-      Palette.sub(),
-      "Dispatch — cancelled 2 Jun",
-      message
-    )
+    # THE SERVICE NAME IS LATIN IN BOTH SCRIPTS AND THE DATE IS NEITHER.
+    #
+    # `Dispatch` is a real-shaped service name — `Kati.Services.Sample` carries
+    # it beside Orbit, and screen 92 draws it — so it stays in Latin on a
+    # Persian page the way board 127 draws `Lumen+`, and takes
+    # `Kati.Locale.ltr/1` because the em dash that follows it is NEUTRAL to the
+    # bidi algorithm: without the isolate it resolves against the paragraph and
+    # lays itself in front of the name instead of after it. Screen 83's licence
+    # notices are where that was found.
+    #
+    # `2 Jun` becomes a real `Date` through `Kati.Locale.date/2`, which is the
+    # half of mishka-group/kati#103 a catalogue cannot do: under `:fa` this is
+    # not *2 Jun* translated but ۱۲ خرداد, the same day counted in the reader's
+    # own calendar. `:short` is the day-and-month shape, which is what the board
+    # draws and what a title wants.
+    title =
+      gettext("%{service} — cancelled %{date}",
+        service: Kati.Locale.ltr("Dispatch"),
+        date: Kati.Locale.date(~D[2026-06-02], :short)
+      )
+
+    MyServicesStates.advice("history", Palette.sub(), title, message)
   end
 end

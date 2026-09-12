@@ -40,13 +40,22 @@ defmodule Kati.Screens.ShelfLarge do
 
   ## One number, one word, and where else they appear
 
-  `@selected_count` is 4 and `@chip_label` is `"Comedy"` — the two facts the
-  board draws, typed once so `selection_title/0` and the header both read `4
+  `@selected_count` is 4 and `chip_label/0` answers `Comedy` — the two facts
+  the board draws, said once so `selection_title/0` and the header both read `4
   selected`, and so `drop_label/0` and `empty_reason/0` both name the same
   chip rather than risking a header that says one count and a body that
   implies another. It is the same discipline `Kati.Screens.SearchLarge`
   applies to its Screen chip and its eyebrow: the number lives in one place
   and every reader of it reads that place.
+
+  The chip is a FUNCTION and the count is still an attribute, and the split is
+  mishka-group/kati#103's. `Comedy` is copy and goes through `gettext/1`, which
+  inside a module attribute is evaluated when this module COMPILES and freezes
+  whichever locale the compiler happened to be in — the trap
+  `Kati.Screens.BackupLarge`'s moduledoc opens on and
+  `Kati.Screens.ShelfSelection.count_word/1` was rewritten as clauses to avoid.
+  Four is a number, so it stays exactly where it was and `Kati.Locale.number/1`
+  reads it at draw time.
 
   ## Chrome caps, content grows — fence K-29, the selection-shaped instance
 
@@ -113,6 +122,57 @@ defmodule Kati.Screens.ShelfLarge do
   frame `note/2`'s own doc already trades a dashed border for a solid one on,
   recorded there rather than restated here.
 
+  ## Under `:fa` — what this board reads and what it writes
+
+  Every sentence below is a `gettext/1` now, and four of them the catalogue
+  already answered: `Add to list` and `Remove` are
+  `Kati.Screens.ShelfSelection`'s own two bulk actions word for word, `%{n}
+  selected` is its header count under the context it asked for, and `Comedy` is
+  one of board 145's facet chips as `Kati.Screens.ShelfFilters` draws it. 147 is
+  a picture of 146 over 145's filters, so reading those entries rather than
+  writing a second set is what keeps the picture and the screens it pictures
+  saying the same words. Only `Change status` is this board's own of the four
+  actions — 146's pill row has the width for `Status` and no more, and a
+  full-width row has room for the verb.
+
+  Two things change shape rather than merely gaining a call:
+
+    * **`drop_label/0` interpolates.** `"Drop the " <> chip <> " chip"` builds a
+      sentence no translation can reach — Persian names the chip after the verb
+      and has no article to carry — so the label is one msgid with a `%{chip}`
+      binding and the genre goes in through it.
+    * **Every run joint is a space written OUTSIDE its msgid.**
+      `Kati.UI.rich_text/1` takes runs and this file has two paragraphs of them,
+      so three joints need a gap; a msgid that opens or closes in whitespace is
+      one a translator trims without seeing it, and the result welds two words
+      together in a script whose letters already join.
+      `Kati.Screens.ShelfSelection`'s own rich text writes its joints the same
+      way, and `chip_label/0` could not carry a trailing space in any case —
+      it is a shared entry that four other screens read.
+
+  `4` and the `26px` in the dashed footnote are different kinds of number and
+  are treated differently on purpose. The count is a VALUE this board renders,
+  so it goes through `Kati.Locale.number/1` and reaches a Persian reader as ۴;
+  the 26 sits inside a sentence *about* the drawing and is the translator's to
+  write, because `Kati.Locale.number/1` cannot reach inside a msgid and a
+  `%{px}` binding for one measurement in one footnote would be machinery built
+  around a full stop.
+
+  ## The muted eyebrow is not this file's to fix
+
+  `Kati.UI.SettingsList.eyebrow_muted/1` upcases its label and pins
+  `letter_spacing` to `0.16`, and neither survives the fold: Persian has no
+  case, so `String.upcase/1` is a no-op that reads as one, and 0.16em of
+  tracking pulls apart the joins Vazirmatn draws between letters — which is
+  precisely what `Kati.Locale.tracking/1` exists to stop.
+  `A chip that would empty the shelf` is `gettext/1` below all the same, since a
+  correct sentence set slightly wrong is worth more than a correct sentence in
+  the wrong language. The helper has 124 call sites, so the fix belongs in it
+  and not in any one of them. `Kati.UI.eyebrow/1` — which this file's *other*
+  eyebrow goes through — already asks `Kati.UI.eyebrow_label/1` and
+  `Kati.Locale.tracking/1` for both answers, so the two eyebrows on this page
+  are a before and after of the same change.
+
   ## Nothing here reads a store, and nothing here taps
 
   Every value below is typed, for the reason the moduledoc's second
@@ -135,16 +195,21 @@ defmodule Kati.Screens.ShelfLarge do
   """
 
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  # The two facts the board draws — see "One number, one word" above. Typed
-  # rather than read from a store: board 146 does not exist yet, so there is
-  # no live selection and no real shelf for a chip to empty.
+  # The count the board draws — see "One number, one word" above. Typed rather
+  # than read from a store: board 146 was unbuilt when this was written, so
+  # there is no live selection and no real shelf for a chip to empty.
+  #
+  # The chip's own word used to sit beside this as `@chip_label "Comedy"` and is
+  # `chip_label/0` now: it is copy, copy goes through `gettext/1`, and `gettext/1`
+  # in a module attribute freezes the compiler's locale into the binary. The
+  # count is a number and needs no such move.
   @selected_count 4
-  @chip_label "Comedy"
 
   @doc """
   The sheet, top to bottom: the header-bar card and its footnote, then the
@@ -162,12 +227,12 @@ defmodule Kati.Screens.ShelfLarge do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {UI.eyebrow("The header bar — the hard case")}
+        {UI.eyebrow(gettext("The header bar — the hard case"))}
         {Kati.Screens.ShelfLarge.selection_card()}
         <Spacer size={14} />
         {Kati.Screens.ShelfLarge.selection_note()}
         <Spacer size={24} />
-        {SettingsList.eyebrow_muted("A chip that would empty the shelf")}
+        {SettingsList.eyebrow_muted(gettext("A chip that would empty the shelf"))}
         {Kati.Screens.ShelfLarge.empty_card()}
         <Spacer size={14} />
         {Kati.Screens.ShelfLarge.empty_note()}
@@ -188,15 +253,38 @@ defmodule Kati.Screens.ShelfLarge do
 
   @doc "The header bar's own text: the live count, the one thing it must never lose."
   @spec selection_title() :: String.t()
-  def selection_title, do: "#{@selected_count} selected"
+  def selection_title do
+    # `Kati.Screens.ShelfSelection.selection_count/1`'s own msgid AND its own
+    # context, read rather than restated. 147 is a picture of 146's bar, and a
+    # picture whose count was worded differently would be a picture of nothing.
+    # The context is 146's for 146's reason: `%{n} selected` is two tokens long
+    # and `mix gettext.merge` fuzzy-matches a msgid that short.
+    pgettext("the count on a selection header", "%{n} selected",
+      n: Kati.Locale.number(@selected_count)
+    )
+  end
 
   @doc "The chip a zero-result filter names. Shared by the reason and the drop pill."
   @spec chip_label() :: String.t()
-  def chip_label, do: @chip_label
+  def chip_label do
+    # A GENRE, not a provider. `Kati.Screens.ShelfFilters` draws this same word
+    # as one of board 145's facet chips and the catalogue answers it there, so
+    # this reads that entry rather than spelling one genre two ways — which is
+    # the rule the provider names on 80 are kept in Latin by, applied the other
+    # direction.
+    gettext("Comedy")
+  end
 
   @doc "The drop pill's own label, built from the same chip the reason names."
   @spec drop_label() :: String.t()
-  def drop_label, do: "Drop the #{@chip_label} chip"
+  def drop_label do
+    # One msgid with the chip bound into it, rather than `"Drop the " <> chip <>
+    # " chip"`. English wraps the genre in an article and a noun and Persian
+    # does neither, so a label assembled in English word order is a sentence no
+    # translation can straighten out — while a `%{chip}` binding lets the
+    # Persian put the genre after the verb where it belongs.
+    gettext("Drop the %{chip} chip", chip: Kati.Screens.ShelfLarge.chip_label())
+  end
 
   @doc "The header-bar card: the count row, then the three bulk actions."
   @spec selection_card() :: map()
@@ -224,6 +312,18 @@ defmodule Kati.Screens.ShelfLarge do
   """
   @spec selection_header() :: map()
   def selection_header do
+    # The count keeps no `max_lines`, and the fold did not add one. A 24pt bold
+    # display heading is normally capped at a line so a longer Persian word
+    # cannot wrap it, and this is the one heading in the app where wrapping is
+    # the REQUIRED behaviour: `۴ انتخاب‌شده` is the single thing this bar exists
+    # to say, and the whole fence K-29 split above turns on it never clipping.
+    # `Kati.Screens.ShelfSelection` took the cap off its own copy of this line
+    # for the same reason — MOVIES-AND-TV.md #6.
+    #
+    # The tracking is the prop that would actually damage the Persian, and it
+    # goes through `Kati.Locale.tracking/1`: -0.025em tightens Plus Jakarta by
+    # the fraction of an em the design asks for, and pulls Vazirmatn's letters
+    # out of the joins they are drawn to make.
     ~MOB"""
     <Row fill_width={true} align="center">
       <Box width={30} height={30} align="center" max_font_scale={Kati.Screens.ShelfLarge.cap()}>
@@ -234,7 +334,7 @@ defmodule Kati.Screens.ShelfLarge do
         text={Kati.Screens.ShelfLarge.selection_title()}
         text_size={24}
         font_weight="bold"
-        letter_spacing={-0.025}
+        letter_spacing={Kati.Locale.tracking(-0.025)}
         text_color={:on_surface}
         weight={1.0}
       />
@@ -245,13 +345,27 @@ defmodule Kati.Screens.ShelfLarge do
   @doc "The three bulk actions, stacked as full-width rows and capped as one subtree."
   @spec selection_actions() :: map()
   def selection_actions do
+    # Bound above the sigil rather than written into it, the way
+    # `Kati.Screens.BackupLarge.primary/0` binds its own label: three
+    # `gettext/1` calls inside the interpolations would put the row's colours
+    # and its copy on one 110-column line each.
+    #
+    # `Add to list` and `Remove` are `Kati.Screens.ShelfSelection`'s entries
+    # verbatim — its pill row draws the same two actions — so 146 and its
+    # picture cannot drift into two words for one action. `Change status` is
+    # 147's own: a pill has room for `Status` and a full-width row has room for
+    # the verb, and the board draws the row.
+    add = gettext("Add to list")
+    status = gettext("Change status")
+    remove = gettext("Remove")
+
     ~MOB"""
     <Column fill_width={true} max_font_scale={Kati.Screens.ShelfLarge.cap()}>
-      {Kati.Screens.ShelfLarge.action_row("bookmarks", "Add to list", Palette.paper(), Palette.ink())}
+      {Kati.Screens.ShelfLarge.action_row("bookmarks", add, Palette.paper(), Palette.ink())}
       <Spacer size={10} />
-      {Kati.Screens.ShelfLarge.action_row("label", "Change status", Palette.paper(), Palette.ink())}
+      {Kati.Screens.ShelfLarge.action_row("label", status, Palette.paper(), Palette.ink())}
       <Spacer size={10} />
-      {Kati.Screens.ShelfLarge.action_row("delete", "Remove", Palette.red_wash(), Palette.red())}
+      {Kati.Screens.ShelfLarge.action_row("delete", remove, Palette.red_wash(), Palette.red())}
     </Column>
     """
   end
@@ -301,9 +415,16 @@ defmodule Kati.Screens.ShelfLarge do
 
   @doc false
   def selection_note_text do
-    "The count never truncates — it is the one thing the bar exists to say. Actions leave the row " <>
-      "and stack as full-width rows, and the close glyph caps at 26px because it is chrome whose " <>
-      "size carries structure."
+    # `26px` stays inside the msgid rather than arriving through a binding: it
+    # is a measurement in a sentence ABOUT the drawing, not a value this board
+    # renders, so the translator writes ۲۶ in the same breath as the rest of the
+    # clause. The count one card above is the other kind and goes through
+    # `Kati.Locale.number/1` — see the moduledoc on why the two differ.
+    gettext(
+      "The count never truncates — it is the one thing the bar exists to say. Actions leave the row " <>
+        "and stack as full-width rows, and the close glyph caps at 26px because it is chrome whose " <>
+        "size carries structure."
+    )
   end
 
   @doc "The zero-result card: the reason, then the pill that answers it."
@@ -327,16 +448,23 @@ defmodule Kati.Screens.ShelfLarge do
   @doc "The `search` glyph beside the heading and the reason, uncapped content throughout."
   @spec empty_header() :: map()
   def empty_header do
+    # `pgettext/2` rather than `gettext/1`. `Nothing matches` is two words, and
+    # `mix gettext.merge` fuzzy-matches a msgid that short against any longer
+    # sentence that ends the same way — the catalogue already holds
+    # `No title on your shelf matches.` and `No country matches`, either of
+    # which would land here as a fuzzy hit nobody reads twice.
+    heading = pgettext("the zero-result heading on a filtered shelf", "Nothing matches")
+
     ~MOB"""
     <Row fill_width={true} align="top">
       {UI.symbol("search", size: 22, color: Palette.sub())}
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
-          text="Nothing matches"
+          text={heading}
           text_size={19}
           font_weight="bold"
-          line_height={1.3}
+          line_height={Kati.Locale.leading(1.3)}
           text_color={:on_surface}
         />
         <Spacer size={9} />
@@ -357,15 +485,26 @@ defmodule Kati.Screens.ShelfLarge do
     tail = [
       base: true,
       text_size: 16,
-      line_height: 1.55,
+      line_height: Kati.Locale.leading(1.55),
       text_color: Palette.sub()
     ]
 
     emphasis = [font_weight: "semibold", text_color: Palette.ink()]
 
+    # The joining space is written OUTSIDE the msgid, so neither entry opens or
+    # closes in whitespace. `chip_label/0` could not carry a trailing one in any
+    # case — it is a shared catalogue entry four other screens read — and a
+    # msgid that *begins* with a space is one a translator trims without seeing
+    # it, which welds the genre to the next word in a script whose letters
+    # already join. `Kati.Screens.ShelfSelection` writes its own run joints the
+    # same way.
+    #
+    # A run boundary is not a word boundary in Persian either: the clause here
+    # stands on its own, so the translation can put its verb where Persian wants
+    # it without the emphasised half landing mid-phrase.
     [
       {Kati.Screens.ShelfLarge.chip_label(), emphasis},
-      {" is what emptied it — you have no comedies on this shelf.", tail}
+      {" " <> gettext("is what emptied it — you have no comedies on this shelf."), tail}
     ]
     |> UI.rich_text()
   end
@@ -373,6 +512,12 @@ defmodule Kati.Screens.ShelfLarge do
   @doc "The 56pt stadium: `Drop the Comedy chip`, centred as the row's only child. Capped — see the moduledoc."
   @spec drop_button() :: map()
   def drop_button do
+    # `max_lines={1}` stays on the label and the stadium stays a fixed 56pt, so
+    # a Persian label that wrapped would be clipped by the pill rather than
+    # growing it. It does not wrap — `برداشتن چیپ کمدی` is three short words —
+    # and `cap/0` on the column is what keeps that true on a device genuinely
+    # running at 235%. `Kati.Screens.BackupLarge.primary/0` writes the same
+    # trade out for its own pill.
     ~MOB"""
     <Column fill_width={true} max_font_scale={Kati.Screens.ShelfLarge.cap()}>
       <Row fill_width={true} height={56} corner_radius={28} background={Palette.ink()} align="center">
@@ -402,16 +547,48 @@ defmodule Kati.Screens.ShelfLarge do
   """
   @spec empty_note() :: map()
   def empty_note do
-    lead = [base: true, text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
+    lead = [
+      base: true,
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.cream_body()
+    ]
+
     emphasis = [font_weight: "semibold", text_color: Palette.ink()]
-    tail = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
+
+    tail = [
+      text_size: 12.5,
+      line_height: Kati.Locale.leading(1.65),
+      text_color: Palette.cream_body()
+    ]
+
+    # `No results` is the OTHER design's line — the one this note argues
+    # against — so it is quoted, and `Kati.Locale.quoted/1` sets the marks the
+    # reader's own typography uses: a Persian reader meets `“…”` as a foreign
+    # mark and board 69 writes «…» instead. It arrives as a binding rather than
+    # typed into the sentence because the marks are the LOCALE's and the phrase
+    # is the translator's, and `Kati.Screens.ShelfSelection` already quotes its
+    # own `%{note}` this way. `pgettext/2` around the phrase itself: two words
+    # is exactly the length `mix gettext.merge` fuzzy-matches, and the
+    # catalogue holds `No results anywhere` for it to match against.
+    #
+    # Both run joints are spaces written outside their msgids, for the reason
+    # `empty_reason/0` gives.
+    quoted =
+      Kati.Locale.quoted(
+        pgettext("the bare line a zero-result state would otherwise show", "No results")
+      )
 
     paragraph =
       UI.rich_text([
-        {"A zero-result filter names ", lead},
-        {"which chip", emphasis},
-        {" did it and offers to drop that one. “No results” alone leaves the user to unpick four " <>
-           "chips by trial.", tail}
+        {gettext("A zero-result filter names") <> " ", lead},
+        {pgettext("the emphasised run in a zero-result note", "which chip"), emphasis},
+        {" " <>
+           gettext(
+             "did it and offers to drop that one. %{quoted} alone leaves the user to unpick " <>
+               "four chips by trial.",
+             quoted: quoted
+           ), tail}
       ])
 
     ~MOB"""

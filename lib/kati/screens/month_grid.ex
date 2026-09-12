@@ -22,6 +22,44 @@ defmodule Kati.Screens.MonthGrid do
   so a capture measured the cells 51 wide and 50 tall — squares that were not
   square. `Kati.Screens.Widgets` and `Kati.Screens.SeriesMeta` carry the same
   fix for the same reason.
+
+  ## What is Persian on this page, and what is still August 2026
+
+  Almost every word the grid draws comes from `Kati.Calendar.SampleMonth`, and
+  nothing under `lib/kati/calendar/` has been folded yet —
+  `Kati.Screens.Agenda`'s moduledoc records the same half-state for
+  `Kati.Calendar.SampleAgenda`, and `gettext/1` cannot take a variable, so
+  those strings can only be wrapped where they are written. What this file
+  could reach it did: the weekday letters, the three mono faces, the tracking,
+  the legend's case, and the two chevrons.
+
+  What it could not, it left whole rather than half-converted, and the reason
+  is worth writing down because it is not an oversight. The month's title, the
+  forty-two day numbers, the selected day's summary and the three clash rows
+  are ONE fixture — 1–31 August 2026, laid out Monday-first, with
+  `SampleMonth`'s `@dots` keyed to the Gregorian day numbers and the 16th and
+  20th singled out. Mordad 1405 runs 23 July – 22 August 2026, so folding the
+  header on its own would head a Gregorian grid with a Shamsi month it does
+  not contain, and running `Kati.Locale.number/1` over the cells would print
+  ۱۶ for a day that is not the sixteenth of anything the reader counts —
+  `Kati.Locale.day_of_month/1`'s doc names that exact defect on screen 02,
+  "the right days, counted in the wrong calendar". The grid and its title
+  convert together, in the module that lays them out;
+  `Kati.Calendar.Shamsi.month_grid/2` already returns a شنبه-first month for
+  the day it does.
+
+  The switcher's four labels are deliberately still Latin, and
+  `Kati.Screens.Agenda`'s moduledoc carries that argument in full:
+  `Kati.Screens.ViewSwitcher.bar/1` builds each segment's tap tag out of the
+  word it prints, so a `gettext/1` here would rename three live controls to
+  `:view_روز`, `:view_هفته` and `:view_فهرست` under `:fa` —
+  `ViewSwitcher.screen/1` would answer `nil`, the strip would go dead on the
+  Persian page, and the tags would fail
+  `test/kati/screen_tap_sweep_test.exs`'s *no control is named after the word
+  printed on it*. The fix is one prop in the module that builds the tag, and
+  screens 17 and 30 draw the same strip and want it too.
+
+  mishka-group/kati#103.
   """
   use Kati.Screens.Root, root: :calendar
 
@@ -31,9 +69,10 @@ defmodule Kati.Screens.MonthGrid do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  # Monday-first, matching the drawing's header row. Duplicated letters are
-  # the design's, not a mistake: Tuesday and Thursday are both T.
-  @weekdays ["M", "T", "W", "T", "F", "S", "S"]
+  # The Monday `Kati.Calendar.SampleMonth.days/0`'s first row begins on — the
+  # 27 July 2026 that opens the grid. Only its WEEKDAY is read; the date itself
+  # never reaches the screen.
+  @first_column ~D[2026-07-27]
 
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :month, SampleMonth.month())
@@ -63,8 +102,23 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
+  # Previous month and next month, and under `rtl` the two glyphs swap.
+  # `layout_direction` mirrors the Row — the pair moves to the left edge and
+  # the title to the right — but it cannot mirror a PICTURE, so a chevron left
+  # as drawn goes on pointing at the month a Persian reader has already left.
+  # In reading order the pair is still previous-then-next, so previous points
+  # back along the line (right, in Persian) and next points forward.
+  #
+  # `forward_chevron/0` is the app's answer to "the way this page moves
+  # forward". Its opposite has no helper — `Kati.Locale.back_glyph/0` is the
+  # arrow and `Kati.Screens.Pushed.back_glyph/0` is the pill's iOS chevron,
+  # and neither is this — so it is `pick/2` with both glyphs at the call site,
+  # which is what that function's doc asks for.
   @doc false
   def header(month) do
+    previous = Kati.Locale.pick("chevron_left", "chevron_right")
+    upcoming = Kati.Locale.forward_chevron()
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -72,16 +126,16 @@ defmodule Kati.Screens.MonthGrid do
           text={month.title}
           text_size={24}
           font_weight="bold"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
           max_lines={1}
         />
         <Spacer size={6} />
         {UI.symbol("unfold_more", size: 19, color: Palette.sub())}
         <Spacer weight={1.0} />
-        {UI.symbol("chevron_left", size: 22, color: Palette.sub())}
+        {UI.symbol(previous, size: 22, color: Palette.sub())}
         <Spacer size={8} />
-        {UI.symbol("chevron_right", size: 22, color: Palette.ink())}
+        {UI.symbol(upcoming, size: 22, color: Palette.ink())}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -106,10 +160,45 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
+  # Monday-first, matching the drawing's header row. Duplicated letters are the
+  # design's, not a mistake: Tuesday and Thursday are both T.
+  #
+  # Derived from seven dates rather than written out as `["M", "T", "W", …]`,
+  # because they are not the same seven letters in both scripts:
+  # `Kati.Locale.weekday_initial/1` answers `M T W T F S S` in Latin and
+  # `د س چ پ ج ش ی` in Persian, off `Kati.Calendar.Shamsi.weekday_short/1`.
+  # Screens 02 and 22 build their own axes the same way, and
+  # `Kati.Screens.Nutrition.daily_buckets/1` carries the long version.
+  #
+  # A FUNCTION and not the module attribute this replaces, which is the whole
+  # reason it moved: `weekday_initial/1` asks `Kati.Locale.current/0` at the
+  # moment it is called, and a module attribute is evaluated once at COMPILE
+  # time — it would freeze whichever script `mix compile` happened to be in and
+  # hand it to both readers.
+  #
+  # ## Still Monday-first in Persian, and that is the grid's doing
+  #
+  # Board 137 makes the week start follow the language, so a Persian axis
+  # should begin on Saturday — `Kati.Screens.Nutrition` moves its buckets for
+  # exactly that. It cannot move here: `Kati.Calendar.SampleMonth.days/0` lays
+  # the 42 cells out from Monday in both scripts — five trailing days of July,
+  # then August, then six of September — so a شنبه-first header would print ش
+  # over a column of Mondays, which is the quiet kind of wrong this fold keeps
+  # finding. The letters follow the GRID until the module that lays the grid
+  # out starts asking the reader.
+  @doc false
+  def weekdays do
+    Enum.map(0..6, fn offset ->
+      @first_column |> Date.add(offset) |> Kati.Locale.weekday_initial()
+    end)
+  end
+
   @doc false
   def weekday_row do
+    letters = weekdays()
+
     cells =
-      @weekdays
+      letters
       |> Enum.map(fn letter -> Kati.Screens.MonthGrid.weekday(letter) end)
       |> Enum.intersperse(cell_gap())
 
@@ -123,15 +212,24 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
+  # The face asks the LETTER, not the reader. `kati_mono.ttf` carries no
+  # Arabic-script glyph, so a `ش` set in `mono` is handed to Android's own
+  # substitute face and lands in a typeface that is not Kati's, beside six
+  # others that are — `Kati.PersianFontTest` fails exactly this. `M` is ASCII
+  # and DM Mono has it, so the Latin axis is untouched.
+  #
+  # The tracking asks the reader instead, because that is the question it is:
+  # 0.08em opens the gaps between Latin capitals and breaks the joins between
+  # Persian letters, so there is no one value that is right for both.
   @doc false
   def weekday(letter) do
     ~MOB"""
     <Box weight={1.0} align="center">
       <Text
         text={letter}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(letter)}
         text_size={10}
-        letter_spacing={0.08}
+        letter_spacing={Kati.Locale.tracking(0.08)}
         text_color={Palette.tertiary()}
         max_lines={1}
       />
@@ -264,17 +362,26 @@ defmodule Kati.Screens.MonthGrid do
   @doc false
   def legend_gap, do: ~MOB"<Spacer size={14} />"
 
+  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`, which is the same
+  # edit `Kati.UI.eyebrow/2` already carries: Arabic script has no case, so
+  # upcasing عادت‌ها returns عادت‌ها and the call reads as though something
+  # happened. The word is the argument to the face as well, for the reason
+  # `weekday/1` gives one function up — these three are
+  # `Kati.Calendar.SampleMonth.legend/0`'s, so they are ASCII today and take
+  # Vazirmatn on the day that module folds, with no second edit here.
   @doc false
   def legend_item(color, label) do
+    word = UI.eyebrow_label(label)
+
     ~MOB"""
     <Row align="center">
       <Box width={6} height={6} corner_radius={3} background={color} />
       <Spacer size={6} />
       <Text
-        text={String.upcase(label)}
-        font_family="mono"
+        text={word}
+        font_family={Kati.Locale.mono_face(word)}
         text_size={10}
-        letter_spacing={0.08}
+        letter_spacing={Kati.Locale.tracking(0.08)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
@@ -304,6 +411,13 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
+  # The clock keeps its Latin digits in both scripts and only its FACE is a
+  # question, which is `Kati.Locale.number/1`'s own ruling for a figure the
+  # design sets in mono: `kati_mono.ttf` carries none of U+06F0–U+06F9, so
+  # ۰۹:۳۰ in DM Mono would be a row of empty boxes. `mono_face/1` asks the
+  # string — `09:30` is ASCII and stays in DM Mono — so the slot is already
+  # right for whatever `Kati.Calendar.SampleMonth.clashes/0` puts there next.
+  # `Kati.Screens.Agenda.row/2` draws the same slot the same way.
   @doc false
   def clash_row(row, rule?) do
     ~MOB"""
@@ -312,7 +426,7 @@ defmodule Kati.Screens.MonthGrid do
         <Column width={38}>
           <Text
             text={row.time}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.time)}
             text_size={11.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -330,7 +444,7 @@ defmodule Kati.Screens.MonthGrid do
           max_lines={1}
         />
         <Spacer size={13} />
-        {UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
+        {UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.MonthGrid.hairline(rule?)}
     </Column>

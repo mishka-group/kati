@@ -82,8 +82,29 @@ defmodule Kati.Screens.UpNext do
   and a fresh install has nothing tracked. The fallback is all-or-nothing on
   purpose: a real hero over the drawing's ready list would be four titles the
   user does not have.
+
+  ## Both scripts, one screen
+
+  mishka-group/kati#103. There is no `UpNextFa`; this module renders under `:fa`
+  with `Kati.Locale` set, and three things on it need more than a catalogue:
+
+    * every count is a FIGURE — `12 ready · 4 airing soon`, `Ready to watch ·
+      12`, `Gone cold · 3` — and goes through `Kati.Locale.number/1` as a
+      binding, so the msgid holds the sentence and the sentence holds ۱۲.
+    * `S2 · E6` is two abbreviated WORDS, not two Latin initials, so it is
+      `Kati.Screens.Library`'s own `S%{s} · E%{e}` msgid and reads `ف۲ · ق۶`.
+    * every mono line on the page carries `Kati.Locale.mono_face/1` rather than
+      a pinned `"mono"`, because `kati_mono.ttf` has no Persian glyph at all —
+      and the arity-1 form, so the LATIN lines `Kati.Screens.UpNext.Sample`
+      still answers with stay in DM Mono until that module folds too.
+
+  The caps are the other half. `4 MONTHS AGO` and `18M LEFT` are the drawing's
+  mono capitals and upper case is a Latin operation, so `age/1` and the hero's
+  tail raise through `Kati.UI.eyebrow_label/1` — the raise in Latin, and the
+  identity in the script that has no case to raise.
   """
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -268,7 +289,7 @@ defmodule Kati.Screens.UpNext do
   @spec empty() :: map()
   def empty do
     %{
-      subtitle: "Nothing queued",
+      subtitle: gettext("Nothing queued"),
       ready_label: nil,
       cold_label: nil,
       hero: nil,
@@ -292,7 +313,13 @@ defmodule Kati.Screens.UpNext do
   @spec nothing_matches(map()) :: map()
   def nothing_matches(choice) do
     %{
-      subtitle: "Nothing matches",
+      # `pgettext/2` on two words, and the same context on the card's heading
+      # below so the page says one thing twice rather than two things once.
+      # Two words is under the length `mix gettext.merge`'s fuzzy matcher stops
+      # at, and this app already holds `Nothing on the go`, `Nothing found` and
+      # a dozen more sentences that begin with the same word — any of them
+      # would arrive as this one's translation.
+      subtitle: pgettext("the queue's own line when a filter leaves nothing", "Nothing matches"),
       ready_label: nil,
       cold_label: nil,
       hero: nil,
@@ -344,13 +371,27 @@ defmodule Kati.Screens.UpNext do
   # sitting on. Board 10's `12 ready` over `Ready to watch · 12` over four rows
   # is a drawing showing a slice of a longer list, and is not a semantics a
   # page that draws the whole list can copy.
+  #
+  # All three counts come in as bindings through `Kati.Locale.number/1` rather
+  # than as interpolations, which is the half a Latin-letter audit cannot see:
+  # `12 ready · 4 airing soon` is two FIGURES a Persian reader reads as ۱۲ and
+  # ۴, and a `#{}` would have carried the sentence's arithmetic into the msgid
+  # where no translator can reach it. `Ready` and `Airing soon` are board 167's
+  # own words — `Kati.Screens.UpNextFilters.chip_label/2` names the same three
+  # bands on the sheet this page's `tune` disc opens — and `Gone cold` takes
+  # `Kati.Screens.ShelfFilters.facet_label/2`'s `shelf status` wording, so the
+  # header and the chips cannot come to spell one state two ways.
   defp assemble(hero, rest, cold) do
     cache = cache_for([hero | rest] ++ cold)
 
     %{
-      subtitle: "#{length(rest) + 1} ready · #{airing_soon([hero | rest], cache)} airing soon",
-      ready_label: "Ready to watch · #{length(rest)}",
-      cold_label: "Gone cold · #{length(cold)}",
+      subtitle:
+        gettext("%{ready} ready · %{soon} airing soon",
+          ready: Kati.Locale.number(length(rest) + 1),
+          soon: Kati.Locale.number(airing_soon([hero | rest], cache))
+        ),
+      ready_label: gettext("Ready to watch · %{n}", n: Kati.Locale.number(length(rest))),
+      cold_label: gettext("Gone cold · %{n}", n: Kati.Locale.number(length(cold))),
       hero: hero_row(hero, cache),
       ready: Enum.map(rest, &ready_data(&1, cache)),
       cold: Enum.map(cold, &cold_data(&1, cache))
@@ -369,9 +410,20 @@ defmodule Kati.Screens.UpNext do
   """
   @spec empty_card(map()) :: map()
   def empty_card(%{narrowed?: true, names: names}) do
+    chips = Enum.join(names, " \u00B7 ")
+
     assigns = %{
       tap: {self(), :clear_filters},
-      chips: Enum.join(names, " \u00B7 ")
+      chips: chips,
+      # `Kati.Locale.mono_face/1` and not `mono_face/0`: this line is the
+      # CHIPS' own words, and they are `Kati.Library.UpNextFiltersSample`'s —
+      # still Latin, because that module has not folded. Asking the string's
+      # script rather than the reader's keeps `Under 30m · Gone cold` in DM
+      # Mono while it is Latin and moves it to Vazirmatn the day it is not,
+      # with nobody having to come back here. `kati_mono.ttf` carries no
+      # Persian glyph, so the other order would have set the Persian half in
+      # Android's substitute face.
+      chips_face: Kati.Locale.mono_face(chips)
     }
 
     ~MOB"""
@@ -392,26 +444,26 @@ defmodule Kati.Screens.UpNext do
         </Row>
         <Spacer size={13} />
         <Text
-          text="Nothing matches"
+          text={pgettext("the queue's own line when a filter leaves nothing", "Nothing matches")}
           text_size={14.5}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
           text={@chips}
-          font_family="mono"
+          font_family={@chips_face}
           text_size={12}
           text_color={Palette.eyebrow()}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
-          text="is what emptied it. Nothing you are watching is in every one of those buckets at once."
+          text={gettext("is what emptied it. Nothing you are watching is in every one of those buckets at once.")}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -428,7 +480,7 @@ defmodule Kati.Screens.UpNext do
             on_tap={@tap}
           >
             <Text
-              text="Clear the filters"
+              text={gettext("Clear the filters")}
               text_size={12.5}
               font_weight="semibold"
               text_color={:on_surface}
@@ -465,18 +517,18 @@ defmodule Kati.Screens.UpNext do
         </Row>
         <Spacer size={13} />
         <Text
-          text="Nothing queued"
+          text={gettext("Nothing queued")}
           text_size={14.5}
           font_weight="bold"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_color={:on_surface}
           text_align="center"
         />
         <Spacer size={7} />
         <Text
-          text="Up next follows what you are watching. Start something on your shelf and it arrives here."
+          text={gettext("Up next follows what you are watching. Start something on your shelf and it arrives here.")}
           text_size={12.5}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -507,9 +559,9 @@ defmodule Kati.Screens.UpNext do
     cache = cache_for(cold)
 
     %{
-      subtitle: "Nothing ready · #{length(cold)} gone cold",
+      subtitle: gettext("Nothing ready · %{n} gone cold", n: Kati.Locale.number(length(cold))),
       ready_label: nil,
-      cold_label: "Gone cold · #{length(cold)}",
+      cold_label: gettext("Gone cold · %{n}", n: Kati.Locale.number(length(cold))),
       hero: nil,
       ready: [],
       cold: Enum.map(cold, &cold_data(&1, cache))
@@ -578,6 +630,13 @@ defmodule Kati.Screens.UpNext do
 
   # `action` is the offer this screen makes on a thread that has gone quiet, not
   # a stored value — the design gives every cold row the same one.
+  #
+  # `pgettext/2` because `Drop` is one word, which is under the length
+  # `mix gettext.merge` stops fuzzy-matching at, and this app holds `Drop this
+  # show`, `Drop this film` and `Dropped %{title}%{at}` for the matcher to hand
+  # it. The word itself is `Kati.Screens.DropSheet`'s — that sheet's own commit
+  # button is `Drop%{at}` — because this pill is the door to it, and a pill and
+  # the button it opens that say two different things are two different offers.
   defp cold_data(row, cache) do
     c = cached(row, cache)
 
@@ -587,12 +646,14 @@ defmodule Kati.Screens.UpNext do
       title: title_of(c),
       seed: seed_of(c),
       meta: join(episode(row) ++ [age(row.last_touched_at)]),
-      action: "Drop"
+      action: pgettext("the offer a cold row makes", "Drop")
     }
   end
 
-  defp title_of(nil), do: "Untitled"
-  defp title_of(%CachedTitle{title: nil}), do: "Untitled"
+  # `Kati.Screens.DropSheet.title_of/1`'s own msgid, which is the same sentence
+  # about the same evicted cache row one screen over.
+  defp title_of(nil), do: gettext("Untitled")
+  defp title_of(%CachedTitle{title: nil}), do: gettext("Untitled")
   defp title_of(%CachedTitle{title: title}), do: title
 
   defp seed_of(nil), do: nil
@@ -600,34 +661,86 @@ defmodule Kati.Screens.UpNext do
 
   defp join(parts), do: Enum.join(parts, " · ")
 
-  defp episode(row) do
-    Enum.reject(
-      [label("S", row.progress_season), label("E", row.progress_episode)],
-      &is_nil/1
-    )
-  end
+  # `S` and `E` are abbreviations of WORDS — فصل and قسمت — so the bookmark is
+  # translated rather than kept as two Latin initials glued to two numbers, and
+  # `ف۲ · ق۶` is what the Persian boards draw. Three clauses rather than a
+  # prefix and a join, for `Kati.Screens.WhatFits.place/1`'s reason: a sentence
+  # assembled from pieces is one a translator cannot reorder, and the separator
+  # between the two halves belongs inside the msgid.
+  #
+  # The msgids are other screens' own — `Kati.Screens.Library`'s
+  # `S%{s} · E%{e}` for the pair, `Kati.Screens.WhatFits`'s `season number` for
+  # the first half and the `episode number` context `Kati.Screens.Season` and
+  # `Kati.Screens.Inbox` already spell for the second — so every page in the
+  # app that prints a bookmark prints the same one. The season alone needs a
+  # context of its own because `S` in this app also means a SPECIAL:
+  # `Kati.Screens.Season`'s `pgettext("special number", "S%{n}")` is `و%{n}`,
+  # and one msgid cannot be both.
+  #
+  # Still a LIST, because `join/1` puts the ` · ` between this and the duration
+  # beside it and a row with neither number has to contribute nothing at all.
+  defp episode(%{progress_season: s, progress_episode: e})
+       when is_integer(s) and is_integer(e),
+       do: [gettext("S%{s} · E%{e}", s: Kati.Locale.number(s), e: Kati.Locale.number(e))]
 
-  defp label(_prefix, nil), do: nil
-  defp label(prefix, n) when is_integer(n), do: prefix <> Integer.to_string(n)
-  defp label(_prefix, _other), do: nil
+  defp episode(%{progress_season: s}) when is_integer(s),
+    do: [pgettext("season number", "S%{s}", s: Kati.Locale.number(s))]
+
+  defp episode(%{progress_episode: e}) when is_integer(e),
+    do: [pgettext("episode number", "E%{e}", e: Kati.Locale.number(e))]
+
+  defp episode(_unplaced), do: []
 
   # The hero says how much is LEFT, which is the resume point; every other row
   # says how long the thing is. Both are the same two numbers read differently,
   # and when there is no resume point the hero says the length as well rather
   # than inventing a position.
+  #
+  # `Kati.UI.eyebrow_label/1` in place of `String.upcase/1` on both halves. The
+  # drawing sets this line in mono caps and upper case is a **Latin**
+  # operation: the Arabic script has no case to raise, so upcasing Persian does
+  # nothing while looking like a decision somebody made. `eyebrow_label/1` is
+  # the raise in Latin and the identity in Persian, which is the same division
+  # of labour `Kati.Screens.YearCards` and `Kati.Health.Dose.state_suffix/1`
+  # make with the same call. Nothing moves in English: `18m left` upper-cased
+  # is the drawing's own `18M LEFT`.
   defp hero_tail(row, cached) do
     case seconds_left(row, cached) do
-      nil -> Enum.map(runtime(cached), &String.upcase/1)
-      left -> ["#{div(left, 60)}M LEFT"]
+      nil ->
+        Enum.map(runtime(cached), &Kati.UI.eyebrow_label/1)
+
+      left ->
+        # `Kati.Screens.Home`'s and `Kati.Screens.Library`'s own `%{n}m left` —
+        # the same remainder of the same two columns, said on three screens.
+        [
+          Kati.UI.eyebrow_label(gettext("%{n}m left", n: Kati.Locale.number(div(left, 60))))
+        ]
     end
   end
 
   defp runtime(nil), do: []
 
+  # `Kati.Screens.Library.runtime_line/1`'s three msgids rather than a second
+  # set, because this is the same duration said the same way one screen over —
+  # Persian writes the unit out (`۴۸ دقیقه`, `۱ ساعت ۴۸ دقیقه`) where Latin
+  # abbreviates it, and that decision belongs in the catalogue once.
+  #
+  # The `{h, 0}` clause is new and is a fix rather than a wrapping. A two-hour
+  # film came out `2h 0m`, which reads as a rounding artefact in Latin and as a
+  # sentence in Persian — **۲ ساعت ۰ دقیقه**, "two hours and zero minutes",
+  # said out loud on every round-hour film in the queue. `runtime_line/1` has
+  # answered `2h` to exactly this input since it was written and its doctest
+  # says so; the two were reading the same column and disagreeing about it.
   defp runtime(%CachedTitle{runtime_minutes: minutes}) when is_integer(minutes) and minutes > 0 do
     case {div(minutes, 60), rem(minutes, 60)} do
-      {0, m} -> ["#{m}m"]
-      {h, m} -> ["#{h}h #{m}m"]
+      {0, m} ->
+        [gettext("%{n}m", n: Kati.Locale.number(m))]
+
+      {h, 0} ->
+        [gettext("%{n}h", n: Kati.Locale.number(h))]
+
+      {h, m} ->
+        [gettext("%{h}h %{m}m", h: Kati.Locale.number(h), m: Kati.Locale.number(m))]
     end
   end
 
@@ -667,22 +780,71 @@ defmodule Kati.Screens.UpNext do
   `last_touched_at` is an instant and this is the sentence about it — so it is
   the piece a test has to pin directly rather than through a fixture whose
   timestamp `Kati.Media.Changes.Touch` forces to now.
+
+  ## The caps are the drawing's, and the caps are Latin
+
+  Every bucket is a sentence-case msgid raised by `Kati.UI.eyebrow_label/1`
+  rather than a shouted literal, and the raise is around the whole table rather
+  than nine times inside it. Upper case is an operation the **Latin** script
+  has and the Arabic script does not, so `4 months ago` comes out `4 MONTHS
+  AGO` in English and `۴ ماه پیش` in Persian — unshouted, because there is no
+  shouting to do.
+
+  Nothing moves in English, which matters beyond this screen:
+  `Kati.Screens.DropSheet.duration_of/1` borrows these buckets and strips
+  ` AGO` off the end to reuse them in its own sentence. That strip still finds
+  what it is looking for in Latin. Under `:fa` it does not — Persian has no
+  ` AGO` to remove — and the cold mark reads *سردشده · ۴ ماه پیش*, a redundant
+  word rather than a wrong one. That sheet's own comment names this as the
+  expected outcome of this fold and the fix belongs in that file.
+
+  Almost every msgid here is one the app already holds: `Kati.Screens.Stats.ago/1`
+  says the same day, week and month buckets in the quieter voice its own card
+  uses, and `Not started`, `Today` and `Yesterday` are the library's and the
+  rating screen's words. Only the year bucket is new. That is deliberate — two
+  entries for *four months ago* is two places it can be translated differently,
+  which is the drift making this function public was meant to prevent.
   """
   @spec age(DateTime.t() | nil) :: String.t()
-  def age(nil), do: "NOT STARTED"
+  def age(nil), do: Kati.UI.eyebrow_label(gettext("Not started"))
 
   def age(at) do
-    case Date.diff(Kati.Time.today(), DateTime.to_date(at)) do
-      d when d <= 0 -> "TODAY"
-      1 -> "YESTERDAY"
-      d when d < 7 -> "#{d} DAYS AGO"
-      d when d < 14 -> "1 WEEK AGO"
-      d when d < 30 -> "#{div(d, 7)} WEEKS AGO"
-      d when d < 60 -> "1 MONTH AGO"
-      d when d < 365 -> "#{div(d, 30)} MONTHS AGO"
-      d when d < 730 -> "1 YEAR AGO"
-      d -> "#{div(d, 365)} YEARS AGO"
-    end
+    Kati.UI.eyebrow_label(
+      case Date.diff(Kati.Time.today(), DateTime.to_date(at)) do
+        d when d <= 0 ->
+          gettext("Today")
+
+        1 ->
+          gettext("Yesterday")
+
+        d when d < 7 ->
+          ngettext("%{n} day ago", "%{n} days ago", d, n: Kati.Locale.number(d))
+
+        # The literal `1` the drawing writes, not `div(d, 7)`: anything from a
+        # week to a fortnight is *one week ago* on this row and always was.
+        d when d < 14 ->
+          ngettext("%{n} week ago", "%{n} weeks ago", 1, n: Kati.Locale.number(1))
+
+        d when d < 30 ->
+          ngettext("%{n} week ago", "%{n} weeks ago", div(d, 7), n: Kati.Locale.number(div(d, 7)))
+
+        d when d < 60 ->
+          ngettext("%{n} month ago", "%{n} months ago", 1, n: Kati.Locale.number(1))
+
+        d when d < 365 ->
+          ngettext("%{n} month ago", "%{n} months ago", div(d, 30),
+            n: Kati.Locale.number(div(d, 30))
+          )
+
+        d when d < 730 ->
+          ngettext("%{n} year ago", "%{n} years ago", 1, n: Kati.Locale.number(1))
+
+        d ->
+          ngettext("%{n} year ago", "%{n} years ago", div(d, 365),
+            n: Kati.Locale.number(div(d, 365))
+          )
+      end
+    )
   end
 
   # "Soon" is a date `Kati.Media.Release` is willing to name — `:exact` or
@@ -793,22 +955,40 @@ defmodule Kati.Screens.UpNext do
     )
   end
 
+  # The title is `Kati.Screens.Pushed`'s own back-pill word — the catalogue
+  # holds one `Up next`, and the page a pill names and the page's own heading
+  # saying two different things is how a reader loses track of where they are.
+  #
+  # Three things travel with it and none is decoration:
+  #
+  #   * `Kati.Locale.tracking/1` on the 28pt heading. `-.03em` is a Latin
+  #     display effect; tracking an Arabic run apart breaks the joins BETWEEN
+  #     its letters, which is a different thing from setting them further
+  #     apart — it unwrites the word.
+  #   * `max_lines={1}`, which this heading never had because `Up next` is
+  #     seven letters. A display line with no ceiling wraps rather than
+  #     ellipsising, and a wrapped 28pt heading pushes the whole page down.
+  #   * `Kati.Locale.mono_face/1` on the subtitle. `kati_mono.ttf` carries no
+  #     Persian glyph, so `۱۲ آماده · ۴ به‌زودی پخش` set in DM Mono is handed
+  #     to Android's substitute face — and the arity-1 form keeps DM Mono for
+  #     the Latin line `Kati.Screens.UpNext.Sample` still answers with.
   @doc false
   def header(q) do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Up next"
+        text={gettext("Up next")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
+        max_lines={1}
         text_color={:on_surface}
       />
       <Spacer size={5} />
       <Text
         text={q.subtitle}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(q.subtitle)}
         text_size={11}
         text_color={Palette.muted()}
         max_lines={1}
@@ -843,7 +1023,7 @@ defmodule Kati.Screens.UpNext do
         </Row>
         <Spacer size={12} />
         <Text
-          text="Nothing ready to watch"
+          text={gettext("Nothing ready to watch")}
           text_size={13.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -851,9 +1031,9 @@ defmodule Kati.Screens.UpNext do
         />
         <Spacer size={6} />
         <Text
-          text="Everything on your shelf is paused. Picking one up puts it here."
+          text={gettext("Everything on your shelf is paused. Picking one up puts it here.")}
           text_size={12}
-          line_height={1.55}
+          line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.sub()}
           text_align="center"
         />
@@ -894,14 +1074,14 @@ defmodule Kati.Screens.UpNext do
                   text={h.title}
                   text_size={16}
                   font_weight="bold"
-                  letter_spacing={-0.02}
+                  letter_spacing={Kati.Locale.tracking(-0.02)}
                   text_color={Palette.on_media()}
                   max_lines={1}
                 />
                 <Spacer size={4} />
                 <Text
                   text={h.meta}
-                  font_family="mono"
+                  font_family={Kati.Locale.mono_face(h.meta)}
                   text_size={10.5}
                   text_color={Palette.on_media_meta()}
                   max_lines={1}
@@ -1017,6 +1197,13 @@ defmodule Kati.Screens.UpNext do
     """
   end
 
+  # A row's title is a CACHED TITLE — a name a provider wrote, in whatever
+  # script it was written in — so `letter_spacing` on it is
+  # `Kati.Locale.tracking/1` rather than the drawing's figure: a reader whose
+  # library holds Persian titles gets one drawn here, and tracking breaks the
+  # joins between Arabic letters wherever the page's own language happens to
+  # be. The meta line beside it is this screen's own sentence and takes
+  # `mono_face/1` for `kati_mono.ttf`'s missing Persian glyphs.
   @doc false
   def ready_row(row) do
     ~MOB"""
@@ -1039,14 +1226,14 @@ defmodule Kati.Screens.UpNext do
             text={row.title}
             text_size={13.5}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={4} />
           <Text
             text={row.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.meta)}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -1151,6 +1338,13 @@ defmodule Kati.Screens.UpNext do
   """
   @spec play_disc(number(), number(), non_neg_integer(), non_neg_integer(), term()) :: map()
   def play_disc(size, glyph, background, ink \\ Palette.ink(), tap \\ nil) do
+    # `play_arrow` is NOT `Kati.Locale.forward_glyph()` and does not mirror,
+    # which is `Kati.Screens.SeriesMeta.actions/1`'s argument on the same
+    # glyph: a forward arrow points where the READER is going and so follows
+    # the page, while a transport control points at the direction the TAPE
+    # runs, and that is the same direction in every script. The disc is the one
+    # control this card exists for, so it is worth saying out loud that its
+    # unchanged direction is a decision rather than an oversight.
     MishkaActionIcon.action_icon(
       [size: size, shape: :circle, variant: :filled, background: background, on_tap: tap],
       [Kati.UI.symbol("play_arrow", size: glyph, fill: true, color: ink)]
@@ -1211,7 +1405,7 @@ defmodule Kati.Screens.UpNext do
           <Spacer size={4} />
           <Text
             text={row.meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(row.meta)}
             text_size={10.5}
             text_color={Palette.tertiary()}
             max_lines={1}

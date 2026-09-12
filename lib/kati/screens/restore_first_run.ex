@@ -33,11 +33,14 @@ defmodule Kati.Screens.RestoreFirstRun do
   numbers are always zero and the third is dishonest as a *count* rather than
   a *total*. The caption states the fix directly: *"On an empty device 37's
   three-count summary is dishonest... so it collapses to a single figure and
-  says so in words."* `outcome_card/1` is that single figure — one DM Mono
-  total beside a sentence that names what will not happen (no merge, no
-  replace, nothing to lose) — built from `Kati.Backup.SampleRestore.replace/1`,
-  the same `%{count: "418", noun: "titles"}` 129's own `replace_card/1` reads,
-  because it is the same fact — everything on the file — read a second way.
+  says so in words."* `outcome_card/1` is that single figure — one mono total
+  beside a sentence that names what will not happen (no merge, no replace,
+  nothing to lose) — built from `Kati.Backup.SampleRestore.replace/1`, the
+  same `count` and `noun` 129's own `replace_card/1` reads, because it is the
+  same fact — everything on the file — read a second way. DM Mono in Latin
+  and Vazirmatn at the mono size in Persian, for the reason `outcome_card/1`'s
+  own comment gives: `count` is an integer that becomes the reader's own
+  numerals, and `kati_mono.ttf` has none of them.
 
   ## Reused rather than copied
 
@@ -117,6 +120,7 @@ defmodule Kati.Screens.RestoreFirstRun do
   same choice `Kati.Screens.PickSections` makes for the same reason.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Backup.SampleRestore
@@ -161,7 +165,7 @@ defmodule Kati.Screens.RestoreFirstRun do
           {Kati.Screens.RestoreFirstRun.intro()}
           {Kati.Screens.RestoreFirstRun.file_row(job.file)}
           {Kati.Screens.RestoreFirstRun.scan_card()}
-          {UI.eyebrow("This device has no data")}
+          {UI.eyebrow(gettext("This device has no data"))}
           {Kati.Screens.RestoreFirstRun.outcome_card(job.replace)}
           {Kati.Screens.RestoreFirstRun.cta_button()}
           {Kati.Screens.RestoreFirstRun.footer()}
@@ -192,18 +196,29 @@ defmodule Kati.Screens.RestoreFirstRun do
 
   @doc false
   def intro do
+    # `pgettext/2` and not `gettext/1` for the two headline halves: each is two
+    # words, and `mix gettext.merge` fuzzy-matches a msgid that short against
+    # any longer string that happens to end the same way. The context also
+    # carries the one thing a translator cannot read off the fragment — that
+    # these are the top and bottom halves of ONE 28pt heading, and that a
+    # language which puts its verb last will not split them where English does.
+    # Persian stacks the brand above the verb, `کاتی‌تان را` / `برگردانید`, so
+    # the two msgids do not translate across in the order they are written.
+    first = pgettext("headline over the file row, first line", "Bring your")
+    second = pgettext("headline over the file row, second line", "Kati back")
+
+    blurb =
+      gettext(
+        "Choose the file you saved. Sections, settings and everything you logged come with it — you can skip the rest of setup."
+      )
+
     ~MOB"""
     <Column fill_width={true} padding_top={26}>
       {Kati.Screens.RestoreFirstRun.steps()}
-      {Kati.Screens.RestoreFirstRun.heading_line("Bring your")}
-      {Kati.Screens.RestoreFirstRun.heading_line("Kati back")}
+      {Kati.Screens.RestoreFirstRun.heading_line(first)}
+      {Kati.Screens.RestoreFirstRun.heading_line(second)}
       <Spacer size={12} />
-      <Text
-        text="Choose the file you saved. Sections, settings and everything you logged come with it — you can skip the rest of setup."
-        text_size={14}
-        line_height={1.6}
-        text_color={Palette.ink_soft()}
-      />
+      <Text text={blurb} text_size={14} line_height={1.6} text_color={Palette.ink_soft()} />
       <Spacer size={20} />
     </Column>
     """
@@ -211,15 +226,22 @@ defmodule Kati.Screens.RestoreFirstRun do
 
   @doc false
   def heading_line(line) do
+    # `Kati.Locale.tracking/1` rather than the literal: -0.035em tightens Plus
+    # Jakarta at display size and PULLS APART the joins between Persian
+    # letters, which is the one thing the Arabic script cannot survive. And
+    # `max_lines={1}`, which the drawing did not need because it hard-split the
+    # heading itself: a single Persian word here is longer than either English
+    # half, and a 28pt line that wraps would push the file row off the fold.
     ~MOB"""
     <Text
       text={line}
       text_size={28}
       max_font_scale={1.6}
       font_weight="extrabold"
-      letter_spacing={-0.035}
+      letter_spacing={Kati.Locale.tracking(-0.035)}
       line_height={1.15}
       text_color={:on_surface}
+      max_lines={1}
     />
     """
   end
@@ -260,10 +282,21 @@ defmodule Kati.Screens.RestoreFirstRun do
   """
   @spec file_row(String.t()) :: term()
   def file_row(name) do
+    # The same msgid `Kati.Screens.Restore.file_row/1` already carries, not a
+    # second one saying the same thing: both screens draw this row, and two
+    # msgids would let 129 and 135 drift into two Persian words for one label.
+    #
+    # `name` stays Latin and is NOT wrapped in `Kati.Locale.ltr/1`. It is a
+    # file name, which the fold leaves in its own script — and it needs no
+    # isolate either, because both its edges are letters: the hyphens and dots
+    # inside `kati-backup-2026-08-14.json` sit BETWEEN Latin runs, so the bidi
+    # algorithm resolves them against the run rather than against the page.
+    # The isolate is for a Latin fragment inside a Persian sentence, where the
+    # terminating punctuation is what moves; there is no sentence here.
     row =
       SettingsList.row(
         SettingsList.icon_tile("upload_file"),
-        SettingsList.body("Pick a file", name),
+        SettingsList.body(gettext("Pick a file"), name),
         SettingsList.chevron(),
         rule: false,
         on_tap: {self(), :pick_file}
@@ -282,6 +315,13 @@ defmodule Kati.Screens.RestoreFirstRun do
   @doc "The cream card offering a QR handoff from another phone."
   @spec scan_card() :: term()
   def scan_card do
+    # A DIFFERENT msgid from 129's `Scan from another phone`, on purpose. This
+    # board says *your old phone* and 129 says *another phone*, and they are
+    # not the same promise: onboarding is a migration off a device you are
+    # leaving, Settings is a handoff between two you keep. The Persian follows
+    # the English — `گوشی قبلی` against 129's `گوشی دیگر`.
+    sub = gettext("Settings and plans only — a library needs the file.")
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -296,19 +336,14 @@ defmodule Kati.Screens.RestoreFirstRun do
         <Spacer size={14} />
         <Column weight={1.0}>
           <Text
-            text="Scan from your old phone"
+            text={gettext("Scan from your old phone")}
             text_size={13}
             font_weight="bold"
             text_color={Palette.cream_ink()}
             max_lines={1}
           />
           <Spacer size={5} />
-          <Text
-            text="Settings and plans only — a library needs the file."
-            text_size={11.5}
-            line_height={1.6}
-            text_color={Palette.cream_sub()}
-          />
+          <Text text={sub} text_size={11.5} line_height={1.6} text_color={Palette.cream_sub()} />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -364,9 +399,9 @@ defmodule Kati.Screens.RestoreFirstRun do
   # ── The collapsed outcome card ───────────────────────────────────────────────
 
   @doc """
-  The single DM Mono total beside a sentence naming what will not happen. See
-  the moduledoc for why this replaces 129's three-count row on an empty
-  device.
+  The single mono total beside a sentence naming what will not happen — DM
+  Mono in Latin, Vazirmatn at the mono size in Persian. See the moduledoc for
+  why this replaces 129's three-count row on an empty device.
   """
   @spec outcome_card(map()) :: term()
   def outcome_card(r) do
@@ -379,12 +414,45 @@ defmodule Kati.Screens.RestoreFirstRun do
       font_weight: "semibold"
     ]
 
+    # `r.noun` was interpolated into a bare Elixir string, so the noun came off
+    # `Kati.Backup.SampleRestore.replace/0` already translated — `عنوان` — and
+    # landed at the head of an English sentence that nothing translated. One
+    # word in the reader's script and the rest of the line in Latin is the
+    # worst of the three possible outcomes, because it reads as deliberate.
+    # `%{noun}` as a gettext interpolation instead, which also lets Persian put
+    # the noun somewhere other than first if it ever needs to.
+    lead =
+      gettext("%{noun}, and everything attached to them, will be restored. ", noun: r.noun)
+
+    # `base: true` on the lead run. `Kati.UI.rich_text/1` otherwise hands the
+    # `Text` the style of the LONGEST run, and which run is longest stopped
+    # being this file's decision the moment the three runs became three
+    # msgids — a translator who tightens the lead and lengthens the emphasis
+    # would set the whole paragraph in semibold ink without touching any code.
+    # The paragraph's voice is the body, in every script, so it says so.
     paragraph =
       UI.rich_text([
-        {"#{r.noun}, and everything attached to them, will be restored. ", body},
-        {"Nothing to merge and nothing to replace", emphasis},
-        {" — there is nothing here yet.", body}
+        {lead, Keyword.put(body, :base, true)},
+        {gettext("Nothing to merge and nothing to replace"), emphasis},
+        {gettext(" — there is nothing here yet."), body}
       ])
+
+    # THE TOTAL IS THE ONE FACT ON THIS CARD, so it moves to the reader's own
+    # numerals and the FACE MOVES WITH IT. `kati_mono.ttf` carries none of
+    # U+06F0–U+06F9, so `۴۱۸` left on the hardcoded `font_family="mono"` would
+    # be handed to Android's own fallback and drawn in a typeface that is not
+    # Kati's, at 30pt, beside a sentence that is — the pairing
+    # `Kati.PersianFontTest` states as *Persian numerals are set in `fa` at the
+    # design's mono size*, and `Kati.Screens.ClearHistory.figure/1` is the same
+    # total drawn the same way. `mono_face/1` rather than `/0` so an English
+    # page keeps DM Mono without branching on the locale here.
+    #
+    # `Kati.Locale.number/1` also does the coercion this call site was leaving
+    # to the bridge: `SampleRestore.replace/0` holds `count: 418`, an INTEGER,
+    # and `text={r.count}` was the only `text=` on this screen not handed a
+    # string. 129 has always read it through `Kati.Locale.number/1` in
+    # `replace_card/1`; this is the same figure, so it takes the same route.
+    total = Kati.Locale.number(r.count)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -397,11 +465,11 @@ defmodule Kati.Screens.RestoreFirstRun do
         align="center"
       >
         <Text
-          text={r.count}
-          font_family="mono"
+          text={total}
+          font_family={Kati.Locale.mono_face(total)}
           text_size={30}
           font_weight="medium"
-          letter_spacing={-0.03}
+          letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={Palette.ink()}
           max_lines={1}
         />
@@ -420,6 +488,14 @@ defmodule Kati.Screens.RestoreFirstRun do
   @doc "The single ink CTA — no icon, unlike `Kati.Screens.PickSections.commit/1`'s: `135.html` draws none."
   @spec cta_button() :: term()
   def cta_button do
+    # `pgettext/2` for a two-word label whose nearest neighbours in the
+    # catalogue are `Replace everything on this device` and `Replace
+    # everything…` — 129's DESTRUCTIVE pair. A fuzzy match between those and
+    # this would put `جایگزین` (replace) on the one button in the app that
+    # promises the opposite, on a device with nothing to replace, and it would
+    # ship looking translated. The context is what keeps them apart.
+    label = pgettext("first-run restore button", "Restore everything")
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -432,7 +508,7 @@ defmodule Kati.Screens.RestoreFirstRun do
         on_tap={{self(), :restore_everything}}
       >
         <Text
-          text="Restore everything"
+          text={label}
           text_size={14.5}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -450,13 +526,24 @@ defmodule Kati.Screens.RestoreFirstRun do
   """
   @spec footer() :: term()
   def footer do
+    # `Kati.Locale.back_glyph/0` and not the literal `"arrow_back"`. Material
+    # Symbols are text in a font and auto-mirror nothing, so `layout_direction`
+    # moves this Row to the other edge and leaves the arrow pointing the way it
+    # was drawn — at a screen that, in Persian, is now on the other side of it.
+    # `Kati.Screens.OnboardingWelcome.back_row/1` draws the same foot link the
+    # same way, and this screen would call it if the drawing did not put a
+    # second link on the same line.
+    #
+    # The label is the msgid `Kati.Screens.PickSections` already uses for this
+    # link; `134.html` gives both screens the same escape hatch, so they share
+    # the one translation rather than each naming Welcome their own way.
     ~MOB"""
     <Row fill_width={true} align="center">
       <Row align="center" on_tap={{self(), :back_to_welcome}}>
-        {UI.symbol("arrow_back", size: 17, color: Palette.sub())}
+        {UI.symbol(Kati.Locale.back_glyph(), size: 17, color: Palette.sub())}
         <Spacer size={7} />
         <Text
-          text="Back to welcome"
+          text={gettext("Back to welcome")}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}
@@ -466,7 +553,7 @@ defmodule Kati.Screens.RestoreFirstRun do
       <Spacer weight={1.0} />
       <Row align="center" on_tap={{self(), :set_up_fresh}}>
         <Text
-          text="Set up fresh instead"
+          text={gettext("Set up fresh instead")}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}

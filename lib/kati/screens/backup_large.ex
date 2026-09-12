@@ -16,6 +16,20 @@ defmodule Kati.Screens.BackupLarge do
   and `@counts` are typed: this sheet exists to show one scenario — a backup
   fourteen days old — at one text size, and it has to render that scenario
   every time it is opened, on a fresh install with an empty ledger and all.
+
+  The fold did not change that, only where the typing lives. What was a module
+  attribute holding five strings is now `last_backup/0` holding five typed
+  values: `gettext/1` inside an attribute is evaluated at COMPILE time and
+  freezes in whichever locale the compiler stood in, which is the one thing a
+  sheet that has to render in both scripts cannot hold. The day went from the
+  string `14 Aug` to the `Date` it is a spelling of, because `14 Aug` and
+  ۲۳ مرداد are one day in two CALENDARS and no catalogue translates an
+  arithmetic — `Kati.Locale.date/2` does.
+  `Kati.Screens.BackupDark.last_backup_date/0` and
+  `Kati.Screens.BackupStates.recent/0` type the identical `~D[2026-08-14]` for
+  the identical fixture, so three pictures of one backup cannot come out three
+  different days.
+
   Reading `Kati.Screens.Settings.last_backup/0` the way 128's own
   `status_card/0` does would make that impossible: an empty ledger answers
   `nil`, and 128 already has an opinion about what `nil` draws — the cream
@@ -28,6 +42,19 @@ defmodule Kati.Screens.BackupLarge do
   `Kati.Screens.Backup.format_card/1` reads — filtered to the two rows the
   board draws, rather than retyped, so a wording change to that source
   reaches both screens without this file drifting from it.
+
+  That reuse has a cost mishka-group/kati#103 has not paid yet, and this file
+  must not pay it here. `Kati.Backup.Sample` holds its titles and sub-lines as
+  plain English literals and reaches no catalogue at all, so *Everything
+  (JSON)*, *Per-section CSV*, *The one that restores* and *For a spreadsheet
+  or another app — does not restore* still draw in Latin under `:fa` — on this
+  board, and on 128 beside it. The fix belongs in that module and nowhere
+  else: `Kati.Screens.BackupDark.format_title/1` and its own row list already
+  type that copy through `gettext/1`, so three of the four already have their
+  Persian in the catalogue and `Kati.Backup.Sample` folding is a lookup rather
+  than a translation. Retyping the four strings here to get them translated
+  would put the format copy in a second place — exactly the drift reading the
+  shared source exists to prevent.
 
   ## What 133 draws that 128 does not, and the reverse
 
@@ -177,6 +204,7 @@ defmodule Kati.Screens.BackupLarge do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Backup.Sample
   alias Kati.Theme.Palette
@@ -185,19 +213,34 @@ defmodule Kati.Screens.BackupLarge do
 
   # The scenario this specimen freezes. Typed rather than read off
   # `Kati.Screens.Settings.last_backup/0` — see the moduledoc on why a
-  # reference sheet cannot answer "it depends on the ledger".
-  @title "Back up everything"
-  @caption_lines ["ONE FILE, KEPT", "WHEREVER YOU LIKE"]
+  # reference sheet cannot answer "it depends on the ledger" — and a function
+  # rather than the `@last_backup` attribute it was, because `gettext/1` in a
+  # module attribute is evaluated at compile time and freezes in one locale.
+  #
+  # The age and the size are two msgids where `Kati.Screens.BackupDark` and
+  # `Kati.Screens.BackupStates` join theirs into a single `%{ago} · %{n} MB`:
+  # those boards draw the pair on one line either side of a separator and 133
+  # breaks them onto lines of their own, which is the whole *row becomes a
+  # stack* of it. Both figures go through `Kati.Locale.number/1` and both lines
+  # ask `Kati.Locale.mono_face/0` for a face, so ۲۱۴ lands in Vazirmatn rather
+  # than in a DM Mono that carries none of U+06F0–U+06F9.
+  #
+  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` on the two lines
+  # the board sets in caps: upper-casing is a LATIN operation, and Persian
+  # passing through it comes out unchanged while the call site reads as though
+  # something happened.
+  @spec last_backup() :: map()
+  defp last_backup do
+    age = ngettext("%{n} week ago", "%{n} weeks ago", 2, n: Kati.Locale.number(2))
 
-  @last_backup %{
-    label: "Last backup",
-    date: "14 Aug",
-    age: "2 WEEKS AGO",
-    size: "214 MB",
-    status: "Up to date"
-  }
-
-  @save_label "Save a backup"
+    %{
+      label: UI.eyebrow_label(gettext("Last backup")),
+      date: Kati.Locale.date(~D[2026-08-14], :short),
+      age: UI.eyebrow_label(age),
+      size: gettext("%{n} MB", n: Kati.Locale.number(214)),
+      status: pgettext("backup status", "Up to date")
+    }
+  end
 
   @doc """
   The sheet, top to bottom: title, status, format, save, footnote.
@@ -208,6 +251,16 @@ defmodule Kati.Screens.BackupLarge do
   """
   @spec content(map()) :: map()
   def content(_assigns) do
+    # `pgettext/2` rather than `gettext/1`, and the context is
+    # `Kati.Screens.Backup.content/1`'s own word for word. Two reasons, both
+    # real: `Format` is one short word and `mix gettext.merge` fuzzy-matches a
+    # msgid that short against anything; and the word here is a FILE format,
+    # which Persian need not spell the way it spells the verb. Asking for 128's
+    # context rather than writing a third means the board this sheet re-types
+    # and the sheet itself read out of one entry. Bound above the sigil because
+    # the pair runs long inside it and a `~MOB` interpolation cannot be wrapped.
+    format = pgettext("backup file format", "Format")
+
     ~MOB"""
     <Scroll>
       <Column
@@ -220,7 +273,7 @@ defmodule Kati.Screens.BackupLarge do
         {SettingsList.chrome(nil, 44)}
         {Kati.Screens.BackupLarge.title_block()}
         {Kati.Screens.BackupLarge.status_card()}
-        {UI.eyebrow("Format", gap: 14)}
+        {UI.eyebrow(format, gap: 14)}
         {Kati.Screens.BackupLarge.formats()}
         {Kati.Screens.BackupLarge.save_button()}
         {Kati.Screens.BackupLarge.footnote()}
@@ -241,11 +294,29 @@ defmodule Kati.Screens.BackupLarge do
   @spec cap() :: float()
   def cap, do: 1.0
 
-  @doc "The 34pt title over its two-line mono caption. Uncapped — see the moduledoc."
+  @doc """
+  The 34pt title over its mono caption. Uncapped — see the moduledoc.
+
+  `Kati.Locale.tracking/1` on the title's `-0.03`: tightening by a fraction of
+  an em is a Latin typographic tradition, and in the Arabic script it opens the
+  joins between letters instead of closing the space between them.
+
+  **The title takes no `max_lines`, and on this board that is the answer rather
+  than an oversight.** The fold's general rule is to cap a large display
+  heading at one line so a longer Persian word cannot wrap — but
+  پشتیبان‌گیری از همه‌چیز at 34pt is wider than the 348dp between 133's
+  gutters, and this is the one sheet whose whole claim is *nothing here clips
+  at 235%*. A heading capped at one line would clip precisely the thing the
+  sheet exists to let a reader check. Per 41's rule the card gets taller, and
+  the `Scroll` above already pays for it.
+  """
   @spec title_block() :: map()
   def title_block do
-    title = @title
-    [first, second] = @caption_lines
+    title = gettext("Back up everything")
+
+    lines =
+      Kati.Screens.BackupLarge.caption_lines()
+      |> Enum.map(&Kati.Screens.BackupLarge.caption_line/1)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -253,29 +324,73 @@ defmodule Kati.Screens.BackupLarge do
         text={title}
         text_size={34}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         line_height={1.2}
         text_color={:on_surface}
       />
       <Spacer size={9} />
       <Column fill_width={true}>
-        <Text
-          text={first}
-          font_family="mono"
-          text_size={14}
-          text_color={Palette.muted()}
-          max_lines={1}
-        />
-        <Text
-          text={second}
-          font_family="mono"
-          text_size={14}
-          text_color={Palette.muted()}
-          max_lines={1}
-        />
+        {lines}
       </Column>
       <Spacer size={22} />
     </Column>
+    """
+  end
+
+  @doc """
+  The caption under the title, as the lines the board breaks it into.
+
+  It is ONE sentence — *One file, kept wherever you like* — which
+  `Kati.Screens.BackupDark.content/1` draws whole as its own subtitle and which
+  133 breaks across two mono lines after *KEPT*. One catalogue entry serves
+  both, and the break is a Latin typographic decision rather than a second
+  piece of copy.
+
+  Two msgids split at that break would be the wrong shape in the only script
+  that has to be translated: *One file, kept* and *Wherever you like* are two
+  half-sentences, Persian's own comma falls after یک فایل rather than after
+  *kept*, and no translator handed the halves separately could reassemble the
+  line the board draws. `Kati.Screens.Onboarding.translated/1` makes the
+  identical trade for 164's hard-broken title and argues it at length.
+
+  So `Kati.Locale.pick/2`: Latin keeps the drawing's two lines, typed in the
+  caps the drawing types them in, and Persian takes the sentence whole on one.
+  No `Kati.UI.eyebrow_label/1` over the Persian — the Arabic script has no
+  case, and this line is not shouted in it.
+  """
+  @spec caption_lines() :: [String.t()]
+  def caption_lines do
+    Kati.Locale.pick(
+      ["ONE FILE, KEPT", "WHEREVER YOU LIKE"],
+      [gettext("One file, kept wherever you like")]
+    )
+  end
+
+  @doc """
+  One line of that caption.
+
+  `Kati.Locale.mono_face/0` rather than a named `mono`: `kati_mono.ttf` carries
+  no Persian glyph, so یک فایل، هرجا که بخواهید نگهش دارید set in DM Mono is
+  handed to Android's own substitute face and renders — correctly shaped, in a
+  typeface that is not Kati's — under a title that is.
+
+  `max_lines` is 1 in Latin and 2 in Persian, which is the same decision as the
+  split above rather than a new one. A Latin line is one half of a hard-broken
+  sentence and must not reflow; the Persian line is the WHOLE sentence, this
+  block is deliberately outside `cap/0`, and at a real 235% it is exactly the
+  line that wants a second one. Clipped at one it would lose
+  هرجا که بخواهید نگهش دارید — the half that says where to put the file.
+  """
+  @spec caption_line(String.t()) :: map()
+  def caption_line(line) do
+    ~MOB"""
+    <Text
+      text={line}
+      font_family={Kati.Locale.mono_face()}
+      text_size={14}
+      text_color={Palette.muted()}
+      max_lines={Kati.Locale.pick(1, 2)}
+    />
     """
   end
 
@@ -286,8 +401,9 @@ defmodule Kati.Screens.BackupLarge do
   """
   @spec status_card() :: map()
   def status_card do
-    s = @last_backup
-    label = String.upcase(s.label)
+    # `last_backup/0` does the upcasing now, through `Kati.UI.eyebrow_label/1`
+    # — see the comment on it for why `String.upcase/1` could not stay here.
+    s = last_backup()
 
     ~MOB"""
     <Column
@@ -298,27 +414,27 @@ defmodule Kati.Screens.BackupLarge do
       padding={18}
     >
       <Text
-        text={label}
-        font_family="mono"
+        text={s.label}
+        font_family={Kati.Locale.mono_face()}
         text_size={13}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
       <Spacer size={12} />
       <Text
         text={s.date}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={30}
         font_weight="medium"
-        letter_spacing={-0.02}
+        letter_spacing={Kati.Locale.tracking(-0.02)}
         text_color={:on_surface}
         max_lines={1}
       />
       <Spacer size={9} />
       <Text
         text={s.age}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={15}
         text_color={Palette.muted()}
         max_lines={1}
@@ -326,7 +442,7 @@ defmodule Kati.Screens.BackupLarge do
       <Spacer size={4} />
       <Text
         text={s.size}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={15}
         text_color={Palette.muted()}
         max_lines={1}
@@ -380,6 +496,13 @@ defmodule Kati.Screens.BackupLarge do
   40pt and 28pt shapes, and the title and sub-line below them are not, so
   capping the whole card would have frozen the very text this board exists
   to let grow. See "What K-29 caps here" in the moduledoc.
+
+  Both text nodes take `Kati.Locale.leading/1` and neither takes `gettext/1`:
+  the words are `Kati.Backup.Sample.formats/0`'s and that module has not folded
+  yet, so under `:fa` these two rows still draw English — see the moduledoc on
+  why the fix is there and not here. The leading goes in now regardless,
+  because Vazirmatn's metrics are not Plus Jakarta's and the day `Sample`
+  folds is not the day somebody should have to remember this file.
   """
   @spec format_row(map(), boolean()) :: map()
   def format_row(format, selected?) do
@@ -406,11 +529,16 @@ defmodule Kati.Screens.BackupLarge do
         text={title}
         text_size={20}
         font_weight="semibold"
-        line_height={1.35}
+        line_height={Kati.Locale.leading(1.35)}
         text_color={:on_surface}
       />
       <Spacer size={8} />
-      <Text text={sub} text_size={16} line_height={1.5} text_color={Palette.sub()} />
+      <Text
+        text={sub}
+        text_size={16}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.sub()}
+      />
     </Column>
     """
   end
@@ -468,7 +596,12 @@ defmodule Kati.Screens.BackupLarge do
   """
   @spec save_button() :: map()
   def save_button do
-    label = @save_label
+    # The label already carried `max_lines={1}` and keeps it: this is the one
+    # `Text` on the sheet inside a fixed-height box, so a Persian label that
+    # wrapped would be clipped by the 64pt stadium rather than growing it. It
+    # does not wrap — ذخیره پشتیبان is two short words — and `cap/0` on the
+    # column above is what keeps that true at a real 235%.
+    label = gettext("Save a backup")
 
     ~MOB"""
     <Column fill_width={true} max_font_scale={Kati.Screens.BackupLarge.cap()}>
@@ -505,21 +638,63 @@ defmodule Kati.Screens.BackupLarge do
   """
   @spec footnote() :: map()
   def footnote do
-    body = [text_size: 17, line_height: 1.55, text_color: Palette.ink_soft(), font_family: "sans"]
+    # `Kati.Locale.face_prop/0` where both runs named `"sans"`.
+    # `Kati.UI.rich_text/1` hands the base run's `font_family` straight to the
+    # bridge, so a hardcoded `"sans"` reached it under `:fa` as well and Plus
+    # Jakarta — which carries no Arabic glyph at all — was asked to set a
+    # Persian paragraph. `Kati.Screens.Backup.footnote/0` made the identical
+    # change for the identical three runs.
+    body = [
+      text_size: 17,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.ink_soft(),
+      font_family: Kati.Locale.face_prop(),
+      # `base: true` rather than letting `rich_text/1` pick the longest run.
+      # The bridge has no per-run styling, so ONE run's style becomes the whole
+      # paragraph's, and "longest" is an arithmetic that merely happens to land
+      # on the body copy in English. A translation whose bold clause came out
+      # longest would silently set the entire footnote semibold in `ink` —
+      # `Kati.Screens.Backup.footnote/0`'s own note, and the reason this board
+      # cannot rely on the English lengths holding in Persian.
+      base: true
+    ]
 
     strong = [
       font_weight: "semibold",
       text_color: Palette.ink(),
       text_size: 17,
-      line_height: 1.55,
-      font_family: "sans"
+      line_height: Kati.Locale.leading(1.55),
+      font_family: Kati.Locale.face_prop()
     ]
 
+    # THREE RUNS, TWO OF WHICH ARE ALREADY IN THE CATALOGUE. The first two are
+    # the clauses `Kati.Screens.BackupDark.no_server_note/0` draws character
+    # for character, and its own comment names this file as the reason it asked
+    # for the entry carrying the trailing space rather than
+    # `Kati.Screens.Backup.no_server_note/0`'s space-free one. Asking for the
+    # same two here is what makes that true: 131 and 133 read one clause out of
+    # one entry instead of holding two translations that could drift apart. The
+    # space stays inside the first msgid for that reason and that reason only.
+    #
+    # Only the third run is 133's own — 128 argues the point on for two more
+    # sentences, 131 stops a clause earlier, and this board stops here. Its
+    # joining `". "` is written OUTSIDE the msgid: the full stop closes the
+    # bold clause and the space opens the next sentence, which is punctuation
+    # rather than copy, and a catalogue entry that opened with a full stop is
+    # exactly the punctuation-led kind `mix gettext.merge` fuzzy-matches
+    # against any sentence ending in one. Sitting between two Persian clauses
+    # the stop is a neutral with strong runs on both sides, so the bidi
+    # algorithm leaves it where it is written and no isolate is needed.
+    #
+    # A run boundary is not a word boundary in Persian either: each of the
+    # three is a clause that stands on its own, so the translation can put the
+    # emphasised noun phrase where Persian wants it without the marked-up half
+    # landing mid-word.
     paragraph =
       UI.rich_text([
-        {"Kati has no server, so a backup is ", body},
-        {"a file you keep", strong},
-        {". Put it somewhere that is not only this phone.", body}
+        {gettext("Kati has no server, so a backup is "), body},
+        {gettext("a file you keep"), strong},
+        {". " <> gettext("Put it somewhere that is not only this phone."), body}
       ])
 
     ~MOB"""
