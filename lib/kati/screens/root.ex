@@ -146,23 +146,17 @@ defmodule Kati.Screens.Root do
         # Both guards are needed. The latch says "this is the first screen
         # since launch"; the empty stack says "this is a root, not something
         # pushed on top of one".
-        if socket.__mob__.nav_stack == [] and Kati.Screens.Root.launching?() do
-          cond do
-            not Kati.Onboarding.complete?() ->
-              send(self(), :kati_first_run)
-
-            # Only Home. `Kati.App.navigation/1` names it as the stack root, so
-            # it is the only screen the app can launch on, and
-            # `Kati.Onboarding.shell_root/1` only ever answers Home or HomeFa —
-            # comparing it against Calendar, Library or Stats is always true
-            # and would redirect a root the app never launches on.
-            @root == :home and
-                Kati.Onboarding.shell_root(Kati.Locale.current()) != Kati.Screens.Home ->
-              send(self(), :kati_locale_root)
-
-            true ->
-              :ok
-          end
+        # The locale half is gone. It sent `:kati_locale_root` when the reader's
+        # language named a DIFFERENT root module — `Kati.Screens.HomeFa` — so
+        # that somebody who chose فارسی got screen 55 on every launch rather
+        # than only on the one where they chose it. mishka-group/kati#103
+        # folded that mirror into this screen, so `shell_root/1` answers
+        # `Kati.Screens.Home` in both languages and there is nothing to swap:
+        # the page the app launches on is already the right page, in the right
+        # script, because it reads `Kati.Locale` like every other.
+        if socket.__mob__.nav_stack == [] and Kati.Screens.Root.launching?() and
+             not Kati.Onboarding.complete?() do
+          send(self(), :kati_first_run)
         end
 
         socket
@@ -175,14 +169,6 @@ defmodule Kati.Screens.Root do
       # it. Screens 53, 26 and 38 run before the app proper on a fresh install.
       def handle_info(:kati_first_run, socket) do
         {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.LanguagePick)}
-      end
-
-      # Someone who chose فارسی gets screen 55 on every launch, not only on the
-      # one where they chose it. `Kati.App.navigation/1` has to name a single
-      # module and cannot read the locale (see the comment there), so the swap
-      # happens here.
-      def handle_info(:kati_locale_root, socket) do
-        {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.shell_root(Kati.Locale.current()))}
       end
 
       @doc """

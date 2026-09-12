@@ -53,7 +53,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       those states, so what is compared is the QUOTATION — `@quoted` — plus the
       shape floor `@undrawn` uses. Their own suites,
       `Kati.ScreenCalendarEmptyStateTest`, `Kati.ScreenStatsEmptyTest`,
-      `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomeFaEmptyStateTest`, hold
+      `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomePersianEmptyStateTest`, hold
       the rest and are named in the entries.
 
   The populated half of all four is not lost with the fallback:
@@ -365,7 +365,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # all, and they are the ones with the most to lose from losing a fallback:
     # every drawing in that range was captured from its Sample module, and a
     # Persian page that renders empty cannot be compared with anything.
-    {"55", Kati.Screens.HomeFa},
+    {"55", Kati.Screens.Home},
     # 56 was `Kati.Screens.ScheduleFa` until mishka-group/kati#103 folded that
     # mirror away. Board 56 is screen 02 under `:fa` now — hence its number on
     # `@fa_numbers` below.
@@ -584,9 +584,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"155", Kati.Screens.AddByHandStates},
     {"156", Kati.Screens.AddByHand},
     {"157", Kati.Screens.AddByHandDark},
-    {"158", Kati.Screens.HomeFaEmpty},
-    {"159", Kati.Screens.HomeFaEmptyDark},
-    {"160", Kati.Screens.HomeFaOmittedSections},
+    {"158", Kati.Screens.HomeEmpty},
+    {"159", Kati.Screens.HomeEmptyDark},
+    {"160", Kati.Screens.HomeOmittedSections},
     # D-43's three. 188 WRITES and reads nothing — it is 154's case exactly,
     # and it is here because this list is derived from the compiled import
     # table, which is what stops a screen opting itself out by only writing on
@@ -921,7 +921,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 28's empty sentence is 139's own, verbatim, because 139 is English and 28
     # is English — the `@quoted` pair below is the same pair screen 02 carries.
     # 55's is not quotable from any board, because no board says it in Persian;
-    # `Kati.Screens.HomeFa.empty_day/0` is where that sentence lives and where
+    # `Kati.Screens.Home.empty_day/0` is where that sentence lives and where
     # the three ways out are argued. What constrains 55 here instead is board
     # 55's own chrome, which the empty page must still draw in full — see
     # `@quoted`.
@@ -935,13 +935,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
      Kati.ScreenDarkWidgetsTest},
     {"55",
      "board 158 draws a Persian Home with nothing kept, and board 317 is the ruling that 55 " <>
-       "must USE it: `Kati.Onboarding.shell_root/1` answers `Kati.Screens.HomeFa` for `:fa`, " <>
+       "must USE it: `Kati.Onboarding.shell_root/1` answers `Kati.Screens.Home` in both languages, " <>
        "so 55 is the page a Persian install opens on, and it drew its own bands emptied " <>
-       "there. It calls `Kati.Screens.HomeFaEmpty.content/1` now, gated on " <>
+       "there. It calls `Kati.Screens.HomeEmpty.content/1` now, gated on " <>
        "`Kati.Screens.Home.nothing_kept?/1` — one gate for two languages, which is 317's " <>
        "own sentence — so the four lines in @quoted are quoted from 158 rather than from 55. " <>
-       "`Kati.Screens.HomeFa.empty_day/0` still words 55's own empty day for a reader who " <>
-       "HAS kept something, and is argued at that function", Kati.ScreenHomeFaEmptyStateTest}
+       "`Kati.Screens.Home.empty_day/0` still words 55's own empty day for a reader who " <>
+       "HAS kept something, and is argued at that function", Kati.ScreenHomePersianEmptyStateTest}
   ]
 
   # `{screen number, the board it is quoted from, the line}`.
@@ -972,8 +972,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # 02, 07 and 28 all quote a board that words the state they are in. 55 cannot:
   # the state is *a Persian Home with nothing kept*, no board in the 152 says
   # anything about it, and the one sentence it needs —
-  # `Kati.Screens.HomeFa.empty_day/0` — is therefore not a quotation at all. It
-  # is held by `Kati.ScreenHomeFaEmptyStateTest` instead, at both ends: that the
+  # `Kati.Screens.Home.empty_day/0` — is therefore not a quotation at all. It
+  # is held by `Kati.ScreenHomePersianEmptyStateTest` instead, at both ends: that the
   # screen draws it on an empty day, and that a real event replaces it.
   #
   # What is quotable is the other half, and it is the half this list can check:
@@ -1077,7 +1077,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # already the Persian mirror of 139. The six lines that used to be here
     # were board 55's own chrome, on the reading that an empty Persian Home is
     # 55 emptied; 317 overturns that reading and these four hold the new one at
-    # both ends. `Kati.ScreenHomeFaEmptyStateTest`'s board-317 describe holds
+    # both ends. `Kati.ScreenHomePersianEmptyStateTest`'s board-317 describe holds
     # the rest, including that the three announcing bands are gone.
     {"55", "158", "هنوز چیزی اینجا نیست"},
     {"55", "158", "انتخاب بخش‌ها"},
@@ -2539,13 +2539,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"157", Kati.Screens.AddByHandDark,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"158", Kati.Screens.HomeFaEmpty,
+      {"158", Kati.Screens.HomeEmpty,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"159", Kati.Screens.HomeFaEmptyDark,
+      {"159", Kati.Screens.HomeEmptyDark,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"160", Kati.Screens.HomeFaOmittedSections,
+      {"160", Kati.Screens.HomeOmittedSections,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"62", Kati.Screens.Settings,
@@ -2667,7 +2667,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # own reshaping function and not 01's: what is being asserted is that the
       # reshaping passes `nil` through rather than filling a headline in.
       #
-      # `Kati.Screens.HomeDark.Sample` and `Kati.Screens.HomeFa.Sample` stay
+      # `Kati.Screens.HomeDark.Sample` and `Kati.Screens.Home.Sample` stay
       # exactly where they are. They are the transcriptions the two boards were
       # captured from, and the `drawn != empty` half of every pair below is what
       # stops an emptied Sample turning the first half into two nothings
@@ -2678,18 +2678,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.HomeDark.Sample.continue/0},
       {"28", Kati.Screens.HomeDark, fn -> timeline() end, [],
        &Kati.Screens.HomeDark.Sample.rest_of_today/0},
-      {"55", Kati.Screens.HomeFa, &Kati.Screens.HomeFa.hero_summary/0, nil,
-       &Kati.Screens.HomeFa.drawn_hero/0},
-      {"55", Kati.Screens.HomeFa, &Kati.Screens.Home.continue_watching_rows/0, [],
-       &Kati.Screens.HomeFa.Sample.continue/0},
+      {"55", Kati.Screens.Home, &Kati.Screens.Home.hero_summary/0, nil,
+       &Kati.Screens.Home.drawn_hero/0},
+      {"55", Kati.Screens.Home, &Kati.Screens.Home.continue_watching_rows/0, [],
+       &Kati.Screens.Home.drawn_continue_watching/0},
       # The tiles themselves are navigation and are drawn either way; it is the
       # two metas under them that claimed a dinner and two unfinished habits,
       # and neither has a resource behind it anywhere. 01 carries the identical
       # pair one screen over.
-      {"55", Kati.Screens.HomeFa, fn -> Enum.map(Kati.Screens.HomeFa.tile_rows(), & &1.meta) end,
-       [nil, nil, nil], fn -> Enum.map(Kati.Screens.HomeFa.drawn_tiles(), & &1.meta) end},
-      {"55", Kati.Screens.HomeFa, fn -> timeline() end, [],
-       &Kati.Screens.HomeFa.Sample.rest_of_today/0}
+      {"55", Kati.Screens.Home, fn -> Enum.map(Kati.Screens.Home.tile_rows(), & &1.meta) end,
+       [nil, nil, nil], fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
+      {"55", Kati.Screens.Home, fn -> timeline() end, [], &Kati.Screens.Home.drawn_rows/0}
     ]
   end
 
@@ -2801,7 +2800,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"55", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"56", "یکشنبه ۲۵ مرداد · ۵ مورد", ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u},
       # 158's pair, which are 55's: the Persian empty Home reads the same
-      # `Kati.Screens.HomeFa.moment/0`, so a board-frozen ۲۵ مرداد ۱۴۰۵ is the
+      # `Kati.Screens.Home.moment/0`, so a board-frozen ۲۵ مرداد ۱۴۰۵ is the
       # same frozen value on the same clock.
       {"158", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"158", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
@@ -3097,7 +3096,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(56 57 58 60 61 62 69 72 76 82 90 97 103 137 156 164 165 166 176)
+  @fa_numbers ~w(55 56 57 58 60 61 62 69 72 76 82 90 97 103 137 156 158 159 160 164 165 166 176)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

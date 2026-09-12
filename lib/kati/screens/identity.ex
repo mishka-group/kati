@@ -17,7 +17,7 @@ defmodule Kati.Screens.Identity do
 
   ## Why the name is derived
 
-  `Kati.Screens.HomeFaEmpty` becomes `home_fa_empty`, from the module and
+  `Kati.Screens.HomeEmptyDark` becomes `home_empty_dark`, from the module and
   nothing else. Hand-written names would be 152 opportunities to give two
   screens the same one, and a stamp that is not unique is worse than no stamp —
   it makes a test that waits for the wrong screen look like a test that passed.
@@ -32,8 +32,8 @@ defmodule Kati.Screens.Identity do
   @doc """
   The stamp for a screen module.
 
-      iex> Kati.Screens.Identity.of(Kati.Screens.HomeFaEmpty)
-      "screen:home_fa_empty"
+      iex> Kati.Screens.Identity.of(Kati.Screens.HomeEmptyDark)
+      "screen:home_empty_dark"
   """
   @spec of(module()) :: String.t()
   def of(module) when is_atom(module) do

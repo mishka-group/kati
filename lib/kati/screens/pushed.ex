@@ -231,7 +231,7 @@ defmodule Kati.Screens.Pushed do
   @doc """
   A screen's name on the device, derived from its module.
 
-  `Kati.Screens.HomeFaEmpty` becomes `home_fa_empty`. Derived rather than
+  `Kati.Screens.HomeEmptyDark` becomes `home_empty_dark`. Derived rather than
   written by hand because 152 hand-written names is 152 chances to give two
   screens the same one, and the whole point of the stamp is that it says which
   screen you are on.

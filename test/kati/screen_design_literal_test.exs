@@ -213,7 +213,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 127 132 137 156 164 165 166 176)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 127 132 137 156 158 159 160 164 165 166 176)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
   # tier. Today: 21, and twenty of them are rating rows the drawing writes as
@@ -709,7 +709,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # month now fails eleven months in twelve instead of none.
       # Raised to 33 on 4 September for screen 158, the Persian empty Home. Not
       # a new class of excuse: both entries are screen 55's, on the same
-      # `Kati.Screens.HomeFa.moment/0` and with the same patterns — 158 IS 55
+      # `Kati.Screens.Home.moment/0` and with the same patterns — 158 IS 55
       # with nothing stored, exactly as 139 is 01 with nothing stored, and 01's
       # pair is already here for that reason. Each pins today's Shamsi day, so
       # a screen that hardcoded the board's ۲۵ مرداد ۱۴۰۵ still fails.
@@ -991,19 +991,19 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"09", "thu 20 aug", "the heavy day's header is the device's today, in the same short form",
        ~r/^\p{L}{3} #{day} \p{L}{3}$/u},
       {"55", "یکشنبه ۲۵ مرداد ۱۴۰۵",
-       "the Persian Home's date line is `Kati.Screens.HomeFa.moment/0`, which is " <>
+       "the Persian Home's date line is `Kati.Screens.Home.moment/0`, which is " <>
          "`Kati.Calendar.Shamsi.format/2` at `:long` over `Kati.Time.today/0` — the mirror " <>
          "of 01's own exemption, in the calendar the screen is drawn in",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"160", "یکشنبه ۲۵ مرداد ۱۴۰۵",
-       "160 is a Persian Home too, on the same `Kati.Screens.HomeFa.moment/0`",
+       "160 is a Persian Home too, on the same `Kati.Screens.Home.moment/0`",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"160", "عصر بخیر", "the same greeting, the same hour", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"159", "یکشنبه ۲۵ مرداد ۱۴۰۵", "159 is 158 in the dark colourway and reads the same clock",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"159", "عصر بخیر", "the same greeting, the same hour", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"158", "یکشنبه ۲۵ مرداد ۱۴۰۵",
-       "the Persian empty Home's date line is `Kati.Screens.HomeFa.moment/0`, the same " <>
+       "the Persian empty Home's date line is `Kati.Screens.Home.moment/0`, the same " <>
          "function screen 55's is — so 158 carries 55's exemption for the same reason and " <>
          "with the same pattern, pinned to today's Shamsi day",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
@@ -1532,23 +1532,23 @@ defmodule Kati.ScreenDesignLiteralTest do
          timeline: Kati.Screens.HomeDark.Sample.rest_of_today()
        })},
       # 55 is screen 01 in Persian, and its four bands are four reads. Every
-      # value installed here comes out of `Kati.Screens.HomeFa.Sample` — through
+      # value installed here comes out of `Kati.Screens.Home.Sample` — through
       # `drawn_hero/0` and `drawn_tiles/0`, which are that module reshaped into
       # what the render takes — so board 55 is still compared against the
       # transcription it was captured from, node for node. `:moment` stays the
       # device clock, as it always was: 55's two clock literals are exempted in
       # `device_values/0` and have been since the screen was built.
-      {"55", Kati.Screens.HomeFa,
+      {"55", Kati.Screens.Home,
        &Map.merge(&1, %{
          # Board 317 gave 55 the gate 139 gives 01, so the flag joins the four
          # values for 01's reason: this is the board's state, and the board is
-         # a device with something on it. `Kati.ScreenHomeFaEmptyStateTest`
+         # a device with something on it. `Kati.ScreenHomePersianEmptyStateTest`
          # holds the other half — that a device with nothing draws 158.
          nothing_kept: false,
-         hero: Kati.Screens.HomeFa.drawn_hero(),
-         continue: Kati.Screens.HomeFa.Sample.continue(),
-         tiles: Kati.Screens.HomeFa.drawn_tiles(),
-         timeline: Kati.Screens.HomeFa.Sample.rest_of_today()
+         hero: Kati.Screens.Home.drawn_hero(),
+         continue: Kati.Screens.Home.drawn_continue_watching(),
+         tiles: Kati.Screens.Home.drawn_tiles(),
+         timeline: Kati.Screens.Home.drawn_rows()
        })},
       # 07's four assigns are one keyword list out of `figures/0`, and all four
       # are replaced together — a year with a `grid` from somewhere else would be

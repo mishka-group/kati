@@ -267,7 +267,7 @@ defmodule Kati.ScreenTapSweepTest do
   # always opened; the hero's button is `:open_inbox` and means *the release
   # inbox*. Because this sweep still cannot see the branch that draws both,
   # the claim is held where the fixture can exist —
-  # `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomeFaEmptyStateTest` each
+  # `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomePersianEmptyStateTest` each
   # write a tracked title and an aired episode, then assert no tag repeats.
   #
   # This list may only SHRINK. The test enforces both directions — a new

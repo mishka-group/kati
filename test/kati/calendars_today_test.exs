@@ -6,7 +6,7 @@ defmodule Kati.Calendars.TodayTest do
 
   A row used to leave `Kati.Calendars.Today` carrying one composed English
   sentence and nothing else, so two different things had to be read back out of
-  it. `Kati.Screens.HomeFa` and board 56 drew that sentence
+  it. Boards 55 and 56 drew that sentence
   under a Persian title, ending every real row in `Airs today` or `Habit`; and
   `Kati.Screens.Calendar.kind/1` searched it for `"Money"` to decide a card's
   shape, its chip and the screen a tap pushed — over a string that begins with a
@@ -176,7 +176,7 @@ defmodule Kati.Calendars.TodayTest do
     test "the user's own words are not rewritten on the way past" do
       # A location is what the user typed and a title is their own words; only
       # the label is Kati's, so only the label changes language. Same rule
-      # `Kati.Screens.HomeFa` states for digits.
+      # board 55 states for digits.
       assert Kati.Locale.as(:fa, fn -> Today.meta(%{location: "Lumen+", kind: :air_date}) end) ==
                "Lumen+ · پخش امروز"
     end
@@ -363,58 +363,51 @@ defmodule Kati.Calendars.TodayTest do
       end
     end
 
-    test "55 composes its own sub-line for every kind" do
+    test "board 55 composes its own sub-line for every kind" do
+      # Board 55 is screen 01 read under `:fa` since mishka-group/kati#103, and
+      # it draws the timeline rows `Kati.Calendars.Today.rows/0` composes —
+      # the same `:meta` board 56 draws, because there is one composer.
       for kind <- @kinds do
-        drawn = Kati.Screens.HomeFa.fa_row(row(kind: kind, location: nil)).meta
+        {drawn, persian} =
+          Kati.Locale.as(:fa, fn ->
+            {Today.row(event(kind: kind, location: nil), @zone).meta, Today.kind_label(kind)}
+          end)
 
-        assert drawn == Kati.Locale.as(:fa, fn -> Today.kind_label(kind) end)
+        assert drawn == persian
         refute drawn == @english[kind]
       end
     end
 
-    test "neither screen draws a Latin letter Kati wrote" do
+    test "neither board draws a Latin letter Kati wrote" do
       # The location is the user's own words and stays as typed, so the check is
       # made on a row that has none: everything left in the line is Kati's.
       for kind <- @kinds do
-        for {screen, drawn} <- [
-              {"56", Kati.Locale.as(:fa, fn -> Calendar.shaped(row(kind: kind)).meta end)},
-              {"55", Kati.Screens.HomeFa.fa_row(row(kind: kind)).meta}
-            ] do
-          assert persian?(drawn),
-                 "screen #{screen} draws #{inspect(drawn)} for #{inspect(kind)}"
-        end
+        drawn = Kati.Locale.as(:fa, fn -> Calendar.shaped(row(kind: kind)).meta end)
+
+        assert persian?(drawn),
+               "a Persian timeline row draws #{inspect(drawn)} for #{inspect(kind)}"
       end
     end
 
-    test "a location the user typed survives both screens unrewritten" do
-      real = row(kind: :air_date, location: "Lumen+")
-
+    test "a location the user typed survives unrewritten" do
       assert Kati.Locale.as(:fa, fn ->
                Calendar.shaped(row(kind: :air_date, location: "Lumen+")).meta
              end) == "Lumen+ · پخش امروز"
-
-      assert Kati.Screens.HomeFa.fa_row(real).meta == "Lumen+ · پخش امروز"
     end
 
-    test "the row's own field is still the English one screens 01 and 02 draw" do
-      # Composing in Persian must not have been done by mutating the row. 28 and
-      # 02 read `:meta` off the same value and are compared with captured frames.
+    test "the row's own field is the language it was built in" do
+      # `:meta` is composed by `Today.row/2` at the moment the row is built, so
+      # a row built in English carries English — which is what screens 01, 02
+      # and 28 were captured drawing. The mirrors had to recompose it because
+      # they were a second module reading a row somebody else had built; there
+      # is one builder now, and it builds in the reader's own language.
       real = row(kind: :air_date, location: "Lumen+")
 
-      _ = Calendar.shaped(real)
-      _ = Kati.Screens.HomeFa.fa_row(real)
-
       assert real.meta == "Lumen+ · Airs today"
-    end
 
-    test "55 leaves a drawn row's Persian meta exactly as the drawing wrote it" do
-      # `fa_row/1` runs over both the store's rows and `Sample.rest_of_today/0`'s,
-      # and screen 55 is compared with `.scratch/design/audit/55.png`. The drawn
-      # rows carry no `:kind`, which is the only thing separating the two, so a
-      # branch that got it wrong would rewrite the drawing's own sub-lines.
-      for drawn <- Kati.Screens.HomeFa.Sample.rest_of_today() do
-        assert Kati.Screens.HomeFa.fa_row(drawn).meta == drawn.meta
-      end
+      assert Kati.Locale.as(:fa, fn ->
+               Today.row(event(kind: :air_date, location: "Lumen+"), @zone).meta
+             end) == "Lumen+ · پخش امروز"
     end
   end
 end

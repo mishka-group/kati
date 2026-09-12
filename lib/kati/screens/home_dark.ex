@@ -145,6 +145,7 @@ defmodule Kati.Screens.HomeDark do
   exactly the two literals it always did.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Calendars.Today
@@ -236,7 +237,7 @@ defmodule Kati.Screens.HomeDark do
           {Kati.Screens.HomeDark.search()}
           {Kati.Screens.HomeDark.new_this_week(assigns.hero)}
           {Kati.Screens.HomeDark.continue_watching(assigns.continue)}
-          {Kati.Screens.HomeDark.eyebrow("Rest of today")}
+          {Kati.Screens.HomeDark.eyebrow(gettext("Rest of today"))}
           {Kati.Screens.HomeDark.rest_of_today(timeline)}
         </Column>
       </Scroll>
@@ -373,8 +374,8 @@ defmodule Kati.Screens.HomeDark do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text={String.upcase(moment.date)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(moment.date)}
+            font_family={Kati.Locale.mono_face(moment.date)}
             text_size={11}
             letter_spacing={0.14}
             text_color={0xFF6A6560}
@@ -385,8 +386,9 @@ defmodule Kati.Screens.HomeDark do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={0xFFF5F2EE}
+            max_lines={1}
           />
         </Column>
         {Kati.Screens.HomeDark.disc("notifications", :notifications)}
@@ -459,7 +461,7 @@ defmodule Kati.Screens.HomeDark do
         {Kati.UI.symbol("search", size: 20, color: 0xFF6A6560)}
         <Spacer size={11} />
         <Text
-          text="Search films, shows, events…"
+          text={gettext("Search films, shows, events…")}
           text_size={14.5}
           text_color={0xFF6A6560}
           weight={1.0}
@@ -507,7 +509,10 @@ defmodule Kati.Screens.HomeDark do
   def new_this_week(nil), do: ~MOB"<Spacer size={0} />"
 
   def new_this_week(summary),
-    do: [Kati.Screens.HomeDark.eyebrow("New this week"), Kati.Screens.HomeDark.hero(summary)]
+    do: [
+      Kati.Screens.HomeDark.eyebrow(gettext("New this week")),
+      Kati.Screens.HomeDark.hero(summary)
+    ]
 
   # Cream, warmed rather than darkened, and ringed in 14%-alpha orange instead
   # of carrying the light card's shadow.
@@ -549,14 +554,14 @@ defmodule Kati.Screens.HomeDark do
             on_tap={tap}
           >
             <Text
-              text="Open inbox"
+              text={gettext("Open inbox")}
               text_size={13.5}
               font_weight="semibold"
               text_color={0xFF1A1917}
               max_lines={1}
             />
             <Spacer size={7} />
-            {Kati.UI.symbol("arrow_forward", size: 17, color: 0xFF1A1917)}
+            {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 17, color: 0xFF1A1917)}
           </Row>
           {Kati.Screens.HomeDark.hero_checked(summary.checked)}
         </Row>
@@ -693,7 +698,10 @@ defmodule Kati.Screens.HomeDark do
   def continue_watching([]), do: ~MOB"<Spacer size={0} />"
 
   def continue_watching(rows) do
-    [Kati.Screens.HomeDark.eyebrow("Continue watching"), Kati.Screens.HomeDark.continue(rows)]
+    [
+      Kati.Screens.HomeDark.eyebrow(gettext("Continue watching")),
+      Kati.Screens.HomeDark.continue(rows)
+    ]
   end
 
   @doc false
@@ -796,7 +804,7 @@ defmodule Kati.Screens.HomeDark do
   state of a show somebody has just added. The component omits whichever node
   would carry the zero, so both ends draw.
 
-  `Kati.Screens.Home.watch_bar/1` and `Kati.Screens.HomeFa.watch_card/1` are the
+  `Kati.Screens.Home.watch_bar/1` and this one are the
   same call at the same three numbers in their own palettes.
   """
   @spec watch_bar(float()) :: map()
@@ -864,7 +872,7 @@ defmodule Kati.Screens.HomeDark do
       padding_bottom={20}
     >
       <Text
-        text="Nothing scheduled — add anything with +"
+        text={gettext("Nothing scheduled — add anything with +")}
         text_size={13}
         line_height={1.55}
         text_color={0xFF8A837B}

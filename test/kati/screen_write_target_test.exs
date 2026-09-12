@@ -593,8 +593,8 @@ defmodule Kati.ScreenWriteTargetTest do
   # and one of the thirteen is a control that GAINED a destination rather than
   # losing one — 07's numbers card grew board 61's Health row, which opens
   # screen 110.
-  # 158 since mishka-group/kati#103 folded `Kati.Screens.ScheduleFa` and
-  # `Kati.Screens.LibraryFa` away. The
+  # It moved down again with `Kati.Screens.ScheduleFa` and
+  # `Kati.Screens.LibraryFa`. The
   # floor counts MODULES the pass can mount bare, and a fold removes one while
   # leaving every control it drew reachable on the screen it folded into — the
   # `@drawn_taps` floor beside this one is what says so.
@@ -615,8 +615,20 @@ defmodule Kati.ScreenWriteTargetTest do
   # screen 03 were INERT — every `shelf_*` tag answered `{:noreply, socket}` —
   # and they push screens 20 and 21 now, which is the ruling the mirror made
   # after a device reported pressing *Music* and landing on one album.
-  @screens_swept 158
-  @drawn_taps 2020
+  # 156 since the Home family folded: `Kati.Screens.HomeFa` and
+  # `Kati.Screens.HomeFaEmpty` are gone outright, and `HomeFaEmptyDark` and
+  # `HomeFaOmittedSections` were RENAMED rather than deleted — board 159 is
+  # board 139 in the dark colourway and board 160 is a reference sheet, so
+  # neither is a mirror and both still mount.
+  #
+  # And a seventh time, to 1980, with the last four mirrors. Board 55 drew a
+  # bell, a search field, a hero button, two watch cards, three section tiles,
+  # two timeline rows, four dock tabs and a FAB; 158 drew a settings disc, a
+  # search field, two invitation buttons and a calendar row. Screen 01 and
+  # screen 139 are swept in both locales and answer for every one of them, and
+  # the measured drop is twenty-nine.
+  @screens_swept 156
+  @drawn_taps 1980
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

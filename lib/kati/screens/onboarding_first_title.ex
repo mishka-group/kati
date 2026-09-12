@@ -374,7 +374,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       Kati.Screens.HomeEmpty
   """
   @spec empty_home() :: module()
-  def empty_home, do: Kati.Locale.pick(Kati.Screens.HomeEmpty, Kati.Screens.HomeFaEmpty)
+  def empty_home, do: Kati.Screens.HomeEmpty
 
   # run underneath it and the back gesture would walk back into onboarding
   # that has just been completed. Screen 38 settled both points; this is the

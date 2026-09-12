@@ -66,9 +66,9 @@ defmodule Kati.Shell do
       iex> Kati.Shell.roots() |> Enum.map(& &1.label)
       ["Home", "Calendar", "Library", "Stats"]
 
-  `Kati.Screens.Fa.roots/0` is the Persian half and is the LAST thing #103's
-  fold deletes: it names four mirrors, so it survives until all four have
-  folded and then goes with them. These four labels are what it will not need.
+  There was a Persian half — `Kati.Screens.Fa.roots/0`, four mirror modules —
+  and mishka-group/kati#103 deleted it with the last of them. These four labels
+  are what replaced it: one table, read in whichever language the reader chose.
   """
   def roots, do: Enum.map(@roots, &Map.put(&1, :label, Kati.Shell.label(&1.id)))
 
@@ -80,34 +80,19 @@ defmodule Kati.Shell do
   def label(_home), do: gettext("Home")
 
   @doc """
-  The screen a dock tab resolves to, in the language the reader is in.
+  The screen a dock tab resolves to.
 
-  `Kati.Screens.Root`'s `root_*` dispatch is the one caller that matters, and it
-  is shared by the English roots and — since mishka-group/kati#103 began folding
-  the Persian ones — by boards that are those same screens read under `:fa`.
-  Board 61 is screen 07 now, and its dock has to reach board 55, 56 and 57
-  rather than screens 01, 02 and 03: a Persian root that switched tabs into an
-  English page would change the app's language out from under the reader, which
-  is the failure `Kati.Screens.Fa` records for the آمار tab's old stand-in.
-
-  So the Persian table is asked first while it still names anything of its own.
-  `Kati.Screens.Fa.roots/0` shrinks by one entry per fold and the last fold
-  deletes it; on that day every answer here is `@roots`' and this clause can go
-  with it.
+  One table, in both languages. `Kati.Screens.Root`'s `root_*` dispatch is the
+  caller that matters, and while the Persian mirrors stood it had to ask a
+  second table — `Kati.Screens.Fa.roots/0` — because a Persian root that
+  switched tabs into an English page would have changed the app's language out
+  from under the reader. mishka-group/kati#103 folded all four of those mirrors
+  into these four screens, and each of them takes its script from
+  `Kati.Locale`: boards 55, 56, 57 and 61 ARE screens 01, 02, 03 and 07 read
+  under `:fa`. The second table went with the last mirror.
   """
   @spec screen_for(atom()) :: module()
-  def screen_for(id) do
-    english = Enum.find(@roots, &(&1.id == id)).screen
-
-    if Kati.Locale.current() == :fa do
-      case Enum.find(Kati.Screens.Fa.roots(), &(&1.id == id)) do
-        %{screen: screen} -> screen
-        nil -> english
-      end
-    else
-      english
-    end
-  end
+  def screen_for(id), do: Enum.find(@roots, &(&1.id == id)).screen
 
   @doc """
   Wraps a root screen's content in the shell chrome.
@@ -220,7 +205,16 @@ defmodule Kati.Shell do
   # drawing shows. CSS `space-around` distributes within the content box and
   # then the browser's own optical rounding differs; the number that matters
   # is where the icons end up, and this is the version that matches.
-  defp dock(active, mode) do
+  @doc """
+  The four-tab bar and the FAB, for a page that builds its own frame.
+
+  Public because two screens draw the shell's chrome under a root node of their
+  own: board 159 is board 139 in dark and board 160 is a reference sheet, and
+  both need `Kati.Screens.Identity.of/1` on the root rather than the shell's
+  `screen:home`. Everything else calls `render/1`, which wraps this.
+  """
+  @spec dock(atom(), atom()) :: map()
+  def dock(active, mode) do
     # `Palette.fab_fill/1`, not `Kati.Theme.ink/0`. Both are `0xFF1A1917` in
     # light — the FAB is an ink disc on paper — but in dark the design inverts
     # the control rather than following the ground: `#F5F2EE` fill with a

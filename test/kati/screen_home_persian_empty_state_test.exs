@@ -1,14 +1,14 @@
-defmodule Kati.ScreenHomeFaEmptyStateTest do
+defmodule Kati.ScreenHomePersianEmptyStateTest do
   @moduledoc """
   #91 in Persian — the page a Persian install opens on is not somebody else's
   evening.
 
   ## Why this screen and not another mirror
 
-  `Kati.Onboarding.shell_root/1` answers `Kati.Screens.HomeFa` for `:fa`. It is
+  `Kati.Onboarding.shell_root/1` answers `Kati.Screens.Home` for `:fa`. It is
   not a gallery board and not a colourway: it is **the root a Persian user lands
   on after answering screen 53**, and until this round it drew
-  `Kati.Screens.HomeFa.Sample` whole — ۳ قسمت تازه over a library with nothing in
+  `Kati.Screens.Home` whole — ۳ قسمت تازه over a library with nothing in
   it, two half-watched shows nobody had added, شام ۱۹:۳۰ and ۲ مورد مانده under
   section tiles nothing counts, and a باقی امروز card telling a person whose
   calendar Kati had never been shown to ring their mother at ۲۱:۳۰.
@@ -24,7 +24,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
   and found none of them. That reads exactly like a clean bill of health and is
   worth nothing: the Persian page never contained those strings. Every absence
   asserted here is therefore named with the **Persian literal**, and named off
-  `Kati.Screens.HomeFa.Sample` itself rather than typed, so a transcription
+  `Kati.Screens.Home` itself rather than typed, so a transcription
   edited on one side cannot walk out of this list.
 
   ## What is asserted, and why each half alone is worthless
@@ -45,7 +45,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
 
   ## The one sentence no artboard contains
 
-  `Kati.Screens.HomeFa.empty_day/0`. There is no Persian mirror of screen 139,
+  `Kati.Screens.Home.empty_day/0`. There is no Persian mirror of screen 139,
   so باقی امروز with nothing on it has no drawn wording anywhere, and that
   function's own doc argues the three ways out and why this is the one taken.
   It is pinned here at both ends — drawn on an empty day, gone the moment a real
@@ -64,8 +64,18 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
   """
   use Mob.ScreenCase, async: false
 
-  alias Kati.Screens.HomeFa
-  alias Kati.Screens.HomeFa.Sample
+  alias Kati.Screens.Home
+
+  # Board 55 is `Kati.Screens.Home` read under `:fa` since
+  # mishka-group/kati#103, so the locale is the whole of what makes this file
+  # about the Persian page rather than the English one. Set in `setup` and not
+  # restored in `on_exit`: `Kati.Locale.put/1` goes through `Mob.State`, whose
+  # GenServer is not guaranteed alive by the time an `on_exit` callback runs,
+  # and a restore there exits the test process after it has passed.
+  setup do
+    Kati.Locale.put(:fa)
+    :ok
+  end
 
   # Child tables first, so the deletes do not trip a foreign key:
   # `media_watches` references `tracked_titles`, `event_occurrence_overrides`
@@ -129,12 +139,12 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       # calendar row of its own.
       texts = with_empty_store(fn -> chose_sections!() && home_texts() end)
 
-      assert HomeFa.empty_day() in texts,
+      assert Home.empty_day() in texts,
              "باقی امروز drew nothing at all. Screen 96's rule is that an empty state says " <>
                "what is missing and offers the one thing that fixes it, and screen 139's whole " <>
                "argument is that the calendar still works when nothing else is set up"
 
-      assert String.contains?(HomeFa.empty_day(), "+"),
+      assert String.contains?(Home.empty_day(), "+"),
              "the sentence has to name the control that ends the state, and the control is the " <>
                "64pt `+` `Kati.Screens.Fa.dock/1` draws over this page"
     end
@@ -171,19 +181,16 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     test "draws no card and no eyebrow" do
       texts = with_empty_store(&home_texts/0)
 
-      inbox = Sample.inbox()
+      inbox = Home.drawn_hero()
 
-      for literal <- [
-            inbox.headline,
-            inbox.line,
-            inbox.checked,
-            inbox.action | @omitted_when_empty
-          ] do
+      for literal <-
+            Home.headline_lines(inbox.count) ++
+              [inbox.sub, inbox.checked | @omitted_when_empty] do
         refute literal in texts,
                "screen 55 announces #{inspect(literal)} on a device that follows nothing"
       end
 
-      assert with_empty_store(fn -> HomeFa.hero_summary() end) == nil
+      assert with_empty_store(fn -> Home.hero_summary() end) == nil
     end
 
     test "one episode really out this week draws the card, with a real Persian count" do
@@ -198,20 +205,23 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       assert "تازه‌های این هفته" in texts
       assert "باز کردن صندوق" in texts
 
-      assert "۱ قسمت تازه\nدر انتظار شماست" in texts,
-             "the count is the only thing that moves — every word is board 55's own, and " <>
-               "Persian does not inflect a noun after a numeral, so one episode takes the " <>
-               "drawing's own sentence with `۱` in it"
+      # Two nodes rather than one string with a newline: `headline_lines/1`
+      # answers the pair and the hero draws them as two Texts, which is what
+      # let board 55 keep the drawing's own line break. Persian does not
+      # inflect a noun after a numeral, so one episode takes the same words
+      # three do with `۱` in place of `۳`.
+      for line <- Home.headline_lines(1), do: assert(line in texts)
+      assert "۱ قسمت تازه" in texts
 
-      refute Sample.inbox().headline in texts,
+      refute Enum.at(Home.headline_lines(Home.drawn_hero().count), 0) in texts,
              "the drawing's own ۳ came back beside a real count, which is the frozen value " <>
                "this whole change is about"
 
-      refute Sample.inbox().line in texts,
+      refute Home.drawn_hero().sub in texts,
              "availability needs a subscribed service to count down from — screen 96 — and no " <>
                "column holds it"
 
-      refute Sample.inbox().checked in texts,
+      refute Home.drawn_hero().checked in texts,
              "`Kati.Screens.Inbox` records that nothing stores when the watcher last swept"
     end
 
@@ -238,14 +248,14 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     end
 
     test "and each opens the English page screen 01 opens" do
-      socket = with_empty_store(fn -> mount_screen(HomeFa).socket end)
+      socket = with_empty_store(fn -> mount_screen(Home).socket end)
 
-      assert {:noreply, bell} = HomeFa.handle_info({:tap, :notifications}, socket)
+      assert {:noreply, bell} = Home.handle_tap(:notifications, socket)
 
       assert bell.__mob__.nav_action == {:push, Kati.Screens.InboxNotifications, %{}},
              "a bell means the notifications inbox"
 
-      assert {:noreply, hero} = HomeFa.handle_info({:tap, :open_inbox}, socket)
+      assert {:noreply, hero} = Home.handle_tap(:open_inbox, socket)
       assert hero.__mob__.nav_action == {:push, Kati.Screens.Inbox, %{}}
     end
   end
@@ -254,7 +264,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     test "draws no cards and no eyebrow" do
       texts = with_empty_store(&home_texts/0)
 
-      for row <- Sample.continue(), literal <- [row.title, row.meta] do
+      for row <- Home.drawn_continue_watching(), literal <- [row.title, row.meta] do
         refute literal in texts,
                "screen 55 draws #{inspect(literal)} on a device with nothing on its shelf"
       end
@@ -290,7 +300,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       for progress <- [0.0, 1.0, nil] do
         row = %{title: "Marram Lights", meta: nil, progress: progress, seed: nil}
 
-        assert %{} = HomeFa.watch_card(row),
+        assert %{} = Home.watch_card(row),
                "the Persian continue card cannot draw progress #{inspect(progress)}"
       end
     end
@@ -332,7 +342,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       # call rather than a second copy of the rule.
       with_empty_store(fn ->
         assert Kati.Screens.Home.nothing_kept?([]) == true
-        assert assigns(mount_screen(HomeFa)).nothing_kept == true
+        assert assigns(mount_screen(Home)).nothing_kept == true
       end)
     end
 
@@ -340,7 +350,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       with_empty_store(fn ->
         chose_sections!()
 
-        refute assigns(mount_screen(HomeFa)).nothing_kept,
+        refute assigns(mount_screen(Home)).nothing_kept,
                "somebody who has just answered the sections step must not be told to answer it"
 
         assert "بخش‌ها" in home_texts()
@@ -348,14 +358,17 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     end
 
     test "158's two doors are answered by this screen when this screen draws them" do
-      # `Kati.Screens.HomeFaEmpty`'s blocks build their taps as `{self(), tag}`,
-      # and `self()` during 55's render is 55.
-      socket = with_empty_store(fn -> mount_screen(HomeFa).socket end)
+      # `Kati.Screens.HomeEmpty`'s blocks build their taps as `{self(), tag}`,
+      # and `self()` during board 55's render is this screen. The tags are
+      # 139's own names — `:choose_sections` and `:restore_backup` — because
+      # the page is drawn once and its controls mean one thing; the mirror had
+      # its own pair, which is exactly the drift the fold removes.
+      socket = with_empty_store(fn -> mount_screen(Home).socket end)
 
-      assert {:noreply, chosen} = HomeFa.handle_info({:tap, :pick_sections}, socket)
+      assert {:noreply, chosen} = Home.handle_tap(:choose_sections, socket)
       assert chosen.__mob__.nav_action == {:push, Kati.Screens.PickSections, %{}}
 
-      assert {:noreply, restored} = HomeFa.handle_info({:tap, :import_backup}, socket)
+      assert {:noreply, restored} = Home.handle_tap(:restore_backup, socket)
       assert restored.__mob__.nav_action == {:push, Kati.Screens.Restore, %{}}
     end
   end
@@ -379,8 +392,8 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       refute "۰ مورد مانده" in texts,
              "and a counted nought is the plausible-looking zero screen 96 forbids"
 
-      assert Enum.map(HomeFa.tile_rows(), & &1.meta) == [nil, nil, nil]
-      assert Enum.map(HomeFa.tile_rows(), & &1.dot) == [nil, nil, nil]
+      assert Enum.map(Home.tile_rows(), & &1.meta) == [nil, nil, nil]
+      assert Enum.map(Home.tile_rows(), & &1.dot) == [nil, nil, nil]
     end
 
     test "a section that is off leaves the page" do
@@ -396,17 +409,14 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     end
 
     test "the live labels and the drawn ones are the same three words" do
-      # The one thing `drawn_tiles/0` does not read off the Sample is the label,
-      # because the live tiles need labels too and a render may not reach the
-      # Sample. So the two lists are pinned against each other here rather than
-      # left to drift — board 55 is compared against the drawn side by
+      # `drawn_tiles/0` is the board's three tiles with their frozen metas and
+      # `tile_rows/0` is the live three with none; the TITLES have to be the
+      # same three words or the page changes shape the moment a store empties.
+      # Board 55 is compared against the drawn side by
       # `Kati.ScreenDesignLiteralTest` and against the live side by the chrome
       # assertion at the top of this file.
-      assert Enum.map(HomeFa.drawn_tiles(), & &1.label) ==
-               Enum.map(Sample.sections(), & &1.label)
-
-      assert Enum.map(HomeFa.tile_rows(), & &1.label) ==
-               Enum.map(HomeFa.drawn_tiles(), & &1.label)
+      assert Enum.map(Home.tile_rows(), & &1.title) ==
+               Enum.map(Home.drawn_tiles(), & &1.title)
     end
   end
 
@@ -414,7 +424,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     test "draws its own emptiness rather than the drawing's two rows" do
       texts = with_empty_store(fn -> chose_sections!() && home_texts() end)
 
-      for row <- Sample.rest_of_today(), literal <- [row.time, row.title, row.meta] do
+      for row <- Home.drawn_rows(), literal <- [row.time, row.title, row.meta] do
         refute literal in texts,
                "an empty day silently became the drawing's, so 55 told somebody who has never " <>
                  "opened a calendar to ring their mother at ۲۱:۳۰"
@@ -438,7 +448,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
                "`:fa` is what keeps a real row from ending in an English word under a Persian " <>
                "title"
 
-      refute HomeFa.empty_day() in texts,
+      refute Home.empty_day() in texts,
              "the empty sentence was drawn over a real appointment, which is the empty state " <>
                "being wrong rather than absent"
 
@@ -448,22 +458,22 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
 
   describe "the transcription this file's absences rest on" do
     test "the Sample still holds the drawing" do
-      # Every `refute` above compares against `Kati.Screens.HomeFa.Sample`, so
+      # Every `refute` above compares against `Kati.Screens.Home`, so
       # an emptied Sample would make all of them pass over a screen that had
       # lost both branches. This is the same anti-vacuity claim
       # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` makes at the entry point,
       # and `Kati.ScreenDesignLiteralTest.drawn_state/0` renders board 55 out of
       # exactly these functions.
-      inbox = Sample.inbox()
+      inbox = Home.drawn_hero()
 
-      assert inbox.headline != ""
-      assert inbox.line != ""
+      assert inbox.count > 0
+      assert inbox.sub != ""
       assert inbox.checked != ""
-      refute Enum.empty?(Sample.continue())
-      refute Enum.empty?(Sample.rest_of_today())
-      refute Sample.sections() |> Enum.map(& &1.meta) |> Enum.reject(&is_nil/1) |> Enum.empty?()
+      refute Enum.empty?(Home.drawn_continue_watching())
+      refute Enum.empty?(Home.drawn_rows())
+      refute Home.drawn_tiles() |> Enum.map(& &1.meta) |> Enum.reject(&is_nil/1) |> Enum.empty?()
 
-      assert HomeFa.drawn_hero() == inbox,
+      assert Home.drawn_hero() == inbox,
              "`drawn_hero/0` is the Sample itself, so the board and the transcription cannot " <>
                "be edited apart"
     end
@@ -472,9 +482,9 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       empty =
         with_empty_store(fn ->
           %{
-            hero: HomeFa.hero_summary(),
+            hero: Home.hero_summary(),
             continue: Kati.Screens.Home.continue_watching_rows(),
-            metas: Enum.map(HomeFa.tile_rows(), & &1.meta),
+            metas: Enum.map(Home.tile_rows(), & &1.meta),
             timeline: Kati.Calendars.Today.rows()
           }
         end)
@@ -521,17 +531,18 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
 
   # Everything on board 55 that describes a library, a viewing history or a day
   # this device has never been told about — read off
-  # `Kati.Screens.HomeFa.Sample` rather than typed, so a transcription edited
+  # `Kati.Screens.Home` rather than typed, so a transcription edited
   # there cannot walk out of this list, plus the two eyebrows that go with the
   # bands they head.
   defp invented do
-    inbox = Sample.inbox()
+    inbox = Home.drawn_hero()
 
     @omitted_when_empty ++
-      [inbox.headline, inbox.line, inbox.checked, inbox.action] ++
-      Enum.flat_map(Sample.continue(), fn row -> [row.title, row.meta] end) ++
-      (Sample.sections() |> Enum.map(& &1.meta) |> Enum.reject(&is_nil/1)) ++
-      Enum.flat_map(Sample.rest_of_today(), fn row -> [row.time, row.title, row.meta] end)
+      Home.headline_lines(inbox.count) ++
+      [inbox.sub, inbox.checked] ++
+      Enum.flat_map(Home.drawn_continue_watching(), fn row -> [row.title, row.meta] end) ++
+      (Home.drawn_tiles() |> Enum.map(& &1.meta) |> Enum.reject(&is_nil/1)) ++
+      Enum.flat_map(Home.drawn_rows(), fn row -> [row.time, row.title, row.meta] end)
   end
 
   # A reader who has answered screen 158's question. `Kati.Sections.answered?/0`
@@ -555,7 +566,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     result
   end
 
-  defp home_tree, do: tree(mount_screen(HomeFa))
+  defp home_tree, do: tree(mount_screen(Home))
 
   defp home_texts, do: texts_of(home_tree())
 

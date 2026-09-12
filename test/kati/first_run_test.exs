@@ -42,7 +42,7 @@ defmodule Kati.FirstRunTest do
       assert Kati.Onboarding.first_screen() == Screens.Home
 
       Kati.Locale.put(:fa)
-      assert Kati.Onboarding.first_screen() == Screens.HomeFa
+      assert Kati.Onboarding.first_screen() == Screens.Home
     end
 
     test "the flag defaults to false rather than to done" do
@@ -414,7 +414,7 @@ defmodule Kati.FirstRunTest do
             socket_for(Screens.OnboardingFirstTitle)
           )
 
-        assert reset_target(moved) == Screens.HomeFa
+        assert reset_target(moved) == Screens.Home
       end)
     end
 
@@ -431,7 +431,7 @@ defmodule Kati.FirstRunTest do
           socket_for(Screens.OnboardingFirstTitle)
         )
 
-      assert reset_target(moved) == Screens.HomeFaEmpty
+      assert reset_target(moved) == Screens.HomeEmpty
     end
   end
 
@@ -470,14 +470,23 @@ defmodule Kati.FirstRunTest do
       Kati.Screens.Root.launching?()
     end
 
-    test "an onboarded fa install is sent to the Persian root at launch" do
+    test "an onboarded fa install needs no redirect at launch" do
+      # It used to queue `:kati_locale_root`, which reset the stack onto
+      # `Kati.Screens.HomeFa`: `Kati.App.navigation/1` can name only one module
+      # and could not read the locale, so somebody who chose فارسی had to be
+      # moved off the English root on every launch. mishka-group/kati#103
+      # folded that mirror into this screen, so the page the app opens on IS
+      # the Persian page — a redirect now would be a reset to where the reader
+      # already is, losing the launch for nothing.
       Kati.Onboarding.complete!()
       Kati.Locale.put(:fa)
       Kati.Screens.Root.rearm_launch!()
 
       {:ok, _} = Screens.Home.mount(%{}, %{}, %Mob.Socket{})
 
-      assert_received :kati_locale_root
+      refute_received :kati_locale_root
+      refute_received :kati_first_run
+      assert Kati.Onboarding.shell_root(:fa) == Screens.Home
     after
       Kati.Locale.put(:en)
       Kati.Screens.Root.launching?()

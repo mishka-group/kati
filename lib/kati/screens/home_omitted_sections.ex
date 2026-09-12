@@ -1,4 +1,4 @@
-defmodule Kati.Screens.HomeFaOmittedSections do
+defmodule Kati.Screens.HomeOmittedSections do
   @moduledoc """
   Screen 160 — the two empty sections, omitted and decided.
 
@@ -26,11 +26,10 @@ defmodule Kati.Screens.HomeFaOmittedSections do
   one level down.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
-  alias Kati.Screens.Fa
-  alias Kati.Screens.HomeFa
-  alias Kati.Screens.HomeFaEmpty
+  alias Kati.Screens.Home
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -40,8 +39,28 @@ defmodule Kati.Screens.HomeFaOmittedSections do
     {:ok, socket}
   end
 
-  def render(assigns),
-    do: Fa.frame(:home, content(assigns), Kati.Screens.Identity.of(__MODULE__))
+  # The shell's own chrome, with this page's name on the root rather than the
+  # shell's: `Kati.Shell.render/1` stamps `screen:home`, and a reference sheet
+  # that answered to the root's id would be a second node with the same tag —
+  # `onNodeWithTag` throws on the second match.
+  def render(assigns) do
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
+      {content(assigns)}
+      <Box fill_width={true} fill_height={true} align="bottom">
+        {Kati.UI.paper_fade(120, 42)}
+      </Box>
+      {Kati.Shell.dock(:home, Palette.mode())}
+    </Box>
+    """
+  end
 
   @doc false
   def content(_assigns) do
@@ -54,13 +73,23 @@ defmodule Kati.Screens.HomeFaOmittedSections do
         padding_top={64}
         padding_bottom={132}
       >
-        {Kati.Screens.HomeFaOmittedSections.header()}
-        {Kati.Screens.HomeFaOmittedSections.search()}
-        {Kati.Screens.HomeFaOmittedSections.omitted("تازه‌های این هفته", "با هیچ عنوانی برای پیگیری، این بخش", "نمایش داده نمی‌شود", "— نه با یک جمله خالی، بلکه اصلاً.")}
-        {Kati.Screens.HomeFaOmittedSections.omitted("ادامه تماشا", "همین‌طور. یک ردیف خالی می‌گوید چیزی خراب است؛", "نبودن ردیف", "می‌گوید هنوز شروع نکرده‌اید.")}
-        {Kati.Screens.Fa.quiet_eyebrow("بخش‌ها")}
-        {Kati.Screens.HomeFaOmittedSections.section_cards()}
-        {Kati.Screens.HomeFaOmittedSections.footnote()}
+        {Kati.Screens.HomeOmittedSections.header()}
+        {Kati.Screens.HomeOmittedSections.search()}
+        {Kati.Screens.HomeOmittedSections.omitted(
+          gettext("New this week"),
+          gettext("With nothing to follow, this section is "),
+          gettext("not drawn"),
+          gettext(" — not worded empty, not at all.")
+        )}
+        {Kati.Screens.HomeOmittedSections.omitted(
+          gettext("Continue watching"),
+          gettext("The same. An empty row says something is broken; "),
+          gettext("a missing row"),
+          gettext(" says you have not started yet.")
+        )}
+        {Kati.UI.eyebrow(gettext("Sections"), dash: Palette.rail_idle())}
+        {Kati.Screens.HomeOmittedSections.section_cards()}
+        {Kati.Screens.HomeOmittedSections.footnote()}
       </Column>
     </Scroll>
     """
@@ -75,15 +104,15 @@ defmodule Kati.Screens.HomeFaOmittedSections do
   # addresses "the bell" by screen 01's name does not find this one.
   @doc false
   def header do
-    assigns = %{moment: HomeFa.moment()}
+    {date, greeting} = Home.today()
+    assigns = %{date: date, greeting: greeting}
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Column weight={1.0}>
           <Text
-            text={@moment.date}
-            font_family="fa"
+            text={@date}
             text_size={11.5}
             font_weight="medium"
             text_color={Palette.tertiary()}
@@ -91,16 +120,16 @@ defmodule Kati.Screens.HomeFaOmittedSections do
           />
           <Spacer size={7} />
           <Text
-            text={@moment.greeting}
-            font_family="fa"
+            text={@greeting}
             text_size={26}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
         </Column>
-        {HomeFaEmpty.disc("notifications", :open_inbox)}
+        {Home.disc("notifications", false, :open_inbox)}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -125,8 +154,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
         {UI.symbol("search", size: 20, color: Palette.tertiary())}
         <Spacer size={11} />
         <Text
-          text="جست‌وجوی فیلم، سریال، رویداد…"
-          font_family="fa"
+          text={gettext("Search films, shows, events…")}
           text_size={14.5}
           text_color={Palette.tertiary()}
           weight={1.0}
@@ -151,33 +179,20 @@ defmodule Kati.Screens.HomeFaOmittedSections do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.Fa.quiet_eyebrow(@title)}
+      {Kati.UI.eyebrow(@title, dash: Palette.rail_idle())}
       <Row fill_width={true} align="top">
         {UI.symbol("block", size: 17, color: Palette.tertiary())}
         <Spacer size={9} />
         <Column weight={1.0}>
-          <Text
-            font_family="fa"
-            text={@lead}
-            text_size={12.5}
-            line_height={1.55}
-            text_color={Palette.ink_soft()}
-          />
+          <Text text={@lead} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
           <Text
             text={@emphasis}
-            font_family="fa"
             text_size={12.5}
             line_height={1.55}
             font_weight="semibold"
             text_color={Palette.ink()}
           />
-          <Text
-            font_family="fa"
-            text={@tail}
-            text_size={12.5}
-            line_height={1.55}
-            text_color={Palette.ink_soft()}
-          />
+          <Text text={@tail} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -190,13 +205,13 @@ defmodule Kati.Screens.HomeFaOmittedSections do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.HomeFaOmittedSections.card("restaurant", "وعده‌ها", "شام ۱۹:۳۰")}
+        {Kati.Screens.HomeOmittedSections.card("restaurant", gettext("Meals"), gettext("Dinner %{at}", at: Kati.Locale.time(~T[19:30:00])))}
         <Spacer size={11} />
-        {Kati.Screens.HomeFaOmittedSections.card("bolt", "عادت‌ها", "۲ مورد مانده")}
+        {Kati.Screens.HomeOmittedSections.card("bolt", gettext("Habits"), ngettext("%{n} left today", "%{n} left today", 2, n: Kati.Locale.number(2)))}
       </Row>
       <Spacer size={11} />
       <Row fill_width={true} align="top">
-        {Kati.Screens.HomeFaOmittedSections.card("tune", "تنظیمات", nil)}
+        {Kati.Screens.HomeOmittedSections.card("tune", gettext("Settings"), nil)}
         <Spacer size={11} />
         <Box weight={1.0} />
       </Row>
@@ -220,14 +235,13 @@ defmodule Kati.Screens.HomeFaOmittedSections do
       {UI.symbol(@icon, size: 22)}
       <Spacer size={10} />
       <Text
-        font_family="fa"
         text={@title}
         text_size={13.5}
         font_weight="semibold"
         text_color={:on_surface}
         max_lines={1}
       />
-      {Kati.Screens.HomeFaOmittedSections.line(@line)}
+      {Kati.Screens.HomeOmittedSections.line(@line)}
     </Column>
     """
   end
@@ -241,7 +255,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={5} />
-      <Text font_family="fa" text={@text} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+      <Text text={@text} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -254,30 +268,26 @@ defmodule Kati.Screens.HomeFaOmittedSections do
       <Spacer size={9} />
       <Column weight={1.0}>
         <Text
-          text="یک بخش بدون محتوا حذف می‌شود، نه اینکه خالی نوشته شود — اما"
-          font_family="fa"
+          text={gettext("A section with nothing in it is omitted rather than worded empty — but ")}
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}
         />
         <Text
-          text="باقی امروز"
-          font_family="fa"
+          text={gettext("Rest of today")}
           text_size={12}
           line_height={1.5}
           font_weight="semibold"
           text_color={Palette.ink()}
         />
         <Text
-          text="همیشه می‌ماند، چون تقویم به بخش‌ها وابسته نیست و «امروز چیزی نیست» خودش یک خبر است."
-          font_family="fa"
+          text={gettext(" always stays, because the calendar does not depend on sections and *nothing today* is itself a piece of news.")}
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}
         />
         <Text
-          text="این تصمیم برای انگلیسی هم همین است."
-          font_family="fa"
+          text={gettext("The decision is the same in English.")}
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}
@@ -293,6 +303,26 @@ defmodule Kati.Screens.HomeFaOmittedSections do
   def handle_info({:tap, :open_inbox}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
 
-  def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :home, socket)
+  # The dock. `Kati.Screens.Root`'s shared `root_*` clause is not available
+  # here — this page hand-rolls its mount so it can pin nothing — so the four
+  # tabs are answered through `Kati.Shell.screen_for/1`, which reads the
+  # reader's own locale. mishka-group/kati#103.
+  def handle_info({:tap, :fab}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "root_home" ->
+        {:noreply, socket}
+
+      "root_" <> id ->
+        {:noreply,
+         Mob.Socket.reset_to(socket, Kati.Shell.screen_for(String.to_existing_atom(id)))}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 end

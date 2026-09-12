@@ -7,8 +7,9 @@ defmodule Kati.PersianScreensRatchetTest do
   ## The ruling this file enforces
 
   Kati had 33 Persian screen modules — whole second copies of pages that
-  already exist, each holding its own Persian copy as literals. The owner's
-  ruling, on 8 September, is that **no more are to be written**:
+  already exist, each holding its own Persian copy as literals. **There are
+  none.** The owner's ruling, on 8 September, was that no more were to be
+  written:
 
   > we do not need create any pages for persian all in app, we just have all
   > pages we need just with cldr timing and gettext to translate and rtl and
@@ -45,12 +46,13 @@ defmodule Kati.PersianScreensRatchetTest do
   `Gettext.Backend` with a `priv/gettext` behind it that screen 154 draws
   itself out of.
 
-  **The first fold has landed**, which is what turns the paragraph above from a
-  plan into a worked example: `Kati.Screens.AddByHandFa` is gone, board 156 is
-  screen 154 rendered under `:fa`, and `Kati.ScreenDesignLiteralTest` compares
-  the Persian board against the English module. Nine Movies & Series mirrors
-  are left; MOVIES-AND-TV.md #157 is the recipe and #161 is the first one
-  written down.
+  **The fold is finished.** `Kati.Screens.AddByHandFa` was the first to go and
+  the four roots were the last — board 55 is `Kati.Screens.Home` under `:fa`,
+  56 is `Kati.Screens.Calendar`, 57 is `Kati.Screens.Library`, 61 is
+  `Kati.Screens.Stats` — and `Kati.Screens.Fa`, the chrome they shared, went
+  with them. Every Persian board in `test/design/screens/` is now compared
+  against the English module that draws it, by
+  `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
 
   ## What it does and does not assert
 
@@ -68,19 +70,24 @@ defmodule Kati.PersianScreensRatchetTest do
 
   alias Kati.ScreenSweep
 
-  # The mirrors that are left — 32, and the list only shrinks. There were 33 on
-  # 8 September 2026; the first to go was `Kati.Screens.AddByHandFa`, folded
-  # into `Kati.Screens.AddByHand`, which is what #103's whole fold looks like
-  # one screen at a time.
+  # **Empty.** There were 33 on 8 September 2026; the first to go was
+  # `Kati.Screens.AddByHandFa`, folded into `Kati.Screens.AddByHand`, and the
+  # last four were the roots — `Kati.Screens.HomeFa`, `ScheduleFa`, `LibraryFa`
+  # and `StatsFa` — which went with `Kati.Screens.Fa` itself, the shared chrome
+  # they called.
   #
-  # `Kati.Screens.Fa` is not here and is not a screen: it is the shared chrome
-  # the mirrors call, and the day the last mirror goes it goes with them.
-  @mirrors [
-    Kati.Screens.HomeFa,
-    Kati.Screens.HomeFaEmpty,
-    Kati.Screens.HomeFaEmptyDark,
-    Kati.Screens.HomeFaOmittedSections
-  ]
+  # The list stays, and stays empty. It is the ratchet: `found/0` sweeps every
+  # screen module for a name ending in `Fa`, and an empty list is what turns
+  # "no more are to be written" from a paragraph into a failing test the moment
+  # somebody writes one.
+  #
+  # Two Persian-only BOARDS survive as screens and neither is a mirror.
+  # `Kati.Screens.HomeEmptyDark` is board 139 in the dark colourway — the
+  # relation 28 has to 01 — and `Kati.Screens.HomeOmittedSections` is a
+  # reference sheet in board 27's manner. Both draw translated copy and take
+  # their script from `Kati.Locale`, which is what the ruling asks; neither has
+  # `Fa` in its name, which is what this sweep looks for.
+  @mirrors []
 
   describe "the Persian mirrors" do
     test "no screen module is added to the list" do

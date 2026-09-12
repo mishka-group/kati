@@ -11,39 +11,53 @@ defmodule Kati.FaShellRoutesTest do
   direction, with no way back except Settings. Neither is visible in a
   screenshot of a resting screen, which is why it survived a full 62-screen
   capture: the bar draws identically, it just means four other screens.
+
+  mishka-group/kati#103 removes the possibility rather than the instance. There
+  is one table now — `Kati.Shell.screen_for/1` — and the four screens it names
+  take their script from `Kati.Locale`, so a dock tap cannot change the app's
+  language because there is nothing on the other side of it to change to.
   """
   use ExUnit.Case, async: true
 
-  # The mirrors still standing. `Kati.Screens.StatsFa` left this list on
-  # mishka-group/kati#103's stats fold: board 61 is `Kati.Screens.Stats` read
-  # under `:fa`, so the آمار tab names an English MODULE and a Persian PAGE, and
-  # the two are no longer the same question. The list shrinks by one per fold
-  # and the last fold empties it.
-  @persian_roots [Kati.Screens.HomeFa]
+  # The four roots, which are four SCREENS and no longer four modules per
+  # language. mishka-group/kati#103 folded `Kati.Screens.HomeFa`, `ScheduleFa`,
+  # `LibraryFa` and `StatsFa` away and deleted `Kati.Screens.Fa.roots/0` with
+  # the last of them, so what this file asks about is one table read in two
+  # languages.
+  @roots [
+    {:home, Kati.Screens.Home},
+    {:calendar, Kati.Screens.Calendar},
+    {:library, Kati.Screens.Library},
+    {:stats, Kati.Screens.Stats}
+  ]
 
-  # A folded root: still on the Persian dock, and Persian because
-  # `Kati.Locale` says so rather than because the module's name ends in `Fa`.
-  @folded_roots [Kati.Screens.Stats, Kati.Screens.Calendar, Kati.Screens.Library]
-
-  describe "the Persian dock names Persian screens" do
-    test "every root in Kati.Screens.Fa.roots/0 is a Persian screen" do
-      strays =
-        Kati.Screens.Fa.roots()
-        |> Enum.reject(&(&1.screen in (@persian_roots ++ @folded_roots)))
-        |> Enum.map(&"#{&1.id} -> #{inspect(&1.screen)}")
-
-      assert strays == [],
-             "Persian dock tabs pointing at English screens: " <> Enum.join(strays, ", ")
+  describe "the dock is one table in both languages" do
+    test "every tab resolves to the same screen in either script" do
+      # The defect this file was written against was a dock that meant four
+      # OTHER screens depending on the language, and the fold's whole claim is
+      # that there is one set. Asserted in both locales rather than once,
+      # because `Kati.Shell.screen_for/1` read a second table until the last
+      # mirror went and a stale clause there is exactly what would not show in
+      # a screenshot: the bar draws identically either way.
+      for {id, screen} <- @roots, locale <- [:en, :fa] do
+        assert Kati.Locale.as(locale, fn -> Kati.Shell.screen_for(id) end) == screen,
+               "the #{id} tab means something else under #{locale}"
+      end
     end
 
     test "the four tabs are distinct screens" do
-      screens = Enum.map(Kati.Screens.Fa.roots(), & &1.screen)
-      assert length(Enum.uniq(screens)) == 4
+      assert length(Enum.uniq(Enum.map(@roots, &elem(&1, 1)))) == 4
     end
 
-    test "the stats tab is board 61, which is screen 07 read in Persian" do
-      stats = Enum.find(Kati.Screens.Fa.roots(), &(&1.id == :stats))
-      assert stats.screen == Kati.Screens.Stats
+    test "no module named for a language is left on the dock" do
+      # The ratchet `Kati.PersianScreensRatchetTest` keeps over every screen,
+      # asked here of the four that matter most: a root is the page an install
+      # opens on, so a mirror surviving here would be a whole app in a second
+      # language rather than one page.
+      for {_id, screen} <- @roots do
+        refute screen |> Module.split() |> List.last() |> String.match?(~r/Fa($|[A-Z])/),
+               "#{inspect(screen)} is a mirror, and the dock is where a mirror costs most"
+      end
     end
   end
 
@@ -54,16 +68,15 @@ defmodule Kati.FaShellRoutesTest do
     end
 
     for {tag, expected} <- [
-          {:root_home, Kati.Screens.HomeFa},
+          {:root_home, Kati.Screens.Home},
           {:root_calendar, Kati.Screens.Calendar},
           {:root_library, Kati.Screens.Library}
         ] do
       test "#{tag} from آمار lands on #{inspect(expected)}", %{socket: socket} do
-        # Screen 07 under `:fa` — `Kati.Screens.Root`'s shared `root_*` clause
-        # asking `Kati.Shell.screen_for/1`, which reads the Persian table first
-        # while that table still names anything of its own. Before the fold this
-        # was `Kati.Screens.StatsFa.handle_info/2` answering the same question
-        # in a module of its own.
+        # Board 61 under `:fa` — `Kati.Screens.Root`'s shared `root_*` clause
+        # asking `Kati.Shell.screen_for/1`. Before the fold this was
+        # `Kati.Screens.StatsFa.handle_info/2` answering the same question in a
+        # module of its own, against a table of its own.
         moved =
           Kati.Locale.as(:fa, fn ->
             {:noreply, moved} = Kati.Screens.Stats.handle_info({:tap, unquote(tag)}, socket)
@@ -74,9 +87,7 @@ defmodule Kati.FaShellRoutesTest do
       end
     end
 
-    test "and in English the same tap lands on the English root", %{socket: socket} do
-      # The other half, and the reason `screen_for/1` asks the locale rather
-      # than the module: one screen, two docks.
+    test "and in English the same tap lands on the same root", %{socket: socket} do
       moved =
         Kati.Locale.as(:en, fn ->
           {:noreply, moved} = Kati.Screens.Stats.handle_info({:tap, :root_home}, socket)

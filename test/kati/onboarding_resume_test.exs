@@ -77,7 +77,7 @@ defmodule Kati.OnboardingResumeTest do
       Kati.Locale.put(:fa)
       Onboarding.complete!()
 
-      assert Onboarding.first_screen() == Kati.Screens.HomeFa,
+      assert Onboarding.first_screen() == Kati.Screens.Home,
              "the language chosen on screen 53 did not survive into the app"
     end
   end

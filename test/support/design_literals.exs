@@ -560,6 +560,16 @@ defmodule Kati.DesignLiterals do
       {"176", "از راست پر می‌شود"},
       {"176", "، جلدها هرگز آینه نمی‌شوند، و ترتیب عمودی برعکس نمی‌شود."},
       {"176", "همان واژه‌ای است که ۱۵۶ به کار می‌برد — یک ثبت، در هر دو جا."},
+      # ── Board 55's air-date sub-line.
+      #
+      # *امشب پخش می‌شود · لومن‌پلاس* transliterates the SERVICE, and board 127
+      # — the Persian Money page, where service names are the subject — draws
+      # the same name as `Lumen+`. A service's name is the provider's name for
+      # itself: a real one comes off `Kati.Services.Service` and no msgid
+      # reaches it, so a fixture that transliterated would be the drawing
+      # spelling something one way that every real row spells another. The
+      # words around it are translated; the name is not.
+      {"55", "امشب پخش می‌شود · لومن‌پلاس"},
       # ── Board 57's Wishlist chip and its four grid sub-lines.
       #
       # **آرزو and فهرست آرزو.** Board 57's fourth chip is *wish list* where

@@ -208,7 +208,7 @@ defmodule Kati.Screens.Settings do
   were missing, and both have since landed:
 
     * **Something reads which sections are on.** `Kati.Screens.Home.tile_rows/0`,
-      `Kati.Screens.HomeFa.tile_rows/0` and `Kati.Screens.Library.kept_segments/1`
+      `Kati.Screens.Home.tile_rows/0` and `Kati.Screens.Library.kept_segments/1`
       all filter through `Kati.Sections.on?/1`, so turning Music off now takes
       the shelf with it. That was the condition the old note set — *landing
       together with the first surface that actually hides itself* — and three

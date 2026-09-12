@@ -696,7 +696,7 @@ defmodule Kati.Screens.Medication do
   prose, and the title above this carries the *Nothing due today* half.
 
   **A function rather than a literal so a test can point at it**, which is
-  `Kati.Screens.HomeFa.empty_day/0`'s own reason for being one.
+  `Kati.Screens.Home.empty_day/0`'s own reason for being one.
 
   ## Why, and how far *why* can honestly go
 

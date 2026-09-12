@@ -134,7 +134,7 @@ defmodule Kati.Screens.Home do
 
   This section used to read *the Persian home is untouched*, and it was the
   largest thing this file left behind. It is not true any more.
-  `Kati.Screens.HomeDark` (28) and `Kati.Screens.HomeFa` (55) are this page in
+  `Kati.Screens.HomeDark` (28) is this page in another colourway, and board 55 is it in
   dark and in Persian, and the round after this one gave each of them the split
   above: one assign per band, screen 01's own readers **called rather than
   copied** — both take `hero_summary/0` and `continue_watching_rows/0` from here
@@ -142,7 +142,7 @@ defmodule Kati.Screens.Home do
   it.
 
   55 is the one that mattered. `Kati.Onboarding.shell_root/1` answers
-  `Kati.Screens.HomeFa` for `:fa`, so it is the page a Persian install opens on
+  `Kati.Screens.Home` in both, so it is the page a Persian install opens on
   after screen 53 — the same first launch this file was rewritten for, in the
   other language, and leaving it was the defect being honest in one language and
   invented in the other. 28 is a gallery board by comparison:
@@ -155,7 +155,7 @@ defmodule Kati.Screens.Home do
   does not branch the way this page branches: it is board 55 with its stand-in
   data gone — the two announcing bands omitted eyebrow and all, the section
   tiles kept and their uncountable metas dropped — over one sentence this app
-  wrote, `Kati.Screens.HomeFa.empty_day/0`, which argues at its own doc why it
+  wrote, `Kati.Screens.Home.empty_day/0`, which argues at its own doc why it
   exists and what a designer is owed instead. 28 needs no such sentence: 139 is
   English and so is 28, so its empty day takes 139's words verbatim, the way
   `rest_of_today/1` does here.
@@ -171,6 +171,7 @@ defmodule Kati.Screens.Home do
   a fresh install opens on.
   """
   use Kati.Screens.Root, root: :home
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaProgress
   alias Kati.Components.MishkaSeparator
@@ -304,12 +305,12 @@ defmodule Kati.Screens.Home do
         {Kati.Screens.Home.search()}
         {Kati.Screens.Home.new_this_week(assigns.hero)}
         {Kati.Screens.Home.continue_watching(assigns.continue)}
-        {UI.eyebrow("Watching")}
+        {UI.eyebrow(gettext("Watching"))}
         {Kati.Screens.Home.watching(assigns.services)}
-        {UI.eyebrow("Sections")}
+        {UI.eyebrow(gettext("Sections"))}
         {Kati.Screens.Home.sections(assigns.tiles)}
-        {UI.eyebrow("Rest of today",
-           trailing: "See all",
+        {UI.eyebrow(gettext("Rest of today"),
+           trailing: gettext("See all"),
            trailing_tap: {self(), :see_all_today}
          )}
         {Kati.Screens.Home.rest_of_today(timeline)}
@@ -442,9 +443,30 @@ defmodule Kati.Screens.Home do
   @spec tile_rows() :: [map()]
   def tile_rows do
     [
-      %{section: nil, icon: "restaurant", title: "Meals", meta: nil, dot: nil, tag: :open_meals},
-      %{section: "habits", icon: "bolt", title: "Habits", meta: nil, dot: nil, tag: :open_habits},
-      %{section: nil, icon: "tune", title: "Settings", meta: nil, dot: nil, tag: :open_settings}
+      %{
+        section: nil,
+        icon: "restaurant",
+        title: gettext("Meals"),
+        meta: nil,
+        dot: nil,
+        tag: :open_meals
+      },
+      %{
+        section: "habits",
+        icon: "bolt",
+        title: gettext("Habits"),
+        meta: nil,
+        dot: nil,
+        tag: :open_habits
+      },
+      %{
+        section: nil,
+        icon: "tune",
+        title: gettext("Settings"),
+        meta: nil,
+        dot: nil,
+        tag: :open_settings
+      }
     ]
     |> Enum.filter(&(is_nil(&1.section) or Kati.Sections.on?(&1.section)))
   end
@@ -466,8 +488,8 @@ defmodule Kati.Screens.Home do
     %{
       count: 3,
       seeds: @hero_seeds,
-      sub: "One premiere · two titles leave Lumen+ on Friday",
-      checked: "last check 18:02"
+      sub: gettext("One premiere · two titles leave Lumen+ on Friday"),
+      checked: gettext("last check %{at}", at: Kati.Locale.time(~T[18:02:00]))
     }
   end
 
@@ -475,8 +497,18 @@ defmodule Kati.Screens.Home do
   @spec drawn_continue_watching() :: [map()]
   def drawn_continue_watching do
     [
-      %{title: "The Long Hollow", meta: "S2 · E6 · 18m left", progress: 0.62, seed: "hollow71"},
-      %{title: "Salt & Iron", meta: "S1 · E3 · 41m left", progress: 0.24, seed: "saltiron33"}
+      %{
+        title: gettext("The Long Hollow"),
+        meta: Kati.Screens.Home.drawn_meta(2, 6, 18),
+        progress: 0.62,
+        seed: "hollow71"
+      },
+      %{
+        title: gettext("Salt & Iron"),
+        meta: Kati.Screens.Home.drawn_meta(1, 3, 41),
+        progress: 0.24,
+        seed: "saltiron33"
+      }
     ]
   end
 
@@ -489,7 +521,26 @@ defmodule Kati.Screens.Home do
   drawing is said to contain.
   """
   @spec drawn_services() :: map()
-  def drawn_services, do: %{region: "United Kingdom", count: 3}
+  def drawn_services, do: %{region: gettext("United Kingdom"), count: 3}
+
+  @doc """
+  `S2 · E6 · 18m left` — a Continue watching card's own line.
+
+      iex> Kati.Screens.Home.drawn_meta(2, 6, 18)
+      "S2 · E6 · 18m left"
+
+  The drawing's transcription, composed rather than typed: board 55 writes
+  فصل ۲ · قسمت ۶ and the numerals, the words and the separator all change
+  together.
+  """
+  @spec drawn_meta(pos_integer(), pos_integer(), pos_integer()) :: String.t()
+  def drawn_meta(season, episode, minutes) do
+    gettext("S%{s} · E%{e} · %{left}",
+      s: Kati.Locale.number(season),
+      e: Kati.Locale.number(episode),
+      left: gettext("%{n}m left", n: Kati.Locale.number(minutes))
+    )
+  end
 
   @doc "The three section cards screen 01 draws, with the two metas it froze."
   @spec drawn_tiles() :: [map()]
@@ -498,20 +549,27 @@ defmodule Kati.Screens.Home do
       %{
         section: nil,
         icon: "restaurant",
-        title: "Meals",
-        meta: "Dinner 19:30",
+        title: gettext("Meals"),
+        meta: gettext("Dinner %{at}", at: Kati.Locale.time(~T[19:30:00])),
         dot: Palette.bronze(),
         tag: :open_meals
       },
       %{
         section: "habits",
         icon: "bolt",
-        title: "Habits",
-        meta: "2 left today",
+        title: gettext("Habits"),
+        meta: ngettext("%{n} left today", "%{n} left today", 2, n: Kati.Locale.number(2)),
         dot: Palette.green(),
         tag: :open_habits
       },
-      %{section: nil, icon: "tune", title: "Settings", meta: nil, dot: nil, tag: :open_settings}
+      %{
+        section: nil,
+        icon: "tune",
+        title: gettext("Settings"),
+        meta: nil,
+        dot: nil,
+        tag: :open_settings
+      }
     ]
   end
 
@@ -524,8 +582,8 @@ defmodule Kati.Screens.Home do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text={String.upcase(date_line)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(date_line)}
+            font_family={Kati.Locale.mono_face(date_line)}
             text_size={11}
             letter_spacing={0.14}
             text_color={Palette.muted()}
@@ -536,8 +594,9 @@ defmodule Kati.Screens.Home do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
         </Column>
         {Kati.Screens.Home.disc("notifications", Kati.Screens.Home.unread?(), :notifications)}
@@ -657,7 +716,7 @@ defmodule Kati.Screens.Home do
           {UI.symbol("search", size: 20, color: Palette.muted())}
           <Spacer size={11} />
           <Text
-            text="Search films, shows, events…"
+            text={gettext("Search films, shows, events…")}
             text_size={14.5}
             text_color={Palette.muted()}
             weight={1.0}
@@ -684,7 +743,8 @@ defmodule Kati.Screens.Home do
   @spec new_this_week(map() | nil) :: map() | [map()]
   def new_this_week(nil), do: ~MOB"<Spacer size={0} />"
 
-  def new_this_week(summary), do: [UI.eyebrow("New this week"), Kati.Screens.Home.hero(summary)]
+  def new_this_week(summary),
+    do: [UI.eyebrow(gettext("New this week")), Kati.Screens.Home.hero(summary)]
 
   @doc false
   def hero(summary) do
@@ -725,13 +785,13 @@ defmodule Kati.Screens.Home do
               on_tap={tap}
             >
               <Text
-                text="Open inbox"
+                text={gettext("Open inbox")}
                 text_size={13.5}
                 font_weight="semibold"
                 text_color={Palette.on_ink()}
               />
               <Spacer size={7} />
-              {UI.symbol("arrow_forward", size: 17, color: Palette.on_ink())}
+              {UI.symbol(Kati.Locale.forward_glyph(), size: 17, color: Palette.on_ink())}
             </Row>
             {Kati.Screens.Home.hero_checked(summary.checked)}
           </Row>
@@ -754,8 +814,11 @@ defmodule Kati.Screens.Home do
   # somebody follows one weekly show, which is the ordinary case rather than an
   # edge one.
   @doc false
-  def headline_lines(1), do: ["1 new episode", "is waiting"]
-  def headline_lines(count), do: ["#{count} new episodes", "are waiting"]
+  def headline_lines(count),
+    do: [
+      ngettext("%{n} new episode", "%{n} new episodes", count, n: Kati.Locale.number(count)),
+      ngettext("is waiting", "are waiting", count)
+    ]
 
   # The drawing's second line, which no column supplies — see the moduledoc.
   # Drawn when `drawn_hero/0` puts it back and omitted on every device.
@@ -884,7 +947,7 @@ defmodule Kati.Screens.Home do
   def continue_watching([]), do: ~MOB"<Spacer size={0} />"
 
   def continue_watching(rows) do
-    [UI.eyebrow("Continue watching"), Kati.Screens.Home.watch_cards(rows)]
+    [UI.eyebrow(gettext("Continue watching")), Kati.Screens.Home.watch_cards(rows)]
   end
 
   @doc false
@@ -1054,7 +1117,10 @@ defmodule Kati.Screens.Home do
     row =
       Kati.UI.SettingsList.row(
         Kati.UI.SettingsList.icon_tile("subscriptions"),
-        Kati.UI.SettingsList.body("My services", Kati.Screens.Home.services_line(services)),
+        Kati.UI.SettingsList.body(
+          gettext("My services"),
+          Kati.Screens.Home.services_line(services)
+        ),
         Kati.UI.SettingsList.chevron(),
         rule: false,
         on_tap: {self(), :open_services}
@@ -1080,8 +1146,14 @@ defmodule Kati.Screens.Home do
   with nothing set up there is nothing for it to qualify.
   """
   @spec services_line(map()) :: String.t()
-  def services_line(%{count: 0}), do: "No subscriptions yet"
-  def services_line(%{region: region, count: count}), do: "#{region} · #{count} subscribed"
+  def services_line(%{count: 0}), do: gettext("No subscriptions yet")
+
+  def services_line(%{region: region, count: count}),
+    do:
+      gettext("%{region} · %{n} subscribed",
+        region: region,
+        n: Kati.Locale.number(count)
+      )
 
   @doc false
   def sections(tiles) do
@@ -1187,8 +1259,19 @@ defmodule Kati.Screens.Home do
     [
       %{
         time: "20:00",
-        title: "The Long Hollow — S2E6",
-        meta: "Airs tonight · Lumen+",
+        title:
+          gettext("%{title} — S%{s}E%{e}",
+            title: gettext("The Long Hollow"),
+            s: Kati.Locale.number(2),
+            e: Kati.Locale.number(6)
+          ),
+        # The service's name, untranslated. It is the provider's name for
+        # itself and a real one comes off `Kati.Services.Service`, which no
+        # msgid reaches — board 127 draws the same name in Latin on a Persian
+        # page for exactly that reason. Board 55 transliterates it, and
+        # `DesignLiterals.retired_lines/0` carries why that line does not
+        # survive the fold.
+        meta: gettext("Airs tonight · %{service}", service: "Lumen+"),
         # The kind the board draws, which the transcription had been missing:
         # `Airs tonight` is an air date and `Repeats weekly` is a reminder, and
         # `Kati.Calendars.Today.row/2` puts that field on every real row. It was
@@ -1200,8 +1283,8 @@ defmodule Kati.Screens.Home do
       },
       %{
         time: "21:30",
-        title: "Call Mum",
-        meta: "Repeats weekly",
+        title: gettext("Call Mum"),
+        meta: gettext("Repeats weekly"),
         kind: :reminder,
         now?: false
       }
@@ -1209,11 +1292,29 @@ defmodule Kati.Screens.Home do
   end
 
   @doc """
+  What *Rest of today* says on a day with nothing on it.
+
+      iex> Kati.Screens.Home.empty_day()
+      "Nothing scheduled — add anything with +"
+
+  Board 139's own sentence, borrowed for the reason `rest_of_today/1` gives
+  below, and public because it is the one line on this screen quoted from a
+  board other than its own — `Kati.ScreenEmptyDatabaseTest`'s `@quoted` checks
+  it at both ends, and a test that typed the words again could not.
+
+  Board 158 is 139 read under `:fa`, so there is no second sentence either:
+  «چیزی برنامه‌ریزی نشده — با + هر چیزی اضافه کنید» is this msgid, and the `+`
+  it names is the same FAB.
+  """
+  @spec empty_day() :: String.t()
+  def empty_day, do: gettext("Nothing scheduled — add anything with +")
+
+  @doc """
   A day with nothing on it, in screen 01's own card.
 
-  The sentence is screen 139's, verbatim — *Nothing scheduled — add anything
-  with +* — and the `+` it names is the FAB `Kati.Shell` draws over this page,
-  so the affordance the sentence points at is on screen here as it is there.
+  The sentence is screen 139's, verbatim — `empty_day/0` — and the `+` it names
+  is the FAB `Kati.Shell` draws over this page, so the affordance the sentence
+  points at is on screen here as it is there.
 
   **No artboard draws this combination and that is stated rather than hidden.**
   01 draws the card full; 139 draws the sentence, but as a `Today` row in a
@@ -1242,7 +1343,7 @@ defmodule Kati.Screens.Home do
       padding_bottom={20}
     >
       <Text
-        text="Nothing scheduled — add anything with +"
+        text={Kati.Screens.Home.empty_day()}
         text_size={13}
         line_height={1.55}
         text_color={Palette.sub()}
@@ -1339,20 +1440,47 @@ defmodule Kati.Screens.Home do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
+  @doc """
+  `Sunday · 16 August` — the date line, in the reader's own calendar.
+
+      iex> Kati.Screens.Home.date_line(~D[2026-08-16])
+      "Sunday · 16 August"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.Home.date_line(~D[2026-08-16]) end)
+      "یکشنبه ۲۵ مرداد ۱۴۰۵"
+
+  Board 55 heads its own day یکشنبه ۲۵ مرداد ۱۴۰۵ — the weekday, the Shamsi day
+  and month, and the YEAR, which board 01 does not carry. That is
+  `Kati.Locale.date/2`'s standing ruling rather than this screen's: Shamsi's
+  `:long` carries the year because it is a calendar whose year a reader does not
+  know by heart, and Latin's does not because it is one they do.
+  """
+  @spec date_line(Date.t() | DateTime.t()) :: String.t()
+  def date_line(%Date{} = date) do
+    Kati.Locale.pick(
+      gettext("%{day} · %{n} %{month}",
+        day: Kati.Time.day_name(date),
+        n: date.day,
+        month: Kati.Time.month_name(date.month)
+      ),
+      Kati.Locale.date(date, :long)
+    )
+  end
+
+  def date_line(at), do: at |> DateTime.to_date() |> Kati.Screens.Home.date_line()
+
   @doc "Today's date line and greeting, in the device's zone."
   def today do
     now = Kati.Time.now()
-    day = Kati.Time.day_name(now)
-    month = Kati.Time.month_name(now.month)
 
     greeting =
       cond do
-        now.hour < 12 -> "Good morning"
-        now.hour < 18 -> "Good afternoon"
-        true -> "Good evening"
+        now.hour < 12 -> gettext("Good morning")
+        now.hour < 18 -> gettext("Good afternoon")
+        true -> gettext("Good evening")
       end
 
-    {"#{day} · #{now.day} #{month}", greeting}
+    {Kati.Screens.Home.date_line(now), greeting}
   end
 
   @impl true

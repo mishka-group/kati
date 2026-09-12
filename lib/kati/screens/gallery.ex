@@ -81,7 +81,10 @@ defmodule Kati.Screens.Gallery do
     {"52", "Meals on the calendar", Kati.Screens.MealsDay, :push},
     {"53", "Language pick", Kati.Screens.LanguagePick, :push},
     {"54", "Language", Kati.Screens.Language, :push},
-    {"55", "خانه", Kati.Screens.HomeFa, :push},
+    # 55 was `Kati.Screens.HomeFa` until mishka-group/kati#103 folded that
+    # mirror away — the last of the four Persian roots. It is screen 01 read
+    # under `:fa`, with "55" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"55", "خانه", Kati.Screens.Home, :push},
     # 56 was `Kati.Screens.ScheduleFa` until mishka-group/kati#103 folded that
     # mirror away. It is screen 02 read under `:fa`, with "56" on
     # `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
@@ -240,10 +243,12 @@ defmodule Kati.Screens.Gallery do
     # with "156" added to `Kati.ScreenDesignLiteralTest`'s `@fa_screens` so the
     # sweep renders it in the locale it is drawn in.
     {"156", "افزودن دستی — Add by hand, RTL", Kati.Screens.AddByHand, :push},
-    {"158", "خانه — nothing stored, RTL", Kati.Screens.HomeFaEmpty, :push},
-    {"159", "خانه — nothing stored, dark RTL", Kati.Screens.HomeFaEmptyDark, :push},
-    {"160", "The two empty sections — omitted, decided", Kati.Screens.HomeFaOmittedSections,
-     :push},
+    # 158 is board 139 read under `:fa`; 159 is the same page in dark, which is
+    # a colourway rather than a mirror and so keeps a module of its own —
+    # the relation 28 has to 01.
+    {"158", "خانه — nothing stored, RTL", Kati.Screens.HomeEmpty, :push},
+    {"159", "خانه — nothing stored, dark RTL", Kati.Screens.HomeEmptyDark, :push},
+    {"160", "The two empty sections — omitted, decided", Kati.Screens.HomeOmittedSections, :push},
     {"161", "Welcome — step 2 of 5", Kati.Screens.OnboardingWelcome, :push},
     {"162", "Loudness — step 4 of 5", Kati.Screens.OnboardingLoudness, :push},
     {"163", "First title — step 5 of 5", Kati.Screens.OnboardingFirstTitle, :push},

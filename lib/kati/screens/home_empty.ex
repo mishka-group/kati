@@ -20,7 +20,7 @@ defmodule Kati.Screens.HomeEmpty do
   reachable from somewhere with goals on it. Home is not reachable from
   anywhere — it is where the app opens — so this is `root: :home`, the tab
   bar and the FAB drawn by `Kati.Shell` exactly as they are for
-  `Kati.Screens.Home`, `Kati.Screens.HomeDark` and `Kati.Screens.HomeFa`. The
+  `Kati.Screens.Home` and `Kati.Screens.HomeDark`. The
   frame is Home's own `64px 21px 132px`, not 105's `40`: the dock still
   floats over the bottom of this page, because the dock is section-agnostic
   too.
@@ -125,6 +125,7 @@ defmodule Kati.Screens.HomeEmpty do
   """
 
   use Kati.Screens.Root, root: :home
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme
@@ -147,7 +148,7 @@ defmodule Kati.Screens.HomeEmpty do
         {Kati.Screens.HomeEmpty.header()}
         {Kati.Screens.HomeEmpty.search()}
         {Kati.Screens.HomeEmpty.invitation()}
-        {SettingsList.eyebrow_muted("The calendar still works")}
+        {SettingsList.eyebrow_muted(gettext("The calendar still works"))}
         {Kati.Screens.HomeEmpty.today_card()}
         {Kati.Screens.HomeEmpty.footnote()}
       </Column>
@@ -168,8 +169,8 @@ defmodule Kati.Screens.HomeEmpty do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text={String.upcase(date_line)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(date_line)}
+            font_family={Kati.Locale.mono_face(date_line)}
             text_size={11}
             letter_spacing={0.14}
             text_color={Palette.muted()}
@@ -180,8 +181,9 @@ defmodule Kati.Screens.HomeEmpty do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
+            max_lines={1}
           />
         </Column>
         {Kati.Screens.Home.disc("tune", false, :open_settings)}
@@ -227,7 +229,7 @@ defmodule Kati.Screens.HomeEmpty do
           {UI.symbol("search", size: 20, color: Palette.muted())}
           <Spacer size={11} />
           <Text
-            text="Search anything you keep"
+            text={Kati.Search.placeholder()}
             text_size={14.5}
             text_color={Palette.muted()}
             weight={1.0}
@@ -263,7 +265,7 @@ defmodule Kati.Screens.HomeEmpty do
         </Row>
         <Spacer size={18} />
         <Text
-          text="Nothing chosen yet"
+          text={gettext("Nothing chosen yet")}
           text_size={17}
           font_weight="bold"
           letter_spacing={-0.02}
@@ -272,7 +274,7 @@ defmodule Kati.Screens.HomeEmpty do
         />
         <Spacer size={9} />
         <Text
-          text="Kati keeps what you tell it to. Pick a section and this page fills with what you are watching, reading and eating."
+          text={gettext("Kati keeps what you tell it to. Pick a section and this page fills with what you are watching, reading and eating.")}
           text_size={13}
           line_height={1.6}
           text_align="center"
@@ -332,7 +334,7 @@ defmodule Kati.Screens.HomeEmpty do
       on_tap={{self(), :choose_sections}}
     >
       <Text
-        text="Choose sections"
+        text={gettext("Choose sections")}
         text_size={14.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -352,7 +354,7 @@ defmodule Kati.Screens.HomeEmpty do
     ~MOB"""
     <Column fill_width={true} on_tap={{self(), :restore_backup}}>
       <Text
-        text="or restore a backup"
+        text={gettext("or restore a backup")}
         text_size={12.5}
         font_weight="semibold"
         text_align="center"
@@ -372,7 +374,10 @@ defmodule Kati.Screens.HomeEmpty do
     row =
       SettingsList.row(
         SettingsList.icon_tile("calendar_month"),
-        SettingsList.body("Today", "Nothing scheduled — add anything with +"),
+        SettingsList.body(
+          gettext("Today"),
+          gettext("Nothing scheduled — add anything with +")
+        ),
         SettingsList.chevron(),
         on_tap: {self(), :open_calendar},
         rule: false
@@ -398,9 +403,11 @@ defmodule Kati.Screens.HomeEmpty do
 
     paragraph =
       UI.rich_text([
-        {"Home is a page of section cards, so with no sections there is nothing for it to " <>
-           "show. The calendar and quick-add are section-agnostic and stay live — ", body_style},
-        {"the app is usable before it is configured",
+        {gettext(
+           "Home is a page of section cards, so with no sections there is nothing for it to " <>
+             "show. The calendar and quick-add are section-agnostic and stay live — "
+         ), body_style},
+        {gettext("the app is usable before it is configured"),
          [font_weight: "semibold", text_color: Palette.ink()]},
         {".", body_style}
       ])

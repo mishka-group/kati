@@ -244,10 +244,8 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.HomeDark, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.HomeEmpty, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Agenda, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeFa, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeFaEmpty, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeFaEmptyDark, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeFaOmittedSections, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeEmptyDark, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeOmittedSections, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Library, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Library, :add_title, Kati.Screens.AddTitle},
     # Board 260's ink action, and it hands nothing for the same reason screen
@@ -409,27 +407,22 @@ defmodule Kati.ScreenParamsSweepTest do
     # explicit `%{}` would be the same value this push already sends. No edit.
     {Kati.Screens.NotificationAccess, :log_by_hand, Kati.Screens.LogListen},
 
-    # ── The four Persian roots' search button.
+    # ── The Persian roots' search button, and why it is no longer here.
     #
-    # Screen 19 reads `:back`, `:query` and `:scope`, and a home that opens the
-    # search field has none of the three to hand it. There is no query: the
-    # reader has not typed yet, and `opening_query/1` reads silence and `""` as
-    # two different things on purpose. There is no scope: the field opens
-    # unnarrowed. And `:back` is the one key a push here COULD name and should
-    # not, because screen 19's own default is `gettext("Home")` — which is
-    # «خانه» in the script these four are drawn in. Naming it would be writing
-    # the same word twice, in a place where only one of the two gets
-    # translated.
+    # Four entries stood here while `Kati.Screens.HomeFa` and its three
+    # companions did: each drew a search field and pushed screen 19, which
+    # reads `:back`, `:query` and `:scope`, and had none of the three to hand
+    # it. They pushed 19 rather than 86 — the empty field screen 01 opens —
+    # because 86 held no translated copy, and a Persian root that pushed an
+    # English page would have changed the app's language out from under the
+    # reader.
     #
-    # `Kati.Screens.Home` opens screen 86 for the same tap and lands on the
-    # empty field rather than on 19. The Persian roots cannot: screen 86 holds
-    # no translated copy, and a Persian root that pushed an English page would
-    # change the app's language out from under the reader — which is the
-    # failure `Kati.Screens.Fa` records for the آمار tab's old stand-in.
-    {Kati.Screens.HomeFa, :open_search, Kati.Screens.Search},
-    {Kati.Screens.HomeFaEmpty, :open_search, Kati.Screens.Search},
-    {Kati.Screens.HomeFaEmptyDark, :open_search, Kati.Screens.Search},
-    {Kati.Screens.HomeFaOmittedSections, :open_search, Kati.Screens.Search}
+    # mishka-group/kati#103 translated 86 with the rest of the search family
+    # and folded all four mirrors into `Kati.Screens.Home` and
+    # `Kati.Screens.HomeEmpty`, so every home in the app opens the same empty
+    # field — `Kati.Screens.SearchIdle`, which reads no params at all and is
+    # not a reader this sweep asks about.,
+    {Kati.Screens.HomeOmittedSections, :open_search, Kati.Screens.Search}
   ]
 
   # Every door into a params reader that names its subject and hands the reader
@@ -795,7 +788,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # the tag and discarding it while screen 69's `mount/3` took no params at
     # all, so a shelf of two opened the second cover onto the first book —
     # `book_detail_fa.ex`'s `book/1` and `log_progress_fa.ex`'s `mount/3`.
-    {Kati.Screens.BookDetail, :book_id},
     {Kati.Screens.RetiredTile, :section},
     # The five the comment below used to name as pinned NOWHERE. A count that
     # may only go up catches a reader leaving; it does not catch one leaving
@@ -806,7 +798,6 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.AddIngredient, :meal_id},
     {Kati.Screens.Film, :id},
     {Kati.Screens.Meal, :slot_id},
-    {Kati.Screens.Search, :query},
     {Kati.Screens.Series, :id}
   ]
 

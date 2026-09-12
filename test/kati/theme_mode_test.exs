@@ -486,7 +486,7 @@ defmodule Kati.ThemeModeTest do
                Kati.Screens.BackupDark,
                Kati.Screens.BookDetailDark,
                Kati.Screens.HomeDark,
-               Kati.Screens.HomeFaEmptyDark,
+               Kati.Screens.HomeEmptyDark,
                Kati.Screens.Lock
              ]
     end

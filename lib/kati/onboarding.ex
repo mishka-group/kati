@@ -71,20 +71,26 @@ defmodule Kati.Onboarding do
   The screen `Kati.App.navigation/1` opens the stack on.
 
   On a first run that is the step the run last REACHED — see `step/0` — and
-  afterwards the shell root for the locale the user chose, which is
-  `Kati.Screens.HomeFa` for `:fa` and `Kati.Screens.Home` for `:en`. Reading
-  the locale here rather than always naming `Kati.Screens.Home` is what makes
-  the choice made on 53 survive the app being closed.
+  afterwards `Kati.Screens.Home` — which is board 01 under `:en` and board 55
+  under `:fa`, because the screen takes its script from `Kati.Locale`. It
+  answered `Kati.Screens.HomeFa` for `:fa` until mishka-group/kati#103 folded
+  that mirror away; the locale is still what makes the choice made on screen 53
+  survive the app being closed, it is just no longer a choice of MODULE.
   """
   @spec first_screen() :: module()
   def first_screen do
     if complete?(), do: shell_root(Kati.Locale.current()), else: screen_for_step(step())
   end
 
-  @doc "The root screen for a locale."
+  @doc """
+  The root screen for a locale — `Kati.Screens.Home`, in both.
+
+  It named two modules while a Persian mirror existed. Kept as a function
+  rather than inlined because it is the seam every caller reads, and because
+  it is where a third root would go if one were ever drawn.
+  """
   @spec shell_root(atom()) :: module()
-  def shell_root(:fa), do: Kati.Screens.HomeFa
-  def shell_root(_), do: Kati.Screens.Home
+  def shell_root(_locale), do: Kati.Screens.Home
 
   @step_key :onboarding_step
 

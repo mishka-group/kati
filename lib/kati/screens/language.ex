@@ -37,7 +37,7 @@ defmodule Kati.Screens.Language do
   Choosing a language then **opens the interface in it**, because setting the
   locale alone would not: `Kati.Shell.roots/0` is a static list of the English
   roots, and the eight Persian mirrors hang off `Kati.Screens.Fa.roots/0`
-  instead. So `:fa` pushes `Kati.Screens.HomeFa` — screen 55, whose own dock
+  instead. So `:fa` pushes `Kati.Screens.Home` under `:fa` — board 55, whose dock
   then reaches 56, 57 and 61 — and `:en` pushes `Kati.Screens.Home`.
 
   Pushed, not `reset_to/2`, and that is a judgement rather than the obvious
@@ -536,9 +536,10 @@ defmodule Kati.Screens.Language do
     end
   end
 
-  # The Persian mirrors hard-code `rtl` in `Kati.Screens.Fa.frame/2` rather than
-  # reading the locale, so they are correct however this lands; the locale is
-  # what makes every *other* screen agree with them.
-  defp shell_root(:fa), do: Kati.Screens.HomeFa
+  # One root in both languages since mishka-group/kati#103: `Kati.Screens.Home`
+  # reads `Kati.Locale` for its direction, its face and every word on it, so
+  # the choice made here is a choice of LOCALE and not of module.
+  # `Kati.Onboarding.shell_root/1` is the same answer, and this is a private
+  # copy of it for the reason the function above states.
   defp shell_root(_locale), do: Kati.Screens.Home
 end
