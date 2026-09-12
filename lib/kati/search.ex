@@ -1,4 +1,6 @@
 defmodule Kati.Search do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   What a search looks at, in what order, and how a query is folded first.
 
@@ -56,24 +58,9 @@ defmodule Kati.Search do
   #
   # `Kati.SearchContractTest` pins `built?/1` to `narrowable_scopes/0`, so a
   # scope cannot be marked built without a group behind it.
-  @scopes [
-    {:screen, "Screen",
-     [
-       "title",
-       "original title",
-       "alt titles",
-       "episode titles",
-       "cast",
-       "your tags",
-       "your review"
-     ]},
-    {:books, "Books", ["title", "author", "series", "ISBN", "your notes", "your quotes"]},
-    {:music, "Music", ["album", "artist", "track", "your notes"]},
-    {:calendar, "Calendar", ["event title", "location", "notes", "never invitee names"]},
-    {:meals, "Meals", ["meal name", "ingredients"]},
-    {:money, "Money", ["service name"]},
-    {:notes, "Notes", ["every cream card in the app"]}
-  ]
+  # A function, not an attribute: `gettext/1` inside one is evaluated at
+  # COMPILE time, so seven translated labels and their field lists would freeze
+  # in whichever locale the compiler happened to be in. See `scopes/0`.
 
   # Fields this list names that a search does not look in, because nothing on
   # the device holds them — MOVIES-AND-TV.md #74 at the field level, and #114.
@@ -104,7 +91,7 @@ defmodule Kati.Search do
   # The scopes `Kati.Search.Query.run/1` actually builds a group for. Written
   # as labels rather than derived from `@narrowable`, because that list also
   # holds `All` — which is every group rather than a scope of its own.
-  @built ["Screen", "Books", "Calendar", "Notes"]
+  @built [:screen, :books, :calendar, :notes]
 
   # The four tiers, with the example screen 88 prints for each.
   @tiers [
@@ -127,9 +114,49 @@ defmodule Kati.Search do
     {0xF900, 0xFAFF}
   ]
 
-  @doc "Every scope, in the fixed order every result list uses."
+  @doc """
+  Every scope, in the fixed order every result list uses.
+
+  `{key, label, fields}`. The KEY is what a chip's tap is named after and what
+  `built?/1` and `narrowable/1` answer about; the label and the field list are
+  copy. They were one string, which is the defect this whole ticket is about.
+  """
   @spec scopes() :: [{atom(), String.t(), [String.t()]}]
-  def scopes, do: @scopes
+  def scopes do
+    [
+      {:screen, pgettext("search scope", "Screen"),
+       [
+         gettext("title"),
+         gettext("original title"),
+         gettext("alt titles"),
+         gettext("episode titles"),
+         gettext("cast"),
+         gettext("your tags"),
+         gettext("your review")
+       ]},
+      {:books, pgettext("search scope", "Books"),
+       [
+         gettext("title"),
+         gettext("author"),
+         gettext("series"),
+         "ISBN",
+         gettext("your notes"),
+         gettext("your quotes")
+       ]},
+      {:music, pgettext("search scope", "Music"),
+       [gettext("album"), gettext("artist"), gettext("track"), gettext("your notes")]},
+      {:calendar, pgettext("search scope", "Calendar"),
+       [
+         gettext("event title"),
+         gettext("location"),
+         gettext("notes"),
+         gettext("never invitee names")
+       ]},
+      {:meals, pgettext("search scope", "Meals"), [gettext("meal name"), gettext("ingredients")]},
+      {:money, pgettext("search scope", "Money"), [gettext("service name")]},
+      {:notes, pgettext("search scope", "Notes"), [gettext("every cream card in the app")]}
+    ]
+  end
 
   @doc """
   Whether a search actually looks in this scope.
@@ -140,27 +167,48 @@ defmodule Kati.Search do
   `narrowable/1` silently turns into `All` on the way to screen 19
   (MOVIES-AND-TV.md #73 and #74).
 
-      iex> Kati.Search.built?("Screen")
+      iex> Kati.Search.built?(:screen)
       true
 
-      iex> Kati.Search.built?("Music")
+      iex> Kati.Search.built?(:music)
       false
 
-      iex> Kati.Search.built?("All")
+      iex> Kati.Search.built?(:all)
       true
-  """
-  @spec built?(String.t()) :: boolean()
-  def built?("All"), do: true
-  def built?(label), do: label in @built
 
-  @doc "Just the labels, for the chip row — with `All` first."
-  @spec chip_labels() :: [String.t()]
-  def chip_labels, do: ["All" | Enum.map(@scopes, &elem(&1, 1))]
+  The KEY and not the label. It was the label, and a chip whose word is «همه»
+  answered `false` to every clause — so a Persian reader's every scope read as
+  *not built yet*. mishka-group/kati#103; the same defect
+  `Kati.Screens.Library.chip_counts/1` carries the note for.
+  """
+  @spec built?(atom()) :: boolean()
+  def built?(:all), do: true
+  def built?(key), do: key in @built
+
+  @doc "Just the keys, for the chip row — with `:all` first."
+  @spec chip_keys() :: [atom()]
+  def chip_keys, do: [:all | Enum.map(Kati.Search.scopes(), &elem(&1, 0))]
+
+  @doc """
+  One scope's own word, as every chip row draws it.
+
+      iex> Kati.Search.scope_label(:all)
+      "All"
+  """
+  @spec scope_label(atom()) :: String.t()
+  def scope_label(:all), do: pgettext("search scope", "All")
+
+  def scope_label(key) do
+    case Enum.find(Kati.Search.scopes(), &(elem(&1, 0) == key)) do
+      {_key, label, _fields} -> label
+      nil -> Atom.to_string(key)
+    end
+  end
 
   @doc "The fields one scope searches, as screen 88 lists them."
   @spec fields(atom()) :: [String.t()]
   def fields(scope) do
-    case Enum.find(@scopes, &(elem(&1, 0) == scope)) do
+    case Enum.find(Kati.Search.scopes(), &(elem(&1, 0) == scope)) do
       {_scope, _label, fields} -> fields
       nil -> []
     end
@@ -304,7 +352,7 @@ defmodule Kati.Search do
   # `Books` joined on 6 September. A book used to be concatenated into the
   # Screen group, drawn under that heading, counted by that chip and given a
   # chevron that opened nothing — MOVIES-AND-TV.md #61.
-  @narrowable ["All", "Screen", "Books", "Calendar", "Notes"]
+  @narrowable [:all, :screen, :books, :calendar, :notes]
 
   @doc """
   The scope screen 19 can narrow to, given one of the eight screen 86 offers.
@@ -322,9 +370,9 @@ defmodule Kati.Search do
   matched rather than a lie about nothing matching. The four scopes 19 does have
   narrow as chosen.
   """
-  @spec narrowable(String.t()) :: String.t()
+  @spec narrowable(atom()) :: atom()
   def narrowable(scope) when scope in @narrowable, do: scope
-  def narrowable(_unnarrowable), do: "All"
+  def narrowable(_unnarrowable), do: :all
 
   @doc """
   The four scopes `narrowable/1` passes through.
@@ -333,7 +381,7 @@ defmodule Kati.Search do
   exactly the labels `Kati.Search.Query.chip_counts/1` returns, and this module
   is deliberately unable to ask it. See `@narrowable`.
   """
-  @spec narrowable_scopes() :: [String.t()]
+  @spec narrowable_scopes() :: [atom()]
   def narrowable_scopes, do: @narrowable
 
   @doc "How many recent queries are kept."

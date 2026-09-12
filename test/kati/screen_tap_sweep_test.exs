@@ -764,7 +764,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.LogProgressStates, :unit_minutes},
     # Screen 86's opening scope, the same already-selected case as every other
     # chip family above.
-    {Kati.Screens.SearchIdle, :scope_All},
+    {Kati.Screens.SearchIdle, :scope_all},
     # Screen 84's two link rows. Screen 83's six are above for the same reason
     # and this sheet reuses that screen's cards: every one opens a URL in the
     # platform browser, and Kati has no fence that does.
@@ -825,7 +825,7 @@ defmodule Kati.ScreenTapSweepTest do
     # The opening chip on each of the four screens the third batch added. Same
     # already-selected case as every other family above: 87 and 90 open on All,
     # and 102 and 103 are 98's board with its own opening scope and ratio.
-    {Kati.Screens.SearchTyping, :scope_All},
+    {Kati.Screens.SearchTyping, :scope_all},
     {Kati.Screens.SearchFa, :scope_all},
     # Screen 113 draws screen 42's Meals tile as one of the states it is about.
     # A picture of a tile, not a tile.
@@ -861,7 +861,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealsDay, :filter_All},
     {Kati.Screens.Nutrition, :period_Week},
     {Kati.Screens.ReleaseWatcher, :"cadence_Every 6h"},
-    {Kati.Screens.Search, :filter_All},
+    {Kati.Screens.Search, :filter_all},
     # Board 167's resting sort, and it is an artefact of how this sweep walks
     # rather than a control that does nothing. Every tag is dispatched against
     # the SAME starting socket, but `Kati.Library.UpNextFilters` is a

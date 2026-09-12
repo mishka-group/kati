@@ -87,13 +87,16 @@ defmodule Kati.SearchRunTest do
   end
 
   test "the chips count the results they stand for" do
-    counts = Query.run("hollow") |> Query.chip_counts() |> Map.new()
+    counts =
+      Query.run("hollow")
+      |> Query.chip_counts()
+      |> Map.new(fn {key, _label, n} -> {key, n} end)
 
-    assert counts["Screen"] == 2
+    assert counts[:screen] == 2
     # Books included. It was omitted and passed only because this fixture has
     # no books — the same arithmetic this round fixed one group over.
-    assert counts["All"] ==
-             counts["Screen"] + counts["Books"] + counts["Calendar"] + counts["Notes"]
+    assert counts[:all] ==
+             counts[:screen] + counts[:books] + counts[:calendar] + counts[:notes]
   end
 
   test "an empty store answers the no-match state rather than raising" do
@@ -207,9 +210,13 @@ defmodule Kati.SearchRunTest do
       track!("1")
       episode!("1", "Hollow Ground")
 
-      counts = "hollow" |> Query.run() |> Query.chip_counts() |> Map.new()
+      counts =
+        "hollow"
+        |> Query.run()
+        |> Query.chip_counts()
+        |> Map.new(fn {key, _label, n} -> {key, n} end)
 
-      assert counts["Screen"] == 3, "two titles and one episode, under one chip"
+      assert counts[:screen] == 3, "two titles and one episode, under one chip"
       refute Map.has_key?(counts, "Episodes")
     end
 
@@ -496,7 +503,7 @@ defmodule Kati.SearchRunTest do
       results = Kati.Search.Query.run("estuary")
 
       assert results.notes == [], "the fixture no longer sets up the case this test is about"
-      assert %{type: :box} = render(results, "All")
+      assert %{type: :box} = render(results, :all)
     end
 
     test "every scope renders against a result set that only has titles" do
@@ -514,7 +521,7 @@ defmodule Kati.SearchRunTest do
 
       results = Kati.Search.Query.run("estuary")
 
-      for scope <- ["All", "Screen", "Calendar", "Notes"] do
+      for scope <- [:all, :screen, :calendar, :notes] do
         assert %{type: :box} = render(results, scope),
                "screen 19 could not render with the #{scope} chip on"
       end
@@ -535,7 +542,7 @@ defmodule Kati.SearchRunTest do
       })
 
       results = Kati.Search.Query.run("estuary")
-      drawn = rendered_text(render(results, "Notes"))
+      drawn = rendered_text(render(results, :notes))
 
       # MOVIES-AND-TV.md #117: and what it says is WHERE the answer is, not
       # that there is none. `Nothing here for estuary` over a query that found
@@ -553,7 +560,7 @@ defmodule Kati.SearchRunTest do
 
     test "and still says nothing matched when nothing did" do
       results = Kati.Search.Query.run("zzzznothingatall")
-      drawn = rendered_text(render(results, "All"))
+      drawn = rendered_text(render(results, :all))
 
       assert Enum.any?(drawn, &String.contains?(&1, "Nothing here for")),
              "a query that found nothing anywhere lost its no-match card: " <> inspect(drawn)
@@ -575,12 +582,12 @@ defmodule Kati.SearchRunTest do
 
       results = Kati.Search.Query.run("estuary")
 
-      assert {"Screen", 2} = Kati.Screens.Search.elsewhere(results, "Notes")
+      assert {:screen, 2} = Kati.Screens.Search.elsewhere(results, :notes)
 
       # Pressing the row and pressing the chip are one action, so the tag is
       # the chip's own.
-      assert inspect(Kati.Screens.Search.cross_scope("Notes", {"Screen", 2}), limit: :infinity) =~
-               "go_Screen"
+      assert inspect(Kati.Screens.Search.cross_scope(:notes, {:screen, 2}), limit: :infinity) =~
+               "go_screen"
     end
 
     test "and pressing it moves the lit scope" do
@@ -598,22 +605,22 @@ defmodule Kati.SearchRunTest do
         |> Mob.Socket.assign(:history, [])
         |> Mob.Socket.assign(:back, "Home")
 
-      {:noreply, moved} = Kati.Screens.Search.handle_info({:tap, :go_Screen}, socket)
+      {:noreply, moved} = Kati.Screens.Search.handle_info({:tap, :go_screen}, socket)
 
-      assert moved.assigns.filter == "Screen"
+      assert moved.assigns.filter == :screen
     end
 
     test "and the row's tag is not one another node already carries" do
       # Two nodes may not share an `accessibility_id` — `onNodeWithTag` throws
-      # on the second match. The row drew the chip's own `filter_Screen` first,
+      # on the second match. The row drew the chip's own `filter_screen` first,
       # and `ui.sh ids` on the Pixel_9a listed it twice.
       results = Kati.Search.Query.run("hollow")
-      drawn = inspect(render(results, "Notes"), limit: :infinity)
+      drawn = inspect(render(results, :notes), limit: :infinity)
 
-      tags = Regex.scan(~r/:filter_Screen\b/, drawn)
+      tags = Regex.scan(~r/:filter_screen\b/, drawn)
 
       assert length(tags) == 1,
-             "filter_Screen is drawn #{length(tags)} times on one frame"
+             "filter_screen is drawn #{length(tags)} times on one frame"
     end
   end
 

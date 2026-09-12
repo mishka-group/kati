@@ -87,12 +87,19 @@ defmodule Kati.Search.Query do
     # function, and a required key would raise on the board's own path.
     notes = Map.get(results, :notes) || []
 
+    # `{key, label, count}`. The KEY is what the chip's tap is named after and
+    # what `Kati.Screens.Search.visible_groups/2` filters on; the label is a
+    # translation. They were one string, so a Persian reader's every chip
+    # answered `_all` and every scope showed the whole result set —
+    # mishka-group/kati#103, the same defect `Kati.Screens.Library` carries the
+    # note for.
     [
-      {"All", length(titles) + length(books) + length(calendar) + length(notes)},
-      {"Screen", length(titles)},
-      {"Books", length(books)},
-      {"Calendar", length(calendar)},
-      {"Notes", length(notes)}
+      {:all, Kati.Search.scope_label(:all),
+       length(titles) + length(books) + length(calendar) + length(notes)},
+      {:screen, Kati.Search.scope_label(:screen), length(titles)},
+      {:books, Kati.Search.scope_label(:books), length(books)},
+      {:calendar, Kati.Search.scope_label(:calendar), length(calendar)},
+      {:notes, Kati.Search.scope_label(:notes), length(notes)}
     ]
   end
 

@@ -47,7 +47,7 @@ defmodule Kati.Screens.SearchIdle do
 
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:scope, "All")
+    |> Mob.Socket.assign(:scope, :all)
     |> Mob.Socket.assign(:query, "")
     |> Mob.Socket.assign(:history, Kati.Search.Recent.all())
   end
@@ -137,8 +137,10 @@ defmodule Kati.Screens.SearchIdle do
   @spec chips(String.t()) :: map()
   def chips(active) do
     chips =
-      Search.chip_labels()
-      |> Enum.map(fn label ->
+      Search.chip_keys()
+      |> Enum.map(fn key ->
+        label = Search.scope_label(key)
+
         # A scope with no group behind it is drawn DISABLED rather than
         # offered. `Kati.Search.narrowable/1` turned Music, Meals and Money
         # into `All` on the way to screen 19, so a reader picked a scope, ran
@@ -152,12 +154,15 @@ defmodule Kati.Screens.SearchIdle do
         # draws seven and the design's contract is wider than the executor on
         # purpose — `Kati.Search.built?/1` is the seam, and screen 88 is where
         # the whole contract is stated.
-        built? = Search.built?(label)
+        built? = Search.built?(key)
 
         UI.chip(label,
-          selected: label == active,
+          selected: key == active,
           disabled: not built?,
-          on_toggle: built? && String.to_atom("scope_" <> label)
+          # The KEY and not the label: a tag built from a drawn word is a
+          # different atom in every language, and the handler then matches none
+          # of them — `Kati.Search.built?/1` carries the same note.
+          on_toggle: built? && String.to_atom("scope_" <> Atom.to_string(key))
         )
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
@@ -533,8 +538,8 @@ defmodule Kati.Screens.SearchIdle do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "scope_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :scope, label)}
+      "scope_" <> key ->
+        {:noreply, Mob.Socket.assign(socket, :scope, String.to_existing_atom(key))}
 
       # A recent query or a suggestion, by its own line — see `query_tag/2`.
       # Both open the search screen, which is what the two bare tags above did

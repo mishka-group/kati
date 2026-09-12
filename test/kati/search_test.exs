@@ -20,7 +20,7 @@ defmodule Kati.SearchTest do
     end
 
     test "the chip row puts All in front of the seven" do
-      assert Search.chip_labels() ==
+      assert Enum.map(Search.chip_keys(), &Search.scope_label/1) ==
                ["All", "Screen", "Books", "Music", "Calendar", "Meals", "Money", "Notes"]
     end
   end

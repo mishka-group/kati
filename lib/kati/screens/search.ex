@@ -112,6 +112,7 @@ defmodule Kati.Screens.Search do
   when there is an index to move it onto.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Components.MishkaChip
@@ -143,7 +144,7 @@ defmodule Kati.Screens.Search do
      Mob.Socket.assign(socket,
        query: query,
        results: results,
-       filter: Kati.Search.narrowable(Map.get(params, :scope, "All")),
+       filter: Kati.Search.narrowable(Map.get(params, :scope, :all)),
        recent: nil,
        # Screen 06's counter, for the reason `handle_info({:tap, :clear}, …)`
        # gives. It starts at 1 when a push HANDED a query, so the field draws
@@ -258,8 +259,14 @@ defmodule Kati.Screens.Search do
   A device does derive them, from the matched set, which is what they already
   claim to be: `Kati.Search.Query.chip_counts/1`.
   """
-  @spec drawn_chips() :: [{String.t(), non_neg_integer()}]
-  def drawn_chips, do: [{"All", 6}, {"Screen", 3}, {"Calendar", 2}, {"Notes", 1}]
+  @spec drawn_chips() :: [{atom(), String.t(), non_neg_integer()}]
+  def drawn_chips,
+    do: [
+      {:all, Kati.Search.scope_label(:all), 6},
+      {:screen, Kati.Search.scope_label(:screen), 3},
+      {:calendar, Kati.Search.scope_label(:calendar), 2},
+      {:notes, Kati.Search.scope_label(:notes), 1}
+    ]
 
   @doc """
   The recent shelf board 19 draws, pre-chunked into the rows its `flex-wrap`
@@ -388,11 +395,11 @@ defmodule Kati.Screens.Search do
       # The chip, and the cross-scope row that offers the same move (#117). Two
       # prefixes because two nodes cannot share one tag, one clause because it
       # is one action.
-      "filter_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      "filter_" <> key ->
+        {:noreply, Mob.Socket.assign(socket, :filter, String.to_existing_atom(key))}
 
-      "go_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      "go_" <> key ->
+        {:noreply, Mob.Socket.assign(socket, :filter, String.to_existing_atom(key))}
 
       # A Calendar hit, by its own event. Screen 31 answers an id that names
       # nothing with its own drawing rather than a crash, which is what makes
@@ -616,7 +623,9 @@ defmodule Kati.Screens.Search do
     # not silently reset under them.
     counts =
       if Map.get(results, :idle?, false) do
-        Enum.map(Kati.Search.Query.chip_counts(results), fn {label, _zero} -> {label, nil} end)
+        Enum.map(Kati.Search.Query.chip_counts(results), fn {key, label, _zero} ->
+          {key, label, nil}
+        end)
       else
         Kati.Search.Query.chip_counts(results)
       end
@@ -627,8 +636,8 @@ defmodule Kati.Screens.Search do
       |> Enum.map(fn line ->
         Kati.Screens.Search.chip_line(
           line
-          |> Enum.map(fn {label, count} ->
-            Kati.Screens.Search.chip(label, count, label == active)
+          |> Enum.map(fn {key, label, count} ->
+            Kati.Screens.Search.chip(key, label, count, key == active)
           end)
           |> Enum.intersperse(Kati.Screens.Search.gap())
         )
@@ -766,14 +775,15 @@ defmodule Kati.Screens.Search do
   `align` on it changes nothing — and the `Box` centres that group in the 32:
   `(32 - h) / 2 + h / 2` is 16 again.
   """
-  def chip(label, count, on?) do
+  def chip(key, label, count, on?) do
     # The tag carries the label, so one handler serves every chip.
     count_color = if on?, do: Palette.on_ink_count(), else: Palette.count_idle()
 
     MishkaChip.chip(
       label: label,
       checked: on?,
-      on_toggle: {self(), String.to_atom("filter_" <> label)},
+      # The KEY and not the label — see `Kati.Search.built?/1`.
+      on_toggle: {self(), String.to_atom("filter_" <> Atom.to_string(key))},
       color: Palette.ink_fill(),
       text_color: Palette.on_ink(),
       unchecked_color: Palette.card(),
@@ -824,7 +834,7 @@ defmodule Kati.Screens.Search do
   `Kati.Search.minimum/1` is the screen waiting, and a long-enough one that
   matched nothing is the screen having looked.
   """
-  @spec state_or_groups(map(), String.t(), [String.t()]) :: map()
+  @spec state_or_groups(map(), atom(), [String.t()]) :: map()
   def state_or_groups(results, filter, history) do
     cond do
       Map.get(results, :idle?, false) ->
@@ -856,19 +866,19 @@ defmodule Kati.Screens.Search do
   it is; ties fall to `Kati.Search`'s own chip order, which is what
   `visible_groups/2` walks.
 
-      iex> Kati.Screens.Search.elsewhere(%{titles: [1, 2], books: [], calendar: [], notes: []}, "Calendar")
-      {"Screen", 2}
+      iex> Kati.Screens.Search.elsewhere(%{titles: [1, 2], books: [], calendar: [], notes: []}, :calendar)
+      {:screen, 2}
 
-      iex> Kati.Screens.Search.elsewhere(%{titles: [], books: [], calendar: [], notes: []}, "Calendar")
+      iex> Kati.Screens.Search.elsewhere(%{titles: [], books: [], calendar: [], notes: []}, :calendar)
       nil
   """
-  @spec elsewhere(map(), String.t()) :: {String.t(), pos_integer()} | nil
+  @spec elsewhere(map(), atom()) :: {atom(), pos_integer()} | nil
   def elsewhere(results, filter) do
     results
-    |> Kati.Screens.Search.visible_groups("All")
-    |> Enum.reject(fn {label, _key} -> label == filter end)
-    |> Enum.map(fn {label, key} -> {label, Kati.Screens.Search.count_of(results, key)} end)
-    |> Enum.max_by(fn {_label, n} -> n end, fn -> nil end)
+    |> Kati.Screens.Search.visible_groups(:all)
+    |> Enum.reject(fn {scope, _key} -> scope == filter end)
+    |> Enum.map(fn {scope, key} -> {scope, Kati.Screens.Search.count_of(results, key)} end)
+    |> Enum.max_by(fn {_scope, n} -> n end, fn -> nil end)
   end
 
   @doc false
@@ -889,12 +899,16 @@ defmodule Kati.Screens.Search do
   no device test can touch — which is what this drew first, and what reading
   `ui.sh ids` on the Pixel_9a caught.
   """
-  @spec cross_scope(String.t(), {String.t(), pos_integer()}) :: map()
-  def cross_scope(filter, {label, count}) do
+  @spec cross_scope(atom(), {atom(), pos_integer()}) :: map()
+  def cross_scope(filter, {scope, count}) do
     assigns = %{
-      lead: "Nothing in #{filter}. ",
-      over: "#{count} #{if count == 1, do: "match", else: "matches"} in #{label}",
-      tap: {self(), String.to_atom("go_" <> label)}
+      lead: gettext("Nothing in %{scope}. ", scope: Kati.Search.scope_label(filter)),
+      over:
+        ngettext("%{n} match in %{scope}", "%{n} matches in %{scope}", count,
+          n: Kati.Locale.number(count),
+          scope: Kati.Search.scope_label(scope)
+        ),
+      tap: {self(), String.to_atom("go_" <> Atom.to_string(scope))}
     }
 
     ~MOB"""
@@ -941,11 +955,11 @@ defmodule Kati.Screens.Search do
   the one `Kati.Screens.Home` follows for its own sections: a heading over
   nothing reads as something that failed to load.
   """
-  @spec visible_groups(map(), String.t()) :: [{String.t(), atom()}]
+  @spec visible_groups(map(), atom()) :: [{atom(), atom()}]
   def visible_groups(results, filter) do
-    [{"Screen", :titles}, {"Books", :books}, {"Calendar", :calendar}, {"Notes", :notes}]
-    |> Enum.filter(fn {label, _key} -> filter == "All" or filter == label end)
-    |> Enum.reject(fn {_label, key} -> Kati.Screens.Search.blank?(results, key) end)
+    [{:screen, :titles}, {:books, :books}, {:calendar, :calendar}, {:notes, :notes}]
+    |> Enum.filter(fn {scope, _key} -> filter == :all or filter == scope end)
+    |> Enum.reject(fn {_scope, key} -> Kati.Screens.Search.blank?(results, key) end)
   end
 
   @doc false
@@ -1035,14 +1049,14 @@ defmodule Kati.Screens.Search do
   specifically: the moduledoc's rule is positional, and orange means "this is
   the hit". Filtering to Notes makes Notes the hit.
   """
-  @spec groups(map(), String.t()) :: term()
+  @spec groups(map(), atom()) :: term()
   def groups(results, filter) do
     visible = results |> Kati.Screens.Search.visible_groups(filter) |> Enum.with_index()
 
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(visible, fn {{label, key}, i} ->
-        Kati.Screens.Search.group(results, label, key, i == 0)
+      {Enum.map(visible, fn {{scope, key}, i} ->
+        Kati.Screens.Search.group(results, Kati.Search.scope_label(scope), key, i == 0)
       end)}
     </Column>
     """

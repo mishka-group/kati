@@ -311,7 +311,8 @@ defmodule Kati.Screens.SearchLarge do
   @spec chips() :: map()
   def chips do
     rows =
-      Search.chip_labels()
+      Search.chip_keys()
+      |> Enum.map(&Search.scope_label/1)
       |> Enum.chunk_every(3)
       |> Enum.map(&Kati.Screens.SearchLarge.chip_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={8} />")

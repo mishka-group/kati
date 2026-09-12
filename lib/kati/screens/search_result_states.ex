@@ -140,10 +140,12 @@ defmodule Kati.Screens.SearchResultStates do
   than typing them keeps screen 88's order — Screen, Books, Music, Calendar,
   Meals, Money, Notes — as the one place it is written down.
   """
-  @spec counted(%{optional(String.t()) => non_neg_integer()}) ::
+  @spec counted(%{optional(atom()) => non_neg_integer()}) ::
           [{String.t(), non_neg_integer()}]
   def counted(counts) do
-    Enum.map(Kati.Search.chip_labels(), fn label -> {label, Map.get(counts, label, 0)} end)
+    Enum.map(Kati.Search.chip_keys(), fn key ->
+      {Kati.Search.scope_label(key), Map.get(counts, key, 0)}
+    end)
   end
 
   @doc """
@@ -153,7 +155,7 @@ defmodule Kati.Screens.SearchResultStates do
   `All` is the sum, and a sum with one non-zero term is that term.
   """
   @spec in_scope() :: [{String.t(), non_neg_integer()}]
-  def in_scope, do: counted(%{"All" => 3, "Meals" => 3})
+  def in_scope, do: counted(%{all: 3, meals: 3})
 
   @doc """
   The third band's chips: the lit scope is empty and `Screen` holds the three.
@@ -162,7 +164,7 @@ defmodule Kati.Screens.SearchResultStates do
   along, so the two rows differ in exactly the thing the band is about.
   """
   @spec elsewhere_chips() :: [{String.t(), non_neg_integer()}]
-  def elsewhere_chips, do: counted(%{"All" => 3, "Screen" => 3})
+  def elsewhere_chips, do: counted(%{all: 3, screen: 3})
 
   @doc """
   The two meal hits, split at the matched run.

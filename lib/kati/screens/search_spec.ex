@@ -86,8 +86,8 @@ defmodule Kati.Screens.SearchSpec do
   def scopes do
     cards =
       Search.scopes()
-      |> Enum.map(fn {_scope, label, fields} ->
-        Kati.Screens.SearchSpec.scope_card(label, fields)
+      |> Enum.map(fn {key, label, fields} ->
+        Kati.Screens.SearchSpec.scope_card(key, label, fields)
       end)
       |> Enum.intersperse(~MOB"<Spacer size={11} />")
 
@@ -100,14 +100,14 @@ defmodule Kati.Screens.SearchSpec do
   end
 
   @doc false
-  def scope_card(label, fields) do
+  def scope_card(key, label, fields) do
     rows =
       fields
       |> Enum.chunk_every(3)
       |> Enum.map(&Kati.Screens.SearchSpec.field_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
-    assigns = %{label: label, rows: rows, state: Kati.Screens.SearchSpec.state_pill(label)}
+    assigns = %{label: label, rows: rows, state: Kati.Screens.SearchSpec.state_pill(key)}
 
     ~MOB"""
     <Column
@@ -148,9 +148,9 @@ defmodule Kati.Screens.SearchSpec do
   `Kati.Search.built?/1` is the seam, and screen 86 greys the same four chips
   from the same predicate.
   """
-  @spec state_pill(String.t()) :: map()
-  def state_pill(label) do
-    if Kati.Search.built?(label) do
+  @spec state_pill(atom()) :: map()
+  def state_pill(key) do
+    if Kati.Search.built?(key) do
       ~MOB"<Spacer size={0} />"
     else
       Kati.Screens.SearchSpec.not_yet_pill()

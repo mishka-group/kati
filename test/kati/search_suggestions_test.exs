@@ -89,24 +89,27 @@ defmodule Kati.SearchSuggestionsTest do
       # Music, Meals and Money are searched by nothing. The list stays as the
       # design's, and this is what lets a board say *not yet* instead of
       # offering a choice `narrowable/1` silently turns into `All`.
-      assert Kati.Search.built?("Screen")
-      assert Kati.Search.built?("Books")
-      assert Kati.Search.built?("Calendar")
-      assert Kati.Search.built?("Notes")
-      assert Kati.Search.built?("All")
+      assert Kati.Search.built?(:screen)
+      assert Kati.Search.built?(:books)
+      assert Kati.Search.built?(:calendar)
+      assert Kati.Search.built?(:notes)
+      assert Kati.Search.built?(:all)
 
-      refute Kati.Search.built?("Music")
-      refute Kati.Search.built?("Meals")
-      refute Kati.Search.built?("Money")
+      refute Kati.Search.built?(:music)
+      refute Kati.Search.built?(:meals)
+      refute Kati.Search.built?(:money)
     end
 
     test "and a scope cannot be marked built without a group behind it" do
+      # The KEY, since mishka-group/kati#103: `built?/1` answers about the key
+      # and a label is a translation — asked with the label it answered `false`
+      # for every scope the moment the chips spoke Persian.
       built =
         Kati.Search.scopes()
-        |> Enum.map(fn {_key, label, _fields} -> label end)
+        |> Enum.map(fn {key, _label, _fields} -> key end)
         |> Enum.filter(&Kati.Search.built?/1)
 
-      assert Enum.sort(built) == Enum.sort(Kati.Search.narrowable_scopes() -- ["All"]),
+      assert Enum.sort(built) == Enum.sort(Kati.Search.narrowable_scopes() -- [:all]),
              "`built?/1` and `narrowable_scopes/0` disagree, so a chip is offered for a " <>
                "group that does not exist or withheld for one that does"
     end
@@ -125,28 +128,28 @@ defmodule Kati.SearchSuggestionsTest do
     end
 
     test "and a built scope carries no pill" do
-      built = inspect(Kati.Screens.SearchSpec.state_pill("Screen"), limit: :infinity)
-      unbuilt = inspect(Kati.Screens.SearchSpec.state_pill("Music"), limit: :infinity)
+      built = inspect(Kati.Screens.SearchSpec.state_pill(:screen), limit: :infinity)
+      unbuilt = inspect(Kati.Screens.SearchSpec.state_pill(:music), limit: :infinity)
 
       refute built =~ "NOT YET"
       assert unbuilt =~ "NOT YET"
     end
 
     test "screen 86 offers no chip it will then discard" do
-      drawn = inspect(SearchIdle.chips("All"), limit: :infinity, printable_limit: :infinity)
+      drawn = inspect(SearchIdle.chips(:all), limit: :infinity, printable_limit: :infinity)
 
       # Every label is still on the row — board 86 draws eight and the contract
       # is the design's — but the four with no group behind them carry no tag,
       # so the choice is never offered and then dropped by `narrowable/1`.
-      for label <- Kati.Search.chip_labels() do
+      for label <- Enum.map(Kati.Search.chip_keys(), &Kati.Search.scope_label/1) do
         assert drawn =~ label
       end
 
-      for built <- ["Screen", "Books", "Calendar", "Notes"] do
+      for built <- [:screen, :books, :calendar, :notes] do
         assert drawn =~ "scope_#{built}", "#{built} has a group and lost its tap"
       end
 
-      for unbuilt <- ["Music", "Meals", "Money"] do
+      for unbuilt <- [:music, :meals, :money] do
         refute drawn =~ "scope_#{unbuilt}",
                "#{unbuilt} is still tappable and `narrowable/1` will turn it into All"
       end

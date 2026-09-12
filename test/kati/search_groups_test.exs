@@ -51,23 +51,23 @@ defmodule Kati.SearchGroupsTest do
       results = Query.run("zzz-nothing-matches-this")
 
       assert Map.has_key?(results, :books)
-      assert Enum.any?(Query.chip_counts(results), &(elem(&1, 0) == "Books"))
-      assert "Books" in Kati.Search.narrowable_scopes()
+      assert Enum.any?(Query.chip_counts(results), &(elem(&1, 0) == :books))
+      assert :books in Kati.Search.narrowable_scopes()
     end
 
     test "and the screen draws them under their own heading" do
       groups =
-        Search.visible_groups(%{titles: [%{}], books: [%{}], calendar: [], notes: []}, "All")
+        Search.visible_groups(%{titles: [%{}], books: [%{}], calendar: [], notes: []}, :all)
 
-      assert {"Screen", :titles} in groups
-      assert {"Books", :books} in groups
+      assert {:screen, :titles} in groups
+      assert {:books, :books} in groups
     end
 
     test "a chip narrows to the group it names" do
       results = %{titles: [%{}], books: [%{}], calendar: [], notes: []}
 
-      assert Search.visible_groups(results, "Books") == [{"Books", :books}]
-      assert Search.visible_groups(results, "Screen") == [{"Screen", :titles}]
+      assert Search.visible_groups(results, :books) == [{:books, :books}]
+      assert Search.visible_groups(results, :screen) == [{:screen, :titles}]
     end
   end
 
@@ -82,7 +82,7 @@ defmodule Kati.SearchGroupsTest do
 
       assert length(results.titles) == 7
 
-      assert {"Screen", 7} in Query.chip_counts(results),
+      assert {:screen, Kati.Search.scope_label(:screen), 7} in Query.chip_counts(results),
              "the chip agreed with the cap rather than with the match"
     end
 
@@ -118,12 +118,16 @@ defmodule Kati.SearchGroupsTest do
     end
 
     test "the Notes chip counts what matched, and All adds all of it" do
-      counts = "marram" |> Query.run() |> Query.chip_counts() |> Map.new()
+      counts =
+        "marram"
+        |> Query.run()
+        |> Query.chip_counts()
+        |> Map.new(fn {key, _label, n} -> {key, n} end)
 
-      assert counts["Notes"] == 5, "the chip agreed with the cap rather than with the match"
+      assert counts[:notes] == 5, "the chip agreed with the cap rather than with the match"
 
-      assert counts["All"] ==
-               counts["Screen"] + counts["Books"] + counts["Calendar"] + counts["Notes"]
+      assert counts[:all] ==
+               counts[:screen] + counts[:books] + counts[:calendar] + counts[:notes]
     end
 
     test "and every match is drawn" do
