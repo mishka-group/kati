@@ -313,27 +313,6 @@ defmodule Kati.Settings.Sample do
         sub: gettext("iCloud · this device + iPad"),
         control: :chevron
       },
-      # The door the whole import flow had never had. `Kati.Screens.Gallery`'s
-      # `@routed` list has claimed *Settings → Import* for screen 140 since #52,
-      # and the claim retired 140 from the gallery listing — so the one page
-      # that opens a CSV was filtered out of the only index that reached it
-      # while nothing in Settings pushed it. Screens 37 and 141 sit behind it.
-      #
-      # The one other way in was `Kati.Screens.Restore`, which Home, Library and
-      # `HomeEmpty` push only from their EMPTY-state footnotes: a reader with
-      # anything at all on their shelf could not reach import or restore.
-      #
-      # In the Data group and above `data_sources`, because this group is where
-      # a reader's own records come and go — back up, export, sync, clear — and
-      # bringing a shelf in from another app is that question, not a question
-      # about which catalogue Kati reads.
-      %{
-        id: "import_sources",
-        icon: "upload_file",
-        title: gettext("Import from another app"),
-        sub: gettext("Trakt, Letterboxd, Goodreads, or any CSV"),
-        control: :chevron
-      },
       %{
         id: "data_sources",
         icon: "dns",

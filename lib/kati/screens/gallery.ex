@@ -489,10 +489,8 @@ defmodule Kati.Screens.Gallery do
     # Home → My services, and Settings → My services. #118, #119 — the field
     # filters, every row has a switch, and a price can be corrected.
     "92",
-    # Settings → Import from another app, in the Data group. This line claimed
-    # that door since #52 and the door did not exist — so retiring 140 from the
-    # listing hid the one page that opens a CSV from the only index that
-    # reached it. The row exists now; see `Kati.Settings.Sample.data/0`.
+    # Settings → Import. #52 sends each tile to the right board; #126 made the
+    # *Four more sources* row open the picker.
     "140",
     # 140 → a source tile → pick a file. #4 — the three edge states board 142
     # draws are what a real file produces now.
