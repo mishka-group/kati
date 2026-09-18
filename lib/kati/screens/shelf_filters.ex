@@ -449,9 +449,19 @@ defmodule Kati.Screens.ShelfFilters do
   def rating_label(stars),
     do: pgettext("a rating bucket", "%{n}★ and up", n: Kati.Locale.number(stars))
 
-  # One non-wrapping Row per literal chip line — the board never puts more
-  # chips on a row than fit, so there is nothing here for `Row` to wrap and
-  # nothing gained by pretending it can.
+  # A SCROLLING Row, not a plain one — this line was written for the board's
+  # four fixed decades/ratings/services, which always fit, and stayed a plain
+  # `<Row>` the day `facet_row/2` started calling it for the shelf's OWN
+  # genres. Those are not four; they are as many as the reader's titles carry
+  # — six on a shelf of three tracked titles here, `Crime` and `Animation`
+  # among them — and a Row with no width and no weight force-fills and then
+  # clips at the screen edge, the exact K-17 `chip_line/1` in
+  # `Kati.Screens.Search` already names: the boundary chip's label truncates
+  # mid-word and its trailing count is squeezed away with it, and every chip
+  # past the edge is not merely hidden, it is unreachable — no scroll offers
+  # it back. `<Scroll axis="horizontal" weight={1.0}>` costs nothing on the
+  # four-chip rows this was written for, since a scroll around content that
+  # already fits behaves exactly like the plain Row did.
   @doc false
   def chip_row(facets, selected?) do
     chips =
@@ -463,7 +473,11 @@ defmodule Kati.Screens.ShelfFilters do
 
     ~MOB"""
     <Row fill_width={true}>
-      {chips}
+      <Scroll axis="horizontal" weight={1.0}>
+        <Row>
+          {chips}
+        </Row>
+      </Scroll>
     </Row>
     """
   end
