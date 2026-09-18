@@ -229,7 +229,11 @@ defmodule Kati.Screens.Day do
   def day(params) do
     case Map.get(params, :date) do
       %Date{} = date -> handed(date)
-      _no_date -> {Kati.Time.today(), Kati.Calendar.SampleDay.occurrences(), true}
+      # No date named is TODAY, read like any other. It was
+      # `Kati.Calendar.SampleDay.occurrences/0` — so the door that pushes this
+      # screen with no params (the view switcher's *Day*) could never show a
+      # real day, whatever was in the calendar.
+      _no_date -> handed(Kati.Time.today())
     end
   end
 
@@ -240,14 +244,12 @@ defmodule Kati.Screens.Day do
     end
   end
 
-  # The drawn day keeps the DATE it was handed rather than `Kati.Time.today()`:
-  # the two are equal on this branch by construction, and reading the argument
-  # says which of them the heading is.
-  defp empty(date) do
-    if date == Kati.Time.today(),
-      do: {date, Kati.Calendar.SampleDay.occurrences(), true},
-      else: {date, [], false}
-  end
+  # A day with nothing on it is a day with nothing on it, whichever day it is.
+  # This used to answer `Kati.Calendar.SampleDay.occurrences/0` when the date
+  # was today — so a reader whose calendar was empty was shown the board's
+  # fourteen-item day, and only a reader browsing some OTHER empty day got the
+  # truth. Today is not a special case; it is just the date nobody named.
+  defp empty(date), do: {date, [], false}
 
   @doc false
   def content(assigns) do

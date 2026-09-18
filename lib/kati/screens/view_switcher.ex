@@ -139,6 +139,17 @@ defmodule Kati.Screens.ViewSwitcher do
   def screen("Agenda"), do: Kati.Screens.Agenda
   def screen(_other), do: nil
 
+  # The day the caller is showing, carried across the switch. A bare push meant
+  # *Day* landed on `Kati.Screens.Day`'s no-params branch, which drew a fixture
+  # rather than a date — so the one control whose whole job is "the same moment,
+  # a different way" changed the moment too.
+  defp carried(socket) do
+    case Map.get(socket.assigns, :date) do
+      %Date{} = date -> %{date: date}
+      _none -> %{}
+    end
+  end
+
   @doc """
   Handles a `view_*` tap for any screen that draws the bar.
 
@@ -151,7 +162,7 @@ defmodule Kati.Screens.ViewSwitcher do
       "view_" <> label ->
         case screen(label) do
           nil -> {:noreply, socket}
-          module -> {:noreply, Mob.Socket.push_screen(socket, module)}
+          module -> {:noreply, Mob.Socket.push_screen(socket, module, carried(socket))}
         end
 
       _other ->

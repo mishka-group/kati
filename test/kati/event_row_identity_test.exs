@@ -206,19 +206,29 @@ defmodule Kati.EventRowIdentityTest do
       end)
     end
 
-    test "no date at all is still the drawn day, band and renewals and all" do
-      in_a_day_of_three(fn _day ->
-        # `Kati.Screens.ViewSwitcher` pushes 09 bare, and this is the state the
-        # design was captured in. Asserted on the assigns AND on the tree: the
-        # occurrences alone would still be the sample's while the furniture the
-        # `drawn?` flag gates had quietly gone.
+    test "no date at all is today, read like any other day" do
+      in_a_day_of_three(fn %{events: events} ->
+        # This asserted the opposite, and its own comment named the defect:
+        # "`Kati.Screens.ViewSwitcher` pushes 09 bare, and this is the state the
+        # design was captured in." So the one door whose whole job is *the same
+        # moment, a different way* could never show a real day — whatever was in
+        # the calendar, *Day* drew `Kati.Calendar.SampleDay`.
+        #
+        # Two things changed: a bare mount reads today, and the switcher carries
+        # the date it was showing rather than pushing bare at all.
         view = mount_screen(Day)
 
         assert assigns(view).date == Kati.Time.today()
-        assert assigns(view).occurrences == SampleDay.occurrences()
-        assert text(view) =~ SampleDay.summary()
-        assert text(view) =~ "£22.98"
-        assert text(view) =~ "Vellum — in cinemas"
+
+        refute assigns(view).occurrences == SampleDay.occurrences(),
+               "a bare mount is drawing the fixture again"
+
+        for %{title: title} <- events do
+          assert text(view) =~ title, "#{inspect(title)} is a real event today and is not drawn"
+        end
+
+        refute text(view) =~ SampleDay.summary()
+        refute text(view) =~ "Vellum — in cinemas"
       end)
     end
   end

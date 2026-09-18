@@ -1410,6 +1410,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # now, so the board's own show has to be installed to compare the frame
       # against its capture.
       {"149", Kati.Screens.DropSheet, &Map.put(&1, :sheet, Kati.Screens.DropSheet.drawn_sheet())},
+      # 09 draws an empty day on an empty store now, so the board's own fourteen
+      # items have to be installed to compare the frame — the band, the merged
+      # renewals row and the chip counts are all composed from the list.
+      {"09", Kati.Screens.Day,
+       &Map.merge(&1, %{occurrences: Kati.Calendar.SampleDay.occurrences(), drawn?: true})},
       # 146, same: the grid draws the reader's own shelf and answers `[]` when
       # there is none, so the board's own nine tiles have to be installed to
       # compare the frame — header counts included, since they are composed

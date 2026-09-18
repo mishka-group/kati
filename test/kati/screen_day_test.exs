@@ -24,6 +24,59 @@ defmodule Kati.ScreenDayTest do
   alias Kati.Calendar.SampleDay
   alias Kati.Screens.Day
 
+  # ── A real day of the shape the drawing has ────────────────────────────────
+  #
+  # These tests are about GROUPING — the 20:00 collapse, the poster stack, the
+  # chevron — and they used to get their fourteen items from
+  # `Kati.Calendar.SampleDay` because screen 09 drew it on a bare mount. It does
+  # not any more: an empty calendar draws an empty day, which is the defect this
+  # round fixed. So the day is written as real rows here instead, from the very
+  # same fixture, and every assertion below goes on measuring the layout rather
+  # than the source.
+  setup do
+    Kati.Repo.query!("DELETE FROM events WHERE uid LIKE ?1", ["kati-day-test-%"])
+
+    on_exit(fn ->
+      Kati.Repo.query!("DELETE FROM events WHERE uid LIKE ?1", ["kati-day-test-%"])
+    end)
+
+    calendar =
+      Kati.Calendars.Calendar
+      |> Ash.Changeset.for_create(:create, %{
+        display_name: "Day test #{System.unique_integer([:positive])}",
+        kind: :local
+      })
+      |> Ash.create!()
+
+    today = Kati.Time.today()
+    zone = Kati.Time.device_zone()
+
+    for occ <- SampleDay.occurrences() do
+      naive =
+        NaiveDateTime.new!(today, Time.new!(div(occ.start_min, 60), rem(occ.start_min, 60), 0))
+
+      {:ok, utc} = Kati.Time.to_utc(naive, zone)
+
+      Kati.Calendars.Event
+      |> Ash.Changeset.for_create(:create, %{
+        uid: "kati-day-test-#{occ.id}@kati",
+        calendar_id: calendar.id,
+        origin: :kati,
+        summary: occ.title,
+        kind: if(occ.kind == :todo, do: :reminder, else: occ.kind),
+        status: :confirmed,
+        dtstart_utc: utc,
+        dtstart_wall: Calendar.strftime(naive, "%Y%m%dT%H%M%S"),
+        tzid: zone,
+        duration_iso: "PT#{occ.end_min - occ.start_min}M",
+        sync_state: :local_only
+      })
+      |> Ash.create!()
+    end
+
+    :ok
+  end
+
   # The 20:00 cluster's tag, built from its start minute — `20 * 60`. Written
   # out rather than computed so a change to the tagging scheme fails here
   # loudly instead of agreeing with itself.
@@ -59,17 +112,13 @@ defmodule Kati.ScreenDayTest do
                "a 30pt count tile is 96, and without it the group is a title with " <>
                "no artwork."
 
-      images = find_all(stack, :image)
-
-      assert length(images) == length(@members),
-             "the stack drew #{length(images)} posters for #{length(@members)} " <>
-               "members. An <Image> with an unknown prop renders as nothing and " <>
-               "says nothing, so a count is the only evidence the artwork is there."
-
-      for {_title, _meta, _time, seed} <- @members do
-        assert Enum.any?(images, &String.contains?(&1.props.src, seed)),
-               "no poster in the stack came from #{seed}"
-      end
+      # NO POSTERS, and that is a gap in the DATA rather than in this card.
+      # `Kati.Calendars.Today.to_occurrence/3` answers
+      # `%{id, start_min, end_min, kind, location, title, meta}` — there is no
+      # `seed` on a real occurrence, so nothing on a real day can carry artwork.
+      # The board's three posters came from `Kati.Calendar.SampleDay`, which
+      # screen 09 no longer draws. See L4 in the working list.
+      assert find_all(stack, :image) == []
 
       # `{{ groupCount }}` in the export, drawn as the group's own size.
       assert text(stack) == "3"
@@ -104,19 +153,17 @@ defmodule Kati.ScreenDayTest do
     test "draws every member, with its own poster, line and clock" do
       card = opened() |> tree() |> group_card()
 
-      for {title, meta, time, seed} <- @members do
+      for {title, _meta, time, _seed} <- @members do
         assert length(find_all(card, :text, text: title)) == 1
-        assert length(find_all(card, :text, text: meta)) == 1
 
         assert length(find_all(card, :text, text: time)) == 1,
                "#{title}'s clock (#{time}) is missing or drawn twice"
-
-        assert Enum.count(find_all(card, :image), &String.contains?(&1.props.src, seed)) == 2,
-               "#{seed} should appear twice while the group is open — once in the " <>
-                 "stack and once on its own row"
       end
 
-      assert length(find_all(card, :image)) == 2 * length(@members)
+      # The meta line and the poster are both the fixture's, and neither has a
+      # real source: `Today.meta/1` is `location · kind_label`, so a real
+      # episode's line reads *Episode*, not `S3 · E2`. See L4.
+      assert find_all(card, :image) == []
     end
 
     test "the members sit under the drawn hairline, inside the card" do
@@ -126,8 +173,12 @@ defmodule Kati.ScreenDayTest do
              "the 8%-ink rule between the header and the members is missing"
 
       # Inside the card, not under it: the rule and every member row are
-      # descendants of the same radius-18 node the header row lives in.
-      assert length(find_all(card, :image)) == 6
+      # descendants of the same radius-18 node the header row lives in. Counted
+      # by ROWS rather than by posters now — a real occurrence carries no
+      # artwork, so the six images this used to count were the fixture's.
+      for {title, _meta, _time, _seed} <- @members do
+        assert length(find_all(card, :text, text: title)) == 1
+      end
     end
 
     test "the chevron is the same glyph, turned over" do
@@ -153,28 +204,27 @@ defmodule Kati.ScreenDayTest do
       # gone and the test fails on the way out with every assertion passed.
       previous = Kati.Locale.current()
 
-      # The three titles are asked of the CATALOGUE inside the `:fa` block
-      # rather than spelled here, because `Kati.Calendar.SampleDay` wraps them
-      # in `gettext/1` — mishka-group/kati#103's fixtures phase — so a Persian
-      # reader opens the group on «خاکستربار», not on `Ashfall`. Spelling the
-      # English here and asserting it under `:fa` would be asserting that the
-      # fixture is NOT translated, which is the opposite of what this test is
-      # for: that the same three members open, in the reader's language.
-      {card, expected} =
+      # This asked the CATALOGUE for the three titles, because
+      # `Kati.Calendar.SampleDay` wraps them in `gettext/1` and screen 09 drew
+      # that fixture. It draws real events now, and a real event's summary is
+      # the READER'S OWN WORDS — the thing `Kati.Language.Sample`'s own note
+      # promises is never translated: "Your own words — notes, list names, meal
+      # titles — are never translated. Only the interface changes."
+      #
+      # So the assertion inverts: the same three members open under `:fa`, and
+      # they open under the names the reader gave them.
+      card =
         try do
           Kati.Locale.put(:fa)
-
-          {opened() |> tree() |> group_card(),
-           Enum.map(@members, fn {title, _meta, _time, _seed} ->
-             Gettext.gettext(Kati.Gettext, title)
-           end)}
+          opened() |> tree() |> group_card()
         after
           Kati.Locale.put(previous)
         end
 
-      for title <- expected do
+      for {title, _meta, _time, _seed} <- @members do
         assert length(find_all(card, :text, text: title)) == 1,
-               "the Persian group is missing #{title}"
+               "the Persian group is missing #{title}, which is the reader's own word " <>
+                 "for it and must survive the locale unchanged"
       end
     end
   end

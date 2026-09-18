@@ -687,6 +687,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "58" => [],
     # 08 → no board either, and for the same reason as 04.
     "08" => [],
+    # 09 → no board either: an empty day draws no rows, so board 09's own
+    # fourteen items and the band and chips composed from them go with them.
+    "09" => [],
     # 146 → no board either: an empty shelf draws no tiles, so board 146's own
     # nine and the counts composed from them are gone with them.
     "146" => [],
@@ -1212,6 +1215,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # MOVIES-AND-TV.md #120.
   @small_empty_boards %{
     "23" => 9,
+    # 09's empty day is the date heading, the view switcher's four labels and
+    # one "Nothing scheduled" sentence — eleven strings. There is no second
+    # section under it to pad the count with, and inventing one would be
+    # inventing copy this state does not need.
+    "09" => 11,
     # 10's honest empty card is the whole page now — no hero, no rows, no
     # second section beneath it the way Lists keeps its kept rows. An icon,
     # "Nothing queued", one body sentence and the back pill's chrome is
@@ -2119,12 +2127,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # three read, so a gate that dropped it would pass while the day went
       # bare.
       #
-      # Deliberately NOT gated on a handed date against an empty store. That
-      # answers `[]`, and `[]` is the right answer — a day the user opened and
-      # that holds nothing is empty, and dressing it in the drawing's fourteen
-      # items is the lie every other entry in this list exists to prevent.
-      {"09", Kati.Screens.Day, fn -> Kati.Screens.Day.day(%{}) end,
-       fn -> {today, Kati.Calendar.SampleDay.occurrences(), true} end},
       # 31 is gated on the branch that READS: an id that names nothing stored,
       # which on an empty database is every id there is. That is the fallback a
       # push can actually land on — an event deleted on another device, a
@@ -2464,6 +2466,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with nothing in the slots. `drawn_series/0` stays on the right of the
       # pair: it is what `Kati.ScreenDesignLiteralTest` installs to compare the
       # page against .scratch/design/audit/04.png, and nothing else reads it.
+      # 09 answers `[]` for every empty day now, today included. The comment
+      # here used to say the no-date branch was "deliberately NOT gated on a
+      # handed date, because that answers `[]`, and `[]` is the right answer" —
+      # the two branches just disagreed. They agree now: a day with nothing on
+      # it is empty whichever day it is.
+      {"09", Kati.Screens.Day, fn -> Kati.Screens.Day.day(%{}) end, {today, [], false},
+       fn -> {today, Kati.Calendar.SampleDay.occurrences(), true} end},
       # 146 gates on the list, which is the whole of what it draws that could
       # come from anywhere: the tiles, which start selected, and every count the
       # header composes from them. An empty shelf answers with nothing now —

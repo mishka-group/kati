@@ -313,7 +313,7 @@ defmodule Kati.CalendarDayRouteTest do
       end)
     end
 
-    test "today with nothing stored still opens the drawn day, band and renewals and all" do
+    test "today with nothing stored opens empty, like every other empty day" do
       # Every assertion the test above used to make, kept whole and moved to
       # the state it is actually about. `Kati.Screens.Day.day/1`'s `empty/1`
       # answers TODAY-with-nothing-stored with `Kati.Calendar.SampleDay`, and
@@ -328,13 +328,12 @@ defmodule Kati.CalendarDayRouteTest do
       # another file leaks; emptying the table inside a rolled-back transaction
       # cannot be leaked into.
       #
-      # NOTE, and it is not a test problem: `day/1`'s moduledoc argues this
-      # branch from "screen 02 draws five cards for today", and after #91 it
-      # draws `Nothing scheduled` instead. So the two screens now disagree the
-      # other way about a first launch — 02 says the day is empty and 09 draws
-      # fourteen invented items one tap later. Whether the exception survives is
-      # a decision about `lib/kati/screens/day.ex`, and it belongs in #91; until
-      # it is made, the behaviour that ships is the behaviour under test.
+      # THE DECISION THIS NOTE WAS WAITING FOR HAS BEEN MADE. It used to read:
+      # "02 says the day is empty and 09 draws fourteen invented items one tap
+      # later. Whether the exception survives is a decision about
+      # `lib/kati/screens/day.ex`." It does not survive — a day with nothing on
+      # it is a day with nothing on it, whichever day it is. Today is not a
+      # special case, and the two screens agree now.
       with_empty_store(fn ->
         view = mount_screen(Calendar)
         date = assigns(view).date
@@ -348,18 +347,14 @@ defmodule Kati.CalendarDayRouteTest do
         opened = mount_screen(Day, params)
 
         assert assigns(opened).date == date
-        assert assigns(opened).occurrences == Kati.Calendar.SampleDay.occurrences()
-        assert assigns(opened).drawn? == true
+        assert assigns(opened).occurrences == []
+        assert assigns(opened).drawn? == false
 
         body = text(opened)
-        refute body =~ "Nothing scheduled"
-        assert body =~ Kati.Calendar.SampleDay.summary()
-
-        # The furniture `drawn?` gates, checked in the tree rather than off the
-        # flag: the band, the merged renewals row and the drawing's own chip
-        # counts all go together or the day is only half drawn.
-        assert body =~ "£22.98"
-        assert body =~ "Vellum — in cinemas"
+        assert body =~ "Nothing scheduled"
+        refute body =~ Kati.Calendar.SampleDay.summary()
+        refute body =~ "£22.98"
+        refute body =~ "Vellum — in cinemas"
       end)
     end
 
