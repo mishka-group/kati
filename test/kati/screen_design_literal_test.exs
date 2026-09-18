@@ -1395,6 +1395,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` holds that half; this puts
       # the screen in the state its own board was captured in.
       {"10", Kati.Screens.UpNext, &Map.put(&1, :queue, Kati.Screens.UpNext.Sample.queue())},
+      # 152's Marram card is one worked example of a real, per-reader list
+      # that is empty on a device with no anime tracked. `Kati.Media.
+      # AnimeSample.misclassified/0` is what board 152 was captured with.
+      {"152", Kati.Screens.AnimeFilter,
+       &Map.update!(&1, :anime, fn a ->
+         Map.put(a, :misclassified, Kati.Media.AnimeSample.misclassified())
+       end)},
       # 154 is drawn with Series chosen, and its own caption says why: the
       # episode-count field is only visible for a series. Board 155 states the
       # screen's actual default — "Resting — empty, Film, nothing assumed" — so

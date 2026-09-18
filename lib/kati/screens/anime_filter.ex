@@ -107,6 +107,8 @@ defmodule Kati.Screens.AnimeFilter do
   use Kati.Screens.Pushed, back: "Settings"
   use Gettext, backend: Kati.Gettext
 
+  require Ash.Query
+
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaToggle
   alias Kati.Media.AnimeSample, as: Sample
@@ -116,25 +118,116 @@ defmodule Kati.Screens.AnimeFilter do
 
   @impl true
   def load(socket) do
+    tracked = tracked_titles()
+    cached = cached_by_reference(tracked)
+    counts = type_counts(tracked, cached)
+
     Mob.Socket.assign(socket, :anime, %{
-      type_counts: Sample.type_counts(),
-      tab_counts: Sample.tab_counts(),
-      anime_count: anime_count(Sample.type_counts()),
+      type_counts: counts,
+      tab_counts: tab_counts(tracked),
+      anime_count: anime_count(counts),
       threshold: Sample.promote_threshold(),
       rules: Sample.priority_rules(),
-      misclassified: Sample.misclassified(),
+      misclassified: misclassified_guess(tracked, cached),
       marram_fixed?: false,
-      # `:screen`, not `"Screen"`. The tile's WORD is a translation and its
-      # identity is not: `onboarding_pick` held the English label and every
-      # comparison in this file tested it against a second copy of that label,
-      # so under `:fa` the tile would have drawn «نمایش», the assign would still
-      # have held `"Screen"`, and the two would have agreed only for as long as
-      # nobody translated either. `Kati.Screens.Library.chip_counts/1`'s own
-      # comment is the long version — the shelf's four filters were one string
-      # doing both jobs and every Persian tap fell through to `_all`.
       onboarding_pick: :screen,
-      watches_anime?: true
+      watches_anime?: Enum.any?(tracked, &(&1.kind == :anime))
     })
+  end
+
+  @screen_kinds [:movie, :tv, :anime]
+
+  defp tracked_titles do
+    @screen_kinds
+    |> Enum.flat_map(fn kind ->
+      Kati.Media.TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+  rescue
+    _error -> []
+  end
+
+  defp cached_by_reference(tracked) do
+    ids = tracked |> Enum.map(& &1.source_id) |> Enum.uniq()
+
+    Kati.Media.CachedTitle
+    |> Ash.Query.filter(source_id in ^ids)
+    |> Ash.read!()
+    |> Map.new(&{{&1.source, &1.source_id}, &1})
+  rescue
+    _error -> %{}
+  end
+
+  defp type_counts(tracked, cached) do
+    {anime, rest} = Enum.split_with(tracked, &(&1.kind == :anime))
+    animation = Enum.count(rest, &animated?(cached_for(&1, cached)))
+
+    [
+      {"Anime", length(anime)},
+      {"Live action", length(rest) - animation},
+      {"Animation", animation}
+    ]
+  end
+
+  defp animated?(%{genres: genres}), do: String.contains?(to_string(genres), "Animation")
+  defp animated?(_cached), do: false
+
+  defp tab_counts(tracked) do
+    anime = Enum.filter(tracked, &(&1.kind == :anime))
+
+    [
+      {"All", length(anime)},
+      {"Watching", Enum.count(anime, &(&1.status == :watching))},
+      {"Finished", Enum.count(anime, &(&1.status == :finished))}
+    ]
+  end
+
+  @doc false
+  @spec misclassified() :: map() | nil
+  def misclassified do
+    tracked = tracked_titles()
+    misclassified_guess(tracked, cached_by_reference(tracked))
+  end
+
+  defp misclassified_guess(tracked, cached) do
+    tracked
+    |> Enum.filter(&(&1.kind == :anime and is_nil(&1.anime_override)))
+    |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
+    |> List.first()
+    |> guess(cached)
+  end
+
+  defp guess(nil, _cached), do: nil
+
+  defp guess(track, cached) do
+    case cached_for(track, cached) do
+      nil ->
+        nil
+
+      title ->
+        %{
+          id: track.id,
+          title: title.title,
+          seed: title.source_id,
+          note: guess_reason(track, title)
+        }
+    end
+  end
+
+  defp cached_for(track, cached), do: Map.get(cached, {track.source, track.source_id})
+
+  defp guess_reason(track, cached) do
+    cond do
+      to_string(track.source) in ~w(jikan anilist) ->
+        gettext("Imported from a file that marks everything in it anime")
+
+      Kati.Media.Anime.provider_says?(cached) ->
+        gettext("TMDB lists it as Animation, origin Japanese")
+
+      true ->
+        gettext("Tagged anime, and Kati cannot say why")
+    end
   end
 
   # The Type card's own "Anime" count IS the tab row's fourth chip count —
@@ -549,8 +642,10 @@ defmodule Kati.Screens.AnimeFilter do
   screen where "your own tag always wins" (rule 1) is something you can
   actually do rather than just read about.
   """
+  def guess_card(nil, _fixed?), do: ~MOB"<Spacer size={0} />"
+
   def guess_card(item, fixed?) do
-    tap = {self(), :fix_marram}
+    tap = {self(), :fix_misclassified}
 
     ~MOB"""
     <Column
@@ -594,7 +689,7 @@ defmodule Kati.Screens.AnimeFilter do
   # would lose its tail to an ellipsis rather than wrap.
   @doc false
   def guess_sub(item, false), do: Kati.Screens.AnimeFilter.sample_text(item.note)
-  def guess_sub(_item, true), do: gettext("Your tag: live action — overrides the MAL import")
+  def guess_sub(_item, true), do: gettext("Your tag: live action — overrides Kati's guess")
 
   # `pgettext/2` for both: two words and one, and `mix gettext.merge` fuzzy-
   # matches a msgid that short against any longer sentence that contains it —
@@ -791,12 +886,25 @@ defmodule Kati.Screens.AnimeFilter do
   end
 
   @impl true
-  def handle_tap(:fix_marram, socket) do
+  def handle_tap(:fix_misclassified, socket) do
+    fixed? = not socket.assigns.anime.marram_fixed?
+    override = if fixed?, do: false, else: nil
+
+    case socket.assigns.anime.misclassified do
+      %{id: id} ->
+        with {:ok, track} <- Ash.get(Kati.Media.TrackedTitle, id) do
+          Ash.update(track, %{anime_override: override})
+        end
+
+      nil ->
+        :ok
+    end
+
     {:noreply,
      Mob.Socket.assign(
        socket,
        :anime,
-       Map.update!(socket.assigns.anime, :marram_fixed?, &(not &1))
+       Map.put(socket.assigns.anime, :marram_fixed?, fixed?)
      )}
   end
 

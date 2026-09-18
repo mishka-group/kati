@@ -201,6 +201,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # store is a true answer, so the page falls back to its own board for
     # everything else and this file compares it there.
     {"12", Kati.Screens.Lists},
+    {"152", Kati.Screens.AnimeFilter},
     {"05", Kati.Screens.Inbox},
     {"07", Kati.Screens.Stats},
     {"08", Kati.Screens.Film},
@@ -2482,6 +2483,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # them apart any more, so the pair is a straight whole-map comparison.
       {"10", Kati.Screens.UpNext, &Kati.Screens.UpNext.queue/0, Kati.Screens.UpNext.empty(),
        &Kati.Screens.UpNext.Sample.queue/0},
+      # 152's gate is misclassified/0 — nil on a device with nothing tagged
+      # anime by a guess rather than the reader's own tag, a map once there
+      # is one. Kati.Media.AnimeSample.misclassified/0 is the drawn Marram
+      # card the board was captured with.
+      {"152", Kati.Screens.AnimeFilter, &Kati.Screens.AnimeFilter.misclassified/0, nil,
+       &Kati.Media.AnimeSample.misclassified/0},
       # 05's gate is `releases/0` — the read, which answers `nil` when nothing is
       # followed and a map when something is. It used to be paired with
       # `drawn_inbox/0`, because that was what an unfollowed device fell back

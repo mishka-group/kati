@@ -700,12 +700,13 @@ defmodule Kati.ScreenTapSweepTest do
     # ── Screens 152 and 150, three already-selected members with live
     # siblings — the first category this list documents, confirmed the way that
     # paragraph prescribes. `load/1` opens screen 152 on `onboarding_pick:
-    # "Screen"` and `watches_anime?: true`, so `:pick_screen` and
-    # `:watches_yes` write the values already there while `:pick_books` and
-    # `:watches_no` move the screen. `:music` is screen 150's own segment of
+    # :screen` and `watches_anime?` read from the reader's own shelf, which is
+    # `false` for anyone with nothing tracked as anime — so `:pick_screen` and
+    # `:watches_no` write the values already there while `:pick_books` and
+    # `:watches_yes` move the screen. `:music` is screen 150's own segment of
     # the header switch it draws; its sibling `:tv` leaves for screen 36.
     {Kati.Screens.AnimeFilter, :pick_screen},
-    {Kati.Screens.AnimeFilter, :watches_yes},
+    {Kati.Screens.AnimeFilter, :watches_no},
     {Kati.Screens.AutoDetectMusic, :music},
     # ── Screen 69, the Persian book page.
     #
