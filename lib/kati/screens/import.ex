@@ -365,7 +365,7 @@ defmodule Kati.Screens.Import do
         {Kati.Screens.Import.file_card(job)}
         {UI.eyebrow(gettext("Match columns"))}
         {Kati.Screens.Import.mapping(job)}
-        {UI.eyebrow(gettext("What will happen"))}
+        {Kati.Screens.Import.outcome_eyebrow(job)}
         {Kati.Screens.Import.outcome(job)}
         {Kati.Screens.Import.conflicts_band(job)}
       </Column>
@@ -724,6 +724,21 @@ defmodule Kati.Screens.Import do
 
   @doc false
   def star_glyph(size, color), do: Kati.UI.symbol("star", size: size, color: color, fill: true)
+
+  # A section heading over nothing, found on the emulator walking *Something
+  # else* → screen 37: **WHAT WILL HAPPEN** sat above an empty row.
+  #
+  # Absent rather than worded, which is the opposite of what board 321 chose for
+  # the search page's *Try* group — and the difference is whether the reader can
+  # do anything about it. Try fills from a library they are building and a
+  # reader who never sees the heading has no idea it will ever fill, so it says
+  # so. This section fills the moment a file is picked, and the card directly
+  # above it is already the sentence telling them to pick one. Two sentences
+  # saying that, one of them under a heading promising a plan, is worse than one.
+  @doc false
+  def outcome_eyebrow(%{outcome: []}), do: ~MOB"<Spacer size={0} />"
+
+  def outcome_eyebrow(_job), do: UI.eyebrow(gettext("What will happen"))
 
   @doc false
   def outcome(job) do

@@ -1288,11 +1288,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # and the back pill's chrome — twelve strings. The nine episode rows and the
     # two switches that padded it past the floor act on rows it has not got.
     # 37 with no file picked is the Import pill, the heading, its subtitle, the
-    # file card's two lines, the two eyebrows and one worded sentence where the
-    # mapping table was — eleven strings. The five mapped columns, the three
-    # outcome cards and the conflict card that padded it past the floor are
-    # every part of the page that describes a file, and there is no file.
-    "37" => 11,
+    # file card's two lines, the Match columns eyebrow and one worded sentence
+    # where the mapping table was — ten strings. The five mapped columns, the
+    # three outcome cards and the conflict card that padded it past the floor
+    # are every part of the page that describes a file, and there is no file.
+    #
+    # Ten and not eleven because **WHAT WILL HAPPEN** goes with them: the
+    # emulator walk found it standing over an empty row, and a heading
+    # promising a plan with no plan under it is the same claim the fixture used
+    # to make, one line shorter. `outcome_eyebrow/1` carries why it is absent
+    # here where board 321's *Try* heading is worded.
+    "37" => 10,
     # 141 with no file picked is a single card: a glyph, a title, a sentence.
     # Five strings, and it is the SAME shape as its own refusal page one case
     # over — `refused/1`'s frame around a different sentence — which is the
