@@ -1129,13 +1129,16 @@ defmodule Kati.SheetRowIdentityTest do
 
       # The untitled tile is one tile like any other: `poster_tag/1` falls back
       # to `:open_series` for a row whose cache row lost its name, and the bare
-      # tag is the drawing's own single-tile state, which names nothing at all
-      # — `Kati.ScreenParamsSweepTest`'s `@bare_pushes` is where that is written
-      # down.
+      # tag still names no SUBJECT — `Kati.ScreenParamsSweepTest`'s
+      # `@bare_pushes` is where that is written down. It does carry its origin
+      # now: the bare tag goes through `open_tile/3` like every keyed one, so it
+      # answers the same `%{back: …}` the unknown-tag case above asserts. A push
+      # with no params at all reached screen 04 with no id AND no origin, so the
+      # page fell back to its drawing and the pill named the wrong screen.
       bare = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.Library), :titles, [])
       {:noreply, nothing} = Kati.Screens.Library.handle_tap(:open_series, bare)
 
-      assert nothing.__mob__.nav_action == {:push, Kati.Screens.Series, %{}}
+      assert nothing.__mob__.nav_action == {:push, Kati.Screens.Series, %{back: "Library"}}
     end
 
     test "the drawn shelf names nothing, which is what every capture was taken from" do

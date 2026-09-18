@@ -1766,11 +1766,15 @@ defmodule Kati.Screens.Library do
   def handle_tap(:open_lists, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
 
+  # Through `open_tile/3` like every keyed tag, rather than a bare push. A bare
+  # push carried no id, so the detail screen fell back to its drawing and opened
+  # an invented title; it carried no `:back` either, so the pill named the wrong
+  # screen. `poster_tag/1` only answers bare when a row has neither id nor title.
   def handle_tap(:open_series, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
+    do: {:noreply, open_tile(socket, :open_series, Kati.Screens.Series)}
 
   def handle_tap(:open_film, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
+    do: {:noreply, open_tile(socket, :open_film, Kati.Screens.Film)}
 
   # The two controls on screen 27's empty card. Both only exist while the shelf
   # is empty, which is the only time either has anything to do.
