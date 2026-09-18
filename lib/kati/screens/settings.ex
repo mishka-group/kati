@@ -766,8 +766,7 @@ defmodule Kati.Screens.Settings do
     # Settings, and nothing pushed it.
     "dropping" => Kati.Screens.DropStates,
     # #8. The board whose subject `Kati.Media.Anime` now implements.
-    "anime" => Kati.Screens.AnimeFilter,
-    "every_screen" => Kati.Screens.Gallery
+    "anime" => Kati.Screens.AnimeFilter
   }
 
   @doc false

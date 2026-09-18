@@ -465,20 +465,6 @@ defmodule Kati.Settings.Sample do
         title: gettext("Anime"),
         sub: gettext("What makes a title one"),
         control: :chevron
-      },
-      # The gallery. It used to be behind Home's bell, which was scaffolding
-      # from the round when 53 screens landed at once with no way in. They are
-      # all reachable now, so the bell went back to meaning notifications and
-      # this went where a page describing the app belongs.
-      %{
-        # `grid_view` rather than `apps`, which is not in Kati's icon subset —
-        # the subset is generated from what the drawings use, and adding a
-        # glyph for one settings row would mean a font rebuild for a row.
-        id: "every_screen",
-        icon: "grid_view",
-        title: gettext("Every screen"),
-        sub: gettext("One list, for looking"),
-        control: :chevron
       }
     ]
   end

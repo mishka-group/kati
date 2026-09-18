@@ -240,8 +240,16 @@ defmodule Kati.NotificationsInboxTest do
       assert navigated_to(pushed) == InboxNotifications
     end
 
-    test "and the gallery moved to Settings, where a page about the app belongs" do
-      assert Kati.Screens.Settings.destinations()["every_screen"] == Kati.Screens.Gallery
+    test "and the gallery is not a Settings row a reader can find" do
+      # It briefly moved to Settings, reasoning that once every screen had a
+      # real way in the gallery had become "a page about the app". Gallery's
+      # own moduledoc never agreed: "It is not a substitute for real
+      # navigation... This is scaffolding... so it never reads as part of the
+      # app." A reader browsing About should not be able to open a directory
+      # of every board in every domain, film/series included, so the row is
+      # gone and the module stays reachable only for verification.
+      refute Map.has_key?(Kati.Screens.Settings.destinations(), "every_screen")
+      refute Enum.any?(Kati.Settings.Sample.about(), &(&1.id == "every_screen"))
     end
   end
 end
