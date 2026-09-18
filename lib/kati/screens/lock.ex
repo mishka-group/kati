@@ -224,11 +224,57 @@ defmodule Kati.Screens.Lock do
   @spec widgets() :: map()
   def widgets do
     %{
-      clock: drawn_clock(),
-      up_next: up_next() || drawn_up_next(),
-      tonight: tonight() || drawn_tonight(),
-      today: today() || drawn_today(),
-      year: year() || drawn_year()
+      clock: clock(),
+      up_next: up_next() || empty_up_next(),
+      tonight: tonight() || empty_tonight(),
+      today: today() || empty_today(),
+      year: year() || empty_year()
+    }
+  end
+
+  @doc """
+  The four widgets with nothing behind any of them.
+
+  Each is its own frame with its own name and empty slots — a widget that says
+  what it is and that it has nothing yet, which is what this screen is FOR. The
+  four used to answer `drawn_up_next/0`, `drawn_tonight/0`, `drawn_today/0` and
+  `drawn_year/0` instead, so a fresh install's lock screen promised *The Long
+  Hollow S2E6*, six episodes airing, four things left today and a 312-hour year
+  with an eleven-night streak. Every figure on it was the board's.
+
+  The clock is not among them: `clock/0` reads the device and there is no state
+  in which it has nothing to say.
+  """
+  @spec empty_widgets() :: map()
+  def empty_widgets do
+    %{
+      clock: clock(),
+      up_next: empty_up_next(),
+      tonight: empty_tonight(),
+      today: empty_today(),
+      year: empty_year()
+    }
+  end
+
+  defp empty_up_next do
+    %{
+      eyebrow: pgettext("a lock-screen widget's own name", "UP NEXT"),
+      title: pgettext("the Up next lock-screen widget with nothing on the shelf", "Nothing yet"),
+      meta: "",
+      seed: nil
+    }
+  end
+
+  defp empty_tonight, do: tonight_widget(0)
+
+  defp empty_today, do: %{eyebrow: today_eyebrow(0), rows: []}
+
+  defp empty_year do
+    %{
+      eyebrow: pgettext("a lock-screen widget's own name", "THIS YEAR"),
+      watched: watched_label(0),
+      streak: streak_label(0),
+      rows: []
     }
   end
 
@@ -266,6 +312,19 @@ defmodule Kati.Screens.Lock do
 
   defp drawn_clock do
     %{date: Kati.Locale.date(@drawn_evening, :full), time: Kati.Locale.time(@drawn_time)}
+  end
+
+  # The device's own evening. `@drawn_evening` and `@drawn_time` are board 29's
+  # — Sunday 16 August, 21:40 — and they were what the live screen drew too, so
+  # the one widget on this page that every phone already renders correctly by
+  # itself was the one showing a date eleven months out of date.
+  defp clock do
+    now = Kati.Time.now()
+
+    %{
+      date: Kati.Locale.date(DateTime.to_date(now), :full),
+      time: Kati.Locale.time(DateTime.to_time(now))
+    }
   end
 
   # `seed` is the Sample's and stays a seed: `hollow71` is a file name

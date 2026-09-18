@@ -729,6 +729,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # review placeholder, the three context titles and the tag row are the
     # screen's structure — but every VALUE board 33 draws is Blue Hour's, so an
     # unlogged sheet has none of them left to be held to.
+    # 29 → no board: the wallpaper, the clock and the four widget frames are the
+    # screen's structure and all four still draw, but every VALUE on board 29 is
+    # the drawing's, so an empty store has none of them left to be held to.
+    #
+    # 63 and 64 are NOT here. They are launcher mockups that read nothing —
+    # `Kati.Screens.MarkIos.tonight/0` quotes board 29's own Today row and
+    # `Kati.Meals.SamplePlan`'s dinner outright — so their pages are the same on
+    # an empty store as on a full one. They are on this file's `@migrated` list
+    # only because they import `Kati.Screens.Lock`, which is the 120/140/142 case
+    # the comment above `@migrated` writes up. Their gate below is borrowed from
+    # 29 for that reason: what they depend on is that 29's pair still agree.
+    # Making their own two halves real is launcher-widget work — Part 18 of
+    # fake_hardcoded.md — and the meal half is out of the film/series scope.
+    "29" => [],
     "33" => [],
     # 15 → no board either: nothing logged means no rows, no rewatch card and a
     # count of zero, so board 15's own seven rows have nothing left to compare.
@@ -2234,7 +2248,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 29 answers with all four widgets at once, because it falls back one
       # widget at a time: three that still drew the drawing would hide a fourth
       # that had stopped being able to.
-      {"29", Kati.Screens.Lock, &Kati.Screens.Lock.widgets/0, &Kati.Screens.Lock.drawn_widgets/0},
       # 20 gates the whole page as 66 does, and for the reason its own moduledoc
       # gives: the grid, the hero, the subtitle and the chip counts are four
       # views of one shelf, so one pair covers all four and a gate that looked
@@ -2448,10 +2461,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # grid, 127 draws 122's months, and 63 and 64 both draw 28's lock widgets.
       {"121", Kati.Screens.WeekImage, fn -> Kati.Screens.MealPlan.plan(today) end,
        &Kati.Screens.MealPlan.drawn_plan/0},
-      {"63", Kati.Screens.MarkIos, &Kati.Screens.Lock.widgets/0,
-       &Kati.Screens.Lock.drawn_widgets/0},
-      {"64", Kati.Screens.MarkAndroid, &Kati.Screens.Lock.widgets/0,
-       &Kati.Screens.Lock.drawn_widgets/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
@@ -2544,6 +2553,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> ["what leaves this week", "notes about the estuary"] end},
       {"87", Kati.Screens.SearchTyping, &Kati.Search.Suggestions.derived/0, [],
        fn -> ["what leaves this week", "notes about the estuary"] end},
+      # 29 answers four empty widgets. It used to answer the board's four, so a
+      # fresh install's lock screen promised *The Long Hollow S2E6*, six
+      # episodes airing tonight, four things left today and a 312-hour year on
+      # an eleven-night streak — every figure on the page the board's own.
+      # 63 and 64 borrow 29's pair rather than reading anything themselves, the
+      # shape 120 already uses.
+      #
+      # `:clock` is dropped from all three: it reads the device now, so the two
+      # calls below are a moment apart over a field that is neither branch's.
+      {"29", Kati.Screens.Lock, fn -> Map.drop(Kati.Screens.Lock.widgets(), [:clock]) end,
+       Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
+      {"63", Kati.Screens.MarkIos, fn -> Map.drop(Kati.Screens.Lock.widgets(), [:clock]) end,
+       Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
+      {"64", Kati.Screens.MarkAndroid, fn -> Map.drop(Kati.Screens.Lock.widgets(), [:clock]) end,
+       Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
       # 15 is an append-only record of what the reader DID, so a device that has
       # done nothing has to say so. It reported 1,204 entries over seven
       # invented rows on every fresh install.
