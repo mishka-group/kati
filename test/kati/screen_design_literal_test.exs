@@ -905,11 +905,17 @@ defmodule Kati.ScreenDesignLiteralTest do
         # ANSWER on that board, not an absence.
         ~r/^(no goals set — kati counts anyway|1 goal|\p{N}[\p{N},]* goals)$/u
       },
-      {"07", "£46.47 a month · 7 expenses",
-       "the reader's own subscriptions and expenses, which board 07 froze at the drawing's " <>
-         "and `Kati.Screens.Stats.money_line/0` now reads — through the same function " <>
-         "screen 92's Money row reads, so the two pages cannot disagree",
-       ~r/^(nothing added yet|.*a month.*|\p{N}+ expenses?)$/u},
+      {
+        "07",
+        "£46.47 a month · 7 expenses",
+        "the reader's own subscriptions and expenses, which board 07 froze at the drawing's " <>
+          "and `Kati.Screens.Stats.money_line/0` now reads — through the same function " <>
+          "screen 92's Money row reads, so the two pages cannot disagree",
+        # `nothing to add up yet` joins the list: `monthly_total/0` answers `"—"`
+        # on a device with no services rather than the drawing's £46.47, so an
+        # empty store reaches the zero wording instead of the rescue's.
+        ~r/^(nothing added yet|nothing to add up yet|.*a month.*|\p{N}+ expenses?)$/u
+      },
       # 61's two, which are 07's read in Persian — the same rows, since
       # mishka-group/kati#103 folded the mirror away and board 61 became screen
       # 07 under `:fa`. They were ۳ هدف فعال and ۴۶٫۴۷ پوند در ماه frozen on
@@ -1429,6 +1435,16 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"15", Kati.Screens.Activity, &Map.put(&1, :log, Kati.Screens.Activity.drawn())},
       # 11 answers an empty feed now, so the board's own is installed here.
       {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
+      # 25's banner counts zero now, so the board's own two lines are installed
+      # to compare the frame. Only the banner — every other band on 25 is
+      # `Kati.Settings.WatcherSample`'s already.
+      {"25", Kati.Screens.ReleaseWatcher,
+       &Map.update!(&1, :watcher, fn w ->
+         Map.put(w, :banner, %{
+           Kati.Settings.WatcherSample.banner()
+           | on: w.banner.on
+         })
+       end)},
       {"98", Kati.Screens.YearShare, &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
       {"99", Kati.Screens.YearShareBooks,
        &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},

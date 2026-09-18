@@ -256,9 +256,12 @@ defmodule Kati.Screens.MyServices do
   """
   @spec monthly_total() :: String.t()
   def monthly_total do
-    if set_up?(),
-      do: Kati.Services.Service.total(stored(:subscribed)) || "—",
-      else: Sample.monthly_total()
+    # `"—"` and not `Kati.Services.Sample.monthly_total/0` on a device with no
+    # services set up. The old else-branch billed a reader who had told Kati
+    # about nothing, and `Kati.Screens.Stats` already handles the dash — board
+    # 93's own argument for it: "a figure is an answer, and an answer of zero
+    # invites you to act on it."
+    Kati.Services.Service.total(stored(:subscribed)) || "—"
   end
 
   @doc """

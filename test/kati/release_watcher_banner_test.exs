@@ -38,13 +38,19 @@ defmodule Kati.ReleaseWatcherBannerTest do
   end
 
   describe "with nothing followed" do
-    test "the board's line stands" do
-      assert ReleaseWatcher.banner() == WatcherSample.banner()
+    test "the banner counts zero rather than standing on the board's line" do
+      refute ReleaseWatcher.banner() == WatcherSample.banner(),
+             "a fresh install was told it was watching 24 titles and had found 3"
     end
 
     test "which is the gate every other screen on this list keeps" do
-      # `Watching 0 titles` over a page of switches is a page about nothing.
-      assert ReleaseWatcher.banner().title == "Watching 24 titles"
+      # This asserted `Watching 24 titles`, with the reason written beside it:
+      # "`Watching 0 titles` over a page of switches is a page about nothing."
+      # That was a deliberate, defended decision, and the owner has since ruled
+      # the other way for every screen: when something is empty, show the empty.
+      # A page about nothing is a true thing for this page to say on a device
+      # that follows nothing — and the switches under it still work.
+      assert ReleaseWatcher.banner().title == "Watching 0 titles"
     end
   end
 

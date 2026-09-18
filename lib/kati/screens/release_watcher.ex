@@ -171,8 +171,12 @@ defmodule Kati.Screens.ReleaseWatcher do
   # The two numbers are written here and the sample's are written there, and
   # `Kati.ReleaseWatcherBannerTest`'s `banner() == WatcherSample.banner()` is
   # what keeps them the same two: they disagree and that assertion fails.
+  # Zero, and said in the screen's own two sentences rather than the board's
+  # figures. This answered `watching_text(24)` and `found_text(3)` — so a fresh
+  # install was told it was watching 24 titles and had found 3 — and it answered
+  # them for a raised read as well as for an empty one.
   defp board_banner do
-    %{Sample.banner() | title: watching_text(24), meta: found_text(3)}
+    %{Sample.banner() | title: watching_text(0), meta: found_text(0)}
   end
 
   @doc """

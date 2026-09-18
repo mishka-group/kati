@@ -702,6 +702,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 25 → the banner's own two lines only. Every other band on board 25 is
+    # `Kati.Settings.WatcherSample`'s and stays — 13 of its 15 controls have no
+    # preferences domain to read (see P2), which is a schema gap rather than a
+    # fallback.
+    "25" => [],
     # 14 → no board either: no title, no synopsis, no cast, no ratings and no
     # where-to-watch rows, so board 14's own series has nothing left to compare.
     "14" => [],
@@ -2129,8 +2134,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # anything: the ten switches and the cadence are still
       # `Kati.Settings.WatcherSample`'s, and MOVIES-AND-TV.md #67 is what says
       # so — they edit one socket assign and nothing consumes them.
-      {"25", Kati.Screens.ReleaseWatcher, &Kati.Screens.ReleaseWatcher.banner/0,
-       &Kati.Settings.WatcherSample.banner/0},
       # 23 gates on the whole ledger: the count, the total, every row and the
       # advice card arrive together or the board's do.
       # 18 gates on the whole draft: the sentence, the title, the chips, the
@@ -2533,6 +2536,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # naming no row and a read that raised both landed on the drawing too.
       {"14", Kati.Screens.SeriesMeta, &Kati.Screens.SeriesMeta.series/0,
        Kati.Screens.SeriesMeta.empty_series(), &Kati.Screens.SeriesMeta.Sample.series/0},
+      # 25's banner counts zero on a device that follows nothing. It answered
+      # `Watching 24 titles` and `3 found this week`, with the reason written
+      # beside it — "Watching 0 titles over a page of switches is a page about
+      # nothing." A page about nothing is a true thing for this page to say to a
+      # reader who follows nothing, and the switches under it still work.
+      {"25", Kati.Screens.ReleaseWatcher, &Kati.Screens.ReleaseWatcher.banner/0,
+       Kati.Screens.ReleaseWatcher.banner(), &Kati.Settings.WatcherSample.banner/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.
