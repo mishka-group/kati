@@ -423,14 +423,7 @@ defmodule Kati.Screens.DropSheet do
       tracked: tracked,
       title: title_of(cached),
       seed: seed_of(cached),
-      # The half of this line the screen owns. The age inside it is
-      # `Kati.Screens.UpNext`'s and stays Latin until that screen folds — see
-      # `duration_of/1` — so under `:fa` the mark reads **سردشده · 4 MONTHS**,
-      # which is one word short of translated rather than a line of English.
-      cold_label:
-        pgettext("the cold mark over the title being dropped", "GONE COLD · %{age}",
-          age: duration_of(tracked.last_touched_at)
-        ),
+      cold_label: Kati.Screens.DropSheet.mark(tracked),
       # MOVIES-AND-TV.md #110. A film has no episode to have stopped after, so
       # it carries no position at all rather than a manufactured `S1 E1` — and
       # `position_card/1` draws nothing for it. Inventing a position would put
@@ -439,6 +432,50 @@ defmodule Kati.Screens.DropSheet do
       season: if(tracked.kind == :movie, do: nil, else: tracked.progress_season || 1),
       episode: if(tracked.kind == :movie, do: nil, else: tracked.progress_episode || 1)
     }
+  end
+
+  @doc """
+  The mono line under the title: what Kati noticed, or what the reader decided,
+  or nothing.
+
+  It was `GONE COLD · %{age}` unconditionally, and `pick/2` looks a NAMED push
+  up in the whole shelf rather than in the cold slice — so *Drop this show* on
+  screen 04's ⋯ menu told a reader who started something this morning that it
+  had **GONE COLD · TODAY**. Found by auditing screen 148 against this one.
+
+  148's own moduledoc is the rule this restores, and it is the one distinction
+  the app makes about a shelf: *Paused and Dropped are things a person decided;
+  Gone cold is something Kati noticed.* Three answers, then:
+
+    * cold by `Kati.Media.Staleness.gone_cold?/1` — Kati's own observation, so
+      it is stated with the age that earned it;
+    * `:paused` and not cold — the reader's own decision, stated back to them
+      without Kati claiming to have noticed anything;
+    * anything else — **nothing at all.** A show being watched normally has no
+      mark, and the sheet is a question about it rather than a report on it.
+
+  The age inside it is `Kati.Screens.UpNext`'s and stays Latin until that screen
+  folds — see `duration_of/1` — so under `:fa` the mark reads **سردشده · 4
+  MONTHS**, which is one word short of translated rather than a line of English.
+  """
+  @spec mark(struct()) :: String.t()
+  def mark(tracked) do
+    cond do
+      Kati.Media.Staleness.gone_cold?(tracked) ->
+        pgettext("the cold mark over the title being dropped", "GONE COLD · %{age}",
+          age: duration_of(tracked.last_touched_at)
+        )
+
+      tracked.status == :paused ->
+        pgettext("the paused mark over the title being dropped", "PAUSED · %{age}",
+          age: duration_of(tracked.last_touched_at)
+        )
+
+      true ->
+        ""
+    end
+  rescue
+    _error -> ""
   end
 
   defp cached_for(tracked) do

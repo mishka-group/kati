@@ -250,6 +250,58 @@ defmodule Kati.DropWriteTest do
     end
   end
 
+  describe "the mono line under the title" do
+    # Found auditing board 148 against this screen. `cold_label` was
+    # `GONE COLD · %{age}` unconditionally and `pick/2` looks a named push up in
+    # the WHOLE shelf, so *Drop this show* on a title's own ⋯ menu told a reader
+    # who started something this morning that it had GONE COLD · TODAY.
+    #
+    # 148's moduledoc is the rule: *Paused and Dropped are things a person
+    # decided; Gone cold is something Kati noticed.*
+    test "says nothing at all over a show being watched normally" do
+      tracked = tracked!(:watching)
+
+      refute Kati.Media.Staleness.gone_cold?(tracked),
+             "the fixture went cold, so this test is not measuring the fresh case"
+
+      assert DropSheet.mark(tracked) == ""
+
+      drawn = inspect(DropSheet.render(sheet_for(tracked).assigns), limit: :infinity)
+
+      refute drawn =~ "GONE COLD",
+             "Kati claimed to have noticed something about a show started today"
+    end
+
+    test "says PAUSED over a title the reader paused, not GONE COLD" do
+      tracked = tracked!(:paused)
+
+      mark = DropSheet.mark(tracked)
+
+      assert mark =~ "PAUSED"
+
+      refute mark =~ "GONE COLD",
+             "a decision the reader made was reported back as something Kati noticed"
+    end
+
+    test "and GONE COLD only when it actually is" do
+      tracked = tracked!(:watching)
+
+      cold =
+        Ash.update!(
+          Ash.Changeset.for_update(tracked, :update, %{}, authorize?: false)
+          |> Ash.Changeset.force_change_attribute(
+            :last_touched_at,
+            DateTime.add(Kati.Time.now(), -400, :day)
+          )
+        )
+
+      assert Kati.Media.Staleness.gone_cold?(cold),
+             "400 days is not cold, so `Kati.Media.Staleness` has moved and this needs rewriting"
+
+      assert DropSheet.mark(cold) =~ "GONE COLD"
+    end
+  end
+
   defp sheet_for(tracked) do
     {:ok, socket} =
       DropSheet.mount(%{title_id: tracked.id}, %{}, Mob.Socket.new(DropSheet))
