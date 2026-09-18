@@ -937,9 +937,17 @@ defmodule Kati.Screens.DataSourcesStates do
   weight is read off a child by the row above it — so the filling answer spans a
   weighted column instead, which is the arrangement `Kati.UI.even_row/2` and
   screen 71 both use for the same reason.
+
+  The `tap` argument is how screen 80 reuses this pill for the LIVE
+  confirmation. It defaults to `nil`, which is what a board wants — a specimen
+  answer to a specimen question carries no action — and screen 80 passes
+  `{self(), :wipe_confirm}` and `{self(), :wipe_cancel}`. One pill, drawn once:
+  the alternative was a second copy of the drawing's numbers on the real screen,
+  which is how two copies of a design drift apart.
   """
-  @spec answer(String.t(), pos_integer(), pos_integer(), atom(), boolean()) :: map()
-  def answer(label, background, color, weight, fill?) do
+  @spec answer(String.t(), pos_integer(), pos_integer(), atom(), boolean(), tuple() | nil) ::
+          map()
+  def answer(label, background, color, weight, fill?, tap \\ nil) do
     MishkaPill.pill(
       label: label,
       background: background,
@@ -952,7 +960,8 @@ defmodule Kati.Screens.DataSourcesStates do
       text_size: 12.5,
       font_weight: weight,
       align: :center,
-      fill_width: fill?
+      fill_width: fill?,
+      on_tap: tap
     )
   end
 end

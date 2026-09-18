@@ -237,6 +237,36 @@ defmodule Kati.Sources do
     _error -> :ok
   end
 
+  @doc """
+  How many stored tokens `disconnect_all/0` would actually take away.
+
+  Counted, not stated. Board 81 writes *Three accounts disconnect* as a WORD,
+  and its moduledoc gives the reason — a specimen confirmation on a device with
+  nothing connected *"would count to zero and print 0 accounts disconnect — a
+  true figure attached to an event that cannot happen."* That argument is about
+  a DRAWING. On the live screen the figure is the reader's own, and zero is not
+  a problem to be avoided by rounding up to three: it is the answer that stops
+  the row offering to destroy nothing.
+
+  The reader's own TMDB key counts as one of them. It is the only token here
+  they had to go and fetch, and losing it unannounced is the thing this whole
+  confirmation exists to prevent.
+  """
+  @spec connected_count() :: non_neg_integer()
+  def connected_count do
+    tier2_count = Enum.count(tier2(), &connected?(&1.id))
+
+    tmdb_count =
+      case SecureStore.get("tmdb") do
+        {:ok, token} when is_binary(token) and token != "" -> 1
+        _none -> 0
+      end
+
+    tier2_count + tmdb_count
+  rescue
+    _error -> 0
+  end
+
   @doc "Forget every provider token on this device."
   @spec disconnect_all() :: :ok
   def disconnect_all do

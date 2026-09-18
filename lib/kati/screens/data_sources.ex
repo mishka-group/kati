@@ -59,6 +59,8 @@ defmodule Kati.Screens.DataSources do
     # exists to be told how to connect something, and the first row that can be
     # is already explaining itself.
     |> Mob.Socket.assign(:expanded, :listenbrainz)
+    |> Mob.Socket.assign(:confirm_wipe?, false)
+    |> Mob.Socket.assign(:wipe_notice, nil)
   end
 
   @doc false
@@ -81,7 +83,7 @@ defmodule Kati.Screens.DataSources do
         {UI.eyebrow(gettext("Connect an account"))}
         {Kati.Screens.DataSources.tier2(assigns.expanded)}
         {UI.eyebrow(gettext("Where your tokens live"))}
-        {Kati.Screens.DataSources.tokens()}
+        {Kati.Screens.DataSources.tokens(assigns)}
         {UI.eyebrow(gettext("Cached metadata"))}
         {Kati.Screens.DataSources.cache(Map.get(assigns, :cache_notice), Map.get(assigns, :refreshing?, false))}
       </Column>
@@ -996,18 +998,128 @@ defmodule Kati.Screens.DataSources do
   def ready?(_provider), do: false
 
   @doc """
-  Where tokens live, and the one row that takes them all away.
+  Board 81's inline wipe confirmation, live.
+
+  Inline and not a modal, and leading with what survives before it asks — both
+  are board 81's own judgements and its moduledoc carries the reasoning for
+  each. The red fill goes on the destructive answer and the paper on the safe
+  one, in that order, "because the confirmation is being asked about the thing
+  the reader has already reached for; putting the safe answer first would make
+  them work out which side is which."
+
+  The count is the reader's own, where the board writes *Three accounts* as a
+  word — see `Kati.Sources.connected_count/0` for why the board's argument for
+  a word does not carry over to a live screen.
+  """
+  @spec wipe_confirm(boolean()) :: map()
+  def wipe_confirm(false), do: ~MOB"<Spacer size={0} />"
+
+  def wipe_confirm(true) do
+    count = Sources.connected_count()
+
+    assigns = %{
+      question: gettext("Wipe all tokens?"),
+      paragraph:
+        ngettext(
+          "%{n} account disconnects. Your library, ratings and history are untouched — only the keys go.",
+          "%{n} accounts disconnect. Your library, ratings and history are untouched — only the keys go.",
+          count,
+          n: Kati.Locale.number(count)
+        ),
+      wipe:
+        Kati.Screens.DataSourcesStates.answer(
+          gettext("Wipe tokens"),
+          Palette.red(),
+          Palette.on_ink(),
+          :bold,
+          true,
+          {self(), :wipe_confirm}
+        ),
+      keep:
+        Kati.Screens.DataSourcesStates.answer(
+          pgettext("the safe answer to the wipe confirmation", "Keep them"),
+          Palette.paper(),
+          Palette.ink_soft(),
+          :semibold,
+          false,
+          {self(), :wipe_cancel}
+        )
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Row fill_width={true} align="top">
+          {Kati.UI.symbol("error", size: 19, color: Palette.red())}
+          <Spacer size={11} />
+          <Column weight={1.0}>
+            <Text
+              text={@question}
+              text_size={13.5}
+              font_weight="bold"
+              text_color={:on_surface}
+              max_lines={1}
+            />
+            <Spacer size={6} />
+            <Text
+              text={@paragraph}
+              text_size={12.5}
+              line_height={Kati.Locale.leading(1.55)}
+              text_color={Palette.ink_soft()}
+            />
+          </Column>
+        </Row>
+        <Spacer size={14} />
+        <Row fill_width={true} align="center">
+          <Column weight={1.0} fill_width={true}>
+            {@wipe}
+          </Column>
+          <Spacer size={8} />
+          {@keep}
+        </Row>
+      </Column>
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  @doc "What the wipe did, once it has been done."
+  @spec wipe_notice(String.t() | nil) :: map()
+  def wipe_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def wipe_notice(message) do
+    assigns = %{notice: Kati.UI.notice(message)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@notice}
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  @doc """
+  Where tokens live, the one row that takes them all away, and the question it
+  now asks first.
 
   `delete_forever` and red, because it is the only destructive control on the
   page and the only one whose consequence cannot be undone by pressing it
-  again.
+  again — which is exactly why it had no business doing it on the first tap.
   """
-  @spec tokens() :: map()
-  def tokens do
+  @spec tokens(map()) :: map()
+  def tokens(assigns \\ %{}) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.note("info", Kati.Sources.token_note())}
       <Spacer size={12} />
+      {Kati.Screens.DataSources.wipe_notice(Map.get(assigns, :wipe_notice))}
+      {Kati.Screens.DataSources.wipe_confirm(Map.get(assigns, :confirm_wipe?, false))}
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("delete_forever"),
@@ -1244,10 +1356,57 @@ defmodule Kati.Screens.DataSources do
   end
 
   @doc false
+  # The row ASKS now. It used to call `Kati.Sources.disconnect_all/0` on the tap
+  # itself: one press, every stored token gone — the reader's own TMDB key among
+  # them — with no confirmation, no undo, and a chevron on the row promising a
+  # page it never opened. It is the only destructive control on this screen and
+  # its own `@doc` says so.
+  #
+  # Board 81 designs the answer and gives the reasoning: inline rather than
+  # modal, because "a modal takes the page away at the moment the reader most
+  # wants to check what is on it", and leading with what SURVIVES before it asks.
+  #
+  # A wipe with nothing to wipe is not asked about at all — `connected_count/0`
+  # is zero and there is no event to confirm.
   def handle_tap(:wipe_tokens, socket) do
-    Sources.disconnect_all()
-    {:noreply, Mob.Socket.assign(socket, :expanded, nil)}
+    case Sources.connected_count() do
+      0 ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:confirm_wipe?, false)
+         |> Mob.Socket.assign(:wipe_notice, gettext("Nothing is connected."))}
+
+      _some ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:confirm_wipe?, true)
+         |> Mob.Socket.assign(:wipe_notice, nil)}
+    end
   end
+
+  def handle_tap(:wipe_confirm, socket) do
+    count = Sources.connected_count()
+    Sources.disconnect_all()
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:confirm_wipe?, false)
+     |> Mob.Socket.assign(:expanded, nil)
+     |> Mob.Socket.assign(:tmdb, Sources.tmdb_key())
+     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
+     |> Mob.Socket.assign(
+       :wipe_notice,
+       ngettext(
+         "%{n} account disconnected.",
+         "%{n} accounts disconnected.",
+         count,
+         n: Kati.Locale.number(count)
+       )
+     )}
+  end
+
+  def handle_tap(:wipe_cancel, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :confirm_wipe?, false)}
 
   # Store first, then relight the chip — the same order screen 24's theme
   # trough keeps, and for the same reason: the chip and `Sources.tmdb_key/0`
