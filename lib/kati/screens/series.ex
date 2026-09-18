@@ -1514,6 +1514,8 @@ defmodule Kati.Screens.Series do
 
   @doc false
   def episodes_header(s) do
+    inline? = Kati.Screens.Series.seasons_inline?(s.seasons)
+
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={26} />
@@ -1528,11 +1530,83 @@ defmodule Kati.Screens.Series do
           text_color={Palette.eyebrow()}
         />
         <Spacer weight={1.0} />
-        {s.seasons |> Enum.map(fn n -> Kati.Screens.Series.season_pill(n, n == s.current_season) end) |> Enum.intersperse(Kati.Screens.Series.pill_gap())}
+        {if inline?, do: Kati.Screens.Series.season_pills(s), else: []}
       </Row>
+      {if inline?, do: [], else: Kati.Screens.Series.season_strip(s)}
       <Spacer size={12} />
     </Column>
     """
+  end
+
+  @doc """
+  The season pills, as the row itself when they fit and as their own scrolling
+  strip when they do not.
+
+  Board 04 draws three, on the eyebrow's own row and right-aligned, and that is
+  what a three-season show still gets. The row was the ONLY arrangement, though,
+  and it does not scroll: `The Simpsons` has thirty-six seasons and `Doctor Who`
+  has thirty-nine, so the pills ran off the side of the phone with no way to
+  reach them. A reader could not open season 9 of anything long.
+
+  `seasons_inline?/1` decides from the geometry rather than from a guess — see
+  there. Over the threshold the pills drop to their own row beneath the eyebrow,
+  inside a horizontal `Scroll`, which is the arrangement
+  `Kati.Screens.Library.chips/2` already uses for the same problem.
+  """
+  @spec season_pills(map()) :: [map()]
+  def season_pills(s) do
+    s.seasons
+    |> Enum.map(fn n -> Kati.Screens.Series.season_pill(n, n == s.current_season) end)
+    |> Enum.intersperse(Kati.Screens.Series.pill_gap())
+  end
+
+  @doc false
+  @spec season_strip(map()) :: map()
+  def season_strip(s) do
+    assigns = %{pills: Kati.Screens.Series.season_pills(s)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={10} />
+      <Scroll axis="horizontal">
+        <Row padding_left={2} padding_right={2}>
+          {@pills}
+        </Row>
+      </Scroll>
+    </Column>
+    """
+  end
+
+  # A pill is 30 wide with a 5 gap, so n of them measure `35n - 5`.
+  @pill_width 30
+  @pill_gap_width 5
+
+  # What is left of the row once the eyebrow has had its share. The frame is
+  # board 04's own 402 less the page's 21 gutters and this row's 2 of padding,
+  # and the eyebrow is its 13 dash, its 9 gap and the widest the word gets
+  # across the catalogue — `EPISODES` sets narrower than «قسمت‌ها» typesets.
+  #
+  # Board 04's width and not the device's: a threshold read off the 411dp phone
+  # this was found on would let the pills fill a frame the design never promised
+  # and clip on anything narrower. Erring narrow costs one row on a show with
+  # exactly enough seasons to be borderline; erring wide is the bug.
+  @pills_room 402 - 21 * 2 - 2 * 2 - (13 + 9 + 80)
+
+  @doc """
+  Whether the season pills still fit on the eyebrow's own row.
+
+      iex> Kati.Screens.Series.seasons_inline?(["S1", "S2", "S3"])
+      true
+
+      iex> Kati.Screens.Series.seasons_inline?(Enum.map(1..12, &("S" <> to_string(&1))))
+      false
+  """
+  @spec seasons_inline?([String.t()]) :: boolean()
+  def seasons_inline?([]), do: true
+
+  def seasons_inline?(seasons) do
+    n = length(seasons)
+    n * @pill_width + (n - 1) * @pill_gap_width <= @pills_room
   end
 
   @doc false
