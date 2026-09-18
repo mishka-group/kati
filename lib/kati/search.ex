@@ -295,43 +295,6 @@ defmodule Kati.Search do
   def placeholder, do: gettext("Search anything you keep")
 
   @doc """
-  The two suggestions, and there are only ever two.
-
-  Screen 86's caption: *Try suggestions ship, but only two, drawn from what you
-  actually have.* Two, because a suggestion list long enough to browse is a
-  second search — and drawn from your own library, because a suggestion for
-  something you do not keep is an advert.
-
-  Fixed strings for now, and the boards' own. Deriving them wants a notion of
-  what a person has been near lately that nothing in Kati stores; the pair
-  here are shaped like the two the design chose — one about time, one about a
-  place in the library — so the screen that draws them will not have to change
-  when they are derived.
-  """
-  @spec suggestions() :: [String.t()]
-  def suggestions do
-    # Board 86's two, and its own caption says they are *drawn from what you
-    # actually have* — which they were not: two fixed strings that match
-    # nothing on any device but the one the board was captured on.
-    # MOVIES-AND-TV.md #72.
-    #
-    # A function and not the `@drawn_suggestions` attribute this was, for
-    # `tiers/0`'s reason: a `gettext/1` in an attribute freezes at compile
-    # time. Board 86 draws a suggestion through
-    # `Kati.UI.SettingsList.body/2`, which takes the root's face, so Persian
-    # is safe to hand it.
-    #
-    # These are the only strings in this file that are also a QUERY — a tap
-    # searches for the words it draws — so translating them changes what a tap
-    # looks for. That costs nothing and is the honest reading either way: the
-    # pair match nothing on any device (#72 again), which is why
-    # `Kati.Search.Suggestions.for_reader/1` derives a real two and board 321
-    # draws a worded card rather than falling back at all. A reader who does
-    # reach this pair should at least reach it in their own script.
-    [gettext("what leaves this week"), gettext("notes about the estuary")]
-  end
-
-  @doc """
   The sentence explaining why the chips carry no counts until something is typed.
 
   The three numbers in it are `debounce_ms/0`, `minimum/1` and this module's

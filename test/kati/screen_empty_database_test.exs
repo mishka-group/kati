@@ -2141,13 +2141,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # which is the state all three boards were captured in. 99 is 98 with the
       # Books chip lit and 101 is the five states of 100's cards; both draw 98's
       # own card and reach the read through it.
-      # 86 and 87 gate on the same read, which is the only one either makes:
-      # a device with no title and no note answers the board's own two, so both
-      # boards' literals are still drawn in full.
-      {"86", Kati.Screens.SearchIdle, &Kati.Search.Suggestions.for_reader/0,
-       &Kati.Search.suggestions/0},
-      {"87", Kati.Screens.SearchTyping, &Kati.Search.Suggestions.for_reader/0,
-       &Kati.Search.suggestions/0},
       # 25 gates on the banner, which is the only part of it that reads
       # anything: the ten switches and the cadence are still
       # `Kati.Settings.WatcherSample`'s, and MOVIES-AND-TV.md #67 is what says
@@ -2540,6 +2533,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> Map.drop(Kati.Screens.Rating.watch(), [:watched_at]) end,
        Map.drop(Kati.Screens.Rating.empty_watch(), [:watched_at]),
        &Kati.Screens.Rating.drawn_watch/0},
+      # 86 and 87 gate on the same read, which is the only one either makes.
+      # `for_reader/1` fell back to board 86's own two — *what leaves this
+      # week*, *notes about the estuary* — under a caption promising they are
+      # drawn from this reader's library, and they match nothing on any device
+      # but the one the board was captured on. `try_group/1` draws a worded card
+      # over `[]` instead, and both that function and `Kati.Search.suggestions/0`
+      # behind it are deleted.
+      {"86", Kati.Screens.SearchIdle, &Kati.Search.Suggestions.derived/0, [],
+       fn -> ["what leaves this week", "notes about the estuary"] end},
+      {"87", Kati.Screens.SearchTyping, &Kati.Search.Suggestions.derived/0, [],
+       fn -> ["what leaves this week", "notes about the estuary"] end},
       # 15 is an append-only record of what the reader DID, so a device that has
       # done nothing has to say so. It reported 1,204 entries over seven
       # invented rows on every fresh install.

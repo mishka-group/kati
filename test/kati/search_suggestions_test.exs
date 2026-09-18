@@ -32,20 +32,6 @@ defmodule Kati.SearchSuggestionsTest do
     :ok
   end
 
-  describe "the fallback" do
-    # NOT asserted against an empty store: this file shares its database with
-    # every other, and a title another file left behind is a title `derived/0`
-    # can honestly offer. What is asserted is the shape of the fallback, which
-    # holds whatever the store contains.
-    test "the board's two are what an empty derivation falls back to" do
-      assert Suggestions.for_reader([]) == Kati.Search.suggestions()
-    end
-
-    test "and the group is never empty, because the board always draws it" do
-      refute Suggestions.for_reader() == []
-    end
-  end
-
   describe "with a title on the shelf" do
     setup do
       cached!("severance", "Severance")
@@ -53,11 +39,11 @@ defmodule Kati.SearchSuggestionsTest do
     end
 
     test "the newest one is offered" do
-      assert "Severance" in Suggestions.for_reader()
+      assert "Severance" in Suggestions.derived()
     end
 
     test "and the board's unmatchable pair is gone" do
-      offered = Suggestions.for_reader()
+      offered = Suggestions.derived()
 
       refute "what leaves this week" in offered,
              "a suggestion that needs an offers resource is still being offered"
@@ -66,7 +52,7 @@ defmodule Kati.SearchSuggestionsTest do
     end
 
     test "and it is a query that actually matches" do
-      for suggestion <- Suggestions.for_reader() do
+      for suggestion <- Suggestions.derived() do
         results = Kati.Search.Query.run(suggestion)
 
         refute Kati.Screens.Search.empty?(results),

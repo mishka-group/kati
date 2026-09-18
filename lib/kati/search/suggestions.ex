@@ -10,8 +10,9 @@ defmodule Kati.Search.Suggestions do
 
   The newest title on the shelf and the book the newest note is about are both
   queries that WILL match, which is what the caption promises. A device with
-  neither keeps the board's two, which is the gate every other screen on this
-  list keeps.
+  neither answers `[]`, and `Kati.Screens.SearchIdle.try_group/1` draws a
+  worded card over it — the group is named and says it will fill, which is the
+  one thing the board's two could never do honestly.
 
   Deliberately not *what leaves this week*: that needs an offers resource, the
   same absence that takes the Leaving band off screen 11 and the decade chips
@@ -27,18 +28,6 @@ defmodule Kati.Search.Suggestions do
   was split out of `Kati.Media.Artwork` for exactly this reason, and the trap
   is written up in the repo's own notes.
   """
-
-  @doc """
-  The reader's own two, or the board's.
-
-  Never raises and never answers `[]`: this fills a group the board always
-  draws, and an empty *Try* group would be a heading over nothing.
-  """
-  @spec for_reader([String.t()]) :: [String.t()]
-  def for_reader(derived \\ derived())
-
-  def for_reader([]), do: Kati.Search.suggestions()
-  def for_reader(derived), do: derived
 
   @doc "What can be derived, which may be nothing at all."
   @spec derived() :: [String.t()]

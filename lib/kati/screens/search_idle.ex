@@ -289,13 +289,13 @@ defmodule Kati.Screens.SearchIdle do
   @doc """
   Two suggestions, drawn from what you have. Never more — see the moduledoc.
 
-  And now actually drawn from it. `Kati.Search.suggestions/0` is board 86's
-  own two — `what leaves this week`, `notes about the estuary` — under a
-  caption that says they come from this reader's library, and they match
-  nothing on any device but the one the board was captured on
-  (MOVIES-AND-TV.md #72). `Kati.Search.Suggestions.for_reader/0` answers with
-  the newest title on the shelf and the book the newest note is about, and
-  falls back to the board's two on a device that has neither.
+  And now actually drawn from it. Board 86's own two — `what leaves this week`,
+  `notes about the estuary` — sat under a caption saying they come from this
+  reader's library, and they match nothing on any device but the one the board
+  was captured on
+  (MOVIES-AND-TV.md #72). `Kati.Search.Suggestions.derived/0` answers with the
+  newest title on the shelf and the book the newest note is about, and `[]` on
+  a device that has neither — `try_group/1` draws the worded card over that.
   """
   @spec suggestions() :: map()
   def suggestions, do: Kati.Screens.SearchIdle.try_group(Kati.Search.Suggestions.derived())
@@ -312,7 +312,10 @@ defmodule Kati.Screens.SearchIdle do
   board 86's own two suggestions on a device with nothing — *what leaves this
   week*, *notes about the estuary* — which match nothing anywhere but the
   machine the board was captured on. A suggestion that finds nothing is the
-  defect MOVIES-AND-TV.md #72 was about, one turn further on.
+  defect MOVIES-AND-TV.md #72 was about, one turn further on. That function and
+  `Kati.Search.suggestions/0` behind it are both deleted now: with nothing
+  calling them there was no reader who could reach the pair, and a fixture
+  kept alive only by its own dead fallback is the thing this sweep removes.
   """
   @spec try_group([String.t()]) :: map()
   def try_group([]) do
@@ -603,8 +606,7 @@ defmodule Kati.Screens.SearchIdle do
          Kati.Screens.SearchIdle.open(socket, line, Map.get(socket.assigns, :history, []))}
 
       "try_suggestion_" <> line ->
-        {:noreply,
-         Kati.Screens.SearchIdle.open(socket, line, Kati.Search.Suggestions.for_reader())}
+        {:noreply, Kati.Screens.SearchIdle.open(socket, line, Kati.Search.Suggestions.derived())}
 
       _other ->
         {:noreply, socket}
