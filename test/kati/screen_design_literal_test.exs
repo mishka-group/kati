@@ -1402,6 +1402,11 @@ defmodule Kati.ScreenDesignLiteralTest do
        &Map.update!(&1, :anime, fn a ->
          Map.put(a, :misclassified, Kati.Media.AnimeSample.misclassified())
        end)},
+      # 167 is drawn with a queue on the go, the same state screen 10 itself
+      # is compared against — its own opening/0 assigns every key at the top
+      # level rather than nesting them, so the override merges the same way.
+      {"167", Kati.Screens.UpNextFilters,
+       &Map.merge(&1, Map.new(Kati.Screens.UpNextFilters.drawn_opening_for_test()))},
       # 154 is drawn with Series chosen, and its own caption says why: the
       # episode-count field is only visible for a series. Board 155 states the
       # screen's actual default — "Resting — empty, Film, nothing assumed" — so

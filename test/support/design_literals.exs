@@ -879,6 +879,7 @@ defmodule Kati.DesignLiterals do
       {"152", "marram"},
       {"152", "tagged anime from a mal import — it is live action"},
       {"152", "not anime"},
+      {"167", "showing 15 of 15"},
       {"140", "five more sources"},
       {"140", "simkl · tv time · libib · last.fm · anilist"},
       {"141", "10pt → 5★"},

@@ -255,13 +255,15 @@ defmodule Kati.UpNextFiltersTest do
   end
 
   describe "the sheet" do
-    test "opens on the board's own fifteen when there is nothing on the go" do
+    test "opens on the reader's own zero when there is nothing on the go" do
       opening = Kati.Screens.UpNextFilters.opening()
 
-      assert opening[:showing] == Sample.total()
-      assert opening[:total] == Sample.total()
-      assert {:runtime_short, 5} in opening[:runtime_counts]
-      assert {:band_ready, 12} in opening[:band_counts]
+      assert opening[:showing] == 0
+      assert opening[:total] == 0
+      refute Sample.total() == 0
+
+      for {_key, count} <- opening[:runtime_counts], do: assert(count == 0)
+      for {_key, count} <- opening[:band_counts], do: assert(count == 0)
     end
 
     test "and on this reader's own counts once there is" do

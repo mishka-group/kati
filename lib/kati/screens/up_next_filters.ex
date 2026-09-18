@@ -29,9 +29,12 @@ defmodule Kati.Screens.UpNextFilters do
 
   On a device the numbers are the reader's own — `buckets/1` counts every
   bucket including the empty ones, so a chip that would empty the page says so
-  at `0` in board 145's hairline grey before it is tapped. On a device with
-  nothing on the go there is nothing to count, and the board's own fifteen are
-  drawn, which is the state board 167 is a drawing of.
+  at `0` in board 145's hairline grey before it is tapped. That includes a
+  queue with nothing in it: every count reads `0` rather than falling back to
+  board 167's own fifteen, the same move screen 10 itself makes.
+  `drawn_opening_for_test/0` still answers the board's own state, for the
+  gate `Kati.ScreenEmptyDatabaseTest` and the design-literal sweep read it
+  through.
 
   ## Reset clears the filters and not the sort
 
@@ -81,12 +84,7 @@ defmodule Kati.Screens.UpNextFilters do
   def drawn_opening_for_test, do: board_state(Filters.resting())
 
   defp state_for(choice) do
-    pool = Kati.Screens.UpNext.pool()
-
-    case pool.ready ++ pool.cold do
-      [] -> board_state(choice)
-      _queue -> device_state(pool, choice)
-    end
+    device_state(Kati.Screens.UpNext.pool(), choice)
   end
 
   # Board 167's own fifteen. The chips still carry the reader's choice, because
@@ -105,7 +103,9 @@ defmodule Kati.Screens.UpNextFilters do
     ]
   end
 
-  defp device_state(pool, choice) do
+  @doc false
+  @spec device_state(map(), map()) :: keyword()
+  def device_state(pool, choice) do
     buckets = Filters.buckets(pool)
     narrowed = Filters.apply(pool, choice)
 

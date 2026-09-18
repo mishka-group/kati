@@ -2068,13 +2068,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # preselection and its `41 of 418`.
       {"145", Kati.Screens.ShelfFilters, &Kati.Screens.ShelfFilters.opening/0,
        &Kati.Screens.ShelfFilters.drawn_opening_for_test/0},
-      # 167 gates the same way and on the same shape: one keyword list holding
-      # the sort, the direction, the two chip rails, both rails' counts and
-      # both figures in `showing N of M`. They arrive together or the board's
-      # do — a sheet offering `Under 30m 5` over a queue holding none would be
-      # the plausible-looking zero screen 96's rule is against.
-      {"167", Kati.Screens.UpNextFilters, &Kati.Screens.UpNextFilters.opening/0,
-       &Kati.Screens.UpNextFilters.drawn_opening_for_test/0},
       # 23 gates on the whole ledger: the count, the total, every row and the
       # advice card arrive together or the board's do.
       {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
@@ -2489,6 +2482,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # card the board was captured with.
       {"152", Kati.Screens.AnimeFilter, &Kati.Screens.AnimeFilter.misclassified/0, nil,
        &Kati.Media.AnimeSample.misclassified/0},
+      # 167's gate is the same one screen 10 makes: no fallback, an empty
+      # pool's own zeroed counts through the same device_state/2 a real queue
+      # goes through, never board 167's own fifteen.
+      {"167", Kati.Screens.UpNextFilters, &Kati.Screens.UpNextFilters.opening/0,
+       Kati.Screens.UpNextFilters.device_state(
+         %{ready: [], cold: []},
+         Kati.Library.UpNextFilters.resting()
+       ), &Kati.Screens.UpNextFilters.drawn_opening_for_test/0},
       # 05's gate is `releases/0` — the read, which answers `nil` when nothing is
       # followed and a map when something is. It used to be paired with
       # `drawn_inbox/0`, because that was what an unfollowed device fell back
