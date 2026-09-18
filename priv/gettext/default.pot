@@ -9087,7 +9087,7 @@ msgid "Typing ي finds ی. Both spellings of every affected word resolve to one 
 msgstr ""
 
 #: lib/kati/screens/data_sources_states.ex:819
-#: lib/kati/screens/drop_sheet.ex:1362
+#: lib/kati/screens/drop_sheet.ex:1383
 #: lib/kati/screens/log_progress_states.ex:604
 #: lib/kati/screens/my_services_states.ex:705
 #: lib/kati/screens/shelf_selection.ex:1131
@@ -13066,7 +13066,7 @@ msgstr ""
 msgid "Adherence"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1267
+#: lib/kati/screens/drop_sheet.ex:1288
 #, elixir-autogen, elixir-format
 msgid "After you drop it"
 msgstr ""
@@ -13605,7 +13605,7 @@ msgstr ""
 msgid "an expense with no amount still counts as a thing that happened"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1169
+#: lib/kati/screens/drop_sheet.ex:1212
 #, elixir-autogen, elixir-format
 msgid "clears the Gone cold mark and changes nothing else."
 msgstr ""
@@ -13875,7 +13875,7 @@ msgctxt "the drop sheet's keep card, before its bolded run"
 msgid "Or keep it —"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1209
+#: lib/kati/screens/drop_sheet.ex:1230
 #, elixir-autogen, elixir-format
 msgctxt "the drop sheet's own commit button"
 msgid "Drop%{at}"
@@ -13989,7 +13989,7 @@ msgctxt "the row naming who watched along"
 msgid "With"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1211
+#: lib/kati/screens/drop_sheet.ex:1232
 #, elixir-autogen, elixir-format
 msgctxt "the second button on the drop sheet"
 msgid "Still on it"
@@ -14014,7 +14014,7 @@ msgctxt "the swatch showing a masked episode name"
 msgid "Spoiler-safe variant"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1309
+#: lib/kati/screens/drop_sheet.ex:1330
 #: lib/kati/settings/states_sample.ex:177
 #, elixir-autogen, elixir-format
 msgctxt "the undo pill's sentence after a drop"
@@ -17593,4 +17593,9 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "the paused mark over the title being dropped"
 msgid "PAUSED · %{age}"
+msgstr ""
+
+#: lib/kati/screens/drop_sheet.ex:1209
+#, elixir-autogen, elixir-format
+msgid "changes nothing at all."
 msgstr ""

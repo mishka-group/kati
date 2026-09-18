@@ -724,7 +724,7 @@ defmodule Kati.Screens.DropSheet do
           {Eyebrow.quiet(gettext("Why, if you like"))}
           {Kati.Screens.DropSheet.reasons(assigns.reason)}
           {Kati.Screens.DropSheet.info_card()}
-          {Kati.Screens.DropSheet.keep_card()}
+          {Kati.Screens.DropSheet.keep_card(s)}
           {Kati.Screens.DropSheet.refusal(Map.get(assigns, :save_error))}
           {Kati.Screens.DropSheet.actions(s)}
           {Kati.Screens.DropSheet.trail(s, assigns.dropped?)}
@@ -1142,8 +1142,8 @@ defmodule Kati.Screens.DropSheet do
   `Kati.Screens.ShelfFilters` and `Kati.Screens.DropStates` already use for
   the status this button clears.
   """
-  @spec keep_card() :: map()
-  def keep_card do
+  @spec keep_card(map()) :: map()
+  def keep_card(sheet \\ %{cold_label: ""}) do
     body = [
       text_size: 12.5,
       line_height: Kati.Locale.leading(1.6),
@@ -1166,7 +1166,7 @@ defmodule Kati.Screens.DropSheet do
       {pgettext("the drop sheet's keep card, before its bolded run", "Or keep it —") <> " ",
        Keyword.put(body, :base, true)},
       {still, strong},
-      {" " <> gettext("clears the Gone cold mark and changes nothing else."), body}
+      {" " <> Kati.Screens.DropSheet.keep_effect(sheet), body}
     ]
 
     ~MOB"""
@@ -1189,6 +1189,27 @@ defmodule Kati.Screens.DropSheet do
     </Column>
     """
   end
+
+  @doc """
+  What *still on it* actually does, which depends on whether there is a mark to
+  clear.
+
+  The sentence was *"clears the Gone cold mark and changes nothing else"* on
+  every sheet. Once `mark/1` stopped putting a cold mark on a show being watched
+  normally, that left the card promising to clear something the reader could not
+  see — which is the same defect as the mark itself, one sentence over: the page
+  describing a state it is not in.
+
+  So it is the app's own **سردشده** when the mark is there, and *changes nothing
+  at all* when it is not, which is the honest reading of a button whose whole
+  job on a fresh show is to close the sheet.
+  """
+  @spec keep_effect(map()) :: String.t()
+  def keep_effect(%{cold_label: ""}),
+    do: gettext("changes nothing at all.")
+
+  def keep_effect(_sheet),
+    do: gettext("clears the Gone cold mark and changes nothing else.")
 
   @doc """
   `Drop at S# E#` beside `Still on it` — the board's own two-button row.

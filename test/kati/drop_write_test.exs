@@ -283,6 +283,18 @@ defmodule Kati.DropWriteTest do
              "a decision the reader made was reported back as something Kati noticed"
     end
 
+    test "and the keep card does not promise to clear a mark that is not there" do
+      # One sentence over from the same defect: *"clears the Gone cold mark and
+      # changes nothing else"* was on every sheet, so once the mark went the
+      # card was still promising to clear something the reader cannot see.
+      fresh = sheet_for(tracked!(:watching)).assigns.sheet
+
+      assert DropSheet.keep_effect(fresh) == "changes nothing at all."
+
+      drawn = inspect(DropSheet.keep_card(fresh), limit: :infinity)
+      refute drawn =~ "Gone cold"
+    end
+
     test "and GONE COLD only when it actually is" do
       tracked = tracked!(:watching)
 
