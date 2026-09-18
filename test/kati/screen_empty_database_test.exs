@@ -702,6 +702,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 36 → no board: an unavailable device has no sessions, no now-playing card
+    # and no decision, so board 36's own content has nothing left to compare.
+    "36" => [],
     # 25 → the banner's own two lines only. Every other band on board 25 is
     # `Kati.Settings.WatcherSample`'s and stays — 13 of its 15 controls have no
     # preferences domain to read (see P2), which is a schema gap rather than a
@@ -2213,8 +2216,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # card, the Sources rows and the decision are five views of one device,
       # and a gate on the banner alone would pass while the card described a
       # session nobody is playing.
-      {"36", Kati.Screens.AutoDetect, &Kati.Screens.AutoDetect.detect/0,
-       &Kati.Screens.AutoDetect.drawn_detect/0},
       {"37", Kati.Screens.Import, fn -> Kati.Screens.Import.job_for(%{}) end,
        fn -> Kati.Import.Sample.job(:trakt) end},
       # 141 gates on the same branch and for the same reason.
@@ -2543,6 +2544,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # reader who follows nothing, and the switches under it still work.
       {"25", Kati.Screens.ReleaseWatcher, &Kati.Screens.ReleaseWatcher.banner/0,
        Kati.Screens.ReleaseWatcher.banner(), &Kati.Settings.WatcherSample.banner/0},
+      # 36 reads its own unavailable state now. It answered `drawn_detect/0`
+      # whenever access was `:unavailable`, which is EVERY sideloaded build —
+      # Play Protect blocks the listener it reads — so the one state a real
+      # reader of this APK is always in was the one drawing the fixture.
+      {"36", Kati.Screens.AutoDetect, &Kati.Screens.AutoDetect.detect/0,
+       Kati.Screens.AutoDetect.detect(), &Kati.Screens.AutoDetect.drawn_detect/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.

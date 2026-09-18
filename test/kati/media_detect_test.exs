@@ -427,9 +427,16 @@ defmodule Kati.MediaDetectTest do
   end
 
   describe "the screen on a device that cannot look" do
-    test "draws board 36 whole, because unavailable is not denied" do
+    test "reads its own unavailable state rather than drawing board 36 whole" do
       assert Detect.access() == :unavailable
-      assert AutoDetect.detect() == AutoDetect.drawn_detect()
+
+      refute AutoDetect.detect() == AutoDetect.drawn_detect(),
+             "`:unavailable` is the answer on EVERY sideloaded build — Play Protect blocks " <>
+               "the listener this reads — so the one state a real reader of this APK is " <>
+               "always in was the one that drew the fixture"
+
+      assert AutoDetect.detect().access == :unavailable
+      assert AutoDetect.detect().now_playing == nil
       refute AutoDetect.live?(AutoDetect.detect())
     end
 

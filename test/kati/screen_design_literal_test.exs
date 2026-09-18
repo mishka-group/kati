@@ -1435,6 +1435,9 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"15", Kati.Screens.Activity, &Map.put(&1, :log, Kati.Screens.Activity.drawn())},
       # 11 answers an empty feed now, so the board's own is installed here.
       {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
+      # 36 reads its own unavailable state now, so the board goes in here.
+      {"36", Kati.Screens.AutoDetect,
+       &Map.put(&1, :detect, Kati.Screens.AutoDetect.drawn_detect())},
       # 25's banner counts zero now, so the board's own two lines are installed
       # to compare the frame. Only the banner — every other band on 25 is
       # `Kati.Settings.WatcherSample`'s already.

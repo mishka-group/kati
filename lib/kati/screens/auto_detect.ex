@@ -123,21 +123,22 @@ defmodule Kati.Screens.AutoDetect do
   def detect do
     access = Kati.Media.Detect.access()
 
-    if access == :unavailable do
-      Kati.Screens.AutoDetect.drawn_detect()
-    else
-      sessions = Kati.Media.Detect.sessions()
+    # No branch on `:unavailable`. It used to answer `drawn_detect/0` there, and
+    # `:unavailable` is the answer on EVERY sideloaded build — Play Protect
+    # blocks the notification listener this reads (see P4) — so the one state a
+    # real reader of this APK is always in was the one that drew the fixture.
+    # Every function below already takes `access` and can say so.
+    sessions = Kati.Media.Detect.sessions()
 
-      %{
-        sources_line: Kati.Screens.AutoDetect.sources_line(access),
-        banner: Kati.Screens.AutoDetect.real_banner(),
-        now_playing: Kati.Screens.AutoDetect.real_now_playing(sessions),
-        sources: Kati.Screens.AutoDetect.real_sources(access, sessions),
-        rules: Kati.Screens.AutoDetect.real_rules(),
-        decision: Kati.Screens.AutoDetect.real_decision(),
-        access: access
-      }
-    end
+    %{
+      sources_line: Kati.Screens.AutoDetect.sources_line(access),
+      banner: Kati.Screens.AutoDetect.real_banner(),
+      now_playing: Kati.Screens.AutoDetect.real_now_playing(sessions),
+      sources: Kati.Screens.AutoDetect.real_sources(access, sessions),
+      rules: Kati.Screens.AutoDetect.real_rules(),
+      decision: Kati.Screens.AutoDetect.real_decision(),
+      access: access
+    }
   end
 
   @doc "Screen 36 exactly as it is drawn."
