@@ -104,8 +104,12 @@ defmodule Kati.Screens.Series do
   degrades to for the same reason.
 
   `Kati.Media.TrackedTitle.hide_unwatched_titles` is annotated *"spoiler-safe
-  episode names on screen 04"* and is the one column here with a reader and no
-  feature; the drawing never shows that state, so nothing reads it yet.
+  episode names on screen 04"* and this screen is what finally reads it —
+  `episode_title/2`. It was the one column with a writer, an annotation naming
+  this page, and no reader on the page it named: screen 35 set it, screen 144
+  honoured it for its own headline, and the episode list here spelled every
+  unwatched title out regardless. The drawing never shows that state, which is
+  why it went unnoticed; a board is not the only thing a screen has to draw.
   """
   use Mob.Screen
   use Gettext, backend: Kati.Gettext
@@ -223,6 +227,7 @@ defmodule Kati.Screens.Series do
     %{
       tracked_id: nil,
       followed?: false,
+      hide_unwatched?: false,
       private?: false,
       anime?: false,
       media_kind: :tv,
@@ -259,6 +264,7 @@ defmodule Kati.Screens.Series do
     %{
       tracked_id: nil,
       followed?: false,
+      hide_unwatched?: false,
       private?: false,
       anime?: false,
       media_kind: :tv,
@@ -411,6 +417,10 @@ defmodule Kati.Screens.Series do
       # screen 25 is a page about, which nothing anywhere could set for one
       # title until the bookmark disc could (MOVIES-AND-TV.md #81).
       followed?: tracked.notify_new_episodes,
+      # Screen 35 writes this and, until now, nothing read it — the column's own
+      # annotation says *"spoiler-safe episode names on screen 04"* and screen
+      # 04 was the one screen that did not. See `episode_title/2`.
+      hide_unwatched?: tracked.hide_unwatched_titles,
       status: tracked.status,
       private?: tracked.private,
       anime?: tracked.kind == :anime,
@@ -442,6 +452,10 @@ defmodule Kati.Screens.Series do
       # different title from the one it is drawing.
       tracked_id: tracked.id,
       followed?: tracked.notify_new_episodes,
+      # Screen 35 writes this and, until now, nothing read it — the column's own
+      # annotation says *"spoiler-safe episode names on screen 04"* and screen
+      # 04 was the one screen that did not. See `episode_title/2`.
+      hide_unwatched?: tracked.hide_unwatched_titles,
       status: tracked.status,
       private?: tracked.private,
       anime?: tracked.kind == :anime,
@@ -592,7 +606,8 @@ defmodule Kati.Screens.Series do
   @spec shaped(map()) :: map()
   def shaped(facts) do
     zone = Kati.Time.device_zone()
-    by_season = Map.new(facts.seasons, &{label(&1.number), season_view(&1, zone)})
+    hide? = Map.get(facts, :hide_unwatched?, false)
+    by_season = Map.new(facts.seasons, &{label(&1.number), season_view(&1, zone, hide?)})
     current = label(facts.current)
     view = Map.fetch!(by_season, current)
 
@@ -642,7 +657,7 @@ defmodule Kati.Screens.Series do
   # need — the Persian page builds its own and says so.
   defp label(number), do: "S#{number}"
 
-  defp season_view(season, zone) do
+  defp season_view(season, zone, hide?) do
     %{
       # The provider's own name when it gave one ("Part 1", "Miniseries"), and
       # the number spelled out when it did not. `Kati.Media.CachedSeason`
@@ -650,7 +665,7 @@ defmodule Kati.Screens.Series do
       # of a bare number is the thing that knows what its own heading reads".
       season: season.name || gettext("Season %{n}", n: Kati.Locale.number(season.number)),
       total: season.total,
-      episodes: Enum.map(season.episodes, &episode_row(&1, zone))
+      episodes: Enum.map(season.episodes, &episode_row(&1, zone, hide?))
     }
   end
 
@@ -659,10 +674,10 @@ defmodule Kati.Screens.Series do
   # `:aired`. That is the affordance answer `Release`'s own typedoc argues for:
   # withholding the tick is a claim the user has not seen it, and the thing Kati
   # does not know is when it went out, not what the user did.
-  defp episode_row(episode, zone) do
+  defp episode_row(episode, zone, hide?) do
     %{
       n: episode.number,
-      title: episode_title(episode),
+      title: episode_title(episode, hide? and not episode.watched),
       sub: episode_sub(episode, zone),
       watched: episode.watched,
       aired: episode.airing != :upcoming,
@@ -697,12 +712,29 @@ defmodule Kati.Screens.Series do
     }
   end
 
-  defp episode_title(%{title: title}) when is_binary(title) and title != "", do: title
-
-  defp episode_title(%{number: n}) when is_integer(n),
+  # `hide_unwatched_titles` on screen 35, finally read. The column is annotated
+  # *"spoiler-safe episode names on screen 04"*, `Kati.Screens.RateEpisode`
+  # reads it for its own headline, and screen 04 — the screen named in the
+  # annotation — did not: a reader turned the switch on in Show settings, came
+  # back to the episode list, and every unwatched title was still spelled out.
+  # The one place the setting claims to act was the one place it did nothing.
+  #
+  # The mask is the numbered form this function ALREADY falls back to for an
+  # episode a provider never named, which is the same string
+  # `Kati.Screens.RateEpisode.spoiler_title/1` masks with. One sentence, two
+  # screens, and nothing new for a translator.
+  #
+  # Only the UNWATCHED ones. A title you have seen is not a spoiler, and hiding
+  # it would make the list unreadable for the reader who turned the switch on.
+  defp episode_title(%{number: n}, true) when is_integer(n),
     do: gettext("Episode %{n}", n: Kati.Locale.number(n))
 
-  defp episode_title(_episode), do: gettext("Untitled")
+  defp episode_title(%{title: title}, _mask?) when is_binary(title) and title != "", do: title
+
+  defp episode_title(%{number: n}, _mask?) when is_integer(n),
+    do: gettext("Episode %{n}", n: Kati.Locale.number(n))
+
+  defp episode_title(_episode, _mask?), do: gettext("Untitled")
 
   # `Airs Thu 20 Aug` ahead of time and `48 min · 2 Jul` behind it, which are
   # the drawing's own two sub-lines. Both halves of the second are nullable — a
