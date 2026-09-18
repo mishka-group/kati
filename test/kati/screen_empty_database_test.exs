@@ -687,6 +687,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "58" => [],
     # 08 → no board either, and for the same reason as 04.
     "08" => [],
+    # 146 → no board either: an empty shelf draws no tiles, so board 146's own
+    # nine and the counts composed from them are gone with them.
+    "146" => [],
     # 149 → no board either. `empty_sheet/0` carries no title, no cold mark and
     # no position, so board 149's own *The Quiet Ones* has nothing left on this
     # screen for an empty database to be held to.
@@ -2091,12 +2094,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # untyped field is the board.
       {"18", Kati.Screens.QuickAdd, fn -> Kati.Screens.QuickAdd.draft("") end,
        &Kati.Screens.QuickAdd.Sample.draft/0},
-      # 146 gates on the list, which is the whole of what it draws that could
-      # come from anywhere: the nine tiles, the two that start selected, and
-      # every count the header composes from them. An empty shelf answers with
-      # the board's own nine.
-      {"146", Kati.Screens.ShelfSelection, &Kati.Screens.ShelfSelection.shelf/0,
-       &Kati.Library.Sample.selection_shelf/0},
       # 11 gates on the seed rather than on the feed: `Kati.Media.Recommendations.seed/0`
       # is the title the picks would be drawn FROM, and an empty store has
       # none. One pair covers the subtitle, the four chips, the heading, the
@@ -2467,6 +2464,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with nothing in the slots. `drawn_series/0` stays on the right of the
       # pair: it is what `Kati.ScreenDesignLiteralTest` installs to compare the
       # page against .scratch/design/audit/04.png, and nothing else reads it.
+      # 146 gates on the list, which is the whole of what it draws that could
+      # come from anywhere: the tiles, which start selected, and every count the
+      # header composes from them. An empty shelf answers with nothing now —
+      # the board's own nine were nine titles a reader who owns none was being
+      # offered to select, two of them already ticked.
+      {"146", Kati.Screens.ShelfSelection, &Kati.Screens.ShelfSelection.shelf/0, [],
+       &Kati.Library.Sample.selection_shelf/0},
       # 08 makes the same move as 04: `empty_film/0` is `shaped/3`'s sixteen
       # keys carrying nothing, so a reader who owns no films is shown an empty
       # frame rather than the board's own *Blue Hour* and its viewing history.

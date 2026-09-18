@@ -643,12 +643,17 @@ defmodule Kati.ScreenWriteTargetTest do
   # film. Only *Log a watch* was reaching a handler from a bare mount, so the
   # measured drop is one.
   #
+  # And a twelfth, to 1922. Screen 146's grid is the reader's own shelf and
+  # answers `[]` when there is none, so the nine tiles a bare mount used to
+  # draw — each one tappable, each one selectable — are not drawn over a shelf
+  # with nothing on it. The measured drop is fourteen.
+  #
   # And an eleventh, to 1936. Screen 149 answers
   # `Kati.Screens.DropSheet.empty_sheet/0`, which carries no captured position,
   # so the position card and the controls reading off it are not drawn over a
   # sheet naming no title. The measured drop is four.
   @screens_swept 156
-  @drawn_taps 1936
+  @drawn_taps 1922
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

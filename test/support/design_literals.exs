@@ -889,6 +889,12 @@ defmodule Kati.DesignLiterals do
       {"145", "dropped"},
       {"145", "gone cold"},
       {"145", "showing 41 of 418"},
+      # 146's own copy of the same figures. The line still renders — it is
+      # `<shown> of <total> · <sort>` off the reader's shelf and their stored
+      # sort — but 41 and 418 were the board showing a filter narrowing a big
+      # library, and no real shelf answers them. Board 145 retired the same
+      # numbers one line above.
+      {"146", "41 of 418 \u00b7 recently added"},
       {"145", "ranges are"},
       {"145", "chip buckets"},
       {"145",

@@ -225,15 +225,9 @@ defmodule Kati.Screens.ShelfSelection do
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaThemeIcon
-  alias Kati.Library.Sample
-  alias Kati.Library.ShelfFiltersSample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
-
-  # Board 145's own `showing 41 of 418`, and the only number on this screen
-  # that is a literal rather than a read. See the moduledoc.
-  @drawn_showing 41
 
   # The board's undo pill, frozen at the count its own header is selecting.
   @drawn_removed 4
@@ -267,12 +261,7 @@ defmodule Kati.Screens.ShelfSelection do
   untouched behind it.
   """
   @spec shelf() :: [map()]
-  def shelf do
-    case Kati.Screens.ShelfSelection.tracked_shelf() do
-      [] -> Sample.selection_shelf()
-      rows -> rows
-    end
-  end
+  def shelf, do: Kati.Screens.ShelfSelection.tracked_shelf()
 
   @doc """
   The user's shelf in this screen's own shape, or `[]`.
@@ -333,7 +322,7 @@ defmodule Kati.Screens.ShelfSelection do
           padding_bottom={40}
         >
           {Kati.Screens.ShelfSelection.refusal(Map.get(assigns, :save_error))}
-          {Kati.Screens.ShelfSelection.resting_header_still()}
+          {Kati.Screens.ShelfSelection.resting_header_still(length(assigns.titles))}
           {Kati.Screens.ShelfSelection.one_selected_still(MapSet.size(assigns.selected))}
           {Kati.Screens.ShelfSelection.selection_bar(MapSet.size(assigns.selected))}
           {Kati.Screens.ShelfSelection.grid(assigns.titles, assigns.selected)}
@@ -353,11 +342,11 @@ defmodule Kati.Screens.ShelfSelection do
   Always drawn, because this screen is never in that moment — it is another
   screen's resting state, quoted here because 146's board quotes it.
   """
-  def resting_header_still do
+  def resting_header_still(shown) do
     ~MOB"""
     <Column fill_width={true}>
       {UI.eyebrow(gettext("Resting header — sort persists and says so"))}
-      {Kati.Screens.ShelfSelection.library_header()}
+      {Kati.Screens.ShelfSelection.library_header(shown)}
       <Spacer size={11} />
       {Kati.Screens.ShelfSelection.sort_note()}
       <Spacer size={24} />
@@ -366,8 +355,8 @@ defmodule Kati.Screens.ShelfSelection do
   end
 
   @doc false
-  def library_header do
-    line = sort_line()
+  def library_header(shown) do
+    line = sort_line(shown)
 
     # WHAT THE FOLD CHANGED ON A STILL OF SOMEBODY ELSE'S HEADER.
     #
@@ -445,15 +434,16 @@ defmodule Kati.Screens.ShelfSelection do
   than re-wording it means this screen has nothing to change on the day it is
   folded: the Persian arrives through the same hole the English does.
   """
-  @spec sort_line() :: String.t()
-  def sort_line do
-    {_key, sort} = hd(ShelfFiltersSample.sort_options())
+  @spec sort_line(non_neg_integer()) :: String.t()
+  def sort_line(shown) do
+    choice = Kati.Library.ShelfFilters.current()
+    total = length(Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting()))
 
     UI.eyebrow_label(
       gettext("%{shown} of %{total} · %{sort}",
-        shown: Kati.Locale.number(@drawn_showing),
-        total: Kati.Locale.number(ShelfFiltersSample.total()),
-        sort: sort
+        shown: Kati.Locale.number(shown),
+        total: Kati.Locale.number(total),
+        sort: Kati.Screens.ShelfFilters.sort_label(choice.sort, nil)
       )
     )
   end

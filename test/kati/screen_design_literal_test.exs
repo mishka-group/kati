@@ -1410,6 +1410,16 @@ defmodule Kati.ScreenDesignLiteralTest do
       # now, so the board's own show has to be installed to compare the frame
       # against its capture.
       {"149", Kati.Screens.DropSheet, &Map.put(&1, :sheet, Kati.Screens.DropSheet.drawn_sheet())},
+      # 146, same: the grid draws the reader's own shelf and answers `[]` when
+      # there is none, so the board's own nine tiles have to be installed to
+      # compare the frame — header counts included, since they are composed
+      # from the list rather than written into it.
+      {"146", Kati.Screens.ShelfSelection,
+       fn assigns ->
+         titles = Kati.Library.Sample.selection_shelf()
+         selected = titles |> Enum.filter(& &1.selected?) |> Enum.map(& &1.id) |> MapSet.new()
+         Map.merge(assigns, %{titles: titles, selected: selected})
+       end},
       # 152's Marram card is one worked example of a real, per-reader list
       # that is empty on a device with no anime tracked. `Kati.Media.
       # AnimeSample.misclassified/0` is what board 152 was captured with.

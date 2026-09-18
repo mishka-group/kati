@@ -40,11 +40,14 @@ defmodule Kati.ShelfSelectionTest do
   end
 
   describe "the shelf it selects from" do
-    test "is the drawing's when nothing is tracked" do
+    test "is empty when nothing is tracked, not the drawing's nine" do
       titles = ShelfSelection.shelf()
 
-      assert Enum.map(titles, & &1.title) |> Enum.member?("The Long Hollow")
-      assert Enum.any?(titles, & &1.selected?)
+      assert titles == [],
+             "a reader with nothing shelved was offered the board's own nine tiles to " <>
+               "select from, two of them pre-selected"
+
+      refute Enum.any?(titles, & &1.selected?)
     end
 
     test "is the user's when there is one, with nothing selected" do
@@ -86,10 +89,12 @@ defmodule Kati.ShelfSelectionTest do
       assert {:ok, %{status: :watching}} = Ash.get(TrackedTitle, tracked.id)
     end
 
-    test "writes nothing for a drawn row" do
-      drawn = ShelfSelection.shelf() |> hd()
-
-      assert :ok = ShelfSelection.write_status(drawn)
+    test "writes nothing for a row that names no tracked title" do
+      # There is no drawn row to take the head of any more — `shelf/0` answers
+      # `[]` on an empty store. The guard this was testing is still the one that
+      # matters: a row carrying no id must not reach a write.
+      assert ShelfSelection.shelf() == []
+      assert :ok = ShelfSelection.write_status(%{id: nil, status: :watching})
       assert Ash.read!(TrackedTitle) == []
     end
   end
