@@ -507,8 +507,9 @@ defmodule Kati.Screens.Gallery do
     "152",
     # Season → the help disc beside the order strip. #9.
     "153",
-    # Settings → Year cards → When a card cannot be made. #2.
-    "101",
+    # ("101" was here — Settings → Year cards → When a card cannot be made. The
+    # Settings row it hung off is gone: screen 100 is a render spec, not a place
+    # in the app. Both are back on the gallery, which is where a spec belongs.)
     # ── The four dock roots, and the hub in one of them. The owner's words:
     # *"01 - Home exist in the first page of app, no need in all screens, and
     # Library menu exists in the dock on all pages — no need again inside All
@@ -541,8 +542,8 @@ defmodule Kati.Screens.Gallery do
     "88",
     # Stats → the share disc. #3 gave it board 102's two missing card faces.
     "98",
-    # Settings → Year cards.
-    "100",
+    # ("100" was here — Settings → Year cards. Removed with the row; see the
+    # note beside "101" above.)
     # Library → the sort disc. #109 settled that as the one door.
     "145",
     # Up next → the tune disc. Board 167 is what that disc opens now; it used

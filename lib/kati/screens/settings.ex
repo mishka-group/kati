@@ -761,7 +761,6 @@ defmodule Kati.Screens.Settings do
     # second line as well as a destination.
     "clear_history" => Kati.Screens.ClearHistory,
     "attribution" => Kati.Screens.Attribution,
-    "year_cards" => Kati.Screens.YearCards,
     # #7. A reference sheet whose own moduledoc said it was pushed under
     # Settings, and nothing pushed it.
     "dropping" => Kati.Screens.DropStates,

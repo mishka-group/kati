@@ -426,19 +426,15 @@ defmodule Kati.Settings.Sample do
         sub: gettext("Sources and licences"),
         control: :chevron
       },
-      # A reference sheet rather than a place in the app, filed under About for
-      # the reason screen 27 is: it is the app describing itself. Screen 100's
-      # own back pill says `Settings`, which is what puts it here — the design
-      # names the parent and never redrew 24 to add the row, exactly as it did
-      # for the three Sources rows above. The screen is drawn and finished;
-      # only the way in was missing.
-      %{
-        id: "year_cards",
-        icon: "grid_view",
-        title: gettext("Year cards"),
-        sub: gettext("How a shared card is drawn"),
-        control: :chevron
-      },
+      # (The `year_cards` row was here, and it was the argument's own weak point:
+      # "a reference sheet rather than a place in the app, filed under About
+      # because screen 100's back pill says `Settings`." A back pill naming a
+      # parent is the DESIGN saying where the sheet was drawn from, not the app
+      # promising a reader a page. Screen 100's own moduledoc calls itself "the
+      # authoritative render spec... so that whatever eventually writes the PNG
+      # has one page to be compared against" — every figure on it is a
+      # specimen, correct for a spec and untrue of any reader. It stays in the
+      # gallery, where a spec belongs.)
       # MOVIES-AND-TV.md #7. Screen 148's own moduledoc says it is "a reference
       # sheet pushed under Settings" and its back pill says `Settings`, and
       # nothing pushed it — it was gallery-only, exactly as Year cards above

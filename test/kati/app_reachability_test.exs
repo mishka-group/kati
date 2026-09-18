@@ -92,6 +92,15 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
+    # Screen 100 is a RENDER SPEC, and says so: "the authoritative render spec...
+    # so that whatever eventually writes the PNG has one page to be compared
+    # against." Every figure on it is a specimen — four faces at two ratios —
+    # correct for a spec and untrue of any reader. It had a Settings row under
+    # About, argued from its own back pill saying `Settings`; a back pill names
+    # the parent the sheet was DRAWN from, which is not the app promising a
+    # reader a page. 101 is its states sheet and goes with it.
+    {Screens.YearCards, "the year card's render spec, not a place in the app."},
+    {Screens.YearCardsStates, "screen 100's states. As above."},
     {Screens.HomeOmittedSections,
      "the decision that an empty section is omitted rather than worded, drawn " <>
        "on a Persian Home so both cases can be seen at once. A board about a " <>
