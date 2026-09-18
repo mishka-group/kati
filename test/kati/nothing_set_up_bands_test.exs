@@ -174,6 +174,30 @@ defmodule Kati.NothingSetUpBandsTest do
                "#{inspect(module)}'s #{tag} does not lead to My services"
       end
     end
+
+    test "and the sheet's OWN four taps lead there too" do
+      # The block above presses Film, Discover, WhatFits and Subscriptions —
+      # the four screens a real band lives on. It never presses
+      # `Kati.Screens.NothingSetUpKnockOn` itself, which is the one module
+      # that actually owns `handle_tap/2`'s shared clause for all four tags
+      # (screen 96, reached from the gallery board index rather than from any
+      # of the four). `mix mob.routes` is what caught the gap this closes: the
+      # clause pushed a bare `MyServices` — no `Kati.Screens.` prefix — which
+      # resolves to nothing and would have crashed the moment a developer
+      # tapped any of the four buttons while walking the gallery.
+      for tag <- ~w(my_services_where_to_watch my_services_leaving_soon
+                    my_services_what_fits my_services_ledger)a do
+        {:noreply, pushed} =
+          press(
+            Kati.Screens.NothingSetUpKnockOn,
+            tag,
+            Mob.Socket.new(Kati.Screens.NothingSetUpKnockOn)
+          )
+
+        assert {:push, Kati.Screens.MyServices, _params} = Map.get(pushed.__mob__, :nav_action),
+               "Kati.Screens.NothingSetUpKnockOn's #{tag} does not lead to My services"
+      end
+    end
   end
 
   # Screens differ on which callback carries a tap; both reach the same clause.
