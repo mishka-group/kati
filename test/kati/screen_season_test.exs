@@ -203,6 +203,49 @@ defmodule Kati.ScreenSeasonTest do
                "deliver: it sorts by {season, episode} and season 0 sorts ahead of the season"
     end
 
+    test "and the switch is a control, not a picture of one" do
+      # It was drawn in the right position and carried no tap, and `on:` was
+      # *whether the provider filed any specials* rather than whether the reader
+      # wants them — a row named for a choice, reporting a fact.
+      # MOVIES-AND-TV.md `34 scenario 14`.
+      [specials] = Season.season().options
+
+      assert specials.tap, "the switch cannot be pressed"
+
+      with_specials = Season.season(%{}, :aired, true)
+      without = Season.season(%{}, :aired, false)
+
+      [on] = with_specials.options
+      [off] = without.options
+
+      assert on.on
+      refute off.on, "the switch reads on with the specials switched off"
+
+      assert off.sub == "Hidden from this list",
+             "the row says where they are when they are shown; it has to say so when they are not"
+
+      refute Enum.any?(without.episodes, & &1.special),
+             "the switch is off and a special is still in the list"
+
+      assert length(without.episodes) < length(with_specials.episodes),
+             "switching them off removed nothing"
+
+      # And the count above the list moves with it, rather than promising rows
+      # the list no longer has.
+      refute without.eyebrow == with_specials.eyebrow
+    end
+
+    test "a season with none filed reports that, and offers nothing to press" do
+      # The module's own rule for *Merge multi-part*, one row up: "A switch that
+      # cannot be honoured is not offered." A season with no specials has
+      # nothing to include or leave out.
+      [row] = Season.real_options(false, true)
+
+      refute row.on
+      refute row.tap, "a season with no specials offered a switch anyway"
+      assert row.sub == "None filed for this season"
+    end
+
     test "the DVD tile is only ever the board's, and it is not tappable there" do
       # No source in `Kati.Media.CachePolicy.sources/0` provides per-episode DVD
       # numbering — `CachedEpisode`'s moduledoc gives the whole reason — so the

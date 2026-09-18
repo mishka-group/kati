@@ -212,6 +212,7 @@ defmodule Kati.Screens.Season do
   @impl true
   def load(socket) do
     socket
+    |> Mob.Socket.assign(:specials?, true)
     |> Mob.Socket.assign(:season, season(socket.assigns.params))
     |> Mob.Socket.assign(:save_error, nil)
     |> Mob.Socket.assign(:menu?, false)
@@ -237,6 +238,7 @@ defmodule Kati.Screens.Season do
       "episode_" <> index -> {:noreply, Kati.Screens.Season.tick(socket, index)}
       "rate_" <> index -> {:noreply, Kati.Screens.Season.rate(socket, index)}
       "order_" <> label -> {:noreply, Kati.Screens.Season.reorder(socket, label)}
+      "toggle_specials" -> {:noreply, Kati.Screens.Season.toggle_specials(socket)}
       _menu_or_nothing -> {:noreply, Kati.Screens.Season.menu_tap(socket, tag)}
     end
   end
@@ -362,6 +364,32 @@ defmodule Kati.Screens.Season do
   end
 
   @doc """
+  *Include specials* — a control now, where it was a picture of one.
+
+  The switch was drawn in the right position and carried no tap: `on: any?` was
+  *whether the provider filed any specials*, not whether the reader wants to see
+  them, so a row named for a choice reported a fact and could not be pressed.
+  MOVIES-AND-TV.md `34 — Season, scenario 14`.
+
+  Session-local, which is the order strip's own arrangement one row up —
+  `reorder/2` assigns and stores nothing. Both are view controls over one
+  season's list rather than settings about the show, and neither has a column.
+  Making this one persist and not the other would be the more confusing of the
+  two, and inventing a column for it is a schema decision this screen is not
+  the place to take.
+  """
+  @spec toggle_specials(Mob.Socket.t()) :: Mob.Socket.t()
+  def toggle_specials(socket) do
+    now? = Map.get(socket.assigns, :specials?, true)
+    order = Map.get(socket.assigns.season, :order, :aired)
+
+    socket
+    |> Mob.Socket.assign(:specials?, not now?)
+    |> Mob.Socket.assign(:season, season(socket.assigns.params, order, not now?))
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
   Redraw the list in the order the tile names.
 
   Re-read rather than re-sorted in place, and that is the point of the
@@ -384,7 +412,10 @@ defmodule Kati.Screens.Season do
 
       order ->
         socket
-        |> Mob.Socket.assign(:season, season(socket.assigns.params, order))
+        |> Mob.Socket.assign(
+          :season,
+          season(socket.assigns.params, order, Map.get(socket.assigns, :specials?, true))
+        )
         |> Mob.Socket.assign(:save_error, nil)
     end
   end
@@ -402,9 +433,9 @@ defmodule Kati.Screens.Season do
   because both keys are optional and either can be absent on its own: a caller
   may know the series and not which season, and `%{}` knows neither.
   """
-  @spec season(map() | nil) :: map()
-  def season(params \\ %{}, order \\ :aired),
-    do: tracked_season(params, order) || empty_season(order)
+  @spec season(map() | nil, atom(), boolean()) :: map()
+  def season(params \\ %{}, order \\ :aired, specials? \\ true),
+    do: tracked_season(params, order, specials?) || empty_season(order)
 
   @doc """
   The season with no episodes in it.
@@ -496,15 +527,15 @@ defmodule Kati.Screens.Season do
   question this screen was always asked — the most recently touched series, at
   its own bookmark.
   """
-  @spec tracked_season(map() | nil, CachedEpisode.order()) :: map() | nil
-  def tracked_season(params \\ %{}, order \\ :aired) do
+  @spec tracked_season(map() | nil, CachedEpisode.order(), boolean()) :: map() | nil
+  def tracked_season(params \\ %{}, order \\ :aired, specials? \\ true) do
     asked = params || %{}
 
     case series_record(Map.get(asked, :title_id)) do
       %TrackedTitle{} = tracked ->
         case season_number(tracked, Map.get(asked, :season)) do
           nil -> nil
-          number -> episodes(tracked, number, order)
+          number -> episodes(tracked, number, order, specials?)
         end
 
       _none ->
@@ -566,10 +597,28 @@ defmodule Kati.Screens.Season do
   # list IS the screen — an order strip and two switches over an empty card says
   # less than the drawing does — so it falls back whole rather than rendering a
   # heading with no running order under it.
-  defp episodes(tracked, number, order) do
+  defp episodes(tracked, number, order, specials?) do
     case CachedEpisode.for_season(tracked.source, tracked.source_id, number) do
-      [] -> nil
-      episodes -> assemble(tracked, number, episodes ++ specials(tracked), order)
+      [] ->
+        nil
+
+      episodes ->
+        all = episodes ++ specials(tracked)
+
+        # Both facts, separately, and `any?` is asked of the WHOLE list rather
+        # than of `specials/1`'s answer. The two are not the same question: a
+        # provider files most specials under season 0, which is what `specials/1`
+        # fetches, but one filed INSIDE the season carries the same `special`
+        # flag and keeps its own place. The flag is what the switch is about.
+        #
+        # Asked separately because folding them together would make a season
+        # whose specials are switched OFF indistinguishable from one that has
+        # none, and the row would then say *None filed for this season* over a
+        # season that has three.
+        any? = Enum.any?(all, & &1.special)
+        shown = if specials?, do: all, else: Enum.reject(all, & &1.special)
+
+        assemble(tracked, number, shown, order, any?, specials?)
     end
   end
 
@@ -600,7 +649,7 @@ defmodule Kati.Screens.Season do
   # The three parts of the drawing a season can actually fill, laid over the
   # drawn one. Everything not named here is the design's own and stays that way
   # — see the moduledoc for the list and for why each is on it.
-  defp assemble(tracked, number, episodes, asked) do
+  defp assemble(tracked, number, episodes, asked, any_specials?, specials?) do
     watches = ticks(tracked)
     ticked = CachedEpisode.ticked_ids(watches)
     # The same rows the ticks come from — see `Kati.Screens.Series.
@@ -630,7 +679,7 @@ defmodule Kati.Screens.Season do
         subtitle: gettext("order & specials"),
         eyebrow: gettext("Episodes · %{n} in this order", n: Kati.Locale.number(length(rows))),
         episodes: rows,
-        options: real_options(episodes),
+        options: real_options(any_specials?, specials?),
         orders: Enum.map(offered, &Kati.Screens.Season.order_label/1),
         current_order: Kati.Screens.Season.order_label(order),
         note: general_note()
@@ -758,10 +807,8 @@ defmodule Kati.Screens.Season do
 
   The board keeps both: it is a drawing of a season this app cannot yet hold.
   """
-  @spec real_options([CachedEpisode.t()]) :: [map()]
-  def real_options(episodes) do
-    any? = Enum.any?(episodes, & &1.special)
-
+  @spec real_options(boolean(), boolean()) :: [map()]
+  def real_options(any?, on?) do
     [
       %{
         icon: "star",
@@ -779,11 +826,18 @@ defmodule Kati.Screens.Season do
         # INSIDE the season keeps its own place, which is why this says
         # `first` rather than `at the top`.
         sub:
-          if(any?,
-            do: gettext("Listed first, before the season"),
-            else: gettext("None filed for this season")
-          ),
-        on: any?
+          cond do
+            not any? -> gettext("None filed for this season")
+            on? -> gettext("Listed first, before the season")
+            true -> gettext("Hidden from this list")
+          end,
+        on: any? and on?,
+        # A switch the season cannot honour is not a switch. The module already
+        # applies this to *Merge multi-part* — *"A switch that cannot be
+        # honoured is not offered"* — and a season with no specials filed is the
+        # same case one row up: there is nothing to include or leave out, so the
+        # row reports and does not offer.
+        tap: if(any?, do: {self(), :toggle_specials})
       }
     ]
   end
@@ -1183,7 +1237,8 @@ defmodule Kati.Screens.Season do
           SettingsList.body(row.title, row.sub),
           SettingsList.switch(row.on),
           padding: 13,
-          rule: i < last
+          rule: i < last,
+          on_tap: Map.get(row, :tap)
         )
       end)
 
