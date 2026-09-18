@@ -1421,6 +1421,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # now, so the board's own show has to be installed to compare the frame
       # against its capture.
       {"149", Kati.Screens.DropSheet, &Map.put(&1, :sheet, Kati.Screens.DropSheet.drawn_sheet())},
+      # 98, 99, 101 and 103 all draw board 98's card and reach the same read.
+      # A year with nothing counted is the honest answer now, so the board's own
+      # card is installed to compare the four frames against their captures.
+      {"98", Kati.Screens.YearShare, &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
+      {"99", Kati.Screens.YearShareBooks,
+       &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
+      {"101", Kati.Screens.YearCardsStates,
+       &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
+      {"103", Kati.Screens.YearShare, &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
       # 35 answers its own empty page over no show, so the board's own title has
       # to be installed to compare the frame. The two flags stay as the empty
       # page has them — both bands are the drawing's and this keeps them drawn.

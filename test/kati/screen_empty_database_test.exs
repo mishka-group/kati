@@ -693,6 +693,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 35 → no board either: an empty page carries no title, and the two bands
     # the board draws are both dropped the moment a real show names itself.
     "35" => [],
+    # 98 and 99 → no board either: a year with nothing counted has no hours,
+    # no ranked titles, no contribution grid and no genre bars, so what is left
+    # of board 98 on an empty store is the card's own frame.
+    "98" => [],
+    "99" => [],
+    # 101 and 103 draw 98's card as well — 101 as its five states, 103 as 98
+    # under `:fa` — so both lose the same content.
+    "101" => [],
+    "103" => [],
     # 39 → no board either: the three phantom tiles and the shortcut rows are
     # deleted, so what is left of board 39 on an empty store is chrome.
     "39" => [],
@@ -2088,12 +2097,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # which is the state all three boards were captured in. 99 is 98 with the
       # Books chip lit and 101 is the five states of 100's cards; both draw 98's
       # own card and reach the read through it.
-      {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
-       &Kati.Screens.YearShare.drawn_share/0},
-      {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,
-       &Kati.Screens.YearShare.drawn_share/0},
-      {"101", Kati.Screens.YearCardsStates, &Kati.Screens.YearShare.share/0,
-       &Kati.Screens.YearShare.drawn_share/0},
       # 86 and 87 gate on the same read, which is the only one either makes:
       # a device with no title and no note answers the board's own two, so both
       # boards' literals are still drawn in full.
@@ -2485,6 +2488,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"35", Kati.Screens.SeriesSettings, fn -> Kati.Screens.SeriesSettings.show(%{}) end,
        Kati.Screens.SeriesSettings.empty_show(),
        fn -> Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil) end},
+      # 98 and 99 answer a year with nothing counted. This matters more here
+      # than on most screens: a share card is built to be saved and sent, so an
+      # invented one does not merely mislead the person holding the phone — it
+      # travels. 99 is 98 with the Books chip lit and reaches the same read.
+      {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
+       Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
+      {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,
+       Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
+      # 101 draws 98's own card too and reaches the read through it.
+      {"101", Kati.Screens.YearCardsStates, &Kati.Screens.YearShare.share/0,
+       Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.

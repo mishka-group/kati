@@ -90,7 +90,7 @@ defmodule Kati.Screens.YearShare do
 
     case figures[:year] do
       nil ->
-        drawn_share()
+        empty_share()
 
       year ->
         %{
@@ -113,7 +113,11 @@ defmodule Kati.Screens.YearShare do
         }
     end
   rescue
-    _error -> drawn_share()
+    # A read that raised is not a year worth sharing either. This answered
+    # `drawn_share/0`, so a database Kati could not read became a card with
+    # somebody else's hours on it — and this is the one page whose whole
+    # purpose is to leave the device.
+    _error -> empty_share()
   end
 
   @doc """
@@ -166,6 +170,33 @@ defmodule Kati.Screens.YearShare do
     </Row>
     """
   end
+
+  @doc """
+  A year with nothing counted, in the shape the card draws.
+
+  What a reader who has watched nothing this year gets, in place of
+  `drawn_share/0`'s. It matters more here than on most screens: a share card is
+  built to be saved and sent, so an invented one does not merely mislead the
+  person holding the phone — it travels.
+
+  `change: nil` for the reason `hours_face/1` already gives about a first year:
+  there is no last year to be up or down against, and `↑ 0%` is a claim.
+  """
+  @spec empty_share() :: map()
+  def empty_share,
+    do: %{
+      subtitle: "",
+      hours: %{
+        label: gettext("Time watched"),
+        figure: Kati.Locale.number(0),
+        direction: :up,
+        change: nil,
+        year: Kati.Screens.YearShare.year()
+      },
+      top: [],
+      grid: [],
+      breakdown: []
+    }
 
   @doc "The drawing's card, whole — the state board 98 was captured in."
   @spec drawn_share() :: map()
