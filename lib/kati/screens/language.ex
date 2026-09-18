@@ -775,8 +775,10 @@ defmodule Kati.Screens.Language do
   #
   # Wrapped, though: at `:fa` it is a Latin run inside a right-to-left page, and
   # without the isolate the symbol resolves to the wrong side of its own code.
-  defp copy("£ GBP"), do: Kati.Locale.ltr("£ GBP")
-
+  # The clause that did this was `copy("£ GBP")` — a literal, on a row that taps
+  # through to `Kati.Screens.Currency`, which writes the key the line now reads.
+  # It is the catch-all below that wraps it now, because the line is whichever
+  # currency the reader chose and there is no literal to match.
   defp copy("Your own words" <> _rest) do
     gettext(
       "Your own words — notes, list names, meal titles — are never translated. " <>
@@ -790,5 +792,11 @@ defmodule Kati.Screens.Language do
   # `Kati.Screens.MealReminders.copy/1` keeps, for the same reason. It also
   # catches the two picker rows, which never reach here: they are specimens and
   # are drawn straight off the sample.
-  defp copy(other), do: other
+  defp copy(other) do
+    if other == Kati.Language.Sample.currency_line() do
+      Kati.Locale.ltr(other)
+    else
+      other
+    end
+  end
 end

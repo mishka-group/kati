@@ -380,6 +380,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # mirror away. It is screen 04 under `:fa` now — hence its number on
     # `@fa_numbers` below.
     {"58", Kati.Screens.Series},
+    # 54 reads a store now: its Currency row shows the reader's own currency
+    # rather than a literal `£ GBP`. `Kati.Money.currency/0` answers "GBP" with
+    # nothing stored, so the line an empty device draws is the line the drawing
+    # was captured with — no fallback, no gate, just a real read whose empty
+    # answer happens to be the board's.
+    {"54", Kati.Screens.Language},
     # The Books domain's three screens, and 66 and 70 are the pair this file was
     # written for: 66 falls back to `Kati.Books.Sample.detail/0` for the whole
     # page, and 70 falls back for the book it is about to write a session
@@ -2425,7 +2431,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"47", Kati.Screens.Nutrition, fn -> Kati.Screens.Nutrition.figures(today) end,
        &Kati.Screens.Nutrition.drawn_figures/0},
       {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
-       &Kati.Meals.SampleShopping.list/0}
+       &Kati.Meals.SampleShopping.list/0},
+      # 54 is in this list mechanically rather than because anything falls back.
+      # Its Currency row reads `Kati.Money.currency/0`, which answers "GBP" with
+      # nothing stored — so a fresh device draws the line the board was captured
+      # with, and the pair is here to catch those drifting apart, not to permit
+      # a drawing. The row was the literal `"£ GBP"` until the reader's own
+      # currency replaced it.
+      {"54", Kati.Screens.Language, &Kati.Language.Sample.currency_line/0, fn -> "£ GBP" end}
     ]
   end
 

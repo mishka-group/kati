@@ -106,8 +106,26 @@ defmodule Kati.Language.Sample do
         sub: "Metric · grams and millilitres",
         control: :chevron
       },
-      %{icon: "payments", title: "Currency", sub: "£ GBP", control: :chevron}
+      %{icon: "payments", title: "Currency", sub: currency_line(), control: :chevron}
     ]
+  end
+
+  @doc """
+  The reader's own currency, as the row under **Currency** reads it.
+
+  Live, despite the module it sits in — the same shape
+  `Kati.Settings.Sample.services_line/0` has: the ROW is the app's own structure
+  and belongs here, the VALUE in it is this reader's and cannot be.
+
+  It was the literal `"£ GBP"`, on a row that taps through to
+  `Kati.Screens.Currency`, which both reads and writes the very key this now
+  reads. So a reader who changed their currency went back to Language and was
+  told it was still Sterling.
+  """
+  @spec currency_line() :: String.t()
+  def currency_line do
+    code = Kati.Money.currency()
+    Kati.Money.symbol(code) <> " " <> code
   end
 
   @doc "The promise the screen closes on."
