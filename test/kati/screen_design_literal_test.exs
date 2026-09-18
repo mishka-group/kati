@@ -1433,6 +1433,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 15 draws nothing logged yet on an empty store, so the board's own seven
       # rows have to be installed to compare the frame against its capture.
       {"15", Kati.Screens.Activity, &Map.put(&1, :log, Kati.Screens.Activity.drawn())},
+      # 33 answers its own empty sheet over an unlogged film now, so the
+      # board's own watch — Blue Hour's 8, its review, its spoiler flag, its
+      # three context rows and its three tags — is installed here to compare
+      # the frame against .scratch/design/audit/33.png.
+      {"33", Kati.Screens.Rating, &Map.put(&1, :watch, Kati.Screens.Rating.drawn_watch())},
       # 11 answers an empty feed now, so the board's own is installed here.
       {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
       # 34 answers an empty season now, so the board's own goes in here.

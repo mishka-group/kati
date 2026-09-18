@@ -158,19 +158,22 @@ defmodule Kati.FilmWatchTest do
       assert socket.assigns.tracked_title_id == film.id
     end
 
-    test "with nothing named at all it is still the drawing" do
-      # The gallery pushes screen 33 with no params and board 33 is what it
-      # must draw, so this branch has to stay exactly as it was.
+    test "with nothing named at all it is an empty sheet" do
+      # Pushed with no params there is no film to rate, so the sheet opens on
+      # its own empty state. It used to open on `Kati.Rating.Sample.watch/0` —
+      # a sheet already carrying Blue Hour's rating, review and three context
+      # rows over a reader who had named nothing.
       {:ok, socket} = Rating.mount(%{}, %{}, Mob.Socket.new(Rating))
 
-      assert socket.assigns.watch == Rating.drawn_watch()
+      assert blank(socket.assigns.watch) == blank(Rating.empty_watch())
+      assert socket.assigns.watch_id == nil
     end
 
-    test "an id that names nothing draws the drawing rather than somebody else's film" do
+    test "an id that names nothing is empty rather than somebody else's film" do
       {:ok, socket} =
         Rating.mount(%{tracked_title_id: Ash.UUID.generate()}, %{}, Mob.Socket.new(Rating))
 
-      assert socket.assigns.watch == Rating.drawn_watch()
+      assert blank(socket.assigns.watch) == blank(Rating.empty_watch())
       assert socket.assigns.watch_id == nil
     end
 
@@ -195,4 +198,8 @@ defmodule Kati.FilmWatchTest do
              "the sheet looked the id up and threw it away, which is the whole defect"
     end
   end
+
+  # `watched_at` is stamped at the moment it is read, so two calls a
+  # microsecond apart are unequal over a field neither branch chose.
+  defp blank(watch), do: Map.drop(watch, [:watched_at])
 end

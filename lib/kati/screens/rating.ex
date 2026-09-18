@@ -335,16 +335,16 @@ defmodule Kati.Screens.Rating do
   # draw.
   defp draft_and_id(nil, tracked_id) when is_binary(tracked_id) do
     case blank_for(tracked_id) do
-      nil -> {drawn_watch(), nil}
+      nil -> {empty_watch(), nil}
       blank -> {blank, nil}
     end
   end
 
-  defp draft_and_id(nil, _none), do: {drawn_watch(), nil}
+  defp draft_and_id(nil, _none), do: {empty_watch(), nil}
 
   defp draft_and_id(logged, _tracked_id) do
     case shape(logged) do
-      nil -> {drawn_watch(), nil}
+      nil -> {empty_watch(), nil}
       shaped -> {shaped, logged.id}
     end
   end
@@ -362,7 +362,7 @@ defmodule Kati.Screens.Rating do
   unnarrowed and hand back the newest rated watch anywhere in the library.
   """
   @spec watch(String.t() | nil) :: map()
-  def watch(title_id \\ nil), do: shaped_or_drawn(logged_record(title_id))
+  def watch(title_id \\ nil), do: shaped_or_empty(logged_record(title_id))
 
   @doc """
   Screen 33 exactly as it is drawn, from `Kati.Rating.Sample`.
@@ -518,8 +518,42 @@ defmodule Kati.Screens.Rating do
     _error -> nil
   end
 
-  defp shaped_or_drawn(nil), do: drawn_watch()
-  defp shaped_or_drawn(logged), do: shape(logged) || drawn_watch()
+  @doc """
+  The sheet with no watch and no title behind it.
+
+  `blank_for/1`'s shape with the title emptied — the same sheet a first watch
+  opens in, minus the thing being rated. It was `drawn_watch/0`, so a sheet
+  opened over nothing drew *Blue Hour*, four stars and somebody else's review,
+  on a screen whose Save WRITES.
+
+  `live?: false` is the difference that matters: `blank_for/1` sets it true
+  because there is a real title to write against, and there is not one here.
+  """
+  @spec empty_watch() :: map()
+  def empty_watch do
+    %{
+      title: "",
+      seed: nil,
+      meta: "",
+      rewatch: nil,
+      rating: nil,
+      rating_note: rating_note(),
+      spoilers: nil,
+      review: "",
+      characters: characters_label(nil),
+      watched_on: Kati.Time.today(),
+      watched_at: Kati.Time.now(),
+      service: nil,
+      companions: nil,
+      place: nil,
+      context: [],
+      tags: [],
+      live?: false
+    }
+  end
+
+  defp shaped_or_empty(nil), do: empty_watch()
+  defp shaped_or_empty(logged), do: shape(logged) || empty_watch()
 
   defp shape(logged) do
     shaped(logged.tracked_title, cached_for(logged.tracked_title), logged)
@@ -846,8 +880,8 @@ defmodule Kati.Screens.Rating do
   # `Lumen+ · living room`. Stored apart even though the drawing writes them as
   # one line, because one of them is a thing stats can group by and the other is
   # a room in a house — so either half can be absent and the line closes up.
-  defp where_label(%Watch{service: service, place: place}) do
-    [service, place]
+  defp where_label(w) do
+    [Map.get(w, :service), Map.get(w, :place)]
     |> Enum.map(&presence/1)
     |> Enum.reject(&is_nil/1)
     |> Enum.join(" · ")
@@ -1798,7 +1832,7 @@ defmodule Kati.Screens.Rating do
         tag: :open_where,
         icon: "tv",
         title: where_row_label(),
-        sub: Map.get(w, :service) || sub_of(w, "tv")
+        sub: where_label(w) || sub_of(w, "tv")
       },
       %{
         key: :with,

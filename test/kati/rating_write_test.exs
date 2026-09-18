@@ -148,26 +148,27 @@ defmodule Kati.RatingWriteTest do
     # the user's own rating and review with the fixture's. That branch cannot be
     # reached from a test without editing the module, so what is pinned here is
     # the invariant either branch has to satisfy: no id beside the drawing.
-    test "no sheet showing the drawing carries a row to commit it to" do
+    test "no sheet showing a draft it did not read carries a row to commit it to" do
       empty = mount_rating()
 
-      assert assigns(empty).watch == Rating.drawn_watch()
+      assert assigns(empty).watch.live? == false
       assert assigns(empty).watch_id == nil
 
       a_logged_watch!()
       real = mount_rating()
 
       assert assigns(real).watch_id != nil
-      assert assigns(real).watch != Rating.drawn_watch()
+      assert assigns(real).watch.live?
 
       # Said once more as the implication itself, because it is the half that
-      # holds however many ways there come to be of arriving at the drawing.
+      # holds however many ways there come to be of arriving at a draft that is
+      # not the row's.
       for view <- [empty, real] do
         assigns = assigns(view)
 
-        assert assigns.watch_id == nil or assigns.watch != Rating.drawn_watch(),
-               "the sheet is drawing the fixture and holding a real row's id, so Save " <>
-                 "would file Blue Hour under the user's own log"
+        assert assigns.watch_id == nil or assigns.watch.live?,
+               "the sheet is drawing a draft it never read and holding a real row's id, " <>
+                 "so Save would file it under the user's own log"
       end
     end
   end

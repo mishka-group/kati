@@ -135,18 +135,28 @@ defmodule Kati.ScreenRatingLogTest do
   defp stars(tree), do: find_all(tree, :text, font_family: "symbols_filled", text_size: 26)
 
   describe "nothing logged" do
-    test "the sheet draws the drawing, to the term" do
+    test "the sheet opens empty rather than on somebody else's watch" do
       assert Rating.logged_watch() == nil,
              "a watch answered against an empty log, so nothing below is measuring the " <>
-               "fallback"
+               "empty branch"
 
-      assert Rating.watch(tracked_id()) == Sample.watch(),
-             "the fallback is not `Kati.Rating.Sample.watch/0` verbatim, and that fixture " <>
-               "is what `.scratch/design/audit/33.png` was captured from"
+      w = Rating.watch(tracked_id())
+
+      refute w.live?, "an unread draft is committable"
+      assert w.title == ""
+      assert w.rating == nil
+      assert w.review == ""
+      assert w.context == []
+      assert w.tags == []
     end
 
     test "every string the drawing carries reaches the rendered tree" do
-      tree = tree(mount_rating())
+      # The frame, not the branch: the drawing is installed over the sheet's own
+      # assigns, exactly as `Kati.ScreenDesignLiteralTest` does for board 33.
+      # What this asserts is that every value board 33 carries still has a node
+      # to be drawn in — a row deleted from the sheet fails here whichever
+      # branch filled it.
+      tree = Rating.render(%{assigns(mount_rating()) | watch: Sample.watch()})
       w = Sample.watch()
 
       for string <- [w.title, w.meta, w.rewatch, w.spoilers, w.review, w.characters] ++ w.tags do
@@ -178,7 +188,7 @@ defmodule Kati.ScreenRatingLogTest do
              "a tick filled the sheet. It has no rating, no review and no context, so what " <>
                "it fills the sheet with is five empty cards"
 
-      assert Rating.watch(tracked_id()) == Sample.watch()
+      refute Rating.watch(tracked_id()).live?
     end
 
     test "a review of nothing but whitespace is not a log either" do

@@ -725,6 +725,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 23 → no board either: no services means no rows, no total and no
     # suggestion, so board 23's own four have nothing left to compare.
     "23" => [],
+    # 33 → no board: the sheet's own frame survives — the ten-point scale, the
+    # review placeholder, the three context titles and the tag row are the
+    # screen's structure — but every VALUE board 33 draws is Blue Hour's, so an
+    # unlogged sheet has none of them left to be held to.
+    "33" => [],
     # 15 → no board either: nothing logged means no rows, no rewatch card and a
     # count of zero, so board 15's own seven rows have nothing left to compare.
     "15" => [],
@@ -2237,8 +2242,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # widget at a time: three that still drew the drawing would hide a fourth
       # that had stopped being able to.
       {"29", Kati.Screens.Lock, &Kati.Screens.Lock.widgets/0, &Kati.Screens.Lock.drawn_widgets/0},
-      {"33", Kati.Screens.Rating, &Kati.Screens.Rating.watch/0,
-       &Kati.Screens.Rating.drawn_watch/0},
       # 20 gates the whole page as 66 does, and for the reason its own moduledoc
       # gives: the grid, the hero, the subtitle and the chip counts are four
       # views of one shelf, so one pair covers all four and a gate that looked
@@ -2344,8 +2347,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 158 IS the empty state — it is screen 55 with nothing kept, so it
       # answers with its own emptiness rather than falling back to a drawing.
       # `Kati.Screens.HomeEmpty` is gated the same way for the same reason.
-      {"144", Kati.Screens.RateEpisode, &Kati.Screens.Rating.watch/0,
-       &Kati.Screens.Rating.drawn_watch/0},
       # 149 is NOT here: it gates on `Kati.Screens.Library.titles/0`, which #91
       # made answer with the shelf and nothing else. Its gate is in `empties/0`,
       # still through Library's own reader for the reason it always was.
@@ -2523,6 +2524,22 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 101 draws 98's own card too and reaches the read through it.
       {"101", Kati.Screens.YearCardsStates, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
+      # 33 and 144 answer their own empty sheet. The draft used to be
+      # `Kati.Rating.Sample.watch/0`, so opening the log sheet over a film with
+      # nothing logged handed the reader Blue Hour's 8, its review body, its
+      # spoiler flag and its three context rows — and `writable?/1` was the only
+      # thing standing between that and Save filing it under their own row.
+      #
+      # `:watched_at` is dropped from both sides: an unlogged sheet defaults its
+      # hour to the moment it is read, exactly as `blank_for/1` does, so the two
+      # calls below are microseconds apart over a field neither branch chose.
+      {"33", Kati.Screens.Rating, fn -> Map.drop(Kati.Screens.Rating.watch(), [:watched_at]) end,
+       Map.drop(Kati.Screens.Rating.empty_watch(), [:watched_at]),
+       &Kati.Screens.Rating.drawn_watch/0},
+      {"144", Kati.Screens.RateEpisode,
+       fn -> Map.drop(Kati.Screens.Rating.watch(), [:watched_at]) end,
+       Map.drop(Kati.Screens.Rating.empty_watch(), [:watched_at]),
+       &Kati.Screens.Rating.drawn_watch/0},
       # 15 is an append-only record of what the reader DID, so a device that has
       # done nothing has to say so. It reported 1,204 entries over seven
       # invented rows on every fresh install.

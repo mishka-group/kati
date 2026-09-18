@@ -70,9 +70,18 @@ defmodule Kati.RatingPlaceTest do
       # `where_label/1` is what puts the dot between them, and until this it
       # could only ever reach the first side of it. Read off the page rather
       # than out of the private function: what matters is that a reader sees it.
-      log!(tracked, %{service: "Lumen+", place: "living room"})
+      # Mounted WITH the title, not bare. Bare, this passed on
+      # `Kati.Rating.Sample.watch/0`, whose own service and place happen to be
+      # `Lumen+` and `living room` — so the assertion was reading the fixture
+      # while the test claimed to be reading a watch it had just logged.
+      # `rating:` as well, because `newest_log/1` only reopens a watch that
+      # carries a rating or a review — a row with neither is not a log this
+      # sheet has anything to show. Without it the sheet opened blank for the
+      # title, and the assertion was met by the fixture instead.
+      log!(tracked, %{rating: 8, service: "Lumen+", place: "living room"})
 
-      assert text(mount_screen(Rating)) =~ "Lumen+ · living room"
+      assert text(mount_screen(Rating, %{tracked_title_id: tracked.id})) =~
+               "Lumen+ · living room"
     end
 
     test "a place typed and committed reaches the draft", %{tracked: tracked} do
