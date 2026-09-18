@@ -47,9 +47,14 @@ defmodule Kati.SubscriptionsLedgerTest do
   end
 
   describe "with nothing subscribed" do
-    test "there is no ledger, and the page draws its board" do
+    test "there is no ledger, and the page says so rather than drawing a bill" do
       assert Subscriptions.ledger() == nil
-      assert Kati.Screens.Subscriptions.ledger() == Kati.Screens.Subscriptions.drawn_ledger()
+
+      assert Kati.Screens.Subscriptions.ledger() == Kati.Screens.Subscriptions.empty_ledger(),
+             "a reader who pays for nothing was shown `5 active`, `£46.47` and four " <>
+               "services — on a page about money"
+
+      refute Kati.Screens.Subscriptions.ledger() == Kati.Screens.Subscriptions.drawn_ledger()
     end
   end
 

@@ -1547,8 +1547,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.ScreenEmptyDatabaseTest`'s `@empty_boards` holds that half. The
       # gate is an assign so a captured frame can set it without writing a
       # service into the store.
+      # The ledger joins the two it already set: 23 answers an empty ledger with
+      # nothing subscribed now, so the board's own bill has to be installed to
+      # compare the frame against its capture.
       {"23", Kati.Screens.Subscriptions,
-       &(&1 |> Map.put(:params, %{back: "Stats"}) |> Map.put(:set_up?, true))},
+       &(&1
+         |> Map.put(:params, %{back: "Stats"})
+         |> Map.put(:set_up?, true)
+         |> Map.put(:ledger, Kati.Screens.Subscriptions.drawn_ledger()))},
       # 06 is drawn MID-QUERY. The sheet opens empty now — its four results and
       # its `4 results` caption belong to a search somebody has run, and
       # opening on them showed a reader who had typed nothing four invented

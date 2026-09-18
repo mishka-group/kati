@@ -141,7 +141,34 @@ defmodule Kati.Screens.Subscriptions do
   real and is three-quarters invented. MOVIES-AND-TV.md #66.
   """
   @spec ledger() :: map()
-  def ledger, do: Kati.Subscriptions.ledger() || Kati.Screens.Subscriptions.drawn_ledger()
+  def ledger, do: Kati.Subscriptions.ledger() || Kati.Screens.Subscriptions.empty_ledger()
+
+  @doc """
+  The ledger with nothing subscribed.
+
+  `drawn_ledger/0`'s shape at zero. It was the drawing — `5 active`, `£46.47`,
+  `Up £4.00` and four services — so a reader who pays for nothing was shown a
+  bill, on a page about money.
+
+  `Kati.Subscriptions.ledger/0` answers nil both for an empty list and from a
+  `rescue`, and neither is a reason to invent a total: a database Kati cannot
+  read has not told it what anybody spends.
+  """
+  @spec empty_ledger() :: map()
+  def empty_ledger do
+    %{
+      active_line: Kati.Subscriptions.active_line([]),
+      monthly: %{
+        label: "Every month",
+        total: "—",
+        change_lead: nil,
+        change_amount: nil,
+        change_rest: nil
+      },
+      services: [],
+      suggestion: nil
+    }
+  end
 
   @doc "Board 23 exactly as it is drawn, from `Kati.Subscriptions.Sample`."
   @spec drawn_ledger() :: map()

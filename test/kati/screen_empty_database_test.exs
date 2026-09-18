@@ -702,6 +702,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 23 → no board either: no services means no rows, no total and no
+    # suggestion, so board 23's own four have nothing left to compare.
+    "23" => [],
     # 15 → no board either: nothing logged means no rows, no rewatch card and a
     # count of zero, so board 15's own seven rows have nothing left to compare.
     "15" => [],
@@ -2119,8 +2122,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Settings.WatcherSample.banner/0},
       # 23 gates on the whole ledger: the count, the total, every row and the
       # advice card arrive together or the board's do.
-      {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
-       &Kati.Screens.Subscriptions.drawn_ledger/0},
       # 18 gates on the whole draft: the sentence, the title, the chips, the
       # clash and the button's word arrive together or the board's do. An
       # untyped field is the board.
@@ -2510,6 +2511,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # invented rows on every fresh install.
       {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, Kati.Screens.Activity.empty(),
        &Kati.Screens.Activity.drawn/0},
+      # 23 answers an empty ledger with nothing subscribed. It drew `5 active`,
+      # `£46.47`, `Up £4.00` and four services — a bill, to a reader who pays
+      # for nothing.
+      {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
+       Kati.Screens.Subscriptions.empty_ledger(), &Kati.Screens.Subscriptions.drawn_ledger/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.
