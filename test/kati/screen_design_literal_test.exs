@@ -260,6 +260,13 @@ defmodule Kati.ScreenDesignLiteralTest do
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
     {"49", "auto_mode"},
+    # Board 39's deleted tiles and shortcut rows — see `retired_lines/0`.
+    {"39", "add"},
+    {"39", "bolt"},
+    {"39", "calendar_month"},
+    {"39", "chevron_right"},
+    {"39", "mic"},
+    {"39", "play_arrow"},
     # 144's rewatch swatch went with the invented verdict it drew — see
     # `DesignLiterals.retired_lines/0`. The chevron was the swatch's own
     # expand disc; `rewatch_block/2` draws its own on a real rewatch.

@@ -151,7 +151,43 @@ defmodule Kati.Screens.Widgets do
   alias Kati.Widgets.Sample
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :widgets, Sample.widgets())
+  def load(socket) do
+    Mob.Socket.assign(socket, :widgets, %{
+      up_next: Kati.Screens.Widgets.up_next_now(),
+      share: Sample.share()
+    })
+  end
+
+  @doc """
+  The shipped widget's own content, or `nil` when nothing is queued.
+
+  Board 39 drew four tiles at four sizes from `Kati.Widgets.Sample` — UP NEXT,
+  TONIGHT, STREAK and a wide one — and the file argued all-or-nothing: STREAK
+  could not be real, because nothing records that a habit was kept, so none of
+  them were.
+
+  That argument expired when a real widget shipped. There is exactly one, it is
+  the UP NEXT one, and it reads `Kati.Screens.UpNext.queue/0` through
+  `Kati.Widgets.Snapshot` — the same hero, off the same function. So the page
+  shows that, and the three tiles with nothing behind them are gone rather than
+  drawn: a picture of three widgets nobody can add is worse than one preview of
+  the widget they can.
+  """
+  @spec up_next_now() :: map() | nil
+  def up_next_now do
+    case Kati.Screens.UpNext.queue() do
+      %{hero: %{} = hero} ->
+        %{
+          label: pgettext("a home-screen widget's own name", "UP NEXT"),
+          seed: Map.get(hero, :seed),
+          title: hero.title,
+          episode: hero.meta
+        }
+
+      _nothing ->
+        nil
+    end
+  end
 
   @doc false
   def content(assigns) do
@@ -168,11 +204,8 @@ defmodule Kati.Screens.Widgets do
       >
         {Kati.Screens.Widgets.header()}
         {Kati.Screens.Widgets.title()}
-        {UI.eyebrow(gettext("Sizes"))}
-        {Kati.Screens.Widgets.sizes(w)}
-        {Kati.Screens.Widgets.wide(w)}
-        {UI.eyebrow(gettext("Shortcuts"))}
-        {Kati.Screens.Widgets.shortcuts(w)}
+        {UI.eyebrow(gettext("On your home screen"))}
+        {Kati.Screens.Widgets.preview(w.up_next)}
         {Kati.Screens.Widgets.quiet_eyebrow(gettext("Share sheet"))}
         {Kati.Screens.Widgets.share(w)}
       </Column>
@@ -398,6 +431,57 @@ defmodule Kati.Screens.Widgets do
   # about the reader: `S2E6` is an episode code and stays in DM Mono in both
   # scripts, where the caption becomes Vazirmatn the day `Kati.Widgets.Sample`
   # says بعدی — DM Mono has no glyph in that block at all.
+  @doc """
+  The one shipped widget, previewed at its own size — or nothing queued.
+
+  A single tile where the board drew a row of four. The other three were
+  TONIGHT, STREAK and a wide variant, none of which exists as a widget a reader
+  can add, so drawing them promised three things the launcher has not got.
+  """
+  def preview(nil) do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding={16}
+    >
+      <Text
+        text={gettext("Nothing queued yet")}
+        text_size={15}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
+      <Spacer size={4} />
+      <Text
+        text={
+          gettext(
+            "Start something on your shelf and the widget shows it, here and on your home screen."
+          )
+        }
+        text_size={13}
+        line_height={Kati.Locale.leading(1.4)}
+        text_color={Palette.muted()}
+      />
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  def preview(tile) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="top">
+        {Kati.Screens.Widgets.up_next_tile(tile)}
+        <Spacer weight={2.0} />
+      </Row>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
   @doc false
   def up_next_tile(tile) do
     ~MOB"""

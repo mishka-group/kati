@@ -386,6 +386,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # was captured with — no fallback, no gate, just a real read whose empty
     # answer happens to be the board's.
     {"54", Kati.Screens.Language},
+    # 39 reads the shelf now: it previews the one widget that ships, from
+    # `Kati.Screens.UpNext.queue/0` — the same hero the Glance widget reads.
+    {"39", Kati.Screens.Widgets},
     # The Books domain's three screens, and 66 and 70 are the pair this file was
     # written for: 66 falls back to `Kati.Books.Sample.detail/0` for the whole
     # page, and 70 falls back for the book it is about to write a session
@@ -687,6 +690,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "58" => [],
     # 08 → no board either, and for the same reason as 04.
     "08" => [],
+    # 39 → no board either: the three phantom tiles and the shortcut rows are
+    # deleted, so what is left of board 39 on an empty store is chrome.
+    "39" => [],
     # 09 → no board either: an empty day draws no rows, so board 09's own
     # fourteen items and the band and chips composed from them go with them.
     "09" => [],
@@ -1215,6 +1221,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # MOVIES-AND-TV.md #120.
   @small_empty_boards %{
     "23" => 9,
+    # 39 with nothing queued is the title, the mono line, two eyebrows, the
+    # preview's own two sentences and the share card — twelve strings. The three
+    # phantom tiles and the four shortcut rows that used to pad it past the
+    # generic floor were the whole of what this round deleted.
+    "39" => 12,
     # 09's empty day is the date heading, the view switcher's four labels and
     # one "Nothing scheduled" sentence — eleven strings. There is no second
     # section under it to pad the count with, and inventing one would be
@@ -2466,6 +2477,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with nothing in the slots. `drawn_series/0` stays on the right of the
       # pair: it is what `Kati.ScreenDesignLiteralTest` installs to compare the
       # page against .scratch/design/audit/04.png, and nothing else reads it.
+      # 39 answers `nil` with nothing queued — the preview says so rather than
+      # drawing the board's four tiles, three of which were widgets nobody can
+      # add to a home screen.
+      {"39", Kati.Screens.Widgets, &Kati.Screens.Widgets.up_next_now/0, nil,
+       fn -> Kati.Widgets.Sample.widgets().up_next end},
       # 09 answers `[]` for every empty day now, today included. The comment
       # here used to say the no-date branch was "deliberately NOT gated on a
       # handed date, because that answers `[]`, and `[]` is the right answer" —

@@ -898,6 +898,36 @@ defmodule Kati.DesignLiterals do
       {"144", "you, 3 mar 2024 \u00b7 \uF09A4"},
       {"144",
        "the estuary scenes land completely differently once you know what mara is looking for."},
+      # Board 39's three phantom widgets and its voice shortcuts, all deleted.
+      # The board drew four tiles at four sizes; exactly one of them exists as a
+      # widget a reader can add, and it is UP NEXT, which the page now previews
+      # from `Kati.Screens.UpNext.queue/0` — the same hero the shipped Glance
+      # widget reads. TONIGHT, STREAK and the wide variant were pictures of
+      # widgets nobody can put on a home screen.
+      #
+      # The shortcuts went for a blunter reason: they are Siri phrases, in an
+      # Android app, and there is no voice layer anywhere in `lib/`. Their
+      # switches stored nothing and armed nothing.
+      {"39", "sizes"},
+      {"39", "up next"},
+      {"39", "long hollow"},
+      {"39", "s2e6"},
+      {"39", "tonight"},
+      {"39", "episodes airing"},
+      {"39", "streak"},
+      {"39", "nights"},
+      {"39", "today · wide"},
+      {"39", "6 episodes air"},
+      {"39", "call mum"},
+      {"39", "shortcuts"},
+      {"39", "“hey siri, what’s next?”"},
+      {"39", "reads your next episode"},
+      {"39", "“mark it watched”"},
+      {"39", "ticks whatever is in progress"},
+      {"39", "“add to my list”"},
+      {"39", "adds a title by name"},
+      {"39", "automations"},
+      {"39", "run a shortcut when a season ends"},
       {"145", "showing 41 of 418"},
       # 146's own copy of the same figures. The line still renders — it is
       # `<shown> of <total> · <sort>` off the reader's shelf and their stored
