@@ -666,6 +666,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     undo, which the Library does not draw and screen 27 itself does.
   @empty_boards %{
     "01" => [{"139", :whole}],
+    # 10 → no board at all, the same treatment 12 gets: a shelf with nothing
+    # ready or cold draws `empty/0`'s honest card now, not board 10's own
+    # hero and four rows, so there is nothing left on this screen for an
+    # empty database to be held to.
+    "10" => [],
     # 154 draws its form in whatever state the socket holds, and its load state
     # is Film — board 155 says so: "Resting — empty, Film, nothing assumed".
     # Board 154 is drawn with Series chosen so the episode-count field is
@@ -1178,7 +1183,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # everybody to fit one screen the design drew small would stop it catching
   # that. Named, with a number, so a page that shrinks further still fails.
   # MOVIES-AND-TV.md #120.
-  @small_empty_boards %{"23" => 9}
+  @small_empty_boards %{
+    "23" => 9,
+    # 10's honest empty card is the whole page now — no hero, no rows, no
+    # second section beneath it the way Lists keeps its kept rows. An icon,
+    # "Nothing queued", one body sentence and the back pill's chrome is
+    # eleven strings, and padding it to clear a generic floor would be
+    # inventing a second sentence this state does not need.
+    "10" => 11
+  }
 
   # The same exception for an `@undrawn` screen, and the same argument.
   # `Kati.Screens.ListDetail` with nothing stored is one page saying one thing —
@@ -2125,8 +2138,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # would be the substitution this file exists to catch.
       {"52", Kati.Screens.MealsDay, fn -> Kati.Screens.MealsDay.day(%{}) end,
        &Kati.Screens.MealsDay.drawn_day/0},
-      {"10", Kati.Screens.UpNext, &Kati.Screens.UpNext.queue/0,
-       &Kati.Screens.UpNext.Sample.queue/0},
       {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, &Kati.Screens.Activity.drawn/0},
       {"32", Kati.Screens.Calendars, &Kati.Screens.Calendars.calendar_list/0,
        &Kati.Screens.Calendars.drawn_calendars/0},
@@ -2463,6 +2474,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # which is what puts the page on `Kati.Meals.SampleSwap`'s drawing.
       {"46", Kati.Screens.MealSwap, &Kati.Screens.MealSwap.handed_over/0, nil,
        fn -> "a-slot-id" end},
+      # 10 joined 12 and 92: `queue/0` used to fall back to `Sample.queue/0`
+      # whole whenever the shelf had never held anything or an unreadable
+      # store rescued to the same `[]` a genuinely empty one does. Both cases
+      # now answer `empty/0`, the same honest card a shelf holding only
+      # finished or dropped titles already got — no gate is needed to tell
+      # them apart any more, so the pair is a straight whole-map comparison.
+      {"10", Kati.Screens.UpNext, &Kati.Screens.UpNext.queue/0, Kati.Screens.UpNext.empty(),
+       &Kati.Screens.UpNext.Sample.queue/0},
       # 05's gate is `releases/0` — the read, which answers `nil` when nothing is
       # followed and a map when something is. It used to be paired with
       # `drawn_inbox/0`, because that was what an unfollowed device fell back

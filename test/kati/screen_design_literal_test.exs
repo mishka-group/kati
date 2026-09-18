@@ -1388,6 +1388,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"05", Kati.Screens.Inbox, &Map.put(&1, :inbox, Kati.Screens.Inbox.drawn_inbox())},
       {"12", Kati.Screens.Lists,
        &Map.put(&1, :lists, %{Kati.Screens.Lists.Sample.lists() | kept: Kati.Lists.Shelf.kept()})},
+      # 10 is drawn with a hero and four ready rows, which is a queue a reader
+      # builds by watching something rather than the one the screen opens in:
+      # a device with nothing on the go draws `empty/0`'s own card now, the
+      # same honest-empty move #75/#106 made for 92 and 12.
+      # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` holds that half; this puts
+      # the screen in the state its own board was captured in.
+      {"10", Kati.Screens.UpNext, &Map.put(&1, :queue, Kati.Screens.UpNext.Sample.queue())},
       # 154 is drawn with Series chosen, and its own caption says why: the
       # episode-count field is only visible for a series. Board 155 states the
       # screen's actual default — "Resting — empty, Film, nothing assumed" — so

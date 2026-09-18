@@ -11,10 +11,13 @@ defmodule Kati.ScreenUpNextTest do
       names the string the drawing gives that line, and the negative assertions
       name titles that are *only* in the sample module: a screen that quietly
       fell back would still render four ready rows and pass a bare count.
-    * **With none, it still draws the drawing.** This screen is the reference
-      for frame 10 and a fresh install has nothing tracked, so `queue/0` must
-      answer `Sample.queue/0` *whole* — asserted as map equality, not as "some
-      titles appeared".
+    * **With none, it draws the truth.** A fresh install has nothing tracked,
+      and `queue/0` answers `empty/0` — the same honest "Nothing queued" card
+      a shelf with only finished or dropped titles gets — rather than
+      `Sample.queue/0`'s four invented titles. `Kati.Screens.UpNext.Sample`
+      still exists; `Kati.ScreenDesignLiteralTest` carries an explicit
+      override to read it for frame 10's literal coverage now that a real
+      empty queue can no longer surface it by accident.
     * **The strings are the same strings.** The fixture is built so the domain
       reproduces two of the sample module's own metas exactly
       (`S2 · E6 · 18M LEFT`, `S2 · E3 · 52m`). If the formatting drifts, those
@@ -25,10 +28,7 @@ defmodule Kati.ScreenUpNextTest do
 
   `test/test_helper.exs` gives the whole suite one SQLite file, so "an empty
   library" has to be made rather than assumed — the same reason
-  `Kati.SeedsTest` empties its tables in `setup`. Both directions matter here:
-  the wipe before makes the fallback test mean something, and the wipe after
-  keeps `Kati.ScreenDesignLiteralTest` mounting screen 10 against an empty
-  library, which is what lets it find the drawing's own copy.
+  `Kati.SeedsTest` empties its tables in `setup`.
   """
   use Mob.ScreenCase, async: false
 
@@ -47,41 +47,28 @@ defmodule Kati.ScreenUpNextTest do
   end
 
   describe "an empty library" do
-    test "answers with the drawing's own queue, whole" do
-      assert UpNext.queue() == Sample.queue()
+    test "answers with the honest empty queue, not the drawing" do
+      assert UpNext.queue() == UpNext.empty()
+      refute UpNext.queue() == Sample.queue()
     end
 
-    test "renders every line frame 10 draws" do
+    test "renders the honest card rather than any drawn title" do
       words = text(tree(mount_screen(UpNext)))
       drawn = Sample.queue()
 
-      assert words =~ drawn.subtitle
-      # Both eyebrows go through `Kati.UI.eyebrow/2`, which upcases.
-      assert words =~ String.upcase(drawn.ready_label)
-      assert words =~ String.upcase(drawn.cold_label)
-      assert words =~ drawn.hero.title
-      assert words =~ drawn.hero.meta
+      assert words =~ "Nothing queued"
+      assert words =~ "Start something on your shelf"
+
+      refute words =~ drawn.hero.title
+      refute words =~ drawn.hero.meta
 
       for row <- drawn.ready do
-        assert words =~ row.title, "the drawn ready row #{row.title} is missing"
-        assert words =~ row.meta
+        refute words =~ row.title, "#{row.title} is the drawing's own title"
       end
 
       for row <- drawn.cold do
-        assert words =~ row.title
-        assert words =~ row.meta
-        assert words =~ row.action
+        refute words =~ row.title, "#{row.title} is the drawing's own title"
       end
-    end
-
-    test "draws one photograph per drawn row, plus the hero still" do
-      images = find_all(tree(mount_screen(UpNext)), :image)
-      drawn = Sample.queue()
-
-      # The hero at its 700x400 crop, and a 40x56 poster on every other row.
-      assert length(images) == 1 + length(drawn.ready) + length(drawn.cold)
-      assert Enum.any?(images, &(&1.props[:height] == 170))
-      assert Enum.count(images, &(&1.props[:width] == 40)) == 5
     end
   end
 
@@ -137,19 +124,17 @@ defmodule Kati.ScreenUpNextTest do
       assert {:push, Kati.Screens.Library, _params} = Map.get(opened.__mob__, :nav_action)
     end
 
-    test "but an empty DATABASE still draws the board" do
-      # `shelf?/0` is the seam. A page that dies is worse than one showing the
-      # values it was drawn from, which is `Kati.Screens.Library.shelf/0`'s own
-      # degradation.
-      refute UpNext.shelf?()
-      assert UpNext.queue() == Sample.queue()
+    test "and a store that cannot be read answers the same honest card" do
+      # `pool/0`'s reads rescue to `[]`, the same as a genuinely empty shelf's
+      # do, so an unreadable store and a virgin shelf now draw identically —
+      # neither falls back to the sample any more.
+      assert UpNext.queue() == UpNext.empty()
     end
 
-    test "and a dropped title is a shelf, so its owner is told" do
+    test "and a dropped title still gets the honest empty card" do
       track!(%{status: :dropped, title: "Ashfall"})
 
-      assert UpNext.shelf?()
-      assert UpNext.queue().empty?
+      assert UpNext.queue() == UpNext.empty()
     end
   end
 

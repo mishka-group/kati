@@ -73,15 +73,17 @@ defmodule Kati.Screens.UpNext do
   name. That row renders as `Untitled` rather than being dropped, which is the
   same answer `Kati.Calendars.Today` gives a summary-less event.
 
-  ## An empty database still draws the drawing
+  ## An empty database draws the truth, not the drawing
 
   With no `:watching` row there is no hero, and a hero card is the whole top of
-  this screen — so `queue/0` falls back to `Sample.queue/0` whole, exactly as
-  `Kati.Screens.Home.rest_of_today/1` and `Kati.Screens.Calendar.day_rows/1`
-  fall back to their drawn rows. This screen is also the reference for frame 10,
-  and a fresh install has nothing tracked. The fallback is all-or-nothing on
-  purpose: a real hero over the drawing's ready list would be four titles the
-  user does not have.
+  this screen — but `queue/0` no longer falls back to `Sample.queue/0` for it.
+  A fresh install, and a shelf holding only finished or dropped titles, both
+  draw `empty/0`'s honest card instead: what a real queue looks like with
+  nothing in it, not four titles the reader does not have. `Kati.Screens.
+  UpNext.Sample` still exists — `Kati.ScreenDesignLiteralTest` reads it to
+  check frame 10's literals against the drawing, the same way `Kati.Screens.
+  Lists.Sample.lists/0` survives Lists' own fix — it is simply no longer
+  something a real reader's own empty queue can render.
 
   ## Both scripts, one screen
 
@@ -188,29 +190,25 @@ defmodule Kati.Screens.UpNext do
     narrowed = Kati.Library.UpNextFilters.apply(pool, choice)
 
     case {narrowed.ready, narrowed.cold} do
-      # MOVIES-AND-TV.md #49's remaining half. An empty shelf drew board 10 —
-      # four invented titles, `12 ready` over four rows and `Gone cold · 3` over
-      # one — to a reader who has nothing on the go. That is the same defect
-      # #75 fixed on screen 92 and #58 on screen 15, and the argument screen 96
-      # makes for all of them: *say what is missing and offer the one thing
-      # that fixes it, never render a plausible-looking zero.*
-      #
-      # The drawing is still what a page with NO STORE falls back to — an
-      # `Ash.read!` raising mid-migration is a different fact from a shelf with
-      # nothing on the go, and `tracked/1` rescues both to `[]`. `shelf?/0` is
-      # what separates them. A filter that empties the page is a THIRD fact and
-      # is not this one: `Kati.Library.UpNextFilters.narrowed?/1` is what says
+      # MOVIES-AND-TV.md #49. An empty shelf used to draw board 10's drawing
+      # whole — four invented titles, `12 ready` over four rows and `Gone
+      # cold · 3` over one — to a reader who has nothing on the go. That is
+      # the same defect #75 fixed on screen 92 and #58 on screen 15, and the
+      # argument screen 96 makes for all of them: *say what is missing and
+      # offer the one thing that fixes it, never render a plausible-looking
+      # zero.* It is no longer the exception here either: `empty/0` already
+      # tells the truth whether the shelf has never held anything or holds
+      # only finished and dropped titles, and a store that cannot be read
+      # rescues to the same empty list `tracked/1` does elsewhere, which
+      # reads as the same honest card rather than as a reason to fall back to
+      # the drawing. A filter that empties the page is a separate fact and is
+      # not this one: `Kati.Library.UpNextFilters.narrowed?/1` is what says
       # so, and screen 10 draws board 168's *nothing matches* band for it.
       {[], []} ->
-        cond do
-          Kati.Library.UpNextFilters.narrowed?(choice) ->
-            Kati.Screens.UpNext.nothing_matches(choice)
-
-          Kati.Screens.UpNext.shelf?() ->
-            Kati.Screens.UpNext.empty()
-
-          true ->
-            Sample.queue()
+        if Kati.Library.UpNextFilters.narrowed?(choice) do
+          Kati.Screens.UpNext.nothing_matches(choice)
+        else
+          Kati.Screens.UpNext.empty()
         end
 
       {[], cold} ->
@@ -257,30 +255,8 @@ defmodule Kati.Screens.UpNext do
   end
 
   @doc """
-  Whether this reader has a Screen shelf at all.
-
-  The question that separates *nothing is ready* from *nothing is here*: a
-  shelf holding dropped and finished titles is a shelf, and its owner is told
-  their queue is empty rather than shown somebody else's four. A store that
-  cannot be read answers `false` and the drawing stands, which is
-  `Kati.Screens.Library.shelf/0`'s own degradation.
-  """
-  @spec shelf?() :: boolean()
-  def shelf? do
-    [:movie, :tv, :anime]
-    |> Enum.any?(fn kind ->
-      TrackedTitle
-      |> Ash.Query.for_read(:shelf, %{kind: kind})
-      |> Ash.Query.limit(1)
-      |> Ash.read!()
-      |> Enum.any?()
-    end)
-  rescue
-    _error -> false
-  end
-
-  @doc """
-  A queue with nothing in it, on a shelf that has something on it.
+  A queue with nothing in it, whether the shelf has never held anything or
+  holds only finished and dropped titles.
 
   Every label is the true one rather than a zero dressed as a count: the
   subtitle says what is missing, and both eyebrow labels are `nil` so no
