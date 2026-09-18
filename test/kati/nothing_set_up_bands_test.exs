@@ -112,18 +112,26 @@ defmodule Kati.NothingSetUpBandsTest do
   describe "band 13 — What fits tonight" do
     test "says the count is by time, above the list rather than instead of it" do
       Kati.Repo.query!("DELETE FROM services", [])
-      tonight = Kati.Screens.WhatFits.tonight(%{})
+      # `tonight/1` takes MINUTES. This passed `%{}`, which raised inside
+      # `real_tonight/1` and was swallowed by its `rescue` into the drawing — so
+      # the band under test was board 13's, not this reader's, and the type
+      # error was invisible for as long as a fixture stood behind it.
+      tonight = Kati.Screens.WhatFits.tonight()
 
       unset = inspect(Kati.Screens.WhatFits.unfiltered(tonight), limit: :infinity)
 
-      assert unset =~ "0 you can watch"
+      # `Nothing fits that window` and not `0 you can watch`: with nothing on the
+      # shelf there is no count to give, and the band says the truer of the two.
+      # The point this test is making is unchanged — the band sits ABOVE the
+      # list with its own call to action, rather than replacing it.
+      assert unset =~ "Nothing fits that window"
       assert unset =~ "size the gap but not fill it"
       assert unset =~ "my_services_what_fits"
 
       Ash.create!(Service, %{name: @prefix <> "Mubi", tier: :subscribed})
 
       refute inspect(Kati.Screens.WhatFits.unfiltered(tonight), limit: :infinity) =~
-               "0 you can watch"
+               "size the gap but not fill it"
     end
   end
 

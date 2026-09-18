@@ -1437,6 +1437,9 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
       # 34 answers an empty season now, so the board's own goes in here.
       {"34", Kati.Screens.Season, &Map.put(&1, :season, Kati.Screens.Season.drawn_season())},
+      # 13 answers an empty window now, so the board's own evening goes here.
+      {"13", Kati.Screens.WhatFits,
+       &Map.put(&1, :tonight, Kati.Screens.WhatFits.drawn_tonight())},
       # 36 reads its own unavailable state now, so the board goes in here.
       {"36", Kati.Screens.AutoDetect,
        &Map.put(&1, :detect, Kati.Screens.AutoDetect.drawn_detect())},

@@ -702,6 +702,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 13 → no board: nothing fits means no rows and no nearest-over card, so
+    # board 13's own four films have nothing left to compare.
+    "13" => [],
     # 34 → no board: no episodes, no options and no note, so board 34's own
     # nine rows have nothing left to compare.
     "34" => [],
@@ -2205,8 +2208,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # rows and the `61 MIN OVER` on the last one are four views of one
       # number. A gate that compared only the list would pass while the sentence
       # above it described a film nobody has.
-      {"13", Kati.Screens.WhatFits, &Kati.Screens.WhatFits.tonight/0,
-       &Kati.Screens.WhatFits.drawn_tonight/0},
       # 37 is gated on the branch a bare push lands on, which is every push
       # that names no file: the gallery's, a sweep's, and screen 140's
       # *Something else*. `job_for/1` then answers `Kati.Import.Sample`'s whole
@@ -2561,6 +2562,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # its three labels — that is the app's vocabulary, not a claim.
       {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
        Kati.Screens.Season.empty_season(), &Kati.Screens.Season.drawn_season/0},
+      # 13 answers an empty window. `real_tonight/1` answers nil for two reasons
+      # and only one is "nothing fits" — it is wrapped in a `rescue`, so a read
+      # that raised landed on the drawing too. The clock and the chosen window
+      # stay real, and the five length buckets stay because they are what can be
+      # ASKED rather than an answer.
+      {"13", Kati.Screens.WhatFits, &Kati.Screens.WhatFits.tonight/0,
+       Kati.Screens.WhatFits.empty_tonight(), &Kati.Screens.WhatFits.drawn_tonight/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.

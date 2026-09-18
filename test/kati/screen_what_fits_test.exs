@@ -51,8 +51,11 @@ defmodule Kati.ScreenWhatFitsTest do
   end
 
   describe "with nothing stored" do
-    test "the page is board 13 whole" do
-      assert WhatFits.tonight() == WhatFits.drawn_tonight()
+    test "the page is its own empty window, not board 13 whole" do
+      assert WhatFits.tonight() == WhatFits.empty_tonight(),
+             "a reader with nothing on their shelf was handed four films to pick between"
+
+      refute WhatFits.tonight() == WhatFits.drawn_tonight()
     end
 
     test "and its five buttons are pictures on the card screen 93 borrows" do

@@ -173,7 +173,40 @@ defmodule Kati.Screens.WhatFits do
   """
   @spec tonight(pos_integer()) :: map()
   def tonight(minutes \\ @default_window) do
-    Kati.Screens.WhatFits.real_tonight(minutes) || Kati.Screens.WhatFits.drawn_tonight()
+    Kati.Screens.WhatFits.real_tonight(minutes) ||
+      Kati.Screens.WhatFits.empty_tonight(minutes)
+  end
+
+  @doc """
+  The window with nothing that fits in it.
+
+  `real_tonight/1` answers nil for two reasons and only one of them is "nothing
+  fits": it is wrapped in a `rescue`, so a read that raised landed here too. It
+  was `drawn_tonight/0` — the board's own evening, at *Sunday, 21:40* — so a
+  reader with nothing on their shelf was handed four films to pick between, and
+  a database Kati could not read was handed the same four.
+
+  The clock and the window are the reader's own, because both are true of them
+  whatever is on the shelf: `clock/0` reads the device and `window_label/1` is
+  the length they chose. The lengths rail keeps its five buckets for the same
+  reason screen 34 keeps its order strip — it is what can be ASKED, not an
+  answer.
+  """
+  @spec empty_tonight(pos_integer()) :: map()
+  def empty_tonight(minutes \\ @default_window) do
+    %{
+      now: Kati.Screens.WhatFits.clock(),
+      window: Kati.Screens.WhatFits.window_label(minutes),
+      lengths:
+        Enum.map(@windows, fn {key, m} ->
+          %{key: key, label: Kati.Screens.WhatFits.window_word(key), selected: m == minutes}
+        end),
+      moods: [],
+      fits_label: Kati.Screens.WhatFits.fits_label([]),
+      fits: [],
+      over_label: nil,
+      over: nil
+    }
   end
 
   @doc "Screen 13 exactly as it is drawn."
