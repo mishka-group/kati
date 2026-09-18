@@ -171,10 +171,40 @@ defmodule Kati.Screens.Discover do
 
       true ->
         case Recommendations.seed() do
-          nil -> Sample.feed()
+          nil -> empty_feed()
           {_tracked, cached} -> real_feed(cached)
         end
     end
+  end
+
+  @doc """
+  The feed with nothing to recommend from.
+
+  `browse_feed/1`'s shape with no question in it. A recommendation is an answer
+  to *because you watched X*, and `Kati.Media.Recommendations.seed/0` answers
+  nil when there is no X — a fresh shelf, or one whose newest row has no cached
+  title behind it.
+
+  It was `Kati.Discover.Sample.feed/0`: the WHOLE page, subtitle included, so a
+  reader who had watched nothing was told *Tuned to 128 titles* over three picks
+  at `94% match`. The match score is one of the four sections with no store
+  behind it (see P3), which made the drawing the only thing that could fill
+  them — and the page filled them for everybody.
+  """
+  @spec empty_feed() :: map()
+  def empty_feed do
+    %{
+      subtitle: nil,
+      chips: [%{label: "For you", count: nil, selected: true}],
+      because: "",
+      seed_id: nil,
+      picks: [],
+      asked?: false,
+      picks_error: nil,
+      people: [],
+      leaving_label: nil,
+      leaving: []
+    }
   end
 
   @doc """

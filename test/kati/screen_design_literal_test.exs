@@ -1427,6 +1427,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 15 draws nothing logged yet on an empty store, so the board's own seven
       # rows have to be installed to compare the frame against its capture.
       {"15", Kati.Screens.Activity, &Map.put(&1, :log, Kati.Screens.Activity.drawn())},
+      # 11 answers an empty feed now, so the board's own is installed here.
+      {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
       {"98", Kati.Screens.YearShare, &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
       {"99", Kati.Screens.YearShareBooks,
        &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},

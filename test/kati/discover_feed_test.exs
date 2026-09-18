@@ -372,15 +372,20 @@ defmodule Kati.DiscoverFeedTest do
   end
 
   describe "with nothing stored" do
-    test "the board is drawn whole" do
-      assert Discover.feed() == Discover.Sample.feed()
+    test "the feed is empty, because there is nothing to recommend from" do
+      assert Discover.feed() == Discover.empty_feed(),
+             "a reader who had watched nothing was told *Tuned to 128 titles* over three " <>
+               "picks at 94% match"
+
+      refute Discover.feed() == Discover.Sample.feed()
     end
 
-    test "and every claim on it is still a claim the board makes" do
+    test "and none of the board's claims are on it" do
       drawn = drawn(Discover.feed())
 
-      for kept <- ["Tuned to 128 titles", "Ines Karvel", "Nightbirds", "94% match"] do
-        assert drawn =~ kept, "the board lost #{inspect(kept)}"
+      for gone <- ["Tuned to 128 titles", "Ines Karvel", "Nightbirds", "94% match"] do
+        refute drawn =~ gone,
+               "#{inspect(gone)} is on the feed of a reader who has watched nothing"
       end
     end
   end

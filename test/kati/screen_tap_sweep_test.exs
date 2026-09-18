@@ -462,7 +462,12 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AddTitle, :clear_query},
     {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_all},
-    {Kati.Screens.Discover, :"filter_For you"},
+    # (`{Kati.Screens.Discover, :"filter_For you"}` was here. Screen 11 answers
+    # an empty feed on a bare mount now — a recommendation is an answer to
+    # *because you watched X*, and there is no X — so the chip rail draws one
+    # already-selected chip and a selected filter carries no tap. The tag is
+    # drawn by nothing, and this file walks the tags a tree DRAWS. The chip is
+    # still live on a feed with picks in it.)
     {Kati.Screens.EventDetail, :section_Work},
     # Screen 20's, which joined the day its chip rail was wired: `All` is the
     # chip `load/1` opens on, so tapping it re-selects what is selected.

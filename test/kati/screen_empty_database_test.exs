@@ -702,6 +702,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 11 → no board either: no seed means no picks, no people, no leaving-soon
+    # rail and no subtitle, so board 11's own feed has nothing left to compare.
+    "11" => [],
     # 23 → no board either: no services means no rows, no total and no
     # suggestion, so board 23's own four have nothing left to compare.
     "23" => [],
@@ -2132,8 +2135,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # none. One pair covers the subtitle, the four chips, the heading, the
       # three picks with their percentages, the three people and the two
       # leaving rows, because they arrive as one map or not at all.
-      {"11", Kati.Screens.Discover, &Kati.Screens.Discover.feed/0,
-       &Kati.Screens.Discover.Sample.feed/0},
       # 14 gates like 04: one pair covers the title, the still, the meta line,
       # the synopsis, the three ratings, the four cast members, the three ways
       # to watch and the five tags, because they arrive as one map or not at
@@ -2516,6 +2517,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # for nothing.
       {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
        Kati.Screens.Subscriptions.empty_ledger(), &Kati.Screens.Subscriptions.drawn_ledger/0},
+      # 11 answers an empty feed. A recommendation is an answer to *because you
+      # watched X*, and `Recommendations.seed/0` answers nil when there is no X.
+      # It drew the WHOLE page from the fixture, subtitle included.
+      {"11", Kati.Screens.Discover, &Kati.Screens.Discover.feed/0,
+       Kati.Screens.Discover.empty_feed(), &Kati.Screens.Discover.Sample.feed/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.
