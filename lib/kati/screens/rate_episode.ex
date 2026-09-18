@@ -831,7 +831,6 @@ defmodule Kati.Screens.RateEpisode do
           {Kati.Screens.RateEpisode.context_card(s, Map.get(assigns, :open_row))}
           {Kati.Screens.RateEpisode.info_note(s)}
           {Kati.Screens.RateEpisode.spoiler_swatch(s)}
-          {Kati.Screens.RateEpisode.rewatch_swatch(s, expanded?)}
         </Column>
       </Box>
     </Box>
@@ -1564,18 +1563,19 @@ defmodule Kati.Screens.RateEpisode do
   argues the card is **collapsible**, and a swatch that could not be opened
   would be documenting the half of that claim anyone can already see.
   """
-  def rewatch_swatch(%{rewatch?: true}, _expanded?), do: ~MOB"<Spacer size={0} />"
 
-  def rewatch_swatch(_s, expanded?) do
-    previous = Sample.reference_verdict()
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {SettingsList.eyebrow_muted(Kati.Screens.RateEpisode.rewatch_label())}
-      {Kati.Screens.RateEpisode.verdict_card(previous, expanded?)}
-    </Column>
-    """
-  end
+  # `rewatch_swatch/2` was here, and it was the one specimen on this sheet with
+  # no real source. It drew `Kati.Screens.RateEpisode.Sample.reference_verdict/0`
+  # — a date, a 4, and "The estuary scenes land completely differently once you
+  # know what Mara is looking for" — as *what you said last time*, and it drew it
+  # on the branch where `rewatch?` is FALSE. A first watch has no last time, so
+  # the card could only ever be somebody else's review sitting in the reader's
+  # own sheet.
+  #
+  # The real previous verdict has a home already: `rewatch_block/2` draws
+  # `previous`, which `shaped/5` reads off the reader's own second-newest
+  # `Kati.Media.Watch`. That is the whole feature; this was a picture of it,
+  # shown to the one reader it could never be true for.
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 

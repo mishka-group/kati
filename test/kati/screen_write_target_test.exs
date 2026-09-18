@@ -643,6 +643,10 @@ defmodule Kati.ScreenWriteTargetTest do
   # film. Only *Log a watch* was reaching a handler from a bare mount, so the
   # measured drop is one.
   #
+  # And a fourteenth, to 1902. Screen 144's rewatch swatch is gone — it drew an
+  # invented previous verdict on the branch where there is no previous verdict —
+  # and its expand disc went with it. The measured drop is two.
+  #
   # And a thirteenth, to 1904. Screen 09 draws an empty day on an empty store,
   # so the fourteen items a bare mount used to draw — each row tappable, the
   # 20:00 group collapsible — are not drawn over a day with nothing on it. The
@@ -658,7 +662,7 @@ defmodule Kati.ScreenWriteTargetTest do
   # so the position card and the controls reading off it are not drawn over a
   # sheet naming no title. The measured drop is four.
   @screens_swept 156
-  @drawn_taps 1904
+  @drawn_taps 1902
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

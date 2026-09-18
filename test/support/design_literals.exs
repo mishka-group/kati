@@ -888,6 +888,16 @@ defmodule Kati.DesignLiterals do
       {"145", "orbit"},
       {"145", "dropped"},
       {"145", "gone cold"},
+      # 144's rewatch SWATCH, deleted rather than kept. It drew
+      # `Sample.reference_verdict/0` as "what you said last time" on the branch
+      # where `rewatch?` is FALSE — a first watch, which has no last time — so
+      # the card could only ever be somebody else's review in the reader's own
+      # sheet. The real previous verdict is still drawn, by `rewatch_block/2`,
+      # off the reader's own second-newest Watch.
+      {"144", "rewatch \u2014 your last verdict, above the input"},
+      {"144", "you, 3 mar 2024 \u00b7 \uF09A4"},
+      {"144",
+       "the estuary scenes land completely differently once you know what mara is looking for."},
       {"145", "showing 41 of 418"},
       # 146's own copy of the same figures. The line still renders — it is
       # `<shown> of <total> · <sort>` off the reader's shelf and their stored

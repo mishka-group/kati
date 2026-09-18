@@ -260,6 +260,10 @@ defmodule Kati.ScreenDesignLiteralTest do
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
     {"49", "auto_mode"},
+    # 144's rewatch swatch went with the invented verdict it drew — see
+    # `DesignLiterals.retired_lines/0`. The chevron was the swatch's own
+    # expand disc; `rewatch_block/2` draws its own on a real rewatch.
+    {"144", "expand_more"},
     {"12", "bookmark"},
     {"12", "inventory_2"},
     # Board 115's medication half — see `DesignLiterals.retired_lines/0`. The
