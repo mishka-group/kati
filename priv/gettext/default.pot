@@ -17560,3 +17560,8 @@ msgstr ""
 msgctxt "where to watch"
 msgid "%{format}, S%{first}–S%{last}"
 msgstr ""
+
+#: lib/kati/screens/rate_episode/sample.ex:93
+#, elixir-autogen, elixir-format
+msgid "The estuary scenes land completely differently once you know what Mara is looking for."
+msgstr ""

@@ -17563,3 +17563,8 @@ msgstr "TMDB آن کلید را نپذیرفت. آن را در تنظیمات �
 msgctxt "where to watch"
 msgid "%{format}, S%{first}–S%{last}"
 msgstr "%{format}، فصل %{first}–%{last}"
+
+#: lib/kati/screens/rate_episode/sample.ex:93
+#, elixir-autogen, elixir-format
+msgid "The estuary scenes land completely differently once you know what Mara is looking for."
+msgstr "صحنه‌های خور کاملاً فرق می‌کنند وقتی بدانید مارا دنبال چیست."
