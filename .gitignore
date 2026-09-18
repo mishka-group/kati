@@ -17,6 +17,9 @@ erl_crash.dump
 /config/*.secret.exs
 .elixir_ls/
 
+# ExUnit's own `@tag :tmp_dir` output.
+/tmp/
+
 # Regenerated from castore on every compile by the `kati.certs` alias.
 # Tracking it would pin Kati to whatever Mozilla trusted the day it landed.
 /priv/cacerts.pem
