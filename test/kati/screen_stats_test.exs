@@ -426,6 +426,45 @@ defmodule Kati.ScreenStatsTest do
     |> Ash.create!()
   end
 
+  describe "the Subscriptions row" do
+    # R8. Cost per watched hour is a watch statistic and this page had no way
+    # to ask it — screen 23 was reachable from *My services* and from Money,
+    # neither of which is the page where a reader is counting their hours.
+    test "is on the More numbers card, and board 61's own rows are untouched" do
+      assert Enum.any?(Sample.more_numbers(), &(&1.id == :money)),
+             "the board's rows moved, so what follows is measuring the wrong card"
+
+      refute Enum.any?(Sample.more_numbers(), &(&1.id == :subscriptions)),
+             "the row was written into `Kati.Stats.Sample`, which is board 61's own " <>
+               "transcription and the value the design test compares a render against"
+
+      ids = Stats.with_subscriptions(Sample.more_numbers()) |> Enum.map(& &1.id)
+
+      assert :subscriptions in ids
+      assert List.last(ids) == :subscriptions, "it is Kati's addition and goes after the board's"
+    end
+
+    test "it is drawn, and its tap opens screen 23" do
+      drawn = inspect(Stats.more_numbers(), limit: :infinity)
+
+      assert drawn =~ "go_subscriptions"
+
+      {:noreply, pushed} = Stats.handle_tap(:go_subscriptions, Mob.Socket.new(Stats))
+
+      assert {:push, Kati.Screens.Subscriptions, _params} = Map.get(pushed.__mob__, :nav_action)
+    end
+
+    test "and its line is the ledger's own total, not a figure" do
+      # `£46.47 a month · 7 expenses` is what the Money row beside it carried on
+      # every device until MOVIES-AND-TV.md #45, and a new row is not the place
+      # to put that back.
+      assert Stats.subscriptions_line() == Kati.Screens.Subscriptions.empty_ledger().monthly.total,
+             "nothing is subscribed in this database, so the row has no total to report"
+
+      refute Stats.subscriptions_line() =~ "46.47"
+    end
+  end
+
   defp watch!(tracked, attrs) do
     Watch
     |> Ash.Changeset.for_create(

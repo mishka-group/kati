@@ -817,6 +817,7 @@ defmodule Kati.Screens.Stats do
       Kati.Stats.Sample.more_numbers()
       |> Enum.reject(&(&1.id == :recently_watched))
       |> Enum.map(&entries_line/1)
+      |> Kati.Screens.Stats.with_subscriptions()
 
     last = length(rows) - 1
 
@@ -834,6 +835,59 @@ defmodule Kati.Screens.Stats do
       {rows |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Stats.number_row(row, i < last) end)}
     </Column>
     """
+  end
+
+  @doc """
+  Board 61's rows, plus the one Kati adds: **Subscriptions**.
+
+  Appended here rather than written into `Kati.Stats.Sample.more_numbers/0`,
+  and the distinction is the reason that module exists: the Sample is board
+  61's own transcription, the value a design test compares a render against,
+  and a row the board never drew does not belong in it. This is the app's own
+  addition to a card the board specified.
+
+  The argument for adding it is that **cost per watched hour is a watch
+  statistic**. `Kati.Subscriptions.hours_by_service/0` divides what a service
+  costs by the hours actually watched on it, and it reads episode runtimes
+  through the same rule `runtimes_for/1` uses one function over — a series'
+  duration is on the EPISODE, a film's on the title. That question is asked
+  nowhere on this page and answered in full one tap away.
+
+  Screen 23 was already reachable, from *My services* and from Money, so this
+  is a second door to a page that has one rather than a rescue. It earns its
+  place by subject: a reader asking how much they watched is a tap from asking
+  what it cost them, and neither of the existing doors is on the page where
+  that question is being asked.
+
+  The sub-line is the ledger's own monthly total, which is `—` on a device with
+  nothing subscribed — `Kati.Screens.Subscriptions.empty_ledger/0`'s answer, and
+  the honest one. Not `Kati.Subscriptions`' own frozen figure: `£46.47 a month ·
+  7 expenses` is what the Money row carried on every device until #45.
+  """
+  @spec with_subscriptions([map()]) :: [map()]
+  def with_subscriptions(rows) do
+    rows ++
+      [
+        %{
+          id: :subscriptions,
+          icon: "subscriptions",
+          title: gettext("Subscriptions"),
+          sub: Kati.Screens.Stats.subscriptions_line()
+        }
+      ]
+  end
+
+  @doc """
+  What the subscriptions row says under its title: the monthly total.
+
+      iex> is_binary(Kati.Screens.Stats.subscriptions_line())
+      true
+  """
+  @spec subscriptions_line() :: String.t()
+  def subscriptions_line do
+    Kati.Screens.Subscriptions.ledger().monthly.total
+  rescue
+    _error -> "—"
   end
 
   # The one row of the five whose second line this app can actually answer.
@@ -1756,7 +1810,10 @@ defmodule Kati.Screens.Stats do
     # Board 61's row, kept through the fold — see `Kati.Stats.Sample`. Screen
     # 110 is the weight page itself rather than screen 42's hub, because the row
     # names a reading and the hub is a menu.
-    "health" => Kati.Screens.Weight
+    "health" => Kati.Screens.Weight,
+    # Kati's own row rather than board 61's — see `with_subscriptions/1` for
+    # why cost per watched hour belongs on the page that counts the hours.
+    "subscriptions" => Kati.Screens.Subscriptions
     # `Recently watched` was here, and `more_numbers/1` rejects that row by
     # name — so no `go_Recently watched` tag was ever emitted and the entry was
     # dead code. MOVIES-AND-TV.md #125. Deleted rather than drawn: the row is
