@@ -761,11 +761,16 @@ defmodule Kati.Screens.Settings do
     # second line as well as a destination.
     "clear_history" => Kati.Screens.ClearHistory,
     "attribution" => Kati.Screens.Attribution,
-    # #7. A reference sheet whose own moduledoc said it was pushed under
-    # Settings, and nothing pushed it.
-    "dropping" => Kati.Screens.DropStates,
-    # #8. The board whose subject `Kati.Media.Anime` now implements.
-    "anime" => Kati.Screens.AnimeFilter
+    # The import flow's only door. `Kati.Screens.Gallery`'s `@routed` had
+    # claimed this one since #52 and it did not exist, which also retired
+    # screen 140 from the gallery listing — so the page that opens a CSV was
+    # filtered out of the only index that reached it.
+    "import_sources" => Kati.Screens.ImportSources
+    # (`dropping` and `anime` were here. Both sheets are arguments for features
+    # that now live where a reader meets them — the ⋯ anime toggle and the
+    # Library chip, the shelf's own paused/dropped/cold marks and the drop
+    # sheet behind them — so both go back to the gallery, the way `year_cards`
+    # did. `Kati.Settings.Sample.about/0` carries the full account.)
   }
 
   @doc false

@@ -489,27 +489,28 @@ defmodule Kati.Screens.Gallery do
     # Home → My services, and Settings → My services. #118, #119 — the field
     # filters, every row has a switch, and a price can be corrected.
     "92",
-    # Settings → Import. #52 sends each tile to the right board; #126 made the
-    # *Four more sources* row open the picker.
+    # Settings → Import from another app, in the Data group. This line claimed
+    # that door since #52 and the door did not exist — so retiring 140 from the
+    # listing hid the one page that opens a CSV from the only index that
+    # reached it. The row exists now; see `Kati.Settings.Sample.data/0`.
     "140",
     # 140 → a source tile → pick a file. #4 — the three edge states board 142
     # draws are what a real file produces now.
     "141",
-    # Settings → Dropping. #7 — the sheet said it was pushed under Settings
-    # and nothing pushed it.
-    "148",
     # Series → ⋯ → Drop this show, and Film → ⋯ → Drop this film. #110, #111,
     # #127 — a film can be dropped, the reason is kept, and the position pill
     # goes both ways.
     "149",
-    # Settings → Anime. #8 — the rule it argues for is a Library chip now, and
-    # `Kati.Media.Anime` is its three lines.
-    "152",
     # Season → the help disc beside the order strip. #9.
     "153",
     # ("101" was here — Settings → Year cards → When a card cannot be made. The
     # Settings row it hung off is gone: screen 100 is a render spec, not a place
-    # in the app. Both are back on the gallery, which is where a spec belongs.)
+    # in the app. Both are back on the gallery, which is where a spec belongs.
+    # "148" and "152" went the same way the round after, and for the same
+    # reason: both were argued from their own back pills saying `Settings`, and
+    # both argue for features that now live where a reader meets them — the ⋯
+    # anime toggle and the Library chip, the shelf's own paused/dropped/cold
+    # marks and the drop sheet behind them.)
     # ── The four dock roots, and the hub in one of them. The owner's words:
     # *"01 - Home exist in the first page of app, no need in all screens, and
     # Library menu exists in the dock on all pages — no need again inside All

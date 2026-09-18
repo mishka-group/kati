@@ -313,6 +313,27 @@ defmodule Kati.Settings.Sample do
         sub: gettext("iCloud · this device + iPad"),
         control: :chevron
       },
+      # The door the whole import flow had never had. `Kati.Screens.Gallery`'s
+      # `@routed` list has claimed *Settings → Import* for screen 140 since #52,
+      # and the claim retired 140 from the gallery listing — so the one page
+      # that opens a CSV was filtered out of the only index that reached it
+      # while nothing in Settings pushed it. Screens 37 and 141 sit behind it.
+      #
+      # The one other way in was `Kati.Screens.Restore`, which Home, Library and
+      # `HomeEmpty` push only from their EMPTY-state footnotes: a reader with
+      # anything at all on their shelf could not reach import or restore.
+      #
+      # In the Data group and above `data_sources`, because this group is where
+      # a reader's own records come and go — back up, export, sync, clear — and
+      # bringing a shelf in from another app is that question, not a question
+      # about which catalogue Kati reads.
+      %{
+        id: "import_sources",
+        icon: "upload_file",
+        title: gettext("Import from another app"),
+        sub: gettext("Trakt, Letterboxd, Goodreads, or any CSV"),
+        control: :chevron
+      },
       %{
         id: "data_sources",
         icon: "dns",
@@ -425,7 +446,7 @@ defmodule Kati.Settings.Sample do
         title: gettext("Where this comes from"),
         sub: gettext("Sources and licences"),
         control: :chevron
-      },
+      }
       # (The `year_cards` row was here, and it was the argument's own weak point:
       # "a reference sheet rather than a place in the app, filed under About
       # because screen 100's back pill says `Settings`." A back pill naming a
@@ -435,33 +456,27 @@ defmodule Kati.Settings.Sample do
       # has one page to be compared against" — every figure on it is a
       # specimen, correct for a spec and untrue of any reader. It stays in the
       # gallery, where a spec belongs.)
-      # MOVIES-AND-TV.md #7. Screen 148's own moduledoc says it is "a reference
-      # sheet pushed under Settings" and its back pill says `Settings`, and
-      # nothing pushed it — it was gallery-only, exactly as Year cards above
-      # was until its row existed. Same argument, same group: the app
-      # describing itself. It is where the one distinction the app makes about
-      # a shelf is written down — *Paused and Dropped are things a person
-      # decided; Gone cold is something Kati noticed* — and the reader meets
-      # all three without ever being told which is which.
-      %{
-        id: "dropping",
-        icon: "do_not_disturb_on",
-        title: gettext("Dropping"),
-        sub: gettext("Paused, dropped, and gone cold"),
-        control: :chevron
-      },
-      # MOVIES-AND-TV.md #8. 152's own back pill says `Settings` and nothing
-      # pushed it. It is the argument for a feature and the feature exists now
-      # — `Kati.Media.Anime` is its three rules and screen 03 grows the chip it
-      # draws — so the board becomes what it always read as: the place the rule
-      # is written down. Same group and same argument as Dropping above.
-      %{
-        id: "anime",
-        icon: "auto_awesome",
-        title: gettext("Anime"),
-        sub: gettext("What makes a title one"),
-        control: :chevron
-      }
+      # (`dropping` and `anime` were here, and they go the way `year_cards`
+      # went one round earlier — the same argument, which was weak in the same
+      # place. Both rows were justified by the sheets' own back pills saying
+      # `Settings`, and a back pill names the parent a sheet was DRAWN from,
+      # not the app promising a reader a page.
+      #
+      # What settles it is that both features now exist somewhere a reader
+      # actually meets them, so the sheets are arguments for something already
+      # built rather than the only place it is written down:
+      #
+      #   * The per-title anime override is `Kati.Screens.Series`' own ⋯ row —
+      #     `toggle_anime`, writing `TrackedTitle.anime_override` — and the
+      #     count is `Kati.Screens.Library.anime_chip/1`, a fifth shelf chip at
+      #     ten titles or more. Board 152 argued for exactly those two and
+      #     `Kati.Media.Anime` is its three rules.
+      #   * Paused, dropped and gone cold are drawn on the shelf itself, and
+      #     the decision between them is `Kati.Screens.DropSheet`, reached from
+      #     a title's own ⋯ menu — which is where a reader is standing when the
+      #     distinction matters.
+      #
+      # Both stay in the gallery, which is where a reference sheet belongs.)
     ]
   end
 end

@@ -160,7 +160,6 @@ msgstr ""
 #: lib/kati/screens/library.ex:1176
 #: lib/kati/screens/shelf_filters.ex:399
 #: lib/kati/screens/stats.ex:1698
-#: lib/kati/settings/sample.ex:461
 #, elixir-autogen, elixir-format
 msgid "Anime"
 msgstr ""
@@ -1280,7 +1279,7 @@ msgid "Where the hours went"
 msgstr ""
 
 #: lib/kati/screens/attribution.ex:145
-#: lib/kati/settings/sample.ex:425
+#: lib/kati/settings/sample.ex:446
 #, elixir-autogen, elixir-format
 msgid "Where this comes from"
 msgstr ""
@@ -1453,7 +1452,7 @@ msgstr ""
 #: lib/kati/screens/auto_detect.ex:503
 #: lib/kati/screens/auto_detect_music.ex:176
 #: lib/kati/screens/pushed.ex:176
-#: lib/kati/settings/sample.ex:390
+#: lib/kati/settings/sample.ex:411
 #, elixir-autogen, elixir-format
 msgid "Auto-detect"
 msgstr ""
@@ -1467,7 +1466,7 @@ msgstr ""
 #: lib/kati/screens/data_sources.ex:1327
 #: lib/kati/screens/data_sources_states.ex:211
 #: lib/kati/screens/pushed.ex:180
-#: lib/kati/settings/sample.ex:319
+#: lib/kati/settings/sample.ex:340
 #, elixir-autogen, elixir-format
 msgid "Data sources"
 msgstr ""
@@ -3312,7 +3311,7 @@ msgstr ""
 msgid "%{region} · none yet"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:405
+#: lib/kati/settings/sample.ex:426
 #, elixir-autogen, elixir-format
 msgid "%{version} · mock build"
 msgstr ""
@@ -3356,13 +3355,13 @@ msgstr ""
 #: lib/kati/account/sample.ex:175
 #: lib/kati/screens/calendars.ex:228
 #: lib/kati/screens/sync.ex:1162
-#: lib/kati/settings/sample.ex:359
+#: lib/kati/settings/sample.ex:380
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Calendars"
 msgstr ""
 
 #: lib/kati/screens/clear_history.ex:68
-#: lib/kati/settings/sample.ex:332
+#: lib/kati/settings/sample.ex:353
 #, elixir-autogen, elixir-format
 msgid "Clear watch history"
 msgstr ""
@@ -3383,11 +3382,6 @@ msgstr ""
 #: lib/kati/settings/sample.ex:245
 #, elixir-autogen, elixir-format
 msgid "Drag to change home order"
-msgstr ""
-
-#: lib/kati/settings/sample.ex:449
-#, elixir-autogen, elixir-format
-msgid "Dropping"
 msgstr ""
 
 #: lib/kati/settings/sample.ex:305
@@ -3436,33 +3430,28 @@ msgstr ""
 msgid "Never backed up"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:412
+#: lib/kati/settings/sample.ex:433
 #, elixir-autogen, elixir-format
 msgid "Nothing leaves the device"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:391
+#: lib/kati/settings/sample.ex:412
 #, elixir-autogen, elixir-format
 msgid "Notice what you play"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:450
-#, elixir-autogen, elixir-format
-msgid "Paused, dropped, and gone cold"
-msgstr ""
-
-#: lib/kati/settings/sample.ex:419
+#: lib/kati/settings/sample.ex:440
 #, elixir-autogen, elixir-format
 msgid "Permissions and storage"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:384
+#: lib/kati/settings/sample.ex:405
 #, elixir-autogen, elixir-format
 msgid "Premieres, new episodes, price drops"
 msgstr ""
 
 #: lib/kati/screens/account.ex:90
-#: lib/kati/settings/sample.ex:411
+#: lib/kati/settings/sample.ex:432
 #, elixir-autogen, elixir-format
 msgid "Privacy"
 msgstr ""
@@ -3474,7 +3463,7 @@ msgid "Reduce motion"
 msgstr ""
 
 #: lib/kati/screens/release_watcher.ex:231
-#: lib/kati/settings/sample.ex:383
+#: lib/kati/settings/sample.ex:404
 #, elixir-autogen, elixir-format
 msgid "Release watcher"
 msgstr ""
@@ -3508,7 +3497,7 @@ msgstr ""
 msgid "Sources"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:426
+#: lib/kati/settings/sample.ex:447
 #, elixir-autogen, elixir-format
 msgid "Sources and licences"
 msgstr ""
@@ -3529,7 +3518,7 @@ msgstr ""
 msgid "Synced %{n} min ago"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:321
+#: lib/kati/settings/sample.ex:342
 #, elixir-autogen, elixir-format
 msgid "TVmaze, Open Library, MusicBrainz · %{n} reachable"
 msgstr ""
@@ -3547,12 +3536,12 @@ msgstr ""
 #: lib/kati/screens/account.ex:200
 #: lib/kati/screens/sync.ex:270
 #: lib/kati/screens/sync.ex:313
-#: lib/kati/settings/sample.ex:418
+#: lib/kati/settings/sample.ex:439
 #, elixir-autogen, elixir-format
 msgid "This device"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:333
+#: lib/kati/settings/sample.ex:354
 #, elixir-autogen, elixir-format
 msgid "Ticks, ratings and reviews — the shelves stay"
 msgstr ""
@@ -3564,17 +3553,12 @@ msgstr ""
 msgid "United Kingdom"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:404
+#: lib/kati/settings/sample.ex:425
 #, elixir-autogen, elixir-format
 msgid "Version"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:462
-#, elixir-autogen, elixir-format
-msgid "What makes a title one"
-msgstr ""
-
-#: lib/kati/settings/sample.ex:360
+#: lib/kati/settings/sample.ex:381
 #, elixir-autogen, elixir-format
 msgid "Which calendars Kati may read"
 msgstr ""
@@ -3607,7 +3591,7 @@ msgstr ""
 
 #: lib/kati/books/sample.ex:160
 #: lib/kati/screens/book_detail.ex:388
-#: lib/kati/screens/gallery.ex:921
+#: lib/kati/screens/gallery.ex:922
 #: lib/kati/screens/log_progress.ex:636
 #: lib/kati/screens/log_progress_states.ex:297
 #, elixir-autogen, elixir-format, fuzzy
@@ -7800,7 +7784,7 @@ msgstr ""
 msgid "show settings"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:922
+#: lib/kati/screens/gallery.ex:923
 #, elixir-autogen, elixir-format
 msgid "tap to open"
 msgstr ""
@@ -7978,7 +7962,7 @@ msgctxt "emphasis in “what it can do”"
 msgid "can"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:868
+#: lib/kati/screens/gallery.ex:869
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "Every page"
@@ -8002,7 +7986,7 @@ msgctxt "eyebrow"
 msgid "How often"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:976
+#: lib/kati/screens/gallery.ex:977
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "eyebrow"
 msgid "Not yet drawn"
@@ -8188,7 +8172,7 @@ msgctxt "release watcher"
 msgid "Checking…"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:868
+#: lib/kati/screens/gallery.ex:869
 #, elixir-autogen, elixir-format
 msgctxt "screen title"
 msgid "All screens"
@@ -17598,4 +17582,14 @@ msgstr ""
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "the Up next lock-screen widget with nothing on the shelf"
 msgid "Nothing yet"
+msgstr ""
+
+#: lib/kati/settings/sample.ex:333
+#, elixir-autogen, elixir-format
+msgid "Import from another app"
+msgstr ""
+
+#: lib/kati/settings/sample.ex:334
+#, elixir-autogen, elixir-format
+msgid "Trakt, Letterboxd, Goodreads, or any CSV"
 msgstr ""

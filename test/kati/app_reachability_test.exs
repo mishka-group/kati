@@ -99,6 +99,24 @@ defmodule Kati.AppReachabilityTest do
     # About, argued from its own back pill saying `Settings`; a back pill names
     # the parent the sheet was DRAWN from, which is not the app promising a
     # reader a page. 101 is its states sheet and goes with it.
+    # 148 and 152 went the way 100/101 went, one round later and for the same
+    # reason. Each had a Settings row under About argued from its own back pill
+    # saying `Settings`; a back pill names the parent a sheet was DRAWN from,
+    # which is not the app promising a reader a page.
+    #
+    # What settles it is that both argue for features that now exist where a
+    # reader actually meets them, so neither sheet is the only place the rule is
+    # written down: the per-title anime override is screen 04's own ⋯ row and
+    # the count is `Kati.Screens.Library.anime_chip/1`; paused, dropped and gone
+    # cold are drawn on the shelf, and the decision between them is
+    # `Kati.Screens.DropSheet`, off a title's ⋯ menu.
+    {Screens.DropStates,
+     "the one distinction the app makes about a shelf, written out for " <>
+       "comparison against the drawing. The decision itself is screen 149, " <>
+       "off a title's own menu."},
+    {Screens.AnimeFilter,
+     "the argument for a feature that exists: screen 04's anime toggle and " <>
+       "the Library's fifth chip. A board about a rule, not a place in the app."},
     {Screens.YearCards, "the year card's render spec, not a place in the app."},
     {Screens.YearCardsStates, "screen 100's states. As above."},
     {Screens.HomeOmittedSections,
