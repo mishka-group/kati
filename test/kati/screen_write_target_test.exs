@@ -637,8 +637,13 @@ defmodule Kati.ScreenWriteTargetTest do
   # `Kati.Screens.Series.empty_series/0` now rather than the board's own show,
   # and an empty page draws no season pills and no episode rows, so the taps
   # those controls dispatched are gone with them. The measured drop is twenty.
+  #
+  # And a tenth, to 1940. Screen 08 answers `Kati.Screens.Film.empty_film/0`,
+  # whose action row is `[]`: three pills that act on a film, drawn over no
+  # film. Only *Log a watch* was reaching a handler from a bare mount, so the
+  # measured drop is one.
   @screens_swept 156
-  @drawn_taps 1941
+  @drawn_taps 1940
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

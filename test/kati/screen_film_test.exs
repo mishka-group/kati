@@ -135,17 +135,21 @@ defmodule Kati.ScreenFilmTest do
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 
   describe "an empty database" do
-    test "nothing is tracked, so the screen draws the drawing" do
+    test "nothing is tracked, so the screen draws its own empty page" do
       assert Film.tracked_film() == nil,
              "a film answered against an empty database, so nothing below is measuring " <>
-               "the fallback"
+               "the empty page"
 
-      assert Film.film() == Sample.film(),
-             "the fallback is not `Kati.Library.Sample.film/0` verbatim, and that fixture " <>
-               "is what `.scratch/design/audit/08.png` was captured from"
+      assert Film.film() == Film.empty_film(),
+             "08 answers its own empty frame against an empty store. A shelf with no " <>
+               "films on it is not a reason to draw somebody else's viewing history"
+
+      refute Film.film() == Sample.film(),
+             "the drawing is back on the live path — `Kati.Library.Sample.film/0` belongs " <>
+               "to the design-literal comparison now, not to a reader"
     end
 
-    test "every string the drawing carries reaches the rendered tree" do
+    test "no string the drawing carries reaches the rendered tree" do
       tree = tree(mount_screen(Film))
       film = Sample.film()
 
@@ -155,27 +159,32 @@ defmodule Kati.ScreenFilmTest do
             film.watched,
             film.seen,
             film.note,
-            String.upcase(film.note_date),
-            "WHERE TO WATCH"
+            String.upcase(film.note_date)
           ] do
-        assert drawn?(tree, string), "#{inspect(string)} is nowhere in the tree"
+        refute drawn?(tree, string),
+               "#{inspect(string)} is on the page of a reader who owns no films"
       end
 
-      # The availability card, which a real film deliberately does not draw.
+      # The availability card is the drawing's too, and goes with it.
       for %{badge: badge, name: name, price: price} <- film.where do
-        assert drawn?(tree, badge)
-        assert drawn?(tree, name)
-        assert drawn?(tree, price)
+        refute drawn?(tree, badge)
+        refute drawn?(tree, name)
+        refute drawn?(tree, price)
       end
 
-      for {_icon, label} <- film.actions, do: assert(drawn?(tree, label))
+      # Every action acts on a film, and there is none, so none of them are
+      # drawn — four controls that cannot do anything would be worse than a
+      # band without them. The frame's own eyebrow stays.
+      for {_icon, label} <- film.actions, do: refute(drawn?(tree, label))
+      assert drawn?(tree, "WHERE TO WATCH")
     end
 
-    test "the rating card draws four filled stars and one empty" do
+    test "the rating card draws no stars at all, filled or empty" do
+      # Four filled and one empty is `Sample.film/0`'s four-star rating. An
+      # empty page has no rating to draw, so it draws neither kind.
       tree = tree(mount_screen(Film))
 
-      assert length(find_all(tree, :text, font_family: "symbols_filled", text_size: 22)) == 4
-      assert length(find_all(tree, :text, font_family: "symbols", text_size: 22)) == 1
+      assert length(find_all(tree, :text, font_family: "symbols_filled", text_size: 22)) == 0
     end
   end
 
@@ -269,7 +278,7 @@ defmodule Kati.ScreenFilmTest do
       assert Film.tracked_film() == nil,
              "`keeps history, hides from shelf` is the whole meaning of the flag"
 
-      assert Film.film() == Sample.film()
+      assert Film.film() == Film.empty_film()
     end
 
     test "a series is never chosen — this screen is films" do
@@ -293,7 +302,7 @@ defmodule Kati.ScreenFilmTest do
       |> Ash.create!()
 
       assert Film.tracked_film() == nil
-      assert Film.film() == Sample.film()
+      assert Film.film() == Film.empty_film()
     end
   end
 

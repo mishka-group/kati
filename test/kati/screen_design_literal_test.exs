@@ -1404,6 +1404,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # through `gettext/1`, so calling it here answers in whichever locale the
       # comparison is running.
       {"58", Kati.Screens.Series, &Map.put(&1, :series, Kati.Screens.Series.drawn_series())},
+      # 08, same as 04: the board still gets compared against its capture.
+      {"08", Kati.Screens.Film, &Map.put(&1, :film, Kati.Screens.Film.drawn_film())},
       # 152's Marram card is one worked example of a real, per-reader list
       # that is empty on a device with no anime tracked. `Kati.Media.
       # AnimeSample.misclassified/0` is what board 152 was captured with.

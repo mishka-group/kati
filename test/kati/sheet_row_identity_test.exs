@@ -1226,7 +1226,7 @@ defmodule Kati.SheetRowIdentityTest do
       # series — only the answer is, and an empty page is the honest one.
       gone = Ecto.UUID.generate()
 
-      assert Kati.Screens.Film.film(gone) == Kati.Screens.Film.drawn_film()
+      assert Kati.Screens.Film.film(gone) == Kati.Screens.Film.empty_film()
       assert Kati.Screens.Series.series(gone) == Kati.Screens.Series.empty_series()
 
       refute Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series(),

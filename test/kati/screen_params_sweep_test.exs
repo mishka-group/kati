@@ -645,18 +645,12 @@ defmodule Kati.ScreenParamsSweepTest do
     # one block: the seeds are the same six, the tags are the same seven, and
     # a fold that left the pair behind would have been asserting the same fact
     # twice about one module.
-    # Screen 08's *Log a watch* pill, which drew no tap at all until 6
-    # September — `action/4` built a `<Box>` with no `on_tap`, so the row was
-    # three pictures of buttons and no sweep could see them, because this file
-    # walks the tags a tree DRAWS. The door was live in the ⋯ menu all along
-    # and invisible here for the same reason: the menu is closed at rest.
-    #
-    # Empty for screen 20's reason: with nothing shelved the film is
-    # `Kati.Library.Sample.film/0` and carries no `tracked_id`, so
-    # `Kati.Screens.Rating.params_for/1` answers `%{}` — and `save_watch/1`
-    # refuses a sheet that names no title, which is what stops a watch being
-    # logged against the drawing.
-    {Kati.Screens.Film, :log_watch, Kati.Screens.Rating},
+    # (`{Kati.Screens.Film, :log_watch, Kati.Screens.Rating}` was here. Screen
+    # 08 draws `empty_film/0` on an empty store now, and its action row is `[]`
+    # — every pill on it acts on a film and there is none — so the tag is drawn
+    # by nothing and this file walks the tags a tree DRAWS. The door is still
+    # live on a film that exists, where it carries that film's `tracked_id`
+    # rather than the `%{}` this entry was recording.)
 
     # ── Screen 21's three tiles and its two release rows.
     #

@@ -199,7 +199,50 @@ defmodule Kati.Screens.Film do
   """
   @spec film(String.t() | nil) :: map()
   def film(id \\ nil) do
-    tracked_film(id) || drawn_film()
+    tracked_film(id) || empty_film()
+  end
+
+  @doc """
+  The page with no film on it.
+
+  `shaped/3`'s sixteen keys, all of them carrying nothing — the same move
+  `Kati.Screens.Series.empty_series/0` makes for screen 04. A reader who owns no
+  films is shown an empty frame rather than `Kati.Library.Sample`'s *Blue Hour*
+  and its invented viewing history.
+
+  Empty strings and not `nil` wherever the value reaches a `Text`: the
+  typesetting helpers take a run and ask what script it is in, so a missing one
+  has no clause and a nil arrives on a device as the word `nil`. `note_date`,
+  `note` and `seed` stay nil because the real path already answers nil for them
+  and the render already has the clause.
+
+  `actions` is `[]`, and that is the point rather than an omission: every row on
+  it acts on a film — log a watch, rate it, share it, add it to a list — and
+  there is no film here to act on. Drawing them would be four controls that
+  cannot do anything, which is the state `@inert_taps` exists to keep out of the
+  app. The eyebrows around them stay: **WHERE TO WATCH** is the frame's own word
+  for a band, the way board 248 keeps **EPISODES** over an empty list.
+  """
+  @spec empty_film() :: map()
+  def empty_film do
+    %{
+      tracked_id: nil,
+      title: "",
+      seed: nil,
+      meta: "",
+      watched: "",
+      stars: 0,
+      seen: "",
+      seen_count: 0,
+      note_date: nil,
+      note: nil,
+      where: [],
+      where_line: "",
+      private?: false,
+      anime?: false,
+      media_kind: :movie,
+      actions: []
+    }
   end
 
   @doc """

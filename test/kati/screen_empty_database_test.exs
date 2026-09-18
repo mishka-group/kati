@@ -679,6 +679,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # `Kati.ScreenDesignLiteralTest` installs `drawn_series/0` for exactly that.
     "04" => [],
     "58" => [],
+    # 08 → no board either, and for the same reason as 04.
+    "08" => [],
     # 145 → no board either: an empty shelf's facets/decades are both [],
     # so none of board 145's chip rails have anything to draw, the same
     # treatment 10 and 12 get.
@@ -2014,7 +2016,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # compares the whole map, watcher card included — that card is frozen, so
       # a round that wired its count up on its own would show here as the two
       # sides differing on a key neither list touches.
-      {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
       # 12 does NOT gate the page. Two of its four *Kept automatically* rows
       # are the reader's own counts and the rest of the screen is the drawing's,
       # which is the arrangement screen 03 keeps — so the pair is asked of the
@@ -2449,6 +2450,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with nothing in the slots. `drawn_series/0` stays on the right of the
       # pair: it is what `Kati.ScreenDesignLiteralTest` installs to compare the
       # page against .scratch/design/audit/04.png, and nothing else reads it.
+      # 08 makes the same move as 04: `empty_film/0` is `shaped/3`'s sixteen
+      # keys carrying nothing, so a reader who owns no films is shown an empty
+      # frame rather than the board's own *Blue Hour* and its viewing history.
+      {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, Kati.Screens.Film.empty_film(),
+       &Kati.Screens.Film.drawn_film/0},
       {"04", Kati.Screens.Series, &Kati.Screens.Series.series/0,
        Kati.Screens.Series.empty_series(), &Kati.Screens.Series.drawn_series/0},
       # 58 is 04's gate reached through 04's read, so it moves with it: the
