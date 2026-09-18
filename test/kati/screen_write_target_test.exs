@@ -633,8 +633,12 @@ defmodule Kati.ScreenWriteTargetTest do
   # answers board 10's four ready rows. `Kati.Screens.ShelfFilters.opening/0`
   # answers its own facets: [] and decades: [] now, so none of those chips
   # exist to dispatch a tap to. The measured drop is nineteen.
+  # And a ninth time, to 1941. Screens 04 and 58 mounted bare answer
+  # `Kati.Screens.Series.empty_series/0` now rather than the board's own show,
+  # and an empty page draws no season pills and no episode rows, so the taps
+  # those controls dispatched are gone with them. The measured drop is twenty.
   @screens_swept 156
-  @drawn_taps 1961
+  @drawn_taps 1941
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

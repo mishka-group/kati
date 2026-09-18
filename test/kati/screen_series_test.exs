@@ -233,13 +233,13 @@ defmodule Kati.ScreenSeriesTest do
              "a series answered against an empty database, so nothing below is measuring " <>
                "the fallback"
 
-      assert Series.series() == Series.drawn_series(),
-             "04's fallback is not `drawn_series/0` verbatim, and that is what " <>
-               ".scratch/design/audit/04.png was captured from"
+      assert Series.series() == Series.empty_series(),
+             "04 answers its own empty page against an empty store. A shelf with nothing " <>
+               "on it is not a reason to draw somebody else's show"
 
-      assert Series.series() == Series.drawn_series(),
-             "58's fallback is not `drawn_series/0` verbatim. It reads through 04, so this " <>
-               "fails for a lost fallback on either side"
+      refute Series.series() == Series.drawn_series(),
+             "the drawing is back on the live path — `drawn_series/0` belongs to the " <>
+               "design-literal comparison now, not to a reader"
     end
 
     test "a tracked series with nothing cached about it draws ITSELF, empty" do
@@ -349,44 +349,50 @@ defmodule Kati.ScreenSeriesTest do
       end
     end
 
-    test "every string the drawing carries reaches screen 04's tree" do
+    test "no string the drawing carries reaches screen 04's tree" do
       tree = tree(mount_screen(Series))
       drawn = Sample.series()
 
-      for string <- [drawn.title, drawn.meta, drawn.season, drawn.next_air, "EPISODES"] do
-        assert drawn?(tree, string), "#{inspect(string)} is nowhere in the tree"
+      for string <- [drawn.title, drawn.meta, drawn.season, drawn.next_air] do
+        refute drawn?(tree, string),
+               "#{inspect(string)} is on the page of a reader who owns no series"
       end
 
-      assert drawn?(tree, "#{drawn.watched} of #{drawn.total} watched")
+      refute drawn?(tree, "#{drawn.watched} of #{drawn.total} watched")
 
-      for label <- drawn.seasons, do: assert(drawn?(tree, label))
+      for label <- drawn.seasons, do: refute(drawn?(tree, label))
 
       for ep <- drawn.episodes do
-        assert drawn?(tree, ep.title)
-        assert drawn?(tree, ep.sub)
+        refute drawn?(tree, ep.title)
+        refute drawn?(tree, ep.sub)
       end
+
+      # The page itself still renders: the frame is a state of 04, not a blank
+      # process. Board 248 draws the same shape with an empty primary.
+      assert drawn?(tree, "EPISODES")
     end
 
-    test "every string the drawing carries reaches board 58's tree too" do
+    test "no string the drawing carries reaches board 58's tree either" do
       # Board 58 is screen 04 under `:fa` since mishka-group/kati#103, so what
-      # this asks is that the SAME fallback survives the other locale: the
-      # numbers change script and the tree keeps every node.
+      # this asks is that the empty page is empty in BOTH locales: a fallback
+      # left on one side only would put the drawing in front of one reader.
       Kati.Locale.as(:fa, fn ->
         tree = tree(mount_screen(Series))
         drawn = Series.drawn_series()
 
         for string <- [drawn.title, drawn.meta, drawn.season] do
-          assert drawn?(tree, string), "#{inspect(string)} is nowhere in the tree"
+          refute drawn?(tree, string),
+                 "#{inspect(string)} is on the page of a reader who owns no series"
         end
 
-        assert drawn?(tree, Series.watched_line(drawn.watched, drawn.total))
+        refute drawn?(tree, Series.watched_line(drawn.watched, drawn.total))
 
         for label <- drawn.seasons,
-            do: assert(drawn?(tree, Series.season_pill_label(label)))
+            do: refute(drawn?(tree, Series.season_pill_label(label)))
 
         for ep <- drawn.episodes do
-          assert drawn?(tree, ep.title)
-          assert drawn?(tree, ep.sub)
+          refute drawn?(tree, ep.title)
+          refute drawn?(tree, ep.sub)
         end
       end)
     end
@@ -618,9 +624,9 @@ defmodule Kati.ScreenSeriesTest do
       |> Ash.Changeset.for_update(:update, %{archived: true})
       |> Ash.update!()
 
-      assert Series.series() == Series.drawn_series(),
+      assert Series.series() == Series.empty_series(),
              "`:shelf` is where *keeps history, hides from shelf* is enforced, and this " <>
-               "screen reads through it"
+               "screen reads through it — archiving the only series empties the page"
     end
   end
 

@@ -672,6 +672,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # hero and four rows, so there is nothing left on this screen for an
     # empty database to be held to.
     "10" => [],
+    # 04 and 58 → no board either, the same treatment. `empty_series/0` is the
+    # frame with nothing in any slot: no title, no year, no season bar, no
+    # primary and no rows, so board 04's own show has nothing left on this
+    # screen for an empty database to be held to. The board is still compared —
+    # `Kati.ScreenDesignLiteralTest` installs `drawn_series/0` for exactly that.
+    "04" => [],
+    "58" => [],
     # 145 → no board either: an empty shelf's facets/decades are both [],
     # so none of board 145's chip rails have anything to draw, the same
     # treatment 10 and 12 get.
@@ -2001,8 +2008,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # title, the meta line, the season strip, the counter, the next airing and
       # all seven rows. `by_season` rides on both sides, which is what makes the
       # S1/S2/S3 pills a control on an empty database too.
-      {"04", Kati.Screens.Series, &Kati.Screens.Series.series/0,
-       &Kati.Screens.Series.drawn_series/0},
       # 05 gates on `:followed` being empty rather than on either list being
       # empty: "nothing is out this week" is a true thing for a release inbox to
       # say, and the drawing's three rows would be a false one. The pair
@@ -2415,13 +2420,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"47", Kati.Screens.Nutrition, fn -> Kati.Screens.Nutrition.figures(today) end,
        &Kati.Screens.Nutrition.drawn_figures/0},
       {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
-       &Kati.Meals.SampleShopping.list/0},
-      # 58 is 04's gate reached through 04's read, so this pair fails for two
-      # different defects: a lost Persian fallback, and an English one — the
-      # mirror cannot keep drawing its drawing if `tracked_series/0` stops
-      # answering `nil` on an empty store.
-      {"58", Kati.Screens.Series, &Kati.Screens.Series.series/0,
-       &Kati.Screens.Series.drawn_series/0}
+       &Kati.Meals.SampleShopping.list/0}
     ]
   end
 
@@ -2444,6 +2443,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # `fallbacks/0` gives: no second copy of any value lives in this file.
   defp empties(today) do
     [
+      # 04 answers its own empty page rather than the drawing. `empty_series/0`
+      # is board 248's seventeen keys with the title and year emptied too — the
+      # frame 04 already draws for a series whose episode list it does not have,
+      # with nothing in the slots. `drawn_series/0` stays on the right of the
+      # pair: it is what `Kati.ScreenDesignLiteralTest` installs to compare the
+      # page against .scratch/design/audit/04.png, and nothing else reads it.
+      {"04", Kati.Screens.Series, &Kati.Screens.Series.series/0,
+       Kati.Screens.Series.empty_series(), &Kati.Screens.Series.drawn_series/0},
+      # 58 is 04's gate reached through 04's read, so it moves with it: the
+      # mirror cannot keep drawing its drawing once `series/0` answers the empty
+      # page on an empty store. One pair still covers both defects, a Persian
+      # fallback and an English one, because both sides read the same function.
+      {"58", Kati.Screens.Series, &Kati.Screens.Series.series/0,
+       Kati.Screens.Series.empty_series(), &Kati.Screens.Series.drawn_series/0},
       # 01 and 139: `nothing_kept?/1` is the branch between the two boards. It
       # counts `Kati.Media.TrackedTitle`, reads the timeline and asks
       # `Kati.Sections.answered?/0`, and it decides which of the two pages a

@@ -100,7 +100,11 @@ defmodule Kati.SeriesTickTest do
     # updates one of the two lists is a defect in the bookkeeping, not in the
     # write.
     test "the flip lands in by_season as well as in episodes" do
-      series = Series.series()
+      # `drawn_series/0` and not `series/0`: this test is about the bookkeeping
+      # in `restored_for_test/2`, and it needs a map with episodes on it. An
+      # empty store now answers the empty page, so the drawing is asked for
+      # directly — as a test fixture, which is the only thing it is now.
+      series = Series.drawn_series()
       label = series.current_season
 
       before = Enum.at(series.episodes, 2).watched
@@ -117,7 +121,11 @@ defmodule Kati.SeriesTickTest do
     end
 
     test "so switching away and back keeps it" do
-      series = Series.series()
+      # `drawn_series/0` and not `series/0`: this test is about the bookkeeping
+      # in `restored_for_test/2`, and it needs a map with episodes on it. An
+      # empty store now answers the empty page, so the drawing is asked for
+      # directly — as a test fixture, which is the only thing it is now.
+      series = Series.drawn_series()
       label = series.current_season
       other = Enum.find(Map.keys(series.by_season), &(&1 != label))
 

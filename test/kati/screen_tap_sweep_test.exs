@@ -888,7 +888,11 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.UpNextFiltersTest`'s "tapping the row a second time flips it"
     # dispatches it twice from a known store and asserts the direction moves.
     {Kati.Screens.UpNextFilters, :recently_touched},
-    {Kati.Screens.Series, :season_S2},
+    # (`{Kati.Screens.Series, :season_S2}` was here. Screen 04 draws its own
+    # empty page on an empty store now, and an empty page has no season pills,
+    # so the tag is drawn by nothing and the entry described an app that used to
+    # exist. The pill is still a live control on a series that HAS seasons —
+    # `Kati.SeriesTickTest` is where that is held.)
 
     # (`Kati.Screens.Calendar`'s selected day cell belongs in the group above
     # and cannot be written here: its tag carries today's ISO date, so a

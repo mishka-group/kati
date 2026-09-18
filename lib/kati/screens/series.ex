@@ -165,7 +165,7 @@ defmodule Kati.Screens.Series do
   @spec series(String.t() | nil) :: map()
   def series(id \\ nil) do
     case tracked_series(id) do
-      nil -> drawn_series()
+      nil -> empty_series()
       facts -> shaped(facts)
     end
   end
@@ -231,6 +231,45 @@ defmodule Kati.Screens.Series do
       seed: nil,
       meta: "2023",
       season: nil,
+      seasons: [],
+      current_season: nil,
+      total: 0,
+      watched: 0,
+      next_air: nil,
+      episodes: [],
+      by_season: %{}
+    }
+  end
+
+  @doc """
+  The page with no series on it.
+
+  Board 248's shape with its title and year emptied too: the same seventeen keys
+  `shaped/1` answers, all of them carrying nothing. 248 already proves the
+  render survives `seasons: []`, `episodes: []`, `by_season: %{}` and a nil
+  seed, so an empty page is a state screen 04 can already draw rather than a
+  second implementation of it.
+
+  This is what a reader gets when nothing names a series — an id that matches no
+  row, or a store with nothing in it. It replaced `drawn_series/0` on that path:
+  a shelf with nothing on it is not a reason to draw somebody else's show.
+  """
+  @spec empty_series() :: map()
+  def empty_series do
+    %{
+      tracked_id: nil,
+      followed?: false,
+      private?: false,
+      anime?: false,
+      media_kind: :tv,
+      status: :not_started,
+      # Empty strings and not `nil`: the typesetting helpers take a run and ask
+      # what script it is in, so `Kati.Locale.mono_face/1` has no clause for a
+      # missing one. Nothing to say is still a string.
+      title: "",
+      seed: nil,
+      meta: "",
+      season: "",
       seasons: [],
       current_season: nil,
       total: 0,

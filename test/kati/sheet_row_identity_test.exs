@@ -1215,16 +1215,22 @@ defmodule Kati.SheetRowIdentityTest do
                {:push, Kati.Screens.Season, %{title_id: "t1", season: 3}}
     end
 
-    test "an id that names no shelf row draws the drawing, not the shelf's head" do
+    test "an id that names no shelf row draws nothing, not the shelf's head" do
       # `Kati.Screens.BookDetail.shelved_book/1`'s rule, held by the four
       # readers this round gave an argument to: a row archived or deleted under
       # the user is not the same fact as an empty shelf, and quietly
       # substituting a different title is the swap the argument prevents.
+      #
+      # 04 answers `empty_series/0` rather than the drawing now. The argument is
+      # unchanged — what a named-but-missing row must NOT do is open a different
+      # series — only the answer is, and an empty page is the honest one.
       gone = Ecto.UUID.generate()
 
       assert Kati.Screens.Film.film(gone) == Kati.Screens.Film.drawn_film()
-      assert Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series()
-      assert Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series()
+      assert Kati.Screens.Series.series(gone) == Kati.Screens.Series.empty_series()
+
+      refute Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series(),
+             "a named-but-missing series is drawing the board's own show again"
 
       assert Kati.Screens.Season.season(%{title_id: gone}) ==
                Kati.Screens.Season.drawn_season()

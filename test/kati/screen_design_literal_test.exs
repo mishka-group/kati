@@ -1395,6 +1395,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` holds that half; this puts
       # the screen in the state its own board was captured in.
       {"10", Kati.Screens.UpNext, &Map.put(&1, :queue, Kati.Screens.UpNext.Sample.queue())},
+      # 04 draws its own empty page now, so the board's own series has to be
+      # installed to compare the frame against .scratch/design/audit/04.png.
+      # `drawn_series/0` exists for this and for nothing else.
+      {"04", Kati.Screens.Series, &Map.put(&1, :series, Kati.Screens.Series.drawn_series())},
+      # 58 is the same screen under `:fa`, and it registers separately, so it
+      # needs the same install. `drawn_series/0` builds its season headings
+      # through `gettext/1`, so calling it here answers in whichever locale the
+      # comparison is running.
+      {"58", Kati.Screens.Series, &Map.put(&1, :series, Kati.Screens.Series.drawn_series())},
       # 152's Marram card is one worked example of a real, per-reader list
       # that is empty on a device with no anime tracked. `Kati.Media.
       # AnimeSample.misclassified/0` is what board 152 was captured with.
