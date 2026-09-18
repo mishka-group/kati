@@ -63,24 +63,33 @@ defmodule Kati.ImportMappingTest do
     end
 
     test "so screen 37 draws that file, not the other one" do
+      # The push carries `:path` and `:name` (see the tap above), and those are
+      # what #53 is about. A `:source` with no path names no file at all, and
+      # what settles #53 now is that NEITHER screen invents one: 37 opens on
+      # its own empty job rather than on the other export's five columns.
       {:ok, socket} =
         Import.mount(%{source: :goodreads}, %{}, Mob.Socket.new(Kati.Screens.Import))
 
       words =
         socket.assigns |> Import.render() |> inspect(limit: :infinity, printable_limit: :infinity)
 
-      assert words =~ "goodreads_library_export.csv"
-      assert words =~ "Bookshelves"
       refute words =~ "trakt-backup.csv"
+      refute words =~ "goodreads_library_export.csv"
+      refute words =~ "Bookshelves"
     end
 
-    test "and a bare push still draws board 37's own file" do
+    test "and a bare push draws no file at all" do
+      # It drew `trakt-backup.csv` — five columns of somebody else's film
+      # export under a plan promising 384 new records — and *Something else* on
+      # screen 140 is a routed tap that lands here with exactly this push.
       {:ok, socket} = Import.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.Import))
 
       words =
         socket.assigns |> Import.render() |> inspect(limit: :infinity, printable_limit: :infinity)
 
-      assert words =~ "trakt-backup.csv"
+      refute words =~ "trakt-backup.csv"
+      assert words =~ "No file chosen"
+      refute Import.live?(Import.job_for(%{}))
     end
   end
 end

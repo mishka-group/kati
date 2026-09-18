@@ -86,7 +86,6 @@ defmodule Kati.Screens.Import do
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaSeparator
-  alias Kati.Import.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -121,12 +120,19 @@ defmodule Kati.Screens.Import do
   A push carrying `:path` and `:name` is a file the reader actually picked, and
   `Kati.Import.Job.read/2` is what makes it a job — the rows, the columns
   mapped by their headers, and the plan counted against the shelf as it stands.
-  A push carrying neither is the gallery, a sweep, or screen 140's *Something
-  else*, and gets `Kati.Import.Sample`, which is the state board 37 was
-  captured in.
 
-  A file that could not be read falls back to the drawing rather than to a
-  blank page, and carries why on `:refusal` so the screen can say it.
+  A push carrying neither is the gallery, a sweep, or screen 140's *Something
+  else*, and gets `empty_job/0`. It used to get `Kati.Import.Sample`, and that
+  was a lie on a routed path rather than only in the gallery: *Something else*
+  is a row a reader taps having picked no file at all, and what opened was a
+  mapping table for `trakt-backup.csv` — five columns of somebody else's film
+  export, under a plan promising 384 new records, 28 merged and 6 conflicts.
+  `live?/1` kept the commit pill inert, so the numbers could not be acted on;
+  they were still the only thing on the page.
+
+  A file that could not be read gets the same empty job, carrying why on
+  `:refusal` so the screen can say it — the refusal is the page's subject and
+  the drawing's four hundred records were never part of the answer.
   """
   @spec job_for(map()) :: map()
   def job_for(params) do
@@ -137,12 +143,49 @@ defmodule Kati.Screens.Import do
          {:ok, job} <- Kati.Import.Job.read(path, name) do
       job
     else
-      {:error, reason} ->
-        Map.put(Sample.job(Map.get(params, :source) || :trakt), :refusal, reason)
-
-      _no_file ->
-        Sample.job(Map.get(params, :source) || :trakt)
+      {:error, reason} -> Map.put(empty_job(), :refusal, reason)
+      _no_file -> empty_job()
     end
+  end
+
+  @doc """
+  The wizard with no file behind it: its frame, its step meter, and nothing in
+  any slot.
+
+  Step **1** of four rather than the drawing's 3, because picking the file is
+  the first step and it has not happened. No columns, no plan and no conflict,
+  so `mapping/1`'s card draws one worded line and `outcome/1` and
+  `conflicts_band/1` draw nothing at all.
+  """
+  @spec empty_job() :: map()
+  def empty_job do
+    %{
+      action: pill_label(0),
+      file: gettext("No file chosen"),
+      subtitle:
+        gettext("No file chosen · step %{step} of %{steps}",
+          step: Kati.Locale.number(1),
+          steps: Kati.Locale.number(4)
+        ),
+      shape:
+        Kati.UI.eyebrow_label(
+          gettext("%{rows} rows · %{columns} columns",
+            rows: Kati.Locale.number(0),
+            columns: Kati.Locale.number(0)
+          )
+        ),
+      steps: 4,
+      step: 1,
+      columns: [],
+      outcome: [],
+      conflict: nil
+    }
+  end
+
+  defp pill_label(count) do
+    pgettext("the import action pill, with its record count", "Import %{n}",
+      n: Kati.Locale.number(count)
+    )
   end
 
   @doc """
@@ -461,12 +504,20 @@ defmodule Kati.Screens.Import do
           />
         </Column>
         <Spacer size={13} />
-        {Kati.UI.symbol("check_circle", size: 20, color: Kati.Theme.green(), fill: true)}
+        {Kati.Screens.Import.file_tick(job)}
       </Row>
       <Spacer size={22} />
     </Column>
     """
   end
+
+  # The green tick means *this file was read*, so it cannot be drawn beside a
+  # file that is not there.
+  @doc false
+  def file_tick(%{columns: []}), do: ~MOB"<Spacer size={0} />"
+
+  def file_tick(_job),
+    do: Kati.UI.symbol("check_circle", size: 20, color: Kati.Theme.green(), fill: true)
 
   @doc """
   The 38x38 paper tile the file card leads with, from
@@ -491,6 +542,33 @@ defmodule Kati.Screens.Import do
   defdelegate file_tile(), to: Kati.UI.ImportChrome
 
   @doc false
+  def mapping(%{columns: []}) do
+    assigns = %{
+      line:
+        UI.text(
+          gettext("Pick a file and its columns will be listed here, one per row."),
+          12.5,
+          Palette.muted(),
+          lines: 2
+        )
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={15}
+      >
+        {@line}
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
   def mapping(job) do
     last = length(job.columns) - 1
 

@@ -1442,6 +1442,10 @@ defmodule Kati.ScreenDesignLiteralTest do
       # four are installed here — the clock included, since the live one reads
       # the device and board 29 was captured on a Sunday in August.
       {"29", Kati.Screens.Lock, &Map.put(&1, :widgets, Kati.Screens.Lock.drawn_widgets())},
+      # 37 and 141 answer their own empty state over a push naming no file now,
+      # so each board's own job is installed here to compare the frame.
+      {"37", Kati.Screens.Import, &Map.put(&1, :job, Kati.Import.Sample.job(:trakt))},
+      {"141", Kati.Screens.ImportRecognised, &Map.put(&1, :job, Kati.Import.Sample.recognised())},
       # 11 answers an empty feed now, so the board's own is installed here.
       {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
       # 34 answers an empty season now, so the board's own goes in here.

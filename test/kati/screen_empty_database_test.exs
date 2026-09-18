@@ -743,6 +743,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # Making their own two halves real is launcher-widget work — Part 18 of
     # fake_hardcoded.md — and the meal half is out of the film/series scope.
     "29" => [],
+    # 37 and 141 → no board: an unpicked file has no name, no shape, no columns,
+    # no plan and no conflict, so board 37's `trakt-backup.csv` and board 141's
+    # 418 rows have nothing left on either screen to be held to. Both keep their
+    # frames — 37 its step meter and its two eyebrows, 141 a worded card.
+    "37" => [],
+    "141" => [],
     "33" => [],
     # 15 → no board either: nothing logged means no rows, no rewatch card and a
     # count of zero, so board 15's own seven rows have nothing left to compare.
@@ -1281,6 +1287,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 34 with no season is the subtitle, three order labels, the zero eyebrow
     # and the back pill's chrome — twelve strings. The nine episode rows and the
     # two switches that padded it past the floor act on rows it has not got.
+    # 37 with no file picked is the Import pill, the heading, its subtitle, the
+    # file card's two lines, the two eyebrows and one worded sentence where the
+    # mapping table was — eleven strings. The five mapped columns, the three
+    # outcome cards and the conflict card that padded it past the floor are
+    # every part of the page that describes a file, and there is no file.
+    "37" => 11,
+    # 141 with no file picked is a single card: a glyph, a title, a sentence.
+    # Five strings, and it is the SAME shape as its own refusal page one case
+    # over — `refused/1`'s frame around a different sentence — which is the
+    # precedent this exception rests on. A page that has been given nothing has
+    # exactly one thing to say, and board 141's own note on the refusal branch
+    # is the argument against padding it: *"a page that draws them anyway is
+    # lying in nine places to apologise in one"*.
+    "141" => 5,
     "34" => 12,
     # 14 with nothing stored is the back pill, the empty hero's two lines and
     # the "no cast, no scores" card — ten strings. The synopsis, cast, ratings
@@ -2234,11 +2254,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # card, the Sources rows and the decision are five views of one device,
       # and a gate on the banner alone would pass while the card described a
       # session nobody is playing.
-      {"37", Kati.Screens.Import, fn -> Kati.Screens.Import.job_for(%{}) end,
-       fn -> Kati.Import.Sample.job(:trakt) end},
-      # 141 gates on the same branch and for the same reason.
-      {"141", Kati.Screens.ImportRecognised, fn -> Kati.Screens.ImportRecognised.job_for(%{}) end,
-       &Kati.Import.Sample.recognised/0},
       # 28 is NOT here any more, and neither is 55. Both used to compare
       # `rest_of_today(Kati.Calendars.Today.rows())` with
       # `rest_of_today(Sample.rest_of_today())` — the assertion that a device
@@ -2568,6 +2583,23 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
       {"64", Kati.Screens.MarkAndroid, fn -> Map.drop(Kati.Screens.Lock.widgets(), [:clock]) end,
        Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
+      # 37 and 141 answer their own empty state. A push naming no file is not
+      # only the gallery: *Something else* on screen 140 is a routed row, and it
+      # opened 37 on `trakt-backup.csv` — five columns of somebody else's film
+      # export, under a plan promising 384 new records, 28 merged and 6
+      # conflicts — for a reader who had picked nothing. 141 announced 418 rows,
+      # nine columns and seven matched over the same nothing. `live?/1` kept
+      # both commit pills inert, so the numbers could not be acted on; they were
+      # still the only thing on either page.
+      #
+      # 141's refusal branch had already reached this conclusion for the case
+      # one step over — *"a page that draws them anyway is lying in nine places
+      # to apologise in one"* — and a push that named no file has less to say
+      # than a refusal does, not more.
+      {"37", Kati.Screens.Import, fn -> Kati.Screens.Import.job_for(%{}) end,
+       Kati.Screens.Import.empty_job(), fn -> Kati.Import.Sample.job(:trakt) end},
+      {"141", Kati.Screens.ImportRecognised, fn -> Kati.Screens.ImportRecognised.job_for(%{}) end,
+       Kati.Screens.ImportRecognised.empty_recognised(), &Kati.Import.Sample.recognised/0},
       # 15 is an append-only record of what the reader DID, so a device that has
       # done nothing has to say so. It reported 1,204 entries over seven
       # invented rows on every fresh install.

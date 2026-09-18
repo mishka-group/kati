@@ -681,7 +681,7 @@ defmodule Kati.ScreenWriteTargetTest do
   # so the position card and the controls reading off it are not drawn over a
   # sheet naming no title. The measured drop is four.
   @screens_swept 156
-  @drawn_taps 1873
+  @drawn_taps 1869
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

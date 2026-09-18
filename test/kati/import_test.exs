@@ -329,11 +329,21 @@ defmodule Kati.ImportTest do
       assert Ash.read!(Watch) |> length() == 1, "only the watch the fixture made"
     end
 
-    test "and the board's pill is a picture, as 37's is" do
-      drawn = Recognised.job_for(%{})
+    test "and with no file picked there is no pill to press at all" do
+      # It drew board 141 whole — 418 rows, nine columns, seven matched — over a
+      # reader who had picked nothing, with the pill inert beneath it. The page
+      # has no header now: `content/1` answers `nothing_picked/0`, which is
+      # `refused/1`'s frame around a different sentence.
+      empty = Recognised.job_for(%{})
 
-      refute Recognised.live?(drawn)
-      refute inspect(Recognised.header(drawn), limit: :infinity) =~ "commit"
+      refute Recognised.live?(empty)
+      assert empty == Recognised.empty_recognised()
+
+      page = inspect(Recognised.content(%{job: empty}), limit: :infinity)
+
+      refute page =~ "commit"
+      refute page =~ "goodreads_library_export.csv"
+      assert page =~ "No file picked yet"
 
       assert inspect(Recognised.header(Recognised.job_for(file(letterboxd()))), limit: :infinity) =~
                "commit"
@@ -470,12 +480,28 @@ defmodule Kati.ImportTest do
   end
 
   describe "screen 37" do
-    test "draws the board when the push named no file" do
-      assert Screen.job_for(%{}) == Kati.Import.Sample.job(:trakt)
+    test "draws its own empty job when the push named no file" do
+      assert Screen.job_for(%{}) == Screen.empty_job()
       refute Screen.live?(Screen.job_for(%{}))
+
+      # Not the drawing, which is what it was: *Something else* on screen 140 is
+      # a routed tap that lands here with this exact push, so a reader who had
+      # picked no file was shown `trakt-backup.csv`, five mapped columns and a
+      # plan promising 384 new records, 28 merged and 6 conflicts.
+      refute Screen.job_for(%{}) == Kati.Import.Sample.job(:trakt)
+      assert Screen.job_for(%{}).columns == []
+      assert Screen.job_for(%{}).outcome == []
+      assert Screen.job_for(%{}).conflict == nil
     end
 
-    test "and the board's Import pill is not a control" do
+    test "and a file it could not read is empty too, with the reason on it" do
+      job = Screen.job_for(%{path: "/no/such/file.csv", name: "file.csv"})
+
+      assert job.refusal
+      assert Map.delete(job, :refusal) == Screen.empty_job()
+    end
+
+    test "and the empty job's Import pill is not a control" do
       refute inspect(Screen.header(Screen.job_for(%{})), limit: :infinity) =~ "commit"
     end
 

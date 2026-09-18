@@ -157,7 +157,6 @@ defmodule Kati.Screens.ImportRecognised do
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
-  alias Kati.Import.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -177,8 +176,14 @@ defmodule Kati.Screens.ImportRecognised do
 
   Screen 140 opens the document picker and pushes the result here, so this is
   the first screen in the flow that has ever had a real file behind it. A push
-  naming none — the gallery, a sweep — gets `Kati.Import.Sample.recognised/0`,
-  which is the state board 141 was captured in.
+  naming none — the gallery, a sweep — gets `empty_recognised/0`.
+
+  It used to get `Kati.Import.Sample.recognised/0`, the state board 141 was
+  captured in: a page announcing 418 rows, nine columns and seven matched over
+  a reader who had picked nothing. That is board 142's own objection one step
+  earlier in the flow — the refusal branch below already refuses to draw the
+  fixture with a note on top, *"lying in nine places to apologise in one"*, and
+  a push that named no file has even less to say than a refusal does.
   """
   @spec job_for(map()) :: map()
   def job_for(params) do
@@ -208,9 +213,20 @@ defmodule Kati.Screens.ImportRecognised do
         }
 
       _no_file ->
-        Sample.recognised()
+        empty_recognised()
     end
   end
+
+  @doc """
+  The page with no file picked at all.
+
+  Shaped like the refusal map rather than like the job: there is no count to
+  draw, no mapping table to check and nothing to import, so the page says the
+  one thing it knows and points at the picker. `live?/1` answers false for it
+  through the same `:job` key the refusal misses.
+  """
+  @spec empty_recognised() :: map()
+  def empty_recognised, do: %{no_file: true}
 
   @doc """
   When the file disagrees with the tile the reader tapped, or `nil`.
@@ -272,6 +288,42 @@ defmodule Kati.Screens.ImportRecognised do
           Kati.Screens.ImportRecognised.mismatch_line(looks_like, different_kind?)
         )
     end
+  end
+
+  @doc """
+  Board 141 with nothing picked — `refused/1`'s frame around a different
+  sentence.
+
+  The reader is one pop from the picker either way, which is why this says so
+  rather than offering a second door: the row that opened this screen is the
+  row that opens a file.
+  """
+  @spec nothing_picked() :: map()
+  def nothing_picked do
+    assigns = %{
+      card:
+        Kati.Screens.ImportRecognised.notice(
+          "upload_file",
+          gettext("No file picked yet"),
+          gettext(
+            "Choose an export on the page before this one and Kati will count its rows and match its columns here."
+          )
+        )
+    }
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
+        {@card}
+      </Column>
+    </Scroll>
+    """
   end
 
   @doc """
@@ -562,6 +614,9 @@ defmodule Kati.Screens.ImportRecognised do
   def source_name(_none), do: "CSV"
 
   @doc false
+  def content(%{job: %{no_file: true}}),
+    do: Kati.Screens.ImportRecognised.nothing_picked()
+
   def content(%{job: %{refusal: _reason}} = assigns),
     do: Kati.Screens.ImportRecognised.refused(assigns.job)
 
