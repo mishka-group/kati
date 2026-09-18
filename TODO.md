@@ -86,6 +86,23 @@ list is one-for-four right against current code: `HomeDark` still holds;
 Subscriptions does not. Worth a decision on whether to rewrite or retire it
 rather than leave a doc a new reader would trust and be misled by.
 
+## Fixed, 18 Sep 2026 (later still) — AnimeFilter no longer scaffolding
+
+**`Kati.Screens.AnimeFilter` (board 152)** was listed above as blocked on
+schema that turned out to already exist: `TrackedTitle.anime_override`
+(a real column, contradicting `AnimeSample`'s own stale moduledoc) and
+`TrackedTitle.source`'s import-provenance constraints
+(`:jikan`/`:anilist`/etc., via `Kati.Import.Mapping.looks_like/1`).
+`load/1` rewritten to compute `type_counts`, `tab_counts`, `anime_count`,
+`misclassified` (a real per-title guess against `Kati.Media.Anime`'s
+existing classifier) and `watches_anime?` from the real store; the "fix
+misclassification" tap now does a real `Ash.update/2` on
+`anime_override`. `threshold`/`rules` stay on `Sample` — they describe the
+app's own fixed rules, not personal data, so that is correct, not a gap.
+Verified via `test/kati/screen_empty_database_test.exs` (`misclassified/0`
+moved from `fallbacks/1` to `empties/1`) and the existing screen test
+suite; committed `c5784a9`.
+
 ## Genuine scaffolding — no domain exists yet
 
 - **`Kati.Screens.AutoDetect` (board 36) + `Kati.Settings.DetectSample`** —
@@ -99,11 +116,6 @@ rather than leave a doc a new reader would trust and be misled by.
   numbering override. `Kati.Media.TrackedTitle`/`CachedTitle` have no
   `type_override` column and nothing writes import provenance. Its own
   moduledoc says so. Needs the schema work before it can read anything.
-
-- **`Kati.Screens.AnimeFilter` (board 152) + `Kati.Media.AnimeSample`** — same
-  gap: `:anime` is a real `:kind`, but the per-title override, the
-  import-provenance flag and the "does this household watch anime" onboarding
-  answer none exist as columns yet.
 
 - **`Kati.Screens.ShelfSelection` (board 146)** — two of its three bands are
   explicitly stills — a picture of Library's resting header, not a second

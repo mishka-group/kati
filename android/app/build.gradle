@@ -250,6 +250,9 @@ dependencies {
     implementation 'androidx.compose.animation:animation'
     implementation 'androidx.activity:activity-compose:1.8.2'
     implementation 'io.coil-kt:coil-compose:2.6.0'
+    // The "continue watching" home-screen widget. Pure Kotlin, no BEAM
+    // involved — see KatiRefreshWorker.kt for why nothing here can boot one.
+    implementation 'androidx.glance:glance-appwidget:1.1.1'
 
     // KATI-BEGIN(K-30 pruned-deps) mob_new=0.4.20
     // Removed by #75, with the Kotlin that referenced them:
