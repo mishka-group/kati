@@ -454,13 +454,17 @@ defmodule Kati.ScreenStatsTest do
       assert {:push, Kati.Screens.Subscriptions, _params} = Map.get(pushed.__mob__, :nav_action)
     end
 
-    test "and its line is the ledger's own total, not a figure" do
-      # `£46.47 a month · 7 expenses` is what the Money row beside it carried on
-      # every device until MOVIES-AND-TV.md #45, and a new row is not the place
-      # to put that back.
-      assert Stats.subscriptions_line() == Kati.Screens.Subscriptions.empty_ledger().monthly.total,
-             "nothing is subscribed in this database, so the row has no total to report"
+    test "and with nothing subscribed it says what the page behind it says" do
+      # Board 309's rule for this whole card: a row sub-line has to be an
+      # answer, not a dash. `empty_ledger/0`'s `—` is right on screen 23, under
+      # an `Every month` label; here, beside *Nothing to add up yet* and *Not
+      # set up*, it reads as a rendering fault. Found on the emulator.
+      assert Stats.subscriptions_line() == "No subscriptions yet"
 
+      refute Stats.subscriptions_line() == "—"
+
+      # And not a figure: `£46.47 a month · 7 expenses` is what the Money row
+      # beside it carried on every device until MOVIES-AND-TV.md #45.
       refute Stats.subscriptions_line() =~ "46.47"
     end
   end

@@ -859,10 +859,19 @@ defmodule Kati.Screens.Stats do
   what it cost them, and neither of the existing doors is on the page where
   that question is being asked.
 
-  The sub-line is the ledger's own monthly total, which is `—` on a device with
-  nothing subscribed — `Kati.Screens.Subscriptions.empty_ledger/0`'s answer, and
-  the honest one. Not `Kati.Subscriptions`' own frozen figure: `£46.47 a month ·
-  7 expenses` is what the Money row carried on every device until #45.
+  The sub-line is the ledger's own monthly total, and **the words screen 23 uses
+  when there is no ledger** — not `empty_ledger/0`'s bare `—`. That dash is
+  right on screen 23, where it sits under an `Every month` label; standing alone
+  as a row sub-line beside *Nothing to add up yet*, *No goals set* and *Not set
+  up* it reads as a rendering fault, which is board 309's rule for this card
+  stated in its own words: *"A row missing its sub-line is not the same claim as
+  a row that has one and says the honest thing — the first reads as a rendering
+  fault, and the second as an answer. **Not set up** is what the page behind each
+  of them says."* Found by tapping the row on the emulator and reading the page
+  it opened, which says *No subscriptions yet*.
+
+  Not a figure either way: `£46.47 a month · 7 expenses` is what the Money row
+  beside it carried on every device until #45.
   """
   @spec with_subscriptions([map()]) :: [map()]
   def with_subscriptions(rows) do
@@ -878,16 +887,20 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc """
-  What the subscriptions row says under its title: the monthly total.
+  What the subscriptions row says under its title: the monthly total, or the
+  words screen 23 uses when there is nothing to total.
 
       iex> is_binary(Kati.Screens.Stats.subscriptions_line())
       true
   """
   @spec subscriptions_line() :: String.t()
   def subscriptions_line do
-    Kati.Screens.Subscriptions.ledger().monthly.total
+    case Kati.Subscriptions.ledger() do
+      %{monthly: %{total: total}} when is_binary(total) and total != "—" -> total
+      _nothing_subscribed -> gettext("No subscriptions yet")
+    end
   rescue
-    _error -> "—"
+    _error -> gettext("No subscriptions yet")
   end
 
   # The one row of the five whose second line this app can actually answer.
