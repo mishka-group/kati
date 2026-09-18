@@ -97,20 +97,14 @@ defmodule Kati.Screens.ShelfFilters do
   which on a first tap is nothing selected and newest first, and both counts
   are the reader's own shelf.
 
-  On a device with nothing on it, `shelf/0` answers `[]` and the sheet falls
-  back to the board whole — the same gate screens 03, 04 and 11 use, and what
-  keeps board 145 comparable.
+  On a device with nothing on it, `real_opening/1` answers its own zero —
+  `showing: 0`, `total: 0`, no facets, no decades — the same shape screen
+  145 already draws for any filter that narrows the shelf to nothing, rather
+  than falling back to the board's own fifteen.
   """
   @spec opening() :: keyword()
   def opening do
-    # The shelf as it stands, and the shelf with nothing selected. Both are
-    # asked for, because a `showing N of M` where M was inferred from N would
-    # be the same guess this is here to remove — and the narrowed list cannot
-    # produce the unnarrowed one.
-    case Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting()) do
-      [] -> drawn_opening()
-      all -> real_opening(all)
-    end
+    real_opening(Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting()))
   end
 
   @doc """

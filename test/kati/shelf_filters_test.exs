@@ -181,16 +181,14 @@ defmodule Kati.ShelfFiltersTest do
   end
 
   describe "with nothing on the shelf" do
-    test "the board is drawn whole" do
-      assert Sheet.opening() == Sheet.drawn_opening_for_test()
-    end
-
-    test "including its own two numbers" do
+    test "the sheet answers its own zero, not the board" do
       opening = Sheet.opening()
 
-      assert opening[:showing] == 41
-      assert opening[:total] == 418
-      assert opening[:facets] == nil
+      refute opening == Sheet.drawn_opening_for_test()
+      assert opening[:showing] == 0
+      assert opening[:total] == 0
+      assert opening[:facets] == []
+      assert opening[:decades] == []
     end
   end
 

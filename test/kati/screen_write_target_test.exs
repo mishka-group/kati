@@ -627,8 +627,14 @@ defmodule Kati.ScreenWriteTargetTest do
   # search field, two invitation buttons and a calendar row. Screen 01 and
   # screen 139 are swept in both locales and answer for every one of them, and
   # the measured drop is twenty-nine.
+  # And an eighth time, to 1961. Screen 145 mounted bare on an empty shelf
+  # answered the board's own preselected chips — genres, decades, a rating
+  # band, a service — same as screen 10's honest empty queue no longer
+  # answers board 10's four ready rows. `Kati.Screens.ShelfFilters.opening/0`
+  # answers its own facets: [] and decades: [] now, so none of those chips
+  # exist to dispatch a tap to. The measured drop is nineteen.
   @screens_swept 156
-  @drawn_taps 1980
+  @drawn_taps 1961
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

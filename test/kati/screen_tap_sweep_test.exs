@@ -708,6 +708,11 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AnimeFilter, :pick_screen},
     {Kati.Screens.AnimeFilter, :watches_no},
     {Kati.Screens.AutoDetectMusic, :music},
+    # ── Screen 145 on an empty shelf. Reset clears the filters, and a device
+    # with nothing tracked opens with none chosen — the reader's own zero,
+    # not the board's preselection. Its sibling on 167 does not appear here
+    # because that sheet has no Reset of its own; sort persists there.
+    {Kati.Screens.ShelfFilters, :reset},
     # ── Screen 69, the Persian book page.
     #
     # Its controls are screen 66's controls and are inert for the same reasons,

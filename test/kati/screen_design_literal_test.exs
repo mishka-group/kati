@@ -1407,6 +1407,20 @@ defmodule Kati.ScreenDesignLiteralTest do
       # level rather than nesting them, so the override merges the same way.
       {"167", Kati.Screens.UpNextFilters,
        &Map.merge(&1, Map.new(Kati.Screens.UpNextFilters.drawn_opening_for_test()))},
+      # 145 is drawn with a shelf on it, but not the same shelf its board's
+      # own facets: nil branch draws: that branch is gone from a real device
+      # entirely now (see opening/0), so this reproduces the board's genre
+      # and decade literals through the REAL per-shelf path instead —
+      # facet_row/2 and decade_facets/2, fed shaped data rather than the
+      # board's own fixed atoms. Rating, service and status chips have no
+      # such path (shelf_filters.ex's own comments: ratings are "not
+      # offered", services are dropped for having no resource) and are
+      # retired in design_literals.exs instead.
+      {"145", Kati.Screens.ShelfFilters,
+       &Map.merge(&1, %{
+         facets: [{"Drama", 41}, {"Anime", 12}, {"Documentary", 8}, {"Comedy", 0}],
+         decades: [{2020, 24}, {2010, 38}, {2000, 11}]
+       })},
       # 154 is drawn with Series chosen, and its own caption says why: the
       # episode-count field is only visible for a series. Board 155 states the
       # screen's actual default — "Resting — empty, Film, nothing assumed" — so

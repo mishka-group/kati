@@ -672,6 +672,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # hero and four rows, so there is nothing left on this screen for an
     # empty database to be held to.
     "10" => [],
+    # 145 → no board either: an empty shelf's facets/decades are both [],
+    # so none of board 145's chip rails have anything to draw, the same
+    # treatment 10 and 12 get.
+    "145" => [],
     # 154 draws its form in whatever state the socket holds, and its load state
     # is Film — board 155 says so: "Resting — empty, Film, nothing assumed".
     # Board 154 is drawn with Series chosen so the episode-count field is
@@ -2062,12 +2066,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # so — they edit one socket assign and nothing consumes them.
       {"25", Kati.Screens.ReleaseWatcher, &Kati.Screens.ReleaseWatcher.banner/0,
        &Kati.Settings.WatcherSample.banner/0},
-      # 145 gates on its whole opening state, which is one keyword list: the
-      # sort, the direction, the four chip groups and both counts arrive
-      # together or not at all. An empty shelf takes the board's own
-      # preselection and its `41 of 418`.
-      {"145", Kati.Screens.ShelfFilters, &Kati.Screens.ShelfFilters.opening/0,
-       &Kati.Screens.ShelfFilters.drawn_opening_for_test/0},
       # 23 gates on the whole ledger: the count, the total, every row and the
       # advice card arrive together or the board's do.
       {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
@@ -2490,6 +2488,23 @@ defmodule Kati.ScreenEmptyDatabaseTest do
          %{ready: [], cold: []},
          Kati.Library.UpNextFilters.resting()
        ), &Kati.Screens.UpNextFilters.drawn_opening_for_test/0},
+      # 145's gate is its whole opening state, one keyword list: the sort,
+      # the direction, the four chip groups and both counts arrive together
+      # or not at all. An empty shelf now answers its own zero rather than
+      # the board's `41 of 418`.
+      {"145", Kati.Screens.ShelfFilters, &Kati.Screens.ShelfFilters.opening/0,
+       [
+         sort: :recently_added,
+         direction: :desc,
+         decade: nil,
+         rating: nil,
+         genres: MapSet.new(),
+         services: MapSet.new(),
+         showing: 0,
+         total: 0,
+         facets: [],
+         decades: []
+       ], &Kati.Screens.ShelfFilters.drawn_opening_for_test/0},
       # 05's gate is `releases/0` — the read, which answers `nil` when nothing is
       # followed and a map when something is. It used to be paired with
       # `drawn_inbox/0`, because that was what an unfollowed device fell back
