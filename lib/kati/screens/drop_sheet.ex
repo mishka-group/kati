@@ -334,10 +334,50 @@ defmodule Kati.Screens.DropSheet do
   @spec sheet(String.t() | nil) :: map()
   def sheet(title_id \\ nil) do
     case gone_cold_title(title_id) do
-      nil -> Sample.sheet()
+      nil -> empty_sheet()
       tracked -> from_tracked(tracked)
     end
   end
+
+  @doc """
+  The sheet with no thread on it.
+
+  `from_tracked/1`'s seven keys carrying nothing. It is what a sheet opened
+  over no row answers now, in place of `Kati.Screens.DropSheet.Sample.sheet/0` —
+  *The Quiet Ones*, `GONE COLD · 4 MONTHS`, S1 E3, which is one person's shelf
+  and was never this reader's.
+
+  `tracked: nil` is the same sentinel it always was, and it is what
+  `update_tracked/2` refuses on: a sheet with nothing to write to says so rather
+  than announcing a drop it did not make.
+
+  `kind: :tv` because `heading/1` reads it to choose between *Drop this show*
+  and *Drop this film*, and one of the two has to be the word over an empty
+  sheet. Empty strings where the value reaches a `Text` — a nil arrives on a
+  device as the word `nil`.
+  """
+  @spec empty_sheet() :: map()
+  def empty_sheet do
+    %{
+      tracked: nil,
+      title: "",
+      seed: nil,
+      cold_label: "",
+      kind: :tv,
+      season: nil,
+      episode: nil
+    }
+  end
+
+  @doc """
+  Board 149 exactly as it is drawn, from `Kati.Screens.DropSheet.Sample`.
+
+  A test fixture and nothing else, the way `Kati.Screens.Film.drawn_film/0` is:
+  `Kati.ScreenDesignLiteralTest` installs it so the sheet is still compared
+  against its capture. Nothing a reader can reach calls it.
+  """
+  @spec drawn_sheet() :: map()
+  def drawn_sheet, do: Sample.sheet()
 
   # One query either way — the filter is what this sheet is ABOUT (a thread
   # that has gone quiet and is still on the shelf), so a named id narrows that
@@ -592,11 +632,20 @@ defmodule Kati.Screens.DropSheet do
     end
   end
 
-  # `nil` is the drawn fallback: nothing to write against, so the tap still
-  # changes the sheet's own assigns and simply persists nothing durable. NOT a
-  # refusal — the drawn sheet has no row by design, and saying *that did not
-  # save* over board 149 would be an error message about a drawing.
-  defp update_tracked(nil, _attrs), do: :ok
+  # `nil` is a refusal now, and has to be. This clause answered `:ok`, so
+  # `written/3` cleared `save_error`, `handle_info({:tap, :drop}, …)` read that
+  # as success and flipped `dropped?` — the sheet said *Dropped* over a write
+  # that never happened. `Kati.Media.Log.write(nil, _, _)` is `:ok` too, so
+  # nothing anywhere had recorded it.
+  #
+  # The old reasoning — that saying *this did not save* over board 149 would be
+  # an error message about a drawing — held only while the drawn sheet was
+  # unreachable. It was not: screens 04 and 08 fell back to their own drawings,
+  # and a drawn row carries no `tracked_id`, so `params_for/1` answered `%{}`
+  # and a real ⋯ menu opened this sheet over nothing. Both now draw their own
+  # empty page, and `empty_sheet/0` replaced the fixture here, so a nil row is
+  # what it always meant literally: there is no title to drop.
+  defp update_tracked(nil, _attrs), do: {:error, :not_tracked}
 
   defp update_tracked(tracked, attrs) do
     case Ash.update(tracked, attrs) do

@@ -222,17 +222,31 @@ defmodule Kati.DropWriteTest do
     end
   end
 
-  describe "the drawn sheet" do
-    test "has no row to write against, and that is not a refusal" do
+  describe "the empty sheet" do
+    test "has no row to write against, and refuses rather than claiming a drop" do
+      # This test used to assert the opposite, and it was pinning a live defect:
+      # `update_tracked(nil, _)` answered `:ok`, so `save_error` stayed nil and
+      # `dropped?` flipped true. The sheet said *Dropped* over a write that
+      # never happened — and `Kati.Media.Log.write(nil, _, _)` is `:ok` too, so
+      # nothing recorded it either. Nothing was persisted and the reader was
+      # told otherwise.
+      #
+      # The old argument — that an error over board 149 is a message about a
+      # picture — only held while the drawing was unreachable, and it was not:
+      # screens 04 and 08 fell back to their own drawings, a drawn row carries
+      # no `tracked_id`, so a real ⋯ menu opened this sheet over nothing.
       {:ok, socket} = DropSheet.mount(%{}, %{}, Mob.Socket.new(DropSheet))
+
+      assert socket.assigns.sheet == DropSheet.empty_sheet(),
+             "a sheet named nothing draws its own empty state, not the board's own show"
 
       {:noreply, after_tap} = DropSheet.handle_info({:tap, :drop}, socket)
 
-      assert after_tap.assigns.save_error == nil,
-             "board 149 has no tracked row by design, and *that did not save* over a " <>
-               "drawing is an error message about a picture"
+      assert after_tap.assigns.save_error == Kati.Write.message({:error, :not_tracked}),
+             "a tap that wrote nothing has to say so"
 
-      assert after_tap.assigns.dropped?
+      refute after_tap.assigns.dropped?,
+             "the sheet turned to its Dropped face over a title it never wrote"
     end
   end
 

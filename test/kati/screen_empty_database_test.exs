@@ -681,6 +681,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "58" => [],
     # 08 → no board either, and for the same reason as 04.
     "08" => [],
+    # 149 → no board either. `empty_sheet/0` carries no title, no cold mark and
+    # no position, so board 149's own *The Quiet Ones* has nothing left on this
+    # screen for an empty database to be held to.
+    "149" => [],
     # 145 → no board either: an empty shelf's facets/decades are both [],
     # so none of board 145's chip rails have anything to draw, the same
     # treatment 10 and 12 get.
@@ -2932,8 +2936,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"144",
        "the estuary scenes land completely differently once you know what mara is looking for.",
        ~r/^what did you make of it\?$/},
-      {"149", "dropped the quiet ones at s1 e3", ~r/^drop at s1 e3$/},
-      {"149", "undo", ~r/^still on it$/},
+      # (149's two entries were here. They exempted `drop at s1 e3` and
+      # `still on it` because the sheet drew the board's own captured position;
+      # `empty_sheet/0` carries no position at all now, so the lines are drawn
+      # by nothing and an exemption would be hiding their absence rather than
+      # explaining it. Both are still drawn over a real gone-cold title, which
+      # is what `Kati.DropWriteTest` walks.)
       # 115's direction note was here. mishka-group/kati#103 folded board 115's
       # mirror away; the board is registered against screen 109 now, which does
       # not read the database — so it is not on this file's list at all and its

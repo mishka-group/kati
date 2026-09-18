@@ -642,8 +642,13 @@ defmodule Kati.ScreenWriteTargetTest do
   # whose action row is `[]`: three pills that act on a film, drawn over no
   # film. Only *Log a watch* was reaching a handler from a bare mount, so the
   # measured drop is one.
+  #
+  # And an eleventh, to 1936. Screen 149 answers
+  # `Kati.Screens.DropSheet.empty_sheet/0`, which carries no captured position,
+  # so the position card and the controls reading off it are not drawn over a
+  # sheet naming no title. The measured drop is four.
   @screens_swept 156
-  @drawn_taps 1940
+  @drawn_taps 1936
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are
