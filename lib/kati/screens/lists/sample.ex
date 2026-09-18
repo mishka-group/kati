@@ -51,8 +51,4 @@ defmodule Kati.Screens.Lists.Sample do
       ]
     }
   end
-
-  @doc "A poster for the fanned stack, or `nil` when that seed was never drawn."
-  @spec poster(String.t()) :: String.t() | nil
-  def poster(seed), do: Kati.Design.Images.poster(seed)
 end

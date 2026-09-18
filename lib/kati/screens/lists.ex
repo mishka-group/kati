@@ -86,7 +86,6 @@ defmodule Kati.Screens.Lists do
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
-  alias Kati.Screens.Lists.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -409,7 +408,7 @@ defmodule Kati.Screens.Lists do
 
   @doc false
   def tile_art(seed) do
-    case Sample.poster(seed) do
+    case Kati.Design.Images.poster(seed) do
       nil ->
         ~MOB"<Box width={34} height={50} corner_radius={5} background={Palette.placeholder()} />"
 
