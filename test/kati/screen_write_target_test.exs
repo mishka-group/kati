@@ -643,6 +643,11 @@ defmodule Kati.ScreenWriteTargetTest do
   # film. Only *Log a watch* was reaching a handler from a bare mount, so the
   # measured drop is one.
   #
+  # And an eighteenth, to 1873. Screen 34 answers an empty season on a bare
+  # mount, so the nine episode rows, their tick discs and the two switches the
+  # fixture carried are not drawn over a season with nothing in it. The measured
+  # drop is sixteen.
+  #
   # And a seventeenth, to 1889. Screen 36 reads its own unavailable state
   # instead of drawing board 36 whole, so the source rows and the decision the
   # fixture carried are not drawn over a device that cannot look. The measured
@@ -676,7 +681,7 @@ defmodule Kati.ScreenWriteTargetTest do
   # so the position card and the controls reading off it are not drawn over a
   # sheet naming no title. The measured drop is four.
   @screens_swept 156
-  @drawn_taps 1889
+  @drawn_taps 1873
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

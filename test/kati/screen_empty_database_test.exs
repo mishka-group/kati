@@ -702,6 +702,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 34 → no board: no episodes, no options and no note, so board 34's own
+    # nine rows have nothing left to compare.
+    "34" => [],
     # 36 → no board: an unavailable device has no sessions, no now-playing card
     # and no decision, so board 36's own content has nothing left to compare.
     "36" => [],
@@ -1253,6 +1256,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # MOVIES-AND-TV.md #120.
   @small_empty_boards %{
     "23" => 9,
+    # 34 with no season is the subtitle, three order labels, the zero eyebrow
+    # and the back pill's chrome — twelve strings. The nine episode rows and the
+    # two switches that padded it past the floor act on rows it has not got.
+    "34" => 12,
     # 14 with nothing stored is the back pill, the empty hero's two lines and
     # the "no cast, no scores" card — ten strings. The synopsis, cast, ratings
     # and where-to-watch rows that padded it past the floor are exactly what a
@@ -2189,8 +2196,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # that reason: the order strip, the two switches and the subtitle are the
       # drawing's on BOTH branches, so a gate that looked only at the episode
       # list would pass while one of the frozen parts quietly changed.
-      {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
-       &Kati.Screens.Season.drawn_season/0},
       # 35 gates the whole `show/1` map for 34's reason and one of its own: the
       # map carries both the values (status, the four season-pass switches) and
       # the two flags that decide whether *Region & availability* and *This
@@ -2550,6 +2555,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # reader of this APK is always in was the one drawing the fixture.
       {"36", Kati.Screens.AutoDetect, &Kati.Screens.AutoDetect.detect/0,
        Kati.Screens.AutoDetect.detect(), &Kati.Screens.AutoDetect.drawn_detect/0},
+      # 34 answers an empty season. `tracked_season/2` answers nil for a season
+      # nobody named as readily as for an empty shelf, so a push that lost its
+      # params described somebody else's running order. The order strip keeps
+      # its three labels — that is the app's vocabulary, not a claim.
+      {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
+       Kati.Screens.Season.empty_season(), &Kati.Screens.Season.drawn_season/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.

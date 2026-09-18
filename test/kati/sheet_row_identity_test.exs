@@ -1233,7 +1233,7 @@ defmodule Kati.SheetRowIdentityTest do
              "a named-but-missing series is drawing the board's own show again"
 
       assert Kati.Screens.Season.season(%{title_id: gone}) ==
-               Kati.Screens.Season.drawn_season()
+               Kati.Screens.Season.empty_season()
 
       # And the no-id question is unchanged, which is the half every sweep
       # mounts.

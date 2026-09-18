@@ -404,7 +404,34 @@ defmodule Kati.Screens.Season do
   """
   @spec season(map() | nil) :: map()
   def season(params \\ %{}, order \\ :aired),
-    do: tracked_season(params, order) || drawn_season()
+    do: tracked_season(params, order) || empty_season(order)
+
+  @doc """
+  The season with no episodes in it.
+
+  `Kati.Season.Sample.season/0`'s eight keys carrying nothing. It was that
+  fixture — *Season 2*, nine episodes over eight rows, a note about specials —
+  and `tracked_season/2` answers nil for a season nobody named as readily as for
+  an empty shelf, so a push that lost its params described somebody else's
+  running order.
+
+  The order strip keeps its three labels and the chosen one: those are the
+  app's own vocabulary for how a season can be counted, not a claim about any
+  season. The switches go with the episodes, because both act on rows.
+  """
+  @spec empty_season(atom()) :: map()
+  def empty_season(order \\ :aired) do
+    %{
+      title: "",
+      subtitle: gettext("order & specials"),
+      orders: ["Aired", "Absolute", "DVD"],
+      current_order: order_label(order),
+      options: [],
+      eyebrow: gettext("Episodes · %{n} in this order", n: Kati.Locale.number(0)),
+      episodes: [],
+      note: ""
+    }
+  end
 
   @doc """
   Screen 34 exactly as it is drawn, from `Kati.Season.Sample`.

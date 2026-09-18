@@ -54,44 +54,47 @@ defmodule Kati.ScreenSeasonTest do
   end
 
   describe "with nothing to draw" do
-    test "an empty library answers with the drawing's own season, whole" do
-      assert Season.season() == Season.drawn_season()
+    test "an empty library answers with its own empty season" do
+      assert Season.season() == Season.empty_season()
       assert Season.tracked_season() == nil
     end
 
-    test "a tracked series with no bookmark answers with the drawing" do
+    test "a tracked series with no bookmark answers empty, not the drawing" do
       # `progress_season` is the only thing that says which season this screen
       # is of. Without it there is no referent, and picking one would be this
       # screen inventing the user's place in a show.
       track!(%{title: "Tidewrack", season: nil})
 
-      assert Season.season() == Season.drawn_season()
+      assert Season.season() == Season.empty_season()
     end
 
-    test "a bookmarked season with nothing cached answers with the drawing" do
+    test "a bookmarked season with nothing cached answers empty" do
       # The list IS the screen. A heading and an order strip over an empty card
       # says less than the drawing does.
       track!(%{title: "Tidewrack", season: 2})
 
-      assert Season.season() == Season.drawn_season()
+      assert Season.season() == Season.empty_season()
     end
 
-    test "renders every line frame 34 draws" do
+    test "renders the frame, and none of the drawing's own season in it" do
       words = text(tree(mount_screen(Season)))
       drawn = Season.drawn_season()
 
-      assert words =~ drawn.title
-      assert words =~ drawn.subtitle
-      assert words =~ String.upcase(drawn.eyebrow)
-      assert words =~ drawn.note
-
+      # The frame is still a frame: the subtitle and the three order labels are
+      # the app's own vocabulary for how a season can be counted, and they do
+      # not claim anything about a season.
+      assert words =~ Season.empty_season().subtitle
       for order <- drawn.orders, do: assert(words =~ order)
-      for option <- drawn.options, do: assert(words =~ option.title)
+
+      # Everything that was a claim about somebody's season is gone.
+      refute words =~ drawn.title
+      refute words =~ drawn.note
+
+      for option <- drawn.options, do: refute(words =~ option.title)
 
       for episode <- drawn.episodes do
-        assert words =~ episode.number
-        assert words =~ episode.title
-        assert words =~ episode.sub
+        refute words =~ episode.title
+        refute words =~ episode.sub
       end
     end
   end
