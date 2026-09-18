@@ -1421,6 +1421,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # now, so the board's own show has to be installed to compare the frame
       # against its capture.
       {"149", Kati.Screens.DropSheet, &Map.put(&1, :sheet, Kati.Screens.DropSheet.drawn_sheet())},
+      # 35 answers its own empty page over no show, so the board's own title has
+      # to be installed to compare the frame. The two flags stay as the empty
+      # page has them — both bands are the drawing's and this keeps them drawn.
+      {"35", Kati.Screens.SeriesSettings,
+       &Map.put(&1, :show, Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil))},
       # 09 draws an empty day on an empty store now, so the board's own fourteen
       # items have to be installed to compare the frame — the band, the merged
       # renewals row and the chip counts are all composed from the list.

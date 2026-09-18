@@ -170,9 +170,34 @@ defmodule Kati.Screens.SeriesSettings do
   @spec show(map() | nil) :: map()
   def show(params) do
     case Kati.Screens.SeriesSettings.tracked(Map.get(params || %{}, :tracked_id)) do
-      nil -> Map.put(Sample.show(), :tracked, nil)
+      nil -> Kati.Screens.SeriesSettings.empty_show()
       tracked -> Kati.Screens.SeriesSettings.shaped(tracked)
     end
+  end
+
+  @doc """
+  The page with no show on it.
+
+  `shaped/1`'s keys with the title emptied. It was `Kati.SeriesSettings.Sample.
+  show/0` — the board's own *Long Hollow* — so a page reached without a show
+  named one, on a screen whose switches WRITE to a title.
+
+  `region_label` and `this_show_label` stay nil, which is what
+  `region_band/1` and `this_show_band/1` already read to decide whether to draw
+  their groups at all: both bands are the drawing's, both are dropped over a
+  real show, and an empty page is not a reason to bring them back.
+  """
+  @spec empty_show() :: map()
+  def empty_show do
+    %{
+      title: "",
+      subtitle: gettext("show settings"),
+      status_label: gettext("Status"),
+      season_pass_label: gettext("Season pass"),
+      region_label: nil,
+      this_show_label: nil,
+      tracked: nil
+    }
   end
 
   @doc false

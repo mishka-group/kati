@@ -47,11 +47,16 @@ defmodule Kati.SeriesSettingsTest do
       assert show.tracked.id == tracked.id
     end
 
-    test "and is the drawing's when the push named nobody" do
+    test "and is its own empty page when the push named nobody" do
       show = SeriesSettings.show(%{})
 
       assert show.tracked == nil
-      assert show.title == Kati.SeriesSettings.Sample.show().title
+
+      assert show == SeriesSettings.empty_show(),
+             "a page reached without a show named the board's own Long Hollow — on a " <>
+               "screen whose switches write to a title"
+
+      refute show.title == Kati.SeriesSettings.Sample.show().title
     end
 
     test "and is the drawing's when the push named a show that has gone" do

@@ -690,6 +690,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "58" => [],
     # 08 → no board either, and for the same reason as 04.
     "08" => [],
+    # 35 → no board either: an empty page carries no title, and the two bands
+    # the board draws are both dropped the moment a real show names itself.
+    "35" => [],
     # 39 → no board either: the three phantom tiles and the shortcut rows are
     # deleted, so what is left of board 39 on an empty store is chrome.
     "39" => [],
@@ -2170,8 +2173,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # the two flags that decide whether *Region & availability* and *This
       # show* are drawn at all. On an empty store every one of those is the
       # board's, groups included, which is the page the gallery renders.
-      {"35", Kati.Screens.SeriesSettings, fn -> Kati.Screens.SeriesSettings.show(%{}) end,
-       fn -> Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil) end},
       # 13 gates the whole `tonight/1` map, because the window, the count, the
       # rows and the `61 MIN OVER` on the last one are four views of one
       # number. A gate that compared only the list would pass while the sentence
@@ -2477,6 +2478,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with nothing in the slots. `drawn_series/0` stays on the right of the
       # pair: it is what `Kati.ScreenDesignLiteralTest` installs to compare the
       # page against .scratch/design/audit/04.png, and nothing else reads it.
+      # 35 answers its own empty page now. The map still carries both the values
+      # and the two flags that decide whether *Region & availability* and *This
+      # show* are drawn, and those flags stay nil — both bands are the drawing's
+      # and both are already dropped over a real show.
+      {"35", Kati.Screens.SeriesSettings, fn -> Kati.Screens.SeriesSettings.show(%{}) end,
+       Kati.Screens.SeriesSettings.empty_show(),
+       fn -> Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil) end},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.
