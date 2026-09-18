@@ -19,6 +19,25 @@ Library, Series detail, the series `···` menu, Series settings, My services.
 `mix mob.routes` — 201/201 navigation references valid — covers the rest of
 the app's screen graph, not just this list.
 
+**Film detail (board 08)** was the one screen in this list left unverified —
+no movie-kind title existed in the seed data, only three TV series. Closed
+18 Sep 2026: the emulator's DNS could not reach TMDB that session (host had
+real internet — `curl` to `api.themoviedb.org` worked — but the emulator's
+own resolver could not, survived a reboot, and was left as an environment
+issue rather than chased further), so the title was created through
+`Kati.Screens.AddByHand` — the app's own real "add manually" flow a user
+hits in the identical situation — rather than through a live TMDB fetch. The
+resulting `TrackedTitle`/`CachedTitle` pair is a genuine Ash-created record,
+not a fixture. Confirmed on-device: the page rendered in full (no crash, no
+missing section), the "Where to watch" empty-service band matched
+`Kati.Screens.NothingSetUpKnockOn`, and its `my_services_where_to_watch` tap
+pushed `Kati.Screens.MyServices` correctly — the live confirmation of the
+`dfbd596` nav-crash fix from earlier this session, in its real calling
+screen. The test title was removed afterward with
+`Kati.Screens.AddTitle.untrack/1`, the same function a real "untrack" tap
+calls; its `CachedTitle` remnant was left in place, matching documented,
+real `untrack/1` behavior for every user, not a leftover fixture.
+
 These are not on this TODO. Don't re-audit them without a reason.
 
 ## Genuine scaffolding — no domain exists yet
