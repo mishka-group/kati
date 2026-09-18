@@ -1,4 +1,6 @@
 defmodule Kati.Media.Recommendations do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   What to watch next, from a provider that actually knows.
 
@@ -325,11 +327,16 @@ defmodule Kati.Media.Recommendations do
   @doc """
   The sentence over the rail, naming the title the picks came from.
 
+  `%{title}` stays a binding rather than living in the msgid: `Dark`,
+  `Arcane`, `Severance` are provider titles and #103's rule keeps a title
+  Latin in both scripts, the same reading `Kati.Screens.Discover`'s own
+  section header already gives `Because you watched %{title}`.
+
       iex> Kati.Media.Recommendations.because("Severance")
       "Because you watched Severance"
   """
   @spec because(String.t()) :: String.t()
-  def because(title), do: "Because you watched " <> title
+  def because(title), do: gettext("Because you watched %{title}", title: title)
 
   # One pick, with its poster already on disk. `match: nil` — see the
   # moduledoc. `seed` is the provider path, which `Kati.Design.Images.path/2`

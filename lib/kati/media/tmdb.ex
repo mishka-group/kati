@@ -43,6 +43,8 @@ defmodule Kati.Media.Tmdb do
   its cause.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   alias Kati.Media.CachedEpisode
   alias Kati.Media.CachedSeason
   alias Kati.Media.CachedTitle
@@ -600,12 +602,21 @@ defmodule Kati.Media.Tmdb do
   """
   @spec message({:error, term()} | term()) :: String.t()
   def message({:error, reason}), do: message(reason)
-  def message(:no_api_key), do: "No TMDB key yet. Add one in Settings → Data sources."
-  def message(:unauthorised), do: "TMDB refused that key. Check it in Settings → Data sources."
-  def message(:rate_limited), do: "TMDB is rate-limiting Kati. Try again in a minute."
-  def message(:not_found), do: "TMDB has nothing under that id."
-  def message({:http, status}), do: "TMDB answered #{status}. Nothing was saved."
-  def message({:network, _reason}), do: "Could not reach TMDB. Hand-typed titles still work."
+  def message(:no_api_key), do: gettext("No TMDB key yet. Add one in Settings → Data sources.")
+
+  def message(:unauthorised),
+    do: gettext("TMDB refused that key. Check it in Settings → Data sources.")
+
+  def message(:rate_limited),
+    do: gettext("TMDB is rate-limiting Kati. Try again in a minute.")
+
+  def message(:not_found), do: gettext("TMDB has nothing under that id.")
+
+  def message({:http, status}),
+    do: gettext("TMDB answered %{status}. Nothing was saved.", status: status)
+
+  def message({:network, _reason}),
+    do: gettext("Could not reach TMDB. Hand-typed titles still work.")
 
   defp year_of(nil), do: nil
   defp year_of(""), do: nil
