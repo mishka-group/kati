@@ -1424,6 +1424,9 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 98, 99, 101 and 103 all draw board 98's card and reach the same read.
       # A year with nothing counted is the honest answer now, so the board's own
       # card is installed to compare the four frames against their captures.
+      # 15 draws nothing logged yet on an empty store, so the board's own seven
+      # rows have to be installed to compare the frame against its capture.
+      {"15", Kati.Screens.Activity, &Map.put(&1, :log, Kati.Screens.Activity.drawn())},
       {"98", Kati.Screens.YearShare, &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
       {"99", Kati.Screens.YearShareBooks,
        &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},

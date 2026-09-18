@@ -64,41 +64,36 @@ defmodule Kati.ScreenActivityTest do
   end
 
   describe "an empty database" do
-    test "still draws every row of the drawing" do
+    test "draws nothing logged yet, not the drawing's seven rows" do
       view = mount_screen(Activity)
       log = assigns(view).log
 
-      assert log == Activity.drawn(),
-             "screen 15 stopped falling back to the drawing on an empty database. " <>
-               "It is the reference the captured frame is compared against, and a " <>
-               "fresh install has no watches, so this is the state the frame was " <>
-               "taken in."
+      assert log == Activity.empty(),
+             "a fresh install reported 1,204 entries over seven invented rows. This page " <>
+               "is an append-only record of what the reader did, and a device that has " <>
+               "done nothing has to say so."
 
-      assert length(log.today) == 3
-      assert length(log.earlier) == 4
-      assert length(log.rewatch) == 3
+      refute log == Activity.drawn()
+
+      assert log.today == []
+      assert log.earlier == []
+      assert log.rewatch == []
 
       copy = text(view)
-      assert copy =~ Sample.entries_line()
+      refute copy =~ Sample.entries_line()
 
+      # None of the drawing's seven rows, and none of its rewatch counts. This
+      # used to assert every one of them was present.
       for row <- Sample.today() ++ Sample.earlier() do
-        assert copy =~ row.stamp, "no #{row.stamp} stamp in the tree"
-        assert copy =~ row.lead, "no #{row.lead} verb in the tree"
-        assert copy =~ row.rest, "no #{inspect(row.rest)} in the tree"
+        refute copy =~ row.rest, "#{inspect(row.rest)} is in a log that recorded nothing"
       end
 
-      # `Kati.UI.eyebrow` sets its label in caps, so this is the rendered form.
-      assert copy =~ "REWATCH COUNT"
-
-      for {name, count} <- Sample.rewatch() do
-        assert copy =~ name
-        assert copy =~ count
+      for {name, _count} <- Sample.rewatch() do
+        refute copy =~ name
       end
 
-      # Seven rows, seven thumbnails. A row that lost its artwork still draws
-      # the placeholder tile at the same size, so this counts rows rather than
-      # pictures and cannot be satisfied by a shorter list.
-      assert length(thumbs(view)) == 7
+      # Seven rows, seven thumbnails — so none of either.
+      assert thumbs(view) == []
     end
   end
 
@@ -280,12 +275,11 @@ defmodule Kati.ScreenActivityTest do
       end
     end
 
-    test "and a device that has recorded nothing at all still draws the drawing" do
+    test "and a device that has recorded nothing at all says so" do
       view = mount_screen(Activity)
 
-      assert assigns(view).log == Activity.drawn()
-      assert text(view) =~ Sample.entries_line()
-      refute text(view) =~ "Nothing this month"
+      assert assigns(view).log == Activity.empty()
+      refute text(view) =~ Sample.entries_line()
     end
   end
 

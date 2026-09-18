@@ -702,6 +702,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 15 → no board either: nothing logged means no rows, no rewatch card and a
+    # count of zero, so board 15's own seven rows have nothing left to compare.
+    "15" => [],
     # 39 → no board either: the three phantom tiles and the shortcut rows are
     # deleted, so what is left of board 39 on an empty store is chrome.
     "39" => [],
@@ -1233,6 +1236,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # MOVIES-AND-TV.md #120.
   @small_empty_boards %{
     "23" => 9,
+    # 15 with nothing logged is the heading, its count sentence, the four chips
+    # and one empty line — the seven rows and the rewatch card that used to pad
+    # it past the generic floor are the whole of what an empty log has not got.
+    "15" => 8,
     # 39 with nothing queued is the title, the mono line, two eyebrows, the
     # preview's own two sentences and the share card — twelve strings. The three
     # phantom tiles and the four shortcut rows that used to pad it past the
@@ -2162,7 +2169,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # would be the substitution this file exists to catch.
       {"52", Kati.Screens.MealsDay, fn -> Kati.Screens.MealsDay.day(%{}) end,
        &Kati.Screens.MealsDay.drawn_day/0},
-      {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, &Kati.Screens.Activity.drawn/0},
       {"32", Kati.Screens.Calendars, &Kati.Screens.Calendars.calendar_list/0,
        &Kati.Screens.Calendars.drawn_calendars/0},
       # 34 is the partly-migrated one, and the whole map is compared for exactly
@@ -2499,6 +2505,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 101 draws 98's own card too and reaches the read through it.
       {"101", Kati.Screens.YearCardsStates, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
+      # 15 is an append-only record of what the reader DID, so a device that has
+      # done nothing has to say so. It reported 1,204 entries over seven
+      # invented rows on every fresh install.
+      {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, Kati.Screens.Activity.empty(),
+       &Kati.Screens.Activity.drawn/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.

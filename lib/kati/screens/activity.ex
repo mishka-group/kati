@@ -173,11 +173,35 @@ defmodule Kati.Screens.Activity do
       # real history was shown `1,204 entries` over seven invented rows, and
       # the rewatch card underneath, which counts their WHOLE history, was
       # replaced by the drawing's too. MOVIES-AND-TV.md #58.
-      %{count: 0} -> drawn()
+      %{count: 0} -> empty()
       log -> log
     end
   rescue
-    _ -> drawn()
+    # A read that raised is not a history either. This answered `drawn/0`, so a
+    # database Kati could not read reported 1,204 entries over seven invented
+    # rows — an append-only log claiming a past the reader never had.
+    _ -> empty()
+  end
+
+  @doc """
+  The log with nothing in it.
+
+  `drawn/0`'s shape at zero. The count line is the same sentence through
+  `entries_line/1`, so a Persian reader gets ۰ under **فعالیت** rather than a
+  frozen Latin run — the reason that helper exists at all.
+
+  This page is an append-only record of what the reader did. A fresh install
+  has done nothing, and saying so is the only honest first thing it can say.
+  """
+  @spec empty() :: map()
+  def empty do
+    %{
+      count: 0,
+      entries_line: entries_line(0),
+      today: [],
+      earlier: [],
+      rewatch: []
+    }
   end
 
   @doc """
@@ -1064,7 +1088,18 @@ defmodule Kati.Screens.Activity do
   defp cached_by_reference([]), do: %{}
 
   defp cached_by_reference(watches) do
-    ids = watches |> Enum.map(& &1.tracked_title.source_id) |> Enum.uniq()
+    # `tracked_title` is nil on an `:imported` row and on every other event that
+    # is about the library rather than about one title — `Kati.Media.Event`
+    # leaves `tracked_title_id` nullable for exactly that. Mapping over it
+    # unguarded raised, and `log/0`'s `rescue` turned the raise into the
+    # drawing: an import silently replaced the reader's whole log with board
+    # 15's seven invented rows, one of which happens to say *Imported*. The
+    # crash was invisible because the fixture covered for it.
+    ids =
+      watches
+      |> Enum.map(&(&1.tracked_title && &1.tracked_title.source_id))
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
 
     CachedTitle
     |> Ash.Query.filter(source_id in ^ids)
