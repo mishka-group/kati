@@ -136,7 +136,37 @@ defmodule Kati.Screens.SeriesMeta do
   """
   @spec series(String.t() | nil) :: map()
   def series(id \\ nil) do
-    tracked_meta(id) || Sample.series()
+    tracked_meta(id) || empty_series()
+  end
+
+  @doc """
+  The page with no series on it.
+
+  `shaped/2`'s eleven keys carrying nothing. It was `Sample.series/0` — the
+  board's own *The Long Hollow* — and `tracked_meta/1` answers nil for three
+  different reasons, only one of which is "this reader owns nothing": an id that
+  names no row, and a read that raised, both land here too. A database Kati
+  could not read drew somebody else's synopsis, cast and ratings.
+
+  `title` is an empty string and not `Untitled`: nothing is not a name, and the
+  one place that word belongs is a row that exists without one — which
+  `shaped/2` still handles.
+  """
+  @spec empty_series() :: map()
+  def empty_series do
+    %{
+      title: "",
+      seed: nil,
+      meta: "",
+      ratings: [],
+      synopsis: "",
+      more: nil,
+      trailer: nil,
+      cast: [],
+      where: [],
+      tags: [],
+      add_tag: nil
+    }
   end
 
   @doc """
@@ -174,6 +204,11 @@ defmodule Kati.Screens.SeriesMeta do
   # *keeps history, hides from shelf* is enforced, so an id fetched around it
   # would describe a show the reader archived. Both kinds, because an anime is
   # a series here — `Kati.Screens.Series` reads the same two.
+  # The head of the shelf when no id names one. Kept deliberately: screen 14 is
+  # reached bare by the sweeps and by `Kati.WhereToWatchTest`, and a shelf with
+  # a series on it has a real answer to give. Removing it made a bare mount
+  # answer empty over a title that existed, which is a worse lie than the one
+  # this round is removing.
   defp series_record(nil), do: List.first(shelf())
 
   defp series_record(title_id), do: Enum.find(shelf(), &(&1.id == title_id))

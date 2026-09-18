@@ -702,6 +702,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # under `:fa` — so both lose the same content.
     "101" => [],
     "103" => [],
+    # 14 → no board either: no title, no synopsis, no cast, no ratings and no
+    # where-to-watch rows, so board 14's own series has nothing left to compare.
+    "14" => [],
     # 11 → no board either: no seed means no picks, no people, no leaving-soon
     # rail and no subtitle, so board 11's own feed has nothing left to compare.
     "11" => [],
@@ -1242,6 +1245,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # MOVIES-AND-TV.md #120.
   @small_empty_boards %{
     "23" => 9,
+    # 14 with nothing stored is the back pill, the empty hero's two lines and
+    # the "no cast, no scores" card — ten strings. The synopsis, cast, ratings
+    # and where-to-watch rows that padded it past the floor are exactly what a
+    # page about no series has not got.
+    "14" => 10,
     # 15 with nothing logged is the heading, its count sentence, the four chips
     # and one empty line — the seven rows and the rewatch card that used to pad
     # it past the generic floor are the whole of what an empty log has not got.
@@ -2142,8 +2150,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # board — and a device with a series on it gets four real values and
       # three empty bands, which is the half of this that only
       # `Kati.SeriesMetaSubjectTest` can see.
-      {"14", Kati.Screens.SeriesMeta, &Kati.Screens.SeriesMeta.series/0,
-       &Kati.Screens.SeriesMeta.Sample.series/0},
       # 09 is asked the question this file's renders ask: a bare push, the one
       # `Kati.Screens.ViewSwitcher` sends and the one `render_migrated/0` makes,
       # must answer with the drawn day whole — its date, its fourteen
@@ -2522,6 +2528,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # It drew the WHOLE page from the fixture, subtitle included.
       {"11", Kati.Screens.Discover, &Kati.Screens.Discover.feed/0,
        Kati.Screens.Discover.empty_feed(), &Kati.Screens.Discover.Sample.feed/0},
+      # 14 answers an empty page. `tracked_meta/1` answers nil for three
+      # different reasons and only one is "this reader owns nothing" — an id
+      # naming no row and a read that raised both landed on the drawing too.
+      {"14", Kati.Screens.SeriesMeta, &Kati.Screens.SeriesMeta.series/0,
+       Kati.Screens.SeriesMeta.empty_series(), &Kati.Screens.SeriesMeta.Sample.series/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.

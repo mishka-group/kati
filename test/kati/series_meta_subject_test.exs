@@ -129,18 +129,21 @@ defmodule Kati.SeriesMetaSubjectTest do
   end
 
   describe "with nothing stored" do
-    test "the board is drawn whole" do
-      assert SeriesMeta.series() == SeriesMeta.Sample.series()
+    test "the page is empty, not the board's own series" do
+      assert SeriesMeta.series() == SeriesMeta.empty_series(),
+             "a reader who owns no series was shown the board's synopsis, cast and ratings"
+
+      refute SeriesMeta.series() == SeriesMeta.Sample.series()
     end
 
-    test "and every band the board fills is on the page" do
+    test "and none of the board's own content is on the page" do
       drawn =
         inspect(SeriesMeta.render(%{series: SeriesMeta.series(), back: "Series"}),
           limit: :infinity
         )
 
-      for kept <- ["CAST", "WHERE TO WATCH", "YOUR TAGS", "Ines Karvel", "Lumen+", "slow burn"] do
-        assert drawn =~ kept, "the board lost #{inspect(kept)}"
+      for gone <- ["Ines Karvel", "Lumen+", "slow burn"] do
+        refute drawn =~ gone, "#{inspect(gone)} is on the page of a reader who owns nothing"
       end
     end
   end

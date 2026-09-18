@@ -1536,7 +1536,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # the pill to `Series` and takes `Library` from a push that says so —
       # which is what this entry is. The drawing is still the drawing; what it
       # is a drawing OF is one particular arrival.
-      {"14", Kati.Screens.SeriesMeta, &Map.put(&1, :back, "Library")},
+      # The series joins the back pill it already set: 14 answers an empty page
+      # with nothing stored now, so the board's own has to be installed to
+      # compare the frame against its capture.
+      {"14", Kati.Screens.SeriesMeta,
+       &(&1
+         |> Map.put(:back, "Library")
+         |> Map.put(:series, Kati.Screens.SeriesMeta.Sample.series()))},
       # 23's pill reads `Stats` on its board and the only route into the page
       # is screen 92's Money row, so the word and the gesture disagreed
       # (MOVIES-AND-TV.md #66). The screen says `My services` now and takes a
