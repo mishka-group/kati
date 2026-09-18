@@ -687,13 +687,64 @@ defmodule Kati.Screens.Subscriptions do
       </Row>
       <Spacer size={15} />
       <Row fill_width={true} align="center">
-        {Kati.Screens.Subscriptions.confirm(s.confirm, reminded?)}
-        <Spacer size={9} />
+        {Kati.Screens.Subscriptions.confirm_slot(s, reminded?)}
         {Kati.Screens.Subscriptions.dismiss(s.dismiss)}
       </Row>
     </Column>
     """
   end
+
+  @doc """
+  The primary button, or nothing at all.
+
+  Nothing when the service has no renewal date: no reminder exists for it
+  anywhere, so a button offering one would be the lie this whole change is
+  removing. *Dismiss* still stands on its own — the card is still worth
+  reading, it just has one answer instead of two.
+  """
+  @spec confirm_slot(map(), boolean()) :: map()
+  def confirm_slot(%{remind_on: nil}, _reminded?), do: ~MOB"<Spacer size={0} />"
+
+  def confirm_slot(s, reminded?) do
+    assigns = %{
+      button: Kati.Screens.Subscriptions.confirm(confirm_label(s, reminded?), reminded?)
+    }
+
+    ~MOB"""
+    <Row weight={1.0} align="center">
+      {@button}
+      <Spacer size={9} />
+    </Row>
+    """
+  end
+
+  @doc """
+  What the primary button says — *Remind me*, or when the reminder arrives.
+
+  `other_tap(:remind, …)` flipped a socket boolean and the button changed to its
+  secondary treatment. Nothing was armed, and MOVIES-AND-TV.md #60 recorded the
+  reason as `Kati.Notifications.Scheduler` not being built. **That reason is no
+  longer true, and it turned out not to be the problem.**
+
+  `Kati.Notifications.Sources.Money.candidates/3` arms a renewal reminder for
+  every subscribed service that has a `renews_on` date — unconditionally, with
+  no opt-in anywhere. So there was never anything for this button to arm: the
+  reminder it offers already exists. What it could not do was **say so**.
+
+  Pressed, it names the day. `Kati.Subscriptions.remind_on/1` counts back from
+  the renewal using the scheduler's own `lead_days/0`, so the card and the
+  thing that fires cannot name different days.
+
+  A service with no renewal date gets no reminder from anywhere, and
+  `confirm/2`'s caller drops the button entirely rather than offering one — the
+  rule `Kati.Screens.Season` states for *Merge multi-part*: a control that
+  cannot be honoured is not offered.
+  """
+  @spec confirm_label(map(), boolean()) :: String.t()
+  def confirm_label(%{remind_on: %Date{} = on}, true),
+    do: gettext("Reminder set · %{date}", date: Kati.Locale.date(on, :short))
+
+  def confirm_label(s, _reminded?), do: s.confirm
 
   # Two clauses, not a pair of conditional colours, because these are the card's
   # two drawn button treatments and not a spectrum: ink on paper for the primary,
@@ -899,8 +950,14 @@ defmodule Kati.Screens.Subscriptions do
   end
 
   @doc false
+  # Only over a service the reminder can actually be about — see
+  # `confirm_label/2`. A card with no renewal date draws no button, so this is
+  # belt and braces rather than a reachable state.
   def other_tap(:remind, socket) do
-    {:noreply, Mob.Socket.assign(socket, :reminded, not socket.assigns.reminded)}
+    case get_in(socket.assigns, [:ledger, Access.key(:suggestion), Access.key(:remind_on)]) do
+      %Date{} -> {:noreply, Mob.Socket.assign(socket, :reminded, not socket.assigns.reminded)}
+      _no_date -> {:noreply, socket}
+    end
   end
 
   def other_tap(:dismiss, socket) do

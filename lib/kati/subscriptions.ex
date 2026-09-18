@@ -39,6 +39,8 @@ defmodule Kati.Subscriptions do
 
   require Ash.Query
 
+  use Gettext, backend: Kati.Gettext
+
   alias Kati.Media.Availability
   alias Kati.Media.CachedTitle
   alias Kati.Media.Watch
@@ -206,17 +208,48 @@ defmodule Kati.Subscriptions do
       row ->
         %{
           body:
-            "You have watched #{hours_word(row.minutes)} on #{row.name} this month. " <>
-              "Pausing it saves #{row.price} a month.",
-          confirm: "Remind me",
-          dismiss: "Dismiss"
+            gettext(
+              "You have watched %{hours} on %{name} this month. Pausing it saves %{price} a month.",
+              hours: hours_word(row.minutes),
+              name: Kati.Locale.ltr(row.name),
+              price: row.price
+            ),
+          confirm: gettext("Remind me"),
+          dismiss: gettext("Dismiss"),
+          # When the reminder this card is offering would actually arrive, or
+          # `nil` when it cannot. `Kati.Notifications.Sources.Money` arms a
+          # renewal reminder for every subscribed service that HAS a renewal
+          # date — unconditionally, with no opt-in — so the honest thing for
+          # this button to do is name that date rather than pretend to arm
+          # something. A service with no `renews_on` gets no reminder from
+          # anywhere, and the card must not offer one.
+          remind_on: remind_on(row.renews_on)
         }
     end
   end
 
+  @doc """
+  The day the renewal reminder fires, counted back from the renewal itself.
+
+  `Kati.Notifications.Sources.Money.lead_days/0` rather than a second copy of
+  the number: a card naming a date the scheduler disagrees with is the defect
+  this is fixing, one step along.
+  """
+  @spec remind_on(Date.t() | nil) :: Date.t() | nil
+  def remind_on(nil), do: nil
+
+  def remind_on(%Date{} = renews_on),
+    do: Date.add(renews_on, -Kati.Notifications.Sources.Money.lead_days())
+
   @doc false
-  def hours_word(minutes) when minutes < 60, do: "nothing"
-  def hours_word(minutes), do: "#{div(minutes, 60)} hours"
+  def hours_word(minutes) when minutes < 60,
+    do: pgettext("hours watched on a service, when it is under an hour", "nothing")
+
+  def hours_word(minutes) do
+    hours = div(minutes, 60)
+
+    ngettext("%{n} hour", "%{n} hours", hours, n: Kati.Locale.number(hours))
+  end
 
   defp row(%Service{} = service, minutes) do
     {rate, tone} = rate(service.monthly_pence, minutes)
@@ -235,6 +268,10 @@ defmodule Kati.Subscriptions do
       # so that branch fired for the drawing's rows and never for a reader's.
       # Board 302 is what can now set it.
       paused: service.paused,
+      # Carried for `suggestion/1`, which has to say when the renewal reminder
+      # it offers would arrive. Not for drawing: `line/2` already words the
+      # renewal for the row itself.
+      renews_on: service.renews_on,
       # Whose row this is. The drawing's services are not on this device, so
       # `Kati.Screens.Service.find/1` would answer `nil` for every one of them
       # and a tap would open a page about nothing. See

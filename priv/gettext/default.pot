@@ -1623,6 +1623,7 @@ msgid "Albums · %{count}"
 msgstr ""
 
 #: lib/kati/screens/money.ex:487
+#: lib/kati/subscriptions.ex:218
 #, elixir-autogen, elixir-format
 msgid "Dismiss"
 msgstr ""
@@ -1666,6 +1667,7 @@ msgstr ""
 #: lib/kati/screens/medication_detail.ex:494
 #: lib/kati/screens/medication_detail.ex:619
 #: lib/kati/screens/medication_detail.ex:901
+#: lib/kati/subscriptions.ex:217
 #, elixir-autogen, elixir-format
 msgid "Remind me"
 msgstr ""
@@ -2570,6 +2572,7 @@ msgstr ""
 
 #: lib/kati/money/sample.ex:151
 #: lib/kati/screens/money_states.ex:642
+#: lib/kati/subscriptions.ex:251
 #, elixir-autogen, elixir-format
 msgid "%{n} hour"
 msgid_plural "%{n} hours"
@@ -17626,4 +17629,20 @@ msgstr ""
 #: lib/kati/screens/season.ex:832
 #, elixir-autogen, elixir-format
 msgid "Hidden from this list"
+msgstr ""
+
+#: lib/kati/screens/subscriptions.ex:745
+#, elixir-autogen, elixir-format
+msgid "Reminder set · %{date}"
+msgstr ""
+
+#: lib/kati/subscriptions.ex:211
+#, elixir-autogen, elixir-format
+msgid "You have watched %{hours} on %{name} this month. Pausing it saves %{price} a month."
+msgstr ""
+
+#: lib/kati/subscriptions.ex:246
+#, elixir-autogen, elixir-format
+msgctxt "hours watched on a service, when it is under an hour"
+msgid "nothing"
 msgstr ""

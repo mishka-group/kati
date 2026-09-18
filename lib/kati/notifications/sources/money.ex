@@ -41,6 +41,17 @@ defmodule Kati.Notifications.Sources.Money do
   alias Kati.Services.Service
 
   @lead_days 1
+
+  @doc """
+  How many days before a renewal its reminder fires.
+
+  Read by `Kati.Screens.Subscriptions`, whose suggestion card offers *Remind
+  me* and has to be able to say when the reminder it is talking about actually
+  arrives — rather than naming a date of its own that this module would then
+  disagree with.
+  """
+  @spec lead_days() :: non_neg_integer()
+  def lead_days, do: @lead_days
   @hour ~T[09:00:00]
 
   @doc """
