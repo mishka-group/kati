@@ -722,9 +722,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 11 → no board either: no seed means no picks, no people, no leaving-soon
     # rail and no subtitle, so board 11's own feed has nothing left to compare.
     "11" => [],
-    # 23 → no board either: no services means no rows, no total and no
-    # suggestion, so board 23's own four have nothing left to compare.
-    "23" => [],
     # 33 → no board: the sheet's own frame survives — the ten-point scale, the
     # review placeholder, the three context titles and the tag row are the
     # screen's structure — but every VALUE board 33 draws is Blue Hour's, so an
@@ -802,6 +799,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     #
     # The band and not board 96 whole: 96 is a reference sheet of four
     # specimens, read a band at a time exactly as screen 27 is for the Library
+    # (There was a second `"23" => []` further up this map, added later and
+    # silently overriding nothing — a map literal keeps the LAST binding, so
+    # this entry was the live one and that one was dead. The compiler said so:
+    # *key "23" will be overridden in map*. Deleted rather than reconciled,
+    # because this is the entry with the reasoning.)
     # above. What 23 keeps with nothing stored is its own back row and disc;
     # what goes is the ledger, and 96's card is what replaces it — *No
     # subscriptions yet*, and explicitly not `£0.00 a month`, because a zero

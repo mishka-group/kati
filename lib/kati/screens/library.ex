@@ -956,11 +956,28 @@ defmodule Kati.Screens.Library do
   The separators are interspersed rather than written between fixed segments,
   because with one section kept there is no gap to draw and with three there
   are two.
+
+  ## The active segment is always kept
+
+  `Kati.Sections.on?/1` decides the other two and cannot be allowed to decide
+  this one. Library is a permanent dock root — `Kati.Shell` lists it beside
+  Home, Calendar and Stats — so a reader who turns the Screen section off is
+  still one tap from this page, and the filter then dropped the **Screen**
+  segment while the grid below went on drawing films. The strip offered Books
+  and Music, nothing was lit, and the one segment naming the page you were
+  standing on was the one missing. MOVIES-AND-TV.md `03 scenario 9`.
+
+  A switcher that hides where you are is worse than one that offers a shelf you
+  do not keep: the second is a wasted tap, the first is the control disagreeing
+  with the page around it. So the active segment survives the filter whatever
+  the sections say, and the rule above still holds for the two it is about.
   """
   @spec kept_segments(atom()) :: [map()]
   def kept_segments(active) do
     Kati.Screens.Library.segments_of()
-    |> Enum.filter(fn {id, _icon, _label} -> Kati.Sections.on?(Atom.to_string(id)) end)
+    |> Enum.filter(fn {id, _icon, _label} ->
+      id == active or Kati.Sections.on?(Atom.to_string(id))
+    end)
     |> Enum.map(fn {id, icon, label} ->
       Kati.Screens.Library.segment(id, icon, label, active == id)
     end)
