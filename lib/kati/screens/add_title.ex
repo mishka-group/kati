@@ -432,7 +432,10 @@ defmodule Kati.Screens.AddTitle do
     case Kati.Media.Tmdb.search(query) do
       {:ok, rows} ->
         socket
-        |> Mob.Socket.assign(:results, Enum.map(rows, &Kati.Screens.AddTitle.row/1))
+        |> Mob.Socket.assign(
+          :results,
+          rows |> Enum.map(&Kati.Screens.AddTitle.row/1) |> Kati.Screens.AddTitle.already_added()
+        )
         |> Mob.Socket.assign(:search_error, nil)
 
       {:error, reason} ->
@@ -468,6 +471,8 @@ defmodule Kati.Screens.AddTitle do
       seed: result.poster_path,
       meta: Kati.Screens.AddTitle.meta_line(result),
       note: result.overview,
+      # `false` here and corrected by `already_added/1`, which asks the shelf
+      # once for the whole page rather than once per row.
       added: false,
       source: :tmdb,
       source_id: result.source_id,
@@ -694,6 +699,49 @@ defmodule Kati.Screens.AddTitle do
       {:error, _reason} = error ->
         Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
     end
+  end
+
+  @doc """
+  Every row that is already on the shelf, ticked.
+
+  `row/1` writes `added: false` and nothing corrected it, so searching for a
+  film you added last week offered to add it again — and the tap did, because
+  `add/2` reads `row.added` to decide between `track/2` and `untrack/2`. A
+  reader could add the same title twice from the same page and the disc never
+  said otherwise. MOVIES-AND-TV.md #42.
+
+  One read for the whole page, not one per row: the tracked rows are read once
+  and intersected by `{source, source_id}`, which is the pair the store keys on
+  and the pair `row/1` already carries. A `by_reference` call per result would
+  be a query per row on a page that draws twenty.
+
+  A bare read and not the `:shelf` action, which takes a required `:kind`
+  argument and raises without one — the first cut of this function called it,
+  the `rescue` below swallowed the raise, and `already_added/1` returned every
+  row untouched while the full suite stayed green. That is this file's own
+  subject one level up: a fallback that hides the bug it is catching. The
+  doctest below is what now fails instead.
+
+  Rescued to the rows as they came: a shelf that cannot be read is a reason to
+  draw the results unticked, not a reason to draw no results. The worst it
+  costs is the state this function exists to fix, and the alternative is a
+  search page that goes blank because the library is unhappy.
+
+      iex> Kati.Screens.AddTitle.already_added([])
+      []
+  """
+  @spec already_added([map()]) :: [map()]
+  def already_added(results) do
+    tracked =
+      Kati.Media.TrackedTitle
+      |> Ash.read!()
+      |> MapSet.new(&{&1.source, &1.source_id})
+
+    Enum.map(results, fn row ->
+      %{row | added: MapSet.member?(tracked, {row.source, row.source_id})}
+    end)
+  rescue
+    _error -> results
   end
 
   @doc """
