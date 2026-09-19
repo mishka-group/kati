@@ -399,8 +399,28 @@ defmodule Kati.Screens.Search do
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
   end
 
-  def handle_info({:tap, :add_by_hand}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand.for_locale())}
+  # The query goes with it. The push was bare, so a reader who searched for
+  # *Estuary*, was told nothing matched, and pressed *or add it by hand* landed
+  # on an empty title field and typed the word the app had just shown them.
+  # MOVIES-AND-TV.md `19 scenario 33`.
+  #
+  # Through 154's own ONE-SHOT key rather than either obvious alternative.
+  # `Kati.Search.hand_over/1`, which *Look it up* uses one clause up, writes a
+  # DETS key nothing clears — screens 03 and 20 both carry a comment about what
+  # that cost, the Library's disc opening *"somebody's last search, from a
+  # previous launch"*. And a nav param makes 154 a params reader to
+  # `Kati.ScreenParamsSweepTest`, whose every question assumes the key NAMES A
+  # ROW: that an id matching nothing draws what a bare push draws, and that a
+  # control must not write while the row it was named is gone. A prefill is
+  # neither, and 154 resolves nothing — it creates.
+  #
+  # `prefill/1` is `hand_over/1`'s shape one file over: `take_prefill/0`
+  # deletes as it reads, so it fills this one arrival and no other.
+  def handle_info({:tap, :add_by_hand}, socket) do
+    Kati.Screens.AddByHand.prefill(socket.assigns.query)
+
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand.for_locale())}
+  end
 
   def handle_info({:tap, :clear}, socket) do
     {:noreply,

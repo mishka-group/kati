@@ -399,6 +399,17 @@ defmodule Kati.ScreenWriteTargetTest do
     # with the specification rather than on the screen, and its own doc says
     # why.
     {Kati.Screens.Search, :look_up, {:state, :kati_search_query}},
+    # And `or add it by hand`, one row down the same card, which is the same
+    # write about the same value to a different reader. It leaves the query for
+    # screen 154 so somebody who has just been told nothing matched does not
+    # retype the word the app showed them. MOVIES-AND-TV.md `19 scenario 33`.
+    #
+    # A one-shot key of 154's own rather than `Kati.Search.hand_over/1`'s:
+    # `take_prefill/0` deletes as it reads, so it fills that one arrival and
+    # not a Library reached some other way later — which is the bug screens 03
+    # and 20 both carry a comment about, the search disc opening *"somebody's
+    # last search, from a previous launch"*.
+    {Kati.Screens.Search, :add_by_hand, {:state, "add_by_hand:title"}},
     # ── Board 169's sheet, and the nine controls on it.
     #
     # Every one writes `Mob.State`'s `"discover:filters"`, which is a VIEW

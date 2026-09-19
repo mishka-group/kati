@@ -54,6 +54,9 @@ defmodule Kati.Screens.AddByHand do
   # The one-shot key `opened/2` leaves for the Library. See `hand_over/1`.
   @handover "add_by_hand:open"
 
+  # The one-shot key screen 19 leaves for this screen. See `prefill/1`.
+  @prefill "add_by_hand:title"
+
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaChip
@@ -69,13 +72,56 @@ defmodule Kati.Screens.AddByHand do
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket,
-      title: "",
+      # Screen 19's query when the reader arrived through *or add it by hand*,
+      # and `""` every other way in. See `prefill/1`.
+      title: Kati.Screens.AddByHand.take_prefill(),
       kind: :movie,
       year: "",
       status: :not_started,
       episodes: "",
       save_error: nil
     )
+  end
+
+  @doc """
+  Leave a title for this screen's next mount, once.
+
+  Screen 19's *or add it by hand* is the only caller: a reader who has just
+  been told nothing matched should not have to type the word the app showed
+  them. `take_prefill/0` deletes as it reads, so it fills that one arrival and
+  no other.
+
+  One-shot for the reason `hand_over/1` below is, and the reason matters more
+  here than it looks: `Kati.Search.handed_over/0` is a DETS key nothing clears,
+  and reading THAT here would open this field on a search made in a previous
+  launch however the reader arrived. `Kati.Screens.Library`'s `:open_search`
+  clause carries that bug's own account, caught one screen over.
+  """
+  @spec prefill(String.t()) :: :ok
+  def prefill(title) when is_binary(title) do
+    Mob.State.put(@prefill, title)
+    :ok
+  rescue
+    _error -> :ok
+  catch
+    :exit, _reason -> :ok
+  end
+
+  @doc "The prefilled title, taken — the key is deleted as it is read."
+  @spec take_prefill() :: String.t()
+  def take_prefill do
+    case Mob.State.get(@prefill) do
+      title when is_binary(title) ->
+        Mob.State.delete(@prefill)
+        title
+
+      _none ->
+        ""
+    end
+  rescue
+    _error -> ""
+  catch
+    :exit, _reason -> ""
   end
 
   @doc false
