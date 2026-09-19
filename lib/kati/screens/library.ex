@@ -137,6 +137,7 @@ defmodule Kati.Screens.Library do
       # genre filter that made the tile read `4` over a page of eight would be
       # the tile disagreeing with the screen it opens.
       queued: queued(),
+      lists: lists_kept(),
       menu?: false
     )
   end
@@ -158,7 +159,9 @@ defmodule Kati.Screens.Library do
   """
   @impl true
   def handle_kati(:resumed, _payload, socket),
-    do: {:noreply, Mob.Socket.assign(socket, titles: titles(), queued: queued())}
+    do:
+      {:noreply,
+       Mob.Socket.assign(socket, titles: titles(), queued: queued(), lists: lists_kept())}
 
   # The title `Kati.Screens.AddByHand` just wrote, opened. Through
   # `handle_kati/3` — the topic-addressed hook `Kati.Screens.Root` already
@@ -587,7 +590,10 @@ defmodule Kati.Screens.Library do
       >
         {Kati.Screens.Library.header(titles, assigns.menu?)}
         {Kati.Screens.Library.segments(:screen)}
-        {Kati.Screens.Library.quick_tiles(Map.get(assigns, :queued, length(titles)))}
+        {Kati.Screens.Library.quick_tiles(
+          Map.get(assigns, :queued, 0),
+          Map.get(assigns, :lists, 0)
+        )}
         {Kati.Screens.Library.shelf_body(filter, titles)}
       </Column>
     </Scroll>
@@ -1033,7 +1039,7 @@ defmodule Kati.Screens.Library do
   end
 
   @doc false
-  def quick_tiles(queued) do
+  def quick_tiles(queued, lists \\ 0) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -1041,7 +1047,7 @@ defmodule Kati.Screens.Library do
         <Spacer size={9} />
         {Kati.Screens.Library.quick_tile("explore", gettext("Discover"), nil, :open_discover)}
         <Spacer size={9} />
-        {Kati.Screens.Library.quick_tile("bookmarks", gettext("Lists"), nil, :open_lists)}
+        {Kati.Screens.Library.quick_tile("bookmarks", gettext("Lists"), Kati.Screens.Library.lists_badge(lists), :open_lists)}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -1049,10 +1055,47 @@ defmodule Kati.Screens.Library do
   end
 
   @doc """
+  How many lists the reader has made.
+
+  The tile carried no badge at all, and MOVIES-AND-TV.md `03 scenario 12`
+  recorded the reason as *"there is no list resource anywhere in lib/kati"*.
+  **That reason is obsolete** — `Kati.Lists.List` is an `Ash.Resource` on
+  AshSqlite and `Kati.Lists.Shelf.made/0` reads it — so the tile was countless
+  over a store that could answer.
+
+  `made/0` and not `page/0`: the badge is about lists the reader MADE, which is
+  what screen 12 counts under its own heading. `kept/0` is titles kept from
+  other people's lists and belongs to a different sentence.
+
+  Rescued to `0` rather than allowed to raise: this is a badge on a tile, and a
+  shelf that will not draw because the list table is unhappy is a worse answer
+  than a tile with no number on it.
+  """
+  @spec lists_kept() :: non_neg_integer()
+  def lists_kept do
+    length(Kati.Lists.Shelf.made())
+  rescue
+    _error -> 0
+  end
+
+  @doc """
+  The count on the *Lists* tile, or `nil` when none have been made.
+
+  `nil` and not `0`, which is `up_next_badge/1`'s rule one function down and
+  for its reason: the tile draws no badge for `nil`, and a `0` on a door is a
+  number about nothing.
+  """
+  @spec lists_badge(non_neg_integer()) :: String.t() | nil
+  def lists_badge(0), do: nil
+  def lists_badge(n) when is_integer(n), do: Kati.Locale.number(n)
+  def lists_badge(_other), do: nil
+
+  @doc """
   The count on the *Up next* tile, or `nil` when there is nothing next.
 
   The tiles stay on an empty shelf and this moduledoc argues why. What could
-  not stay is their **counts**: `12` and `7` were the board's own numbers,
+  not stay is their **counts as the board wrote them**: `12` and `7` were the
+  board's own numbers,
   written out, so a phone that had tracked nothing announced twelve things to
   watch and seven lists above a card whose whole job is to say the shelf is
   empty. That is the same lie #91 took the nine invented films off this screen
