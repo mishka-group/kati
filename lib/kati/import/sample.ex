@@ -320,11 +320,7 @@ defmodule Kati.Import.Sample do
       source: "Goodreads",
       # `Kati.Screens.PlanImport`'s kicker, which is this exact line on a meal
       # plan's own four steps. One msgid for the one sentence.
-      step_label:
-        pgettext("the step meter's kicker", "STEP %{step} OF %{total}",
-          step: Kati.Locale.number(1),
-          total: Kati.Locale.number(4)
-        ),
+      step_label: Kati.UI.ImportChrome.step_label(1, 4),
       progress: [true, true, true, false, false],
       file: "goodreads_library_export.csv",
       shape: shape(),

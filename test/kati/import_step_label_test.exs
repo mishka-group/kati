@@ -1,0 +1,49 @@
+defmodule Kati.ImportStepLabelTest do
+  @moduledoc """
+  A real import's step meter speaks the reader's language.
+
+  `Kati.Import.Sample.recognised/0` built the kicker through `pgettext/2` and
+  `Kati.Locale.number/1`. `Kati.Import.Job.recognised/1` — the function every
+  REAL import goes through — hardcoded the bare string `"STEP 1 OF 4"`. So the
+  fixture spoke Persian and the reader's own file did not, which is the one
+  arrangement that guarantees nobody notices: the board renders correctly in
+  every screenshot. MOVIES-AND-TV.md `141 #12`.
+
+  The bar meter disagreeing with the caption — five bars, three filled, over
+  `STEP 1 OF 4` — is the drawing's own inconsistency and is left alone.
+  `Kati.Screens.ImportRecognised.steps/1` says so at length, and reproducing a
+  board faithfully includes reproducing what it got wrong.
+  """
+
+  use Mob.ScreenCase, async: false
+
+  alias Kati.Import.Sample
+  alias Kati.UI.ImportChrome
+
+  test "the fixture and a real job build the same kicker" do
+    assert Sample.recognised().step_label == ImportChrome.step_label(1, 4)
+  end
+
+  test "and it is the catalogue's, not a literal" do
+    label = ImportChrome.step_label(1, 4)
+
+    assert label =~ Kati.Locale.number(1)
+    assert label =~ Kati.Locale.number(4)
+  end
+
+  test "so a Persian reader gets Persian numerals" do
+    # Restored inside the test rather than in `on_exit`: `Mob.State` is already
+    # down by the time that runs, so the restore exits with `no process` and
+    # takes the test with it. Same trap as `Kati.LibrarySegmentsTest`.
+    Kati.Locale.put(:fa)
+
+    persian = ImportChrome.step_label(1, 4)
+
+    Kati.Locale.put(:en)
+
+    assert persian =~ "۱",
+           "the kicker is mono beside a meter — a Latin digit is exactly where it would show"
+
+    refute persian =~ "STEP 1 OF 4"
+  end
+end

@@ -119,7 +119,7 @@ defmodule Kati.Import.Job do
     %{
       action: job.action,
       source: job.file,
-      step_label: "STEP 1 OF 4",
+      step_label: Kati.UI.ImportChrome.step_label(1, 4),
       progress: [true, true, true, false, false],
       file: job.file,
       shape: job.shape,

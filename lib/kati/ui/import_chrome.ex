@@ -18,6 +18,8 @@ defmodule Kati.UI.ImportChrome do
   The pixels do not move. Every function here is the body it had one file over.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   import Mob.Sigil
 
   alias Kati.Components.MishkaThemeIcon
@@ -60,6 +62,28 @@ defmodule Kati.UI.ImportChrome do
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The step meter's mono kicker — `STEP 1 OF 4`, and «گام ۱ از ۴».
+
+  Here rather than in either caller because there are two, and one of them had
+  drifted. `Kati.Import.Sample.recognised/0` built it through `pgettext/2` and
+  `Kati.Locale.number/1`; `Kati.Import.Job.recognised/1` — the one every REAL
+  import goes through — hardcoded the bare string `"STEP 1 OF 4"`, so the
+  fixture spoke Persian and the reader's own file did not.
+  MOVIES-AND-TV.md `141 #12`.
+
+  The numerals go through `Kati.Locale.number/1` for the reason the whole
+  catalogue does: `1` and `4` are ۱ and ۴ to a Persian reader, and a kicker set
+  in mono beside a meter is exactly where a Latin digit would show.
+  """
+  @spec step_label(pos_integer(), pos_integer()) :: String.t()
+  def step_label(step, total) do
+    pgettext("the step meter's kicker", "STEP %{step} OF %{total}",
+      step: Kati.Locale.number(step),
+      total: Kati.Locale.number(total)
+    )
   end
 
   @doc "The 5pt gap between two step bars."
