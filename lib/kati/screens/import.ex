@@ -160,7 +160,7 @@ defmodule Kati.Screens.Import do
   @spec empty_job() :: map()
   def empty_job do
     %{
-      action: pill_label(0),
+      action: Kati.UI.ImportChrome.action_label(0),
       file: gettext("No file chosen"),
       subtitle:
         gettext("No file chosen · step %{step} of %{steps}",
@@ -180,12 +180,6 @@ defmodule Kati.Screens.Import do
       outcome: [],
       conflict: nil
     }
-  end
-
-  defp pill_label(count) do
-    pgettext("the import action pill, with its record count", "Import %{n}",
-      n: Kati.Locale.number(count)
-    )
   end
 
   @doc """

@@ -31,6 +31,29 @@ defmodule Kati.ImportStepLabelTest do
     assert label =~ Kati.Locale.number(4)
   end
 
+  test "and so do the other three lines the same function builds" do
+    # Found by walking the flow in Persian, which is the only way to see this
+    # class of defect: in English the fixed line and the broken one render
+    # identically. `Job.read/2` hardcoded all four.
+    Kati.Locale.put(:fa)
+
+    pill = ImportChrome.action_label(2)
+    shape = ImportChrome.shape_label(2, 9)
+    subtitle = ImportChrome.subtitle_label("goodreads_library_export.csv", 3, 4)
+
+    Kati.Locale.put(:en)
+
+    refute pill =~ "Import 2",
+           "the ink action pill was `Import #{2}`, in English, on every real file"
+
+    refute shape =~ "ROWS", "the mono line was `2 ROWS · 9 COLUMNS`, in English"
+    refute subtitle =~ "step 3 of 4"
+
+    # And the file name stays Latin inside the Persian sentence, wrapped in an
+    # isolate so bidi does not reorder its dots and underscores.
+    assert subtitle =~ "goodreads_library_export.csv"
+  end
+
   test "so a Persian reader gets Persian numerals" do
     # Restored inside the test rather than in `on_exit`: `Mob.State` is already
     # down by the time that runs, so the restore exits with `no process` and

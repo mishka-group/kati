@@ -141,14 +141,14 @@ defmodule Kati.Import.Job do
 
     %{
       file: name,
-      subtitle: "#{name} · step 3 of 4",
-      shape: "#{length(rows)} ROWS · #{length(headers)} COLUMNS",
+      subtitle: Kati.UI.ImportChrome.subtitle_label(name, 3, 4),
+      shape: Kati.UI.ImportChrome.shape_label(length(rows), length(headers)),
       steps: 4,
       step: 3,
       columns: columns,
       records: records,
       plan: plan,
-      action: "Import #{length(plan.new) + length(plan.merged)}",
+      action: Kati.UI.ImportChrome.action_label(length(plan.new) + length(plan.merged)),
       outcome: Kati.Import.Job.outcome(plan),
       conflicts: plan.conflicts,
       conflict: Kati.Import.Job.conflict_card(plan.conflicts, 0, nil)

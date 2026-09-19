@@ -422,11 +422,7 @@ defmodule Kati.Import.Sample do
   # them — `Kati.Screens.PlanImport.plan/0`'s own note, on the same pill over a
   # meal plan. Its count is meals and this one's is records, so the two keep
   # separate contexts and the same Persian word.
-  defp import_pill do
-    pgettext("the import action pill, with its record count", "Import %{n}",
-      n: Kati.Locale.number(412)
-    )
-  end
+  defp import_pill, do: Kati.UI.ImportChrome.action_label(412)
 
   # `418 ROWS · 9 COLUMNS`, which is `Kati.Screens.ImportRecognised.words/1`'s
   # own sentence in an eyebrow's case.
@@ -437,14 +433,7 @@ defmodule Kati.Import.Sample do
   # keeps one entry for the one sentence. Both screens set this line with
   # `Kati.Locale.mono_face/1`, so `418 ROWS · 9 COLUMNS` keeps DM Mono and
   # «۴۱۸ ردیف · ۹ ستون» takes Vazirmatn, which has the digits DM Mono lacks.
-  defp shape do
-    Kati.UI.eyebrow_label(
-      gettext("%{rows} rows · %{columns} columns",
-        rows: Kati.Locale.number(418),
-        columns: Kati.Locale.number(9)
-      )
-    )
-  end
+  defp shape, do: Kati.UI.ImportChrome.shape_label(418, 9)
 
   # `trakt-backup.csv · step 3 of 4`, the line under screen 37's heading.
   #
@@ -453,13 +442,7 @@ defmodule Kati.Import.Sample do
   # `goodreads_library_export.csv` against the paragraph rather than against the
   # run unless the isolate says otherwise. A no-op in Latin, so the board's own
   # line is unchanged.
-  defp subtitle(file) do
-    gettext("%{file} · step %{step} of %{steps}",
-      file: Kati.Locale.ltr(file),
-      step: Kati.Locale.number(3),
-      steps: Kati.Locale.number(4)
-    )
-  end
+  defp subtitle(file), do: Kati.UI.ImportChrome.subtitle_label(file, 3, 4)
 
   # `converts 10pt → 5★`, under the rating column on both boards.
   #

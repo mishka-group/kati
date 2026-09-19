@@ -86,6 +86,51 @@ defmodule Kati.UI.ImportChrome do
     )
   end
 
+  @doc """
+  The ink action pill's word — `Import 412`, «ورود ۴۱۲».
+  """
+  @spec action_label(non_neg_integer()) :: String.t()
+  def action_label(count) do
+    pgettext("the import action pill, with its record count", "Import %{n}",
+      n: Kati.Locale.number(count)
+    )
+  end
+
+  @doc """
+  `418 ROWS · 9 COLUMNS`, the mono line under a file's name.
+
+  `Kati.UI.eyebrow_label/1` rather than a second msgid spelled in capitals:
+  `String.upcase/1` is a Latin operation and the Arabic script has no case, so
+  the drawing's shouting is applied on this side of the fold and the catalogue
+  keeps one entry for the one sentence.
+  """
+  @spec shape_label(non_neg_integer(), non_neg_integer()) :: String.t()
+  def shape_label(rows, columns) do
+    Kati.UI.eyebrow_label(
+      gettext("%{rows} rows · %{columns} columns",
+        rows: Kati.Locale.number(rows),
+        columns: Kati.Locale.number(columns)
+      )
+    )
+  end
+
+  @doc """
+  `trakt-backup.csv · step 3 of 4`, the line under screen 37's heading.
+
+  `Kati.Locale.ltr/1` around the file name: it is a Latin run inside a
+  right-to-left sentence, and the bidi algorithm resolves the neutrals in
+  `goodreads_library_export.csv` against the paragraph rather than against the
+  run unless the isolate says so.
+  """
+  @spec subtitle_label(String.t(), pos_integer(), pos_integer()) :: String.t()
+  def subtitle_label(file, step, steps) do
+    gettext("%{file} · step %{step} of %{steps}",
+      file: Kati.Locale.ltr(file),
+      step: Kati.Locale.number(step),
+      steps: Kati.Locale.number(steps)
+    )
+  end
+
   @doc "The 5pt gap between two step bars."
   @spec step_gap() :: map()
   def step_gap, do: ~MOB"<Spacer size={5} />"
