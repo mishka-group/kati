@@ -207,6 +207,9 @@ defmodule Kati.Subscriptions do
 
       row ->
         %{
+          # Whose advice this is, so `dismissed/0` can be about one service rather
+          # than about advice in general.
+          service: row.name,
           body:
             gettext(
               "You have watched %{hours} on %{name} this month. Pausing it saves %{price} a month.",
@@ -226,6 +229,39 @@ defmodule Kati.Subscriptions do
           remind_on: remind_on(row.renews_on)
         }
     end
+  end
+
+  @dismissed_key :kati_subscription_advice_dismissed
+
+  @doc """
+  Whose suggestion the reader has already dismissed, if any.
+
+  *Dismiss* was a socket assign and nothing else: the card came back on the
+  next mount, so the button retired it for as long as the reader stayed on the
+  page and no longer. MOVIES-AND-TV.md #59.
+
+  Keyed by the SERVICE, not by a bare boolean. The card is advice about one
+  subscription, and a reader who dismisses it has said something about that
+  service rather than about advice in general. A blanket flag would silence the
+  next card too, about a service they have never been shown anything about.
+  """
+  @spec dismissed() :: String.t() | nil
+  def dismissed do
+    case Mob.State.get(@dismissed_key) do
+      name when is_binary(name) and name != "" -> name
+      _none -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc "Retire the suggestion for one service."
+  @spec dismiss(String.t()) :: :ok
+  def dismiss(name) when is_binary(name) do
+    Mob.State.put(@dismissed_key, name)
+    :ok
+  rescue
+    _error -> :ok
   end
 
   @doc """

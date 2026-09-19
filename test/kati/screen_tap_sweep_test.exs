@@ -931,7 +931,7 @@ defmodule Kati.ScreenTapSweepTest do
     # what this list exists to prevent.
     {Kati.Screens.MealsToday, :done_prepping},
     {Kati.Screens.Meal, :more},
-    {Kati.Screens.Nutrition, :share},
+    {Kati.Screens.Nutrition, :share}
     # (`{Kati.Screens.Rating, :add_tag}` was here, filed under Backlog as *a
     # sheet that never opens*. MOVIES-AND-TV.md #96 struck it off, and there is
     # still no sheet: a tag is one short word, so the field opens under the
@@ -940,7 +940,17 @@ defmodule Kati.ScreenTapSweepTest do
     # the sweep renders against an empty store, where the sheet draws
     # `Kati.Rating.Sample` and the chips carry no taps at all. `Kati.RatingTagsTest`
     # presses them over a real watch.)
-    {Kati.Screens.Subscriptions, :open_menu}
+    # (`{Kati.Screens.Subscriptions, :open_menu}` was here — the `more_horiz`
+    # disc on screen 23, filed under Backlog because 23.html draws exactly one
+    # and no menu, sheet or popover anywhere in the export. The entry kept the
+    # tap alive on the argument that *"stripping `on_tap` would take its press
+    # feedback away too."*
+    #
+    # Press feedback was what was wrong with it. A disc that lights under the
+    # finger and does nothing is a control that has answered; one that does not
+    # light has not been offered. The disc is still drawn — it is the board's
+    # furniture — and it takes no tag, so this list no longer has one to name.
+    # MOVIES-AND-TV.md #61.)
     # (Screen 121's `save_image` was here, with the sentence *it stops being
     # inert the day the bridge gains a screen-to-bitmap call, and not before.*
     # `K-45 capture-screen` is that call: `Kati.Native.Files.save_screen/1`

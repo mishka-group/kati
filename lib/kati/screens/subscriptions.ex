@@ -128,7 +128,9 @@ defmodule Kati.Screens.Subscriptions do
       # mid-render, and so a captured frame can put this screen in the state
       # its own board draws without writing a service into the store.
       set_up?: Kati.Screens.NothingSetUpKnockOn.set_up?(),
-      suggestion: true,
+      # Read from the store, not assumed true. `Dismiss` used to be a socket
+      # assign and nothing else, so the card came back on the next mount.
+      suggestion: Kati.Screens.Subscriptions.offer?(),
       reminded: false
     )
   end
@@ -295,8 +297,7 @@ defmodule Kati.Screens.Subscriptions do
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
-        shadow: Kati.Theme.shadow_button(),
-        on_tap: {self(), :open_menu}
+        shadow: Kati.Theme.shadow_button()
       ],
       [Kati.UI.symbol("more_horiz", size: 21)]
     )
@@ -949,6 +950,27 @@ defmodule Kati.Screens.Subscriptions do
     end
   end
 
+  @doc """
+  Whether the *Worth a look* card is offered at all.
+
+  `false` once the reader has dismissed the advice for the service it is about
+  — see `Kati.Subscriptions.dismissed/0`. It was an unconditional `true` at
+  mount, so *Dismiss* retired the card for as long as they stayed on the page
+  and it was back the moment they came again.
+  """
+  @spec offer?() :: boolean()
+  def offer? do
+    case Kati.Screens.Subscriptions.ledger() do
+      %{suggestion: %{service: name}} when is_binary(name) ->
+        Kati.Subscriptions.dismissed() != name
+
+      _nothing_to_offer ->
+        true
+    end
+  rescue
+    _error -> true
+  end
+
   @doc false
   # Only over a service the reminder can actually be about — see
   # `confirm_label/2`. A card with no renewal date draws no button, so this is
@@ -961,15 +983,26 @@ defmodule Kati.Screens.Subscriptions do
   end
 
   def other_tap(:dismiss, socket) do
+    case get_in(socket.assigns, [:ledger, Access.key(:suggestion), Access.key(:service)]) do
+      name when is_binary(name) -> Kati.Subscriptions.dismiss(name)
+      _unnamed -> :ok
+    end
+
     {:noreply, Mob.Socket.assign(socket, :suggestion, false)}
   end
 
-  # `:open_menu` — the `more_horiz` disc — lands here on purpose.
+  # The `more_horiz` disc no longer lands here, because it no longer takes a
+  # tap. 23.html contains exactly one `more_horiz` and no menu, sheet or
+  # popover anywhere in the export, so there is nothing for it to open that
+  # would not be invented — and the previous argument for keeping the tap was
+  # that *"stripping `on_tap` would take its press feedback away too."*
   #
-  # 23.html contains exactly one `more_horiz` and no menu, sheet or popover
-  # anywhere in the export, so there is nothing to open that would not be
-  # invented. Left tappable rather than untapped: the drawing draws a control,
-  # and stripping `on_tap` would take its press feedback away too. It is inert
-  # and silent — the catch-all, not a raise — until a sheet is drawn.
+  # Press feedback is precisely what was wrong with it. A disc that lights
+  # under the finger and does nothing is a control that has answered; one that
+  # does not light has not been offered. The drawing still draws the disc and
+  # this screen still draws it, as the board's own furniture.
+  # MOVIES-AND-TV.md #61.
+  #
+  # The catch-all stays for the tags this screen does not own.
   def other_tap(_tag, socket), do: {:noreply, socket}
 end
