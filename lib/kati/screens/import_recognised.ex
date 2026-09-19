@@ -119,13 +119,23 @@ defmodule Kati.Screens.ImportRecognised do
   table's rows describe a match, they do not offer one, and the three outcome
   cards are a count, not a button.
 
-  **What neither tap can do yet is change the mapping.** The board's summary
-  line ends `still editable` and screen 37 shows the same nine rows without a
-  control on any of them, because there is no job resource to write a
-  correction into: `Kati.Import.Sample` is a literal, so a person who decides
-  *Publisher* should not be skipped has nowhere to say so. That is the same
-  missing resource screen 37's own moduledoc names, and it is the one promise
-  on this board the app does not keep.
+  **What neither tap can do yet is change the mapping** — and the line no
+  longer says otherwise. Board 141's summary ends `still editable`, screen 37
+  shows the same rows without a control on any of them, and a person who
+  decides *Publisher* should not be skipped has nowhere to say so. This screen
+  drops those two words rather than keeping a promise the app does not meet;
+  the board keeps them, and `Kati.Support.DesignLiterals.retired_lines/0`
+  records why they are never rendered.
+
+  The reason this moduledoc used to give — *"there is no job resource to write
+  a correction into"* — has gone stale, and the real obstacle is one layer
+  further in. A real `Kati.Import.Job` does now sit in screen 37's socket, so
+  there is somewhere to write. What is missing is that `read/2` derives
+  `records` from the file's HEADERS through `Kati.Import.Mapping.records/2`,
+  independently of the `columns` a reader would be editing — so toggling a
+  skip would change what the table says and not what the import does. Making
+  the mapping editable means re-deriving the records from it, which is a
+  feature rather than a fix. MOVIES-AND-TV.md `141 #10`.
 
   ## What stays Latin when this page folds to Persian
 
@@ -1311,7 +1321,7 @@ defmodule Kati.Screens.ImportRecognised do
         SettingsList.icon_tile("checklist"),
         SettingsList.body(
           gettext("Check the mapping"),
-          gettext("%{matched} matched · %{skipped} skipped · still editable",
+          gettext("%{matched} matched · %{skipped} skipped",
             matched: Kati.Locale.number(job.matched),
             skipped: Kati.Locale.number(job.skipped)
           )

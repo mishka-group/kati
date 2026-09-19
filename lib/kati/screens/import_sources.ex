@@ -697,8 +697,18 @@ defmodule Kati.Screens.ImportSources do
   defp fallback(:more_sources, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MoreSources)}
 
+  # *Something else · Any CSV — map the columns yourself* opens the picker, the
+  # same call the six tiles make. It used to push screen 37 with no path and no
+  # name, so the one row on this board that offers to take ANY file was the one
+  # row that never asked for one — and 37 then drew its own empty job, which is
+  # honest but is not what the row promised. MOVIES-AND-TV.md `140 #4`.
+  #
+  # `nil` as the source, deliberately: this row is for a file whose shape Kati
+  # has not been told, and `Kati.Screens.ImportRecognised.source_name/1` answers
+  # `CSV` for it. Naming a source here would be guessing on the reader's behalf
+  # about the one file they have said is not on the list.
   defp fallback(:something_else, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}
+    do: {:noreply, Kati.Screens.ImportSources.choose_file(socket, nil)}
 
   defp fallback(:kati_backup, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}

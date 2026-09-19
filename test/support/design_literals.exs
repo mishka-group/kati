@@ -447,6 +447,12 @@ defmodule Kati.DesignLiterals do
   @spec retired_lines() :: [{String.t(), String.t()}]
   def retired_lines do
     [
+      # Board 141's summary ends *still editable* and nothing on 141 or 37 edits
+      # anything: the rows describe a match, they do not offer one. The screen
+      # drops the two words rather than keep a promise the app does not meet —
+      # see `Kati.Screens.ImportRecognised`'s moduledoc for why the editor is a
+      # feature and not a fix. MOVIES-AND-TV.md `141 #10`.
+      {"141", "7 matched · 2 skipped · still editable"},
       {"80", "enter this code"},
       {"80", "k4q9b2"},
       {"80", "listenbrainz.org/link"},

@@ -1496,7 +1496,7 @@ msgstr ""
 msgid "Health"
 msgstr ""
 
-#: lib/kati/screens/import.ex:431
+#: lib/kati/screens/import.ex:425
 #: lib/kati/screens/import_states.ex:163
 #: lib/kati/screens/pushed.ex:185
 #: lib/kati/settings/sample.ex:298
@@ -1815,7 +1815,7 @@ msgstr ""
 msgid "Conflicts"
 msgstr ""
 
-#: lib/kati/screens/import.ex:834
+#: lib/kati/screens/import.ex:828
 #: lib/kati/screens/plan_import.ex:212
 #: lib/kati/screens/restore.ex:336
 #, elixir-autogen, elixir-format
@@ -1918,8 +1918,8 @@ msgstr ""
 msgid "This device already has data, so the file is "
 msgstr ""
 
-#: lib/kati/screens/import.ex:741
-#: lib/kati/screens/import_recognised.ex:626
+#: lib/kati/screens/import.ex:735
+#: lib/kati/screens/import_recognised.ex:636
 #: lib/kati/screens/plan_import.ex:186
 #: lib/kati/screens/plan_import.ex:212
 #: lib/kati/screens/restore.ex:336
@@ -6293,12 +6293,7 @@ msgstr ""
 msgid "%{kcal} kcal · macro split"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1314
-#, elixir-autogen, elixir-format
-msgid "%{matched} matched · %{skipped} skipped · still editable"
-msgstr ""
-
-#: lib/kati/screens/import_recognised.ex:949
+#: lib/kati/screens/import_recognised.ex:959
 #, elixir-autogen, elixir-format
 msgid "%{matched} of %{total} columns matched"
 msgstr ""
@@ -6436,9 +6431,9 @@ msgstr[1] ""
 msgid "%{records} records across %{tables} tables"
 msgstr ""
 
-#: lib/kati/import/sample.ex:442
 #: lib/kati/screens/import.ex:172
-#: lib/kati/screens/import_recognised.ex:942
+#: lib/kati/screens/import_recognised.ex:952
+#: lib/kati/ui/import_chrome.ex:110
 #, elixir-autogen, elixir-format
 msgid "%{rows} rows · %{columns} columns"
 msgstr ""
@@ -6489,7 +6484,7 @@ msgstr ""
 msgid "; this device runs "
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:926
+#: lib/kati/screens/import_recognised.ex:936
 #, elixir-autogen, elixir-format
 msgid "A %{source} export, from before %{year}"
 msgstr ""
@@ -6650,7 +6645,7 @@ msgstr ""
 msgid "Changes take effect next %{day}"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1313
+#: lib/kati/screens/import_recognised.ex:1323
 #, elixir-autogen, elixir-format
 msgid "Check the mapping"
 msgstr ""
@@ -6844,7 +6839,7 @@ msgstr ""
 msgid "Gone cold — observed, a suggestion not a status"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:938
+#: lib/kati/screens/import_recognised.ex:948
 #, elixir-autogen, elixir-format
 msgid "Header row claims it — columns agree"
 msgstr ""
@@ -6879,7 +6874,7 @@ msgstr ""
 msgid "Ingredients · %{count}"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:915
+#: lib/kati/screens/import_recognised.ex:925
 #, elixir-autogen, elixir-format
 msgid "It ends part-way"
 msgstr ""
@@ -6889,22 +6884,22 @@ msgstr ""
 msgid "It ends part-way through — %{got} MB of an expected %{expected}"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:448
+#: lib/kati/screens/import_recognised.ex:458
 #, elixir-autogen, elixir-format
 msgid "It has no rows in it. Pick again, or choose Something else to map a file by hand."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:381
+#: lib/kati/screens/import_recognised.ex:391
 #, elixir-autogen, elixir-format
 msgid "Its columns are %{source}. Kati maps by column name, so it will still read — but a books export has no watches in it."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:388
+#: lib/kati/screens/import_recognised.ex:398
 #, elixir-autogen, elixir-format
 msgid "Its columns are %{source}. Kati maps by column name, so it will still read."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:923
+#: lib/kati/screens/import_recognised.ex:933
 #, elixir-autogen, elixir-format
 msgid "Its columns are somebody else’s"
 msgstr ""
@@ -6924,7 +6919,7 @@ msgstr ""
 msgid "Kati can only write the full %{format} file today — the one that restores. Choose it above and Save a backup again."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:914
+#: lib/kati/screens/import_recognised.ex:924
 #, elixir-autogen, elixir-format
 msgid "Kati can’t read this file"
 msgstr ""
@@ -6939,7 +6934,7 @@ msgstr ""
 msgid "Kati could not make the backup"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:432
+#: lib/kati/screens/import_recognised.ex:442
 #: lib/kati/screens/restore.ex:1796
 #, elixir-autogen, elixir-format
 msgid "Kati could not read that file"
@@ -6971,7 +6966,7 @@ msgstr ""
 msgid "Kati heard it play — tap the one it is, or add it"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1143
+#: lib/kati/screens/import_recognised.ex:1153
 #, elixir-autogen, elixir-format
 msgid "Kati matched %{matched} of %{total} columns and set the conversions: %{scale}, and dates read as %{dates}."
 msgstr ""
@@ -7017,12 +7012,12 @@ msgstr ""
 msgid "Length · pages"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:626
+#: lib/kati/screens/import_recognised.ex:636
 #, elixir-autogen, elixir-format
 msgid "Mapping — collapsed"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:626
+#: lib/kati/screens/import_recognised.ex:636
 #, elixir-autogen, elixir-format
 msgid "Mapping — expanded"
 msgstr ""
@@ -7086,7 +7081,7 @@ msgstr ""
 msgid "New seasons and first episodes"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:932
+#: lib/kati/screens/import_recognised.ex:942
 #, elixir-autogen, elixir-format
 msgid "No %{column} column — everything else maps"
 msgstr ""
@@ -7097,12 +7092,12 @@ msgstr ""
 msgid "No time set. A schedule can be a sentence with no clock in it."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:457
+#: lib/kati/screens/import_recognised.ex:467
 #, elixir-autogen, elixir-format
 msgid "None of its column names is one Kati knows, so there is nothing it could safely put on your shelf. Pick again, or choose Something else to map it by hand."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1078
+#: lib/kati/screens/import_recognised.ex:1088
 #, elixir-autogen, elixir-format
 msgid "Not %{source}? Change"
 msgstr ""
@@ -7125,7 +7120,7 @@ msgstr ""
 msgid "Nothing on this device has changed."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:439
+#: lib/kati/screens/import_recognised.ex:449
 #, elixir-autogen, elixir-format
 msgid "Nothing on this device has changed. Pick again, or choose Something else to map a file by hand."
 msgstr ""
@@ -7165,7 +7160,7 @@ msgstr ""
 msgid "Off — track goes %{dark}, not %{light}"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1295
+#: lib/kati/screens/import_recognised.ex:1305
 #, elixir-autogen, elixir-format
 msgid "One column is skipped."
 msgid_plural "%{n} columns are skipped."
@@ -7212,7 +7207,7 @@ msgstr ""
 msgid "Per-section CSV"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:556
+#: lib/kati/screens/import_recognised.ex:566
 #: lib/kati/screens/import_states.ex:379
 #, elixir-autogen, elixir-format
 msgid "Pick again"
@@ -7245,13 +7240,13 @@ msgstr ""
 msgid "Re-fetchable, and capped at six months by TMDB’s terms anyway"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:948
-#: lib/kati/screens/import_recognised.ex:1056
+#: lib/kati/screens/import_recognised.ex:958
+#: lib/kati/screens/import_recognised.ex:1066
 #, elixir-autogen, elixir-format
 msgid "Read as a %{source} export"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:941
+#: lib/kati/screens/import_recognised.ex:951
 #, elixir-autogen, elixir-format
 msgid "Read as your %{source} export"
 msgstr ""
@@ -7451,12 +7446,12 @@ msgstr ""
 msgid "Targets"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:430
+#: lib/kati/screens/import_recognised.ex:440
 #, elixir-autogen, elixir-format
 msgid "That file could not be opened"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:431
+#: lib/kati/screens/import_recognised.ex:441
 #, elixir-autogen, elixir-format
 msgid "That file is empty"
 msgstr ""
@@ -7476,7 +7471,7 @@ msgstr ""
 msgid "The file is written and waiting"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:937
+#: lib/kati/screens/import_recognised.ex:947
 #, elixir-autogen, elixir-format
 msgid "The file says %{source}"
 msgstr ""
@@ -7533,7 +7528,7 @@ msgstr ""
 msgid "This file is from a newer Kati"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:287
+#: lib/kati/screens/import_recognised.ex:297
 #: lib/kati/screens/import_states.ex:360
 #, elixir-autogen, elixir-format
 msgid "This looks like a %{source} export"
@@ -7659,7 +7654,7 @@ msgstr ""
 msgid "You choose where it goes"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:484
+#: lib/kati/screens/import_recognised.ex:494
 #, elixir-autogen, elixir-format
 msgid "You chose %{name}."
 msgstr ""
@@ -7674,7 +7669,7 @@ msgstr ""
 msgid "You have not backed up yet. That is not a fault, only a thing not yet done."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:920
+#: lib/kati/screens/import_recognised.ex:930
 #, elixir-autogen, elixir-format
 msgid "You picked %{source} — this looks like %{other}"
 msgstr ""
@@ -7846,7 +7841,7 @@ msgctxt "a source Kati has heard from"
 msgid "Playing now"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:895
+#: lib/kati/screens/import_recognised.ex:905
 #, elixir-autogen, elixir-format
 msgctxt "a source that named itself nothing"
 msgid "file"
@@ -7913,32 +7908,32 @@ msgctxt "board 178 annotation"
 msgid "stored, not derived"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1264
+#: lib/kati/screens/import_recognised.ex:1274
 #, elixir-autogen, elixir-format
 msgctxt "date shape"
 msgid "DD/MM/YYYY"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1258
+#: lib/kati/screens/import_recognised.ex:1268
 #, elixir-autogen, elixir-format
 msgctxt "date shape"
 msgid "YYYY-MM-DD"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1261
-#: lib/kati/screens/import_recognised.ex:1269
+#: lib/kati/screens/import_recognised.ex:1271
+#: lib/kati/screens/import_recognised.ex:1279
 #, elixir-autogen, elixir-format
 msgctxt "date shape"
 msgid "YYYY/MM/DD"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1272
+#: lib/kati/screens/import_recognised.ex:1282
 #, elixir-autogen, elixir-format
 msgctxt "date shape"
 msgid "as written"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1251
+#: lib/kati/screens/import_recognised.ex:1261
 #, elixir-autogen, elixir-format
 msgctxt "date shape"
 msgid "no date column"
@@ -8144,20 +8139,20 @@ msgctxt "quiet hours"
 msgid "%{from} – %{to}"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1196
-#: lib/kati/screens/import_recognised.ex:1201
+#: lib/kati/screens/import_recognised.ex:1206
+#: lib/kati/screens/import_recognised.ex:1211
 #, elixir-autogen, elixir-format
 msgctxt "rating conversion"
 msgid "10pt → 5★"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1200
+#: lib/kati/screens/import_recognised.ex:1210
 #, elixir-autogen, elixir-format
 msgctxt "rating conversion"
 msgid "5★ → 10pt"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1193
+#: lib/kati/screens/import_recognised.ex:1203
 #, elixir-autogen, elixir-format
 msgctxt "rating conversion"
 msgid "no rating column"
@@ -8224,7 +8219,7 @@ msgctxt "the section holding the active switch"
 msgid "Taking"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:1075
+#: lib/kati/screens/import_recognised.ex:1085
 #, elixir-autogen, elixir-format
 msgctxt "the source this screen guessed"
 msgid "this"
@@ -8408,7 +8403,7 @@ msgid_plural "%{n} breakfasts"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/import.ex:326
+#: lib/kati/screens/import.ex:320
 #, elixir-autogen, elixir-format
 msgid "%{n} conflict settled"
 msgid_plural "%{n} conflicts settled"
@@ -8456,7 +8451,7 @@ msgstr[1] ""
 msgid "%{n} mg"
 msgstr ""
 
-#: lib/kati/screens/import.ex:342
+#: lib/kati/screens/import.ex:336
 #, elixir-autogen, elixir-format
 msgid "%{n} row could not be written."
 msgid_plural "%{n} rows could not be written."
@@ -8782,7 +8777,7 @@ msgstr ""
 msgid "Looking for something"
 msgstr ""
 
-#: lib/kati/screens/import.ex:352
+#: lib/kati/screens/import.ex:346
 #, elixir-autogen, elixir-format
 msgid "Match columns"
 msgstr ""
@@ -9540,19 +9535,19 @@ msgctxt "eyebrow"
 msgid "The day before"
 msgstr ""
 
-#: lib/kati/screens/import.ex:318
+#: lib/kati/screens/import.ex:312
 #, elixir-autogen, elixir-format
 msgctxt "import result"
 msgid "%{n} added"
 msgstr ""
 
-#: lib/kati/screens/import.ex:320
+#: lib/kati/screens/import.ex:314
 #, elixir-autogen, elixir-format
 msgctxt "import result"
 msgid "%{n} merged"
 msgstr ""
 
-#: lib/kati/screens/import.ex:333
+#: lib/kati/screens/import.ex:327
 #, elixir-autogen, elixir-format
 msgctxt "import result"
 msgid "Nothing to import"
@@ -15694,7 +15689,7 @@ msgctxt "when a backup was made"
 msgid "%{day} %{month} %{year}, %{time}"
 msgstr ""
 
-#: lib/kati/import/sample.ex:457
+#: lib/kati/ui/import_chrome.ex:127
 #, elixir-autogen, elixir-format
 msgid "%{file} · step %{step} of %{steps}"
 msgstr ""
@@ -16403,7 +16398,7 @@ msgctxt "a home-screen widget's own name"
 msgid "UP NEXT"
 msgstr ""
 
-#: lib/kati/import/sample.ex:505
+#: lib/kati/import/sample.ex:488
 #, elixir-autogen, elixir-format
 msgctxt "a mapping row's note for a dropped column"
 msgid "skipped"
@@ -16641,7 +16636,7 @@ msgctxt "event alert"
 msgid "at start"
 msgstr ""
 
-#: lib/kati/import/sample.ex:487
+#: lib/kati/import/sample.ex:470
 #, elixir-autogen, elixir-format
 msgctxt "how a shelf in the file maps to a list in Kati"
 msgid "%{shelf} → Wishlist"
@@ -16737,7 +16732,7 @@ msgctxt "permission"
 msgid "Vibrate"
 msgstr ""
 
-#: lib/kati/import/sample.ex:475
+#: lib/kati/import/sample.ex:458
 #, elixir-autogen, elixir-format
 msgctxt "rating conversion"
 msgid "converts 10pt → 5★"
@@ -16791,14 +16786,13 @@ msgctxt "the episode on the now playing card"
 msgid "S%{s}E%{e}"
 msgstr ""
 
-#: lib/kati/import/sample.ex:501
+#: lib/kati/import/sample.ex:484
 #, elixir-autogen, elixir-format
 msgctxt "the field a dropped column maps to"
 msgid "Skip"
 msgstr ""
 
-#: lib/kati/import/sample.ex:426
-#: lib/kati/screens/import.ex:186
+#: lib/kati/ui/import_chrome.ex:94
 #, elixir-autogen, elixir-format
 msgctxt "the import action pill, with its record count"
 msgid "Import %{n}"
@@ -17530,7 +17524,7 @@ msgstr ""
 msgid "The estuary scenes land completely differently once you know what Mara is looking for."
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:308
+#: lib/kati/screens/import_recognised.ex:318
 #, elixir-autogen, elixir-format
 msgid "Choose an export on the page before this one and Kati will count its rows and match its columns here."
 msgstr ""
@@ -17550,7 +17544,7 @@ msgstr ""
 msgid "No file chosen · step %{step} of %{steps}"
 msgstr ""
 
-#: lib/kati/screens/import_recognised.ex:307
+#: lib/kati/screens/import_recognised.ex:317
 #, elixir-autogen, elixir-format
 msgid "No file picked yet"
 msgstr ""
@@ -17565,7 +17559,7 @@ msgstr ""
 msgid "On your home screen"
 msgstr ""
 
-#: lib/kati/screens/import.ex:549
+#: lib/kati/screens/import.ex:543
 #, elixir-autogen, elixir-format
 msgid "Pick a file and its columns will be listed here, one per row."
 msgstr ""
@@ -17645,4 +17639,9 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "hours watched on a service, when it is under an hour"
 msgid "nothing"
+msgstr ""
+
+#: lib/kati/screens/import_recognised.ex:1324
+#, elixir-autogen, elixir-format
+msgid "%{matched} matched · %{skipped} skipped"
 msgstr ""
