@@ -58,7 +58,8 @@ defmodule Kati.Import.Match do
   `start/1` runs the lookups under `Kati.TaskSupervisor`: one search and one
   detail call per title is minutes of radio for a long export, and a screen may
   hold no work that outlives it (`Kati.SupervisionRuleTest`). `run/1` is the
-  same work in the caller, which is what the tests use.
+  same work in the caller, which is what the tests use. `backfill/0` asks
+  again at boot for every title still on its `:import` row.
   """
 
   require Ash.Query
@@ -87,6 +88,47 @@ defmodule Kati.Import.Match do
     catch
       :exit, _reason -> {:ok, spawn(work)}
     end
+  end
+
+  @doc """
+  Every imported title still on its `:import` row, looked up again.
+
+  `start/1` runs once, after the commit that created the titles, and that
+  moment can be the wrong one: the reader had no key yet, the phone was
+  offline, or the import predates this module. Nothing else would ever ask
+  again, so `Kati.App` runs this at boot under `Kati.TaskSupervisor`, the way
+  it runs `Kati.Media.ArtworkBackfill`.
+
+  The record is rebuilt from what the import kept — the name, the kind, the
+  year if the cache row has one, and the cache row's own kind as `:format`,
+  which is where `Kati.Import.Commit.create/1` keeps a MyAnimeList `Type`.
+  Answers one outcome per row; one query and no requests when there is none.
+  """
+  @spec backfill() :: [atom() | {:error, term()}]
+  def backfill do
+    cached =
+      CachedTitle
+      |> Ash.Query.filter(source == :import)
+      |> Ash.read!()
+      |> Map.new(&{&1.source_id, &1})
+
+    TrackedTitle
+    |> Ash.Query.filter(source == :import)
+    |> Ash.read!()
+    |> Enum.map(&{&1, Kati.Import.Match.record_of(&1, Map.get(cached, &1.source_id))})
+    |> Kati.Import.Match.run()
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  def record_of(tracked, cached) do
+    %{
+      title: (cached && cached.title) || tracked.source_id,
+      kind: tracked.kind,
+      year: cached && cached.first_release_year,
+      format: if(cached && cached.kind in [:movie, :tv], do: cached.kind)
+    }
   end
 
   @doc """

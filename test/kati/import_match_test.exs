@@ -121,6 +121,22 @@ defmodule Kati.ImportMatchTest do
     end
   end
 
+  describe "the boot backfill" do
+    test "matches the titles an earlier import left on :import rows" do
+      {:ok, job} = Job.read(@fixture, "animelist.xml")
+      pairs = import_pairs(job)
+
+      assert Enum.all?(pairs, fn {tracked, _record} -> tracked.source == :import end)
+
+      assert Match.backfill() == [:matched, :matched, :matched]
+
+      assert Ash.read!(TrackedTitle) |> Enum.map(& &1.source_id) |> Enum.sort() ==
+               ["129", "209867", "30991"]
+
+      assert Match.backfill() == []
+    end
+  end
+
   describe "leaves the row as the import wrote it" do
     test "when there is no key" do
       Kati.Sources.put_tmdb_key(:own)

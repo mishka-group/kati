@@ -112,12 +112,20 @@ defmodule Kati.Import.Commit do
   def plan(%{records: records}) when is_list(records), do: Kati.Import.Job.plan(records)
   def plan(job), do: job.plan
 
-  @doc false
+  @doc """
+  The title a new record names: its cache row, its tracked row, its watch.
+
+  The cache row takes the record's `:format` where it has one — a
+  MyAnimeList `Movie` is an anime on the tracked row and a film on the cache
+  row, the same split `Kati.Screens.AddTitle.track/2` writes for a TMDB hit —
+  so the film opens as a film before TMDB has been asked, and
+  `Kati.Import.Match.backfill/0` knows which kind to look for.
+  """
   @spec create(map()) :: {:ok, TrackedTitle.t()} | :error
   def create(record) do
     kind = Map.get(record, :kind, :movie)
 
-    with {:ok, _cached} <- Kati.Import.Commit.cache(record, kind),
+    with {:ok, _cached} <- Kati.Import.Commit.cache(record, Map.get(record, :format, kind)),
          {:ok, tracked} <- Kati.Import.Commit.track(record, kind),
          written when written in [:ok, :same] <- Kati.Import.Commit.log(tracked.id, record) do
       {:ok, tracked}

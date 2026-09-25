@@ -161,6 +161,15 @@ defmodule Kati.App do
         Kati.Media.ArtworkBackfill.run()
       end)
 
+    # Imported titles still on their `:import` rows — no key at import time,
+    # offline, or imported before matching existed — looked up on TMDB again.
+    # See `Kati.Import.Match.backfill/0`. One query and no requests when there
+    # are none.
+    _matched =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        Kati.Import.Match.backfill()
+      end)
+
     # `Kati.Components.register_all/0` is deliberately NOT called here.
     #
     # It costs ~245ms of cold start on the emulator — measured, phase-traced —
