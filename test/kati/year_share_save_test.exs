@@ -2,7 +2,7 @@ defmodule Kati.YearShareSaveTest do
   @moduledoc """
   *Save image* on screen 98 saves an image.
 
-  MOVIES-AND-TV.md #80: it pushed `Kati.Screens.YearCards` — the reference
+  It pushed `Kati.Screens.YearCards` — the reference
   sheet about how a card is drawn, which is a page about the feature rather
   than the feature — so a reader who wanted their year as a picture got a
   lesson instead, and nothing on the device.

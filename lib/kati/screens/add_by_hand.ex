@@ -288,7 +288,7 @@ defmodule Kati.Screens.AddByHand do
       id: Atom.to_string(tag),
       # Board 155 draws a red inset ring on the field the refusal is ABOUT, and
       # this drew none — so a reader was told *a title is needed* over four
-      # fields and had to work out which. MOVIES-AND-TV.md #128.
+      # fields and had to work out which.
       #
       # Width 0 rather than a transparent border: a 1.5pt ring that is only
       # sometimes coloured would move the text by 1.5pt when it appeared.
@@ -339,8 +339,7 @@ defmodule Kati.Screens.AddByHand do
   def kind_list, do: Enum.map(@kinds, fn {kind, icon} -> {kind_label(kind), kind, icon} end)
 
   @doc """
-  What a Kind chip says. The tap is named after `kind` and never after this —
-  MOVIES-AND-TV.md #158.
+  What a Kind chip says. The tap is named after `kind` and never after this.
 
   All five, though screen 154's own `@kinds` is two. The other three are drawn
   by boards 177 and 178 — `Kati.Screens.AddByHandBook` and
@@ -386,7 +385,7 @@ defmodule Kati.Screens.AddByHand do
   One Kind chip.
 
   `kind` is the tap's name and `label` is only ever drawn. They were the same
-  string until MOVIES-AND-TV.md #157: the tag was `kind_` <> the label, so the
+  string until this was fixed: the tag was `kind_` <> the label, so the
   Persian form's control was `:kind_فیلم` — a name no device test can type, and
   a screen that renames its own controls when the language changes. The key is
   stable across every locale; the word is not.
@@ -553,7 +552,7 @@ defmodule Kati.Screens.AddByHand do
   @doc """
   Board 155's own reassurance, and the reason it is on every refusal.
 
-  MOVIES-AND-TV.md #128: the empty-title refusal was one line where the board
+  The empty-title refusal was one line where the board
   specifies two, and the missing half is the one that matters — a person whose
   save just failed does not know whether their other four answers survived it.
   The board says so outright, so every refusal on this form says it: a store
@@ -682,7 +681,7 @@ defmodule Kati.Screens.AddByHand do
   @doc """
   The shelf row already carrying this name, whatever source wrote it — or `nil`.
 
-  MOVIES-AND-TV.md #113. The duplicate guard is the unique index on
+  The duplicate guard is the unique index on
   `[:source, :source_id]`, and a TMDB add writes `:tmdb` with a numeric id
   where a hand-typed one writes `:manual` with the title. They never collide,
   so the same film sat on the shelf twice: once from the search and once typed.
@@ -740,7 +739,7 @@ defmodule Kati.Screens.AddByHand do
   @doc """
   Record the add, and pass the result through unchanged.
 
-  MOVIES-AND-TV.md #112: screen 15's `Added` chip matched nothing, because
+  Screen 15's `Added` chip matched nothing, because
   nothing recorded that a title arrived. Written on the way past rather than in
   the caller, so the one place that adds a hand-typed title is the one place
   that says so.
@@ -762,7 +761,7 @@ defmodule Kati.Screens.AddByHand do
   by, and the note under that very field promised it, in as many words:
   *without it a series still tracks, but its progress bar has no denominator*.
   And the Year went nowhere at all, because until this round
-  `Kati.Media.CachedTitle` had no column for one. MOVIES-AND-TV.md #59.
+  `Kati.Media.CachedTitle` had no column for one.
 
   Both are parsed rather than trusted, and anything that is not a positive
   integer is simply absent — a form is a place people mistype, and a `nil` year
@@ -806,7 +805,7 @@ defmodule Kati.Screens.AddByHand do
   *straight to the new title's detail screen — 04 for a series, 08 for a film.
   Returning to 89 would leave the person on a search results page for a title
   they just finished typing; the detail screen is where the next thing they
-  want to do lives.* MOVIES-AND-TV.md #28.
+  want to do lives.*
 
   `reset_to/3` rather than a push, because the two screens behind — 154 and 06
   — are both about typing a title that now exists, and a back tap onto either

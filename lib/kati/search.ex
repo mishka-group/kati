@@ -52,8 +52,8 @@ defmodule Kati.Search do
   # other four came in with #114. That is still a real gap and boards 86, 88,
   # 90 and 91 all draw the wider list — so the list stays as the design's, and
   # `built?/1` is what says which half of it is live. A specification screen that overstates is worse than none, because it
-  # is the page a reader opens to find out why a search missed
-  # (MOVIES-AND-TV.md #74); a specification screen that says *not yet* against
+  # is the page a reader opens to find out why a search missed;
+  # a specification screen that says *not yet* against
   # four rows is the same page telling the truth.
   #
   # `Kati.SearchContractTest` pins `built?/1` to `narrowable_scopes/0`, so a
@@ -63,7 +63,7 @@ defmodule Kati.Search do
   # in whichever locale the compiler happened to be in. See `scopes/0`.
 
   # Fields this list names that a search does not look in, because nothing on
-  # the device holds them — MOVIES-AND-TV.md #74 at the field level, and #114.
+  # the device holds them.
   #
   # The field is not removed, for `built?/1`'s reason one level down: the
   # contract is the design's and stating it whole is what screen 88 is FOR;
@@ -184,8 +184,7 @@ defmodule Kati.Search do
   `@scopes` is the design's contract and `Kati.Search.Query.run/1` builds four
   of its seven groups. Screens 86 and 88 both draw all seven; this is what lets
   them say which ones are live rather than offering a choice that
-  `narrowable/1` silently turns into `All` on the way to screen 19
-  (MOVIES-AND-TV.md #73 and #74).
+  `narrowable/1` silently turns into `All` on the way to screen 19.
 
       iex> Kati.Search.built?(:screen)
       true
@@ -320,7 +319,7 @@ defmodule Kati.Search do
   keystroke, deliberately and for a reason its own `handle_info/2` argues at
   length: the query is a scan of a personal SQLite library, so a debounce would
   buy latency rather than spend it. A reader was told the app was being careful
-  with requests it does not make. MOVIES-AND-TV.md #63.
+  with requests it does not make.
 
   Board 88 keeps `counts_note/0`, because board 88 is where seven scopes are
   actually drawn.
@@ -397,7 +396,7 @@ defmodule Kati.Search do
   # against each other instead.
   # `Books` joined on 6 September. A book used to be concatenated into the
   # Screen group, drawn under that heading, counted by that chip and given a
-  # chevron that opened nothing — MOVIES-AND-TV.md #61.
+  # chevron that opened nothing.
   @narrowable [:all, :screen, :books, :calendar, :notes]
 
   @doc """
@@ -507,7 +506,7 @@ defmodule Kati.Search do
   normalisation SHORTENED the text enough, `at + len` ran off the end of the
   raw body, `binary_part/3` raised, and a `rescue` in `Kati.Search.Query`
   turned that into "there is no note here": the Notes group vanished from the
-  results, silently, for the query that matched it best. MOVIES-AND-TV.md #32.
+  results, silently, for the query that matched it best.
 
   So the search happens in raw coordinates. For each grapheme boundary in
   `text`, the window starting there is grown until its NORMALISED form is as

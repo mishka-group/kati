@@ -2,7 +2,7 @@ defmodule Kati.NothingSetUpBandsTest do
   @moduledoc """
   Board 96's four bands, on the four screens they are drawings OF.
 
-  MOVIES-AND-TV.md #120. Screen 96 is a reference sheet of what four screens
+  Screen 96 is a reference sheet of what four screens
   look like on day one, and its own moduledoc recorded that none of the four
   could ever enter these states:
 

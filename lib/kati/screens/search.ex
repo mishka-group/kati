@@ -410,7 +410,6 @@ defmodule Kati.Screens.Search do
   # The query goes with it. The push was bare, so a reader who searched for
   # *Estuary*, was told nothing matched, and pressed *or add it by hand* landed
   # on an empty title field and typed the word the app had just shown them.
-  # MOVIES-AND-TV.md `19 scenario 33`.
   #
   # Through 154's own ONE-SHOT key rather than either obvious alternative.
   # `Kati.Search.hand_over/1`, which *Look it up* uses one clause up, writes a
@@ -442,7 +441,7 @@ defmodule Kati.Screens.Search do
      # field it has already drawn — `K-46` in `native/LEDGER.md`, and screen 06
      # has carried the same counter since it was found there.
      #
-     # MOVIES-AND-TV.md #94 called this control inert on the strength of
+     # The audit called this control inert on the strength of
      # `Kati.ScreenTapSweepTest`'s own note — the sweep reaches 19 with an empty
      # field, where clearing is correctly a no-op. Pressed over a real query on
      # the device it was not inert; it was wrong.
@@ -568,7 +567,7 @@ defmodule Kati.Screens.Search do
       # A hit with no tracked row is a title somebody looked up on the add
       # sheet and never shelved — `cached_for/2` reads the whole cache. Pushing
       # bare drew the FIXTURE branch of screen 04 or 08, so a chevron on
-      # `Emergence` opened a page about The Long Hollow. MOVIES-AND-TV.md #65.
+      # `Emergence` opened a page about The Long Hollow.
       #
       # It carries no tap at all now: `hit_tag/1` refuses a row with no id, so
       # the card is a card and not a door. Adding it from here would be a
@@ -951,7 +950,7 @@ defmodule Kati.Screens.Search do
       Kati.Screens.Search.visible_groups(results, filter) != [] ->
         Kati.Screens.Search.groups(results, filter)
 
-      # MOVIES-AND-TV.md #117. *Nothing in this scope* and *nothing anywhere*
+      # *Nothing in this scope* and *nothing anywhere*
       # are two different things and this page drew the second sentence for
       # both — narrow to Calendar over a query that found three films and the
       # page said **Nothing here**, which is the exact misreading board 89's
@@ -1229,7 +1228,7 @@ defmodule Kati.Screens.Search do
   answers `nil` for it and the row draws no chevron, which is the honest shape
   for a hit with no door and is what it drew before. What changed is that it is
   no longer drawn under a heading that says SCREEN and counted by a chip that
-  says films. MOVIES-AND-TV.md #61.
+  says films.
   """
   def books(results) do
     assigns = %{rows: Map.get(results, :books) || []}
@@ -1268,7 +1267,6 @@ defmodule Kati.Screens.Search do
     # never shelved — has a kind and no row to open, and drawing it with a
     # chevron meant a tap onto the fixture branch of screen 04 or 08: a
     # chevron on one title that opened a page about another.
-    # MOVIES-AND-TV.md #65.
     case {Map.get(row, :kind), Map.get(row, :id)} do
       # An episode's `:id` is the id of the TITLE it belongs to — screen 04 is
       # where an episode lives and Kati has no episode page — so the tag has to
@@ -1447,7 +1445,7 @@ defmodule Kati.Screens.Search do
   # the same board draws two Screen rows and two Calendar rows and neither of
   # those groups is capped to what it drew. `Kati.Search.Query` ranked the
   # whole list and took the head, so the second-best note about the estuary had
-  # nowhere on this page to be. MOVIES-AND-TV.md #139.
+  # nowhere on this page to be.
   @doc false
   def notes(results) do
     assigns = %{cards: Map.get(results, :notes) || []}

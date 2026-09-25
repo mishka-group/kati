@@ -11,7 +11,7 @@ defmodule Kati.ReleaseWatcherBannerTest do
 
   What is NOT fixed here is the rest of the page. Ten switches and a four-way
   cadence still edit one socket assign and are forgotten on the pop, and
-  nothing in the app consumes any of them — MOVIES-AND-TV.md #67. Persisting a
+  nothing in the app consumes any of them. Persisting a
   switch nothing reads would turn *forgotten* into *remembered and still
   inert*, which is a worse lie, so it waits for the brief.
   """
@@ -82,7 +82,7 @@ defmodule Kati.ReleaseWatcherBannerTest do
   end
 
   describe "the two controls that have a consumer" do
-    # MOVIES-AND-TV.md #67 and `design-briefs/D-64`, whose acceptance names this
+    # `design-briefs/D-64`, whose acceptance names this
     # block: *it either goes away because the controls became real, or becomes
     # an assertion about the not-yet state. It must not stay as it is.* Two of
     # the fifteen became real; the rest carry the mark.

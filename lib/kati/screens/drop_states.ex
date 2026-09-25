@@ -11,7 +11,7 @@ defmodule Kati.Screens.DropStates do
   `:not_started | :watching | :paused | :finished | :dropped` — this sheet's
   *Active* is `:watching` and its *Dropped* and *Finished* are those. This
   moduledoc used to claim the column held `:gone_cold` as well, and it never
-  has (MOVIES-AND-TV.md #55).
+  has.
 
   **Gone cold is the fifth, and it is derived.** That is not a gap: this
   board's own footnote is the argument for it — *Paused and Dropped are things

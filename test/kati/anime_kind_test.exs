@@ -2,7 +2,7 @@ defmodule Kati.AnimeKindTest do
   @moduledoc """
   Anime is a kind something writes now.
 
-  MOVIES-AND-TV.md #104: `:anime` was read by `Kati.Screens.Library.shelf/0`,
+  `:anime` was read by `Kati.Screens.Library.shelf/0`,
   `Kati.Screens.Stats`, `Kati.Screens.YearShare`, the importer, the search and
   the notifier, and written by nothing at all — so the Library queried a third
   shelf that was always empty and screen 152's entire subject had no column.

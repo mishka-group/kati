@@ -1,6 +1,6 @@
 defmodule Kati.RatingTagsTest do
   @moduledoc """
-  Screen 33's three controls that were drawn and did nothing, MOVIES-AND-TV.md #96.
+  Screen 33's three controls that were drawn and did nothing.
 
     * **`+ tag`** carried a tap that reached `handle_info/2`'s fall-through and
       was filed in `Kati.ScreenTapSweepTest`'s `@inert_taps` as *a sheet that

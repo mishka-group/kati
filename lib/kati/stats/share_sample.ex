@@ -24,7 +24,7 @@ defmodule Kati.Stats.ShareSample do
   # matches on it and the chip's tap is named after it — and the label is a
   # translation. They were one string, so the Persian mirror's scope was
   # «همه» and every clause of `in_scope?/2` fell through: its card was filtered
-  # to nothing whatever the reader tapped. MOVIES-AND-TV.md #158, a third time.
+  # to nothing whatever the reader tapped. The label-as-key defect, a third time.
   def scopes do
     [
       {:all, gettext("All")},

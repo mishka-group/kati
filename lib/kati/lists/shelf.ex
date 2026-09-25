@@ -4,7 +4,7 @@ defmodule Kati.Lists.Shelf do
   @moduledoc """
   What screen 12 draws, out of the store rather than out of a fixture.
 
-  MOVIES-AND-TV.md #106. Every number and every row on that page belonged to
+  Every number and every row on that page belonged to
   somebody else: three lists nobody made, four *Kept automatically* counts
   frozen at the drawing's, and a `+` that invented a row the moment it was
   pressed and lost it on the way back.

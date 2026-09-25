@@ -306,7 +306,7 @@ defmodule Kati.ScreenStatsEmptyTest do
 
       # Three of the five rows are counted now rather than frozen — one watch
       # is written in this block's setup, and `1,204 entries` was what every
-      # device saw. MOVIES-AND-TV.md #45.
+      # device saw.
       assert words =~ "1 entry"
       refute words =~ "1,204 entries"
 

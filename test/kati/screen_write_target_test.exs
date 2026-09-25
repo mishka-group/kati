@@ -390,7 +390,7 @@ defmodule Kati.ScreenWriteTargetTest do
     # `Kati.Screens.AddByHand.prefill/1` for why a nav param makes 154 a params
     # reader whose every sweep question assumes the key names a row. It leaves the query for
     # screen 154 so somebody who has just been told nothing matched does not
-    # retype the word the app showed them. MOVIES-AND-TV.md `19 scenario 33`.
+    # retype the word the app showed them.
     #
     # A one-shot key of 154's own rather than `Kati.Search.hand_over/1`'s:
     # `take_prefill/0` deletes as it reads, so it fills that one arrival and
@@ -443,7 +443,7 @@ defmodule Kati.ScreenWriteTargetTest do
     # (Screen 33's `5★` / `10pt` was briefly here. It writes `Mob.State`'s
     # `:rating_scale` — `Kati.Rating.Scale`, a display preference kept beside
     # the locale and the theme, because how a number is READ is not a fact
-    # about a title, a watch or a shelf — and MOVIES-AND-TV.md #96 wired it.
+    # about a title, a watch or a shelf — and it is wired now.
     #
     # The exemption turned out not to be needed, which is the better answer:
     # the toggle is only tappable on a sheet with a row behind it, so a page

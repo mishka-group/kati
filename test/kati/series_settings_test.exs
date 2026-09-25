@@ -2,7 +2,7 @@ defmodule Kati.SeriesSettingsTest do
   @moduledoc """
   Screen 35, the settings page that saved nothing.
 
-  MOVIES-AND-TV.md #99: eleven rows, three tiles and four switches, every one
+  Eleven rows, three tiles and four switches, every one
   of them without an `on_tap`. Four of the switches sat directly over columns
   `Kati.Media.TrackedTitle` had carried since it was written — with the
   drawing's own four positions as their defaults — and the three Status tiles

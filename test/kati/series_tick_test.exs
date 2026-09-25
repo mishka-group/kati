@@ -89,7 +89,7 @@ defmodule Kati.SeriesTickTest do
     # episode 3, tapping S2, and tapping S1 again put the tick back where it
     # started. The ring emptied, the counter fell, and the store still held the
     # watch: the screen and the database disagreed, and only the screen was
-    # visible. MOVIES-AND-TV.md #14.
+    # visible.
     #
     # Exercised against the DRAWN series, which is the one state a host can
     # build: `Kati.Library.Sample` gives three seasons and the pills to move

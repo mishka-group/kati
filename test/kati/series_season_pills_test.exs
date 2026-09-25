@@ -6,7 +6,7 @@ defmodule Kati.SeriesSeasonPillsTest do
   `Row` that does not scroll, so the pills ran off the side of the phone and
   stayed there. *The Simpsons* has thirty-six seasons and *Doctor Who* has
   thirty-nine; on either, a reader could not open season 9 at all. The row was
-  the only arrangement the screen had. MOVIES-AND-TV.md `04 scenario`.
+  the only arrangement the screen had.
 
   Board 04 draws three pills, inline and right-aligned, and that is still what a
   three-season show gets — the fix is a second arrangement for the case the

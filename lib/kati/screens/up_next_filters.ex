@@ -351,7 +351,7 @@ defmodule Kati.Screens.UpNextFilters do
 
   Written on every tap rather than on a Done button, because this sheet has no
   Done — it has a ✕, and a sheet whose only exit discarded the choice is the
-  defect MOVIES-AND-TV.md #26 describes. Screen 10 re-reads on the pop through
+  defect `Kati.Library.ShelfFilters` describes. Screen 10 re-reads on the pop through
   `Kati.Screens.Resume`, so the queue behind is already narrowed when it comes
   back.
   """

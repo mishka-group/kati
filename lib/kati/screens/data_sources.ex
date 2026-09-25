@@ -266,7 +266,7 @@ defmodule Kati.Screens.DataSources do
   routed to the always-empty secure store and answered `{:error, :no_api_key}`,
   so screen 06 stopped returning results and started drawing a notice pointing
   back at THIS page. One tap on a control that reads as a preference, and
-  search was off with no way to switch it on. MOVIES-AND-TV.md #70.
+  search was off with no way to switch it on.
 
   Drawn only under `:own`, because under `:kati` there is nothing to enter —
   which is also why this is not on board 80: the board is drawn with Kati's key
@@ -970,7 +970,7 @@ defmodule Kati.Screens.DataSources do
   end
 
   @doc """
-  Empty the metadata cache. MOVIES-AND-TV.md #102.
+  Empty the metadata cache.
 
   Nothing the reader made is in it — `Kati.Media.Cache`'s moduledoc gives the
   whole argument — so this needs no confirmation step: the shelf, the ticks and

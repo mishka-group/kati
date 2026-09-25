@@ -2,7 +2,7 @@ defmodule Kati.Media.Detect do
   @moduledoc """
   Noticing what you played, so you do not have to tell Kati twice.
 
-  MOVIES-AND-TV.md #100. Screen 36 is the argument for this feature drawn in
+  Screen 36 is the argument for this feature drawn in
   full — a master switch, per-source rows with tick counts, a *Now playing*
   card, a threshold, and a queue of matches it refused to guess at — and none
   of it had anything behind it. Its own moduledoc said so: *detection is a

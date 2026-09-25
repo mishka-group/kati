@@ -135,8 +135,8 @@ defmodule Kati.Screens.DiscoverFilters do
   *Unscored*, the two service chips — and `Kati.DiscoverFiltersTest` refused it,
   correctly: a reader who has never seen the board does not know those words,
   and a sheet that lists what it cannot do teaches them a vocabulary of absent
-  features. The omissions are recorded in `Kati.Discover.Filters` and in
-  MOVIES-AND-TV.md, which is where a reason belongs.
+  features. The omissions are recorded in `Kati.Discover.Filters`, which is where a reason
+  belongs.
   """
   @spec note_text() :: String.t()
   def note_text do
@@ -394,7 +394,7 @@ defmodule Kati.Screens.DiscoverFilters do
       iex> Kati.Screens.DiscoverFilters.tag("rate_", :r8)
       :rate_r8
 
-  `Kati.Screens.AddByHand.tag/2`'s rule, and MOVIES-AND-TV.md #158 is why.
+  `Kati.Screens.AddByHand.tag/2`'s rule.
   """
   @spec tag(String.t(), atom()) :: atom()
   defdelegate tag(prefix, key), to: Kati.Screens.AddByHand

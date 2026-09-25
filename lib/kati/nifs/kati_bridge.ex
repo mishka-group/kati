@@ -172,7 +172,7 @@ defmodule Kati.Nifs.KatiBridge do
   `[]` is a complete answer and the commonest one: nothing is playing, or
   Kati has not been allowed to look. `media_access/0` tells the two apart,
   because a screen that says *nothing is playing* when it is not allowed to
-  know is exactly the kind of claim MOVIES-AND-TV.md #100 is about.
+  know is exactly the kind of confident claim the app must not make.
   """
   @spec now_playing() :: binary()
   def now_playing, do: :erlang.nif_error(:nif_not_loaded)

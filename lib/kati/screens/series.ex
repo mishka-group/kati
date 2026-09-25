@@ -407,7 +407,7 @@ defmodule Kati.Screens.Series do
       # A tracked series with no cached episodes. `nil` here sent the page to
       # `drawn_series/0`, so **every hand-typed series opened as The Long
       # Hollow** — hollow71 artwork, three seasons and seven named episodes,
-      # none of which the reader had ever heard of. MOVIES-AND-TV.md #38.
+      # none of which the reader had ever heard of.
       #
       # There IS a row, so the page draws it. The gate this screen keeps —
       # *either every value is this user's or every value is the drawing's* —
@@ -431,7 +431,7 @@ defmodule Kati.Screens.Series do
       tracked_id: tracked.id,
       # Whether Kati tells you about new episodes of this show — the column
       # screen 25 is a page about, which nothing anywhere could set for one
-      # title until the bookmark disc could (MOVIES-AND-TV.md #81).
+      # title until the bookmark disc could.
       followed?: tracked.notify_new_episodes,
       # Screen 35 writes this and, until now, nothing read it — the column's own
       # annotation says *"spoiler-safe episode names on screen 04"* and screen
@@ -642,7 +642,7 @@ defmodule Kati.Screens.Series do
       # forgotten — the ⋯ rows that read them drew *Mark as anime* on a title
       # already marked and *This is a series* on a series, because neither key
       # survived the rebuild. Found on the Pixel_9a one tap after correcting a
-      # Kind (MOVIES-AND-TV.md #104, #113).
+      # Kind.
       anime?: Map.get(facts, :anime?, false),
       media_kind: Map.get(facts, :media_kind, :tv),
       # Board 248 draws the shelf's own chip over the hero — `Not started` on
@@ -717,7 +717,7 @@ defmodule Kati.Screens.Series do
       # for the same reason `source_id` was. `Kati.Media.Watch` has columns for
       # the season and the episode number and nothing wrote them, so screen 07
       # labelled every tick `SERIES` where board 07 draws `S2 E5`
-      # (MOVIES-AND-TV.md #46) — and `Time watched` read `0h 0m` however many
+      # — and `Time watched` read `0h 0m` however many
       # episodes were ticked, because it looked for a runtime on the TITLE and
       # TMDB puts a series' runtime on each EPISODE (#18).
       season: Map.get(episode, :season),
@@ -918,7 +918,7 @@ defmodule Kati.Screens.Series do
   `tick/2` has assigned `:save_error` since the day it could fail, and nothing
   drew it — so a refused tick was a tap into total nothing: the row did not
   fill, the counter did not move, and the page said no more than it would have
-  if the finger had missed. MOVIES-AND-TV.md #39, and the same defect `D-60`
+  if the finger had missed. It is the same defect `D-60`
   describes on the Persian side.
 
   Between the season card and the buttons, which is where screen 112 puts its
@@ -1053,7 +1053,7 @@ defmodule Kati.Screens.Series do
   chip is the shelf's, so a hand-added show you are part-way through reads
   `Watching`. `Kati.SeriesSettings.Sample.statuses/0` carries the same three
   the other way round — a `status` beside each label, so screen 35's tiles are
-  named for the value and not for the word (MOVIES-AND-TV.md #157).
+  named for the value and not for the word.
   """
   @spec status_chip(atom() | nil) :: map()
   def status_chip(nil), do: ~MOB"<Spacer size={0} />"
@@ -1289,7 +1289,7 @@ defmodule Kati.Screens.Series do
         ),
         # And the same for the anime flag, for the same reason: anime is
         # overwhelmingly series, so a row only on screen 08 would be a rule
-        # about the wrong half of the shelf. MOVIES-AND-TV.md #104.
+        # about the wrong half of the shelf.
         Kati.Screens.Film.anime_item(s),
         # And the same row screen 08 carries: a Kind picked wrong on 154 could
         # never be corrected anywhere (#113), and a series that is really a
@@ -1432,7 +1432,7 @@ defmodule Kati.Screens.Series do
   # `actions/1` takes the series, and did not: the mark button acts on the
   # season already on the socket and carries no subject, but the two discs
   # beside it do — one follows this show and one rates it, and both need to
-  # know whether there is a row behind the page at all (MOVIES-AND-TV.md #81).
+  # know whether there is a row behind the page at all.
   @doc """
   The primary and the two discs beside it — or, on a series with no episode
   list, nothing at all.
@@ -1497,7 +1497,7 @@ defmodule Kati.Screens.Series do
   # `floatProp` reads both as 25.0f.
   #
   # This used to say *bookmark and rate are not built*, and pass no handler.
-  # Both are built now (MOVIES-AND-TV.md #81). A `nil` tap still omits the key
+  # Both are built now. A `nil` tap still omits the key
   # entirely rather than sending a null, so a drawn series keeps two discs
   # that are pictures — which is the honest state for a show with no row
   # behind it.
@@ -1931,7 +1931,7 @@ defmodule Kati.Screens.Series do
   @doc """
   The trailing rating column, and the door onto the sheet that writes it.
 
-  This is board 143 in its live position, and the route MOVIES-AND-TV.md #25
+  This is board 143 in its live position, and the route that
   was missing. Screen 144 could only be opened from Settings → Every screen,
   which is not a route: you rate the episode you just watched by going to the
   series, opening the season, and tapping beside the episode — so that is what
@@ -2084,7 +2084,7 @@ defmodule Kati.Screens.Series do
 
   # Board 152's rule 1, the same write screen 08 makes and for the same reason
   # its comment gives — a decision about one title belongs on that title's own
-  # page (MOVIES-AND-TV.md #104).
+  # page.
   def handle_info({:tap, :toggle_anime}, socket) do
     s = socket.assigns.series
 
@@ -2152,7 +2152,7 @@ defmodule Kati.Screens.Series do
 
   # Named, for the reason the two rows below it are. Screen 35 writes now —
   # four season-pass switches and the three Status tiles, over columns that had
-  # no reader until MOVIES-AND-TV.md #99 — so a bare push here is a settings
+  # no reader before that — so a bare push here is a settings
   # page that saves onto whichever show `show/1` happened to find. It saves
   # onto this one, and its back pill says Series because that is where it came
   # from.
@@ -2436,13 +2436,13 @@ defmodule Kati.Screens.Series do
   # `switch/2` restores the season on screen out of `by_season`. Updating only
   # the first meant a tick survived until you tapped S2 and back, and then
   # vanished: the ring emptied, the counter fell, and the store still held the
-  # watch. MOVIES-AND-TV.md #14, and it is the tick disappearing rather than
+  # watch. It is the tick disappearing rather than
   # the write failing — which is why nothing in the log said anything.
   @doc """
   `restored/2` and `switch/2`, reachable from a test.
 
   Both are private because they are bookkeeping rather than API, and both are
-  exactly where MOVIES-AND-TV.md #14 lived: a tick written into one of the two
+  exactly where that defect lived: a tick written into one of the two
   lists this screen holds and read back out of the other. The round trip needs
   no store and no device, and a test that could only reach it through `tick/2`
   could not reach it at all — the drawn series carries no `:source_id`, so

@@ -52,7 +52,7 @@ defmodule Kati.Season.Sample do
       sentence are all `Kati.Screens.Season`'s own or `Kati.Library.Sample`'s
       own. That is the whole point of a fixture that is also a fallback: board
       34, board 143 and screen 04 draw the same evening, and one show cannot be
-      called two things one tap apart (MOVIES-AND-TV.md #40) — in either
+      called two things one tap apart — in either
       script. A second spelling of *فصل ۲* is how two screens come to disagree.
   """
 

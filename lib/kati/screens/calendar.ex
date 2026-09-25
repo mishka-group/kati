@@ -87,7 +87,7 @@ defmodule Kati.Screens.Calendar do
   What the `+` opens from the Schedule: `Kati.Screens.QuickAdd`.
 
   It opened `Kati.Screens.AddTitle` — the films-and-series search sheet — from
-  the calendar, which is the half of MOVIES-AND-TV.md #16 that stayed open
+  the calendar, which is the half of the wrong-door `+` defect that stayed open
   because no board said which door was right. Board 18 does, in its own
   caption: *One field for the whole app.* A `+` on the Schedule is somebody
   saying *something is happening*, and 18 is the screen that takes that
@@ -114,7 +114,7 @@ defmodule Kati.Screens.Calendar do
   See `Kati.Screens.Resume`. The rows are read at mount and a pop does not
   remount, so quick-adding an event and pressing back left the day reading
   `0 items` over an event that had just been written — the same defect the
-  shelf had, one root over (MOVIES-AND-TV.md #11).
+  shelf had, one root over.
 
   The rows only. `date` is the day the reader has selected and `filter` is
   what they narrowed to; neither is the sheet's to reset, which is the whole
@@ -876,7 +876,7 @@ defmodule Kati.Screens.Calendar do
   *"write-back is a separate decision (#54) and would need WRITE_CALENDAR."*
   Screen 40's Calendars row already words it correctly — *"Kati only reads
   them"* — and a button that promised to write would be asking for consent to
-  something the app cannot do. MOVIES-AND-TV.md #135.
+  something the app cannot do.
   """
   @spec calendars_card(Kati.Permissions.state()) :: map()
   def calendars_card(access) do

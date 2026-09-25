@@ -61,7 +61,7 @@ defmodule Kati.Search.Query do
         # into `:titles`, so a book was drawn under the heading SCREEN, counted
         # by the Screen chip, and given a chevron that opened nothing —
         # `hit_tag/1` answers `nil` for anything that is not a film or a
-        # series. MOVIES-AND-TV.md #61.
+        # series.
         books: books_for(query),
         calendar: calendar_for(query),
         notes: notes_for(query),
@@ -145,19 +145,19 @@ defmodule Kati.Search.Query do
   # BEFORE `chip_counts/1` counted it, so ten matching films rendered three,
   # the chip said `3`, and the other seven were unreachable from this screen —
   # `Kati.Search.rows_per_group/0`'s own doc promises a `See all N →` row and
-  # `grep` finds no such row anywhere. MOVIES-AND-TV.md #62.
+  # `grep` finds no such row anywhere.
   #
   # Drawing all of them is the simpler true thing: the groups are inside a
   # `Scroll`, and a search that found ten answers with ten. `rows_per_group/0`
   # stays as what BOARD 19 draws, which is what `Kati.Screens.SearchSpec` is
   # about.
-  # MOVIES-AND-TV.md #129: the tie-break board 88 renders is *tier, then
+  # The tie-break board 88 renders is *tier, then
   # recency*, `Kati.Search.rank/1` implements exactly that, and nothing called
   # it — every group tied alphabetically instead, so a title you watched last
   # night sorted under one you looked up in March because A comes before S.
   # `rank/1` is the sort now, in all four groups, and the title is only the
   # last resort inside it.
-  # MOVIES-AND-TV.md #144: an episode TMDB wrote onto the device was findable by
+  # An episode TMDB wrote onto the device was findable by
   # nothing. Board 88's own tier-2 example is `hollow → Hollow Season`, which IS
   # the row board 19 labels `Episode · S2E5`, so the ranking table has covered
   # episodes since it was drawn and only the READ was missing.
@@ -307,7 +307,7 @@ defmodule Kati.Search.Query do
     _error -> []
   end
 
-  # MOVIES-AND-TV.md #114. `Kati.Search`'s Screen scope declares six fields and
+  # `Kati.Search`'s Screen scope declares six fields and
   # screen 88 prints the list verbatim; this searched two of them. The other
   # four are all on the device and were simply never read — `title_original` is
   # a column of the same row, `Kati.Media.TitleAlias` is the table auto-detect
@@ -514,7 +514,7 @@ defmodule Kati.Search.Query do
   # This ended `|> List.first()`, under a comment saying one card is what board
   # 19 draws. The board draws ONE HIT in every group and none of the other
   # three is capped to it: `titles_for/1`, `books_for/1` and `calendar_for/1`
-  # all return the whole ranked list. MOVIES-AND-TV.md #62 removed the
+  # all return the whole ranked list. An earlier fix removed the
   # identical `Enum.take/2` from those three and did not reach this one — so a
   # reader with four notes about the estuary was shown one, the Notes chip
   # agreed with the cap and said `1`, the All chip under-added by three, and
@@ -523,7 +523,7 @@ defmodule Kati.Search.Query do
   #
   # `note_card/2` was already per-note. Only the take was the cap.
   defp notes_for(query) do
-    # MOVIES-AND-TV.md #114: a review you wrote about a film was not findable
+    # A review you wrote about a film was not findable
     # anywhere, though the Notes group and the Screen scope both said it was.
     # A review IS a note — the same paragraph in the reader's own words about
     # one thing on their shelf — so it is one of these rather than a group of
@@ -609,7 +609,7 @@ defmodule Kati.Search.Query do
 
   It was the bare word `NOTE`, so a note hit said nothing about WHOSE note it
   was or when it was written, and the reader was left with a paragraph and no
-  way to place it. MOVIES-AND-TV.md #64. Both missing parts are on the row:
+  way to place it. Both missing parts are on the row:
   `inserted_at` is when it was written and `:book` is what it is about.
 
   Each part is dropped rather than invented when it is absent — a note whose

@@ -2,7 +2,7 @@ defmodule Kati.DarkBoardThemeTest do
   @moduledoc """
   Looking at a dark board does not leave the app dark.
 
-  MOVIES-AND-TV.md #30. Seven boards are drawn in the dark colourway and each
+  Seven boards are drawn in the dark colourway and each
   sets the dark palette in its own `load/1`. `Mob.Theme.set/1` is global and a
   pop does not remount the screen it returns to, so opening one left the whole
   app dark — a dark Settings, a dark Library, a dark Home — until some other

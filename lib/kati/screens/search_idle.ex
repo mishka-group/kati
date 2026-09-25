@@ -146,7 +146,7 @@ defmodule Kati.Screens.SearchIdle do
         # offered. `Kati.Search.narrowable/1` turned Music, Meals and Money
         # into `All` on the way to screen 19, so a reader picked a scope, ran
         # the search, and got everything — with nothing on either screen
-        # saying the choice had been dropped. MOVIES-AND-TV.md #73, whose own
+        # saying the choice had been dropped. The audit's own
         # prescription is this: *grey the four unbuildable chips the way an
         # unavailable control is drawn, so the choice is never offered and then
         # discarded.*
@@ -171,8 +171,8 @@ defmodule Kati.Screens.SearchIdle do
     # Board 313's affordance, which screen 19 has carried since that board
     # landed and this row did not: *"a horizontal scroll with no affordance
     # hides half the scopes behind a gesture nobody knows is there."* The two
-    # pages draw one control and 86 was the half without the mark
-    # (MOVIES-AND-TV.md #34). `Kati.Screens.Search.chip_line/1` is the recipe
+    # pages draw one control and 86 was the half without the mark.
+    # `Kati.Screens.Search.chip_line/1` is the recipe
     # and it is called rather than copied, so the two cannot drift again.
     ~MOB"""
     <Column fill_width={true}>
@@ -292,8 +292,7 @@ defmodule Kati.Screens.SearchIdle do
   And now actually drawn from it. Board 86's own two — `what leaves this week`,
   `notes about the estuary` — sat under a caption saying they come from this
   reader's library, and they match nothing on any device but the one the board
-  was captured on
-  (MOVIES-AND-TV.md #72). `Kati.Search.Suggestions.derived/0` answers with the
+  was captured on. `Kati.Search.Suggestions.derived/0` answers with the
   newest title on the shelf and the book the newest note is about, and `[]` on
   a device that has neither — `try_group/1` draws the worded card over that.
   """
@@ -312,7 +311,7 @@ defmodule Kati.Screens.SearchIdle do
   board 86's own two suggestions on a device with nothing — *what leaves this
   week*, *notes about the estuary* — which match nothing anywhere but the
   machine the board was captured on. A suggestion that finds nothing is the
-  defect MOVIES-AND-TV.md #72 was about, one turn further on. That function and
+  same defect, one turn further on. That function and
   `Kati.Search.suggestions/0` behind it are both deleted now: with nothing
   calling them there was no reader who could reach the pair, and a fixture
   kept alive only by its own dead fallback is the thing this sweep removes.
@@ -418,7 +417,7 @@ defmodule Kati.Screens.SearchIdle do
   `Kati.Search.local_note/0`, not board 88's `counts_note/0`: that one promises
   a 180 ms debounce and seven counted queries per pause, and the search this
   page opens runs on every keystroke over the reader's own library. Screen 19
-  was moved off it for the same reason (MOVIES-AND-TV.md #63); this page kept
+  was moved off it for the same reason; this page kept
   saying it.
   """
   @spec counts_note() :: map()
@@ -495,7 +494,7 @@ defmodule Kati.Screens.SearchIdle do
   @doc """
   The query a tag was built from, found in the list it was built from.
 
-  MOVIES-AND-TV.md #130. This used to undo `query_tag/2` by hand —
+  This used to undo `query_tag/2` by hand —
   `String.replace(line, "_", " ")` — which is not the inverse of anything.
   `sci_fi` is stored as typed by `Kati.Search.Recent.remember/2`, which "never
   translates — they are your words", tagged `:repeat_query_sci_fi`, and came
@@ -547,7 +546,7 @@ defmodule Kati.Screens.SearchIdle do
     do:
       {:noreply,
        Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec, %{
-         # MOVIES-AND-TV.md #131: 88 is drawn with a `Settings` back pill and
+         # 88 is drawn with a `Settings` back pill and
          # this disc is its only door, so the pill named a screen the pop does
          # not land on. The push says where it came from, as every other push
          # in the app does.

@@ -36,7 +36,7 @@ defmodule Kati.ScreenStatsTest do
   breakdown was wired to `CachedTitle.genres`. The moduledoc's reason for
   refusing that column — *no defined separator, written by nothing* — had gone
   stale: `Kati.Media.Tmdb.genres/1` writes it `", "`-separated and screens 04
-  and 14 read it back that way. MOVIES-AND-TV.md #45.
+  and 14 read it back that way.
 
   ## Where the empty history went
 
@@ -241,7 +241,7 @@ defmodule Kati.ScreenStatsTest do
     end
 
     test "counts the two More numbers rows it can, and the two it cannot say nothing" do
-      # MOVIES-AND-TV.md #45's remainder. All four carried the drawing's own
+      # The rest of the frozen-figure defect. All four carried the drawing's own
       # figures beside one that counted. `Kati.Goals.Goal` and
       # `Kati.Money.Expense` are real resources, so those two are counted;
       # `Kati.Habits` is a Sample module and nothing else, and `Nutrition`'s
@@ -464,7 +464,7 @@ defmodule Kati.ScreenStatsTest do
       refute Stats.subscriptions_line() == "—"
 
       # And not a figure: `£46.47 a month · 7 expenses` is what the Money row
-      # beside it carried on every device until MOVIES-AND-TV.md #45.
+      # beside it carried on every device until it was fixed.
       refute Stats.subscriptions_line() =~ "46.47"
     end
   end

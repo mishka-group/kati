@@ -12,7 +12,7 @@ defmodule Kati.Media.Recommendations do
   Long Hollow* for somebody who never had, three films with `94% match`,
   `89% match` and `81% match`, three people the app has never heard of, and
   *Leaving Lumen+ in 7 days* for a service that may not be on the account.
-  MOVIES-AND-TV.md ranks it #50 and calls it the app's most confident lie.
+  The audit called it the app's most confident lie.
 
   Two of its three sections cannot be made true this round and the screen's own
   moduledoc says why: there is no person anywhere in Kati, and no offers
@@ -90,7 +90,7 @@ defmodule Kati.Media.Recommendations do
 
   def seed(source_id) when is_binary(source_id) do
     # The title the reader ASKED to be recommended from, if it is still theirs.
-    # MOVIES-AND-TV.md #87 gave screen 11's `tune` disc this question, and a
+    # Screen 11's `tune` disc was given this question, and a
     # named title that has since been removed falls back to the newest rather
     # than answering nothing — the rule every push in this app keeps.
     Enum.find_value(seedable(), fn {tracked, cached} ->
@@ -350,7 +350,7 @@ defmodule Kati.Media.Recommendations do
 
     # `source_id` and `kind` ride along because a recommendation you cannot act
     # on is half a feature — screen 11 was *the only page in the app that shows
-    # films you cannot open* (MOVIES-AND-TV.md #14 under screen 11), and these
+    # films you cannot open*, and these
     # two are exactly what `Kati.Screens.AddTitle.track/2` needs. The board's
     # own picks carry neither, which is what keeps them untappable: a fixture
     # is not a title anybody can add.

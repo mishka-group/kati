@@ -356,7 +356,7 @@ defmodule Kati.Settings.Sample do
         sub: gettext("Which calendars Kati may read"),
         control: :chevron
       },
-      # MOVIES-AND-TV.md #1. Screen 05 had no English door at all: its only one
+      # Screen 05 had no English door at all: its only one
       # was Home's *New this week* hero, which is omitted unless a followed
       # title has an unticked episode from the last seven days — so a reader
       # with nothing out this week could not reach the page that would tell

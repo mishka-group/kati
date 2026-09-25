@@ -7,7 +7,7 @@ defmodule Kati.ImportStepLabelTest do
   REAL import goes through — hardcoded the bare string `"STEP 1 OF 4"`. So the
   fixture spoke Persian and the reader's own file did not, which is the one
   arrangement that guarantees nobody notices: the board renders correctly in
-  every screenshot. MOVIES-AND-TV.md `141 #12`.
+  every screenshot.
 
   The bar meter disagreeing with the caption — five bars, three filled, over
   `STEP 1 OF 4` — is the drawing's own inconsistency and is left alone.

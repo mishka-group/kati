@@ -217,7 +217,7 @@ defmodule Kati.ScreenFilmTest do
 
     test "the availability card and its eyebrow are not drawn at all" do
       # With a service set up. Without one the eyebrow stays and board 96's
-      # band goes under it (MOVIES-AND-TV.md #120), which is a different
+      # band goes under it, which is a different
       # absence: the account, not the film.
       Ash.create!(Kati.Services.Service, %{name: "screen-film-test-Mubi", tier: :subscribed})
 

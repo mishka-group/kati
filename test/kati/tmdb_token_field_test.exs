@@ -7,7 +7,7 @@ defmodule Kati.TmdbTokenFieldTest do
   routed to the always-empty secure store and answered `{:error, :no_api_key}`,
   so screen 06 stopped returning results and started drawing a notice pointing
   back at THIS page. One tap on a control that reads as a preference, and
-  search was off with no way to switch it on. MOVIES-AND-TV.md #70.
+  search was off with no way to switch it on.
 
   It is also the flow the app is built around: Kati ships no key of its own to
   a public build, so a reader creates a token on themoviedb.org and brings it

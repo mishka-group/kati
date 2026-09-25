@@ -2,9 +2,7 @@ defmodule Kati.FilmActionsTest do
   @moduledoc """
   Screen 08's three action buttons, and its two painted cards.
 
-  MOVIES-AND-TV.md #84 and #85.
-
-  **#84.** *Log rewatch* was wired earlier this round; *Schedule* and *Share*
+  **The action buttons.** *Log rewatch* was wired earlier this round; *Schedule* and *Share*
   carried no tag, and the comment beside them said each was waiting on
   something Kati did not have. Both had arrived:
 
@@ -15,7 +13,7 @@ defmodule Kati.FilmActionsTest do
     * *Share* wanted the Android share intent, "a fence nobody has written".
       `Mob.Share.text/2` is Mob's own and had been there all along.
 
-  **#85.** The rating card and the note pencil were painted. Both open screen
+  **The painted cards.** The rating card and the note pencil were painted. Both open screen
   33, which is where a rating and a review are written — so *change my four
   stars* and *edit this note* are the same door, from the two things on 08
   that are about it.
@@ -104,7 +102,7 @@ defmodule Kati.FilmActionsTest do
 
     test "and stays empty for a film nobody has looked up, so the heading drops" do
       # ...once Kati knows what the reader pays for. With no service set up the
-      # band board 96 draws goes there instead — MOVIES-AND-TV.md #120 — and
+      # band board 96 draws goes there instead, and
       # the two absences are different: *nothing you pay for carries this film*
       # is a fact about the film, and *you have not said what you pay for* is a
       # fact about the account, with a button on it.

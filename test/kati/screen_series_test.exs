@@ -244,7 +244,7 @@ defmodule Kati.ScreenSeriesTest do
 
     test "a tracked series with nothing cached about it draws ITSELF, empty" do
       # This asserted the opposite until 6 September, and the opposite was
-      # MOVIES-AND-TV.md #38: a hand-typed series has no cached seasons and no
+      # the defect: a hand-typed series has no cached seasons and no
       # cached episodes, so `facts/1` answered `nil` and every one of them
       # opened as **The Long Hollow** — hollow71 artwork, three seasons and
       # seven named episodes, none of which the reader had ever heard of.

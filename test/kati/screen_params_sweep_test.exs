@@ -222,7 +222,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # are no longer listed here at all.
     # ── The `+` FAB, and screen 07's music twin, onto screen 06.
     #
-    # Screen 06 reads a `:query` since MOVIES-AND-TV.md #93 — screen 18's
+    # Screen 06 reads a `:query` now — screen 18's
     # *Title* chip opens it over a sentence somebody has already typed. The FAB
     # is the opposite case and has nothing to hand it: a reader pressing `+` on
     # Home has typed nothing, and the resting sheet is exactly what they should
@@ -284,7 +284,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # Screen 37 reads a `:source` since 6 September, because screen 141 was
     # pushing it bare: a reader who had just been told about nine columns of
     # `goodreads_library_export.csv` arrived at five columns of
-    # `trakt-backup.csv` (MOVIES-AND-TV.md #53). 141 names its file now.
+    # `trakt-backup.csv`. 141 names its file now.
     #
     # These nine cannot. `Kati.Import.Sample` holds two worked examples — the
     # trakt backup board 37 was drawn from and the Goodreads export board 141
@@ -748,8 +748,8 @@ defmodule Kati.ScreenParamsSweepTest do
     # Both are right; they are not the same render, and they must not be:
     # a value, not a reference.
     {Kati.Screens.QuickAdd, :sentence},
-    # The words in the field, one sheet over. MOVIES-AND-TV.md #93 gave screen
-    # 06 a `:query`, because screen 18's *Title* chip opens it after the reader
+    # The words in the field, one sheet over. Screen 06 takes a `:query`,
+    # because screen 18's *Title* chip opens it after the reader
     # has already typed the film's name and a blank sheet is an invitation to
     # type it twice. `no-such-row` is a search for that phrase and answers with
     # nothing found; a push naming no query opens the resting sheet, which is

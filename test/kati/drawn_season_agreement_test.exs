@@ -2,7 +2,7 @@ defmodule Kati.DrawnSeasonAgreementTest do
   @moduledoc """
   Screen 04's Season 2 and screen 34's Season 2 are the same season.
 
-  MOVIES-AND-TV.md #40: opening *Episode order* from the drawn series showed a
+  Opening *Episode order* from the drawn series showed a
   different Season 2 from the one on screen — *The Weight of Water / Hollow
   Ground / Salt in the Wound* on 04, *Low Water / The Cull / Blackthorn* on
   34, same show, same season, one back tap apart.

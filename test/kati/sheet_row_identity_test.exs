@@ -1066,7 +1066,7 @@ defmodule Kati.SheetRowIdentityTest do
 
       socket = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.Library), :titles, rows)
 
-      # MOVIES-AND-TV.md #121: a tile is named by its ROW ID now, not by its
+      # A tile is named by its ROW ID now, not by its
       # title — two titles that differ only by a space versus an underscore
       # collapsed onto one tap target, and every distinct provider title minted
       # an atom the VM never reclaims.

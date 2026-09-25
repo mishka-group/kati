@@ -184,7 +184,7 @@ defmodule Kati.Screens.EpisodeRatings do
   The titles are the season's own, through the same msgids
   `Kati.Library.Sample.series/0` puts them through — board 34, board 04 and this
   sheet all draw *Low Water · The Cull · Blackthorn*, and one show cannot be
-  called two things one tap apart (MOVIES-AND-TV.md #40). A show's name is not a
+  called two things one tap apart. A show's name is not a
   service's:
   `Lumen+` stays Latin on a Persian page because a real one comes off
   `Kati.Services.Service` with no msgid between, and nothing on this board does.
@@ -493,8 +493,8 @@ defmodule Kati.Screens.EpisodeRatings do
   `4.5`, `5`, `3.5` — never `5.0`. Every rating on this board is a whole or a
   half, so the only question is whether the fraction is worth printing.
 
-  Or `9`, `10`, `7` — MOVIES-AND-TV.md #96 made the `5★` / `10pt` toggle on
-  screen 33 a real preference, and a scale honoured on the screen that sets it
+  Or `9`, `10`, `7` — the `5★` / `10pt` toggle on screen 33 is a real
+  preference, and a scale honoured on the screen that sets it
   and nowhere else is worse than one that does nothing: the numeral beside an
   episode on 04 would disagree with the numeral on the sheet that wrote it.
   `Kati.Rating.Scale` is the one place a rating becomes text.

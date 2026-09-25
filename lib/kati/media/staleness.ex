@@ -7,8 +7,8 @@ defmodule Kati.Media.Staleness do
   Board 148 draws five states and says `Kati.Media.TrackedTitle.status` holds
   `:active | :paused | :gone_cold | :dropped | :finished`. The resource holds
   `:not_started | :watching | :paused | :finished | :dropped` — no
-  `:gone_cold`, and nothing anywhere in the app ever wrote `:paused` either
-  (MOVIES-AND-TV.md #55 and #56). So both screens that draw a Gone cold band —
+  `:gone_cold`, and nothing anywhere in the app ever wrote `:paused` either.
+  So both screens that draw a Gone cold band —
   148 and screen 10 — read `status == :paused`, a value with no writer, and
   drew nothing on every device that has ever existed.
 

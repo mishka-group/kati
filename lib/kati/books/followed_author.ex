@@ -26,8 +26,8 @@ defmodule Kati.Books.FollowedAuthor do
   a new-book announcement: Open Library is the only book source in view and
   Kati asks it about a title, never about a person's next one. So this is the
   half of board 307 that can be true — the reader's own statement, kept and
-  backed up — and the shelf that reads it is written down as missing in
-  `MOVIES-AND-TV.md` rather than faked with a sample row on screen 05.
+  backed up — and the shelf that reads it is written down as missing
+  rather than faked with a sample row on screen 05.
   """
   use Ash.Resource, domain: Kati.Books, data_layer: AshSqlite.DataLayer
 

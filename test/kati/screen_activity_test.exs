@@ -126,7 +126,7 @@ defmodule Kati.ScreenActivityTest do
       [drawn_count | _] = Sample.rewatch()
 
       # Compared on the DRAWING's own keys. A real row also carries `:id` and
-      # `:kind`, which is what makes it openable — MOVIES-AND-TV.md #90 — and
+      # `:kind`, which is what makes it openable — and
       # a drawn row carries neither, which is what keeps board 15's rows
       # pictures rather than dead controls. That difference is the feature;
       # asserting the whole map would be asserting it away.
@@ -242,7 +242,7 @@ defmodule Kati.ScreenActivityTest do
 
     test "a watch from before this month is still this reader's history" do
       # This used to assert the opposite, and the opposite was
-      # MOVIES-AND-TV.md #58: the gate was `%{today: [], earlier: []}`, both of
+      # the defect: the gate was `%{today: [], earlier: []}`, both of
       # which are month-scoped, so a reader whose watches are all older than
       # the first was handed `1,204 entries` over seven invented rows — and the
       # rewatch card, which counts their WHOLE history, was replaced too.
@@ -312,7 +312,7 @@ defmodule Kati.ScreenActivityTest do
     end
 
     test "Added finds a real add, which nothing could produce before" do
-      # MOVIES-AND-TV.md #112: `verb/2` returned only Watched, Rated or
+      # `verb/2` returned only Watched, Rated or
       # Rewatched, so the fourth chip matched nothing on any device — and
       # nothing recorded that a title had arrived at all.
       hollow = title!("hollow71", "The Long Hollow", :tv)

@@ -84,7 +84,7 @@ defmodule Kati.Screens.Resume do
   left **the whole app dark** until some other pushed screen mounted and
   `Kati.Screens.Pushed`'s macro re-activated the preference. A reader who
   looked at screen 157 got a dark Settings, a dark Library and a dark Home,
-  and nothing they could press to undo it (MOVIES-AND-TV.md #30).
+  and nothing they could press to undo it.
 
   One call, at the one place every back control in the app already goes
   through, rather than seven screens each remembering to put it back. A screen

@@ -8,7 +8,7 @@ defmodule Kati.Media.Availability do
   purchases as available*, *Hide titles I can't watch* — and the third prints
   the pages it empties: *Removes them from Discover, Up next and What fits
   tonight. Your library and wishlist keep everything.* All three were stored
-  and read by nothing (MOVIES-AND-TV.md #77), because nothing in Kati knew
+  and read by nothing, because nothing in Kati knew
   where a title streams. A switch that remembers your answer and ignores it is
   worse than one that is missing: it has taken the decision and filed it.
 

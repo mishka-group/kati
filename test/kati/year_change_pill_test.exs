@@ -2,7 +2,7 @@ defmodule Kati.YearChangePillTest do
   @moduledoc """
   The pill beside *Time watched* on screen 07.
 
-  Two mistakes, and they are different ones. MOVIES-AND-TV.md #47.
+  Two mistakes, and they are different ones.
 
     * **A first year has no last year.** `change/2` answered `0` for a prior
       year of zero minutes, so a device whose history begins today drew

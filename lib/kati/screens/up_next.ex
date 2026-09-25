@@ -134,7 +134,7 @@ defmodule Kati.Screens.UpNext do
   @doc """
   Every control this screen draws, and it drew none until 6 September.
 
-  MOVIES-AND-TV.md #86. The play discs open the title, the `tune` disc opens
+  The play discs open the title, the `tune` disc opens
   the shelf's own filter sheet, and a cold row's `Drop` pill opens the drop
   sheet over that show. A drawn row carries no id and therefore no tag, so
   the board's discs stay pictures.
@@ -188,7 +188,7 @@ defmodule Kati.Screens.UpNext do
     narrowed = Kati.Library.UpNextFilters.apply(pool, choice)
 
     case {narrowed.ready, narrowed.cold} do
-      # MOVIES-AND-TV.md #49. An empty shelf used to draw board 10's drawing
+      # An empty shelf used to draw board 10's drawing
       # whole — four invented titles, `12 ready` over four rows and `Gone
       # cold · 3` over one — to a reader who has nothing on the go. That is
       # the same defect #75 fixed on screen 92 and #58 on screen 15, and the
@@ -231,7 +231,7 @@ defmodule Kati.Screens.UpNext do
     # `status == :paused` — a value nothing in the app ever wrote — so the cold
     # band was empty on every device that has ever existed, and a title nobody
     # had touched in four months sat at the top of *Ready to watch*.
-    # MOVIES-AND-TV.md #55 and #56; `Kati.Media.Staleness` carries the
+    # `Kati.Media.Staleness` carries the
     # argument, including why a stored status would have been the wrong answer.
     #
     # `:paused` is still read alongside it, because a reader who pauses a show
@@ -243,7 +243,7 @@ defmodule Kati.Screens.UpNext do
     # KNOWN to be unavailable in the reader's country: a title nobody has
     # fetched providers for is not one they cannot watch, and a shelf emptied
     # by data they cannot see is a shelf they cannot understand.
-    # MOVIES-AND-TV.md #77; `Kati.Media.Availability` carries the argument.
+    # `Kati.Media.Availability` carries the argument.
     ready =
       watching
       |> Kati.Media.Staleness.warm()
@@ -584,7 +584,7 @@ defmodule Kati.Screens.UpNext do
       # in the handler, for `Kati.Screens.Series`' reason: the title the reader
       # pressed and the title a second query happens to return first are two
       # different facts. `nil` on the drawing, which is what makes its discs
-      # pictures rather than dead controls (MOVIES-AND-TV.md #86).
+      # pictures rather than dead controls.
       id: row.id,
       kind: row.kind
     }
@@ -1258,7 +1258,7 @@ defmodule Kati.Screens.UpNext do
   @doc """
   The tap that opens a row's title, or `nil` for one with nothing behind it.
 
-  MOVIES-AND-TV.md #86: this screen drew no tappable control at all — the
+  This screen drew no tappable control at all — the
   hero's play disc, four ready-row discs, the tune disc and every Drop pill
   were built without one, and `Kati.ScreenTapSweepTest` is blind to that by
   construction, because it collects the tags a screen DOES draw and a screen

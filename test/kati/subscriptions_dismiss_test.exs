@@ -5,7 +5,7 @@ defmodule Kati.SubscriptionsDismissTest do
   It was `Mob.Socket.assign(socket, :suggestion, false)` and nothing else, and
   `load/1` assigned `suggestion: true` unconditionally — so the card came back
   on the next mount. The button retired it for as long as the reader stayed on
-  the page and no longer. MOVIES-AND-TV.md #59.
+  the page and no longer.
   """
 
   use Mob.ScreenCase, async: false

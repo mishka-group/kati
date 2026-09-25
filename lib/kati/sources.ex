@@ -117,7 +117,7 @@ defmodule Kati.Sources do
         # Where a reader goes to get their own token. One per provider, and it
         # was one for all three: screen 80's pairing card printed
         # `listenbrainz.org/link` under every code, so a Hardcover reader was
-        # sent to somebody else's site (MOVIES-AND-TV.md #71).
+        # sent to somebody else's site.
         site: "listenbrainz.org/profile",
         why:
           gettext(

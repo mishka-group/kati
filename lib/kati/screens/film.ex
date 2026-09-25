@@ -95,7 +95,7 @@ defmodule Kati.Screens.Film do
   # rewatch* on a Pixel 9a and watching the page not move.
   #
   # All three go somewhere now, and the two that did not were each waiting on
-  # something that has since landed (MOVIES-AND-TV.md #84).
+  # something that has since landed.
   #
   # `Schedule` wanted a date sheet this app did not have. It has one: screen 18
   # takes a sentence and writes a calendar event, so *Schedule* opens it with
@@ -309,7 +309,7 @@ defmodule Kati.Screens.Film do
   defp film_record(nil), do: newest_film()
 
   # ACROSS the Screen kinds, not `:movie` alone. `:anime` is a kind something
-  # writes now (MOVIES-AND-TV.md #104), and a film marked as anime keeps its
+  # writes now, and a film marked as anime keeps its
   # `:movie` cache row and opens this screen — `Kati.Media.Anime.film?/2` is
   # what routes it. Read against `:movie` only, this answered `nil` for exactly
   # that title and the page fell back to the DRAWING: the reader tapped their
@@ -412,8 +412,8 @@ defmodule Kati.Screens.Film do
       note: noted && noted.review,
       # Where this film can be watched — the same band screen 14 draws and the
       # same column it reads. It was `[]` on both, for want of an offers
-      # resource; `Kati.Media.CachedTitle.providers` is that resource now
-      # (MOVIES-AND-TV.md #77). `price` is `nil` on every row because TMDB
+      # resource; `Kati.Media.CachedTitle.providers` is that resource now.
+      # `price` is `nil` on every row because TMDB
       # says where and never how much, and the row draws it as nothing.
       where: where_rows,
       where_line: Kati.Screens.Film.where_line(where_rows),
@@ -1013,14 +1013,14 @@ defmodule Kati.Screens.Film do
         Kati.UI.Menu.item("star", gettext("Log a watch"), :log_watch),
         # The one control that can set `Kati.Media.TrackedTitle.private`, and
         # therefore the one thing that makes screen 98's *Hide titles I marked
-        # private* a switch about anything (MOVIES-AND-TV.md #103). A decision
+        # private* a switch about anything. A decision
         # about one title belongs on that title's own page.
         Kati.UI.Menu.item(
           Kati.Screens.Film.private_icon(f),
           Kati.Screens.Film.private_label(f),
           :toggle_private
         ),
-        # MOVIES-AND-TV.md #110: a film could not be dropped, abandoned or
+        # A film could not be dropped, abandoned or
         # DNF'd anywhere in the app. Screen 149 is the sheet for it — it is
         # series-shaped in exactly two places, its header and its position
         # card, and both are answered by the title's own kind now rather than
@@ -1038,7 +1038,7 @@ defmodule Kati.Screens.Film do
   @doc """
   *Drop this film*, or nothing at all when there is no film to drop.
 
-  MOVIES-AND-TV.md #110 gives the row and the app's own rule takes it away
+  A film can be dropped, which gives the row, and the app's own rule takes it away
   again over the drawing: screen 08 renders a fixture when nothing is tracked,
   and a Drop row there would open the sheet on whatever the newest gone-cold
   title happens to be — the exact swap `Kati.Screens.DropSheet.sheet/1`'s
@@ -1063,8 +1063,8 @@ defmodule Kati.Screens.Film do
   # 333dp tall against the drawing's 84 and the stars did not appear at all.
   @doc false
   def rating_card(f) do
-    # The card is the door to the sheet that sets a rating — MOVIES-AND-TV.md
-    # #85. It was painted, so a reader looking at their own four stars had no
+    # The card is the door to the sheet that sets a rating.
+    # It was painted, so a reader looking at their own four stars had no
     # way to change them from the page that shows them; screen 33 is where a
     # rating is written, and this is the only thing on 08 that is about one.
     #
@@ -1262,7 +1262,7 @@ defmodule Kati.Screens.Film do
   itself and the drawn film is unchanged to the node.
   """
   @spec where_section(map(), boolean() | nil) :: [map()]
-  # MOVIES-AND-TV.md #120. Board 96's first band — *Set up your services to see
+  # Board 96's first band — *Set up your services to see
   # where this is streaming* — is a section screen 08 replaces, and 08 drew
   # nothing at all instead. The two absences are different and only one of them
   # is the reader's to fix: *nothing you pay for carries this film* is a fact
@@ -1399,7 +1399,7 @@ defmodule Kati.Screens.Film do
 
   Screen 33 holds the review — it is the one field in this app that writes
   `Kati.Media.Watch.review` — so *edit this note* is *open the log this note
-  belongs to*. MOVIES-AND-TV.md #85; it was a painted glyph.
+  belongs to*. It was a painted glyph.
 
   A drawn film has no row to edit and gets a picture, which is what board 08's
   own state is.
@@ -1568,7 +1568,7 @@ defmodule Kati.Screens.Film do
 
   # Drop this film: screen 149, over the title this page is drawing.
   #
-  # MOVIES-AND-TV.md #110. The sheet was reachable only from a series, so a
+  # The sheet was reachable only from a series, so a
   # film had no way to be dropped, abandoned or DNF'd at all.
   #
   # Named, exactly as screen 04's row is and for the same reason its comment
@@ -1698,7 +1698,7 @@ defmodule Kati.Screens.Film do
     end
   end
 
-  # Kind, corrected. MOVIES-AND-TV.md #113: a hand-typed title takes its Kind
+  # Kind, corrected. A hand-typed title takes its Kind
   # from a two-chip answer on 154 and nothing could change it afterwards — a
   # show picked as a film sat on the wrong screen forever, and the add path
   # refused to let you type it again because the name was taken.
@@ -1860,7 +1860,7 @@ defmodule Kati.Screens.Film do
   @doc """
   Board 152's first rule, as a row: *Your own tag — always wins, you know.*
 
-  MOVIES-AND-TV.md #104. The reader's own answer is rule 1 and there was
+  The reader's own answer is rule 1 and there was
   nowhere in the app to give it. This is that place, on the same ⋯ that carries
   *Keep off shared cards* and for its reason: a decision about one title
   belongs on that title's own page.
@@ -1905,7 +1905,7 @@ defmodule Kati.Screens.Film do
   @doc """
   *This is a series* / *This is a film* — the one row that corrects a Kind.
 
-  MOVIES-AND-TV.md #113. A hand-typed title takes its Kind from a two-chip
+  A hand-typed title takes its Kind from a two-chip
   answer on screen 154, and no screen in the app could change it afterwards:
   picking Film for a show meant a title on the wrong screen forever, with the
   add path refusing to let you type it again because the name was taken.

@@ -157,7 +157,7 @@ defmodule Kati.Screens.YearCards do
   @doc """
   The row onto board 101 — the five states one of these cards can be in.
 
-  MOVIES-AND-TV.md #2. This page draws the four faces at two ratios; 101 draws
+  This page draws the four faces at two ratios; 101 draws
   what happens when one of them cannot be filled or cannot be saved, which is
   the same subject one question further on. It was gallery-only, so the one
   correction it needed — band 5 names a capability that has since shipped —
@@ -547,7 +547,7 @@ defmodule Kati.Screens.YearCards do
   # exactly. The clause is here so a stray tag is a quiet no-op rather than a
   # `DEAD TAP` in the log.
   @doc false
-  # Board 101's door. MOVIES-AND-TV.md #2: the sheet whose whole job is to name
+  # Board 101's door. The sheet whose whole job is to name
   # honestly why a card cannot be saved was reachable only from the developer
   # gallery, so nobody ever read it — including after its central claim stopped
   # being true. This screen is the one page in the app that is already about

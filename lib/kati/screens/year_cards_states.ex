@@ -48,7 +48,7 @@ defmodule Kati.Screens.YearCardsStates do
   Elixir through `{:kati_files, …}` — so `Kati.Screens.YearShare`'s line about
   there being no way to hand a file out has been overtaken by that fence.
 
-  ## Band 5 is a state the app can no longer be in — MOVIES-AND-TV.md #2
+  ## Band 5 is a state the app can no longer be in
 
   This paragraph used to read *nothing turns a rendered node tree into image
   bytes*, and it has been false since `K-45 capture-screen` landed:

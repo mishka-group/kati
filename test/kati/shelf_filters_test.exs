@@ -3,8 +3,8 @@ defmodule Kati.ShelfFiltersTest do
   The sort disc's sheet, which used to be a picture.
 
   Screen 145 had no way to learn which shelf opened it and handed nothing
-  back, so no sort or filter chosen on it could ever affect anything
-  (MOVIES-AND-TV.md #26). It also opened **already filtered** — 2020s, 4★ and
+  back, so no sort or filter chosen on it could ever affect anything.
+  It also opened **already filtered** — 2020s, 4★ and
   up, Anime — and announced `showing 41 of 418` on a phone that might hold two
   (#54). Both are the same missing thing: the sheet had no state outside its
   own socket, and its own socket dies on the pop.

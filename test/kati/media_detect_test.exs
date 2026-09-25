@@ -2,7 +2,7 @@ defmodule Kati.MediaDetectTest do
   @moduledoc """
   Auto-detect, which screen 36 was the argument for and nothing behind.
 
-  MOVIES-AND-TV.md #100: ten of twelve controls carried no `on_tap`, including
+  Ten of twelve controls carried no `on_tap`, including
   the master switch for the whole feature, and the screen's own moduledoc
   agreed with the finding and explained it — *detection is a feature that has
   not been built, not a screen that has not been wired*. The reader asked for

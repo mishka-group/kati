@@ -2,7 +2,7 @@ defmodule Kati.SearchHighlightTest do
   @moduledoc """
   The words screen 19 puts in bold are the words that matched.
 
-  MOVIES-AND-TV.md #32. The card was built like this:
+  The card was built like this:
 
       case :binary.match(normalise(body), normalise(query)) do
         {at, len} -> binary_part(body, at, len)
@@ -128,7 +128,7 @@ defmodule Kati.SearchHighlightTest do
 
   describe "the clear disc" do
     test "empties the field as well as the results, which it did not" do
-      # MOVIES-AND-TV.md #94. `Kati.ScreenTapSweepTest` books this tag inert
+      # `Kati.ScreenTapSweepTest` books this tag inert
       # with its own reason — it reaches 19 with an empty field, where clearing
       # is correctly a no-op — so nothing in the suite had ever pressed it over
       # a query. Pressed on the device it was not inert; it was HALF right:

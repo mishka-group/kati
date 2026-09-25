@@ -292,7 +292,7 @@ defmodule Kati.ScreenRatingLogTest do
              "`contains_spoilers` is false, so nothing is hidden and the badge would be " <>
                "asserting the opposite of the sentence beside it"
 
-      # MOVIES-AND-TV.md #96. The badge used to draw NOTHING here, which left a
+      # The badge used to draw NOTHING here, which left a
       # reader writing a review with a twist in it no way to say so. The rule
       # that produced that — the icon must not assert the opposite — is kept by
       # not changing the icon: `visibility_off` in the gold pair is the claim,
@@ -344,7 +344,7 @@ defmodule Kati.ScreenRatingLogTest do
   # sheet opened with no subject showed the newest rated watch anywhere in the
   # library — somebody else's film, with their stars and their review, and a
   # Save that would then edit that row. Six of the seven doors into screen 33
-  # push it bare (MOVIES-AND-TV.md #68) and the gallery's is a seventh, so the
+  # push it bare and the gallery's is a seventh, so the
   # unnarrowed read was what every one of them got.
   #
   # This file's fixtures all hang off one tracked title, and naming it is what

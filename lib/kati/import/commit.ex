@@ -70,7 +70,7 @@ defmodule Kati.Import.Commit do
         bump(acc, :resolved, Kati.Import.Commit.resolve(clash, Map.get(answers, clash.watch_id)))
       end)
 
-    # MOVIES-AND-TV.md #112. Screen 15's own sample carries *Imported 412 titles
+    # Screen 15's own sample carries *Imported 412 titles
     # from a CSV backup* and no import had ever recorded that it ran. One row
     # for the batch, not one per title: the reader did one thing.
     Kati.Media.Log.imported(tally.new + tally.merged + tally.resolved, Map.get(job, :file))

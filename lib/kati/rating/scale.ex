@@ -2,7 +2,7 @@ defmodule Kati.Rating.Scale do
   @moduledoc """
   Which scale the user reads their own ratings on: five stars, or ten points.
 
-  MOVIES-AND-TV.md #96. The `5★` / `10pt` toggle on screen 33 was drawn as a
+  The `5★` / `10pt` toggle on screen 33 was drawn as a
   control and changed nothing, and `Kati.Screens.Rating`'s moduledoc argued it
   had to: *both are display preferences — which scale the user reads ratings on
   — and no resource holds one*.

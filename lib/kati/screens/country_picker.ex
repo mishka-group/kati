@@ -80,7 +80,7 @@ defmodule Kati.Screens.CountryPicker do
       on_change: {self(), :country_query},
       # `Search 190 countries` over a list of seven, and the field was a
       # picture — its `on_tap` fell through to `handle_info(_message, …)`, and
-      # the tap sweep had it on `@inert_taps`. MOVIES-AND-TV.md #78. Both
+      # the tap sweep had it on `@inert_taps`. Both
       # halves are fixed here: the field is a `<TextField>` that filters, and
       # the placeholder counts the list it is over.
       placeholder: Kati.Screens.CountryPicker.placeholder()
@@ -117,7 +117,7 @@ defmodule Kati.Screens.CountryPicker do
       iex> Kati.Screens.CountryPicker.placeholder()
       "Search 7 countries"
 
-  It said `Search 190 countries` over a list of seven — MOVIES-AND-TV.md #78 —
+  It said `Search 190 countries` over a list of seven,
   and 190 is JustWatch's number rather than Kati's. The numeral takes the
   reader's own digits through `Kati.Locale.number/1`, which is why board 301
   reads `جست‌وجو در ۷ کشور`.

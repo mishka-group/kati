@@ -2,7 +2,7 @@ defmodule Kati.Screens.ShowPages do
   @moduledoc """
   The ⋯ menu the per-show sub-pages carry, and where its rows go.
 
-  MOVIES-AND-TV.md #98. Screens 34 and 35 each draw a ⋯ disc at the top right
+  Screens 34 and 35 each draw a ⋯ disc at the top right
   — the same glyph, in the same place, as screen 04's, where it opens a menu —
   and `Kati.UI.SettingsList.chrome/2` built a themed icon with no `on_tap`. It
   reached no handler, so `Kati.ScreenTapSweepTest` could not see it either: a

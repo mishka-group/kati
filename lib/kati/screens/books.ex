@@ -94,7 +94,7 @@ defmodule Kati.Screens.Books do
 
   `Kati.Screens.Root` defaults every root's FAB to `Kati.Screens.AddTitle`,
   which is the films-and-series sheet — so the Books shelf's `+` offered to add
-  a film. MOVIES-AND-TV.md #16. `Kati.Screens.Music` has overridden this since
+  a film. `Kati.Screens.Music` has overridden this since
   it was written; this is the shelf that was missed.
 
   Screen 155's by-hand form rather than a books state of screen 06: there is no

@@ -61,7 +61,7 @@ defmodule Kati.Screens.Lists do
 
   ## The three surfaces the design owed, and what came of them
 
-  MOVIES-AND-TV.md #106 asked for three drawings, filed as
+  Three drawings were asked for, filed as
   [mishka-group/kati#99](https://github.com/mishka-group/kati/issues/99). The
   `D-65` wave delivered all three on 7 September and they are built:
 
@@ -104,7 +104,7 @@ defmodule Kati.Screens.Lists do
   @doc """
   The page: the drawing's made lists, and the reader's own kept ones.
 
-  MOVIES-AND-TV.md #106. Two of the four *Kept automatically* rows are one
+  Two of the four *Kept automatically* rows are one
   query each and were frozen at the drawing's numbers on every device —
   `Abandoned` is `status: :dropped` on `Kati.Media.TrackedTitle` and
   `Rewatches` is a `Kati.Media.Watch` carrying a `rewatch_number`. The other
@@ -180,7 +180,7 @@ defmodule Kati.Screens.Lists do
 
   @doc false
   def header(l) do
-    # No tap. MOVIES-AND-TV.md #106: this disc prepended a row literally titled
+    # No tap. This disc prepended a row literally titled
     # `New list` to the socket, which was lost on back, and pressing it twice
     # gave two identical rows — a control that reports a change nothing kept.
     #
@@ -648,7 +648,7 @@ defmodule Kati.Screens.Lists do
   @doc """
   What `+` can honestly do today, which is say why it cannot make a list.
 
-  MOVIES-AND-TV.md #106. It used to prepend a row titled `New list` to this
+  It used to prepend a row titled `New list` to this
   screen's assigns: lost the moment you went back, duplicated if you pressed
   twice, and holding nothing either way. A control that reports a change
   nothing kept is worse than one that reports none.

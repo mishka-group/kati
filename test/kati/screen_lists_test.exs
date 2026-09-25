@@ -2,7 +2,7 @@ defmodule Kati.ScreenListsTest do
   @moduledoc """
   Screen 12's *Kept automatically* card counts the reader's own library.
 
-  MOVIES-AND-TV.md #106: all four rows were the drawing's numbers on every
+  All four rows were the drawing's numbers on every
   device, and two of them are one query each. The other two are assertions a
   reader makes about a title and no column holds, so they are not drawn rather
   than drawn frozen — a card where two rows are the reader's library and two are

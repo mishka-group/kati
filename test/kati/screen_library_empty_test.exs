@@ -281,7 +281,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     test "a filter that matches nothing says so, and does not claim the shelf is empty" do
       # This used to assert a BLANK — an empty grid under live chips, on the
       # argument that the design draws no state for *this filter matches none
-      # of your nine*. It is MOVIES-AND-TV.md #37: a tap that leaves a hole
+      # of your nine*. That is a tap that leaves a hole
       # where the shelf was, with nothing to say what happened, and until
       # something in the app could set a status it was what every reader got
       # from *Not started* and *Finished* both.
@@ -306,7 +306,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
       # This used to assert a fifth wording — *Kati holds films and shows for
       # now. Books comes later.* — behind a `shelf != "Screen"` guard, and its
       # own comment recorded that no tap could put screen 03 in that state.
-      # MOVIES-AND-TV.md #122: it never could, because both other segments
+      # It never could, because both other segments
       # push. The state is gone; these four are the ones a reader can reach.
       for {filter, line} <- [
             {:watching, "Nothing on the go"},

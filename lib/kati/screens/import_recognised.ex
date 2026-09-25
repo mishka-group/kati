@@ -135,7 +135,7 @@ defmodule Kati.Screens.ImportRecognised do
   independently of the `columns` a reader would be editing — so toggling a
   skip would change what the table says and not what the import does. Making
   the mapping editable means re-deriving the records from it, which is a
-  feature rather than a fix. MOVIES-AND-TV.md `141 #10`.
+  feature rather than a fix.
 
   ## What stays Latin when this page folds to Persian
 
@@ -666,7 +666,7 @@ defmodule Kati.Screens.ImportRecognised do
   @doc """
   The ink `Import 412` pill, and the commit behind it.
 
-  MOVIES-AND-TV.md #89: this is the commit action of the whole import flow and
+  This is the commit action of the whole import flow and
   it carried no tap on either screen that draws it. Screen 37's was wired with
   #101; this one was not, and hand-drawing the pill here rather than calling
   the shared builder is how it was missed — an audit caught it.
@@ -1524,7 +1524,7 @@ defmodule Kati.Screens.ImportRecognised do
   @doc """
   Which file this screen is about, for the screen its chevron opens.
 
-  MOVIES-AND-TV.md #53: the row promised *the nine columns it just counted*
+  The row promised *the nine columns it just counted*
   and pushed screen 37 bare, which drew five columns of `trakt-backup.csv` —
   a different file, one tap later, contradicting every number on the page it
   was opened from.
@@ -1559,7 +1559,7 @@ defmodule Kati.Screens.ImportRecognised do
   @doc """
   Commit from here, or hand the reader to 37 when there is something to answer.
 
-  MOVIES-AND-TV.md #89. A file that disagrees with nothing on your shelf needs
+  A file that disagrees with nothing on your shelf needs
   no mapping table read and no questions answered — this page has already said
   what it found, and one press is the whole of what a reader wants. A file that
   DOES conflict is the other case: `Kati.Import.Commit.run/2` reads silence as

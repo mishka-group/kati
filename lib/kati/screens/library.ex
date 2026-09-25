@@ -216,8 +216,8 @@ defmodule Kati.Screens.Library do
   each with the same sentence about a cache wipe not orphaning the row that
   holds the user's own words.
 
-  Dropping was found on a device the day screen 80's **Clear** pill was wired
-  (MOVIES-AND-TV.md #102): clearing the cache — which that card promises Kati
+  Dropping was found on a device the day screen 80's **Clear** pill was wired:
+  clearing the cache — which that card promises Kati
   does on its own to anything older than six months — left three tracked
   titles, two watches, and a Library reading `0 titles · 0 in progress` over
   *No titles yet · Add one thing you are watching*. Every fact was intact and
@@ -394,7 +394,7 @@ defmodule Kati.Screens.Library do
       id: tracked.id,
       title: Kati.Screens.Library.name_of(cached),
       seed: cached && cached.poster_path,
-      # MOVIES-AND-TV.md #104's latent half. This asked `kind == :movie`, so an
+      # The latent half of the anime-kind defect. This asked `kind == :movie`, so an
       # anime FILM — which can exist now that something writes `:anime` —
       # would have opened the series screen and asked for its seasons. A film
       # is a film whatever else it is, and the cached row is what knows.
@@ -409,7 +409,7 @@ defmodule Kati.Screens.Library do
       meta: meta_for(tracked, cached, ticks, seen),
       # Not for drawing. `Kati.Library.ShelfFilters` sorts and narrows on these
       # two, and screen 145 could do neither while a row carried only what the
-      # tile needed — MOVIES-AND-TV.md #26.
+      # tile needed.
       genres: cached && cached.genres,
       year: cached && cached.first_release_year,
       # The rating that STANDS, off the newest watch — `Kati.Media.TrackedTitle.rating`
@@ -877,7 +877,7 @@ defmodule Kati.Screens.Library do
   is the honest door — it is reachable, it is named, and it does not pretend to
   be the gesture the design intends.
 
-  ## `Filter shelf` left, and the sort disc is why — MOVIES-AND-TV.md #109
+  ## `Filter shelf` left, and the sort disc is why
 
   145's caption names *"a trailing filter disc in the header of screens 03, 20
   and 21"*, and this module used to record that none of the three boards has
@@ -979,7 +979,7 @@ defmodule Kati.Screens.Library do
   still one tap from this page, and the filter then dropped the **Screen**
   segment while the grid below went on drawing films. The strip offered Books
   and Music, nothing was lit, and the one segment naming the page you were
-  standing on was the one missing. MOVIES-AND-TV.md `03 scenario 9`.
+  standing on was the one missing.
 
   A switcher that hides where you are is worse than one that offers a shelf you
   do not keep: the second is a wasted tap, the first is the control disagreeing
@@ -1065,7 +1065,7 @@ defmodule Kati.Screens.Library do
   @doc """
   How many lists the reader has made.
 
-  The tile carried no badge at all, and MOVIES-AND-TV.md `03 scenario 12`
+  The tile carried no badge at all, and the audit
   recorded the reason as *"there is no list resource anywhere in lib/kati"*.
   **That reason is obsolete** — `Kati.Lists.List` is an `Ash.Resource` on
   AshSqlite and `Kati.Lists.Shelf.made/0` reads it — so the tile was countless
@@ -1206,7 +1206,7 @@ defmodule Kati.Screens.Library do
     # string, so the Persian shelf's filter was «همه» and every clause of
     # `matching/2` fell through to `_all` — the chips drew, the counts were
     # right, and tapping any of the four showed the whole shelf.
-    # MOVIES-AND-TV.md #158, a fourth time.
+    # The label-as-key defect, a fourth time.
     [
       {:all, gettext("All"), length(titles)},
       {:watching, gettext("Watching"), Enum.count(titles, &(&1.status == :watching))},
@@ -1223,7 +1223,7 @@ defmodule Kati.Screens.Library do
   where the number lives and this reads it rather than typing a second copy,
   so moving it moves both.
 
-  MOVIES-AND-TV.md #8 asked for the argument to become the feature, and this
+  The audit asked for the argument to become the feature, and this
   is the feature half: 152 draws a chip appearing on a shelf; this is the
   shelf. The other half is #104 — something that writes `:anime` at all, which
   is `Kati.Media.Anime`'s three rules.
@@ -1395,12 +1395,12 @@ defmodule Kati.Screens.Library do
   matched nothing left a blank space under live chips with no card and no
   explanation — and until something in the app could set a status, *Not
   started* and *Finished* matched nothing on every device, so that blank was
-  what every reader got from either. MOVIES-AND-TV.md #37.
+  what every reader got from either.
 
   ## There was a fifth wording, for a state this screen cannot be in
 
   A `shelf != "Screen"` clause said *Kati holds films and shows for now. Books
-  comes later.* — MOVIES-AND-TV.md #122 found it unreachable, and it is: the
+  comes later.* It was unreachable: the
   Books and Music segments PUSH screens 20 and 21, so the `:shelf` assign the
   clause guarded on could only ever hold `"Screen"`. The assign, its writer and
   the two clauses that read it are gone rather than kept as a state nothing can
@@ -1508,7 +1508,7 @@ defmodule Kati.Screens.Library do
 
   It used to take a shelf as well, and answer `[]` for anything but `Screen` —
   a branch nothing could reach, because Books and Music push their own screens
-  rather than swapping this grid (MOVIES-AND-TV.md #122). `shelf/0` never asks
+  rather than swapping this grid. `shelf/0` never asks
   for `:book` or `:album` for the same reason: #60 settled that v1 ships one
   media domain.
 
@@ -1556,7 +1556,7 @@ defmodule Kati.Screens.Library do
   rows there are no tiles, and a collision that needs two tiles cannot be seen.
   Nothing about that made it not happen on a phone with two films on it.
 
-  ## The id, where there is one — MOVIES-AND-TV.md #121
+  ## The id, where there is one
 
   The title was the identity and it is not one. `String.replace(" ", "_")`
   makes *Low Water* and *Low_Water* one tag, so a shelf holding both collapsed

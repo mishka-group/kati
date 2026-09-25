@@ -369,7 +369,7 @@ defmodule Kati.RatingWriteTest do
   # The subject. `newest_log/1` ran its query UNNARROWED when the push named
   # nothing, so a sheet opened with no subject drew the newest rated watch
   # anywhere in the library — somebody else's film, with a Save that would then
-  # edit that row. MOVIES-AND-TV.md #68. It answers `nil` now and the sheet
+  # edit that row. It answers `nil` now and the sheet
   # falls to its drawing, so every test that wants a real sheet has to name the
   # title, which is what screen 08's door already does through
   # `Kati.Screens.Rating.params_for/1`.

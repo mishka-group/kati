@@ -569,8 +569,8 @@ defmodule Kati.Screens.Rating do
   # It used to run the query unnarrowed, so a sheet opened without a subject
   # showed the newest rated watch anywhere in the library — somebody else's
   # film, with their stars and their review, and a Save that would then edit
-  # that row. Six of the seven doors into this sheet push it bare
-  # (MOVIES-AND-TV.md #68), and the gallery's is a seventh.
+  # that row. Six of the seven doors into this sheet push it bare,
+  # and the gallery's is a seventh.
   #
   # `nil` is the sheet's own documented no-row state and is safe: `watch/0`
   # gates the whole page on it, and `save_watch/1` refuses to commit the
@@ -646,7 +646,7 @@ defmodule Kati.Screens.Rating do
       review: logged.review || "",
       characters: characters_label(logged.review),
       # The values the three context rows edit, beside the rows themselves.
-      # MOVIES-AND-TV.md #95: the rows were three chevrons over three real
+      # The rows were three chevrons over three real
       # columns, and a chevron is a promise that a screen opens. Rendering
       # derives the rows from these, so an edit changes one place and the row
       # under it reads back what was set.
@@ -1269,7 +1269,7 @@ defmodule Kati.Screens.Rating do
   @doc """
   The `5★` / `10pt` toggle, lit from the stored preference.
 
-  MOVIES-AND-TV.md #96. It was drawn from `Kati.Rating.Sample.scales/0` with
+  It was drawn from `Kati.Rating.Sample.scales/0` with
   its first tile hardcoded `on` and no tap on either, and the moduledoc argued
   that was right because no resource holds a display preference. No Ash
   resource does and none should — see `Kati.Rating.Scale`, which keeps it where
@@ -1702,7 +1702,7 @@ defmodule Kati.Screens.Rating do
 
   ## Both states now, and the off one is an invitation
 
-  MOVIES-AND-TV.md #96. The badge said *Spoilers hidden* over a real column and
+  The badge said *Spoilers hidden* over a real column and
   could not be changed, and with `contains_spoilers` false it drew nothing —
   so a reader writing a review with a twist in it had no way to say so.
 
@@ -1757,7 +1757,7 @@ defmodule Kati.Screens.Rating do
   @doc false
   # *Watched on*, *Where* and *With* — three rows, and what each one opens.
   #
-  # MOVIES-AND-TV.md #95. Each drew a chevron and carried no tap, and a chevron
+  # Each drew a chevron and carried no tap, and a chevron
   # is a promise that a screen opens. All three sit over real columns —
   # `watched_on` beside `watched_at`, `service`, `companions` — and none had a
   # writer.
@@ -2078,7 +2078,7 @@ defmodule Kati.Screens.Rating do
   @doc """
   The tag row, and the field `+ tag` opens under it.
 
-  MOVIES-AND-TV.md #96: `+ tag` was drawn with a tap that reached
+  `+ tag` was drawn with a tap that reached
   `handle_info({:tap, tag})`'s fall-through, so it was recorded in
   `Kati.ScreenTapSweepTest`'s `@inert_taps` as *a sheet that never opens*.
   `Kati.Media.Watch.tags` is a real list column with no writer anywhere.
@@ -2406,7 +2406,7 @@ defmodule Kati.Screens.Rating do
   @doc """
   The controls that are not stars: the scale, the spoiler flag, the tags.
 
-  MOVIES-AND-TV.md #96 is the three of them together, and they land here rather
+  All three were drawn and did nothing, and they land here rather
   than in three `handle_info/2` clauses because every one of them arrives as a
   tag built from a label — `:scale_10pt`, `:drop_tag_rewatch` — and pattern
   matching on a constructed atom is how a screen ends up with a clause nothing

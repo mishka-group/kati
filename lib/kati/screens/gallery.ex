@@ -383,7 +383,7 @@ defmodule Kati.Screens.Gallery do
     # Both are reachable from the app: `ListDetail` from screen 12's rows, and
     # `AddToList` from the *Add to list* control on 08, 04, 66, 68, 74, 76 and
     # 146. They are here because the one list that checks every screen has to be
-    # able to open them. MOVIES-AND-TV.md #106.
+    # able to open them.
     {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail},
     {:open_undrawn_add_to_list, "Add to list", Kati.Screens.AddToList},
     # Boards 336 and 337 were two more rows here, opening two more modules.
@@ -431,7 +431,7 @@ defmodule Kati.Screens.Gallery do
   # Deleting the tuple would quietly delete all three checks, which is the
   # opposite of finishing a page.
   #
-  # A number goes here when both halves of MOVIES-AND-TV.md's rule are true:
+  # A number goes here when both halves of the rule are true:
   # a real route in, and every scenario under it passing on the device. The
   # commit that retires it says which route was walked.
   @routed [
@@ -451,7 +451,7 @@ defmodule Kati.Screens.Gallery do
     "144",
     # Library → ⋯ → Select titles. c946a49.
     "146",
-    # ── Retired 7 September, at the end of the MOVIES-AND-TV pass. Every one
+    # ── Retired 7 September, at the end of the film-and-TV audit pass. Every one
     # was walked on the Pixel_9a in the commit that closed its finding, and
     # the route is named beside it.
     #

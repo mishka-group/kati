@@ -56,7 +56,7 @@ defmodule Kati.Screens.ReleaseWatcher do
       checked: Kati.Settings.Watcher.checked_line(Kati.Settings.Watcher.last_checked(), false),
       checking?: false,
       banner: %{banner() | on: Kati.Settings.Watcher.watching?()},
-      # MOVIES-AND-TV.md #67 and `design-briefs/D-64`. Fifteen controls edited a
+      # See `design-briefs/D-64`. Fifteen controls edited a
       # socket assign and were forgotten on the pop, and three of them have a
       # consumer today: the cadence, *New episodes* and the banner's master
       # switch. Those three are read from `Mob.State` and written back; the
@@ -132,7 +132,7 @@ defmodule Kati.Screens.ReleaseWatcher do
 
   `Watching 24 titles · 3 FOUND THIS WEEK` was `Kati.Settings.WatcherSample`'s
   on every device — two specific claims about the reader's own library, of
-  exactly the kind MOVIES-AND-TV.md #67 and #50 are about, on a phone that may
+  exactly the kind a fixture must not make, on a phone that may
   follow none. Both are counts and both are countable: the followed rows, and
   the `out_now` list screen 05 already builds out of them.
 

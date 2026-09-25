@@ -181,7 +181,7 @@ defmodule Kati.Media.TrackedTitle do
     # valued, and that is the point: `nil` is *I have not said*, which is not
     # the same as *no*. A boolean defaulting to `false` could not tell the
     # guess being right from the reader having overruled it, and overruling it
-    # is the whole of what this column is for. MOVIES-AND-TV.md #104.
+    # is the whole of what this column is for.
     attribute :anime_override, :boolean, public?: true
 
     # ── Shelf order ────────────────────────────────────────────────────────

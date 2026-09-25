@@ -57,7 +57,7 @@ defmodule Kati.Screens.Discover.Sample do
         %{label: "For you", count: nil, selected: true},
         %{label: "People", count: nil, selected: false},
         # The count follows the list. Board 11 draws `5` over two leaving rows —
-        # MOVIES-AND-TV.md #24's second half — and a badge that disagrees with
+        # and a badge that disagrees with
         # the section under it is the plausible-looking figure screen 96's rule
         # is against. `leaving_count/0` reads `leaving/0`, so the two cannot
         # part company again.

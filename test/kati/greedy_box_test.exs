@@ -5,7 +5,7 @@ defmodule Kati.GreedyBoxTest do
   A `Box` with no size of its own fills the space beside it, and that is how a
   whole card goes blank.
 
-  ## The defect this was written for — MOVIES-AND-TV.md #161
+  ## The defect this was written for
 
   Screen 05's watcher card is a `Row` of three things: a sparkle, a weighted
   `Column` holding two lines, and a cog. The cog was

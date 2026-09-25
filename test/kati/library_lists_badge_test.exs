@@ -2,7 +2,7 @@ defmodule Kati.LibraryListsBadgeTest do
   @moduledoc """
   The *Lists* tile counts, and *Up next* never counts the whole shelf.
 
-  Two halves of MOVIES-AND-TV.md `03 scenario 12`.
+  Two halves of one finding.
 
   The Lists tile carried no badge at all, on the recorded ground that *"there
   is no list resource anywhere in lib/kati"*. **That reason is obsolete**:

@@ -2,7 +2,7 @@ defmodule Kati.Media.Cache do
   @moduledoc """
   The two things screen 80 offers to do to the metadata cache: refresh, clear.
 
-  MOVIES-AND-TV.md #102. Both pills were drawn without taps — *the only cache
+  Both pills were drawn without taps — *the only cache
   controls in the app are pictures* — and neither had anything behind it.
 
   ## Clearing is safe by construction, which is why it can be offered at all

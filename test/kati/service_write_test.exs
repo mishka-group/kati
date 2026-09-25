@@ -317,7 +317,7 @@ defmodule Kati.ServiceWriteTest do
 
   describe "the field that used to type and filter nothing" do
     test "narrows both groups, and the count with them" do
-      # MOVIES-AND-TV.md #118: `content/1` passed `query` to `search_field/1`
+      # `content/1` passed `query` to `search_field/1`
       # and to nobody else, so a reader searching a list of twelve watched all
       # twelve stay put.
       view = mount_screen(MyServices)
@@ -372,7 +372,7 @@ defmodule Kati.ServiceWriteTest do
 
   describe "a service you no longer have" do
     test "the switch moves it to Not mine rather than deleting it" do
-      # MOVIES-AND-TV.md #119: once *Something else* wrote a row you were stuck
+      # Once *Something else* wrote a row you were stuck
       # with it — every service row tapped a handler that returned the socket
       # unchanged. Board 95 specifies the switch and this is it.
       view = mount_screen(MyServices)

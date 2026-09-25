@@ -6,7 +6,7 @@ defmodule Kati.Library.ShelfFilters do
 
   Screen 145 — the sheet the Library's sort disc opens — was a picture. It had
   no way to learn which shelf opened it and handed nothing back, so no sort or
-  filter chosen on it could ever affect anything (MOVIES-AND-TV.md #26). It
+  filter chosen on it could ever affect anything. It
   also opened **already filtered** — 2020s, 4★ and up, Anime — and announced
   `showing 41 of 418` on a phone that might hold two (#54).
 

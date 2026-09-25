@@ -4,7 +4,7 @@ defmodule Kati.ScreenMyServicesPersianTest do
 
   Boards **324** and **301**. English has two modules for this — 92 live and 93
   as the empty specimen — and Persian has one page that has to be both, which
-  is the arrangement `MOVIES-AND-TV.md` argues for everywhere else: *its five
+  is the arrangement argued for everywhere else: *its five
   states are five things screen 92 must be able to BE*.
 
   Two things were not true of that page before 324:
@@ -108,7 +108,7 @@ defmodule Kati.ScreenMyServicesPersianTest do
 
   describe "the money row, once something IS subscribed" do
     test "prints what this reader's services cost, not the drawing's ۴۶٫۴۷" do
-      # The exact shape of MOVIES-AND-TV.md #76, one screen over: the count came
+      # The exact shape of screen 92's money-row defect, one screen over: the count came
       # off `MyServices.listed/0` and the money did not, so a Persian reader
       # with one service of their own was told `۱ سرویس · ۴۶٫۴۷ £ در ماه`.
       Ash.create!(Services.Service, %{

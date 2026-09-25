@@ -48,7 +48,7 @@ defmodule Kati.Screens.Import do
   out in full.
 
   The controls are not pictures any more, which is the half of
-  MOVIES-AND-TV.md #101 that could be answered without that resource. The
+  the problem that could be answered without that resource. The
   three conflict choices carry `answer_` and `all_` tags and `answer/3` closes
   the card; the commit pill carries `:commit`. Each is live only when the job
   behind it is — `live?/1` — so the drawn frame still taps nothing, because
@@ -95,7 +95,7 @@ defmodule Kati.Screens.Import do
   # to push this screen bare — so a reader who had just been told about nine
   # columns of `goodreads_library_export.csv` arrived at five columns of
   # `trakt-backup.csv`, and every number on the page they had just left was
-  # contradicted by the page it opened (MOVIES-AND-TV.md #53). One chevron
+  # contradicted by the page it opened. One chevron
   # apart, the same way screens 04 and 34 drew two different Season 2s (#40).
   #
   # A SOURCE, not the job itself: the push names which file, and
@@ -386,7 +386,7 @@ defmodule Kati.Screens.Import do
   @doc """
   The ink `Import 412` pill, and the commit behind it.
 
-  MOVIES-AND-TV.md #101: this was the commit action of the whole flow and it
+  This was the commit action of the whole flow and it
   carried no tap. It carries one now over a real file, and none over the board
   — `Kati.Screens.Import.live?/1` is the difference, and pressing the board's
   would file four hundred invented films under the reader's own shelf.
@@ -963,7 +963,7 @@ defmodule Kati.Screens.Import do
   @doc """
   *1 of 6 · apply to all* — a control now, and it was a `Text`.
 
-  MOVIES-AND-TV.md #101 counted it among this screen's pictures, and the
+  It was counted among this screen's pictures, and the
   fixture's own note said why it is offered underneath rather than as the
   default: six decisions is a short queue, and a blanket answer to a question
   you have not read is how an import quietly destroys a rating. So it applies

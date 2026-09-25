@@ -159,8 +159,8 @@ defmodule Kati.ServicesTest do
       # `Hide titles I can't watch` empties three other screens, so its own line
       # names them and names what it does not touch. It said two until board
       # 310, because screen 13 read a fixture then and a rule that claimed to
-      # filter it would have been the promise this one was reported for
-      # (MOVIES-AND-TV.md #77 and #88). `Kati.Screens.WhatFits.watchable/1` is
+      # filter it would have been the promise this one was reported for.
+      # `Kati.Screens.WhatFits.watchable/1` is
       # what earns the third name back.
       assert find(tree, :text,
                text:
@@ -287,7 +287,7 @@ defmodule Kati.ServicesTest do
       # N41. It opened with ListenBrainz's pairing card expanded, over a
       # provider nothing in `lib/` calls; the group is not drawn at all now,
       # and neither is anything that asked the reader to go and fetch a token
-      # for it. MOVIES-AND-TV.md #71's invented code stays gone with it.
+      # for it. The invented pairing code stays gone with it.
       tree = tree(mount_screen(DataSources))
 
       assert find(tree, :text, text: "Pairing — expanded") == nil

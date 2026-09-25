@@ -66,7 +66,7 @@ defmodule Kati.Import.Job do
       # Board 152's second rule: *a MAL or AniList file marks everything in
       # it.* The file knows its own service — `looks_like/1` reads the header
       # vocabulary each one is alone in using — so this needs no column, only
-      # for somebody to ask. MOVIES-AND-TV.md #104.
+      # for somebody to ask.
       records =
         headers
         |> Mapping.records(rows)

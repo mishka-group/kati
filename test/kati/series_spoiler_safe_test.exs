@@ -8,7 +8,6 @@ defmodule Kati.SeriesSpoilerSafeTest do
   did.** A reader turned the switch on in Show settings, came back to the
   episode list, and every unwatched title was still spelled out: the one place
   the setting claims to act was the one place it did nothing.
-  MOVIES-AND-TV.md `04 scenario`.
   """
 
   use Mob.ScreenCase, async: false

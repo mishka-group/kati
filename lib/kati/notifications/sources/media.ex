@@ -81,7 +81,7 @@ defmodule Kati.Notifications.Sources.Media do
   """
   @spec followed() :: [pair()]
   def followed do
-    # MOVIES-AND-TV.md #67, and `design-briefs/D-64`'s own table: the global
+    # `design-briefs/D-64`'s own table: the global
     # gate over every title's `notify_new_episodes`, which is one of the two
     # controls on screen 25 the brief marks **yes** — a consumer exists, and
     # this is it. Off means Kati does not tell you about an episode however

@@ -425,7 +425,7 @@ defmodule Kati.Screens.DropSheet do
       title: title_of(cached),
       seed: seed_of(cached),
       cold_label: Kati.Screens.DropSheet.mark(tracked),
-      # MOVIES-AND-TV.md #110. A film has no episode to have stopped after, so
+      # A film has no episode to have stopped after, so
       # it carries no position at all rather than a manufactured `S1 E1` — and
       # `position_card/1` draws nothing for it. Inventing a position would put
       # *after S1E1* on a two-hour film's own history.
@@ -535,7 +535,7 @@ defmodule Kati.Screens.DropSheet do
   @doc """
   Move it forward one episode.
 
-  MOVIES-AND-TV.md #127: the pill only ever decremented, so a reader who went
+  The pill only ever decremented, so a reader who went
   one too far had to close the sheet and open it again to get back — and
   closing the sheet is the one thing somebody mid-decision should not have to
   do to correct a typo.
@@ -556,7 +556,7 @@ defmodule Kati.Screens.DropSheet do
   @doc """
   Gone cold → Dropped: writes the corrected position, the new status, and why.
 
-  MOVIES-AND-TV.md #111. The reason was assigned to this socket, drawn as a lit
+  The reason was assigned to this socket, drawn as a lit
   chip, and thrown away when the sheet closed — the one question in the app
   whose answer nothing could ever read back. `Kati.Media.Event` is where it
   goes now, with the position beside it, so screen 15 can draw *Dropped after
@@ -651,7 +651,6 @@ defmodule Kati.Screens.DropSheet do
   — the result was discarded and a raise was rescued to `:ok` — so a refused
   drop and a successful one were the same thing to look at: the sheet flipped
   to its *Dropped* face and announced a change that had not been made.
-  MOVIES-AND-TV.md #57.
 
   The result is kept now, and `refusal/1` draws it. The `rescue` stays, and it
   matters that it does: an `Ash.Changeset` error is a value and a raise is not,
@@ -828,7 +827,7 @@ defmodule Kati.Screens.DropSheet do
   @doc """
   ` at S1 E3`, or nothing at all when there is no position.
 
-  MOVIES-AND-TV.md #110, and the half of it a device found: the header and the
+  The film guard, and the half of it a device found: the header and the
   position card were the two obvious places a film differs, and the button and
   the undo pill build the same sentence out of the same two numbers. With them
   `nil` the button read **Drop at S E** and the pill **Dropped Dune at S E** —
@@ -872,7 +871,7 @@ defmodule Kati.Screens.DropSheet do
   @doc """
   What this sheet is called, which is not the same word for a film.
 
-  MOVIES-AND-TV.md #110: the sheet is series-shaped down to its header, so a
+  The sheet is series-shaped down to its header, so a
   film could not use it as drawn — the ledger's own note said *149 cannot be
   reused as drawn*. It can, once the two things that are actually about
   episodes come off it: this word, and the position card.
@@ -973,7 +972,7 @@ defmodule Kati.Screens.DropSheet do
   @doc """
   Two discs, back and forward, where there was one pill that only went back.
 
-  MOVIES-AND-TV.md #127. `Change` named neither direction and did one, so
+  `Change` named neither direction and did one, so
   overshooting meant closing the sheet. Two discs say which way each goes
   before it is pressed, which one word never could.
 
@@ -1217,8 +1216,8 @@ defmodule Kati.Screens.DropSheet do
 
   One msgid for the commit button, with the position interpolated into it —
   see `at/1` for why the position arrives as a phrase and not as words. Two
-  msgids (one with the position, one without) would put MOVIES-AND-TV.md
-  #110's film guard in a second place, and the pill below would then need a
+  msgids (one with the position, one without) would put the
+  film guard in a second place, and the pill below would then need a
   third and a fourth.
 
   `pgettext/2` on both: *Drop* is one word, *Still on it* is three, and the
@@ -1410,8 +1409,8 @@ defmodule Kati.Screens.DropSheet do
   end
 
   # `dropped?` follows the WRITE, not the tap. Flipping the sheet to its
-  # *Dropped* face over a refusal is the announcement MOVIES-AND-TV.md #57 is
-  # about, and it was the only thing this handler did with the result.
+  # *Dropped* face over a refusal announces a change that was
+  # not made, and it was the only thing this handler did with the result.
   def handle_info({:tap, :drop}, socket) do
     written = Kati.Screens.DropSheet.commit_drop(socket)
 

@@ -10,8 +10,8 @@ defmodule Kati.Settings.DropStatesSample do
   *Active* is `:watching`, and its *Gone cold* is not a stored value at all but
   a question `Kati.Media.Staleness` asks of the row. This moduledoc used to say
   the column held `:active` and `:gone_cold` as well, and it never has
-  (MOVIES-AND-TV.md #55, where `Kati.Screens.DropStates` struck the same claim
-  out of its own). Either way, a sheet that draws all five at once, three media
+  (`Kati.Screens.DropStates` struck the same claim out of its own). Either
+  way, a sheet that draws all five at once, three media
   wide, unconditionally, cannot be the result of reading one row's status —
   there is no title that is simultaneously every state, and a sheet gated on
   which titles happen to exist today would show a different grid on every

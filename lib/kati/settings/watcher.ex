@@ -4,7 +4,7 @@ defmodule Kati.Settings.Watcher do
   @moduledoc """
   The two controls on screen 25 that something actually reads.
 
-  MOVIES-AND-TV.md #67 and `design-briefs/D-64`. Screen 25 draws fifteen
+  See `design-briefs/D-64`. Screen 25 draws fifteen
   controls — a master switch, six *Tell me about* switches, a four-way cadence
   and four *How loudly* switches — and every one of them edited a socket assign
   and was forgotten on the pop. The brief's own table is what this module is

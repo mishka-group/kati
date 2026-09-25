@@ -10,7 +10,7 @@ defmodule Kati.ScreenSeasonTest do
       tick is a `Kati.Media.Watch` row keyed on `episode_source_id` — which is
       the footnote's own rule, *your ticks follow the episode, not the number*.
     * **The order strip offers only the tiles it can fill, and the `PARTS 1–2`
-      badge is still the drawing's.** MOVIES-AND-TV.md #97: the strip was the
+      badge is still the drawing's.** The strip was the
       screen's central control and none of its three tiles was tappable.
       Making all three live would have been the worse fix — DVD has no numbers
       anywhere and Absolute had none either — so a tile with nothing behind it
@@ -183,7 +183,7 @@ defmodule Kati.ScreenSeasonTest do
     test "and offers only the switch it can honour" do
       # `Include specials` was drawn ON above a list `for_season/3` could not
       # put a season-0 special into, and `Merge multi-part` promised a merge
-      # nothing records — MOVIES-AND-TV.md #69. Season 0 is read now, and the
+      # nothing records. Season 0 is read now, and the
       # switch that cannot be honoured is not offered.
       assert Enum.map(Season.season().options, & &1.title) == ["Include specials"]
 
@@ -207,7 +207,6 @@ defmodule Kati.ScreenSeasonTest do
       # It was drawn in the right position and carried no tap, and `on:` was
       # *whether the provider filed any specials* rather than whether the reader
       # wants them — a row named for a choice, reporting a fact.
-      # MOVIES-AND-TV.md `34 scenario 14`.
       [specials] = Season.season().options
 
       assert specials.tap, "the switch cannot be pressed"

@@ -21,7 +21,7 @@ defmodule Kati.Screens.AutoDetect do
 
   This section used to be headed *why this screen is still on
   `Kati.Settings.DetectSample`* and to end *detection is a feature that has not
-  been built, not a screen that has not been wired* (MOVIES-AND-TV.md #115).
+  been built, not a screen that has not been wired*.
   It is built: `Kati.Media.Detect` holds the master switch and the threshold,
   reads what the phone is playing through `KatiMediaListener`, matches it
   against the reader's own shelf by name, ticks what it is sure of and turns
@@ -109,7 +109,7 @@ defmodule Kati.Screens.AutoDetect do
   @doc """
   What this screen draws: the reader's own detection, or the drawing's.
 
-  MOVIES-AND-TV.md #100 said ten of twelve controls were inert and the
+  The audit said ten of twelve controls were inert and the
   moduledoc above agreed with it and explained why — *detection is a feature
   that has not been built*. It is built now: `Kati.Media.Detect` reads what the
   phone is playing through `KatiMediaListener`, matches it against the shelf by
@@ -528,7 +528,7 @@ defmodule Kati.Screens.AutoDetect do
   @doc """
   The master switch, live over a device that can answer.
 
-  MOVIES-AND-TV.md #100 called this *the master control of the feature*, drawn
+  The audit called this *the master control of the feature*, drawn
   as a picture of an on switch. It is the whole of what `Kati.Media.Detect.on?/0`
   reads, and it is drawn OFF on a first run because nothing is detecting
   anything until somebody says so.
@@ -1098,7 +1098,7 @@ defmodule Kati.Screens.AutoDetect do
         # the props map and draws the same dead pill, which is how the first
         # version of this shipped.
         #
-        # MOVIES-AND-TV.md #100's last dead control. The board draws three
+        # The screen's last dead control. The board draws three
         # answers to an ambiguous match and none of them carried a tap, so the
         # card the whole screen is arranged around — *a wrong tick pollutes a
         # watch history nobody audits* — could not be answered.
@@ -1172,7 +1172,7 @@ defmodule Kati.Screens.AutoDetect do
   # all would read as a broken control rather than as a settled one.
   def handle_tap(:tv, socket), do: {:noreply, socket}
 
-  # Turn detection on, or off. MOVIES-AND-TV.md #100's master switch.
+  # Turn detection on, or off. The screen's master switch.
   #
   # Re-reads the whole screen rather than flipping the assign: the banner's
   # count, the Sources row's own switch and the *Now playing* card all follow

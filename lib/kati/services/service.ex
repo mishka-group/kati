@@ -139,7 +139,7 @@ defmodule Kati.Services.Service do
   Minor units as money, in one currency's symbol.
 
   Public because screen 92 has to total a NARROWED list — its search field
-  filters now (MOVIES-AND-TV.md #118) and a count over a filtered list wants a
+  filters now and a count over a filtered list wants a
   total over the same one — and the rows it holds at that point are the shaped
   maps it draws from rather than these structs.
 

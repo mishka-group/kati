@@ -57,7 +57,7 @@ defmodule Kati.AddByHandTest do
 
       assert Ash.count!(TrackedTitle) == 0
 
-      # MOVIES-AND-TV.md #128: one line where board 155 specifies two, and the
+      # One line where board 155 specifies two, and the
       # missing half is the one that matters — a person whose save just failed
       # does not know whether their other four answers survived it.
       assert {title, body} = result.assigns.save_error
@@ -93,7 +93,7 @@ defmodule Kati.AddByHandTest do
     # The label is drawn and the atom is written. They travel together on
     # `status_list/0` rather than through a `status_atom/1` that read one off
     # the other — which was a mapping from ENGLISH words, so the Persian form
-    # saved every status as `:not_started`. MOVIES-AND-TV.md #157.
+    # saved every status as `:not_started`.
     assert AddByHand.status_list() == [
              {"Not started", :not_started},
              {"Watching", :watching},
@@ -170,7 +170,7 @@ defmodule Kati.AddByHandTest do
     end
 
     test "and the guard is the NAME, so a TMDB row and a typed one collide" do
-      # MOVIES-AND-TV.md #113: the guard was the unique index on
+      # The guard was the unique index on
       # `[:source, :source_id]`, and a TMDB add writes `:tmdb` with a numeric
       # id where a hand-typed one writes `:manual` with the title — they never
       # collided, so the same film sat on the shelf twice.
@@ -204,7 +204,7 @@ defmodule Kati.AddByHandTest do
 
   describe "a Kind picked wrong" do
     test "can be corrected from the title's own menu" do
-      # MOVIES-AND-TV.md #113's other half. Kind comes from a two-chip answer on
+      # The other half. Kind comes from a two-chip answer on
       # 154 and no screen in the app could change it — a show picked as a film
       # sat on the wrong screen forever, and the add path refused to let you
       # type it again because the name was taken.

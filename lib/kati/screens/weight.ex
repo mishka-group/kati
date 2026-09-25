@@ -186,7 +186,7 @@ defmodule Kati.Screens.Weight do
   `Kati.Screens.Stats.weight_line/0` was doing exactly that. It asked
   `entries()`, took the `else` branch on every device, and put the drawing's
   **76.0 kg** on board 61's Health row on a phone that has never been weighed —
-  MOVIES-AND-TV.md #45, restored by a guard that reads the fallback rather than
+  the frozen-figure defect, restored by a guard that reads the fallback rather than
   the store. mishka-group/kati#103's stats fold is what surfaced it.
   """
   @spec stored?() :: boolean()

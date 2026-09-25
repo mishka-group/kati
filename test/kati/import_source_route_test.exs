@@ -7,7 +7,7 @@ defmodule Kati.ImportSourceRouteTest do
   pushed screen 141, a **Goodreads** job headed with *Author*, *Bookshelves*
   and *Number of Pages*. Four of those six sources are film and TV
   (Letterboxd, Trakt, MyAnimeList, AniList) and every one of them landed on a
-  screen about books. MOVIES-AND-TV.md #52.
+  screen about books.
 
   There is no import engine behind either board. What this holds is which
   drawing a tile opens: screen 141 is a Goodreads export, screen 37 is a Trakt

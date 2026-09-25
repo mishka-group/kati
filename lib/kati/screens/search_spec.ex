@@ -168,7 +168,7 @@ defmodule Kati.Screens.SearchSpec do
   `Kati.Search.Query.run/1` builds four of its seven groups, so Music, Meals
   and Money are searched by nothing at all. A specification screen that
   overstates is worse than none, because it is the page a reader opens to find
-  out why a search missed — MOVIES-AND-TV.md #74.
+  out why a search missed.
 
   The scope is not removed. The contract is the design's and stating it whole
   is what this board is for; what was missing is which half of it is live.
@@ -190,7 +190,6 @@ defmodule Kati.Screens.SearchSpec do
   Screen 25's *Tell me about* rows take it for exactly the reason this screen's
   scopes do — a control the app cannot keep a promise about is marked rather
   than offered — so the mark is one object and not two that could drift apart.
-  MOVIES-AND-TV.md #74 and #67.
 
   ## It is not the greyed chip on 03, and board 322 judged the two together
 
@@ -290,7 +289,7 @@ defmodule Kati.Screens.SearchSpec do
   purpose, because searching a calendar is not searching contacts.
   """
   #
-  # MOVIES-AND-TV.md #74 at the field level. `Kati.Search.kept?/1` is the same
+  # The same overstatement, at the field level. `Kati.Search.kept?/1` is the same
   # seam `built?/1` is one level up, and a field with nothing behind it takes
   # the same treatment as a refused one — the reasons differ and the reader's
   # question does not: *is this searched?*

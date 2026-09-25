@@ -4,8 +4,7 @@ defmodule Kati.SearchAddByHandTest do
 
   It pushed screen 154 bare, so a reader who searched for *Estuary*, was told
   nothing matched, and pressed the row landed on an empty title field and
-  typed the word the app had just shown them. MOVIES-AND-TV.md
-  `19 scenario 33`.
+  typed the word the app had just shown them.
 
   The handover is 154's own ONE-SHOT key, and both halves of that matter.
   `Kati.Search.hand_over/1` — what *Look it up* uses one row up — writes a DETS

@@ -10,7 +10,7 @@ defmodule Kati.ScreenInboxEmptyTest do
   is to say what is new opened, on a fresh install, on three things that were
   not.
 
-  That is MOVIES-AND-TV.md #91's sentence about a different screen, and board
+  That is the audit's sentence about a different screen, and board
   260 is the design's answer to this one.
 
   ## The card became a sentence

@@ -255,7 +255,7 @@ defmodule Kati.Screens.ShelfSelection do
   invented. On a shelf with rows, nothing starts selected — selection mode
   opens with an empty selection, which is what entering it means.
 
-  This was MOVIES-AND-TV.md #27's first half. `Kati.Library.Sample.selection_
+  This was the first half of the defect. `Kati.Library.Sample.selection_
   shelf/0` was the ONLY thing this screen had ever read, so Remove removed
   Nightbirds from a list of nine invented titles and the user's own shelf was
   untouched behind it.
@@ -621,7 +621,7 @@ defmodule Kati.Screens.ShelfSelection do
   @doc """
   The `close` glyph, capped — the other half of board 147's split.
 
-  MOVIES-AND-TV.md #6, and 147's own words: *the close glyph caps at 26px
+  In 147's own words: *the close glyph caps at 26px
   because it is chrome whose size carries structure.* It is a fixed shape
   beside a count that must be free to grow, and a glyph that grew with the
   text would push the count it sits next to off the bar it is on.
@@ -635,8 +635,7 @@ defmodule Kati.Screens.ShelfSelection do
   **And it is sized**, at 25 — 21 with the cap's headroom. A `Box` with no
   width fills its parent, and this one sits in a `Row` beside a `weight={1.0}`
   title: unsized, the ✕ takes the bar and `N selected` clips away beside it.
-  `Kati.GreedyBoxTest` is the ratchet, and MOVIES-AND-TV.md #161 is the card
-  this was found on.
+  `Kati.GreedyBoxTest` is the ratchet.
   """
   @spec close_glyph(boolean()) :: map()
   def close_glyph(false), do: Kati.Screens.ShelfSelection.capped_close()
@@ -668,7 +667,7 @@ defmodule Kati.Screens.ShelfSelection do
   `four` back into a word rather than leaving `4` where the drawing wrote a
   word out.
   """
-  # MOVIES-AND-TV.md #6. Board 147 — this bar at 235% — states the rule and
+  # Board 147 — this bar at 235% — states the rule and
   # this bar broke it: *`4 selected` carries no `max_lines` and no cap — the
   # board's own caption names it as the one thing this bar exists to say, so it
   # is the one thing here guaranteed never to clip.* Both lines carried
@@ -1225,7 +1224,7 @@ defmodule Kati.Screens.ShelfSelection do
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
-  # MOVIES-AND-TV.md #106. This pushed screen 12 and left the selection behind,
+  # This pushed screen 12 and left the selection behind,
   # so *Add to list* opened a page of lists and added nothing to any of them.
   # It carries the selection now, and 12 puts it in whichever list is pressed —
   # which is the membership route board 146 draws and nothing could complete.

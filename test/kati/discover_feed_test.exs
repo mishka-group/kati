@@ -8,8 +8,8 @@ defmodule Kati.DiscoverFeedTest do
   of six, *Because you watched The Long Hollow* for somebody who never had,
   `94% match` / `89% match` / `81% match` on three films nothing had scored,
   three people the app has never heard of, and *Leaving Lumen+ in 7 days* for a
-  service that may not be on the account. MOVIES-AND-TV.md ranks it #50 and
-  calls it the app's most confident lie.
+  service that may not be on the account. The audit called it the app's most
+  confident lie.
 
   One of its three sections can be true and now is. The other two need a person
   resource and an offers resource, neither of which exists — so on a real
@@ -151,7 +151,7 @@ defmodule Kati.DiscoverFeedTest do
 
   describe "the Schedule button" do
     test "is not tappable, in either state" do
-      # MOVIES-AND-TV.md #87. It was "the one working control on the page", and
+      # It was "the one working control on the page", and
       # what it did was toggle a socket assign the next pop threw away. There
       # is nothing to schedule against — `leaving` is `[]` on every real feed —
       # so both drawn states are pictures now.
@@ -392,7 +392,7 @@ defmodule Kati.DiscoverFeedTest do
 
   describe "a chip that names a section this feed does not carry" do
     test "says so rather than leaving the rail over a blank page" do
-      # MOVIES-AND-TV.md #24. `shows?/2` answers false for every section under
+      # `shows?/2` answers false for every section under
       # Awards, so all three vanished together — and the rail IS drawn on the
       # board's own fixture, which is what a fresh install sees.
       blank =

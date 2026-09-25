@@ -25,7 +25,7 @@ defmodule Kati.Screens.DropSheet.Sample do
       seed: "quietones12",
       cold_label: "GONE COLD · 4 MONTHS",
       # The board is a series, and says so: `heading/1` reads this to choose
-      # between *Drop this show* and *Drop this film* (MOVIES-AND-TV.md #110).
+      # between *Drop this show* and *Drop this film*.
       kind: :tv,
       season: 1,
       episode: 3

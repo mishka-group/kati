@@ -2,7 +2,7 @@ defmodule Kati.Media.Anime do
   @moduledoc """
   Whether a title is anime, decided by board 152's own three rules.
 
-  MOVIES-AND-TV.md #104. `:anime` was a kind every reader in the app knew and
+  `:anime` was a kind every reader in the app knew and
   nothing ever wrote: `Kati.Screens.Library.shelf/0` queried a third shelf that
   was always empty, `Kati.Screens.Stats` had an `ANIME` label no row could
   carry, and screen 152 — a whole board about the flag — had no column and no

@@ -42,7 +42,7 @@ defmodule Kati.Screens.SeriesSettings do
 
   ## What this screen reads, and the two groups it drops
 
-  MOVIES-AND-TV.md #99: every control here was inert, including four switches
+  Every control here was inert, including four switches
   whose columns already existed on `Kati.Media.TrackedTitle` with matching
   defaults and no other reader or writer anywhere in the app, and three Status
   tiles that map onto `Kati.Media.TrackedTitle.status` exactly.
@@ -154,7 +154,7 @@ defmodule Kati.Screens.SeriesSettings do
   @doc """
   The show this page is about: the reader's, or the drawing's.
 
-  MOVIES-AND-TV.md #99. The moduledoc below argued that every control here had
+  The moduledoc below argued that every control here had
   to stay inert because *half of this screen would become the user's own and
   half would stay a picture*. That is the right rule and it named the wrong
   unit: the half that has no schema is two whole GROUPS — *Region &
@@ -365,9 +365,8 @@ defmodule Kati.Screens.SeriesSettings do
   screen can write, and it could write none of it.
 
   Every column named here is one `Kati.Media.TrackedTitle` has carried since it
-  was written, with no other reader or writer in the app: MOVIES-AND-TV.md #99
-  is that four switches and three tiles sat over columns matching them by name
-  and did nothing.
+  was written, with no other reader or writer in the app: four switches and
+  three tiles sat over columns matching them by name and did nothing.
 
   The screen follows the store — the switch moves after the write answers —
   which is the rule screen 34's ticks keep for the same reason: a control that

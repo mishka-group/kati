@@ -2,7 +2,7 @@ defmodule Kati.ImportMappingTest do
   @moduledoc """
   *Check the mapping* opens the mapping of the file it just counted.
 
-  MOVIES-AND-TV.md #53. Screen 141 reads a Goodreads export — 418 rows, nine
+  Screen 141 reads a Goodreads export — 418 rows, nine
   columns, seven matched, two skipped — and its summary row promised those
   nine behind a `chevron_right`. It pushed screen 37 bare, and screen 37 drew
   `trakt-backup.csv` and five columns of a film export. One chevron apart,

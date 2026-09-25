@@ -127,7 +127,7 @@ defmodule Kati.Screens.Season do
       where every provider files them — and merges it into the list, sorted by
       air date, which is exactly what the sub-line promises. It was drawn ON
       above a list that contained none, because `for_season/3` reads one season
-      number and 0 is never it (MOVIES-AND-TV.md #69).
+      number and 0 is never it.
     * **`Merge multi-part`.** Not honoured, and it cannot be yet: merging a
       two-part finale into one entry needs a column that marks an episode as
       merged and pairs it with its other half, and `Kati.Media.CachedEpisode`
@@ -225,8 +225,8 @@ defmodule Kati.Screens.Season do
   # screen 04's rows.
   @impl true
   # The `help` disc beside the order strip, onto screen 153 — the board that
-  # explains the choice this strip offers, and which nothing pushed
-  # (MOVIES-AND-TV.md #9). Before the prefix clauses below, which would
+  # explains the choice this strip offers, and which nothing pushed.
+  # Before the prefix clauses below, which would
   # otherwise hand it to `menu_tap/2`.
   def handle_tap(:explain_numbering, socket),
     do:
@@ -345,8 +345,8 @@ defmodule Kati.Screens.Season do
   @doc """
   Answer the ⋯ disc: open the menu, close it, or open a sibling page.
 
-  Everything the disc offers lives in `Kati.Screens.ShowPages` — MOVIES-AND-TV.md
-  #98 — because 35 draws the same disc and the two menus must not be able to
+  Everything the disc offers lives in `Kati.Screens.ShowPages`,
+  because 35 draws the same disc and the two menus must not be able to
   offer different sets. A tag it does not own leaves the screen alone, which is
   what `handle_tap/2` did for every unrecognised tag before this.
 
@@ -369,7 +369,6 @@ defmodule Kati.Screens.Season do
   The switch was drawn in the right position and carried no tap: `on: any?` was
   *whether the provider filed any specials*, not whether the reader wants to see
   them, so a row named for a choice reported a fact and could not be pressed.
-  MOVIES-AND-TV.md `34 — Season, scenario 14`.
 
   Session-local, which is the order strip's own arrangement one row up —
   `reorder/2` assigns and stores nothing. Both are view controls over one
@@ -628,7 +627,7 @@ defmodule Kati.Screens.Season do
   *Include specials · Shown inline, at air date* was drawn switched ON above a
   list that contained none, because `for_season/3` reads one season number and
   0 is never it. A reader was shown a switch in its on position and a list that
-  did not honour it. MOVIES-AND-TV.md #69.
+  did not honour it.
 
   Inline and at air date is what the sub-line promises and what
   `Kati.Media.CachedEpisode.in_order/2` at `:aired` already does: it sorts by
@@ -716,7 +715,7 @@ defmodule Kati.Screens.Season do
   @doc """
   The order tiles a real season can honour, which is at most two of three.
 
-  MOVIES-AND-TV.md #97. The strip was the screen's central control and drew
+  The strip was the screen's central control and drew
   three tiles, none of them tappable. Making all three live would have been
   worse than leaving them dead: **DVD** has no numbers anywhere —
   `Kati.Media.CachedEpisode.orders/0` names two and its moduledoc says why —
@@ -1107,7 +1106,7 @@ defmodule Kati.Screens.Season do
   @doc """
   The `help` disc beside the order strip, which opens screen 153.
 
-  MOVIES-AND-TV.md #9: 153 explains the Aired/Absolute/DVD choice and nothing
+  153 explains the Aired/Absolute/DVD choice and nothing
   pushed it — including this screen, which draws that choice as a three-tile
   strip a reader will want explained. The finding's own fix, in its own words:
   *push it from screen 34 — a note row or an info glyph beside the order
@@ -1262,7 +1261,7 @@ defmodule Kati.Screens.Season do
   The mirror of `Kati.Screens.Series.refusal/1`, and open for the same reason:
   `:save_error` has been assigned here since the tick could fail and was drawn
   nowhere, so a refused tick left the row unfilled and the page silent.
-  MOVIES-AND-TV.md #39 names both screens.
+  Screen 04 had the same defect.
 
   Above the episode list, because the list is the thing that failed to change.
   """

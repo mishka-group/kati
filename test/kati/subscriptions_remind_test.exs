@@ -3,7 +3,7 @@ defmodule Kati.SubscriptionsRemindTest do
   *Remind me* on the suggestion card says something true.
 
   It flipped a socket boolean and changed the button to its secondary
-  treatment. Nothing was armed. MOVIES-AND-TV.md #60 recorded the reason as
+  treatment. Nothing was armed. The audit recorded the reason as
   `Kati.Notifications.Scheduler` not being built — **and that reason is no
   longer true, and was not the problem anyway.**
 

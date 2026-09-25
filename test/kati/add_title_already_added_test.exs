@@ -6,7 +6,7 @@ defmodule Kati.AddTitleAlreadyAddedTest do
   film added last week offered to add it again — and the tap did, because
   `add/2` reads `row.added` to choose between `track/2` and `untrack/2`. The
   same title went on twice from the same page and the disc never said
-  otherwise. MOVIES-AND-TV.md #42, half (a).
+  otherwise.
   """
 
   use Mob.ScreenCase, async: false

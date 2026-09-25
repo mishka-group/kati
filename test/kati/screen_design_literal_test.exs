@@ -153,7 +153,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   #
   # `ListDetail` joined for a third reason, and it is the one this list is for:
   # board 12 draws a `chevron_right` on every list row and never drew what it
-  # opens. MOVIES-AND-TV.md #106 was first closed by removing the chevrons and
+  # opens. The gap was first closed by removing the chevrons and
   # filing the gap ([#99](https://github.com/mishka-group/kati/issues/99)); the
   # owner asked for the feature instead. The screen borrows every object it
   # draws from a board that does exist — 12's header, the library's poster row,
@@ -346,8 +346,8 @@ defmodule Kati.ScreenDesignLiteralTest do
   # first entries are the reason it exists.
   #
   # Screen 80's pairing card printed a six-character code, the address
-  # `listenbrainz.org/link`, and `Expires in 9:48`. All three were invented
-  # (MOVIES-AND-TV.md #71). Kati talks to none of the three providers it
+  # `listenbrainz.org/link`, and `Expires in 9:48`. All three were invented.
+  # Kati talks to none of the three providers it
   # offers, so `pairing_code/1` derived the code from the provider id; the
   # address was ListenBrainz's under every one of them, so a Hardcover reader
   # was sent to somebody else's site; and the clock never started, because
@@ -389,7 +389,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # tile looks like. A reader who pressed **Finish setup** without choosing was
   # handed a film they had never heard of, and screen 139 — the state the app is
   # in when it holds nothing — was unreachable by the path most people walk.
-  # That is MOVIES-AND-TV.md #91's own sentence, and
+  # That is the audit's own sentence, and
   # `FirstRunTest.assertNothingInvented/1` on the device is the assertion
   # written for it.
   #
@@ -434,7 +434,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # dark colourway of 98 and built as a second screen, and it is not one:
       # `Kati.Theme.Palette.mode/0` already draws 98 dark on a dark device.
       # What it held was two card faces 98 never previewed, which is what made
-      # them unreachable in light. Both are on 98 now (MOVIES-AND-TV.md #3).
+      # them unreachable in light. Both are on 98 now.
       #
       # 170 since 25 September, when boards 29, 63 and 64 moved OUT the same
       # way: the lock screen and two launchers, which no app can navigate to.
@@ -784,7 +784,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # a screen that hardcoded the board's ۲۵ مرداد ۱۴۰۵ still fails.
       # Raised to 38 on 6 September for screen 07's Activity row. Board 07
       # froze `1,204 entries` and the row is now a count of
-      # `Kati.Media.Watch` — MOVIES-AND-TV.md #45's neighbour, and the same
+      # `Kati.Media.Watch` — a neighbour of the frozen-figure defect, and the same
       # class as 02's month title: not checking less, because the pattern
       # insists on a plural the screen builds rather than accepting anything,
       # and a screen that hardcoded the board's figure would fail on every
@@ -809,14 +809,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 41 → 43 on 6 September, for 92's *Not mine* row: `Show all 47` and
       # `Everything JustWatch lists for the UK` were a promise of a catalogue
       # that does not exist in this app, on a row that opened the empty-state
-      # board over a page listing three subscriptions (MOVIES-AND-TV.md #35).
+      # board over a page listing three subscriptions.
       # Both patterns accept the board's own words as well, because a device
       # with nothing stored still draws board 92 whole.
       # 48 until 7 September, when board 07's *More numbers* card stopped
       # freezing two of its four figures: `Goals` and `Money` are counted now,
       # and a counted line is asserted here by PATTERN rather than by its
-      # frozen value, which is what an entry in this list is
-      # (MOVIES-AND-TV.md #45). Two entries bought two lines that used to be
+      # frozen value, which is what an entry in this list is.
+      # Two entries bought two lines that used to be
       # nobody's.
       # Raised from 50 to 52 for screen 97's country row (board 324). Three
       # entries for one row, and they buy the same thing the two backup entries
@@ -940,8 +940,8 @@ defmodule Kati.ScreenDesignLiteralTest do
        ~r/^\p{L}+ · #{day} \p{L}+$/u},
       # 86's two *Try* rows. Board 86's own caption says they are *drawn from
       # what you actually have*, and they were two fixed strings that match
-      # nothing on any device but the one the board was captured on
-      # (MOVIES-AND-TV.md #72). They are the newest title on the shelf and the
+      # nothing on any device but the one the board was captured on.
+      # They are the newest title on the shelf and the
       # book the newest note is about now, so what a device draws there is
       # whatever that device holds — and a shelf with neither still draws these
       # two, which is why the pattern accepts them as well as anything else.
@@ -956,8 +956,8 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the book this reader's newest note is about, or the board's own string on a device " <>
          "with no notes", ~r/^.+$/u},
       # 94's field. Board 94 froze `Search 190 countries` — JustWatch's number
-      # over Kati's seven — and the field was a picture that filtered nothing
-      # (MOVIES-AND-TV.md #78). The placeholder counts
+      # over Kati's seven — and the field was a picture that filtered nothing.
+      # The placeholder counts
       # `Kati.Services.countries/0` now, so it is the truth about the list this
       # field actually searches, and it says 190 on the day the list is 190.
       {"94", "search 190 countries",
@@ -992,7 +992,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 61's two, which are 07's read in Persian — the same rows, since
       # mishka-group/kati#103 folded the mirror away and board 61 became screen
       # 07 under `:fa`. They were ۳ هدف فعال and ۴۶٫۴۷ پوند در ماه frozen on
-      # every device, MOVIES-AND-TV.md #45's defect two rows at once. The third,
+      # every device, the frozen-figure defect two rows at once. The third,
       # ۷۶٫۰ کیلوگرم, is the row board 61 has and board 07 does not; it survived
       # the fold with `Kati.Screens.Stats.weight_line/0` behind it, and
       # `Kati.Stats.Sample.more_numbers/0` carries the argument.
@@ -1007,7 +1007,7 @@ defmodule Kati.ScreenDesignLiteralTest do
        ~r/^(\p{N}[\p{N},]* entries|1 entry|nothing logged yet)$/u},
       # 92's *Not mine* row. Board 92 froze `Show all 47 · Everything JustWatch
       # lists for the UK` on a row that opened screen 93 — the empty state —
-      # over a page listing three subscriptions (MOVIES-AND-TV.md #35). Kati
+      # over a page listing three subscriptions. Kati
       # has no catalogue provider: `Kati.Services.Service` holds the services
       # a person has told it about and nothing else, so 47 was the drawing's
       # number and could never become anyone's. The row counts what Kati
@@ -1026,8 +1026,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 24's and 42's *My services* row. Both boards froze `United Kingdom · 3
       # subscribed` and the line counts `Kati.Screens.MyServices.subscribed/0`
       # now — the same count Home has always drawn, which is what let one
-      # screen say *No subscriptions yet* while another said 3
-      # (MOVIES-AND-TV.md #75). The pattern insists the line is composed from
+      # screen say *No subscriptions yet* while another said 3.
+      # The pattern insists the line is composed from
       # a region and a count, so a screen that hardcoded the drawing's three
       # fails it.
       {"24", "united kingdom · 3 subscribed",
@@ -1054,8 +1054,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # it for your subscription total* and nothing could enter a price:
       # `Kati.Services.Service.monthly_pence` has existed since the resource
       # was written and every writer left it `nil`, so screen 23's *Every
-      # month* read `—` however many services somebody added
-      # (MOVIES-AND-TV.md #66). The field takes both now — `Netflix 10.99` —
+      # month* read `—` however many services somebody added.
+      # The field takes both now — `Netflix 10.99` —
       # and the row says so. The pattern insists the sentence still promises
       # the total, which is the half of it that was true.
       {"92",
@@ -1505,8 +1505,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 12 is drawn with three lists on it, which is a state a reader reaches
       # rather than the one the screen opens in: a device with no lists draws
       # `made/2`'s own card now, because board 12 has no drawn empty state to
-      # fall back to and three lists nobody made is #75's defect
-      # (MOVIES-AND-TV.md #106). `Kati.ScreenEmptyDatabaseTest`'s
+      # fall back to and three lists nobody made is #75's defect.
+      # `Kati.ScreenEmptyDatabaseTest`'s
       # `@empty_boards` holds that half.
       # 05 is drawn with a watcher count and two sections of releases, and every
       # one of those belongs to a reader who follows something. A device that
@@ -1639,8 +1639,8 @@ defmodule Kati.ScreenDesignLiteralTest do
          |> Map.put(:episodes, "7"))},
       # 157 is 154 in the dark colourway, drawn in the same state and for the
       # same reason. It used to LOAD these values, so *Add to library* wrote a
-      # series nobody had typed into the reader's real library
-      # (MOVIES-AND-TV.md #29). A captured frame belongs here, not in a
+      # series nobody had typed into the reader's real library.
+      # A captured frame belongs here, not in a
       # `load/1`.
       {"157", Kati.Screens.AddByHandDark,
        &(&1
@@ -1690,14 +1690,14 @@ defmodule Kati.ScreenDesignLiteralTest do
          |> Map.put(:back, "Library")
          |> Map.put(:series, Kati.Screens.SeriesMeta.Sample.series()))},
       # 23's pill reads `Stats` on its board and the only route into the page
-      # is screen 92's Money row, so the word and the gesture disagreed
-      # (MOVIES-AND-TV.md #66). The screen says `My services` now and takes a
+      # is screen 92's Money row, so the word and the gesture disagreed.
+      # The screen says `My services` now and takes a
       # caller's own word ahead of it — which is what this entry is, the
       # arrival board 23 is a drawing of.
       # And `set_up?` beside the back pill's own param: 23 is drawn with
       # subscriptions on it, which is the state a reader reaches rather than
       # the one the screen opens in on a fresh install — board 96's fourth band
-      # is what it opens in now (MOVIES-AND-TV.md #120), and
+      # is what it opens in now, and
       # `Kati.ScreenEmptyDatabaseTest`'s `@empty_boards` holds that half. The
       # gate is an assign so a captured frame can set it without writing a
       # service into the store.
@@ -1712,7 +1712,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 06 is drawn MID-QUERY. The sheet opens empty now — its four results and
       # its `4 results` caption belong to a search somebody has run, and
       # opening on them showed a reader who had typed nothing four invented
-      # films (MOVIES-AND-TV.md #43). This is the arrival the board is a
+      # films. This is the arrival the board is a
       # drawing OF: a query in the field and the answer under it.
       {"06", Kati.Screens.AddTitle,
        &(&1
@@ -1723,7 +1723,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # nothing gets board 93 — see `Kati.Screens.MyServices.content/1` and
       # `Kati.ScreenEmptyDatabaseTest`'s `@empty_boards`. This entry is the
       # arrival board 92 is a drawing OF, and it is one assign because the page
-      # renders from one map: that is the change MOVIES-AND-TV.md #75 asked for
+      # renders from one map: that is the change the audit asked for
       # in as many words, and the reason it could not be closed before.
       {"92", Kati.Screens.MyServices,
        &Map.put(&1, :services, Kati.Screens.MyServices.drawn_page())},

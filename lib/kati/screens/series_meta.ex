@@ -276,7 +276,7 @@ defmodule Kati.Screens.SeriesMeta do
   This was `[]` and the moduledoc said why: *the same absent offers resource*.
   It is not absent any more. TMDB folds JustWatch's per-country data into the
   detail response Kati already fetches, `Kati.Media.CachedTitle.providers`
-  keeps it, and `Kati.Media.Availability` reads it — MOVIES-AND-TV.md #77.
+  keeps it, and `Kati.Media.Availability` reads it.
 
   What is drawn is the reader's own country's answer, in the order the board
   puts it: what you pay for first, then free, then rent, then buy. The badge is

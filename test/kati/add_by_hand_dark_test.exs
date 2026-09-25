@@ -2,7 +2,7 @@ defmodule Kati.AddByHandDarkTest do
   @moduledoc """
   Screen 157 types, and stops writing a title nobody asked for.
 
-  MOVIES-AND-TV.md #29: *"None of the three text fields accept input, and Add
+  The audit's finding: *"None of the three text fields accept input, and Add
   to library writes the hardcoded fixture title 'The Long Hollow' into the
   user's real library."*
 

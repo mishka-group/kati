@@ -152,7 +152,7 @@ defmodule Kati.Screens.WhatFits do
   @doc """
   Tonight, measured against a window: the reader's, or the drawing's.
 
-  MOVIES-AND-TV.md #88. The board's caption is *"Set the window you actually
+  The board's caption is *"Set the window you actually
   have and the library filters itself"* and none of the eleven controls on the
   page carried a tap — `grep -n 'on_tap\|handle_tap'` returned nothing across
   424 lines — over a fixture that could not be filtered anyway.
@@ -674,8 +674,8 @@ defmodule Kati.Screens.WhatFits do
   @doc """
   The row the back pill sits in, and the overflow disc opposite it.
 
-  The disc is the board's. It was drawn without a tap — MOVIES-AND-TV.md #88
-  counts it among this screen's eleven pictures — and there is nothing behind
+  The disc is the board's. It was drawn without a tap — one of this
+  screen's eleven pictures — and there is nothing behind
   it: everything this page can do is on it. The mood chips were the one thing
   an overflow could have held and they have no VALUES either —
   `Kati.Media.Watch.moods` exists and nothing writes it — so a disc here
@@ -939,7 +939,7 @@ defmodule Kati.Screens.WhatFits do
   @doc """
   Board 96's third band: the count is by TIME, and nothing filters it yet.
 
-  MOVIES-AND-TV.md #120. The board's caption is the sharpest of its four —
+  The board's caption is the sharpest of its four —
   *it can still size your evening, it just cannot fill it yet* — and the band
   it draws is `11 episodes fit — 0 you can watch`. That is not an empty list:
   the window works, the shelf answers, and what is missing is any idea of which

@@ -2,7 +2,7 @@ defmodule Kati.AvailabilityTest do
   @moduledoc """
   The three availability rules, doing what their sentences say.
 
-  MOVIES-AND-TV.md #77: *"All three availability rules are stored and consumed
+  The audit's finding: *"All three availability rules are stored and consumed
   by nothing. `Hide titles I can't watch` prints 'Removes them from Discover,
   Up next and What fits tonight' — all three of those screens are fixtures
   that never call `Kati.Services.rules/0`."*

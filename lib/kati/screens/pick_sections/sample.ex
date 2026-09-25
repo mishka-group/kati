@@ -18,7 +18,7 @@ defmodule Kati.Screens.PickSections.Sample do
   # `{id, glyph, label, sub}` with the two words asked for at draw time, because
   # a label is a translation and a module attribute is frozen at compile time.
   # The `id` is what the tap, the store and `chosen/0` all key off, and it does
-  # not move with the language — MOVIES-AND-TV.md #158. mishka-group/kati#103.
+  # not move with the language. mishka-group/kati#103.
   @sections [
     {"screen", "movie"},
     {"books", "menu_book"},

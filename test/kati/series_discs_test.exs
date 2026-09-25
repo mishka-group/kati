@@ -2,7 +2,7 @@ defmodule Kati.SeriesDiscsTest do
   @moduledoc """
   Screen 04's two discs beside *Mark next watched*.
 
-  MOVIES-AND-TV.md #81: they were drawn at button size, with a card fill and a
+  They were drawn at button size, with a card fill and a
   lift, and carried no tap — so they read as buttons and were not.
 
   Both were buildable and neither had been built. The star opens screen 33,

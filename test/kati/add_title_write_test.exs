@@ -106,7 +106,7 @@ defmodule Kati.AddTitleWriteTest do
   end
 
   # The sheet opens EMPTY since 6 September — board 06 is drawn mid-query and
-  # its four results belong to that query (MOVIES-AND-TV.md #43). These tests
+  # its four results belong to that query. These tests
   # are about the write behind a result row, so they put the board's rows on
   # the socket the way a search would.
   # The tag names the row's position in the full list — see

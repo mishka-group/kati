@@ -140,7 +140,7 @@ defmodule Kati.AppReachabilityTest do
        "own arrangement with screen 139 — so a user reaches it by having no " <>
        "services rather than by navigating, and nothing pushes it. The row " <>
        "that used to, `Show all 47`, was opening it over a page listing three " <>
-       "subscriptions: MOVIES-AND-TV.md #35."},
+       "subscriptions."},
     {Screens.MoneyStates, "screen 122's states, in 27's manner. As above."},
     {Screens.MealLibraryEmpty,
      "screen 116 with nothing in it, and the same board in Persian. The same " <>

@@ -5,7 +5,7 @@ defmodule Kati.Lists do
   Screen 12 draws them and, until this domain existed, drew somebody else's
   three on every device — `Best of 2026`, `Rainy Sunday`, `Recommended by Jo` —
   while its `+` prepended a row titled `New list` to a socket assign that was
-  lost the moment you went back. MOVIES-AND-TV.md #106.
+  lost the moment you went back.
 
   Two resources, which is what the board needs and no more:
 

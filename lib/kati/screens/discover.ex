@@ -38,7 +38,7 @@ defmodule Kati.Screens.Discover do
   what is behind it.
 
   Showing it honestly is `no_section/2`, and it had to be built:
-  MOVIES-AND-TV.md #24 found that the chip emptied the page and drew NOTHING —
+  the chip emptied the page and drew NOTHING —
   a rail floating over blank paper, which reads as a broken screen rather than
   as an honest answer. On a device the rail is not drawn at all unless the feed
   has two sections, but the board's own fixture has four chips and a fresh
@@ -547,7 +547,7 @@ defmodule Kati.Screens.Discover do
   Translating it in place would have left `shows?/2` falling through to `_ ->
   false` for every section, so the rail would draw in Persian and every chip on
   it would empty the page — `Kati.Screens.Library.chip_counts/0` records the
-  same defect as MOVIES-AND-TV.md #158, found four times.
+  same defect, found four times.
 
   So the key stays English and this is the translation, the way
   `Kati.Screens.OnboardingFirstTitle.label_for/1` keeps its four suggestions.
@@ -659,7 +659,7 @@ defmodule Kati.Screens.Discover do
   @doc """
   The title, and the `tune` disc that decides what the picks come FROM.
 
-  MOVIES-AND-TV.md #87: the disc was a plain `Box` with no tap at all.
+  The disc was a plain `Box` with no tap at all.
 
   What a *tune* on a recommendation page can honestly do here is the question
   the page is already answering badly for you: `Kati.Media.Recommendations.seed/0`
@@ -1035,7 +1035,7 @@ defmodule Kati.Screens.Discover do
   @doc """
   A chip that names a section this feed does not carry, saying so.
 
-  MOVIES-AND-TV.md #24. `shows?/2` answers `false` for every section under
+  `shows?/2` answers `false` for every section under
   *Awards*, so all three vanished together and left the chip rail floating over
   a blank page — and the rail is drawn whenever the feed has more than one
   section, which the board's own fixture does. Screen 03's `nothing_here/1` is
@@ -1174,7 +1174,7 @@ defmodule Kati.Screens.Discover do
   end
 
   @doc false
-  # MOVIES-AND-TV.md #120, band 11. Board 96's second band — *Nothing to leave
+  # Board 96's second band — *Nothing to leave
   # yet* — is a section screen 11 replaces, and 11 drew nothing at all instead.
   # The two absences are different and only one of them is the reader's to fix:
   # *nothing you pay for is dropping a title this month* is a fact about the
@@ -1513,7 +1513,7 @@ defmodule Kati.Screens.Discover do
   @doc """
   *Schedule*, and *Scheduled* — both of them the board's, and neither tappable.
 
-  MOVIES-AND-TV.md #87's second half: this was *the one working control on the
+  This was *the one working control on the
   page*, and what it did was toggle a socket assign that the next pop threw
   away. A button that changes and forgets is not a smaller version of one that
   works; it is the screen claiming a thing was scheduled.

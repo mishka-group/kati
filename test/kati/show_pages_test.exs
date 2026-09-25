@@ -1,6 +1,6 @@
 defmodule Kati.ShowPagesTest do
   @moduledoc """
-  The ⋯ disc on the two per-show sub-pages, MOVIES-AND-TV.md #98.
+  The ⋯ disc on the two per-show sub-pages.
 
   Screens 34 and 35 each draw the same ⋯ glyph, in the same place, as screen
   04's — where it opens a menu — and theirs opened nothing.

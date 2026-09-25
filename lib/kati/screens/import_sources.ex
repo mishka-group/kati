@@ -98,7 +98,7 @@ defmodule Kati.Screens.ImportSources do
   *"Five more sources"* listed `Simkl · TV Time · Libib · Last.fm · AniList` —
   and AniList is already one of the six tiles above it. This module used to
   keep the repeat exactly as drawn, on the ground that guessing what was meant
-  would be inventing copy; MOVIES-AND-TV.md #126 is the finding that it reads
+  would be inventing copy; but it reads
   as a mistake to anybody looking at the grid.
 
   There is no guess to make. The drawing's own closing note counts eleven
@@ -657,7 +657,7 @@ defmodule Kati.Screens.ImportSources do
   pushed screen 141 — a **Goodreads** job, headed with a book's columns:
   *Author*, *Bookshelves*, *Number of Pages*. Four of the six sources in that
   grid are film and TV — Letterboxd, Trakt, MyAnimeList, AniList — and every
-  one of them landed on a screen about books. MOVIES-AND-TV.md #52.
+  one of them landed on a screen about books.
 
   There IS an import engine now — `Kati.Import.Job` — and a tile opens the
   picker rather than a board. This is what a tile falls back to when no picker
@@ -701,7 +701,7 @@ defmodule Kati.Screens.ImportSources do
   # same call the six tiles make. It used to push screen 37 with no path and no
   # name, so the one row on this board that offers to take ANY file was the one
   # row that never asked for one — and 37 then drew its own empty job, which is
-  # honest but is not what the row promised. MOVIES-AND-TV.md `140 #4`.
+  # honest but is not what the row promised.
   #
   # `nil` as the source, deliberately: this row is for a file whose shape Kati
   # has not been told, and `Kati.Screens.ImportRecognised.source_name/1` answers

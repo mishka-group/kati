@@ -5,7 +5,7 @@ defmodule Kati.ScreenWhatFitsTest do
   *Set the window you actually have and the library filters itself* — and a
   grep for `on_tap` across 424 lines returned nothing. Five window buttons,
   four mood chips, a defer pill and an overflow disc, all pictures, over a
-  fixture that could not have been filtered anyway. MOVIES-AND-TV.md #88.
+  fixture that could not have been filtered anyway.
 
   Three of the four things the screen's own moduledoc listed as blocked
   stopped being blocked when `Kati.Media.CachedEpisode` was built. What it

@@ -99,8 +99,8 @@ defmodule Kati.Screens.AddTitle do
     # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
     # and a screen is its own process — see `Kati.Locale.activate/0`.
     Kati.Locale.activate()
-    # What the caller wanted looked up, if it named one. MOVIES-AND-TV.md #93:
-    # screen 18's *Title* chip is a door onto this sheet, and a sheet that
+    # What the caller wanted looked up, if it named one.
+    # Screen 18's *Title* chip is a door onto this sheet, and a sheet that
     # opened blank after the reader had already typed the film's name is an
     # invitation to type it a second time.
     #
@@ -119,7 +119,7 @@ defmodule Kati.Screens.AddTitle do
        # reader who had typed nothing was shown four invented films with real
        # poster images, a `4 results` caption, fabricated availability lines,
        # and one of them ticked as already in their library.
-       # MOVIES-AND-TV.md #43. `resting_card/2` is what a sheet nobody has
+       # `resting_card/2` is what a sheet nobody has
        # typed into draws instead.
        results: [],
        filter: "Everything",
@@ -274,7 +274,7 @@ defmodule Kati.Screens.AddTitle do
   write, and drawn in none of them. So adding a title that is already in the
   library was a tap into total nothing: the check did not fill, no row
   appeared, and the page said no more than it would have if the finger had
-  missed. MOVIES-AND-TV.md #42, and it is `D-60`'s defect in English on the one
+  missed. It is `D-60`'s defect in English on the one
   screen a new install is most likely to be on.
 
   `Kati.UI.notice/1` and not a second band of its own: the search failure two
@@ -371,8 +371,8 @@ defmodule Kati.Screens.AddTitle do
       # must draw the emptiness first, and here it does not. `D-31` is the
       # brief that would settle it.
       # And emptied, not restored to the drawing's four. Typing `Up` used to
-      # answer with four films nobody had searched for — MOVIES-AND-TV.md #44,
-      # and the same defect as the resting sheet one keystroke along.
+      # answer with four films nobody had searched for —
+      # the same defect as the resting sheet one keystroke along.
       {:noreply,
        socket
        |> Mob.Socket.assign(:results, [])
@@ -783,7 +783,7 @@ defmodule Kati.Screens.AddTitle do
   film you added last week offered to add it again — and the tap did, because
   `add/2` reads `row.added` to decide between `track/2` and `untrack/2`. A
   reader could add the same title twice from the same page and the disc never
-  said otherwise. MOVIES-AND-TV.md #42.
+  said otherwise.
 
   One read for the whole page, not one per row: the tracked rows are read once
   and intersected by `{source, source_id}`, which is the pair the store keys on
@@ -861,8 +861,8 @@ defmodule Kati.Screens.AddTitle do
              source_id: source_id,
              # Board 152's third rule, asked of the row the fetch just wrote:
              # TMDB's Animation + Japanese origin. `:anime` was a kind every
-             # reader in the app knew and nothing ever wrote — MOVIES-AND-TV.md
-             # #104 — and this is the writer.
+             # reader in the app knew and nothing ever wrote,
+             # and this is the writer.
              kind: Kati.Media.Anime.kind_for(kind, Map.get(filled, :title), nil),
              status: :watching
            }) do
@@ -878,7 +878,7 @@ defmodule Kati.Screens.AddTitle do
       # would let the network decide what is on somebody's shelf.
       _artwork = Kati.Media.Artwork.cache(Kati.Screens.AddTitle.poster_of(filled))
 
-      # MOVIES-AND-TV.md #112: screen 15's `Added` chip could never match a row,
+      # Screen 15's `Added` chip could never match a row,
       # because nothing recorded that a title arrived. `from_status` is nil on
       # an add — there was no before.
       Kati.Media.Log.write(tracked, :added, %{from_status: nil})
@@ -973,7 +973,7 @@ defmodule Kati.Screens.AddTitle do
         },
         # What screen 154's form collected and nothing wrote. `episode_count`
         # is the denominator every progress bar in the app divides by, and the
-        # note under that field promised it — MOVIES-AND-TV.md #59.
+        # note under that field promised it.
         extra
       )
     )
@@ -1005,7 +1005,7 @@ defmodule Kati.Screens.AddTitle do
   @doc """
   The `{source, source_id}` pair a tracked row is actually keyed on.
 
-  This function is MOVIES-AND-TV.md #41 in one line. `untrack/1` looked for
+  This function is the whole fix, in one line. `untrack/1` looked for
   `source == :manual and source_id == title`, which is the pair a HAND-TYPED
   title is stored under — and `track/2` stores a TMDB title under `{:tmdb,
   "329865"}`, deliberately, because the cached episodes reference the provider

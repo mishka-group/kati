@@ -72,7 +72,6 @@ defmodule Kati.UI.ImportChrome do
   `Kati.Locale.number/1`; `Kati.Import.Job.recognised/1` — the one every REAL
   import goes through — hardcoded the bare string `"STEP 1 OF 4"`, so the
   fixture spoke Persian and the reader's own file did not.
-  MOVIES-AND-TV.md `141 #12`.
 
   The numerals go through `Kati.Locale.number/1` for the reason the whole
   catalogue does: `1` and `4` are ۱ and ۴ to a Persian reader, and a kicker set

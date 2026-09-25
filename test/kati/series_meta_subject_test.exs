@@ -7,8 +7,8 @@ defmodule Kati.SeriesMetaSubjectTest do
   on Severance opened a full page about *The Long Hollow*: a synopsis about a
   tidal surveyor, three ratings, four cast members with character names, three
   priced ways to watch and five tags the reader never wrote. Every fact on it
-  was confident, specific, and about something else. It is #51 in
-  MOVIES-AND-TV.md, filed `lies-to-user`.
+  was confident, specific, and about something else. It was filed
+  `lies-to-user`.
 
   Four of those values are expressible today and now come off the row: the
   title, the still, the meta line and the synopsis. The other seven have no

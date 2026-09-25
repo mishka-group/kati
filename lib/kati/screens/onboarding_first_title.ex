@@ -71,7 +71,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   the state the app is in when it holds nothing — was unreachable by the only
   path most people walk.
 
-  That is MOVIES-AND-TV.md #91's own sentence about a different screen: *nine
+  That is the audit's own sentence about a different screen: *nine
   invented films on a phone that has tracked nothing is the app lying about the
   one thing it exists to hold.* `FirstRunTest.assertNothingInvented/1` on the
   device is the assertion that was written for exactly this and had been failing

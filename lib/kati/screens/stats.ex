@@ -132,7 +132,7 @@ defmodule Kati.Screens.Stats do
   # so the squares and the label cannot disagree.
   #
   # The caption reads `26 weeks TO TODAY`, and the last two words are
-  # MOVIES-AND-TV.md #124. The grid is 182 days back from today and the header
+  # the fix. The grid is 182 days back from today and the header
   # above it says *Jan – <this month> <this year>*, so in March the two
   # described different spans and the field was mostly last year under this
   # year's label. Clipping the grid to the calendar year was the other option
@@ -516,7 +516,7 @@ defmodule Kati.Screens.Stats do
   @doc """
   The pill beside *Time watched*, when there is something to compare with.
 
-  Two halves of MOVIES-AND-TV.md #47, and they are different mistakes.
+  Two halves of one defect, and they are different mistakes.
 
   **A first year has no last year.** `change/2` answered `0` for a prior year
   of zero minutes, so a device whose history begins today drew `↑ 0%` in green
@@ -906,8 +906,8 @@ defmodule Kati.Screens.Stats do
   # The one row of the five whose second line this app can actually answer.
   #
   # `1,204 entries` was `Kati.Stats.Sample`'s on every device — a specific claim
-  # about the reader's own history, of exactly the kind #91 and MOVIES-AND-TV.md
-  # #45 are about, sitting on a phone that may hold four watches. It is the
+  # about the reader's own history, of exactly the kind a fixture must
+  # not make, sitting on a phone that may hold four watches. It is the
   # activity log's own count, read off the log — see `entries_count/0`.
   #
   # The other four stay the drawing's, and the moduledoc's reason stands for
@@ -915,7 +915,7 @@ defmodule Kati.Screens.Stats do
   # card with one real line among three stand-ins would be harder to read as a
   # stand-in card than one that is wholly frozen. What changes here is that the
   # line the app CAN answer is no longer among the frozen ones.
-  # MOVIES-AND-TV.md #45's remainder. Four rows carried the drawing's own
+  # The rest of the frozen-figure defect. Four rows carried the drawing's own
   # figures on every device — `4 active · 12-day best`, `Cutting v3 · 86%`,
   # `3 active · 38 of 52 books`, `£46.47 a month · 7 expenses` — beside one
   # that counts. Two of the four can be counted now and are; the other two
@@ -975,7 +975,7 @@ defmodule Kati.Screens.Stats do
   Board 61's third *More numbers* row, which the English card does not have:
   screen 42 is the Health hub in English and Persian has no such page, so
   screen 61's own moduledoc calls this row the route. It drew **۷۶٫۰ کیلوگرم**
-  frozen on every device, which is MOVIES-AND-TV.md #45's defect on the one
+  frozen on every device, which is the frozen-figure defect on the one
   row of the three that has a resource behind it — `Kati.Health.Reading` —
   and `Kati.Screens.Weight.latest/0` is the reader that answers it.
   """
@@ -1045,8 +1045,8 @@ defmodule Kati.Screens.Stats do
 
   `Kati.Screens.Activity.log/0`'s `entries_line`, read rather than recounted.
   This counted `Kati.Media.Watch` alone, and the log has counted watches AND
-  `Kati.Media.Event`s since *Added* and *Dropped* became entries
-  (MOVIES-AND-TV.md #112), so a reader with three adds, two watches and a drop
+  `Kati.Media.Event`s since *Added* and *Dropped* became entries,
+  so a reader with three adds, two watches and a drop
   was told `2 entries` on this row and `6 entries` on the page it opens. One
   function answering both is what stops the next kind of entry from splitting
   them again. `log/0` answers its empty wording for a store it cannot read, so
@@ -1328,7 +1328,7 @@ defmodule Kati.Screens.Stats do
       # each episode — `/tv/{id}` answers `episode_run_time` and not `runtime`,
       # so `Kati.Media.CachedTitle.runtime_minutes` is `nil` for every series
       # in the store. *Time watched* therefore read `0h 0m` however many
-      # episodes somebody ticked. MOVIES-AND-TV.md #18.
+      # episodes somebody ticked.
       minutes: Map.get(runtimes, watch.episode_source_id) || (cached && cached.runtime_minutes),
       kind: tracked.kind,
       # For `breakdown/1`. The title's, because a genre is a property of the
@@ -1447,7 +1447,6 @@ defmodule Kati.Screens.Stats do
   #
   # Five bars, because the drawing has five: the top four by hours and
   # `Everything else` for the rest, which is exactly what board 07 draws.
-  # MOVIES-AND-TV.md #45.
   # The drawing's five, named rather than written out — `Kati.Theme.PaletteTest`
   # is right that a hex in a screen is a colour that cannot follow the mode, and
   # these five have to, because the bars sit on a card. Functions rather than a
@@ -1562,7 +1561,7 @@ defmodule Kati.Screens.Stats do
   # `nil` and not `0` when there is nothing to compare with. A first year has no
   # last year, and `0%` beside a green up arrow is a claim that this year is
   # level with one that does not exist — the pill said *unchanged* to somebody
-  # whose history begins today. MOVIES-AND-TV.md #47. `change_pill/1` draws
+  # whose history begins today. `change_pill/1` draws
   # nothing for `nil`.
   defp change(_now, 0), do: nil
   defp change(now, before), do: round((now - before) / before * 100)
@@ -1662,7 +1661,7 @@ defmodule Kati.Screens.Stats do
 
   `Kati.Fa.SampleYear.week/0` was seven frozen bar heights and a frozen *this
   one is lit* flag: `[{42, false}, {36, false}, {12, false}, {54, true}, …]`,
-  identical on every device, which is MOVIES-AND-TV.md #45 over a whole card.
+  identical on every device, which is the frozen-figure defect over a whole card.
   So the card does not survive the fold as it stood — but the DATA behind it
   was already on this screen, because the contribution grid above it counts the
   same watches over 182 days. Seven of those days is this week.
@@ -1834,7 +1833,7 @@ defmodule Kati.Screens.Stats do
     "subscriptions" => Kati.Screens.Subscriptions
     # `Recently watched` was here, and `more_numbers/1` rejects that row by
     # name — so no `go_Recently watched` tag was ever emitted and the entry was
-    # dead code. MOVIES-AND-TV.md #125. Deleted rather than drawn: the row is
+    # dead code. Deleted rather than drawn: the row is
     # rejected because this screen already shows those three watches in full
     # one section down, and a numbers row that only counts them would be the
     # page telling you twice.

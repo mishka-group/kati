@@ -2,7 +2,7 @@ defmodule Kati.ShareCardScopeTest do
   @moduledoc """
   Screen 98's scope chips and its privacy switch, reading something at last.
 
-  MOVIES-AND-TV.md #103: *"The five non-resting scope chips and the privacy
+  The audit's finding: *"The five non-resting scope chips and the privacy
   switch move assigns that nothing reads, so they relight over an unchanged
   card."* A chip that lights and changes nothing is worse than one that is
   absent — it says the card is now about Books.

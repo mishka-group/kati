@@ -109,7 +109,7 @@ defmodule Kati.SearchRunTest do
 
   describe "the seven fields the Screen scope names" do
     test "your own review of a film is findable" do
-      # MOVIES-AND-TV.md #114. The Notes group and the Screen scope both said
+      # The Notes group and the Screen scope both said
       # a review was searchable and neither read one: `notes_for/1` knew only
       # `Kati.Books.Note`, and a film review lives on `Kati.Media.Watch`.
       tracked = track!("3")
@@ -198,7 +198,7 @@ defmodule Kati.SearchRunTest do
     end
 
     test "an episode TMDB wrote onto the device is findable by its own name" do
-      # MOVIES-AND-TV.md #144. `Kati.Search.Query` never touched
+      # `Kati.Search.Query` never touched
       # `Kati.Media.CachedEpisode`, though board 19 draws an episode hit and
       # board 88's own tier-2 example is `hollow → Hollow Season`.
       track!("1")
@@ -268,7 +268,7 @@ defmodule Kati.SearchRunTest do
 
   describe "the tie-break board 88 renders" do
     test "is recency, not the alphabet" do
-      # MOVIES-AND-TV.md #129: `Kati.Search.rank/1` implemented tier-then-
+      # `Kati.Search.rank/1` implemented tier-then-
       # recency, was public, was documented, and had no call site — every
       # group tied alphabetically instead.
       older = track!("1", ~U[2026-01-01 09:00:00Z])
@@ -339,7 +339,7 @@ defmodule Kati.SearchRunTest do
 
   describe "a recent query reopened from screen 86" do
     test "comes back exactly as it was typed" do
-      # MOVIES-AND-TV.md #130. `query_tag/2` replaced spaces with underscores
+      # `query_tag/2` replaced spaces with underscores
       # to make an atom a device test can type, and `open/2` undid it by
       # replacing underscores with spaces — which is not the inverse of
       # anything. `sci_fi` is stored as typed (`Kati.Search.Recent.remember/2`
@@ -378,7 +378,7 @@ defmodule Kati.SearchRunTest do
 
   describe "screen 88's back pill" do
     test "names the page it actually returns to" do
-      # MOVIES-AND-TV.md #131: the board draws `Settings` and the tune disc on
+      # The board draws `Settings` and the tune disc on
       # 86 is its only door, so the pill named a screen the pop does not land
       # on.
       socket =
@@ -552,7 +552,7 @@ defmodule Kati.SearchRunTest do
       results = Kati.Search.Query.run("estuary")
       drawn = rendered_text(render(results, :notes))
 
-      # MOVIES-AND-TV.md #117: and what it says is WHERE the answer is, not
+      # And what it says is WHERE the answer is, not
       # that there is none. `Nothing here for estuary` over a query that found
       # a film is the misreading board 89's third band was drawn to prevent —
       # this used to assert exactly that sentence.

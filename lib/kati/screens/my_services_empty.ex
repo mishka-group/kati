@@ -356,8 +356,8 @@ defmodule Kati.Screens.MyServicesEmpty do
   # `Show all 47` is the board's own row and it opens nothing, here as on 92.
   #
   # It used to open screen 23 — the money ledger, a read-only page about what
-  # you already spend, which is not a catalogue of anything (MOVIES-AND-TV.md
-  # #35). There is no catalogue in this app to open: `Kati.Services.Service`
+  # you already spend, which is not a catalogue of anything.
+  # There is no catalogue in this app to open: `Kati.Services.Service`
   # holds the services a person has told Kati about, and `47` is a number from
   # the drawing. The row keeps the board's words, because this board is what a
   # device with nothing set up looks like, and loses its chevron and its tap,

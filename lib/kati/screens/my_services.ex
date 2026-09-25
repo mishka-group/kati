@@ -124,8 +124,8 @@ defmodule Kati.Screens.MyServices do
 
   See `Kati.Screens.Resume`. Screen 94 writes the region and pops, and this
   page's region row is drawn from `assigns.region` — read once at mount — so
-  picking a country left the row saying the old one. MOVIES-AND-TV.md #36, and
-  it is the same defect the shelf had one screen along.
+  picking a country left the row saying the old one. It is
+  the same defect the shelf had one screen along.
 
   The two reads only. `query` is what the reader has typed into the filter and
   `save_error` is about the last thing they did, and neither is the picker's to
@@ -148,7 +148,6 @@ defmodule Kati.Screens.MyServices do
   independently, so adding one service through *Something else* produced a page
   that was half the reader's and half the drawing's: their one service under
   Subscribed, and Aria Free and Dispatch still under Free.
-  MOVIES-AND-TV.md #76.
   """
   @spec subscribed() :: [map()]
   def subscribed, do: stored(:subscribed) |> Enum.map(&shape/1)
@@ -156,8 +155,8 @@ defmodule Kati.Screens.MyServices do
   @doc """
   The ones that cost nothing: what is stored, and nothing when nothing is.
 
-  Neither group falls back to `Kati.Services.Sample` any more, which is
-  MOVIES-AND-TV.md #75. A phone that had been told nothing was shown Lumen+
+  Neither group falls back to `Kati.Services.Sample` any more.
+  A phone that had been told nothing was shown Lumen+
   £8.99, Orbit £13.99, Kino £11.49, *Subscribed · 3* and `£46.47 A MONTH` —
   one tap after Home had said *No subscriptions yet*. The drawing's values are
   still the drawing's: `Kati.ScreenDesignLiteralTest.drawn_state/0` installs
@@ -174,7 +173,6 @@ defmodule Kati.Screens.MyServices do
   `Kati.Services.subscribed_count/0` and says *No subscriptions yet* — and 92
   answered the opposite one tap later, listing Lumen+ £8.99, Orbit £13.99, Kino
   £11.49 and `£46.47 A MONTH`. Two screens, opposite answers, one tap apart.
-  MOVIES-AND-TV.md #75.
 
   Both tiers, because a reader who has added only a free service has still set
   the page up and should not be shown three subscriptions they do not pay for.
@@ -212,7 +210,7 @@ defmodule Kati.Screens.MyServices do
   map — which is what the page renders FROM.
 
   Read once, in `load/1`, and put on `:services`. It was six separate function
-  calls inside `content/1`, and that is what MOVIES-AND-TV.md #75's shape note
+  calls inside `content/1`, and that is what the audit's shape note
   is about: `Kati.ScreenDesignLiteralTest.drawn_state/0` can put a screen into
   the state its own board draws only by handing it assigns, and a screen that
   reads through function calls cannot be handed anything. So 92 could not be
@@ -249,7 +247,7 @@ defmodule Kati.Screens.MyServices do
 
   It said `£46.47` — `Kati.Services.Sample.monthly_total/0` — beside a LIVE
   count, so a reader with one service was told *1 service · £46.47 A MONTH*.
-  MOVIES-AND-TV.md #76. `Kati.Services.Service.total/1` adds the stored prices
+  `Kati.Services.Service.total/1` adds the stored prices
   up; a set-up page whose services carry no price says `—` rather than
   borrowing the drawing's figure, because a total nobody entered is not a
   total.
@@ -288,7 +286,7 @@ defmodule Kati.Screens.MyServices do
     %{
       # The row this row IS. Board 95 draws a switch on every service row and
       # 92 drew none, so nothing on this page could remove, rename or price
-      # one — MOVIES-AND-TV.md #119 — and a row that cannot name itself cannot
+      # one — and a row that cannot name itself cannot
       # be the one that changes.
       id: service.id,
       badge: Service.badge(service),
@@ -317,7 +315,7 @@ defmodule Kati.Screens.MyServices do
   @doc """
   The page narrowed to what the field holds.
 
-  MOVIES-AND-TV.md #118: the field typed and filtered nothing — `content/1`
+  The field typed and filtered nothing — `content/1`
   passed `query` to `search_field/1` and to no one else — so a reader searching
   a list of twelve services watched all twelve stay put.
 
@@ -448,7 +446,7 @@ defmodule Kati.Screens.MyServices do
   @doc """
   The page, in the one shape it has.
 
-  It nearly had two. MOVIES-AND-TV.md #75's shape note says 92's empty state
+  It nearly had two. The audit's shape note says 92's empty state
   should be board 93 through `@empty_boards`, the way Home's is board 139, and
   the assigns half of that is done — this page renders from one map now, which
   is what made the swap expressible at all.
@@ -729,7 +727,7 @@ defmodule Kati.Screens.MyServices do
   draws two free services and board 93 draws the same two, and neither is a
   service the reader has: `Kati.Services.Sample`'s Aria Free and Dispatch were
   what a device with nothing showed under this heading, which is a good part
-  of MOVIES-AND-TV.md #75 in one band.
+  of the fallback defect in one band.
   """
   @spec free_band([map()]) :: map()
   def free_band([]), do: ~MOB"<Spacer size={0} />"
@@ -832,7 +830,7 @@ defmodule Kati.Screens.MyServices do
   @doc """
   One service, with the control board 95 draws on it.
 
-  MOVIES-AND-TV.md #119: there was no way to remove, rename or price a service.
+  There was no way to remove, rename or price a service.
   Once *Something else* wrote a row you were stuck with it — the row's own tap
   reached `"edit_service_" <> _name -> {:noreply, socket}`, five drawn rows
   the sweep listed as inert with the reason that no per-service editor is drawn
@@ -1020,7 +1018,7 @@ defmodule Kati.Screens.MyServices do
   @doc """
   What the *Not mine* row says, and it no longer says `Show all 47`.
 
-  MOVIES-AND-TV.md #35. That row read *Show all 47 · Everything JustWatch
+  That row read *Show all 47 · Everything JustWatch
   lists for the UK* and opened screen 93 — the board that announces
   *Subscribed · none yet* and *Pick your country · Nothing works until this is
   set* — to a reader with three services and a country. Two lies for the price
@@ -1247,7 +1245,7 @@ defmodule Kati.Screens.MyServices do
       # Board 95's switch, off. `:not_mine` rather than a destroy: a service you
       # cancelled is not one you never had, and the *Not mine* group already
       # counts that tier — so the row leaves this page's two lists and the
-      # reader can put it back from the catalogue. MOVIES-AND-TV.md #119.
+      # reader can put it back from the catalogue.
       "drop_service_" <> id ->
         {:noreply, Kati.Screens.MyServices.drop_service(socket, id)}
 
@@ -1342,7 +1340,7 @@ defmodule Kati.Screens.MyServices do
   Not a destroy. The *Not mine* group already counts this tier, so the row
   leaves the two lists above without leaving the store — a service you
   cancelled in March is a thing you had, and `Kati.Screens.Money` reads the
-  history. MOVIES-AND-TV.md #119.
+  history.
   """
   @spec drop_service(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def drop_service(socket, id) do
@@ -1475,8 +1473,8 @@ defmodule Kati.Screens.MyServices do
         case Kati.Screens.MyServices.already_listed(name) do
           %Service{} = service ->
             # A name already listed, with a price after it, is somebody
-            # CORRECTING the price — which is the editor MOVIES-AND-TV.md #119
-            # asks for, in the field they typed the line in rather than in a
+            # CORRECTING the price — which is the editor this page lacked,
+            # in the field they typed the line in rather than in a
             # second sheet drawing a second way to say one thing. A bare name
             # still writes nothing: re-adding something you already have is
             # the ordinary way somebody checks whether they already have it,

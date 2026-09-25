@@ -239,8 +239,8 @@ defmodule Kati.NumberingScheme.Sample do
   # `Kati.Screens.Season.order_title/1` already spells `Absolute` in exactly
   # that context, with `Aired` beside it. Board 34 and board 153 are one push
   # apart — `Kati.Screens.Season` is what pushes this screen — and
-  # MOVIES-AND-TV.md #40 is the finding about one thing being called two things
-  # one back tap apart. It is the same finding in Persian: the season sheet
+  # one thing must not be called two things one back tap apart. It is the
+  # same rule in Persian: the season sheet
   # says «مطلق» and this card has to as well.
   #
   # Functions and not module attributes. `gettext/1` inside an attribute is

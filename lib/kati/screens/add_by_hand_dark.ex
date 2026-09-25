@@ -16,7 +16,7 @@ defmodule Kati.Screens.AddByHandDark do
   It used to carry a cost those screens carried: `Mob.Theme.set/1` is global
   and popping back does not remount the screen underneath, so opening this
   board left the whole app dark — a dark Settings, a dark Library and a dark
-  Home, with nothing to press to undo it (MOVIES-AND-TV.md #30).
+  Home, with nothing to press to undo it.
   `Kati.Screens.Resume.pop/1` calls `Kati.Theme.activate/0` before it pops, at
   the one place every back control in the app already goes through, so the
   theme goes back with you.
@@ -45,7 +45,7 @@ defmodule Kati.Screens.AddByHandDark do
     # It used to open on `The Long Hollow`, `:tv`, `2024`, which is the frame
     # this board was drawn in, and then *Add to library* wrote exactly that
     # into the reader's real library: a series nobody had typed, from a
-    # colourway specimen (MOVIES-AND-TV.md #29). Board 155 states the screen's
+    # colourway specimen. Board 155 states the screen's
     # actual default and `Kati.Screens.AddByHand`'s moduledoc carries the
     # argument; the board's own values are installed by
     # `Kati.ScreenDesignLiteralTest.drawn_state/0`, which is where a captured

@@ -10,7 +10,7 @@ defmodule Kati.Media.Event do
   > `Kati.Media.TrackedTitle` and leaves nothing behind … That is a missing
   > resource, not a missing query.
 
-  This is that table. MOVIES-AND-TV.md #111 and #112.
+  This is that table.
 
   ## Why a status column is not enough
 

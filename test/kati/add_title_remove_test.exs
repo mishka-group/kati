@@ -18,7 +18,7 @@ defmodule Kati.AddTitleRemoveTest do
   Adding a duplicate, or removing something that would not delete, redrew the
   page identically.
 
-  Both are `lies-to-user` in MOVIES-AND-TV.md, and neither could be seen by a
+  Both were filed as `lies-to-user`, and neither could be seen by a
   sweep: `Kati.ScreenTapSweepTest` runs against an empty store, where there is
   no tracked row for a remove to miss.
   """

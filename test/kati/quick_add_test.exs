@@ -2,7 +2,7 @@ defmodule Kati.QuickAddTest do
   @moduledoc """
   Screen 18 types, reads, warns and writes.
 
-  MOVIES-AND-TV.md #31: *"The screen has no text field, no parser and no
+  The audit's finding: *"The screen has no text field, no parser and no
   writer — the field, the parse card, the clash warning and the commit button
   are all fixtures, and it is reachable from the Calendar dock root."* The
   last clause is what made it worth doing first among the fixtures: this is

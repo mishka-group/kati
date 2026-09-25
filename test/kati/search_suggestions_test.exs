@@ -5,7 +5,7 @@ defmodule Kati.SearchSuggestionsTest do
   The caption says exactly that, and the two rows were `what leaves this week`
   and `notes about the estuary` — fixed strings that match nothing on any
   device but the one the board was captured on. A reader tapped one and got the
-  no-match card. MOVIES-AND-TV.md #72.
+  no-match card.
 
   The newest title on the shelf and the book the newest note is about are both
   queries that WILL match. *What leaves this week* is deliberately not derived:

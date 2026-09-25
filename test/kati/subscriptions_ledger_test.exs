@@ -2,7 +2,7 @@ defmodule Kati.SubscriptionsLedgerTest do
   @moduledoc """
   Screen 23 counts the reader's own money, and their own hours.
 
-  MOVIES-AND-TV.md #66: the page quoted Lumen+, Orbit, Kino and £46.47 a month
+  The page quoted Lumen+, Orbit, Kino and £46.47 a month
   on every device, and its only route in is screen 92's Money row — so a
   reader who had told Kati about one service, at a price they typed, was shown
   four they had not and a total that was none of their money. Its back pill

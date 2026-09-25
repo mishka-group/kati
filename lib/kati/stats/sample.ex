@@ -61,8 +61,8 @@ defmodule Kati.Stats.Sample do
 
   It replaces `Kati.Fa.SampleYear.week/0`, which was seven bar heights in
   points with one of them flagged lit — a chart with no dates behind it, and so
-  no way for a device ever to draw a different week. MOVIES-AND-TV.md #45 over
-  a whole card; `Kati.Screens.Stats.this_week/1` is the reader.
+  no way for a device ever to draw a different week: a frozen
+  figure over a whole card. `Kati.Screens.Stats.this_week/1` is the reader.
   """
   @spec week() :: [{Date.t(), non_neg_integer()}]
   def week do

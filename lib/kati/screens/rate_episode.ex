@@ -1227,7 +1227,7 @@ defmodule Kati.Screens.RateEpisode do
 
   Board 204 rules that screen 33 keeps three chevrons that PUSH and that this
   board *"gains the chevrons, keeps its now"* — three rows, three destinations.
-  MOVIES-AND-TV.md #95 had settled the same question the opposite way one
+  The same question had been settled the opposite way one
   screen up, and #155 filed the disagreement as the owner's to settle rather
   than reversing a design a second time in silence.
 
@@ -1302,8 +1302,8 @@ defmodule Kati.Screens.RateEpisode do
       iex> Kati.Screens.RateEpisode.row_tag(:watched_on)
       :row_watched_on
 
-  Named for the key rather than the label, which MOVIES-AND-TV.md #158 is the
-  argument for.
+  Named for the key rather than the label, so the name does not change with
+  the language.
   """
   @spec row_tag(atom()) :: atom()
   def row_tag(key), do: Kati.Screens.AddByHand.tag("row_", key)

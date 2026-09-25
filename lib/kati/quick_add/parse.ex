@@ -5,7 +5,7 @@ defmodule Kati.QuickAdd.Parse do
   Screen 18's whole idea, in its own caption: *One field for the whole app.
   Parsed tokens are highlighted in place so you can see what it understood
   before committing.* The screen had the field, the highlighting and the
-  understanding drawn and none of them built — MOVIES-AND-TV.md #31 — so what
+  understanding drawn and none of them built, so what
   it showed was one sentence somebody had typed into a design tool.
 
   ## What it reads, and what it deliberately does not

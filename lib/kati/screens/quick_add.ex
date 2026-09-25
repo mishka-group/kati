@@ -111,7 +111,7 @@ defmodule Kati.Screens.QuickAdd do
   @doc """
   What the page draws for a typed sentence: the board's own until one is typed.
 
-  MOVIES-AND-TV.md #31 — the field, the parse card, the clash warning and the
+  The field, the parse card, the clash warning and the
   commit button were all `Kati.Screens.QuickAdd.Sample.draft/0`, which is one
   sentence somebody typed into a design tool. Every one of them is read from
   what the reader typed now, through `Kati.QuickAdd.Parse`.
@@ -335,7 +335,7 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   @doc """
-  The tag a kind chip sends. Six chips, six tags — MOVIES-AND-TV.md #93.
+  The tag a kind chip sends. Six chips, six tags.
 
   Five of them used to answer `nil`, with the reason *these are not dead, they
   are undrawn: when each gets its own screen it gets its own tag*. Five of the
@@ -641,7 +641,7 @@ defmodule Kati.Screens.QuickAdd do
   @doc false
   # The field itself, which this screen did not have.
   #
-  # MOVIES-AND-TV.md #31 — the drawn sentence was `Kati.Screens.QuickAdd.
+  # The drawn sentence was `Kati.Screens.QuickAdd.
   # Sample`'s styled pieces, so the page was a picture of somebody typing. A
   # `TextField` cannot carry styled runs on this bridge, so the highlighting
   # stays where it was — under the field, over the reader's own words, which is

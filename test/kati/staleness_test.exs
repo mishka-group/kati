@@ -8,7 +8,6 @@ defmodule Kati.StalenessTest do
   — and nothing anywhere in the app ever wrote `:paused` either. So both
   screens that draw a Gone cold band read `status == :paused`, a value with no
   writer, and drew nothing on every device that has ever existed.
-  MOVIES-AND-TV.md #55 and #56.
 
   The board was right and the workaround was wrong. Its own footnote says
   which: *Paused and Dropped are things a person decided. Gone cold is

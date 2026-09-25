@@ -10,7 +10,7 @@ defmodule Kati.TickRefusalTest do
   It is not a rare branch. `write_tick/2` refuses every episode with no
   `source_id`, which is every episode of the drawn series — so on a device with
   nothing tracked, EVERY tap on an episode row is a silent refusal.
-  MOVIES-AND-TV.md #39, and the English half of `D-60`'s argument.
+  It is the English half of `D-60`'s argument.
   """
 
   use Mob.ScreenCase, async: false

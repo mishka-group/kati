@@ -2,7 +2,7 @@ defmodule Kati.QuickAddParseTest do
   @moduledoc """
   What Kati reads out of one typed sentence.
 
-  MOVIES-AND-TV.md #31: screen 18 had a field, a *Kati read that as* card, a
+  Screen 18 had a field, a *Kati read that as* card, a
   clash warning and a commit button, and none of them were built — the whole
   page was one sentence somebody had typed into a design tool.
 

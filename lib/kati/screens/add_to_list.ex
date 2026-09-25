@@ -342,8 +342,8 @@ defmodule Kati.Screens.AddToList do
   @spec count_line(map()) :: String.t()
   # The badge is a KEY — `Kati.Lists.Shelf.badge/1` answers `"ranked"` and
   # `subtitle/1` counts by comparing against it — so it is translated where it
-  # is drawn rather than where it is decided. MOVIES-AND-TV.md #158's rule, one
-  # layer down.
+  # is drawn rather than where it is decided. The key-not-label rule,
+  # one layer down.
   def count_line(%{badge: badge} = list) when is_binary(badge),
     do: list.count <> " · " <> Kati.Screens.AddToList.badge_word(badge)
 

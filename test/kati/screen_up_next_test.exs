@@ -72,7 +72,7 @@ defmodule Kati.ScreenUpNextTest do
   end
 
   describe "a shelf with nothing on the go" do
-    # MOVIES-AND-TV.md #49's remaining half. `queue/0` fell back to the drawing
+    # The remaining half of the empty-shelf defect. `queue/0` fell back to the drawing
     # whenever there was no `:watching` row AND nothing cold — so a reader who
     # had finished everything they own was shown four invented titles, `12
     # ready` over four rows and `Gone cold · 3` over one.

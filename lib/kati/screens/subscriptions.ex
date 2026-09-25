@@ -109,7 +109,7 @@ defmodule Kati.Screens.Subscriptions do
   drawing.
   """
   # `My services`, not `Stats`. Board 23's pill reads Stats and the only route
-  # into this page is screen 92's Money row — MOVIES-AND-TV.md #66 — so the
+  # into this page is screen 92's Money row — so the
   # word and the gesture disagreed. `Kati.Screens.Pushed.back_label/2` takes a
   # caller's own word ahead of this one, so a door that opens it from anywhere
   # else says so without touching this line.
@@ -140,7 +140,7 @@ defmodule Kati.Screens.Subscriptions do
 
   All-or-nothing, the gate screens 04 and 92 keep: a page with the reader's
   one service in it and the drawing's other three under it reads as entirely
-  real and is three-quarters invented. MOVIES-AND-TV.md #66.
+  real and is three-quarters invented.
   """
   @spec ledger() :: map()
   def ledger, do: Kati.Subscriptions.ledger() || Kati.Screens.Subscriptions.empty_ledger()
@@ -208,7 +208,7 @@ defmodule Kati.Screens.Subscriptions do
   @doc """
   The page, or board 96's fourth band in place of it.
 
-  MOVIES-AND-TV.md #120. Screen 96 draws *an empty ledger* — **No subscriptions
+  Screen 96 draws *an empty ledger* — **No subscriptions
   yet**, and explicitly not `£0.00 a month`, because a zero total is a sentence
   about your spending and it would be false. Nothing in the app could ever
   enter that state: this screen fell back to `Kati.Subscriptions.Sample` when
@@ -723,7 +723,7 @@ defmodule Kati.Screens.Subscriptions do
   What the primary button says — *Remind me*, or when the reminder arrives.
 
   `other_tap(:remind, …)` flipped a socket boolean and the button changed to its
-  secondary treatment. Nothing was armed, and MOVIES-AND-TV.md #60 recorded the
+  secondary treatment. Nothing was armed, and the audit recorded the
   reason as `Kati.Notifications.Scheduler` not being built. **That reason is no
   longer true, and it turned out not to be the problem.**
 
@@ -1001,7 +1001,6 @@ defmodule Kati.Screens.Subscriptions do
   # under the finger and does nothing is a control that has answered; one that
   # does not light has not been offered. The drawing still draws the disc and
   # this screen still draws it, as the board's own furniture.
-  # MOVIES-AND-TV.md #61.
   #
   # The catch-all stays for the tags this screen does not own.
   def other_tap(_tag, socket), do: {:noreply, socket}

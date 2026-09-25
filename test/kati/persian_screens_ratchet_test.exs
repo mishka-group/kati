@@ -35,7 +35,7 @@ defmodule Kati.PersianScreensRatchetTest do
   Every mirror doubles the work of every change to the page it mirrors, and it
   does it silently: nothing fails when `Kati.Screens.Home` gains a band and
   `Kati.Screens.HomeFa` does not. That has already happened here more than
-  once — MOVIES-AND-TV.md #1 is a Persian Home still announcing three new
+  once — a Persian Home still announcing three new
   episodes after the English one had stopped, and the fix was the same edit
   twice.
 

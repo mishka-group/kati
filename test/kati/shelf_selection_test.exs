@@ -2,7 +2,7 @@ defmodule Kati.ShelfSelectionTest do
   @moduledoc """
   Screen 146 — selection mode that selects your own shelf, and writes.
 
-  MOVIES-AND-TV.md #27: *"Selection mode operates on a fixture shelf and every
+  The audit's finding: *"Selection mode operates on a fixture shelf and every
   action — select, Status, Remove, Undo — mutates assigns only; nothing reaches
   the store, so nothing survives closing the screen."*
 
@@ -171,7 +171,7 @@ defmodule Kati.ShelfSelectionTest do
 
   describe "board 147's rule at 235%" do
     test "the count grows and the chrome caps" do
-      # MOVIES-AND-TV.md #6. Board 147 is this bar at the largest text size and
+      # Board 147 is this bar at the largest text size and
       # states the split: *`4 selected` carries no `max_lines` and no cap — the
       # board's own caption names it as the one thing this bar exists to say* —
       # while *the close glyph caps because it is chrome whose size carries

@@ -226,7 +226,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 98, 100 and 101 joined when the share card stopped being a fixture. Every
     # figure on it was `Kati.Stats.ShareSample`'s — `312h 40m`, `↑ 18%`, three
     # titles nobody had watched — on a device where screen 07 one tap earlier
-    # drew the reader's own year (MOVIES-AND-TV.md #79). A share card is the
+    # drew the reader's own year. A share card is the
     # one page whose whole purpose is to leave the device, so a fixture on it
     # is a fixture somebody posts. 100 and 101 draw 98's own card.
     {"98", Kati.Screens.YearShare},
@@ -236,7 +236,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # Board 86's caption says the two suggestions are *drawn from what you
     # actually have* and they were `what leaves this week` and `notes about the
     # estuary` — queries that match nothing on any device but the one the board
-    # was captured on (MOVIES-AND-TV.md #72). 87 is here because it draws 86's
+    # was captured on. 87 is here because it draws 86's
     # own chip row and reaches the read through it.
     {"86", Kati.Screens.SearchIdle},
     {"87", Kati.Screens.SearchTyping},
@@ -779,7 +779,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 93 as a WHOLE is not the answer, and reading it is what says so: it has
     # no way to add a service — 92's *Something else* row is not on it — and
     # its *Free with ads* group lists two services the reader has not got.
-    # MOVIES-AND-TV.md #75.
     "92" => [{"93", {"Subscribed · none yet", "Free with ads"}}],
     # 23 → board 96's fourth band, which is what that sheet was drawn FOR.
     #
@@ -788,7 +787,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # and screen 96, whose whole subject is what four screens look like on day
     # one, could never produce any of its bands. Its own moduledoc named the
     # change it was waiting on: `Kati.Screens.MyServices.listed/0` had to stop
-    # falling back first (#75), and it has. MOVIES-AND-TV.md #120.
+    # falling back first (#75), and it has.
     #
     # The band and not board 96 whole: 96 is a reference sheet of four
     # specimens, read a band at a time exactly as screen 27 is for the Library
@@ -816,7 +815,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 97 gives below and for the same reason: no board words this state, so
     # what is compared is the screen's own chrome plus the `@quoted` floor,
     # and `Kati.ScreenListsTest` holds the card's own two sentences.
-    # MOVIES-AND-TV.md #106.
     "12" => [],
     # 97 is 92 in Persian and empties the same way. There is no Persian board
     # for the empty state — 93 has no mirror — so the comparison is 97's own
@@ -826,8 +824,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # in a mirror module.
     "97" => [],
     # 157 is 154 in the dark colourway and opens in the same resting state, so
-    # it answers to the same band of board 155 — see the entry above, and
-    # MOVIES-AND-TV.md #29 for what it used to open in instead.
+    # it answers to the same band of board 155 — see the entry above for what it
+    # used to open in instead.
     "157" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
     # Board 156 is screen 154 in the mirror, and 154 IS the mirror since
     # mishka-group/kati#103's first fold. It is drawn with **Series** chosen, and
@@ -908,7 +906,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # history, which `Kati.ScreenDesignLiteralTest.drawn_state/0` installs to
     # compare the board — and a *Try* group of two suggestions its own caption
     # says are drawn from what you actually have. The second is what brought
-    # these two into this file at all (MOVIES-AND-TV.md #72); the first was
+    # these two into this file at all; the first was
     # always a device value and no board draws the page without it.
     #
     # 87 is here because it draws 86's chip row and reaches the same read
@@ -926,7 +924,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # availability lines under them all belong to a search somebody has run.
     # The sheet used to open on them, so a reader who had typed nothing was
     # shown four invented films with real poster images and one of them ticked
-    # as already in their library (MOVIES-AND-TV.md #43) — and typing one or
+    # as already in their library — and typing one or
     # two letters put them back (#44).
     #
     # It opens empty now, and no board draws that state. `Kati.AddTitleStatesTest`
@@ -1245,7 +1243,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # The repo's answer to that is a specimen screen per states board — 155 for
     # 154, 95 for 92 — and those are not built yet. Until they are, these two
     # skip the literal comparison and keep the render, which is what this list
-    # is for. MOVIES-AND-TV.md #106.
+    # is for.
     Kati.Screens.AddToList,
     Kati.Screens.ListDetail
     # Board 301, the Persian country sheet — screen 97's country row is the
@@ -1276,7 +1274,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # a page that lost its content and kept its chrome, and lowering it for
   # everybody to fit one screen the design drew small would stop it catching
   # that. Named, with a number, so a page that shrinks further still fails.
-  # MOVIES-AND-TV.md #120.
   @small_empty_boards %{
     "23" => 9,
     # 34 with no season is the subtitle, three order labels, the zero eyebrow
@@ -1344,7 +1341,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # drawing, not a shrink.
   #
   # Named with a number, so a page that shrinks further still fails.
-  # MOVIES-AND-TV.md #106.
   @small_undrawn %{
     # Board 333's empty sheet is five strings and nothing else: the header, the
     # sentence, its second line, the field's placeholder and the pill. The
@@ -1595,7 +1591,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # Board 12's *Wishlist* and *Owned on disc* rows, retired with the two
     # lines they carried — both are assertions a reader makes and no column
     # holds. `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this
-    # entry's twin and carries the argument. MOVIES-AND-TV.md #106.
+    # entry's twin and carries the argument.
     {"12", "bookmark"},
     {"12", "inventory_2"},
     # Boards 163 and 166's ticked tile, in both scripts, and the twin of
@@ -2208,7 +2204,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # which is the arrangement screen 03 keeps — so the pair is asked of the
       # rows themselves: `Rewatches · 0` and `Abandoned · 0` on an empty store,
       # against the drawing's own two rows. The other two rows were retired
-      # with the lines they carried (MOVIES-AND-TV.md #106).
+      # with the lines they carried.
       {"12", Kati.Screens.Lists, &Kati.Screens.Lists.kept_rows/0,
        fn ->
          # Board 331 gave each kept row its own empty sentence — *Add to list* is
@@ -2242,8 +2238,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # own card and reach the read through it.
       # 25 gates on the banner, which is the only part of it that reads
       # anything: the ten switches and the cadence are still
-      # `Kati.Settings.WatcherSample`'s, and MOVIES-AND-TV.md #67 is what says
-      # so — they edit one socket assign and nothing consumes them.
+      # `Kati.Settings.WatcherSample`'s — they edit one socket assign and nothing consumes them.
       # 23 gates on the whole ledger: the count, the total, every row and the
       # advice card arrive together or the board's do.
       # 18 gates on the whole draft: the sentence, the title, the chips, the
@@ -2369,7 +2364,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.ArtistDetail.drawn_artist/0},
       # 92 and its three borrowers moved to `empties/0` on 6 September. They
       # gated the service groups the way every screen here used to — an empty
-      # store answered `Kati.Services.Sample` — and MOVIES-AND-TV.md #75 is
+      # store answered `Kati.Services.Sample` — and this is
       # what that looked like on a phone: Home saying *No subscriptions yet*
       # and 92, one tap later, listing Lumen+ £8.99, Orbit £13.99, Kino £11.49
       # and `£46.47 A MONTH`. The groups read the store now and answer with
@@ -2824,7 +2819,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # reader's two service groups; the empty value is two empty lists; the
       # drawn value is still there, on `Kati.Screens.MyServices.drawn/0`, which
       # is what stops an emptied Sample module turning the pair into two
-      # nothings agreeing. MOVIES-AND-TV.md #75.
+      # nothings agreeing.
       {"92", Kati.Screens.MyServices,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
@@ -2838,7 +2833,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with `Kati.Services.Sample` and now answers with nothing. So the borrow
       # moved with it, from "the borrowed pair still agrees" to "the borrowed
       # reader answers empty, and the drawn value it could have answered with
-      # is still there". MOVIES-AND-TV.md #75.
+      # is still there".
       {"128", Kati.Screens.Backup,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
@@ -3108,8 +3103,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # reason on both sides.
       {"46", "in my fridge", ~r/^recently eaten$/},
       # 23's back pill. Board 23 reads `Stats` and the only route into the
-      # page is screen 92's Money row, so the word and the gesture disagreed
-      # (MOVIES-AND-TV.md #66). The twin of this entry is in
+      # page is screen 92's Money row, so the word and the gesture disagreed.
+      # The twin of this entry is in
       # `Kati.ScreenDesignLiteralTest`, where the board is compared in the
       # arrival it is a drawing OF.
       {"23", "stats", ~r/^(my services|stats)$/u},
@@ -3117,7 +3112,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.ScreenDesignLiteralTest`. Both boards froze `United Kingdom · 3
       # subscribed` and the line counts the reader's own services now — the
       # count Home has always drawn, which is what let one screen say *No
-      # subscriptions yet* while another said three (MOVIES-AND-TV.md #75).
+      # subscriptions yet* while another said three.
       {"24", "united kingdom · 3 subscribed", ~r/^.+ · (none yet|\d+ subscribed)$/u},
       {"42", "united kingdom · 3 subscribed", ~r/^.+ · (none yet|\d+ subscribed)$/u},
       # 05's watcher line, and the twin of this entry is in
@@ -3209,8 +3204,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        ~r/^(this device already has data, so the file is merged|nothing is stored on this device yet, so the file goes in as it is)/u},
       # 94's field placeholder counts `Kati.Services.countries/0` rather than
       # JustWatch's 190. Board 94 froze the wrong number over a list of seven,
-      # and the field was a picture that filtered nothing —
-      # MOVIES-AND-TV.md #78. The pattern insists on a count the screen
+      # and the field was a picture that filtered nothing.
+      # The pattern insists on a count the screen
       # builds, which is stricter than the frozen literal it replaces.
       {"94", "search 190 countries", ~r/^search \d+ countries$/u},
       # 139's greeting line prints the device's own clock, as 01's does.

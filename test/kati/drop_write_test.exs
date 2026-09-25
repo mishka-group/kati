@@ -5,7 +5,7 @@ defmodule Kati.DropWriteTest do
   `update_tracked/2` ran `Ash.update/2`, threw the result away and rescued a
   raise to `:ok`, so a refused drop and a successful one were the same thing to
   look at: the sheet flipped to its *Dropped* face and announced a change that
-  had not been made. MOVIES-AND-TV.md #57.
+  had not been made.
 
   The `rescue` stays, and it matters that it does — an `Ash.Changeset` error is
   a value and a raise is not, and a sheet that died inside a tap handler would
@@ -107,7 +107,7 @@ defmodule Kati.DropWriteTest do
     end
 
     test "is written with the position it was picked at", %{tracked: tracked} do
-      # MOVIES-AND-TV.md #111. The reason was assigned to the socket, drawn as
+      # The reason was assigned to the socket, drawn as
       # a lit chip, and discarded when the sheet closed — the one question in
       # the app whose answer nothing could ever read back.
       socket = sheet_for(tracked)
@@ -158,7 +158,7 @@ defmodule Kati.DropWriteTest do
 
   describe "the position pill" do
     test "goes both ways" do
-      # MOVIES-AND-TV.md #127: it only ever decremented, so overshooting meant
+      # It only ever decremented, so overshooting meant
       # closing the sheet and opening it again.
       assert DropSheet.step_forward(%{season: 2, episode: 5}) == %{season: 2, episode: 6}
       assert DropSheet.step_back(%{season: 2, episode: 5}) == %{season: 2, episode: 4}
@@ -180,7 +180,7 @@ defmodule Kati.DropWriteTest do
 
   describe "a film" do
     test "can be dropped, and its sheet says film" do
-      # MOVIES-AND-TV.md #110: a film could not be dropped, abandoned or DNF'd
+      # A film could not be dropped, abandoned or DNF'd
       # anywhere in the app.
       tracked = film!()
       socket = sheet_for(tracked)

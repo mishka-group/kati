@@ -219,8 +219,8 @@ defmodule Kati.ScreenLibraryShelfTest do
       # this replaces was a segment that looked live and set a value nobody
       # read.
       #
-      # The `:shelf` assign that value went into is gone (MOVIES-AND-TV.md
-      # #122). It could only ever hold `"Screen"` — these two segments push —
+      # The `:shelf` assign that value went into is gone.
+      # It could only ever hold `"Screen"` — these two segments push —
       # so the branch of `visible/3` it guarded was unreachable, and a state
       # nothing can produce is deleted rather than kept.
       view = mount_screen(Library)
@@ -237,7 +237,7 @@ defmodule Kati.ScreenLibraryShelfTest do
     end
 
     test "the filter sheet has one door, and it is the disc the board draws" do
-      # MOVIES-AND-TV.md #109. Board 145's caption names *a trailing filter
+      # Board 145's caption names *a trailing filter
       # disc in the header of screens 03, 20 and 21*; board 03 draws exactly
       # two discs — `search` and `sort` — and the sort one has opened the sheet
       # all along. A `Filter shelf` row in the ⋯ beside it was a second door
@@ -485,8 +485,8 @@ defmodule Kati.ScreenLibraryShelfTest do
       # `Kati.Screens.Inbox`, `Kati.Screens.Rating` and
       # `Kati.Screens.SeriesSettings` have always drawn for the same row.
       #
-      # Found on a device the day screen 80's Clear pill was wired
-      # (MOVIES-AND-TV.md #102): clearing the cache left three tracked titles,
+      # Found on a device the day screen 80's Clear pill was wired:
+      # clearing the cache left three tracked titles,
       # two watches and a Library reading `0 titles` over *No titles yet · Add
       # one thing you are watching*. Every fact intact, and the one screen that
       # shows them saying the shelf was empty.

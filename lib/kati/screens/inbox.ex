@@ -74,8 +74,8 @@ defmodule Kati.Screens.Inbox do
 
   The reason is conditional on the list holding more than one shelf, and it
   holds one. Nothing in the app produces a book release, a record release or a
-  film release — MOVIES-AND-TV.md #133 names the three producers each would
-  need — so swapping a real poster for a generic `live_tv` glyph today would
+  film release — each would need a producer of its own — so swapping a real
+  poster for a generic `live_tv` glyph today would
   degrade the only state that can occur, to fix a rhythm problem that cannot
   yet happen. The recipe goes in with the first producer that makes this list
   hold two kinds of thing.
@@ -389,7 +389,7 @@ defmodule Kati.Screens.Inbox do
 
   @doc false
   def watcher_gear do
-    # **Sized, and that is the whole of MOVIES-AND-TV.md #161.** A `Box` with no
+    # **Sized, and that is the whole of the fix.** A `Box` with no
     # width fills its parent, so this gear — the last child of the watcher
     # card's Row — swallowed every point the weighted `Column` beside it should
     # have had. The card came out as two icons in an empty cream bar: the
@@ -473,7 +473,7 @@ defmodule Kati.Screens.Inbox do
   A refusal is assigned rather than dropped — `Kati.Write.message/1`, drawn by
   `refusal/1`. Before this, a store that said no left the row in place, the
   count unmoved and the page saying no more than if the finger had missed the
-  pill. That is the defect MOVIES-AND-TV.md #39 names on screens 04 and 34; it
+  pill. That is the defect screens 04 and 34 had; it
   reached this screen with #82, which gave the two controls something to
   refuse.
   """
@@ -615,7 +615,7 @@ defmodule Kati.Screens.Inbox do
       meta: join([episode_runtime(episode), aired_label(air, now)]),
       dot: Palette.accent(),
       # What a tick is written against, and none of it is drawn.
-      # MOVIES-AND-TV.md #82: the `Watch` pill on every row and `Mark all` at
+      # The `Watch` pill on every row and `Mark all` at
       # the top had no taps, and the rows had nothing to carry a tap's meaning
       # even if they had. `Kati.Media.Watch` names an episode by
       # `episode_source_id` and nothing else, and takes the season and number
@@ -1055,7 +1055,7 @@ defmodule Kati.Screens.Inbox do
   @doc """
   *Mark all*, and nothing when there is nothing to mark.
 
-  MOVIES-AND-TV.md #82: this was drawn without a tap, over rows that carried
+  This was drawn without a tap, over rows that carried
   nothing to write a tick against. It writes one `Kati.Media.Watch` per **Out
   now** row and re-reads, which empties the section and recounts the subtitle —
   the behaviour the moduledoc already described as if it had shipped.
@@ -1256,8 +1256,8 @@ defmodule Kati.Screens.Inbox do
 
   The band `Kati.Screens.Series.refusal/1` and `Kati.Screens.Season.refusal/1`
   already draw, arriving here for the same reason one round later. The `Watch`
-  pill and *Mark all* have been able to fail since MOVIES-AND-TV.md #82 wired
-  them, and both threw the result away — so a refused tick left the row in the
+  pill and *Mark all* have been able to fail since they were
+  wired, and both threw the result away — so a refused tick left the row in the
   list, the subtitle's count unmoved, and the page saying no more than it would
   have if the finger had missed. #39 is that defect named on 04 and 34; #82's
   wiring is how it reached a third screen without being named again.

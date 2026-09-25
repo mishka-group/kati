@@ -15,7 +15,7 @@ defmodule Kati.Screens.ShelfLarge do
   backup's — a specimen to be checked by looking, not a screen a user reaches
   by tapping anything.
 
-  ## Its findings are on 146 now — MOVIES-AND-TV.md #6
+  ## Its findings are on 146 now
 
   Board 146 was unbuilt when this file was written and is not any more:
   `Kati.Screens.ShelfSelection` is the shelf's selection mode, reachable from
@@ -318,7 +318,7 @@ defmodule Kati.Screens.ShelfLarge do
     # the REQUIRED behaviour: `۴ انتخاب‌شده` is the single thing this bar exists
     # to say, and the whole fence K-29 split above turns on it never clipping.
     # `Kati.Screens.ShelfSelection` took the cap off its own copy of this line
-    # for the same reason — MOVIES-AND-TV.md #6.
+    # for the same reason.
     #
     # The tracking is the prop that would actually damage the Persian, and it
     # goes through `Kati.Locale.tracking/1`: -0.025em tightens Plus Jakarta by

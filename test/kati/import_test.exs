@@ -2,7 +2,7 @@ defmodule Kati.ImportTest do
   @moduledoc """
   The importer, which screens 140, 141 and 37 were three drawings of.
 
-  MOVIES-AND-TV.md #101: screen 37 had zero controls — the **Import 412**
+  Screen 37 had zero controls — the **Import 412**
   commit pill, the step meter and the three conflict answers were all pictures,
   and because none carried a tag the tap sweep could not see the screen at all.
   There was nothing behind them either: no parser, no mapping, no plan.
@@ -366,7 +366,7 @@ defmodule Kati.ImportTest do
 
   describe "a file screen 141 cannot read" do
     test "is said out loud instead of drawn as somebody else's 418 rows" do
-      # MOVIES-AND-TV.md #4. `Job.read/2` has always had three refusals to
+      # `Job.read/2` has always had three refusals to
       # report and screen 141 swallowed all three into the fixture, so a
       # reader who handed Kati a photo was shown a Goodreads export and told
       # it had 418 rows and nine matched columns.

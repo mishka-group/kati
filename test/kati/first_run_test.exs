@@ -383,7 +383,7 @@ defmodule Kati.FirstRunTest do
         refute opened.assigns.picked
 
         # The tag is the KEY and stays ASCII in every locale — a control named
-        # after the word printed on it is what MOVIES-AND-TV.md #158 forbids.
+        # after the word printed on it changes name with the language.
         # What is SHELVED is the caption, and that is the whole assertion here.
         {:noreply, socket} =
           Screens.OnboardingFirstTitle.handle_info({:tap, :pick_The_Long_Hollow}, opened)

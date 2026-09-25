@@ -172,7 +172,7 @@ defmodule Kati.Screens.Activity do
       # watches are all older than the first of the month — so somebody with a
       # real history was shown `1,204 entries` over seven invented rows, and
       # the rewatch card underneath, which counts their WHOLE history, was
-      # replaced by the drawing's too. MOVIES-AND-TV.md #58.
+      # replaced by the drawing's too.
       %{count: 0} -> empty()
       log -> log
     end
@@ -264,7 +264,7 @@ defmodule Kati.Screens.Activity do
     events = events()
     cached = cached_by_reference(watches ++ events)
 
-    # MOVIES-AND-TV.md #112. `Added` and `Dropped` are two of the four chips
+    # `Added` and `Dropped` are two of the four chips
     # this screen offers and neither could ever match, because `Kati.Media.Watch`
     # is the only thing it read and a watch is never either. `Kati.Media.Event`
     # is the store screen 15's own moduledoc named as missing; both kinds of row
@@ -398,7 +398,7 @@ defmodule Kati.Screens.Activity do
   @doc """
   Which of the two empty states this is — or neither.
 
-  MOVIES-AND-TV.md #112: pressing a chip that matches nothing left the header
+  Pressing a chip that matches nothing left the header
   and the chips over a blank page. That is the same misreading #117 fixed on
   the search screen: *nothing under this chip* and *nothing this month* are two
   different things, and the second one's sentence — *everything you have logged
@@ -994,7 +994,7 @@ defmodule Kati.Screens.Activity do
        Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Activity"})}
 
   # `tune` opens the same sheet the filter chips narrow with. It reached
-  # `handle_tap/2`'s catch-all and did nothing — MOVIES-AND-TV.md #91 — which
+  # `handle_tap/2`'s catch-all and did nothing, which
   # is the worst kind of control: alive enough to swallow the tap, dead enough
   # to answer it with silence.
   def handle_tap(:open_filters, socket),
@@ -1015,7 +1015,7 @@ defmodule Kati.Screens.Activity do
   @doc """
   The tap that opens a log entry's title, or `nil`.
 
-  MOVIES-AND-TV.md #90. A history you cannot walk back into is a list; the one
+  A history you cannot walk back into is a list; the one
   thing somebody wants from *you watched Dune on 3 March* is Dune.
 
   `nil` on a drawn row, which is `Kati.Activity.Sample`'s: not tappable rather
@@ -1159,8 +1159,8 @@ defmodule Kati.Screens.Activity do
   # neither `today` nor `earlier` and fell out of BOTH comprehensions. Those
   # rows did not move to another group, they left the page — while `count` and
   # `entries_line/1` above went on counting them, which is a header promising
-  # more entries than the screen can show. MOVIES-AND-TV.md #58 is the same
-  # shape of defect one scope up.
+  # more entries than the screen can show. The same shape of defect turned up
+  # one scope up.
   #
   # Shaped after `Kati.Locale.year_start/1`, which answers this question a year
   # up: a Gregorian `Date` in both scripts, because everything downstream
@@ -1212,8 +1212,8 @@ defmodule Kati.Screens.Activity do
       seed: seed_of(tracked, cached),
       lead: lead,
       rest: rest,
-      # The title this entry is about, so the row can open it — MOVIES-AND-TV.md
-      # #90: *no row in the activity log is tappable, so the user cannot open a
+      # The title this entry is about, so the row can open it. Before
+      # this, *no row in the activity log is tappable, so the user cannot open a
       # title from their own history*, which is the one thing a history is for.
       # Absent on a drawn row, the way `:stars` is, so the two shapes stay
       # indistinguishable and the fallback stays one.

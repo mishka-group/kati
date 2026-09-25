@@ -6,7 +6,7 @@ defmodule Kati.Search.Suggestions do
   **drawn from what you actually have** — and they were two fixed strings,
   `what leaves this week` and `notes about the estuary`, which match nothing on
   any device but the one the board was captured on. A reader tapped one and got
-  the no-match card. MOVIES-AND-TV.md #72.
+  the no-match card.
 
   The newest title on the shelf and the book the newest note is about are both
   queries that WILL match, which is what the caption promises. A device with

@@ -87,7 +87,7 @@ defmodule Kati.Screens.ShelfFilters do
   @doc """
   What the sheet opens on.
 
-  Two things this used to do, and both were MOVIES-AND-TV.md #54. It opened
+  Two things this used to do, and both were defects. It opened
   **already filtered** — 2020s, 4★ and up, Anime — which hides part of the
   reader's own library the first time they touch the disc; and it announced
   `showing 41 of 418` on a phone that might hold two, because both numbers
@@ -792,7 +792,7 @@ defmodule Kati.Screens.ShelfFilters do
   The choice is written to `Kati.Library.ShelfFilters` on every tap rather than
   on a Done button, because this sheet has no Done — it has a ✕, and a sheet
   whose only exit discarded the choice is exactly the defect
-  MOVIES-AND-TV.md #26 describes. Screen 03 re-reads on the pop through
+  `Kati.Library.ShelfFilters` describes. Screen 03 re-reads on the pop through
   `Kati.Screens.Resume`, so the shelf behind is already narrowed when it comes
   back.
   """

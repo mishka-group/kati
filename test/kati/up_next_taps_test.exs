@@ -2,7 +2,7 @@ defmodule Kati.UpNextTapsTest do
   @moduledoc """
   Screen 10's controls, which it had none of.
 
-  MOVIES-AND-TV.md #86: *"Screen 10 draws no tappable control at all. The hero
+  The audit's finding: *"Screen 10 draws no tappable control at all. The hero
   play disc, the four ready-row play discs, the `tune` disc and every `Drop`
   pill are built without a tap."* On the page whose own board caption calls it
   *the screen the whole app is for*.

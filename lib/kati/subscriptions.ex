@@ -2,7 +2,7 @@ defmodule Kati.Subscriptions do
   @moduledoc """
   What the reader pays for every month, and whether they are using it.
 
-  Screen 23's ledger, read rather than quoted. MOVIES-AND-TV.md #66: that
+  Screen 23's ledger, read rather than quoted. That
   page drew Lumen+, Orbit, Kino and Aria Free at £46.47 a month on every
   device, and its only route in is screen 92's Money row — so a reader who
   had told Kati about one service, at a price they typed, was shown four they
@@ -238,7 +238,7 @@ defmodule Kati.Subscriptions do
 
   *Dismiss* was a socket assign and nothing else: the card came back on the
   next mount, so the button retired it for as long as the reader stayed on the
-  page and no longer. MOVIES-AND-TV.md #59.
+  page and no longer.
 
   Keyed by the SERVICE, not by a bare boolean. The card is advice about one
   subscription, and a reader who dismisses it has said something about that

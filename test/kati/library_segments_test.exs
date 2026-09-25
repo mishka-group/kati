@@ -9,7 +9,7 @@ defmodule Kati.LibrarySegmentsTest do
   one tap from this page. The filter then dropped the Screen segment while the
   grid below went on drawing films — the strip offered Books and Music, nothing
   was lit, and the one segment naming the page you were standing on was the one
-  missing. MOVIES-AND-TV.md `03 scenario 9`.
+  missing.
   """
 
   use Mob.ScreenCase, async: false

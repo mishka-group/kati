@@ -119,7 +119,7 @@ defmodule Kati.AddTitleStatesTest do
     test "the sheet opens on a card, not on the drawing's four results" do
       # This asserted the opposite until 6 September, on the argument that the
       # gallery pushes with no params and so the mount state must keep drawing
-      # the drawing. It is MOVIES-AND-TV.md #43: board 06 is drawn MID-QUERY,
+      # the drawing. But board 06 is drawn MID-QUERY,
       # and opening on its results meant a reader who had typed nothing was
       # shown four invented films with real poster images, a `4 results`
       # caption, fabricated availability lines, and one of them ticked as

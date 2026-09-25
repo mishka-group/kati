@@ -725,8 +725,8 @@ defmodule Kati.Screens.Medication do
   `Mon, Wed, Fri` is words, not data — and `times` is the only structured part.
   So nothing knows which DAYS a schedule falls on, there is no next occurrence
   to compute, and a medication whose schedule says *Mon, Wed, Fri* is in fact
-  derived a dose every day of the week. MOVIES-AND-TV.md #136 is that defect
-  and the column it needs; the day it lands, this sentence becomes the board's.
+  derived a dose every day of the week. That defect is
+  open and needs a column; the day it lands, this sentence becomes the board's.
 
   What is deliberately NOT said is *add a medication*. Screen 96's rule, quoted
   by `Kati.Screens.Home.rest_of_today/1`, is the test this is written to pass —

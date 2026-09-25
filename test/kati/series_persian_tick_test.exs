@@ -2,7 +2,7 @@ defmodule Kati.SeriesPersianTickTest do
   @moduledoc """
   Marking an episode watched on the Persian series page writes it.
 
-  MOVIES-AND-TV.md #33: *"Marking an episode watched on the Persian page
+  The audit's finding: *"Marking an episode watched on the Persian page
   writes nothing. The ring fills, the counter moves and the button relabels,
   and every one of those changes is discarded when the screen is popped."*
 

@@ -76,7 +76,7 @@ defmodule Kati.Screens.YearShare do
   Every figure on it was `Kati.Stats.ShareSample`'s — `312h 40m`, `↑ 18%`, The
   Long Hollow, Blue Hour, The Cartographer, `JAN – AUG 2026` — on a device
   where screen 07 one tap earlier draws the reader's own year.
-  MOVIES-AND-TV.md #79. A share card is the one page in the app whose whole
+  A share card is the one page in the app whose whole
   purpose is to leave the device, so a fixture on it is a fixture somebody
   posts.
 
@@ -97,7 +97,7 @@ defmodule Kati.Screens.YearShare do
           subtitle: figures[:range],
           hours: hours_face(year),
           top: top_titles(scope, hide_private),
-          # MOVIES-AND-TV.md #3. Board 102 — *Your year, shared, dark* — drew
+          # Board 102 — *Your year, shared, dark* — drew
           # two card faces this one never previewed: the contribution field and
           # the genre bars. It is not a colourway: `Kati.Theme.Palette.mode/0`
           # reads the theme at render time, so 98 already draws dark on a dark
@@ -214,7 +214,7 @@ defmodule Kati.Screens.YearShare do
 
   # Screen 07's own headline, change pill and year, in the shape this card
   # draws them. `change: nil` where 07 draws no pill — a first year has no last
-  # year, and `↑ 0%` is the claim MOVIES-AND-TV.md #47 was about.
+  # year, and `↑ 0%` is a claim about a year that does not exist.
   #
   # The label is screen 07's own msgid rather than a second one. `Time watched`
   # is already in the catalogue twice — `Kati.Screens.Stats.hero/2` draws it and
@@ -269,8 +269,8 @@ defmodule Kati.Screens.YearShare do
   @doc """
   Whether a title belongs on the card as this reader has set it up.
 
-  Two questions, and they were both being asked of nothing (MOVIES-AND-TV.md
-  #103): the scope chips and the privacy switch moved assigns that nothing
+  Two questions, and they were both being asked of nothing:
+  the scope chips and the privacy switch moved assigns that nothing
   read, so both relit over an unchanged card.
 
     * **The scope.** `Screen` is films and series; the other chips name
@@ -542,7 +542,7 @@ defmodule Kati.Screens.YearShare do
   @doc """
   Board 102's contribution field, on this card and in this reader's own year.
 
-  MOVIES-AND-TV.md #3. Dropped entirely when there is nothing to draw: a field
+  Dropped entirely when there is nothing to draw: a field
   of empty cells under a heading is a texture of a year nobody had.
 
   Row-major, which is not how a contribution grid is usually filled — and
@@ -689,7 +689,7 @@ defmodule Kati.Screens.YearShare do
   @doc """
   Board 102's genre bars, on this card and out of this reader's own genres.
 
-  MOVIES-AND-TV.md #3, and #45 is why the figures are real: screen 07's bars
+  The figures are real because screen 07's bars
   stopped being a fixture, and this reads the same list rather than starting a
   second one. Dropped when there is nothing to divide.
   """
@@ -861,8 +861,8 @@ defmodule Kati.Screens.YearShare do
   Save, and the share that is waiting on a fence.
 
   `Save image` takes the ink because it is the one that works — and now it does
-  work. It pushed `Kati.Screens.YearCards` and saved nothing until 6 September
-  (MOVIES-AND-TV.md #80), while the note beside it said the capability was
+  work. It pushed `Kati.Screens.YearCards` and saved nothing until 6 September,
+  while the note beside it said the capability was
   missing; it was not. `K-45 capture-screen` had shipped and screen 110 had
   been saving its own page with it. `Share…` still carries `WHEN FILE SHARING
   LANDS`, in the same idiom screen 119's unbuilt nutrition paths use, because
@@ -931,7 +931,7 @@ defmodule Kati.Screens.YearShare do
 
   It used to push `Kati.Screens.YearCards` — the reference sheet about how a
   card is drawn — which is a page about the feature rather than the feature,
-  and MOVIES-AND-TV.md #80 is that the button said *Save image* and saved
+  and the button said *Save image* and saved
   none. The note beside it said the capability was missing; it was not. `K-45
   capture-screen` shipped and `Kati.Screens.WeekImage` has been saving its own
   page with it since. This is the same three lines.

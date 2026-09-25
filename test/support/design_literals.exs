@@ -427,8 +427,8 @@ defmodule Kati.DesignLiterals do
   drift the first time somebody retired a line and updated one of them.
 
   Screen 80's pairing card printed a six-character code, the address
-  `listenbrainz.org/link`, and `Expires in 9:48`. All three were invented
-  (MOVIES-AND-TV.md #71). Kati talks to none of the three providers it offers,
+  `listenbrainz.org/link`, and `Expires in 9:48`. All three were invented.
+  Kati talks to none of the three providers it offers,
   so `Kati.Screens.DataSources.pairing_code/1` derived the code from the
   provider id; the address was ListenBrainz's under every one of them, so a
   Hardcover reader was sent to somebody else's site; and the clock never
@@ -504,7 +504,7 @@ defmodule Kati.DesignLiterals do
       # anything: the rows describe a match, they do not offer one. The screen
       # drops the two words rather than keep a promise the app does not meet —
       # see `Kati.Screens.ImportRecognised`'s moduledoc for why the editor is a
-      # feature and not a fix. MOVIES-AND-TV.md `141 #10`.
+      # feature and not a fix.
       {"141", "7 matched · 2 skipped · still editable"},
       # Boards 24 and 62's account card and Data/About rows described an
       # account, a sync and a build Kati does not have: `Synced 2 min ago`, the
@@ -572,7 +572,7 @@ defmodule Kati.DesignLiterals do
       # Board 86's note promises a 180 ms debounce and seven counted queries per
       # pause. The search that page opens runs on every keystroke over the
       # reader's own library, so it says so — `Kati.Search.local_note/0`, which
-      # screen 19 already draws for the same reason (MOVIES-AND-TV.md #63).
+      # screen 19 already draws for the same reason.
       {"86",
        "counts stay off the chips until a query exists — eight zeroes on open would read as an empty app. searching starts at"},
       {"86",
@@ -708,7 +708,7 @@ defmodule Kati.DesignLiterals do
       # board 03's is *Not started*, and the tile under it says فهرست آرزو
       # where 03's says `not started`. They are the same state given a
       # different name, and the name board 57 gives it is the one
-      # MOVIES-AND-TV.md #106 retired app-wide: board 12's *Wishlist* row went
+      # retired app-wide: board 12's *Wishlist* row went
       # with `bookmark` and `inventory_2` because a wish is an assertion a
       # reader makes about a title and no column in Kati holds it. A chip that
       # counts *not started* and calls it *wished for* would put the retired
@@ -824,7 +824,7 @@ defmodule Kati.DesignLiterals do
       #
       # **نمایش · ۳ and یادداشت‌ها · ۲.** Board 90 counts each group in its own
       # heading and then draws fewer rows than the count — three over two, two
-      # over one. That gap is precisely the defect MOVIES-AND-TV.md #62 closed:
+      # over one. That gap is precisely the defect that was closed:
       # every group used to be cut to `Kati.Search.rows_per_group/0` BEFORE
       # `Kati.Search.Query.chip_counts/1` counted it, so the chip said three
       # over a list of two and the third row was unreachable from this page.
@@ -850,7 +850,7 @@ defmodule Kati.DesignLiterals do
       #
       # **MAY / اردیبهشت.** The field is ninety-one days ending TODAY and the
       # month under it was a literal, so every device drew May whatever month
-      # it actually was — MOVIES-AND-TV.md #45's defect on a one-word label.
+      # it actually was — the frozen-figure defect on a one-word label.
       # `Kati.Screens.AlbumDetail.field_month/0` reads the device clock and the
       # reader's calendar, so a Persian reader in Shahrivar sees شهریور.
       {"74", "may"},
@@ -971,8 +971,8 @@ defmodule Kati.DesignLiterals do
       {"25", "manual"},
       # Board 141's sentence names the file it was captured from — a nine-column
       # Goodreads export written with ten-point ratings and slashed dates — and
-      # every number and format in it is the reader's file's now
-      # (MOVIES-AND-TV.md #101). `Kati.Screens.ImportRecognised.date_line/1`
+      # every number and format in it is the reader's file's now.
+      # `Kati.Screens.ImportRecognised.date_line/1`
       # still draws `YYYY/MM/DD` for a file written that way; the fixture's is
       # written `2026/03/14`, so what the board keeps is the SHAPE of the
       # sentence rather than its values.
@@ -987,7 +987,6 @@ defmodule Kati.DesignLiterals do
       # names, the Kati backup row — so the board contradicts itself and the
       # arithmetic is the half that is right. It draws four now, and the two
       # lines it stopped drawing are the two the repeat was in.
-      # MOVIES-AND-TV.md #126.
       # Board 12's *Kept automatically* card lists four rules and two of them
       # are assertions nothing stores: `Wishlist` and `Owned on disc` are
       # things a reader says about a title and no column holds. They were drawn
@@ -996,14 +995,13 @@ defmodule Kati.DesignLiterals do
       # and a card where two rows are the reader's library and two are somebody
       # else's reads as fully real. So they are not drawn rather than drawn
       # frozen, which is the call #75 made one screen over.
-      # MOVIES-AND-TV.md #106.
       # Board 07's *More numbers* card froze four figures. Two of them are the
       # reader's own now — `Kati.Goals.Goal` and `Kati.Money.Expense` are real
       # resources — and are asserted by pattern in `device_values/0` instead.
       # The other two have no resource to count: `Kati.Habits` is a Sample
       # module and nothing else, and `Nutrition`'s `Cutting v3 · 86%` is a diet
       # plan no column holds, so those rows draw no second line rather than
-      # somebody else's numbers. MOVIES-AND-TV.md #45.
+      # somebody else's numbers.
       {"07", "4 active · 12-day best"},
       {"07", "cutting v3 · 86%"},
       {"12", "wishlist"},

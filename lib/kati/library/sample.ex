@@ -236,7 +236,7 @@ defmodule Kati.Library.Sample do
       # Opening *Episode order* from here then showed a different Season 2 one
       # tap apart: *The Weight of Water / Hollow Ground / Salt in the Wound*
       # here, *Low Water / The Cull / Blackthorn* there, same show, same
-      # season, same evening (MOVIES-AND-TV.md #40).
+      # season, same evening.
       #
       # So this list is 34's, in 34's aired order, at 34's runtimes and dates.
       # It is 34's list less the making-of, because a special is exactly what

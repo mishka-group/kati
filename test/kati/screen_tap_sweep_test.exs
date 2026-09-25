@@ -311,7 +311,7 @@ defmodule Kati.ScreenTapSweepTest do
     # its Film chip is the already-selected member of the same family. It was
     # not here before because 157 opened on `:tv` — board 157's captured
     # frame, loaded rather than drawn, which is what let *Add to library*
-    # write The Long Hollow into a real library (MOVIES-AND-TV.md #29).
+    # write The Long Hollow into a real library.
     {Kati.Screens.AddByHandDark, :kind_movie},
     # Steps 4 and 5's resting choices — the loudness the board opens on and the
     # title it opens with picked. Every other choice in each family moves the
@@ -326,8 +326,8 @@ defmodule Kati.ScreenTapSweepTest do
     # segment drawn without a tap at all would read as a broken control rather
     # than a settled one.
     {Kati.Screens.AutoDetect, :tv},
-    # Screen 36's threshold, on a host with no bridge. MOVIES-AND-TV.md #100
-    # wired it: *Tick at* steps the threshold `Kati.Media.Detect.threshold/0`
+    # Screen 36's threshold, on a host with no bridge. It is wired now:
+    # *Tick at* steps the threshold `Kati.Media.Detect.threshold/0`
     # reads. It cannot change anything here — `Mob.State` is not running in
     # this sweep, so the write is rescued into a no-op — and it is pressed over
     # a real preference store in `Kati.MediaDetectTest`. (*This phone*, the
@@ -371,7 +371,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealSwap, :swap_forever},
     {Kati.Screens.MealsToday, :mark_eaten},
     # (The comment that stood here described screen 05's **Mark all** as having
-    # joined this group "the round it was wired", and MOVIES-AND-TV.md #82
+    # joined this group "the round it was wired", and the audit
     # pointed out that it was orphaned: the control had no tap at all, so the
     # entry it described had been struck as a phantom and the sentence outlived
     # it. #82 wired all three of screen 05's controls on 7 September, and the
@@ -543,7 +543,7 @@ defmodule Kati.ScreenTapSweepTest do
     # `:edit_service` used to sit under the same sentence — *no per-service
     # editor is drawn anywhere in the set* — and no longer does. Board 95's
     # switch is on every service row and the row's own tap refills the field
-    # the service was typed in (MOVIES-AND-TV.md #118, #119). This sweep still
+    # the service was typed in. This sweep still
     # cannot see either: it renders against an empty store, where screen 92 has
     # no service rows at all. `Kati.ServiceWriteTest` presses them over real
     # ones, which is the only place that control exists.
@@ -559,7 +559,7 @@ defmodule Kati.ScreenTapSweepTest do
     # `{Kati.Screens.CountryPicker, :search}` left this list on 6 September.
     # The field was a picture whose tap fell through to
     # `handle_info(_message, …)`, over a placeholder that promised 190
-    # countries against a list of seven (MOVIES-AND-TV.md #78). It is a
+    # countries against a list of seven. It is a
     # `<TextField>` that filters now, and the placeholder counts the list.
     # ── Screen 66's status and edition chips.
     #
@@ -599,7 +599,7 @@ defmodule Kati.ScreenTapSweepTest do
     #
     # (`{Kati.Screens.QuickAddExpense, :file_as_expense}` was here, for the
     # already-selected reason: on this screen the Expense chip is the one you
-    # are already looking at. MOVIES-AND-TV.md #93 wired the other five on
+    # are already looking at. The other five are wired on
     # screen 18, and screen 124 answers none of them — it has its own chip lit
     # and its own screen behind it — so it now draws the whole row as a
     # picture, the rule `Kati.Screens.Rating.scale_toggle/1` states for the
@@ -922,7 +922,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Meal, :more},
     {Kati.Screens.Nutrition, :share}
     # (`{Kati.Screens.Rating, :add_tag}` was here, filed under Backlog as *a
-    # sheet that never opens*. MOVIES-AND-TV.md #96 struck it off, and there is
+    # sheet that never opens*. It was struck off, and there is
     # still no sheet: a tag is one short word, so the field opens under the
     # chips with the tags this reader has used before beside it. The tag is now
     # a phantom to this sweep for the reason screen 35's status tiles are —
@@ -938,8 +938,7 @@ defmodule Kati.ScreenTapSweepTest do
     # Press feedback was what was wrong with it. A disc that lights under the
     # finger and does nothing is a control that has answered; one that does not
     # light has not been offered. The disc is still drawn — it is the board's
-    # furniture — and it takes no tag, so this list no longer has one to name.
-    # MOVIES-AND-TV.md #61.)
+    # furniture — and it takes no tag, so this list no longer has one to name.)
     # (Screen 121's `save_image` was here, with the sentence *it stops being
     # inert the day the bridge gains a screen-to-bitmap call, and not before.*
     # `K-45 capture-screen` is that call: `Kati.Native.Files.save_screen/1`
@@ -1092,7 +1091,7 @@ defmodule Kati.ScreenTapSweepTest do
   end
 
   test "no control is named after the word printed on it" do
-    # MOVIES-AND-TV.md #157, and the first edit of #103's fold.
+    # The first edit of #103's fold.
     #
     # `Kati.Screens.AddByHand.kind_chip/5` used to build its tap out of the
     # label — `"kind_" <> label` — so the Persian form's Series chip was

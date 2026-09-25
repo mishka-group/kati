@@ -7,8 +7,7 @@ defmodule Kati.WhereToWatchTest do
   answered `[]`, with the moduledoc saying why: *the same absent offers
   resource*. It is not absent — TMDB folds JustWatch's per-country data into
   the detail response Kati already fetches — so the band fills, and the same
-  column answers the three rules on screen 92 (MOVIES-AND-TV.md #77 and the
-  offers half of #51).
+  column answers the three rules on screen 92.
 
   Two rules this file holds:
 

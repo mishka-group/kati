@@ -1,6 +1,6 @@
 defmodule Kati.MediaCacheTest do
   @moduledoc """
-  Screen 80's two cache pills, MOVIES-AND-TV.md #102.
+  Screen 80's two cache pills.
 
   *Refresh* and *Clear* under **Cached metadata** emitted no tap at all — the
   only cache controls in the app were pictures, and because neither carried a
