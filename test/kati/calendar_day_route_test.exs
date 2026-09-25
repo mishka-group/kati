@@ -579,8 +579,8 @@ defmodule Kati.CalendarDayRouteTest do
     |> Ash.create!()
   end
 
-  # The same timing `Kati.Seeds` writes, and the same shape
-  # `Kati.EventRowIdentityTest` and `Kati.ScreenCalendarEmptyStateTest` store:
+  # The same shape `Kati.EventRowIdentityTest` and
+  # `Kati.ScreenCalendarEmptyStateTest` store:
   # a UTC instant for the range query `Kati.Calendars.Today.rows/1` actually
   # filters on, the authored wall clock beside it, and the length as a DURATION
   # rather than an end instant — `dtend_utc` is derived from it by

@@ -63,8 +63,8 @@ defmodule Kati.Screens.QuickAdd do
   One half of one row *is* nearly reachable and is deliberately not split out.
   `Clashes with Design review` is a range query against
   `Kati.Calendars.Event`, which holds that very event —
-  `Kati.Calendars.Today` already does the range arithmetic and `Kati.Seeds`
-  writes Design review onto the Work calendar. It stays frozen because the
+  `Kati.Calendars.Today` already does the range arithmetic. It stays frozen
+  because the
   window to test against (Thursday 11:00 to 11:45) comes out of the parse, so
   there is nothing yet to ask the calendar about. It lands the day the parser
   does, and it is the first thing on this screen that should.

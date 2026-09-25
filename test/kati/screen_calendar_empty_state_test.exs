@@ -7,8 +7,8 @@ defmodule Kati.ScreenCalendarEmptyStateTest do
   `Kati.Screens.Calendar.day_rows/1` answered TODAY with `drawn_rows/0` when
   the store was empty: a dentist appointment at a named clinic, a passport
   reminder, a subscription renewal with a price on it, and three episodes of
-  three invented series. `Kati.Seeds` is not wired into `Kati.App.on_start/0`,
-  so a first launch really is an empty `events` table — which made those five
+  three invented series. Nothing seeds the store, so a first launch really is
+  an empty `events` table — which made those five
   cards the first thing the owner saw of his own day, and he read them exactly
   as written: *"you all show dummy data and it is not connected to database"*.
 
@@ -542,7 +542,7 @@ defmodule Kati.ScreenCalendarEmptyStateTest do
     |> Ash.create!()
   end
 
-  # The same timing `Kati.Seeds` writes: a UTC instant for the range query, the
+  # The timing every stored event carries: a UTC instant for the range query, the
   # authored wall clock beside it, and the length as a DURATION rather than an
   # end instant — which is what `Kati.Calendars.Event`'s moduledoc requires.
   defp event!(calendar, date, from, to, summary) do

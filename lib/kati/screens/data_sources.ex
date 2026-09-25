@@ -12,12 +12,14 @@ defmodule Kati.Screens.DataSources do
   Trakt, Simkl and Last.fm are left out because they need a pasted
   `client_secret`. A secret pasted into a client-side app is not a secret.
 
-  ## Kati's TMDB key is public and the screen says so
+  ## The reader brings the TMDB key
 
-  Not as an apology — as the fact that makes *Use my own key* optional rather
-  than advisable. TMDB counts requests per IP address, so Kati's key being in a
-  public repository costs the user nothing at all, and a page that hid that
-  would be inviting people to generate a key they do not need.
+  The owner's decision, 19 Sep: a store build carries no TMDB key, so *Use my
+  own key* is the default and the only working choice on one. *Use Kati's key*
+  appears only on a development build that carries a developer's token
+  (`Kati.Media.Tmdb.bundled?/0`), and `mix mob.release` refuses to package
+  such a build — `Kati.SecureStore`'s moduledoc tables every credential and
+  where it can go.
 
   ## Where tokens live, said honestly
 

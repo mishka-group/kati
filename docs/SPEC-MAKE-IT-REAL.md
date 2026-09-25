@@ -1459,6 +1459,15 @@ and `Kati.Seeds` where it cannot become dummy data.
   `lock.ex:591` — and they are the only references to `Kati.Seeds` anywhere in `lib/`. It touches no
   database and must move to a module that survives the guard, or all five screens break the release
   build the day the guard lands.
+
+  **Superseded 25 Sep: `Kati.Seeds` is deleted.** The compile-time guard this bullet asks for cannot
+  exist: Mob's tooling is `only: :dev`, so `mix mob.release` compiles and packages `_build/dev`
+  exactly as `mix mob.deploy` does, and a `Mix.env/0` guard lets the module into the store build.
+  Neither job it was kept for had a caller — no e2e test and no mix task ran `Seeds.run/1`, and the
+  `:bundled_foods` group was never written — and the owner's rule of 18 Sep is that sample data
+  leaves `lib/`. The five `sample_seed/1` callers now answer `nil` for a title whose cache row is
+  gone, which is what `sample_seed/1` already answered for every real `source_id`. A bundled-corpus
+  loader, when it is built, is its own module with nothing sample in it.
 * **The README.** `README.md:30` claims *"A calendar that is actually a calendar — CalDAV sync,
   conflicts handled"*; `:33` claims *"One search for everything"*; `:42` claims tracker import with
   named services. Two of those become true in this document; the other two do not. The README stops

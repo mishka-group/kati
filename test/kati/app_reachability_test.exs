@@ -505,8 +505,8 @@ defmodule Kati.AppReachabilityTest do
       source_id: source_id,
       kind: kind,
       title: title,
-      # `Kati.Seeds` stores the design's seed here, so the tile resolves its
-      # artwork through `Kati.Design.Images.poster/1` the way a seeded row does.
+      # A design seed rather than a TMDB path, so the tile resolves its
+      # artwork through `Kati.Design.Images.poster/1`.
       poster_path: seed,
       fetched_at: Kati.Time.now()
     })

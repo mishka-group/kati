@@ -48,7 +48,7 @@ defmodule Kati.ScreenSyncTest do
   rather than assumed, and what this module writes is not inert: a leftover
   calendar is a fifth row on screen 32, and a leftover outbox entry is a row on
   this one. Same `on_exit`, and the same reasoning, as
-  `Kati.ScreenCalendarsTest` and `Kati.SeedsTest`.
+  `Kati.ScreenCalendarsTest` and `Kati.CalendarsTest`.
   """
   use Mob.ScreenCase, async: false
 

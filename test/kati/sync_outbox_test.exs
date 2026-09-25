@@ -24,7 +24,7 @@ defmodule Kati.SyncOutboxTest do
   # run and compares its copy with `test/design/screens/32.html`; with these
   # rows standing it drew them instead of the drawing's four, and whether it
   # passed depended on `--seed`. Same wipe, and the same reasoning, as
-  # `Kati.SeedsTest`'s own teardown.
+  # `Kati.CalendarsTest`'s own teardown.
   setup_all do
     SyncSchema.ensure!()
     on_exit(&empty_the_calendar_tables!/0)

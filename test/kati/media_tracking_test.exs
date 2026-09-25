@@ -29,8 +29,8 @@ defmodule Kati.Media.TrackingTest do
     # "Earlier this month" card. `Kati.ScreenDesignLiteralTest` then compares
     # that screen with its drawing and finds this module's fixtures instead —
     # and whether it passes depends on the shuffle putting it before this file
-    # rather than after it. Same hazard `Kati.SeedsTest` documents for events,
-    # and the same fix.
+    # rather than after it. Same hazard `Kati.CalendarsTest` documents for
+    # calendars, and the same fix.
     on_exit(&empty_the_tables!/0)
     {:ok, prefix: "mt#{System.unique_integer([:positive])}-"}
   end

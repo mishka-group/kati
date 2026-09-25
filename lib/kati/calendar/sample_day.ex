@@ -44,19 +44,12 @@ defmodule Kati.Calendar.SampleDay do
     * **`vellum97` and the other seeds** — `Kati.Library.Sample` asset keys,
       which are file names by another name.
 
-  ## What `Kati.Seeds` reads out of here, and the trap in it
+  ## Nothing writes these into the store
 
-  The seeder writes `occ.title` into an event's `summary`, and then routes that
-  event onto a calendar by matching **the same title** against its own
-  `@work_events` list — `["Standup", "Design review"]`, in Latin. Those two
-  titles are msgids now, so a database seeded while the reader is on `:fa` puts
-  both meetings on `Personal` instead of `Work`. Nothing on this screen shows
-  it; it surfaces one screen away, on `Kati.Screens.Calendars`.
-
-  The fix belongs in `Kati.Seeds`, which should route on `occ.id` or on a field
-  this module states outright, rather than on a string that is now allowed to
-  change language. It is named here because this file is where the reason
-  lives, and a translation is a strange place to go looking for a seeding bug.
+  `Kati.Seeds` used to copy them into real `events` rows, and was deleted on
+  25 Sep: a first launch shows the reader's own calendar or an honest empty
+  one, never the drawing's day stored as if it were theirs. What is here is
+  drawn and never persisted.
   """
 
   use Gettext, backend: Kati.Gettext

@@ -61,8 +61,7 @@ defmodule Kati.Screens.Account do
   the drawing's own second shape, not a claim about the OS.
 
   One line **is** derivable and is deliberately not derived: `Read + write · 3
-  accounts` is a count of `Kati.Calendars.Account`, which `Kati.Seeds` writes
-  three of. It stays a literal for the reason `Kati.Screens.Calendars` gives for
+  accounts` is a count of `Kati.Calendars.Account`. It stays a literal for the reason `Kati.Screens.Calendars` gives for
   leaving its own accounts group whole — a row moved half onto the store is
   worse than one left off it. Here the halves are in one sentence: the count
   would be this device's while the switch beside it stays a picture, and every

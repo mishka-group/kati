@@ -157,8 +157,8 @@ defmodule Kati.Notifications.Sources.MediaTest do
       # and `Kati.ScreenDesignLiteralTest` fails on all thirteen of that
       # drawing's title and season lines — but only on the seeds that order this
       # module before it, which is what made it look like flakiness.
-      # `Kati.ScreenLibraryShelfTest` and `Kati.SeedsTest` both empty what they
-      # write for this reason; this module was the one writer that did not.
+      # `Kati.ScreenLibraryShelfTest` empties what it writes for this reason;
+      # this module was the one writer that did not.
       on_exit(fn -> delete_rows!(prefix) end)
 
       airs_soon = track!(prefix, "1", %{})

@@ -3,6 +3,15 @@
 # 51MB and reproducible from the lock — the same reason `.scratch/` is gone.
 android/app/src/e2e/assets/otp.zip
 
+# ── Credentials ─────────────────────────────────────────────────────────
+# None of these belong in the repository. A TMDB token lives in
+# ~/.config/kati/tmdb.env, outside it; a copy dropped in here must not be one
+# add-everything away from public. The signing files are what
+# `mix mob.release --android` reads.
+*.env
+android/keystore.properties
+*.jks
+
 # ── Design ──────────────────────────────────────────────────────────────
 
 # ── Elixir ──────────────────────────────────────────────────────────────

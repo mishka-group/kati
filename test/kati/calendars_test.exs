@@ -17,8 +17,7 @@ defmodule Kati.CalendarsTest do
   # rows standing it drew them instead of the drawing's four, and whether it
   # passed depended on `--seed`.
   #
-  # Same reasoning and the same wipe as `Kati.SeedsTest`, whose own teardown puts
-  # it plainly: what this module leaves behind is not inert.
+  # What this module leaves behind is not inert.
   setup_all do
     on_exit(&empty_the_calendar_tables!/0)
     :ok

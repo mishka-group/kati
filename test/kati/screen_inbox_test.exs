@@ -27,7 +27,7 @@ defmodule Kati.ScreenInboxTest do
 
   `test/test_helper.exs` gives the whole suite one SQLite file, so "nothing
   followed" has to be made rather than assumed — the same reason
-  `Kati.ScreenUpNextTest` and `Kati.SeedsTest` empty their tables in `setup`.
+  `Kati.ScreenUpNextTest` empties its tables in `setup`.
   Both directions matter: the wipe before makes the fallback test mean
   something, and the wipe after keeps `Kati.ScreenDesignLiteralTest` mounting
   screen 05 against an empty library, which is what lets it find the drawing's

@@ -56,10 +56,9 @@ defmodule Kati.Screens.Calendars do
       account's calendars, `last_sync_at`, `state`. The 30pt tile's glyph is
       not: the drawing distinguishes iCloud (`cloud`), Google (`mail`) and
       Fastmail-over-CalDAV (`dns`), and `Kati.Calendars.Account.provider`
-      collapses the first and third into one `:caldav`. `Kati.Seeds` says the
-      same thing from the other side — *"the drawing has no way to say 'this
-      iCloud row is CalDAV underneath'"* — and the reverse is just as true.
-      Deriving the glyph from `provider` would draw `dns` where the design
+      collapses the first and third into one `:caldav`: the drawing has no way
+      to say *this iCloud row is CalDAV underneath*, and the reverse is just as
+      true. Deriving the glyph from `provider` would draw `dns` where the design
       draws `cloud`, so the group is left whole rather than moved with one
       field wrong. What it needs is a service/brand slot on the account, or a
       `provider` value set that separates iCloud from a generic CalDAV
@@ -88,7 +87,7 @@ defmodule Kati.Screens.Calendars do
 
   # Deliberately aliased away from `Calendar`: the bare name is Elixir's own
   # module, and shadowing it here would be a trap for the next function that
-  # wants `Calendar.strftime/2`. `Kati.Seeds` aliases it the same way.
+  # wants `Calendar.strftime/2`.
   alias Kati.Calendars.Calendar, as: CalendarRow
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Settings.CalendarsSample, as: Sample
@@ -131,8 +130,8 @@ defmodule Kati.Screens.Calendars do
   One query, no join: the group draws nothing that belongs to the account, so
   nothing about the account is loaded. Ordered by `inserted_at` because there
   is no position column and none should be invented — the order a calendar
-  arrived in is the only order the schema actually holds, and it is the order
-  `Kati.Seeds` writes the drawing's four in. `id` breaks a tie so the list is
+  arrived in is the only order the schema actually holds. `id` breaks a tie so
+  the list is
   stable rather than merely usually stable.
 
   **A calendar with no `display_name` is dropped.** The row is a title and a

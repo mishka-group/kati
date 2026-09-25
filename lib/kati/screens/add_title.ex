@@ -33,8 +33,8 @@ defmodule Kati.Screens.AddTitle do
 
   `Kati.Media.CachedTitle` is not that thing and must not be pressed into
   being it. It is a cache of titles something already fetched — its own
-  moduledoc opens with "entirely evictable", `Kati.Seeds` fills it from the
-  nine titles already on the shelf, and it carries no read action that matches
+  moduledoc opens with "entirely evictable", it holds only titles already on
+  the shelf, and it carries no read action that matches
   on `title`. Searching it would answer with the library, which is the one set
   of titles this sheet exists to look outside of, and on the seeded database
   "quiet" matches none of the nine, so the screen would query, find nothing and

@@ -31,8 +31,8 @@ defmodule Kati.ScreenCalendarsTest do
   database" has to be made rather than assumed — and what this module writes is
   not inert: a calendar left behind is a fifth row on this screen the moment
   another module mounts it. Same reasoning, and the same `on_exit`, as
-  `Kati.SeedsTest`, whose own teardown empties these same tables for the same
-  reason.
+  `Kati.CalendarsTest`, whose own teardown empties these same tables for the
+  same reason.
   """
   use Mob.ScreenCase, async: false
 

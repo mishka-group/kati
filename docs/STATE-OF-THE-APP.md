@@ -314,6 +314,7 @@ own moduledoc says it is not wired: *"Nothing here is wired into `Kati.App.on_st
 The only production reference is the pure helper `Kati.Seeds.sample_seed/1`, which computes a
 picsum URL fragment and touches no database (`lib/kati/screens/film.ex:214`,
 `lib/kati/screens/series.ex:351`, `lib/kati/screens/activity.ex:730`).
+*(25 Sep: `Kati.Seeds` has since been deleted — see `SPEC-MAKE-IT-REAL.md`, Phase 11.)*
 
 So: a fresh install boots with 37 empty tables, and every screen that reads takes its Sample
 branch. That is the mechanism behind the owner's first observation, stated precisely.

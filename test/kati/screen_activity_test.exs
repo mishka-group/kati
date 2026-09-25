@@ -387,19 +387,18 @@ defmodule Kati.ScreenActivityTest do
   # ── Fixtures ───────────────────────────────────────────────────────────────
 
   # A cached title and the durable row that references it — by {source,
-  # source_id} as a value pair, through `Kati.Seeds.sample_source_id/1`, which
-  # is the convention the seeder already writes and the screen already reads.
+  # source_id} as a value pair, which is how the screen joins the two.
   defp title!(seed, name, kind) do
-    source_id = Kati.Seeds.sample_source_id(seed)
+    source_id = "activity-test:" <> seed
 
     CachedTitle
     |> Ash.Changeset.for_create(:create, %{
-      source: Kati.Seeds.sample_source(),
+      source: :tmdb,
       source_id: source_id,
       kind: kind,
       title: name,
-      # Not a TMDB path: the seeder writes the design seed here, and screen 15
-      # resolves its 26x37 thumbnail from it.
+      # Not a TMDB path: a design seed, which screen 15 resolves its 26x37
+      # thumbnail from.
       poster_path: seed,
       fetched_at: DateTime.utc_now()
     })
@@ -407,7 +406,7 @@ defmodule Kati.ScreenActivityTest do
 
     TrackedTitle
     |> Ash.Changeset.for_create(:create, %{
-      source: Kati.Seeds.sample_source(),
+      source: :tmdb,
       source_id: source_id,
       kind: kind
     })

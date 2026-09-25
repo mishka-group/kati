@@ -50,8 +50,8 @@ defmodule Kati.Media.EpisodeTest do
     # log out of `media_watches` and `Kati.Screens.UpNext` reads
     # `tracked_titles`, so fixtures left behind here are drawn on a screen
     # `Kati.ScreenDesignLiteralTest` compares with its drawing — and whether that
-    # passes would then depend on the shuffle. Same hazard `Kati.SeedsTest`
-    # documents for events, and the same fix.
+    # passes would then depend on the shuffle. Same hazard `Kati.CalendarsTest`
+    # documents for calendars, and the same fix.
     on_exit(&empty_the_tables!/0)
     {:ok, prefix: "me#{System.unique_integer([:positive])}-"}
   end

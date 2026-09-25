@@ -62,11 +62,9 @@ defmodule Kati.Screens.UpNext do
       module already exists to make, and a title whose date is a bare year is
       not counted rather than being counted as if it were the first of January.
 
-  The poster is `Kati.Media.CachedTitle.poster_path`, which `Kati.Seeds` fills
-  with the design's own seed — its comment says so outright: *"the sample
-  artwork is resolved by seed through `Kati.Design.Images.poster/1`, and the seed
-  is what a renderer needs"*. So `thumb/1` and `cold_thumb/1` are unchanged; they
-  are handed the seed from the cache row instead of from the sample module.
+  The poster is `Kati.Media.CachedTitle.poster_path`, and `thumb/1` and
+  `cold_thumb/1` are handed it from the cache row instead of from the sample
+  module.
 
   A cache row can be evicted, and then there is no title to draw — the durable
   row holds the status, the position and the rating, and deliberately not the

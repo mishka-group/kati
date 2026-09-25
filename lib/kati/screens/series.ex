@@ -583,16 +583,12 @@ defmodule Kati.Screens.Series do
     |> Ash.read!()
   end
 
-  # `Kati.Seeds` writes the design seed straight into `poster_path` — "not a
-  # TMDB path: the sample artwork is resolved by seed" — and `sample_seed/1` is
-  # the other half of that convention, so a row whose cache has been evicted can
-  # still find its picture. Screen 08's `seed_of/2` is the same two clauses.
-  defp seed_of(tracked, cached) do
-    case cached do
-      %CachedTitle{poster_path: path} when is_binary(path) and path != "" -> path
-      _ -> Kati.Seeds.sample_seed(tracked.source_id)
-    end
-  end
+  # The cache row's poster path, or `nil` once the cache row is gone — the
+  # renderer draws its placeholder for a `nil`.
+  defp seed_of(_tracked, %CachedTitle{poster_path: path}) when is_binary(path) and path != "",
+    do: path
+
+  defp seed_of(_tracked, _cached), do: nil
 
   # ── The English page ────────────────────────────────────────────────────────
 

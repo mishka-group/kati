@@ -1376,15 +1376,12 @@ defmodule Kati.Screens.Activity do
     end
   end
 
-  # `Kati.Seeds` writes the design seed straight into `poster_path` — "not a
-  # TMDB path: the sample artwork is resolved by seed" — and `sample_source_id/1`
-  # is the other half of the same convention. Either answer is a seed
-  # `Kati.Design.Images.poster/1` can miss harmlessly: `thumb/1` draws the
-  # placeholder tile for a nil.
+  # The cache row's poster path, or `nil` once the cache row is gone —
+  # `thumb/1` draws the placeholder tile for a `nil`.
   defp seed_of(tracked, cached) do
     case Map.get(cached, {tracked.source, tracked.source_id}) do
       %{poster_path: path} when is_binary(path) and path != "" -> path
-      _ -> Kati.Seeds.sample_seed(tracked.source_id)
+      _ -> nil
     end
   end
 

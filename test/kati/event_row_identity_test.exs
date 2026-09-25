@@ -345,7 +345,7 @@ defmodule Kati.EventRowIdentityTest do
     |> Ash.create!()
   end
 
-  # The same timing `Kati.Seeds` writes: a UTC instant for the range query, the
+  # The timing every stored event carries: a UTC instant for the range query, the
   # authored wall clock beside it, and the length as a DURATION rather than an
   # end instant — which is what `Kati.Calendars.Event`'s moduledoc requires and
   # what `dtend_utc` is then derived from.

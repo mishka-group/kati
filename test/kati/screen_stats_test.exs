@@ -406,8 +406,8 @@ defmodule Kati.ScreenStatsTest do
       source_id: source_id,
       kind: kind,
       title: title,
-      # `Kati.Seeds` stores the design's seed here, so a renderer can resolve
-      # the artwork through `Kati.Design.Images.poster/1`.
+      # A design seed rather than a TMDB path, so a renderer can resolve the
+      # artwork through `Kati.Design.Images.poster/1`.
       poster_path: seed,
       runtime_minutes: runtime,
       genres: genres,

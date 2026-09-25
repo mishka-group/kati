@@ -135,8 +135,30 @@ defmodule Kati.MixProject do
       # copied, and the staleness would be invisible until a certificate
       # rotation broke TLS on users' phones.
       compile: ["kati.certs", "compile"],
-      "kati.certs": &sync_cacerts/1
+      "kati.certs": &sync_cacerts/1,
+      # A store build must not carry the developer's TMDB token. Mob's tooling
+      # is dev-only, so `mix mob.release` packages `_build/dev` — the same
+      # BEAMs `mix mob.deploy` pushes — and `Mix.env/0` cannot tell the two
+      # apart. The flag can: `Kati.Media.TmdbKeyFile.bundle?/2` refuses the key
+      # under it, `Kati.Media.Tmdb.__mix_recompile__?/0` recompiles the one
+      # module it changes, and the check refuses to package if the key is
+      # still compiled in. `mob.release` compiles again inside itself, which is
+      # a no-op once this `compile` has run.
+      "mob.release": [&mark_release_build/1, "compile", &refuse_dev_key/1, "mob.release"]
     ]
+  end
+
+  defp mark_release_build(_args), do: System.put_env("KATI_RELEASE_BUILD", "1")
+
+  defp refuse_dev_key(_args) do
+    if apply(Kati.Media.Tmdb, :compiled_key?, []) do
+      Mix.raise(
+        "Kati.Media.Tmdb still carries a developer's TMDB token after a release compile. " <>
+          "Run `MIX_ENV=dev mix compile --force` with KATI_RELEASE_BUILD=1 and try again."
+      )
+    end
+
+    :ok
   end
 
   defp sync_cacerts(_args) do
