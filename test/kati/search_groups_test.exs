@@ -169,7 +169,8 @@ defmodule Kati.SearchGroupsTest do
       socket = Mob.Socket.assign(Mob.Socket.new(Search), :results, results)
       moved = Search.open_hit(socket, Search.hit_tag(row), Kati.Screens.Series)
 
-      assert moved.__mob__.nav_action == {:push, Kati.Screens.Series, %{id: tracked.id}}
+      assert moved.__mob__.nav_action ==
+               {:push, Kati.Screens.Series, %{id: tracked.id, back: "Search"}}
     end
   end
 

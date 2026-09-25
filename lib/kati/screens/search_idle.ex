@@ -497,7 +497,7 @@ defmodule Kati.Screens.SearchIdle do
 
   MOVIES-AND-TV.md #130. This used to undo `query_tag/2` by hand —
   `String.replace(line, "_", " ")` — which is not the inverse of anything.
-  `sci_fi` is stored as typed by `Kati.Search.Recent.remember/1`, which "never
+  `sci_fi` is stored as typed by `Kati.Search.Recent.remember/2`, which "never
   translates — they are your words", tagged `:repeat_query_sci_fi`, and came
   back as `sci fi`: a different search, silently. `two  spaces` collapsed the
   same way.

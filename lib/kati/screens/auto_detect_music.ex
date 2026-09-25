@@ -478,9 +478,7 @@ defmodule Kati.Screens.AutoDetectMusic do
 
   The bold word sits INSIDE the sentence, so the paragraph cannot be one
   msgid. Each run is therefore its own `gettext/1` and the two joining spaces
-  stay outside them, which is the shape
-  `Kati.Screens.AddByHand.split_note/4`'s three calls already use: a msgid
-  with a trailing space is one a translator loses without noticing, and a
+  stay outside them: a msgid with a trailing space is one a translator loses without noticing, and a
   Persian sentence needs the join to be a space in exactly the same place
   anyway. `Kati.UI.rich_text/1` concatenates in the order written, and that
   order is the LOGICAL one — the bidi algorithm lays the Persian out

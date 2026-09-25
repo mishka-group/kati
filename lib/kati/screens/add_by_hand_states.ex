@@ -202,8 +202,7 @@ defmodule Kati.Screens.AddByHandStates do
   @doc """
   A note whose sentence carries two emphasised terms, not one.
 
-  `Kati.Screens.AddByHand.split_note/3` has three parts and this board's notes
-  have four — the emphasis falls twice, on the default and on what it means.
+  Four parts — the emphasis falls twice, on the default and on what it means.
   The literal sweep compares a drawing's lines against the tree's, so four
   drawn fragments have to be four nodes.
   """

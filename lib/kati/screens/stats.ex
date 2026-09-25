@@ -907,8 +907,8 @@ defmodule Kati.Screens.Stats do
   #
   # `1,204 entries` was `Kati.Stats.Sample`'s on every device — a specific claim
   # about the reader's own history, of exactly the kind #91 and MOVIES-AND-TV.md
-  # #45 are about, sitting on a phone that may hold four watches. Activity is a
-  # `Kati.Media.Watch` count and nothing else, so it is counted.
+  # #45 are about, sitting on a phone that may hold four watches. It is the
+  # activity log's own count, read off the log — see `entries_count/0`.
   #
   # The other four stay the drawing's, and the moduledoc's reason stands for
   # them: Habits, Nutrition and Money have no resource behind them at all, and a
@@ -1041,15 +1041,20 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc """
-  How many watches there are, in `Kati.Screens.Activity`'s own words.
+  How many entries the activity log holds — the line its own header draws.
 
-  Counted through `Ash` rather than `count(*)`, because `[]` from Ash is the
-  claim the screens depend on. A store that cannot be read at all answers the
-  empty wording rather than raising: this is a subtitle on a settings row.
+  `Kati.Screens.Activity.log/0`'s `entries_line`, read rather than recounted.
+  This counted `Kati.Media.Watch` alone, and the log has counted watches AND
+  `Kati.Media.Event`s since *Added* and *Dropped* became entries
+  (MOVIES-AND-TV.md #112), so a reader with three adds, two watches and a drop
+  was told `2 entries` on this row and `6 entries` on the page it opens. One
+  function answering both is what stops the next kind of entry from splitting
+  them again. `log/0` answers its empty wording for a store it cannot read, so
+  this does too.
   """
   @spec entries_count() :: String.t()
   def entries_count do
-    Watch |> Ash.read!() |> length() |> Kati.Screens.Activity.entries_line()
+    Kati.Screens.Activity.log().entries_line
   rescue
     _error -> Kati.Screens.Activity.entries_line(0)
   end

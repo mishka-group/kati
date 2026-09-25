@@ -762,6 +762,26 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.AddTitle, :query}
   ]
 
+  # Readers whose named-but-missing row draws a page that SAYS so, rather than
+  # what a bare push draws. Exempt from assertion 2 for the reason the
+  # assertion exists: it forbids substituting another row, and this substitutes
+  # nothing — it states that the row the push named has gone.
+  #
+  # Screens 08 and 04 drew their empty frame for such an id: no title, a green
+  # *Watched* pill holding only a tick, an empty `SEEN`, five hollow stars. That
+  # is what a reader got who opened a search hit for a title removed a moment
+  # earlier, or came back to a page whose title was removed above it (N30,
+  # Pixel 9a, 25 Sep). A bare push still draws the frame — the gallery's door
+  # onto an empty store, where nothing was named and nothing has gone. See
+  # `Kati.Screens.Film.gone/2`.
+  #
+  # `the gone-page list has no stale entries` fails on an entry whose two
+  # renders agree again, so this list may only shrink.
+  @gone_pages [
+    {Kati.Screens.Film, :id},
+    {Kati.Screens.Series, :id}
+  ]
+
   # Readers named by hand, so a scan that stops matching fails loudly instead of
   # passing over nothing. Each was read at the line beside it. `Season` is here
   # because it is the one the first version of the key scan went blind on.
@@ -1019,7 +1039,10 @@ defmodule Kati.ScreenParamsSweepTest do
              Enum.join(Enum.uniq(unrendered), "\n")
 
     offenders =
-      for {locale, module, key, named, bare} <- renders, named != bare, do: {locale, module, key}
+      for {locale, module, key, named, bare} <- renders,
+          named != bare,
+          not Enum.member?(@gone_pages, {module, key}),
+          do: {locale, module, key}
 
     assert offenders == [],
            "these screens render one page for an id that names nothing and a different page " <>
@@ -1045,6 +1068,22 @@ defmodule Kati.ScreenParamsSweepTest do
              "more — either the screen stopped reading them, in which case the exemption is " <>
              "hiding that, or they became identity keys the assertion above should be " <>
              "covering. Delete them from @carried_values in " <>
+             "#{Path.relative_to_cwd(__ENV__.file)}:\n" <>
+             Enum.map_join(stale, "\n", fn entry -> "  #{inspect(entry)}" end)
+  end
+
+  test "the gone-page list has no stale entries" do
+    stale =
+      in_empty_store(fn ->
+        for {module, key} <- @gone_pages,
+            render_with(module, %{key => @nothing}) == render_with(module, %{}) do
+          {module, key}
+        end
+      end)
+
+    assert stale == [],
+           "these screens draw the same page for a named row that has gone as for a bare " <>
+             "push again, so the exemption covers nothing. Delete them from @gone_pages in " <>
              "#{Path.relative_to_cwd(__ENV__.file)}:\n" <>
              Enum.map_join(stale, "\n", fn entry -> "  #{inspect(entry)}" end)
   end

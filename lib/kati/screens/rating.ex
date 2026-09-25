@@ -1403,7 +1403,7 @@ defmodule Kati.Screens.Rating do
   The five-star row, tappable or not.
 
   Five empty stars for `nil`, which is what "you have not rated this" looks
-  like — `Kati.Screens.Film.star_count/1` gives the same answer for the same
+  like — `Kati.Screens.Film.stars/1` gives the same answer for the same
   reason.
 
   **`tappable?` defaults to false, and the default is the one that matters.**

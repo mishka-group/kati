@@ -140,6 +140,9 @@ defmodule Kati.Screens.Series do
   # takes the push's params directly. `Map.get/2` rather than a pattern match on
   # the key, so a bare push — the gallery's, every sweep's — still gets the top
   # of the shelf, which is what this screen has always drawn.
+  #
+  # `Kati.Screens.Resume.watch/0` and the kept `:id` for the reasons
+  # `Kati.Screens.Film`'s `mount/3` gives.
   def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
     # Resolves the stored locale into THIS process. `Gettext.put_locale/2`
@@ -147,9 +150,13 @@ defmodule Kati.Screens.Series do
     # and a screen is its own process — see `Kati.Locale.activate/0`.
     Kati.Locale.activate()
 
+    Kati.Screens.Resume.watch()
+    id = Map.get(params || %{}, :id)
+
     {:ok,
      socket
-     |> Mob.Socket.assign(:series, series(Map.get(params || %{}, :id)))
+     |> Mob.Socket.assign(:series, series(id))
+     |> Mob.Socket.assign(:id, id)
      |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
      |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:menu?, false)}
@@ -164,11 +171,14 @@ defmodule Kati.Screens.Series do
   the wording.
 
   `id` is the tracked row a poster carried here. Without one the referent is
-  the top of the shelf, which is what every arrival used to get.
+  the top of the shelf, which is what every arrival used to get. An id the
+  shelf no longer holds answers `empty_series/0` marked `gone?: true`, which
+  `render/1` draws as `Kati.Screens.Film.gone/2`'s sentence and back pill.
   """
   @spec series(String.t() | nil) :: map()
   def series(id \\ nil) do
     case tracked_series(id) do
+      nil when is_binary(id) -> Map.put(empty_series(), :gone?, true)
       nil -> empty_series()
       facts -> shaped(facts)
     end
@@ -255,9 +265,12 @@ defmodule Kati.Screens.Series do
   seed, so an empty page is a state screen 04 can already draw rather than a
   second implementation of it.
 
-  This is what a reader gets when nothing names a series — an id that matches no
-  row, or a store with nothing in it. It replaced `drawn_series/0` on that path:
-  a shelf with nothing on it is not a reason to draw somebody else's show.
+  This is what a reader gets when nothing names a series and the store has
+  none to offer. It replaced `drawn_series/0` on that path: a shelf with
+  nothing on it is not a reason to draw somebody else's show. For a NAMED id that matches no row, `series/1` marks it `gone?: true` and the
+  page is `Kati.Screens.Film.gone/2`'s sentence instead, because an empty frame
+  read as a page that failed to load rather than as a show that has left the
+  shelf.
   """
   @spec empty_series() :: map()
   def empty_series do
@@ -850,6 +863,14 @@ defmodule Kati.Screens.Series do
 
   def render(assigns) do
     s = assigns.series
+
+    if Kati.Screens.Film.gone?(s),
+      do: Kati.Screens.Film.gone(__MODULE__, Map.get(assigns, :back, gettext("Library"))),
+      else: Kati.Screens.Series.page(s, assigns)
+  end
+
+  @doc false
+  def page(s, assigns) do
     pct = Kati.Screens.Series.fraction(s)
 
     ~MOB"""
@@ -2203,10 +2224,11 @@ defmodule Kati.Screens.Series do
   # Coming back from the season screen, the rate-an-episode sheet or the drop
   # sheet — all three write, and all three end in a pop. See
   # `Kati.Screens.Resume`, and `Kati.Screens.Film` for why the clause is here
-  # rather than in a `handle_kati/3`.
+  # rather than in a `handle_kati/3` and why the push's id stands in when the
+  # page on screen is the one that says the show has gone.
   def handle_info({:kati, :resumed, _payload}, socket) do
-    {:noreply,
-     Mob.Socket.assign(socket, :series, series(Map.get(socket.assigns.series, :tracked_id)))}
+    id = Map.get(socket.assigns.series, :tracked_id) || Map.get(socket.assigns, :id)
+    {:noreply, Mob.Socket.assign(socket, :series, series(id))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}

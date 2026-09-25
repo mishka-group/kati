@@ -413,12 +413,12 @@ defmodule Kati.Screens.AddByHandBook do
   A card rather than 154's cream one, because the board draws it as a card: it
   states a fact about what was stored rather than carrying a warning.
 
-  Three msgids and not one, for `Kati.Screens.AddByHand.split_note/4`'s reason:
-  `Kati.ScreenDesignLiteralTest` compares a drawing's lines against the tree's,
-  and the board's `<strong>` splits the sentence into runs a single joined
-  string would no longer match. It costs the translator the sentence's shape —
-  154's Persian solves it by letting the bold run carry the verb
-  (*پوستر و فهرست قسمت ندارد*), and this one follows it.
+  Three msgids and not one, because the board's `<strong>` splits the sentence
+  into runs. Screen 154's note was built the same way and is now one `Text`
+  (`Kati.Screens.AddByHand.note/2`), because a `Column` of runs stacks rather
+  than flows and broke the sentence into lines on the device. It costs the
+  translator the sentence's shape — this Persian lets the bold run carry the
+  verb, which is how 154's runs were translated.
   """
   @spec closing_note() :: map()
   def closing_note do
