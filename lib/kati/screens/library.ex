@@ -449,7 +449,16 @@ defmodule Kati.Screens.Library do
           String.t() | nil
   def meta_for(tracked, cached, ticks, seen \\ 0)
 
-  def meta_for(%TrackedTitle{kind: :movie} = tracked, cached, _ticks, seen) do
+  # A film by what it IS, not by its `kind` column: an anime film is tracked as
+  # `:anime` and fell to the series clause, which printed nothing for a title
+  # with no episodes — *Spirited Away* drew a blank line on Home (N16).
+  def meta_for(%TrackedTitle{} = tracked, cached, ticks, seen) do
+    if Kati.Media.Anime.film?(tracked.kind, cached),
+      do: film_meta(tracked, cached, seen),
+      else: series_meta(cached, ticks)
+  end
+
+  defp film_meta(tracked, cached, seen) do
     minutes = cached && cached.runtime_minutes
     seconds = tracked.progress_seconds
 
@@ -469,7 +478,7 @@ defmodule Kati.Screens.Library do
     end
   end
 
-  def meta_for(%TrackedTitle{}, cached, ticks, _seen) do
+  defp series_meta(cached, ticks) do
     total = cached && cached.episode_count
 
     if is_integer(total) and total > 0 do

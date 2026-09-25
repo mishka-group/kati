@@ -596,10 +596,19 @@ defmodule Kati.Screens.UpNext do
   # line empty, and the home-screen widget, which copies this hero, drew a blank
   # second line under the title (W6, found on the owner's A55 with *Marram*).
   # What it is and when it came out are both still true of it.
+  # The NEXT episode where one is cached, the bookmark otherwise — the same
+  # answer Home's Continue watching gives (N15).
   defp hero_meta(row, c) do
-    case join(episode(row) ++ hero_tail(row, c)) do
+    case join(next_or_bookmark(row) ++ hero_tail(row, c)) do
       "" -> join(Enum.map(identity(row, c), &Kati.UI.eyebrow_label/1))
       meta -> meta
+    end
+  end
+
+  defp next_or_bookmark(row) do
+    case Kati.Media.NextEpisode.of(row) do
+      {s, e} -> [gettext("S%{s} · E%{e}", s: Kati.Locale.number(s), e: Kati.Locale.number(e))]
+      nil -> episode(row)
     end
   end
 

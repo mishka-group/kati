@@ -409,10 +409,33 @@ defmodule Kati.Screens.Home do
         # line the board draws under every card could not appear however much
         # somebody watched — see that function for what each half is allowed
         # to say and when it says nothing.
-        meta: &1.meta
+        meta: Kati.Screens.Home.continue_meta(&1)
       }
     )
   end
+
+  @doc """
+  A Continue watching card's line: the next episode for a series, and
+  `Kati.Screens.Library.meta_for/4`'s own line for a film or when nothing is
+  cached.
+
+  `meta_for/4` counts ticks and has no season, so it printed `S1 · E<ticks+1>`
+  whatever season the reader was in, and disagreed with screen 10 about where
+  they were (N15). `Kati.Media.NextEpisode` is what both ask now.
+  """
+  @spec continue_meta(map()) :: String.t() | nil
+  def continue_meta(%{id: id, meta: meta}) when is_binary(id) do
+    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {s, e} <- Kati.Media.NextEpisode.of(tracked) do
+      gettext("S%{s} · E%{e}", s: Kati.Locale.number(s), e: Kati.Locale.number(e))
+    else
+      _film_or_unknown -> meta
+    end
+  rescue
+    _error -> meta
+  end
+
+  def continue_meta(row), do: Map.get(row, :meta)
 
   @doc """
   The region Kati answers *available* for, and how many services are set up.
