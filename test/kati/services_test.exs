@@ -283,28 +283,16 @@ defmodule Kati.ServicesTest do
       assert Sources.key_for(:listenbrainz) == "source_token_listenbrainz"
     end
 
-    test "the sheet opens with ListenBrainz explaining itself" do
-      view = mount_screen(DataSources)
-
-      assert assigns(view).expanded == :listenbrainz
-
-      tree = tree(view)
-      assert find(tree, :text, text: "Pairing — expanded") != nil
-      # Expanding must not take the answer to *what is this for* away.
-      assert find(tree, :text, text: "Scrobbles, listening history") != nil
-    end
-
-    test "and the card names the site the token comes from, not a code nobody issued" do
+    test "the page draws no pairing card for a provider Kati cannot reach" do
+      # N41. It opened with ListenBrainz's pairing card expanded, over a
+      # provider nothing in `lib/` calls; the group is not drawn at all now,
+      # and neither is anything that asked the reader to go and fetch a token
+      # for it. MOVIES-AND-TV.md #71's invented code stays gone with it.
       tree = tree(mount_screen(DataSources))
 
-      assert find(tree, :text, text: "listenbrainz.org/profile") != nil
-      assert find(tree, :text, text: "Not connected yet") != nil
-
-      # MOVIES-AND-TV.md #71. `K4Q9B2` came from `pairing_code/1`, which
-      # derives six characters from the provider id because Kati talks to none
-      # of these three; `listenbrainz.org/link` was under all three, so a
-      # Hardcover reader was sent to somebody else's site; and `Expires in
-      # 9:48` never counted, because nothing had started.
+      assert find(tree, :text, text: "Pairing — expanded") == nil
+      assert find(tree, :text, text: "listenbrainz.org/profile") == nil
+      assert find(tree, :text, text: "Scrobbles, listening history") == nil
       assert find(tree, :text, text: "K4Q9B2") == nil
       assert find(tree, :text, text: "listenbrainz.org/link") == nil
       assert find(tree, :text, text: "Expires in 9:48") == nil
@@ -320,20 +308,6 @@ defmodule Kati.ServicesTest do
 
         assert source.site == site
       end
-    end
-
-    test "and Kati says plainly that it cannot pair with any of them yet" do
-      refute Enum.any?([:listenbrainz, :hardcover, :thetvdb], &DataSources.ready?/1)
-    end
-
-    test "tapping a connected row's provider collapses and expands it" do
-      view = mount_screen(DataSources)
-
-      collapsed = render_info(view, {:tap, :connect_listenbrainz})
-      assert assigns(collapsed).expanded == nil
-
-      other = render_info(view, {:tap, :connect_hardcover})
-      assert assigns(other).expanded == :hardcover
     end
 
     test "the TMDB choice is two working configurations, not an on and an off" do

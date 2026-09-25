@@ -137,6 +137,13 @@ defmodule Kati.Screens.Resume do
 
   Once watched, `announce/0` stands down, so a pill tap is one `:resumed`, not
   two.
+
+  A hand-rolled screen has to call it itself. Screens 08 and 04 always did; the
+  sheets they open — `Kati.Screens.Rating`, `Kati.Screens.RateEpisode`,
+  `Kati.Screens.DropSheet`, `Kati.Screens.SeriesMeta`, `Kati.Screens.AddToList`
+  and `Kati.Screens.QuickAdd` — did not, so a gesture back off one of them left
+  the page underneath drawing what it drew before, a title removed meanwhile
+  included (N37).
   """
   @spec watch() :: :ok
   def watch do

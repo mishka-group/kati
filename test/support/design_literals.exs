@@ -435,11 +435,10 @@ defmodule Kati.DesignLiterals do
   started, because nothing had. A reader who took the card at face value went
   to a URL that was not theirs and typed a code nobody had issued.
 
-  The card names the site the token actually comes from now — `:site` on
-  `Kati.Sources`, one per provider — says what connecting would bring, and
-  says Kati cannot complete it yet. The slot is still there:
-  `Kati.Screens.DataSources.ready?/1` answers `false` for all three today and
-  the code comes back from the provider the day one answers `true`.
+  The card itself is gone now, with the whole group it sat in (N41): no code
+  in `lib/` calls ListenBrainz, Hardcover or TheTVDB, so screen 80 offers to
+  connect none of them. The site each token comes from stays on
+  `Kati.Sources.tier2/0` for the day a client lands.
 
   82 is 80 in Persian and lost the same three lines for the same reason. en
   and fa are one app.
@@ -453,6 +452,43 @@ defmodule Kati.DesignLiterals do
       # reader's own token is the default now, so where there is nothing to
       # choose between there are no chips. `Kati.DataSourcesKeyTest` draws them
       # both ways.
+      # N41: board 80 lists six providers beside TMDB — *Working out of the
+      # box* (TVmaze, Open Library, MusicBrainz) and *Connect an account*
+      # (ListenBrainz, Hardcover, TheTVDB, with ListenBrainz's pairing card
+      # open and a connected row reading *ines.k · 412 listens*). Kati calls
+      # none of the six — `Kati.SecureStore`'s inventory says so — so the page
+      # advertised sources the app never touches. Both groups are gone, and
+      # `Kati.Sources` keeps the lists for the day a client lands. The glyphs
+      # are `@retired_symbols`' in `Kati.ScreenDesignLiteralTest`; 82 is 80 in
+      # Persian.
+      {"80", "working out of the box"},
+      {"80", "tv & film · tvmaze"},
+      {"80", "air dates, episode lists"},
+      {"80", "books · open library"},
+      {"80", "covers, editions, isbns"},
+      {"80", "music · musicbrainz"},
+      {"80", "albums, artists, cover art"},
+      {"80", "connect an account"},
+      {"80", "listenbrainz"},
+      {"80", "scrobbles, listening history"},
+      {"80", "hardcover"},
+      {"80", "thetvdb"},
+      {"80", "artwork, absolute ordering"},
+      {"80", "pairing — expanded"},
+      {"80", "connected as ines.k · 412 listens"},
+      {"80",
+       "listenbrainz needs your own token because it writes to your account, not kati’s. nothing is shared between users."},
+      {"82", "بدون تنظیم کار می‌کند"},
+      {"82", "فیلم و سریال · tvmaze"},
+      {"82", "تاریخ پخش، فهرست قسمت‌ها"},
+      {"82", "کتاب · open library"},
+      {"82", "جلد، نسخه‌ها، شماره شابک"},
+      {"82", "موسیقی · musicbrainz"},
+      {"82", "آلبوم، هنرمند، تصویر جلد"},
+      {"82", "اتصال حساب"},
+      {"82", "listenbrainz"},
+      {"82", "در حال جفت‌شدن"},
+      {"82", "listenbrainz به توکن خودتان نیاز دارد، چون روی حساب شما می‌نویسد نه حساب کاتی."},
       {"80", "use kati’s key"},
       {"80", "use my own key"},
       {"82", "کلید کاتی"},

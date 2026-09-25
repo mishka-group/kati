@@ -271,6 +271,7 @@ defmodule Kati.Screens.RateEpisode do
     # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
     # and a screen is its own process — see `Kati.Locale.activate/0`.
     Kati.Locale.activate()
+    Kati.Screens.Resume.watch()
 
     {:ok,
      socket

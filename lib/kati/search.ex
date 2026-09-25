@@ -325,21 +325,22 @@ defmodule Kati.Search do
   Board 88 keeps `counts_note/0`, because board 88 is where seven scopes are
   actually drawn.
 
+  It names no number of chips. It once said how many zeroes a reader would see
+  on open, from `length(chip_keys/0)`, and the row the device draws is not that
+  list: Music is greyed and several chips sit off-screen, so the count was a
+  claim about chips the page does not show (N34). *A row of zeroes* is true at
+  any width.
+
       iex> Kati.Search.local_note() =~ "debounce"
       false
   """
   @spec local_note() :: String.t()
   def local_note do
-    # The number of CHIPS, not of narrowable scopes. The sentence is about what
-    # a reader would see on open, and what they see is the row —
-    # `Kati.Search.Query.chip_counts/1` draws one per `chip_keys/0` since board
-    # 90, so the row that read *five zeroes* showed eight of them.
     gettext(
-      "Counts stay off the chips until a query exists — %{n} zeroes on open would read as an " <>
-        "empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where " <>
+      "Counts stay off the chips until a query exists — a row of zeroes on open would read as " <>
+        "an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where " <>
         "one character is a word. Every keystroke runs: the search is your own library on this " <>
-        "device, so waiting would cost more than it saved.",
-      n: Kati.Locale.number(length(chip_keys()))
+        "device, so waiting would cost more than it saved."
     )
   end
 

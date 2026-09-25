@@ -159,7 +159,9 @@ defmodule Kati.Screens.Series do
      |> Mob.Socket.assign(:id, id)
      |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
      |> Mob.Socket.assign(:save_error, nil)
-     |> Mob.Socket.assign(:menu?, false)}
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.assign(:confirm_remove?, false)
+     |> Mob.Socket.assign(:remove_error, nil)}
   end
 
   @doc """
@@ -892,6 +894,11 @@ defmodule Kati.Screens.Series do
             padding_top={16}
             padding_bottom={40}
           >
+            {Kati.Screens.Film.remove_confirm(
+              s,
+              Map.get(assigns, :confirm_remove?, false),
+              Map.get(assigns, :remove_error)
+            )}
             {Kati.Screens.Series.season_card(s, pct)}
             {Kati.Screens.Series.refusal(Map.get(assigns, :save_error))}
             {Kati.Screens.Series.actions(s)}
@@ -1287,7 +1294,8 @@ defmodule Kati.Screens.Series do
         # And the same row screen 08 carries: a Kind picked wrong on 154 could
         # never be corrected anywhere (#113), and a series that is really a
         # film is the same mistake the other way round.
-        Kati.Screens.Film.kind_item(s)
+        Kati.Screens.Film.kind_item(s),
+        Kati.Screens.Film.remove_item(s)
       ]
       # `anime_item/1` answers `[]` over the drawing, where there is no row to
       # tag — dropped rather than drawn dead, which is screen 08's own rule for
@@ -1724,9 +1732,9 @@ defmodule Kati.Screens.Series do
   The three rows are real and are the three the board names. *Log a watch*
   opens screen 33 over the title, which needs no episode; *Drop this show*
   opens the drop sheet, which keeps where you stopped; *Remove from library*
-  destroys the tracked row and nothing else, the same removal screen 06's
-  `untrack/1` and board 146's pill perform — the cached title and every logged
-  watch stay, so it is a shelf decision rather than a deletion of history.
+  is `remove/1`, the same removal screen 06's `untrack/1` and board 146's pill
+  perform — the cached title stays, and the title's logged watches go with the
+  tracked row, which is `remove/1`'s cascade.
 
   A drawn series carries no `tracked_id`, so on the board itself the three rows
   have nothing to act on and draw no tap — the rule this repository keeps
@@ -2172,12 +2180,26 @@ defmodule Kati.Screens.Series do
   def handle_info({:tap, :remove_title}, socket) do
     case Kati.Screens.Series.remove(socket.assigns.series) do
       :ok ->
-        {:noreply, Kati.Screens.Resume.pop(socket)}
+        {:noreply,
+         socket |> Mob.Socket.assign(:confirm_remove?, false) |> Kati.Screens.Resume.pop()}
 
       {:error, reason} ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
     end
   end
+
+  # N36: the ⋯ row's question, `Kati.Screens.Film.remove_confirm/3`, whose
+  # *Remove it* is the `:remove_title` above.
+  def handle_info({:tap, :confirm_remove}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.assign(:confirm_remove?, true)
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  def handle_info({:tap, :keep_title}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :confirm_remove?, false)}
 
   def handle_info({:tap, :open_drop_sheet}, socket),
     do:
@@ -2225,10 +2247,11 @@ defmodule Kati.Screens.Series do
   # sheet — all three write, and all three end in a pop. See
   # `Kati.Screens.Resume`, and `Kati.Screens.Film` for why the clause is here
   # rather than in a `handle_kati/3` and why the push's id stands in when the
-  # page on screen is the one that says the show has gone.
+  # page on screen is the one that says the show has gone — and, since N37,
+  # why a show that has gone closes the ⋯ and the remove question with it.
   def handle_info({:kati, :resumed, _payload}, socket) do
     id = Map.get(socket.assigns.series, :tracked_id) || Map.get(socket.assigns, :id)
-    {:noreply, Mob.Socket.assign(socket, :series, series(id))}
+    {:noreply, Kati.Screens.Film.resumed(socket, :series, series(id))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}

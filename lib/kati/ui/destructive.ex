@@ -23,6 +23,8 @@ defmodule Kati.UI.Destructive do
   gets both.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   import Mob.Sigil
 
   alias Kati.Theme.Palette
@@ -63,9 +65,9 @@ defmodule Kati.UI.Destructive do
           />
         </Row>
         <Spacer size={13} />
-        {Kati.UI.Destructive.clause("Changes:", @changes)}
+        {Kati.UI.Destructive.clause(gettext("Changes:"), @changes)}
         <Spacer size={9} />
-        {Kati.UI.Destructive.clause("Does not change:", @keeps)}
+        {Kati.UI.Destructive.clause(gettext("Does not change:"), @keeps)}
         <Spacer size={15} />
         <Row fill_width={true} align="center">
           <Row
@@ -151,7 +153,7 @@ defmodule Kati.UI.Destructive do
         />
         <Spacer size={11} />
         <Text
-          text="Undo"
+          text={gettext("Undo")}
           text_size={12.5}
           font_weight="bold"
           text_color={Palette.on_ink()}

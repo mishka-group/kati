@@ -1562,13 +1562,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     board's thirty-six. `DesignLiterals.retired_lines/0` names the other
   #     twenty-seven and why each is not here; `Kati.NotificationAccessStatesTest`
   #     draws the other three states.
+  #
+  #   * 80 and 82 lost *Working out of the box* and *Connect an account* (N41):
+  #     six providers Kati never calls, their sub-lines, and ListenBrainz's
+  #     pairing card. `DesignLiterals.retired_lines/0` names every line and
+  #     carries the argument. The page is TMDB, the tokens and the cache now,
+  #     twenty-six strings in either script.
   @floor_allowance %{
     "144" => 5,
     "149" => 3,
     "190" => 2,
     "166" => 1,
     "129" => 7,
-    "151" => 27
+    "151" => 27,
+    "80" => 15,
+    "82" => 6
   }
 
   @moment_symbols [
@@ -1622,7 +1630,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"151", "info"},
     {"151", "settings"},
     {"151", "lock"},
-    {"151", "notifications_off"}
+    {"151", "notifications_off"},
+    # Board 80's two provider groups, gone because Kati calls none of their
+    # six providers (N41). `DesignLiterals.retired_lines/0` holds the words and
+    # the argument; `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this
+    # entry's twin. 82 is 80 in Persian.
+    {"80", "expand_more"},
+    {"80", "graphic_eq"},
+    {"80", "menu_book"},
+    {"80", "tv"},
+    {"82", "expand_more"},
+    {"82", "graphic_eq"},
+    {"82", "menu_book"}
   ]
 
   # The floor this screen is actually held to. Three answers, in order: a screen
@@ -3157,10 +3176,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # shorter twin.
       {"61", "۳ هدف فعال", ~r/^(هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد|\p{N}+ هدف|تعیین نشده)$/u},
       {"61", "۴۶٫۴۷ پوند در ماه", ~r/^(هنوز چیزی برای جمع‌زدن نیست|.*در ماه.*|\p{N}+ هزینه)$/u},
-      # 80's three provider-supplied values and two cache figures, none of which
-      # exists on a device with an empty database and no tokens.
-      {"80", "connected as ines.k · 412 listens",
-       ~r/^(connected as \p{L}[\p{L}.]* · \d+ listens|scrobbles, listening history)$/u},
+      # 80's two cache figures, neither of which exists on a device with an
+      # empty database. Its provider-supplied *Connected as* line went with the
+      # group it sat in (N41) — see `DesignLiterals.retired_lines/0`.
       {"80", "34 mb cached", ~r/^(\d+ mb cached|nothing cached yet)$/u},
       {"80", "oldest entry 2 months",
        ~r/^(oldest entry (today|\d+ (day|days|month|months))|nothing to refresh)$/u},

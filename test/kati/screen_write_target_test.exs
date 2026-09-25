@@ -704,7 +704,12 @@ defmodule Kati.ScreenWriteTargetTest do
   # gallery row went to `@routed` with it. The measured drop is two. Every
   # control is still drawn in its own state — `Kati.NotificationAccessRouteTest`
   # walks all four.
-  @drawn_taps 1849
+  #
+  # 1843 with N41. Screen 80 stopped drawing the providers Kati never calls,
+  # and with them the three taps they carried — ListenBrainz's and TheTVDB's
+  # connect rows and Hardcover's retired row — in both locales. The measured
+  # drop is six. `Kati.DeviceRoundN34N42Test` asserts none of them is drawn.
+  @drawn_taps 1843
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

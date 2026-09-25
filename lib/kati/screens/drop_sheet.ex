@@ -287,6 +287,7 @@ defmodule Kati.Screens.DropSheet do
   def mount(params, _session, socket) do
     Kati.Theme.activate()
     Kati.Locale.activate()
+    Kati.Screens.Resume.watch()
 
     {:ok,
      socket

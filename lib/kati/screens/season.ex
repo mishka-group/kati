@@ -1400,31 +1400,42 @@ defmodule Kati.Screens.Season do
       </Column>
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Row fill_width={true} align="center">
-          <Text
-            text={ep.title}
-            text_size={14}
-            font_weight="semibold"
-            text_color={title_color}
-            max_lines={1}
-          />
-          {Kati.Screens.Season.badge(Map.get(ep, :badge))}
-        </Row>
-        <Spacer size={4} />
         <Text
-          text={ep.sub}
-          font_family={Kati.Locale.mono_face(ep.sub)}
-          text_size={10.5}
-          text_color={Palette.tertiary()}
+          text={ep.title}
+          text_size={14}
+          font_weight="semibold"
+          text_color={title_color}
           max_lines={1}
         />
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          {Kati.Screens.Season.badge(Map.get(ep, :badge))}
+          <Text
+            text={ep.sub}
+            font_family={Kati.Locale.mono_face(ep.sub)}
+            text_size={10.5}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+            weight={1.0}
+          />
+        </Row>
       </Column>
       <Spacer size={13} />
     </Row>
     """
   end
 
-  @doc false
+  @doc """
+  The episode's badge, at the head of its sub-line, or nothing.
+
+  N38: it sat after the title on the title's own line, and a `Row` measures
+  its children in order — so a long title took the whole width and the badge
+  was squeezed into what was left, which on a device read *…* or *SPEC…*.
+  The title now has its line to itself and ellipsises there, and the badge
+  leads the sub-line, measured before the runtime and air date beside it,
+  which take the `weight` and give way instead. It always reads whole.
+  """
+  @spec badge(map() | nil) :: map()
   def badge(nil), do: ~MOB"<Spacer size={0} />"
 
   def badge(badge) do
@@ -1436,8 +1447,8 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Row align="center">
-      <Spacer size={7} />
       {Kati.Screens.Season.badge_pill(badge.label, bg, fg)}
+      <Spacer size={7} />
     </Row>
     """
   end

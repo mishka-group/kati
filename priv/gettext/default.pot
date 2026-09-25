@@ -25,7 +25,7 @@ msgstr ""
 msgid "%{count} titles"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:115
+#: lib/kati/screens/add_to_list.ex:116
 #, elixir-autogen, elixir-format
 msgid "%{count} titles selected"
 msgstr ""
@@ -105,7 +105,7 @@ msgstr ""
 msgid "Add one thing you are watching and the calendar starts filling itself."
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:138
+#: lib/kati/screens/add_to_list.ex:139
 #, elixir-autogen, elixir-format
 msgid "Add to a list"
 msgstr ""
@@ -300,13 +300,13 @@ msgstr ""
 msgid "Continue with %{count}"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:321
-#: lib/kati/screens/add_to_list.ex:326
+#: lib/kati/screens/add_to_list.ex:322
+#: lib/kati/screens/add_to_list.ex:327
 #, elixir-autogen, elixir-format
 msgid "Couldn’t add it. Nothing was written."
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:554
+#: lib/kati/screens/add_to_list.ex:555
 #, elixir-autogen, elixir-format
 msgid "Couldn’t make it. Nothing was written."
 msgstr ""
@@ -537,12 +537,12 @@ msgstr ""
 msgid "How should we\ntell you?"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:247
+#: lib/kati/screens/add_to_list.ex:248
 #, elixir-autogen, elixir-format
 msgid "IN %{count} LISTS"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:245
+#: lib/kati/screens/add_to_list.ex:246
 #, elixir-autogen, elixir-format
 msgid "IN NO LISTS"
 msgstr ""
@@ -611,12 +611,13 @@ msgid "Kati, and Mob"
 msgstr ""
 
 #: lib/kati/screens/clear_history.ex:440
+#: lib/kati/screens/film.ex:2037
 #: lib/kati/screens/list_detail.ex:220
 #, elixir-autogen, elixir-format
 msgid "Keep it"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:394
+#: lib/kati/screens/add_to_list.ex:395
 #, elixir-autogen, elixir-format
 msgid "Kept by Kati — not addable"
 msgstr ""
@@ -632,11 +633,11 @@ msgstr ""
 
 #: lib/kati/meals/sample_today.ex:104
 #: lib/kati/screens/books.ex:441
-#: lib/kati/screens/film.ex:614
-#: lib/kati/screens/film.ex:678
-#: lib/kati/screens/film.ex:869
-#: lib/kati/screens/film.ex:910
-#: lib/kati/screens/film.ex:928
+#: lib/kati/screens/film.ex:616
+#: lib/kati/screens/film.ex:704
+#: lib/kati/screens/film.ex:900
+#: lib/kati/screens/film.ex:941
+#: lib/kati/screens/film.ex:959
 #: lib/kati/screens/library.ex:172
 #: lib/kati/screens/library.ex:818
 #: lib/kati/screens/library.ex:1644
@@ -645,15 +646,15 @@ msgstr ""
 #: lib/kati/screens/library.ex:1832
 #: lib/kati/screens/music.ex:573
 #: lib/kati/screens/pushed.ex:195
-#: lib/kati/screens/series.ex:868
-#: lib/kati/screens/series.ex:1181
+#: lib/kati/screens/series.ex:870
+#: lib/kati/screens/series.ex:1188
 #: lib/kati/screens/shelf_selection.ex:376
 #: lib/kati/shell.ex:78
 #, elixir-autogen, elixir-format
 msgid "Library"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:455
+#: lib/kati/screens/add_to_list.ex:456
 #: lib/kati/screens/list_detail.ex:275
 #, elixir-autogen, elixir-format
 msgid "List name"
@@ -678,8 +679,8 @@ msgstr ""
 msgid "Lunch"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:145
-#: lib/kati/screens/add_to_list.ex:407
+#: lib/kati/screens/add_to_list.ex:146
+#: lib/kati/screens/add_to_list.ex:408
 #, elixir-autogen, elixir-format
 msgid "Make it and add"
 msgstr ""
@@ -760,22 +761,22 @@ msgstr ""
 msgid "NO DETAILS YET"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:551
+#: lib/kati/screens/add_to_list.ex:552
 #, elixir-autogen, elixir-format
 msgid "Name it first."
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:264
+#: lib/kati/screens/add_to_list.ex:265
 #, elixir-autogen, elixir-format
 msgid "Name one and %{subject} goes straight into it."
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:261
+#: lib/kati/screens/add_to_list.ex:262
 #, elixir-autogen, elixir-format
 msgid "Name one, and it is ready for the next thing you add."
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:412
+#: lib/kati/screens/add_to_list.ex:413
 #, elixir-autogen, elixir-format
 msgid "New list"
 msgstr ""
@@ -898,7 +899,7 @@ msgstr ""
 msgid "Open source"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:139
+#: lib/kati/screens/add_to_list.ex:140
 #, elixir-autogen, elixir-format
 msgid "Pick a list"
 msgstr ""
@@ -941,7 +942,7 @@ msgstr ""
 msgid "Reading"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:507
+#: lib/kati/screens/data_sources.ex:454
 #: lib/kati/screens/list_detail.ex:564
 #: lib/kati/screens/shelf_large.ex:360
 #: lib/kati/screens/shelf_selection.ex:831
@@ -1022,10 +1023,10 @@ msgstr ""
 #: lib/kati/screens/add_by_hand.ex:357
 #: lib/kati/screens/add_by_hand_states.ex:260
 #: lib/kati/screens/pushed.ex:206
-#: lib/kati/screens/series_meta.ex:422
-#: lib/kati/screens/series_meta.ex:651
-#: lib/kati/screens/series_meta.ex:683
-#: lib/kati/screens/series_meta.ex:701
+#: lib/kati/screens/series_meta.ex:423
+#: lib/kati/screens/series_meta.ex:652
+#: lib/kati/screens/series_meta.ex:684
+#: lib/kati/screens/series_meta.ex:702
 #: lib/kati/screens/stats.ex:1579
 #: lib/kati/screens/stats.ex:1773
 #: lib/kati/screens/up_next.ex:625
@@ -1208,8 +1209,8 @@ msgstr ""
 #: lib/kati/screens/home_empty.ex:379
 #: lib/kati/screens/log_weight.ex:316
 #: lib/kati/screens/meals_today.ex:484
-#: lib/kati/screens/rate_episode.ex:726
-#: lib/kati/screens/rating.ex:1984
+#: lib/kati/screens/rate_episode.ex:727
+#: lib/kati/screens/rating.ex:1985
 #: lib/kati/screens/up_next.ex:823
 #, elixir-autogen, elixir-format
 msgid "Today"
@@ -1234,7 +1235,7 @@ msgstr ""
 #: lib/kati/screens/health.ex:102
 #: lib/kati/screens/home.ex:299
 #: lib/kati/screens/library.ex:1212
-#: lib/kati/screens/settings.ex:550
+#: lib/kati/screens/settings.ex:591
 #, elixir-autogen, elixir-format
 msgid "Watching"
 msgstr ""
@@ -1292,7 +1293,7 @@ msgstr ""
 msgid "Year"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:151
+#: lib/kati/screens/add_to_list.ex:152
 #, elixir-autogen, elixir-format
 msgid "You have no lists yet"
 msgstr ""
@@ -1357,7 +1358,7 @@ msgid "or import a backup"
 msgstr ""
 
 #: lib/kati/lists/shelf.ex:118
-#: lib/kati/screens/add_to_list.ex:358
+#: lib/kati/screens/add_to_list.ex:359
 #: lib/kati/screens/lists.ex:489
 #, elixir-autogen, elixir-format
 msgid "ranked"
@@ -1368,7 +1369,7 @@ msgstr ""
 msgid "repeats every week"
 msgstr ""
 
-#: lib/kati/screens/add_to_list.ex:359
+#: lib/kati/screens/add_to_list.ex:360
 #: lib/kati/screens/lists.ex:490
 #, elixir-autogen, elixir-format
 msgid "shared"
@@ -1437,8 +1438,7 @@ msgstr ""
 msgid "Back"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:73
-#: lib/kati/screens/data_sources.ex:1521
+#: lib/kati/screens/data_sources.ex:77
 #: lib/kati/screens/data_sources_states.ex:211
 #: lib/kati/screens/pushed.ex:187
 #: lib/kati/settings/sample.ex:318
@@ -1447,14 +1447,14 @@ msgid "Data sources"
 msgstr ""
 
 #: lib/kati/screens/pushed.ex:188
-#: lib/kati/screens/series.ex:1257
+#: lib/kati/screens/series.ex:1264
 #, elixir-autogen, elixir-format
 msgid "Episode order"
 msgstr ""
 
 #: lib/kati/screens/pushed.ex:189
-#: lib/kati/screens/series.ex:1144
-#: lib/kati/screens/series_meta.ex:789
+#: lib/kati/screens/series.ex:1151
+#: lib/kati/screens/series_meta.ex:790
 #, elixir-autogen, elixir-format
 msgid "Episodes"
 msgstr ""
@@ -1553,7 +1553,7 @@ msgstr ""
 #: lib/kati/screens/home.ex:596
 #: lib/kati/screens/home_omitted_sections.ex:205
 #: lib/kati/screens/pushed.ex:207
-#: lib/kati/screens/settings.ex:550
+#: lib/kati/screens/settings.ex:591
 #, elixir-autogen, elixir-format
 msgid "Settings"
 msgstr ""
@@ -2061,7 +2061,7 @@ msgid "On pace to finish"
 msgstr ""
 
 #: lib/kati/goals/sample.ex:51
-#: lib/kati/screens/data_sources.ex:1318
+#: lib/kati/screens/data_sources.ex:938
 #: lib/kati/screens/goals.ex:247
 #: lib/kati/screens/habits.ex:580
 #, elixir-autogen, elixir-format
@@ -2340,7 +2340,7 @@ msgstr ""
 
 #: lib/kati/health/weight_sample.ex:76
 #: lib/kati/screens/album_detail.ex:377
-#: lib/kati/screens/data_sources.ex:1315
+#: lib/kati/screens/data_sources.ex:935
 #, elixir-autogen, elixir-format
 msgid "today"
 msgstr ""
@@ -2743,13 +2743,13 @@ msgstr ""
 msgid "Removes them from Discover, Up next and What fits tonight. Your library and wishlist keep everything."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1244
+#: lib/kati/screens/data_sources.ex:864
 #: lib/kati/screens/data_sources_states.ex:746
 #, elixir-autogen, elixir-format
 msgid "%{n} MB cached"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1589
+#: lib/kati/screens/data_sources.ex:1171
 #, elixir-autogen, elixir-format
 msgid "%{n} could not be reached."
 msgid_plural "%{n} could not be reached."
@@ -2780,7 +2780,7 @@ msgid_plural "%{n} minutes ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:1322
+#: lib/kati/screens/data_sources.ex:942
 #, elixir-autogen, elixir-format
 msgid "%{n} month"
 msgid_plural "%{n} months"
@@ -2802,55 +2802,55 @@ msgstr ""
 msgid "A pasted client secret again. ListenBrainz does the same job with a token you issue and can revoke yourself, which is why that one is offered and this one is not."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:627
+#: lib/kati/screens/data_sources.ex:574
 #, elixir-autogen, elixir-format
 msgid "A token of yours is stored. Kati searches with it."
 msgstr ""
 
-#: lib/kati/sources.ex:79
+#: lib/kati/sources.ex:85
 #, elixir-autogen, elixir-format
 msgid "Air dates, episode lists"
 msgstr ""
 
-#: lib/kati/sources.ex:91
+#: lib/kati/sources.ex:97
 #, elixir-autogen, elixir-format
 msgid "Albums, artists, cover art"
 msgstr ""
 
-#: lib/kati/sources.ex:138
+#: lib/kati/sources.ex:144
 #, elixir-autogen, elixir-format
 msgid "Artwork, absolute ordering"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:73
+#: lib/kati/screens/data_sources.ex:77
 #, elixir-autogen, elixir-format
 msgid "Better artwork and metadata"
 msgstr ""
 
-#: lib/kati/sources.ex:84
+#: lib/kati/sources.ex:90
 #, elixir-autogen, elixir-format
 msgid "Books · Open Library"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:73
+#: lib/kati/screens/data_sources.ex:77
 #, elixir-autogen, elixir-format
 msgid "Cached metadata"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1186
+#: lib/kati/screens/data_sources.ex:806
 #: lib/kati/screens/search_idle.ex:261
 #, elixir-autogen, elixir-format
 msgid "Clear"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1368
+#: lib/kati/screens/data_sources.ex:988
 #, elixir-autogen, elixir-format
 msgid "Cleared %{n} cached row."
 msgid_plural "Cleared %{n} cached rows."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/sources.ex:126
+#: lib/kati/sources.ex:132
 #, elixir-autogen, elixir-format
 msgid "Community book ratings"
 msgstr ""
@@ -2860,53 +2860,22 @@ msgstr ""
 msgid "Community book ratings, read with a token of your own."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:177
-#, elixir-autogen, elixir-format
-msgid "Connect"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:73
-#, elixir-autogen, elixir-format
-msgid "Connect an account"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:849
-#, elixir-autogen, elixir-format
-msgid "Connected"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:844
-#: lib/kati/screens/data_sources.ex:847
-#, elixir-autogen, elixir-format
-msgid "Connected as %{who}"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:838
-#, elixir-autogen, elixir-format
-msgid "Connected as %{who} · %{n} listens"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:1500
+#: lib/kati/screens/data_sources.ex:1119
 #, elixir-autogen, elixir-format
 msgid "Couldn’t remove it. Nothing changed."
 msgstr ""
 
-#: lib/kati/sources.ex:85
+#: lib/kati/sources.ex:91
 #, elixir-autogen, elixir-format
 msgid "Covers, editions, ISBNs"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:181
-#, elixir-autogen, elixir-format
-msgid "Disconnect"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:1155
+#: lib/kati/screens/data_sources.ex:775
 #, elixir-autogen, elixir-format
 msgid "Disconnect everything and wipe tokens"
 msgstr ""
 
-#: lib/kati/sources.ex:129
+#: lib/kati/sources.ex:135
 #, elixir-autogen, elixir-format
 msgid "Hardcover’s ratings are read with your own token, so your reading is not attributed to anyone else."
 msgstr ""
@@ -2921,7 +2890,7 @@ msgstr ""
 msgid "Kati already has Open Library for covers and editions, and a second book source that needs an account is a setup step for a number you did not ask for."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1186
+#: lib/kati/screens/data_sources.ex:806
 #, elixir-autogen, elixir-format
 msgid "Kati refreshes anything older than six months on its own. That is a promise it keeps, not a limit it suffers."
 msgstr ""
@@ -2931,12 +2900,12 @@ msgstr ""
 msgid "Kati would have to read it from the phone's own health store, and that is a permission this app has not asked for. Everything Kati holds today, you typed."
 msgstr ""
 
-#: lib/kati/sources.ex:117
+#: lib/kati/sources.ex:123
 #, elixir-autogen, elixir-format
 msgid "ListenBrainz needs your own token because it writes to your account, not Kati’s. Nothing is shared between users."
 msgstr ""
 
-#: lib/kati/sources.ex:90
+#: lib/kati/sources.ex:96
 #, elixir-autogen, elixir-format
 msgid "Music · MusicBrainz"
 msgstr ""
@@ -2946,18 +2915,13 @@ msgstr ""
 msgid "No date, deliberately. Kati would rather say no than make a promise nobody has kept."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:195
-#, elixir-autogen, elixir-format
-msgid "Not connected yet"
-msgstr ""
-
 #: lib/kati/screens/retired_reason.ex:68
 #, elixir-autogen, elixir-format
 msgid "Not in this version"
 msgstr ""
 
 #: lib/kati/screens/add_ingredient.ex:466
-#: lib/kati/screens/data_sources.ex:759
+#: lib/kati/screens/data_sources.ex:634
 #: lib/kati/screens/health_empty_states.ex:609
 #: lib/kati/screens/health_empty_states.ex:673
 #: lib/kati/screens/notification_access.ex:563
@@ -2966,13 +2930,12 @@ msgstr ""
 msgid "Not in v1"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:733
 #: lib/kati/screens/notification_access.ex:532
 #, elixir-autogen, elixir-format
 msgid "Not set up — tap to see why"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1257
+#: lib/kati/screens/data_sources.ex:877
 #, elixir-autogen, elixir-format
 msgid "Nothing cached yet"
 msgstr ""
@@ -2982,22 +2945,22 @@ msgstr ""
 msgid "Nothing named"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1580
+#: lib/kati/screens/data_sources.ex:1162
 #, elixir-autogen, elixir-format
 msgid "Nothing on the shelf to refresh."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1303
+#: lib/kati/screens/data_sources.ex:923
 #, elixir-autogen, elixir-format
 msgid "Nothing to refresh"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1365
+#: lib/kati/screens/data_sources.ex:985
 #, elixir-autogen, elixir-format
 msgid "Nothing was cached."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1291
+#: lib/kati/screens/data_sources.ex:911
 #: lib/kati/screens/data_sources_states.ex:725
 #, elixir-autogen, elixir-format
 msgid "Oldest entry %{age}"
@@ -3008,45 +2971,40 @@ msgstr ""
 msgid "Open this from the thing you were asking about and Kati says why that one is not here."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:191
-#, elixir-autogen, elixir-format
-msgid "Pairing — expanded"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:1507
+#: lib/kati/screens/data_sources.ex:1126
 #, elixir-autogen, elixir-format
 msgid "Paste a token first."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:185
+#: lib/kati/screens/data_sources.ex:151
 #, elixir-autogen, elixir-format
 msgid "Paste your TMDB read token"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:263
+#: lib/kati/screens/data_sources.ex:210
 #, elixir-autogen, elixir-format
 msgid "Posters, backdrops, cast"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1183
+#: lib/kati/screens/data_sources.ex:803
 #, elixir-autogen, elixir-format
 msgid "Refresh"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1583
-#: lib/kati/screens/data_sources.ex:1587
+#: lib/kati/screens/data_sources.ex:1165
+#: lib/kati/screens/data_sources.ex:1169
 #, elixir-autogen, elixir-format
 msgid "Refreshed %{n} title."
 msgid_plural "Refreshed %{n} titles."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:1183
+#: lib/kati/screens/data_sources.ex:803
 #, elixir-autogen, elixir-format
 msgid "Refreshing…"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:374
+#: lib/kati/screens/data_sources.ex:321
 #, elixir-autogen, elixir-format
 msgid "Replace"
 msgstr ""
@@ -3054,24 +3012,24 @@ msgstr ""
 #: lib/kati/screens/add_ingredient.ex:158
 #: lib/kati/screens/add_medication.ex:261
 #: lib/kati/screens/backup.ex:1056
-#: lib/kati/screens/data_sources.ex:173
+#: lib/kati/screens/data_sources.ex:147
 #: lib/kati/screens/event_detail.ex:466
 #: lib/kati/screens/meal_edit.ex:430
 #: lib/kati/screens/rate_album.ex:274
-#: lib/kati/screens/rate_episode.ex:876
-#: lib/kati/screens/rating.ex:1031
+#: lib/kati/screens/rate_episode.ex:877
+#: lib/kati/screens/rating.ex:1032
 #, elixir-autogen, elixir-format
 msgid "Save"
 msgstr ""
 
 #: lib/kati/screens/backup.ex:1523
-#: lib/kati/screens/data_sources.ex:445
+#: lib/kati/screens/data_sources.ex:392
 #: lib/kati/screens/restore.ex:1929
 #, elixir-autogen, elixir-format
 msgid "Saved"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:453
+#: lib/kati/screens/data_sources.ex:400
 #, elixir-autogen, elixir-format
 msgid "Saved %{ago}"
 msgstr ""
@@ -3081,7 +3039,7 @@ msgstr ""
 msgid "Scrobbles, as they happen."
 msgstr ""
 
-#: lib/kati/sources.ex:110
+#: lib/kati/sources.ex:116
 #, elixir-autogen, elixir-format
 msgid "Scrobbles, listening history"
 msgstr ""
@@ -3098,23 +3056,23 @@ msgstr ""
 msgid "Sleep"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1631
+#: lib/kati/screens/data_sources.ex:1213
 #, elixir-autogen, elixir-format
 msgid "TMDB didn’t accept this. Check you copied the API Read Access Token and not the API key, and that it has no trailing space."
 msgstr ""
 
-#: lib/kati/sources.ex:78
+#: lib/kati/sources.ex:84
 #, elixir-autogen, elixir-format
 msgid "TV & film · TVmaze"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1638
-#: lib/kati/screens/data_sources.ex:1640
+#: lib/kati/screens/data_sources.ex:1220
+#: lib/kati/screens/data_sources.ex:1222
 #, elixir-autogen, elixir-format
 msgid "That did not save."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1373
+#: lib/kati/screens/data_sources.ex:993
 #, elixir-autogen, elixir-format
 msgid "The cache could not be cleared."
 msgstr ""
@@ -3134,32 +3092,32 @@ msgstr ""
 msgid "The same permission Sleep needs, and the same answer. A workout log you type by hand is a worse version of an app you already have."
 msgstr ""
 
-#: lib/kati/sources.ex:140
+#: lib/kati/sources.ex:146
 #, elixir-autogen, elixir-format
 msgid "TheTVDB issues a per-user key you can revoke from your own account page."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:569
+#: lib/kati/screens/data_sources.ex:516
 #, elixir-autogen, elixir-format
 msgid "This device has no keystore Kati can reach, so the token sits unencrypted on the filesystem like every other. Kati sends it only to TMDB, and you can revoke it from your TMDB account at any time."
 msgstr ""
 
-#: lib/kati/sources.ex:219
+#: lib/kati/sources.ex:225
 #, elixir-autogen, elixir-format
 msgid "Tokens are held in this device’s secure store. Kati sends each one only to the service it belongs to. Kati never asks for a password — only for tokens you can revoke from the provider’s own site."
 msgstr ""
 
-#: lib/kati/sources.ex:225
+#: lib/kati/sources.ex:231
 #, elixir-autogen, elixir-format
 msgid "Tokens sit unencrypted on this device, because the platform gives Kati no secure store yet. Kati sends each one only to the service it belongs to. Kati never asks for a password — only for tokens you can revoke from the provider’s own site."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:298
+#: lib/kati/screens/data_sources.ex:245
 #, elixir-autogen, elixir-format
 msgid "Use Kati’s key"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:298
+#: lib/kati/screens/data_sources.ex:245
 #, elixir-autogen, elixir-format
 msgid "Use my own key"
 msgstr ""
@@ -3169,12 +3127,12 @@ msgstr ""
 msgid "What it would be"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:73
+#: lib/kati/screens/data_sources.ex:77
 #, elixir-autogen, elixir-format
 msgid "Where Kati’s posters, covers and facts come from."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:73
+#: lib/kati/screens/data_sources.ex:77
 #, elixir-autogen, elixir-format
 msgid "Where your tokens live"
 msgstr ""
@@ -3184,25 +3142,15 @@ msgstr ""
 msgid "Why it is not here"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:73
-#, elixir-autogen, elixir-format
-msgid "Working out of the box"
-msgstr ""
-
 #: lib/kati/retired.ex:129
 #: lib/kati/screens/retired_tile.ex:291
 #, elixir-autogen, elixir-format
 msgid "Workouts"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:377
+#: lib/kati/screens/data_sources.ex:324
 #, elixir-autogen, elixir-format
 msgid "Your key is in use"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:201
-#, elixir-autogen, elixir-format
-msgid "Your token lives there. Kati cannot ask for it yet — when it can, this is where it comes from."
 msgstr ""
 
 #: lib/kati/settings/watcher.ex:219
@@ -3225,7 +3173,7 @@ msgstr ""
 msgid "never checked"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:634
+#: lib/kati/screens/data_sources.ex:581
 #, elixir-autogen, elixir-format
 msgid "themoviedb.org → your account → Settings → API. Copy the read access token."
 msgstr ""
@@ -3237,7 +3185,7 @@ msgid_plural "%{n} entries"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/settings.ex:668
+#: lib/kati/screens/settings.ex:709
 #, elixir-autogen, elixir-format
 msgid "%{n} section"
 msgid_plural "%{n} sections"
@@ -3261,12 +3209,12 @@ msgstr ""
 msgid "%{region} · none yet"
 msgstr ""
 
-#: lib/kati/screens/settings.ex:550
+#: lib/kati/screens/settings.ex:591
 #, elixir-autogen, elixir-format
 msgid "About"
 msgstr ""
 
-#: lib/kati/screens/settings.ex:550
+#: lib/kati/screens/settings.ex:591
 #, elixir-autogen, elixir-format
 msgid "Appearance"
 msgstr ""
@@ -3319,7 +3267,7 @@ msgstr ""
 msgid "Dark"
 msgstr ""
 
-#: lib/kati/screens/settings.ex:550
+#: lib/kati/screens/settings.ex:591
 #, elixir-autogen, elixir-format
 msgid "Data"
 msgstr ""
@@ -3344,7 +3292,7 @@ msgstr ""
 msgid "Home card, shelf"
 msgstr ""
 
-#: lib/kati/screens/settings.ex:424
+#: lib/kati/screens/settings.ex:464
 #, elixir-autogen, elixir-format
 msgid "Last backup %{date}"
 msgstr ""
@@ -3354,7 +3302,7 @@ msgstr ""
 msgid "Light"
 msgstr ""
 
-#: lib/kati/screens/settings.ex:421
+#: lib/kati/screens/settings.ex:461
 #, elixir-autogen, elixir-format
 msgid "Never backed up"
 msgstr ""
@@ -3401,7 +3349,7 @@ msgstr ""
 #: lib/kati/screens/health.ex:102
 #: lib/kati/screens/home.ex:299
 #: lib/kati/screens/home_omitted_sections.ex:67
-#: lib/kati/screens/settings.ex:550
+#: lib/kati/screens/settings.ex:591
 #, elixir-autogen, elixir-format
 msgid "Sections"
 msgstr ""
@@ -3412,7 +3360,7 @@ msgid "Shelf only"
 msgstr ""
 
 #: lib/kati/screens/auto_detect.ex:503
-#: lib/kati/screens/settings.ex:550
+#: lib/kati/screens/settings.ex:591
 #, elixir-autogen, elixir-format
 msgid "Sources"
 msgstr ""
@@ -3680,11 +3628,11 @@ msgstr ""
 #: lib/kati/screens/book_detail.ex:373
 #: lib/kati/screens/book_detail.ex:391
 #: lib/kati/screens/event_detail.ex:348
-#: lib/kati/screens/film.ex:474
+#: lib/kati/screens/film.ex:476
 #: lib/kati/screens/goals_empty.ex:198
 #: lib/kati/screens/library.ex:512
 #: lib/kati/screens/music.ex:402
-#: lib/kati/screens/rating.ex:743
+#: lib/kati/screens/rating.ex:744
 #: lib/kati/screens/stats.ex:1554
 #: lib/kati/screens/up_next.ex:751
 #: lib/kati/screens/what_fits.ex:514
@@ -3714,11 +3662,11 @@ msgstr[1] ""
 #: lib/kati/calendar/sample_event.ex:203
 #: lib/kati/screens/episode_ratings.ex:258
 #: lib/kati/screens/event_detail.ex:344
-#: lib/kati/screens/film.ex:467
+#: lib/kati/screens/film.ex:469
 #: lib/kati/screens/library.ex:519
-#: lib/kati/screens/rating.ex:737
+#: lib/kati/screens/rating.ex:738
 #: lib/kati/screens/season.ex:988
-#: lib/kati/screens/series_meta.ex:867
+#: lib/kati/screens/series_meta.ex:868
 #: lib/kati/screens/up_next.ex:745
 #: lib/kati/screens/what_fits.ex:333
 #: lib/kati/screens/what_fits.ex:334
@@ -3918,7 +3866,7 @@ msgstr ""
 
 #: lib/kati/screens/book_detail.ex:752
 #: lib/kati/screens/book_detail_dark.ex:235
-#: lib/kati/screens/series_meta.ex:775
+#: lib/kati/screens/series_meta.ex:776
 #: lib/kati/screens/series_meta/sample.ex:162
 #, elixir-autogen, elixir-format
 msgid "Yours"
@@ -4047,12 +3995,12 @@ msgstr[1] ""
 #: lib/kati/music/sample.ex:40
 #: lib/kati/music/sample.ex:206
 #: lib/kati/screens/event_detail.ex:345
-#: lib/kati/screens/film.ex:470
+#: lib/kati/screens/film.ex:472
 #: lib/kati/screens/goals_empty.ex:203
 #: lib/kati/screens/library.ex:509
 #: lib/kati/screens/music.ex:347
-#: lib/kati/screens/rating.ex:740
-#: lib/kati/screens/series_meta.ex:864
+#: lib/kati/screens/rating.ex:741
+#: lib/kati/screens/series_meta.ex:865
 #: lib/kati/screens/stats.ex:1499
 #: lib/kati/screens/up_next.ex:748
 #: lib/kati/screens/what_fits.ex:336
@@ -4180,7 +4128,7 @@ msgstr ""
 
 #: lib/kati/meals/sample_recipe.ex:246
 #: lib/kati/screens/album_detail.ex:444
-#: lib/kati/screens/film.ex:1057
+#: lib/kati/screens/film.ex:1089
 #: lib/kati/screens/meal.ex:463
 #: lib/kati/screens/shelf_filters.ex:234
 #, elixir-autogen, elixir-format
@@ -4304,21 +4252,21 @@ msgid "To read"
 msgstr ""
 
 #: lib/kati/library/sample.ex:229
-#: lib/kati/screens/series.ex:807
+#: lib/kati/screens/series.ex:809
 #, elixir-autogen, elixir-format
 msgid "%{date}, %{time}"
 msgstr ""
 
 #: lib/kati/screens/calendar.ex:463
-#: lib/kati/screens/series.ex:836
+#: lib/kati/screens/series.ex:838
 #, elixir-autogen, elixir-format
 msgid "%{month} %{year}"
 msgstr ""
 
 #: lib/kati/library/sample.ex:218
 #: lib/kati/library/sample.ex:595
-#: lib/kati/screens/series.ex:797
-#: lib/kati/screens/series_meta.ex:406
+#: lib/kati/screens/series.ex:799
+#: lib/kati/screens/series_meta.ex:407
 #: lib/kati/screens/series_meta/sample.ex:139
 #, elixir-autogen, elixir-format
 msgid "%{n} season"
@@ -4327,71 +4275,72 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/kati/screens/episode_ratings.ex:322
-#: lib/kati/screens/series.ex:1089
+#: lib/kati/screens/series.ex:1096
 #, elixir-autogen, elixir-format
 msgid "%{watched} of %{total} watched"
 msgstr ""
 
 #: lib/kati/library/sample.ex:312
-#: lib/kati/screens/series.ex:758
+#: lib/kati/screens/series.ex:760
 #, elixir-autogen, elixir-format
 msgid "Airs %{date}"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:896
-#: lib/kati/screens/series.ex:1274
-#: lib/kati/screens/series.ex:1826
+#: lib/kati/screens/drop_sheet.ex:897
+#: lib/kati/screens/series.ex:1281
+#: lib/kati/screens/series.ex:1834
 #, elixir-autogen, elixir-format
 msgid "Drop this show"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:549
-#: lib/kati/screens/series.ex:742
-#: lib/kati/screens/series.ex:747
+#: lib/kati/screens/rate_episode.ex:550
+#: lib/kati/screens/series.ex:744
+#: lib/kati/screens/series.ex:749
 #, elixir-autogen, elixir-format
 msgid "Episode %{n}"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1826
+#: lib/kati/screens/series.ex:1834
 #, elixir-autogen, elixir-format
 msgid "Keeps where you stopped"
 msgstr ""
 
 #: lib/kati/screens/film.ex:161
-#: lib/kati/screens/film.ex:982
-#: lib/kati/screens/rating.ex:940
-#: lib/kati/screens/series.ex:1818
+#: lib/kati/screens/film.ex:1013
+#: lib/kati/screens/rating.ex:941
+#: lib/kati/screens/series.ex:1826
 #, elixir-autogen, elixir-format
 msgid "Log a watch"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1124
-#: lib/kati/screens/series.ex:1129
+#: lib/kati/screens/series.ex:1131
+#: lib/kati/screens/series.ex:1136
 #, elixir-autogen, elixir-format
 msgid "Mark next watched"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1154
+#: lib/kati/screens/series.ex:1161
 #, elixir-autogen, elixir-format
 msgid "Next episode airs "
 msgstr ""
 
-#: lib/kati/screens/series.ex:1136
+#: lib/kati/screens/series.ex:1143
 #, elixir-autogen, elixir-format
 msgid "No episode list yet."
 msgstr ""
 
-#: lib/kati/screens/series.ex:1140
+#: lib/kati/screens/series.ex:1147
 #, elixir-autogen, elixir-format
 msgid "No poster"
 msgstr ""
 
-#: lib/kati/screens/series.ex:844
+#: lib/kati/screens/series.ex:846
 #, elixir-autogen, elixir-format
 msgid "Q%{q} %{year}"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1832
+#: lib/kati/screens/film.ex:2002
+#: lib/kati/screens/series.ex:1840
 #: lib/kati/series_settings/sample.ex:256
 #, elixir-autogen, elixir-format
 msgid "Remove from library"
@@ -4403,19 +4352,19 @@ msgstr ""
 #: lib/kati/screens/episode_ratings.ex:320
 #: lib/kati/screens/inbox.ex:799
 #: lib/kati/screens/season.ex:873
-#: lib/kati/screens/series.ex:210
-#: lib/kati/screens/series.ex:678
+#: lib/kati/screens/series.ex:212
+#: lib/kati/screens/series.ex:680
 #: lib/kati/season/sample.ex:67
 #, elixir-autogen, elixir-format
 msgid "Season %{n}"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1256
+#: lib/kati/screens/series.ex:1263
 #, elixir-autogen, elixir-format
 msgid "Show details"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1259
+#: lib/kati/screens/series.ex:1266
 #, elixir-autogen, elixir-format
 msgid "Show settings"
 msgstr ""
@@ -4426,19 +4375,19 @@ msgstr ""
 #: lib/kati/screens/day.ex:1381
 #: lib/kati/screens/day.ex:1632
 #: lib/kati/screens/day.ex:1643
-#: lib/kati/screens/drop_sheet.ex:495
 #: lib/kati/screens/drop_sheet.ex:496
+#: lib/kati/screens/drop_sheet.ex:497
 #: lib/kati/screens/event_detail.ex:214
-#: lib/kati/screens/film.ex:436
+#: lib/kati/screens/film.ex:438
 #: lib/kati/screens/inbox.ex:844
 #: lib/kati/screens/library.ex:358
-#: lib/kati/screens/rate_episode.ex:533
-#: lib/kati/screens/rate_episode.ex:538
-#: lib/kati/screens/rating.ex:715
+#: lib/kati/screens/rate_episode.ex:534
+#: lib/kati/screens/rate_episode.ex:539
+#: lib/kati/screens/rating.ex:716
 #: lib/kati/screens/season.ex:973
-#: lib/kati/screens/series.ex:652
-#: lib/kati/screens/series.ex:749
-#: lib/kati/screens/series_meta.ex:257
+#: lib/kati/screens/series.ex:654
+#: lib/kati/screens/series.ex:751
+#: lib/kati/screens/series_meta.ex:258
 #: lib/kati/screens/series_settings.ex:253
 #: lib/kati/screens/series_settings.ex:256
 #: lib/kati/screens/stats.ex:1740
@@ -4449,23 +4398,23 @@ msgstr ""
 msgid "Untitled"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1745
+#: lib/kati/screens/series.ex:1753
 #, elixir-autogen, elixir-format
 msgid "What still works"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1819
+#: lib/kati/screens/series.ex:1827
 #, elixir-autogen, elixir-format
 msgid "Works without an episode list"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1104
+#: lib/kati/screens/series.ex:1111
 #, elixir-autogen, elixir-format
 msgctxt "season pill"
 msgid "S"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1175
+#: lib/kati/screens/series.ex:1182
 #: lib/kati/screens/shelf_filters.ex:403
 #: lib/kati/series_settings/sample.ex:113
 #, elixir-autogen, elixir-format
@@ -4473,33 +4422,33 @@ msgctxt "shelf status"
 msgid "Dropped"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1174
+#: lib/kati/screens/series.ex:1181
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
 msgid "Finished"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1171
+#: lib/kati/screens/series.ex:1178
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
 msgid "Not started"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1173
+#: lib/kati/screens/series.ex:1180
 #: lib/kati/series_settings/sample.ex:107
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
 msgid "Paused"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1172
+#: lib/kati/screens/series.ex:1179
 #: lib/kati/series_settings/sample.ex:101
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
 msgid "Watching"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1858
+#: lib/kati/screens/series.ex:1866
 #, elixir-autogen, elixir-format
 msgid "No primary button here. There is no next episode to mark, and a primary that refuses is worse than none. 04’s one primary slot stays empty — which is what makes this a state of 04 rather than a page of its own."
 msgstr ""
@@ -4509,7 +4458,7 @@ msgstr ""
 msgid "That did not save. Your text is still here — try again."
 msgstr ""
 
-#: lib/kati/screens/series.ex:1850
+#: lib/kati/screens/series.ex:1858
 #, elixir-autogen, elixir-format
 msgid "You added this by hand, so Kati has no seasons or episodes for it. If a source finds it later, they arrive here and nothing you typed changes."
 msgstr ""
@@ -4538,7 +4487,7 @@ msgstr ""
 #: lib/kati/screens/inbox.ex:666
 #: lib/kati/screens/meal.ex:421
 #: lib/kati/screens/meal_edit.ex:233
-#: lib/kati/screens/series.ex:769
+#: lib/kati/screens/series.ex:771
 #: lib/kati/screens/what_fits.ex:313
 #: lib/kati/settings/detect_music_sample.ex:207
 #, elixir-autogen, elixir-format
@@ -4595,7 +4544,7 @@ msgstr ""
 msgid "Undertow"
 msgstr ""
 
-#: lib/kati/screens/series.ex:1128
+#: lib/kati/screens/series.ex:1135
 #, elixir-autogen, elixir-format
 msgid "Mark episode %{n} watched"
 msgstr ""
@@ -4823,7 +4772,7 @@ msgid "Recent"
 msgstr ""
 
 #: lib/kati/meals/sample_recipe.ex:264
-#: lib/kati/screens/film.ex:586
+#: lib/kati/screens/film.ex:588
 #: lib/kati/screens/log_weight.ex:316
 #: lib/kati/screens/meal.ex:470
 #: lib/kati/search/query.ex:653
@@ -4832,15 +4781,10 @@ msgid "Note"
 msgstr ""
 
 #: lib/kati/library/sample.ex:521
-#: lib/kati/screens/film.ex:587
+#: lib/kati/screens/film.ex:589
 #: lib/kati/search/query.ex:657
 #, elixir-autogen, elixir-format
 msgid "Note · %{date}"
-msgstr ""
-
-#: lib/kati/search.ex:337
-#, elixir-autogen, elixir-format
-msgid "Counts stay off the chips until a query exists — %{n} zeroes on open would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one character is a word. Every keystroke runs: the search is your own library on this device, so waiting would cost more than it saved."
 msgstr ""
 
 #: lib/kati/search.ex:306
@@ -4960,7 +4904,7 @@ msgstr ""
 msgid "Nothing added yet"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:929
+#: lib/kati/screens/drop_sheet.ex:930
 #: lib/kati/screens/stats.ex:1761
 #, elixir-autogen, elixir-format
 msgid "S%{s} E%{e}"
@@ -5025,7 +4969,7 @@ msgstr ""
 #: lib/kati/calendar/sample_meal_day.ex:169
 #: lib/kati/screens/calendar.ex:189
 #: lib/kati/screens/event_detail.ex:320
-#: lib/kati/screens/quick_add.ex:241
+#: lib/kati/screens/quick_add.ex:242
 #: lib/kati/screens/quick_add/sample.ex:183
 #, elixir-autogen, elixir-format
 msgid "%{from} – %{to}"
@@ -5156,7 +5100,7 @@ msgid "Personal"
 msgstr ""
 
 #: lib/kati/screens/calendar.ex:418
-#: lib/kati/screens/quick_add.ex:585
+#: lib/kati/screens/quick_add.ex:586
 #, elixir-autogen, elixir-format
 msgid "Quick add"
 msgstr ""
@@ -6011,7 +5955,7 @@ msgstr ""
 
 #: lib/kati/screens/episode_ratings.ex:389
 #: lib/kati/screens/inbox.ex:657
-#: lib/kati/screens/rate_episode.ex:578
+#: lib/kati/screens/rate_episode.ex:579
 #: lib/kati/screens/season.ex:970
 #: lib/kati/screens/up_next.ex:698
 #: lib/kati/screens/what_fits.ex:435
@@ -6023,7 +5967,7 @@ msgstr ""
 
 #: lib/kati/library/sample.ex:409
 #: lib/kati/screens/inbox.ex:650
-#: lib/kati/screens/rate_episode.ex:571
+#: lib/kati/screens/rate_episode.ex:572
 #, elixir-autogen, elixir-format
 msgctxt "episode number"
 msgid "S%{s} E%{e}"
@@ -6092,7 +6036,7 @@ msgid "%{n} steps"
 msgstr ""
 
 #: lib/kati/screens/log_weight.ex:316
-#: lib/kati/screens/rate_episode.ex:646
+#: lib/kati/screens/rate_episode.ex:647
 #, elixir-autogen, elixir-format
 msgctxt "the chip that dates a reading to the current clock"
 msgid "now"
@@ -8272,7 +8216,7 @@ msgstr[1] ""
 msgid "%{kcal} kcal · %{protein}P %{carbs}C %{fat}F"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:359
+#: lib/kati/screens/series_meta.ex:360
 #, elixir-autogen, elixir-format
 msgid "%{line} · you pay for this"
 msgstr ""
@@ -8469,7 +8413,7 @@ msgstr ""
 msgid "Always wins — you know"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:476
+#: lib/kati/screens/series_meta.ex:477
 #, elixir-autogen, elixir-format
 msgid "Both need a resource Kati has no column for — a person, and a cached score."
 msgstr ""
@@ -8494,7 +8438,7 @@ msgstr ""
 msgid "Caps, emphasis, retention"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:422
+#: lib/kati/screens/series_meta.ex:423
 #, elixir-autogen, elixir-format
 msgid "Cast"
 msgstr ""
@@ -8591,7 +8535,7 @@ msgstr ""
 msgid "Home card only, like the release watcher"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:804
+#: lib/kati/screens/series_meta.ex:805
 #, elixir-autogen, elixir-format
 msgid "Hours"
 msgstr ""
@@ -8700,7 +8644,7 @@ msgstr ""
 msgid "No TMDB token yet"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:476
+#: lib/kati/screens/series_meta.ex:477
 #, elixir-autogen, elixir-format
 msgid "No cast, and no scores"
 msgstr ""
@@ -8958,7 +8902,7 @@ msgstr ""
 msgid "Tomorrow: %{meals} meals, %{prep} need prep"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:1035
+#: lib/kati/screens/series_meta.ex:1036
 #, elixir-autogen, elixir-format
 msgid "Trailer"
 msgstr ""
@@ -8979,12 +8923,13 @@ msgid "Typing ي finds ی. Both spellings of every affected word resolve to one 
 msgstr ""
 
 #: lib/kati/screens/data_sources_states.ex:819
-#: lib/kati/screens/drop_sheet.ex:1383
+#: lib/kati/screens/drop_sheet.ex:1384
 #: lib/kati/screens/log_progress_states.ex:604
 #: lib/kati/screens/my_services_states.ex:705
 #: lib/kati/screens/shelf_selection.ex:1131
 #: lib/kati/screens/shelf_selection.ex:1145
 #: lib/kati/settings/states_sample.ex:187
+#: lib/kati/ui/destructive.ex:132
 #, elixir-autogen, elixir-format
 msgid "Undo"
 msgstr ""
@@ -9024,14 +8969,14 @@ msgstr ""
 msgid "Where Add to library goes"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1264
-#: lib/kati/screens/film.ex:1277
-#: lib/kati/screens/series_meta.ex:422
+#: lib/kati/screens/film.ex:1296
+#: lib/kati/screens/film.ex:1309
+#: lib/kati/screens/series_meta.ex:423
 #, elixir-autogen, elixir-format
 msgid "Where to watch"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1056
+#: lib/kati/screens/data_sources.ex:676
 #: lib/kati/screens/data_sources_states.ex:879
 #, elixir-autogen, elixir-format
 msgid "Wipe all tokens?"
@@ -9042,7 +8987,7 @@ msgstr ""
 msgid "Wipe confirmation · after wiping"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1066
+#: lib/kati/screens/data_sources.ex:686
 #: lib/kati/screens/data_sources_states.ex:851
 #, elixir-autogen, elixir-format
 msgid "Wipe tokens"
@@ -9068,12 +9013,12 @@ msgstr ""
 msgid "Your own tag"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:422
+#: lib/kati/screens/series_meta.ex:423
 #, elixir-autogen, elixir-format
 msgid "Your tags"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:476
+#: lib/kati/screens/series_meta.ex:477
 #, elixir-autogen, elixir-format
 msgid "Your tags are on the series page, which is where they are written."
 msgstr ""
@@ -9477,7 +9422,7 @@ msgctxt "permission"
 msgid "Allowed"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:414
+#: lib/kati/screens/series_meta.ex:415
 #: lib/kati/screens/series_meta/sample.ex:145
 #, elixir-autogen, elixir-format
 msgctxt "series meta line"
@@ -9604,7 +9549,7 @@ msgctxt "switch"
 msgid "On"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:996
+#: lib/kati/screens/series_meta.ex:997
 #, elixir-autogen, elixir-format
 msgctxt "synopsis expander"
 msgid "more"
@@ -9677,7 +9622,7 @@ msgctxt "the provider’s own state while Kati throttles itself"
 msgid "normal"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1075
+#: lib/kati/screens/data_sources.ex:695
 #: lib/kati/screens/data_sources_states.ex:865
 #, elixir-autogen, elixir-format
 msgctxt "the safe answer to the wipe confirmation"
@@ -9739,35 +9684,35 @@ msgctxt "what switching numbering affects"
 msgid "What it changes"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1763
-#: lib/kati/screens/series_meta.ex:317
+#: lib/kati/screens/film.ex:1829
+#: lib/kati/screens/series_meta.ex:318
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
 msgid "buy"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:314
+#: lib/kati/screens/series_meta.ex:315
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
 msgid "free"
 msgstr ""
 
-#: lib/kati/screens/series_meta.ex:315
+#: lib/kati/screens/series_meta.ex:316
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
 msgid "free, with ads"
 msgstr ""
 
 #: lib/kati/library/sample.ex:541
-#: lib/kati/screens/series_meta.ex:313
+#: lib/kati/screens/series_meta.ex:314
 #: lib/kati/screens/series_meta/sample.ex:221
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
 msgid "included"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1760
-#: lib/kati/screens/series_meta.ex:316
+#: lib/kati/screens/film.ex:1826
+#: lib/kati/screens/series_meta.ex:317
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
 msgid "rent"
@@ -11918,23 +11863,23 @@ msgstr ""
 msgid "A service removed while history references it"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:199
+#: lib/kati/screens/quick_add.ex:200
 #, elixir-autogen, elixir-format
 msgid "ALL-DAY EVENT"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:276
+#: lib/kati/screens/quick_add.ex:277
 #: lib/kati/screens/quick_add/sample.ex:94
 #, elixir-autogen, elixir-format
 msgid "Add to %{day}"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:270
+#: lib/kati/screens/quick_add.ex:271
 #, elixir-autogen, elixir-format
 msgid "Add to today"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:271
+#: lib/kati/screens/quick_add.ex:272
 #, elixir-autogen, elixir-format
 msgid "Add to tomorrow"
 msgstr ""
@@ -12031,13 +11976,13 @@ msgstr ""
 msgid "Kati keeps the version an edit started from, so that a disagreement can be a three-way merge rather than a guess. This one has none — the queued change was quarantined, or the edit is older than the queue. Your version and the one on %{calendar} differ, and two versions that differ say nothing about who moved, so Kati will not choose between them for you."
 msgstr ""
 
-#: lib/kati/screens/film.ex:1267
+#: lib/kati/screens/film.ex:1299
 #: lib/kati/screens/nothing_set_up_knock_on.ex:154
 #, elixir-autogen, elixir-format
 msgid "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:304
+#: lib/kati/screens/quick_add.ex:305
 #: lib/kati/screens/quick_add_expense.ex:76
 #, elixir-autogen, elixir-format
 msgid "Kati read that as"
@@ -12058,7 +12003,7 @@ msgstr ""
 msgid "Listening time"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:198
+#: lib/kati/screens/quick_add.ex:199
 #, elixir-autogen, elixir-format
 msgid "NEEDS A DAY"
 msgstr ""
@@ -12118,7 +12063,7 @@ msgstr ""
 msgid "Nothing set up"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:140
+#: lib/kati/screens/quick_add.ex:141
 #, elixir-autogen, elixir-format
 msgid "Nothing to add yet"
 msgstr ""
@@ -12133,13 +12078,13 @@ msgstr ""
 msgid "On repeat this week"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:304
+#: lib/kati/screens/quick_add.ex:305
 #: lib/kati/screens/quick_add_expense.ex:76
 #, elixir-autogen, elixir-format
 msgid "Or file it as"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:200
+#: lib/kati/screens/quick_add.ex:201
 #: lib/kati/screens/quick_add/sample.ex:76
 #, elixir-autogen, elixir-format
 msgid "PERSONAL EVENT"
@@ -12175,7 +12120,7 @@ msgstr ""
 msgid "Region set, no services — a legitimate middle"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:266
+#: lib/kati/screens/quick_add.ex:267
 #, elixir-autogen, elixir-format
 msgid "Say when, and Kati will add it"
 msgstr ""
@@ -12190,7 +12135,7 @@ msgstr ""
 msgid "Send your version. Theirs is kept below."
 msgstr ""
 
-#: lib/kati/screens/film.ex:1266
+#: lib/kati/screens/film.ex:1298
 #: lib/kati/screens/nothing_set_up_knock_on.ex:153
 #, elixir-autogen, elixir-format
 msgid "Set up your services to see where this is streaming"
@@ -12513,69 +12458,69 @@ msgctxt "eyebrow"
 msgid "Needs you"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:253
+#: lib/kati/screens/quick_add.ex:254
 #: lib/kati/screens/quick_add/sample.ex:187
 #, elixir-autogen, elixir-format
 msgctxt "quick add alert chip"
 msgid "%{at} alert"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:250
+#: lib/kati/screens/quick_add.ex:251
 #, elixir-autogen, elixir-format
 msgctxt "quick add alert chip"
 msgid "%{n}m before"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:395
+#: lib/kati/screens/quick_add.ex:396
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Event"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:400
+#: lib/kati/screens/quick_add.ex:401
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Expense"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:398
+#: lib/kati/screens/quick_add.ex:399
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Habit"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:399
+#: lib/kati/screens/quick_add.ex:400
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Note"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:396
+#: lib/kati/screens/quick_add.ex:397
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Reminder"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:397
+#: lib/kati/screens/quick_add.ex:398
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Title"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:999
+#: lib/kati/screens/quick_add.ex:1000
 #: lib/kati/screens/quick_add/sample.ex:85
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "Clashes with"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:1000
+#: lib/kati/screens/quick_add.ex:1001
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "another event"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:1001
+#: lib/kati/screens/quick_add.ex:1002
 #: lib/kati/screens/quick_add/sample.ex:86
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
@@ -12790,7 +12735,7 @@ msgstr ""
 msgid " — the change appears in 15."
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1467
+#: lib/kati/screens/rate_episode.ex:1468
 #, elixir-autogen, elixir-format
 msgid " — you cannot have an opinion about something you have not seen, and asking twice is a needless tap."
 msgstr ""
@@ -12883,7 +12828,7 @@ msgstr ""
 msgid "Adherence"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1288
+#: lib/kati/screens/drop_sheet.ex:1289
 #, elixir-autogen, elixir-format
 msgid "After you drop it"
 msgstr ""
@@ -12978,9 +12923,9 @@ msgstr ""
 msgid "Does not change: your shelves, your lists, your reading sessions and your listens."
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1378
-#: lib/kati/screens/rating.ex:1934
-#: lib/kati/screens/rating.ex:2521
+#: lib/kati/screens/rate_episode.ex:1379
+#: lib/kati/screens/rating.ex:1935
+#: lib/kati/screens/rating.ex:2522
 #, elixir-autogen, elixir-format
 msgid "Done"
 msgstr ""
@@ -12990,8 +12935,8 @@ msgstr ""
 msgid "Done on 14 August — 4 months early"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:895
-#: lib/kati/screens/film.ex:1021
+#: lib/kati/screens/drop_sheet.ex:896
+#: lib/kati/screens/film.ex:1053
 #, elixir-autogen, elixir-format
 msgid "Drop this film"
 msgstr ""
@@ -13046,7 +12991,7 @@ msgstr ""
 msgid "Its %{pages} pages stay counted toward the pages goal. The books goal drops by one, because that goal counts finishing. "
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1381
+#: lib/kati/screens/rate_episode.ex:1382
 #, elixir-autogen, elixir-format
 msgid "Jo, and whoever else"
 msgstr ""
@@ -13236,12 +13181,12 @@ msgstr ""
 msgid "Quinoa bowl"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:844
+#: lib/kati/screens/rate_episode.ex:845
 #, elixir-autogen, elixir-format
 msgid "Rate this episode"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1459
+#: lib/kati/screens/rate_episode.ex:1460
 #, elixir-autogen, elixir-format
 msgid "Rating an unwatched episode "
 msgstr ""
@@ -13267,7 +13212,7 @@ msgstr ""
 msgid "Retired tiles stay visible with a "
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1028
+#: lib/kati/screens/rate_episode.ex:1029
 #, elixir-autogen, elixir-format
 msgid "Rewatch — your last verdict, above the input"
 msgstr ""
@@ -13333,8 +13278,8 @@ msgid "Type it, or save without —"
 msgstr ""
 
 #: lib/kati/screens/rate_album.ex:576
-#: lib/kati/screens/rate_episode.ex:1182
-#: lib/kati/screens/rating.ex:1675
+#: lib/kati/screens/rate_episode.ex:1183
+#: lib/kati/screens/rating.ex:1676
 #, elixir-autogen, elixir-format
 msgid "What did you make of it?"
 msgstr ""
@@ -13369,7 +13314,7 @@ msgstr ""
 msgid "Why Kati wants it"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:700
+#: lib/kati/screens/drop_sheet.ex:701
 #, elixir-autogen, elixir-format
 msgid "Why, if you like"
 msgstr ""
@@ -13399,7 +13344,7 @@ msgstr ""
 msgid "an expense with no amount still counts as a thing that happened"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1212
+#: lib/kati/screens/drop_sheet.ex:1213
 #, elixir-autogen, elixir-format
 msgid "clears the Gone cold mark and changes nothing else."
 msgstr ""
@@ -13444,7 +13389,7 @@ msgstr ""
 msgid "they never leave their device"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1460
+#: lib/kati/screens/rate_episode.ex:1461
 #, elixir-autogen, elixir-format
 msgid "ticks it watched"
 msgstr ""
@@ -13459,7 +13404,7 @@ msgstr ""
 msgid "watching, finished, dropped — they live on the title, not on a log"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1095
+#: lib/kati/screens/drop_sheet.ex:1096
 #, elixir-autogen, elixir-format
 msgid "— a required reason is a reason people lie about. A drop with no chip is complete, not unfinished."
 msgstr ""
@@ -13482,14 +13427,14 @@ msgctxt "a reminder's lead time"
 msgid "%{n} min before"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:729
+#: lib/kati/screens/rate_episode.ex:730
 #, elixir-autogen, elixir-format
 msgctxt "a watch logged today, with the hour it was logged at"
 msgid "Tonight · %{time}"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:737
-#: lib/kati/screens/rating.ex:850
+#: lib/kati/screens/rate_episode.ex:738
+#: lib/kati/screens/rating.ex:851
 #, elixir-autogen, elixir-format
 msgctxt "a watch's day and the hour it was logged at"
 msgid "%{date} · %{time}"
@@ -13501,7 +13446,7 @@ msgctxt "a week number on a chart axis"
 msgid "W%{n}"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:551
+#: lib/kati/screens/rate_episode.ex:552
 #, elixir-autogen, elixir-format
 msgctxt "an episode whose number the source never gave"
 msgid "Episode"
@@ -13604,13 +13549,13 @@ msgctxt "season number"
 msgid "S%{s}"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:916
+#: lib/kati/screens/drop_sheet.ex:917
 #, elixir-autogen, elixir-format
 msgctxt "the card holding the position a drop captures"
 msgid "Stopping at"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:465
+#: lib/kati/screens/drop_sheet.ex:466
 #, elixir-autogen, elixir-format
 msgctxt "the cold mark over the title being dropped"
 msgid "GONE COLD · %{age}"
@@ -13628,37 +13573,37 @@ msgctxt "the count card on board 47 counting meals skipped"
 msgid "Skipped"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1100
+#: lib/kati/screens/drop_sheet.ex:1101
 #, elixir-autogen, elixir-format
 msgctxt "the drop sheet's info card, before its bolded run"
 msgid "One tap,"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1102
+#: lib/kati/screens/drop_sheet.ex:1103
 #, elixir-autogen, elixir-format
 msgctxt "the drop sheet's info card, its bolded run"
 msgid "never mandatory"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1166
+#: lib/kati/screens/drop_sheet.ex:1167
 #, elixir-autogen, elixir-format
 msgctxt "the drop sheet's keep card, before its bolded run"
 msgid "Or keep it —"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1230
+#: lib/kati/screens/drop_sheet.ex:1231
 #, elixir-autogen, elixir-format
 msgctxt "the drop sheet's own commit button"
 msgid "Drop%{at}"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1100
+#: lib/kati/screens/rate_episode.ex:1101
 #, elixir-autogen, elixir-format
 msgctxt "the header of the quoted earlier verdict"
 msgid "You"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1099
+#: lib/kati/screens/rate_episode.ex:1100
 #, elixir-autogen, elixir-format
 msgctxt "the header of the quoted earlier verdict"
 msgid "You, %{date}"
@@ -13676,7 +13621,7 @@ msgctxt "the import action pill, with its meal count"
 msgid "Import %{n}"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1162
+#: lib/kati/screens/drop_sheet.ex:1163
 #, elixir-autogen, elixir-format
 msgctxt "the keep card, quoting the button beside it"
 msgid "No, I’m still on it"
@@ -13712,7 +13657,7 @@ msgctxt "the one thing a scanned plan's code cannot carry"
 msgid "The %{n} meals"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:863
+#: lib/kati/screens/drop_sheet.ex:864
 #, elixir-autogen, elixir-format
 msgctxt "the position a drop is captured at, inside a sentence"
 msgid "at S%{s} E%{e}"
@@ -13725,48 +13670,48 @@ msgid "%{n} a second"
 msgstr ""
 
 #: lib/kati/screens/rate_album.ex:486
-#: lib/kati/screens/rate_episode.ex:943
-#: lib/kati/screens/rating.ex:1215
+#: lib/kati/screens/rate_episode.ex:944
+#: lib/kati/screens/rating.ex:1216
 #, elixir-autogen, elixir-format
 msgctxt "the rating card's own label"
 msgid "Rating"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1148
-#: lib/kati/screens/rating.ex:1600
+#: lib/kati/screens/rate_episode.ex:1149
+#: lib/kati/screens/rating.ex:1601
 #, elixir-autogen, elixir-format
 msgctxt "the review card's own label"
 msgid "Review"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:638
-#: lib/kati/screens/rating.ex:824
+#: lib/kati/screens/rate_episode.ex:639
+#: lib/kati/screens/rating.ex:825
 #, elixir-autogen, elixir-format
 msgctxt "the row naming the day a watch was logged"
 msgid "Watched on"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:639
-#: lib/kati/screens/rating.ex:825
+#: lib/kati/screens/rate_episode.ex:640
+#: lib/kati/screens/rating.ex:826
 #, elixir-autogen, elixir-format
 msgctxt "the row naming where a watch happened"
 msgid "Where"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:640
-#: lib/kati/screens/rating.ex:826
+#: lib/kati/screens/rate_episode.ex:641
+#: lib/kati/screens/rating.ex:827
 #, elixir-autogen, elixir-format
 msgctxt "the row naming who watched along"
 msgid "With"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1232
+#: lib/kati/screens/drop_sheet.ex:1233
 #, elixir-autogen, elixir-format
 msgctxt "the second button on the drop sheet"
 msgid "Still on it"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:944
+#: lib/kati/screens/rate_episode.ex:945
 #, elixir-autogen, elixir-format
 msgctxt "the star scale takes half a star"
 msgid "Half steps"
@@ -13779,13 +13724,13 @@ msgctxt "the step meter's kicker"
 msgid "STEP %{step} OF %{total}"
 msgstr ""
 
-#: lib/kati/screens/rate_episode.ex:1503
+#: lib/kati/screens/rate_episode.ex:1504
 #, elixir-autogen, elixir-format
 msgctxt "the swatch showing a masked episode name"
 msgid "Spoiler-safe variant"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1330
+#: lib/kati/screens/drop_sheet.ex:1331
 #: lib/kati/settings/states_sample.ex:177
 #, elixir-autogen, elixir-format
 msgctxt "the undo pill's sentence after a drop"
@@ -13870,7 +13815,7 @@ msgid "%{n} books arrive with no finish dates"
 msgstr ""
 
 #: lib/kati/screens/rate_album.ex:207
-#: lib/kati/screens/rating.ex:798
+#: lib/kati/screens/rating.ex:799
 #, elixir-autogen, elixir-format
 msgid "%{n} character"
 msgid_plural "%{n} characters"
@@ -13878,7 +13823,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/kati/library/sample.ex:520
-#: lib/kati/screens/film.ex:563
+#: lib/kati/screens/film.ex:565
 #, elixir-autogen, elixir-format
 msgid "%{n} time"
 msgid_plural "%{n} times"
@@ -13905,7 +13850,7 @@ msgstr ""
 msgid "A numeral plus"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2031
+#: lib/kati/screens/rating.ex:2032
 #, elixir-autogen, elixir-format
 msgid "Add your services in Settings → My services, and they will be offered here."
 msgstr ""
@@ -13990,7 +13935,7 @@ msgstr ""
 msgid "Kati is quiet unless you ask it not to be. Turn a reminder on and it will show up here first, before it ever interrupts you."
 msgstr ""
 
-#: lib/kati/screens/film.ex:1780
+#: lib/kati/screens/film.ex:1846
 #, elixir-autogen, elixir-format
 msgid "Keep off shared cards"
 msgstr ""
@@ -14072,7 +14017,7 @@ msgstr ""
 msgid "Quiet hours, digest, stop after two skips"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1779
+#: lib/kati/screens/film.ex:1845
 #, elixir-autogen, elixir-format
 msgid "Show on shared cards"
 msgstr ""
@@ -14112,12 +14057,12 @@ msgstr ""
 msgid "This is a %{source} export from before %{year}. Everything else maps. "
 msgstr ""
 
-#: lib/kati/screens/film.ex:1864
+#: lib/kati/screens/film.ex:1930
 #, elixir-autogen, elixir-format
 msgid "This is a film"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1863
+#: lib/kati/screens/film.ex:1929
 #, elixir-autogen, elixir-format
 msgid "This is a series"
 msgstr ""
@@ -14147,13 +14092,13 @@ msgstr ""
 msgid "Use %{source} instead"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1586
+#: lib/kati/screens/film.ex:1648
 #, elixir-autogen, elixir-format
 msgid "Watch %{title}"
 msgstr ""
 
 #: lib/kati/library/sample.ex:514
-#: lib/kati/screens/film.ex:508
+#: lib/kati/screens/film.ex:510
 #, elixir-autogen, elixir-format
 msgid "Watched %{date}"
 msgstr ""
@@ -14178,7 +14123,7 @@ msgstr ""
 msgid "Wrong guess — back at the grid, choice remembered"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1985
+#: lib/kati/screens/rating.ex:1986
 #: lib/kati/screens/up_next.ex:826
 #, elixir-autogen, elixir-format
 msgid "Yesterday"
@@ -14199,7 +14144,7 @@ msgstr ""
 msgid "rates. Two meanings, two unmistakably different surfaces — a grid of artwork against a list of rows. Also on %{board}."
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2132
+#: lib/kati/screens/rating.ex:2133
 #, elixir-autogen, elixir-format
 msgid "rewatch, with Jo, rainy sunday…"
 msgstr ""
@@ -14255,7 +14200,7 @@ msgctxt "a section with nothing armed"
 msgid "Nothing today"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2528
+#: lib/kati/screens/rating.ex:2529
 #, elixir-autogen, elixir-format
 msgctxt "an example of a room a film was watched in"
 msgid "living room"
@@ -14358,19 +14303,19 @@ msgctxt "film action pill"
 msgid "Schedule"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1764
+#: lib/kati/screens/film.ex:1830
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "Buy from %{name}"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1767
+#: lib/kati/screens/film.ex:1833
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "On %{name}"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1761
+#: lib/kati/screens/film.ex:1827
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "Rent from %{name}"
@@ -14382,7 +14327,7 @@ msgctxt "how many stars stand beside the numeral"
 msgid "one"
 msgstr ""
 
-#: lib/kati/screens/film.ex:562
+#: lib/kati/screens/film.ex:564
 #, elixir-autogen, elixir-format
 msgctxt "how many times a film has been seen"
 msgid "never"
@@ -14400,13 +14345,13 @@ msgctxt "screen subtitle"
 msgid "THREE EDGE STATES"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:761
+#: lib/kati/screens/rating.ex:762
 #, elixir-autogen, elixir-format
 msgctxt "the badge counting a repeat viewing"
 msgid "%{ordinal} rewatch"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:712
+#: lib/kati/screens/rating.ex:713
 #, elixir-autogen, elixir-format
 msgctxt "the badge over a review that hides its ending"
 msgid "Spoilers hidden"
@@ -14418,19 +14363,19 @@ msgctxt "the bold half of a footnote"
 msgid "what it found"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2238
+#: lib/kati/screens/rating.ex:2239
 #, elixir-autogen, elixir-format
 msgctxt "the button that commits a typed tag"
 msgid "Add"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2622
+#: lib/kati/screens/rating.ex:2623
 #, elixir-autogen, elixir-format
 msgctxt "the chip for a watch that was on no service"
 msgid "Not on a service"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2312
+#: lib/kati/screens/rating.ex:2313
 #: lib/kati/screens/series_meta/sample.ex:98
 #, elixir-autogen, elixir-format
 msgctxt "the chip that opens the tag field"
@@ -14443,13 +14388,13 @@ msgctxt "the dashed chip that adds a clock time"
 msgid "Add a time"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2528
+#: lib/kati/screens/rating.ex:2529
 #, elixir-autogen, elixir-format
 msgctxt "the eyebrow over the place field"
 msgid "Place"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:697
+#: lib/kati/screens/rating.ex:698
 #, elixir-autogen, elixir-format
 msgctxt "the note under screen 33's star row"
 msgid "HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE"
@@ -14461,7 +14406,7 @@ msgctxt "the notification inbox's empty state"
 msgid "Nothing waiting"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1723
+#: lib/kati/screens/rating.ex:1724
 #, elixir-autogen, elixir-format
 msgctxt "the offer to flag a review as spoiling its ending"
 msgid "Mark spoilers"
@@ -14479,7 +14424,7 @@ msgctxt "the preview band's name for screen 112's today card"
 msgid "Today card"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1057
+#: lib/kati/screens/film.ex:1089
 #, elixir-autogen, elixir-format
 msgctxt "the rating card's count eyebrow"
 msgid "Seen"
@@ -14491,26 +14436,26 @@ msgctxt "the thing a long press on a shelf selects"
 msgid "shelf tile"
 msgstr ""
 
-#: lib/kati/screens/film.ex:511
-#: lib/kati/screens/film.ex:514
+#: lib/kati/screens/film.ex:513
+#: lib/kati/screens/film.ex:516
 #, elixir-autogen, elixir-format
 msgctxt "the watched pill over a film's artwork"
 msgid "Watched"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1822
+#: lib/kati/screens/film.ex:1888
 #, elixir-autogen, elixir-format
 msgctxt "the ⋯ row that tags a title as anime"
 msgid "Mark as anime"
 msgstr ""
 
-#: lib/kati/screens/film.ex:1820
+#: lib/kati/screens/film.ex:1886
 #, elixir-autogen, elixir-format
 msgctxt "the ⋯ row that tags a title as anime"
 msgid "Not anime"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1937
+#: lib/kati/screens/rating.ex:1938
 #, elixir-autogen, elixir-format
 msgctxt "two example names in the companions field"
 msgid "Jo, Sam"
@@ -15976,25 +15921,25 @@ msgstr ""
 msgid "scrobbles at %{percent}% or %{floor}"
 msgstr ""
 
-#: lib/kati/search.ex:678
+#: lib/kati/search.ex:679
 #, elixir-autogen, elixir-format
 msgctxt "Persian normalisation table"
 msgid "ZWNJ"
 msgstr ""
 
-#: lib/kati/search.ex:679
+#: lib/kati/search.ex:680
 #, elixir-autogen, elixir-format
 msgctxt "Persian normalisation table"
 msgid "folded"
 msgstr ""
 
-#: lib/kati/search.ex:680
+#: lib/kati/search.ex:681
 #, elixir-autogen, elixir-format
 msgctxt "Persian normalisation table"
 msgid "harakat"
 msgstr ""
 
-#: lib/kati/search.ex:681
+#: lib/kati/search.ex:682
 #, elixir-autogen, elixir-format
 msgctxt "Persian normalisation table"
 msgid "stripped"
@@ -17235,32 +17180,32 @@ msgstr ""
 msgid "Your tag: live action — overrides Kati's guess"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:470
+#: lib/kati/screens/drop_sheet.ex:471
 #, elixir-autogen, elixir-format
 msgctxt "the paused mark over the title being dropped"
 msgid "PAUSED · %{age}"
 msgstr ""
 
-#: lib/kati/screens/drop_sheet.ex:1209
+#: lib/kati/screens/drop_sheet.ex:1210
 #, elixir-autogen, elixir-format
 msgid "changes nothing at all."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1434
+#: lib/kati/screens/data_sources.ex:1053
 #, elixir-autogen, elixir-format
 msgid "%{n} account disconnected."
 msgid_plural "%{n} accounts disconnected."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:1058
+#: lib/kati/screens/data_sources.ex:678
 #, elixir-autogen, elixir-format
 msgid "%{n} account disconnects. Your library, ratings and history are untouched — only the keys go."
 msgid_plural "%{n} accounts disconnect. Your library, ratings and history are untouched — only the keys go."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:1412
+#: lib/kati/screens/data_sources.ex:1032
 #, elixir-autogen, elixir-format
 msgid "Nothing is connected."
 msgstr ""
@@ -17312,17 +17257,17 @@ msgstr ""
 msgid "Kati needs it to find films and series. Free, and takes a minute."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:260
+#: lib/kati/screens/data_sources.ex:207
 #, elixir-autogen, elixir-format
 msgid "Kati uses your own TMDB token, so searches are yours and nobody else’s. It is free: sign in at themoviedb.org, open Settings → API, and paste the API Read Access Token — the long one starting eyJ."
 msgstr ""
 
-#: lib/kati/screens/settings.ex:403
+#: lib/kati/screens/settings.ex:419
 #, elixir-autogen, elixir-format
 msgid "TMDB · no token yet"
 msgstr ""
 
-#: lib/kati/screens/settings.ex:402
+#: lib/kati/screens/settings.ex:417
 #, elixir-autogen, elixir-format
 msgid "TMDB · your token"
 msgstr ""
@@ -17536,7 +17481,7 @@ msgstr ""
 msgid "%{section} reminder"
 msgstr ""
 
-#: lib/kati/screens/settings.ex:453
+#: lib/kati/screens/settings.ex:493
 #, elixir-autogen, elixir-format
 msgid "Last backup %{date} · %{size}"
 msgstr ""
@@ -17619,7 +17564,7 @@ msgstr ""
 msgid "A hand-typed title carries no poster and no episode list. If Kati finds it later both arrive, and nothing you typed is overwritten."
 msgstr ""
 
-#: lib/kati/screens/film.ex:647
+#: lib/kati/screens/film.ex:673
 #, elixir-autogen, elixir-format
 msgid "This title is no longer in your library"
 msgstr ""
@@ -17627,4 +17572,49 @@ msgstr ""
 #: lib/kati/screens/add_by_hand.ex:472
 #, elixir-autogen, elixir-format
 msgid "Without it a series still tracks, but its progress bar has no denominator — which the app already draws honestly."
+msgstr ""
+
+#: lib/kati/ui/destructive.ex:52
+#, elixir-autogen, elixir-format
+msgid "Changes:"
+msgstr ""
+
+#: lib/kati/search.ex:339
+#, elixir-autogen, elixir-format
+msgid "Counts stay off the chips until a query exists — a row of zeroes on open would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one character is a word. Every keystroke runs: the search is your own library on this device, so waiting would cost more than it saved."
+msgstr ""
+
+#: lib/kati/ui/destructive.ex:52
+#, elixir-autogen, elixir-format
+msgid "Does not change:"
+msgstr ""
+
+#: lib/kati/screens/film.ex:2027
+#, elixir-autogen, elixir-format
+msgid "Remove %{title} from your library?"
+msgstr ""
+
+#: lib/kati/screens/film.ex:2036
+#, elixir-autogen, elixir-format
+msgid "Remove it"
+msgstr ""
+
+#: lib/kati/screens/film.ex:2026
+#, elixir-autogen, elixir-format
+msgid "Removing it"
+msgstr ""
+
+#: lib/kati/screens/settings.ex:418
+#, elixir-autogen, elixir-format
+msgid "TMDB · Kati’s key"
+msgstr ""
+
+#: lib/kati/screens/film.ex:2029
+#, elixir-autogen, elixir-format
+msgid "the title leaves your shelf, with every watch, rating and note you logged for it, and its places on your lists."
+msgstr ""
+
+#: lib/kati/screens/film.ex:2033
+#, elixir-autogen, elixir-format
+msgid "your other titles and your lists. Adding it again brings back its details, not its history."
 msgstr ""

@@ -44,6 +44,7 @@ defmodule Kati.Screens.AddToList do
   def mount(params, _session, socket) do
     Kati.Theme.activate()
     Kati.Locale.activate()
+    Kati.Screens.Resume.watch()
 
     members = Kati.Screens.AddToList.members(params)
 

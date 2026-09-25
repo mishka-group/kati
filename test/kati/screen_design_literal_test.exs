@@ -326,7 +326,19 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"151", "info"},
     {"151", "settings"},
     {"151", "lock"},
-    {"151", "notifications_off"}
+    {"151", "notifications_off"},
+    # Board 80's *Working out of the box* and *Connect an account* groups,
+    # which Kati never calls (N41) — see `DesignLiterals.retired_lines/0`,
+    # which holds their words and the argument. The glyphs are those rows'
+    # tiles and the expanded row's chevron; `movie` stays, on TMDB's row. 82 is
+    # 80 in Persian.
+    {"80", "expand_more"},
+    {"80", "graphic_eq"},
+    {"80", "menu_book"},
+    {"80", "tv"},
+    {"82", "expand_more"},
+    {"82", "graphic_eq"},
+    {"82", "menu_book"}
   ]
 
   # Lines a screen deliberately does not draw, because what carried them is
@@ -1167,13 +1179,6 @@ defmodule Kati.ScreenDesignLiteralTest do
        ~r/^(this device already has data, so the file is merged|nothing is stored on this device yet, so the file goes in as it is)/u},
       {"132", "این دستگاه داده دارد، پس فایل با آن", "129's entry, in Persian",
        ~r/^(این دستگاه داده دارد، پس فایل با آن|هنوز چیزی روی این دستگاه ذخیره نشده، پس فایل همان‌طور که هست)/u},
-      {"80", "connected as ines.k · 412 listens",
-       "the account name and the listen count come from ListenBrainz, and Kati has no " <>
-         "client for it yet. The row's contract is the alternation: what the provider " <>
-         "supplies when a token is present, or what the provider is FOR when none is. In a " <>
-         "test it is always the second branch, because `Kati.SecureStore` is empty. See " <>
-         "`Kati.Screens.DataSources.connected_line/1` for the branch this cannot reach",
-       ~r/^(connected as \p{L}[\p{L}.]* · \d+ listens|scrobbles, listening history|pairing — expanded)$/u},
       {"80", "34 mb cached",
        "the row reports this database file's own size, which is the question it exists to " <>
          "answer — how much of the phone is this using. The drawing froze one device's " <>

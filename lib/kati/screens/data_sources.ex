@@ -5,12 +5,21 @@ defmodule Kati.Screens.DataSources do
   Where every poster, cover, air date and fact comes from, and the one page in
   the app that holds a token.
 
-  ## Three tiers, and the third one is short on purpose
+  ## One source, because Kati calls one
 
-  `Kati.Sources` owns the list and the reasoning; the short version is that
-  ListenBrainz, Hardcover and TheTVDB all take a **revocable token**, and
+  Board 80 draws three groups of providers: *Working out of the box* (TVmaze,
+  Open Library, MusicBrainz), TMDB, and *Connect an account* (ListenBrainz,
+  Hardcover, TheTVDB). Kati calls exactly one of them. `Kati.SecureStore`'s
+  inventory records it: no code anywhere reaches the other six, so a page
+  listing them as working, or offering to connect them, advertised sources the
+  app never touches (N41). The page now draws TMDB — the source every film and
+  series search does use — and nothing else under a provider heading.
+
+  `Kati.Sources.tier0/0` and `tier2/0` keep the lists and the reasoning behind
+  them — ListenBrainz, Hardcover and TheTVDB take a **revocable token**, and
   Trakt, Simkl and Last.fm are left out because they need a pasted
-  `client_secret`. A secret pasted into a client-side app is not a secret.
+  `client_secret` — for the day a client for one of them lands; that is the
+  day its row comes back here.
 
   ## The reader brings the TMDB key
 
@@ -56,11 +65,6 @@ defmodule Kati.Screens.DataSources do
     |> Mob.Socket.assign(:token_epoch, 0)
     |> Mob.Socket.assign(:token_error, nil)
     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
-    # Opens with ListenBrainz's pairing card showing, which is the state the
-    # drawing was captured in and the state that is actually useful: the page
-    # exists to be told how to connect something, and the first row that can be
-    # is already explaining itself.
-    |> Mob.Socket.assign(:expanded, :listenbrainz)
     # Whether this build carries Kati's own key, read once here with the rest
     # of the page's reads — see `key_chips/2`.
     |> Mob.Socket.assign(:bundled?, Kati.Media.Tmdb.bundled?())
@@ -81,44 +85,14 @@ defmodule Kati.Screens.DataSources do
       >
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("Data sources"), gettext("Where Kati’s posters, covers and facts come from."), nil, :name)}
-        {UI.eyebrow(gettext("Working out of the box"))}
-        {Kati.Screens.DataSources.tier0()}
         {UI.eyebrow(gettext("Better artwork and metadata"))}
         {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0), Map.get(assigns, :bundled?, false))}
-        {UI.eyebrow(gettext("Connect an account"))}
-        {Kati.Screens.DataSources.tier2(assigns.expanded)}
         {UI.eyebrow(gettext("Where your tokens live"))}
         {Kati.Screens.DataSources.tokens(assigns)}
         {UI.eyebrow(gettext("Cached metadata"))}
         {Kati.Screens.DataSources.cache(Map.get(assigns, :cache_notice), Map.get(assigns, :refreshing?, false))}
       </Column>
     </Scroll>
-    """
-  end
-
-  @doc """
-  The three that need no setup, each with when it was last reached.
-
-  A time and not a tick, because *reachable* is a claim with a clock on it. A
-  green tick beside a provider that last answered in March would be a lie the
-  page had no way to notice.
-  """
-  @spec tier0() :: map()
-  def tier0 do
-    rows =
-      Enum.map(Sources.tier0(), fn source ->
-        SettingsList.row(
-          SettingsList.icon_tile(source.icon),
-          Kati.Screens.DataSources.body(source.name, source.supplies),
-          SettingsList.trailing(Kati.Screens.DataSources.reached(source.id))
-        )
-      end)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.SettingsList.card(rows)}
-      <Spacer size={24} />
-    </Column>
     """
   end
 
@@ -173,35 +147,8 @@ defmodule Kati.Screens.DataSources do
   def save_label, do: gettext("Save")
 
   @doc false
-  @spec connect_label() :: String.t()
-  def connect_label, do: gettext("Connect")
-
-  @doc false
-  @spec disconnect_label() :: String.t()
-  def disconnect_label, do: gettext("Disconnect")
-
-  @doc false
   @spec token_placeholder() :: String.t()
   def token_placeholder, do: gettext("Paste your TMDB read token")
-
-  @doc false
-  @spec pairing_label() :: String.t()
-  # Not `Kati.UI.eyebrow_label/1`: both drawings write these two in sentence
-  # case, in mono, and that helper upcases under `:en`.
-  def pairing_label, do: gettext("Pairing — expanded")
-
-  @doc false
-  @spec not_connected_label() :: String.t()
-  def not_connected_label, do: gettext("Not connected yet")
-
-  @doc false
-  @spec token_lives_there() :: String.t()
-  def token_lives_there,
-    do:
-      gettext(
-        "Your token lives there. Kati cannot ask for it yet — when it can, this is where " <>
-          "it comes from."
-      )
 
   @doc """
   When a source last answered, as `18:02`, or an em dash.
@@ -681,78 +628,6 @@ defmodule Kati.Screens.DataSources do
   def key_chip(label, tag, false),
     do: Kati.UI.chip(label, selected: false, on_toggle: {self(), tag})
 
-  @doc """
-  The three you can connect, one of them expanded if you tapped it.
-
-  Expanded shows the pairing card: a code, the URL to enter it at, and how long
-  it lasts. Connected shows who you are and what came back, and offers
-  `Disconnect` — which is the whole reason only revocable-token providers are
-  on this list.
-  """
-  @spec tier2(atom() | nil) :: map()
-  def tier2(expanded) do
-    rows =
-      Enum.flat_map(Sources.tier2(), fn source ->
-        [Kati.Screens.DataSources.tier2_row(source, expanded)]
-      end)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.SettingsList.card(rows)}
-      <Spacer size={24} />
-    </Column>
-    """
-  end
-
-  @doc """
-  One connectable provider — or, since board 320, one retired one.
-
-  320 found the failure 254 names by name, on 80's own page: *"if the LTR rows
-  become doors and the mirrors do not, the two locales disagree about which rows
-  lead anywhere."* Hardcover was retired one way in English and another in
-  Persian. It takes 114's treatment now in both — dimmed tile, dimmed label,
-  *Not set up — tap to see why*, and the `NOT IN V1` pill — and the tap opens
-  `Kati.Screens.RetiredReason`, which is board 114 and did not exist until today.
-
-  The row keeps its place in the group, which is 320's own rule: *"a row that
-  vanishes reads as a bug and gives the reader nothing to tap."*
-  """
-  @spec tier2_row(map(), atom() | nil) :: map()
-  def tier2_row(source, expanded) do
-    if Kati.Retired.known?(source.id) do
-      Kati.Screens.DataSources.retired_row(source)
-    else
-      Kati.Screens.DataSources.live_row(source, expanded)
-    end
-  end
-
-  @doc false
-  def retired_row(source) do
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.SettingsList.row(
-        Kati.Screens.DataSources.dimmed_tile(source.icon),
-        Kati.Screens.DataSources.body(source.name, gettext("Not set up — tap to see why")),
-        Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.not_in_v1()),
-        on_tap: {self(), String.to_atom("why_#{source.id}")},
-        rule: false
-      )}
-      {Kati.UI.SettingsList.hairline(true)}
-    </Column>
-    """
-  end
-
-  @doc false
-  def dimmed_tile(icon) do
-    assigns = %{icon: icon}
-
-    ~MOB"""
-    <Box width={30} height={30} corner_radius={9} background={Palette.placeholder()} align="center">
-      {Kati.UI.symbol(@icon, size: 17, color: Kati.Theme.Palette.rail_idle())}
-    </Box>
-    """
-  end
-
   @doc "114's pill, and screen 88's — one mark for *named and not doing this*."
   @spec not_in_v1() :: map()
   def not_in_v1 do
@@ -776,261 +651,6 @@ defmodule Kati.Screens.DataSources do
     </Row>
     """
   end
-
-  @doc false
-  def live_row(source, expanded) do
-    connected? = Sources.connected?(source.id)
-    expanded? = expanded == source.id
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.SettingsList.row(
-        Kati.Screens.DataSources.source_tile(source.icon, connected?),
-        Kati.Screens.DataSources.body(source.name, Kati.Screens.DataSources.sub_line(source, connected?, expanded?)),
-        Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.connect_control(connected?, expanded?)),
-        on_tap: {self(), String.to_atom("connect_#{source.id}")},
-        rule: false
-      )}
-      {Kati.Screens.DataSources.pairing(source, expanded?)}
-      {Kati.UI.SettingsList.hairline(true)}
-    </Column>
-    """
-  end
-
-  @doc """
-  What the row says under its name.
-
-  Two states, not three: connected names the account and what came back —
-  because *connected* on its own is not worth a row, the question a connected
-  provider answers is *connected as whom* — and everything else says what the
-  provider is for.
-
-  Expanding does **not** take that line away, which the drawing's own second
-  ListenBrainz row does. Losing `Scrobbles, listening history` the moment you
-  tap Connect would remove the answer to *what am I connecting this for* at
-  exactly the point the question gets asked, so `Pairing — expanded` is the
-  card's own label instead.
-  """
-  @spec sub_line(map(), boolean(), boolean()) :: String.t()
-  def sub_line(source, true, _expanded?), do: Kati.Screens.DataSources.connected_line(source.id)
-  def sub_line(source, false, _expanded?), do: source.supplies
-
-  @doc """
-  `Connected as ines.k · 412 listens`, for a provider with a token.
-
-  The account name and the count come from the provider and Kati has no client
-  for any of the three yet, so this is the one line on the page that is stated
-  rather than read. It is unreachable in a test — `Kati.SecureStore` is empty —
-  and `Kati.ScreenDesignLiteralTest`'s allow-list carries it with the two-state
-  contract the row actually keeps.
-  """
-  # An account name is the reader's own Latin handle and stays Latin — it is a
-  # name, not copy — but `ines.k` carries a full stop, and a full stop is
-  # neutral in the bidi algorithm. Dropped bare into **متصل با نام …** it
-  # resolves against whatever happens to sit beside it in the Persian sentence,
-  # which is not a property this file gets to see: the words around `%{who}`
-  # belong to the msgstr and a translator may move them. `Kati.Locale.ltr/1`
-  # settles it here instead, and is a no-op under `:en`, so board 80's
-  # `Connected as ines.k · 412 listens` is byte for byte what it was.
-  @spec connected_line(atom()) :: String.t()
-  def connected_line(:listenbrainz),
-    do:
-      gettext("Connected as %{who} · %{n} listens",
-        who: Kati.Locale.ltr("ines.k"),
-        n: Kati.Locale.number(412)
-      )
-
-  def connected_line(:hardcover),
-    do: gettext("Connected as %{who}", who: Kati.Locale.ltr("ines.k"))
-
-  def connected_line(:thetvdb),
-    do: gettext("Connected as %{who}", who: Kati.Locale.ltr("ines.k"))
-
-  def connected_line(_other), do: gettext("Connected")
-
-  @doc """
-  The source's glyph, with board 319's status dot on it.
-
-  *"The status dot is the constant across all four: bronze verifying, green
-  connected, red refused, absent unpaired."* Two of the four are reachable —
-  Kati has no pairing flow, so no code is ever issued and nothing can be
-  verifying or refused — and the dot is drawn for the two that are rather than
-  invented for the two that are not.
-
-  Absent rather than grey for unpaired, which is 319's own word: a grey dot is
-  a state, and *not connected* is the absence of one.
-  """
-  @spec source_tile(String.t(), boolean()) :: map()
-  def source_tile(icon, false), do: Kati.UI.SettingsList.icon_tile(icon)
-
-  def source_tile(icon, true) do
-    assigns = %{tile: Kati.UI.SettingsList.icon_tile(icon)}
-
-    ~MOB"""
-    <Box>
-      {@tile}
-      <Box fill_width={true} align="top">
-        <Row fill_width={true}>
-          <Spacer weight={1.0} />
-          <Box width={9} height={9} corner_radius={5} background={Palette.green()} />
-        </Row>
-      </Box>
-    </Box>
-    """
-  end
-
-  @doc false
-  def connect_control(true, _expanded?) do
-    ~MOB"""
-    <Text
-      text={Kati.Screens.DataSources.disconnect_label()}
-      text_size={12.5}
-      font_weight="semibold"
-      text_color={Kati.Theme.Palette.red()}
-      max_lines={1}
-    />
-    """
-  end
-
-  def connect_control(false, true), do: UI.symbol("expand_more", size: 20)
-
-  def connect_control(false, false) do
-    ~MOB"""
-    <Row
-      height={30}
-      corner_radius={15}
-      background={Kati.Theme.Palette.ink_fill()}
-      padding_left={14}
-      padding_right={14}
-      align="center"
-    >
-      <Text
-        text={Kati.Screens.DataSources.connect_label()}
-        text_size={12}
-        font_weight="bold"
-        text_color={Kati.Theme.Palette.on_ink()}
-        max_lines={1}
-      />
-    </Row>
-    """
-  end
-
-  @doc """
-  The pairing card, or nothing.
-
-  A device code rather than an in-app password field, which is the whole reason
-  these three providers are the ones offered: the code is entered on the
-  provider's own site, so Kati never sees a credential and the user never types
-  one into a screen they cannot verify.
-
-  ## What it says now, and what it used to say
-
-  It used to print a six-character code, `listenbrainz.org/link`, and `Expires
-  in 9:48`. All three were invented (MOVIES-AND-TV.md #71): the code came from
-  `pairing_code/1`, which derives it from the provider id because **Kati talks
-  to none of these three providers** and there is no pairing to have a code
-  for; the address was ListenBrainz's under every one of them, so a Hardcover
-  reader was sent to somebody else's site; and the countdown never counted,
-  because nothing had started.
-
-  A reader who took that at face value went to a URL that was not theirs and
-  typed a code nobody had issued. So the card says what is true: which site
-  the token comes from, what connecting would bring, and that Kati cannot
-  complete it yet. No code, and no clock on a code that does not exist.
-
-  The shape is the board's and the slot is still here. When a client lands,
-  `ready?/1` answers `true` and the code comes back — from the provider.
-  """
-  @spec pairing(map(), boolean()) :: map() | []
-  def pairing(_source, false), do: []
-
-  def pairing(source, true) do
-    assigns = %{
-      why: source.why,
-      site: Map.get(source, :site, ""),
-      supplies: Map.get(source, :supplies, "")
-    }
-
-    ~MOB"""
-    <Column fill_width={true} padding_bottom={13}>
-      <Text
-        text={Kati.Screens.DataSources.pairing_label()}
-        font_family={Kati.Locale.mono_face()}
-        text_size={9.5}
-        letter_spacing={Kati.Locale.tracking(0.12)}
-        text_color={Palette.muted()}
-      />
-      <Spacer size={8} />
-      <Text
-        text={@why}
-        text_size={12}
-        line_height={Kati.Locale.leading(1.5)}
-        text_color={Palette.ink_soft()}
-        max_lines={6}
-      />
-      <Spacer size={12} />
-      <Column fill_width={true} background={Palette.cream()} corner_radius={16} padding={15}>
-        <Text
-          text={Kati.Screens.DataSources.not_connected_label()}
-          font_family={Kati.Locale.mono_face()}
-          text_size={9.5}
-          letter_spacing={Kati.Locale.tracking(0.12)}
-          text_color={Palette.cream_meta()}
-        />
-        <Spacer size={8} />
-        {# Board 319: the 34pt / .14em setting belongs to the six-character code
-         # and nothing else — *"previously the URL was inheriting the code's
-         # typography, which is why a domain was set like a passphrase."* No
-         # code is ever issued here, so what is left is the URL at its own size.}
-        {# A URL is Latin in both scripts and has no digits to fold, so it keeps
-         # DM Mono wherever it is read. `Kati.Locale.ltr/1` isolates it, because
-         # a bare domain inside an `rtl` paragraph puts its `.org` at the wrong
-         # end — the bug board 85's licence notices had.}
-        <Text
-          text={Kati.Locale.ltr(@site)}
-          font_family="mono"
-          text_size={13}
-          text_color={Palette.cream_ink()}
-        />
-        <Spacer size={8} />
-        <Text
-          text={Kati.Screens.DataSources.token_lives_there()}
-          text_size={12.5}
-          line_height={Kati.Locale.leading(1.5)}
-          text_color={Palette.cream_sub()}
-          max_lines={6}
-        />
-        <Spacer size={4} />
-        <Text
-          text={@supplies}
-          font_family={Kati.Locale.mono_face(@supplies)}
-          text_size={11}
-          text_color={Palette.cream_meta()}
-        />
-      </Column>
-    </Column>
-    """
-  end
-
-  @doc """
-  Whether Kati can actually pair with a provider.
-
-  `false` for all three today, and the function exists so the day one of them
-  becomes `true` is a one-line change rather than a redesign. `pairing/2`
-  draws the address and the limit while this is false, and the provider's own
-  code when it is true.
-
-  It replaces `pairing_code/1`, which answered `K4Q9B2` for ListenBrainz,
-  `K7M3D8` for Hardcover and `K2V6X1` for TheTVDB — six characters derived
-  from the provider id, printed under *Enter this code* over a ten-minute
-  countdown, for a pairing no code had been issued for. A limitation stated in
-  a moduledoc and contradicted on screen is not stated.
-
-      iex> Kati.Screens.DataSources.ready?(:listenbrainz)
-      false
-  """
-  @spec ready?(atom()) :: boolean()
-  def ready?(_provider), do: false
 
   @doc """
   Board 81's inline wipe confirmation, live.
@@ -1426,7 +1046,6 @@ defmodule Kati.Screens.DataSources do
     {:noreply,
      socket
      |> Mob.Socket.assign(:confirm_wipe?, false)
-     |> Mob.Socket.assign(:expanded, nil)
      |> Mob.Socket.assign(:tmdb, Sources.tmdb_key())
      |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
      |> Mob.Socket.assign(
@@ -1511,44 +1130,7 @@ defmodule Kati.Screens.DataSources do
     end
   end
 
-  def handle_tap(tag, socket) do
-    case Atom.to_string(tag) do
-      # Board 114's sheet, which board 320 is what finally needs.
-      "why_" <> id ->
-        {:noreply,
-         Mob.Socket.push_screen(socket, Kati.Screens.RetiredReason, %{
-           id: String.to_existing_atom(id),
-           back: gettext("Data sources")
-         })}
-
-      "connect_" <> id ->
-        source = String.to_existing_atom(id)
-
-        # One tag, two rows, because `tier2_row/2` puts it on every row whatever
-        # its state — and the row's own trailing control already says which of
-        # the two it is. A connected row draws `Disconnect`
-        # (`connect_control/2`'s first clause), and expanding a pairing card
-        # underneath it was the control doing the opposite of what it read:
-        # there is nothing to pair, the token is already there. `tier2/1`'s doc
-        # states the intent outright — connected "offers `Disconnect` — which is
-        # the whole reason only revocable-token providers are on this list" —
-        # and 80.html draws the word twice.
-        #
-        # Collapses to `nil` rather than leaving `:expanded` alone: the row is
-        # about to redraw as a disconnected one, and leaving it expanded would
-        # spring a pairing card open on a tap that meant to close an account.
-        if Sources.connected?(source) do
-          Sources.disconnect(source)
-          {:noreply, Mob.Socket.assign(socket, :expanded, nil)}
-        else
-          now = if socket.assigns.expanded == source, do: nil, else: source
-          {:noreply, Mob.Socket.assign(socket, :expanded, now)}
-        end
-
-      _other ->
-        {:noreply, socket}
-    end
-  end
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 
   @impl true
   def handle_info({:change, :tmdb_token, typed}, socket) when is_binary(typed),

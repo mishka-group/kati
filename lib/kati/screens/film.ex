@@ -192,7 +192,9 @@ defmodule Kati.Screens.Film do
      # where the msgid for every back pill in the app is declared. Handing it
      # the Persian would be handing it a string the catalogue has no entry for.
      |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
-     |> Mob.Socket.assign(:menu?, false)}
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.assign(:confirm_remove?, false)
+     |> Mob.Socket.assign(:remove_error, nil)}
   end
 
   @doc """
@@ -627,6 +629,30 @@ defmodule Kati.Screens.Film do
   def gone?(f), do: Map.get(f, :gone?, false) == true
 
   @doc """
+  A page's fresh read, put on the socket under `key` — screen 08's `:film`,
+  screen 04's `:series`.
+
+  N37. Both pages re-read on `:resumed`, and a title removed while one sat
+  under a sheet has to come back as `gone/2`'s page and nothing of the page it
+  was: an open ⋯, a remove question or a refusal left standing would be
+  controls about a row that is not there. So a fresh read that is `gone?/1`
+  closes all three, and one that is not leaves them as the reader left them.
+  """
+  @spec resumed(Mob.Socket.t(), atom(), map()) :: Mob.Socket.t()
+  def resumed(socket, key, fresh) do
+    socket = Mob.Socket.assign(socket, key, fresh)
+
+    if gone?(fresh) do
+      socket
+      |> Mob.Socket.assign(:menu?, false)
+      |> Mob.Socket.assign(:confirm_remove?, false)
+      |> Mob.Socket.assign(:remove_error, nil)
+    else
+      socket
+    end
+  end
+
+  @doc """
   The page for a title that is not on the shelf: one sentence and a way back.
 
   It drew the detail frame with nothing in it — no title, a green *Watched*
@@ -694,6 +720,11 @@ defmodule Kati.Screens.Film do
             padding_top={16}
             padding_bottom={40}
           >
+            {Kati.Screens.Film.remove_confirm(
+              f,
+              Map.get(assigns, :confirm_remove?, false),
+              Map.get(assigns, :remove_error)
+            )}
             {Kati.Screens.Film.rating_card(f)}
             {Kati.Screens.Film.note(f)}
             {Kati.Screens.Film.where_section(f)}
@@ -996,7 +1027,8 @@ defmodule Kati.Screens.Film do
         # assumed.
         Kati.Screens.Film.drop_item(f),
         Kati.Screens.Film.anime_item(f),
-        Kati.Screens.Film.kind_item(f)
+        Kati.Screens.Film.kind_item(f),
+        Kati.Screens.Film.remove_item(f)
       ]
       |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
@@ -1556,6 +1588,36 @@ defmodule Kati.Screens.Film do
      )}
   end
 
+  # N36: the ⋯ row asks first — `remove_confirm/3` — and only the card's own
+  # button removes. `Kati.Screens.Series.remove/1` is the one removal, and a
+  # removal that landed pops, because the page is about a row that no longer
+  # exists; `Kati.Screens.Resume` makes whatever is underneath re-read.
+  def handle_info({:tap, :confirm_remove}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.assign(:confirm_remove?, true)
+     |> Mob.Socket.assign(:remove_error, nil)}
+  end
+
+  def handle_info({:tap, :keep_title}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:confirm_remove?, false)
+     |> Mob.Socket.assign(:remove_error, nil)}
+  end
+
+  def handle_info({:tap, :remove_title}, socket) do
+    case Kati.Screens.Series.remove(socket.assigns.film) do
+      :ok ->
+        {:noreply,
+         socket |> Mob.Socket.assign(:confirm_remove?, false) |> Kati.Screens.Resume.pop()}
+
+      {:error, reason} ->
+        {:noreply, Mob.Socket.assign(socket, :remove_error, Kati.Write.message({:error, reason}))}
+    end
+  end
+
   @doc """
   Put this film on the calendar: screen 18, with its name already typed.
 
@@ -1697,9 +1759,13 @@ defmodule Kati.Screens.Film do
   # title the arrival did — or, when the page is already the one that says the
   # title has gone, off the push, since that page carries no id of its own and
   # a `nil` here would open the top of the shelf in its place.
+  #
+  # N37: `resumed/3` is the whole refresh, shared with screen 04, so a title
+  # removed while this page sat under a sheet turns into `gone/2`'s page on the
+  # way back, and its ⋯ and its remove question go with it.
   def handle_info({:kati, :resumed, _payload}, socket) do
     id = Map.get(socket.assigns.film, :tracked_id) || Map.get(socket.assigns, :id)
-    {:noreply, Mob.Socket.assign(socket, :film, film(id))}
+    {:noreply, Kati.Screens.Film.resumed(socket, :film, film(id))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
@@ -1916,6 +1982,73 @@ defmodule Kati.Screens.Film do
   rescue
     error -> {:error, error}
   end
+
+  @doc """
+  *Remove from library*, or nothing at all when there is no title to remove.
+
+  N36: a title could be removed from the shelf's selection mode and from board
+  248's no-episode card, and from nowhere on its own page — screen 08's ⋯ had
+  no such row and neither had screen 04's. The row opens `remove_confirm/3`
+  rather than removing, because `Kati.Screens.Series.remove/1` takes the
+  title's watches, ratings and notes with it (N11) and that is not a thing one
+  mis-tap should do.
+
+  Shared by screens 08 and 04, and dropped over the drawing for `drop_item/1`'s
+  reason: there is no row behind it.
+  """
+  @spec remove_item(map()) :: map() | []
+  def remove_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item("delete", gettext("Remove from library"), :confirm_remove)
+    else
+      []
+    end
+  end
+
+  @doc """
+  The question `remove_item/1` asks before anything is written.
+
+  `Kati.UI.Destructive.confirm/1`, the recipe `Kati.Screens.ListDetail` asks a
+  list deletion with, leading with what goes and then with what does not.
+  What goes is what `Kati.Screens.Series.remove/1`'s cascade takes; what stays
+  is the provider's description of the title, which is why adding it again
+  brings the page back and not the history.
+
+  `error` is the refusal of a remove that was confirmed and did not land, drawn
+  under the card so the reader is still on the page they tried to clear.
+  Nothing at all while nobody is being asked.
+  """
+  @spec remove_confirm(map(), boolean(), String.t() | nil) :: map()
+  def remove_confirm(f, true, error) do
+    assigns = %{
+      confirm:
+        Kati.UI.Destructive.confirm(
+          eyebrow: gettext("Removing it"),
+          title: gettext("Remove %{title} from your library?", title: Map.get(f, :title, "")),
+          changes:
+            gettext(
+              "the title leaves your shelf, with every watch, rating and note you logged for it, and its places on your lists."
+            ),
+          keeps:
+            gettext(
+              "your other titles and your lists. Adding it again brings back its details, not its history."
+            ),
+          confirm: {gettext("Remove it"), :remove_title},
+          keep: {gettext("Keep it"), :keep_title}
+        ),
+      error: error
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@confirm}
+      {Kati.Screens.Series.refusal(@error)}
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  def remove_confirm(_f, _asking?, _error), do: ~MOB"<Spacer size={0} />"
 
   @doc """
   What gets shared: the title, the year, and where it can be watched.

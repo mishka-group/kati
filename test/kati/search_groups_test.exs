@@ -180,11 +180,12 @@ defmodule Kati.SearchGroupsTest do
 
       refute note =~ "debounce", "screen 19 runs on every keystroke, deliberately"
 
-      # The chips it counts, not the scopes it can narrow to. Board 90 draws
-      # all eight — `Kati.Search.Query.chip_counts/1` walks `chip_keys/0` since
-      # mishka-group/kati#103 — and a sentence about what a reader sees on open
-      # has to name the row they see. It said five over a row of eight.
-      assert note =~ "#{length(Kati.Search.chip_keys())} zeroes"
+      # N34: it named a count — first five, then `length(chip_keys/0)` — and
+      # the row the device draws is neither, with Music greyed and chips off
+      # the edge. It now names no number at all.
+      assert note =~ "a row of zeroes on open"
+      refute note =~ ~r/\d+ zeroes/
+      refute note =~ "eight zeroes"
     end
 
     test "and it says so in the other script too" do
@@ -196,7 +197,8 @@ defmodule Kati.SearchGroupsTest do
 
         refute note =~ "Counts stay off"
         assert note =~ "چیپ‌ها"
-        assert note =~ Kati.Locale.number(length(Kati.Search.chip_keys()))
+        assert note =~ "یک ردیف صفر"
+        refute note =~ Kati.Locale.number(length(Kati.Search.chip_keys())) <> " صفر"
       end)
     end
 

@@ -11,8 +11,10 @@ defmodule Kati.Sources do
   ## Three tiers, and the third one is a decision rather than a limit
 
     * **Tier 0 — works out of the box.** TVmaze, Open Library, MusicBrainz. No
-      key, no account, no setup. Screen 80 lists them with a last-reached time
-      and nothing to press.
+      key, no account, no setup. Screen 80 does not list them: none is called
+      anywhere yet, and a row saying one works would be a claim about a source
+      the app never touches (N41). A provider's row comes back when its client
+      does.
 
       **Books and Music still need a free API chosen and wired — Open Library
       and MusicBrainz are named here and neither is called anywhere in `lib/`.**
@@ -30,7 +32,11 @@ defmodule Kati.Sources do
       for testing (`tmdb_key/0`), and `mix mob.release` refuses to package one.
       Every credential and where it can go is tabled in `Kati.SecureStore`'s
       moduledoc.
-    * **Tier 2 — connect an account.** ListenBrainz, Hardcover, TheTVDB.
+    * **Tier 2 — connect an account.** ListenBrainz, Hardcover, TheTVDB. Not
+      drawn on screen 80 either, for tier 0's reason: Kati has no client for
+      any of the three, so there is nothing a token would connect to.
+      `connected_count/0` and `disconnect_all/0` still sweep their keys, so a
+      token stored by an older build is still wiped by *Wipe tokens*.
 
   The tier-2 list is short on purpose and the design's caption gives the rule:
   *all three take revocable tokens; Trakt, Simkl and Last.fm are left out

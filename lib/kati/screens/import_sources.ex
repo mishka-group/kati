@@ -710,8 +710,10 @@ defmodule Kati.Screens.ImportSources do
   defp fallback(:something_else, socket),
     do: {:noreply, Kati.Screens.ImportSources.choose_file(socket, nil)}
 
+  # Named, because screen 129's own default pill says *Settings* — its door on
+  # that page — and from here back returns to Import (N42).
   defp fallback(:kati_backup, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore, %{back: "Import"})}
 
   defp fallback(_tag, socket), do: {:noreply, socket}
 end

@@ -392,15 +392,55 @@ defmodule Kati.Screens.Settings do
   @version Mix.Project.config()[:version]
 
   @doc """
-  The Data sources row's second line: whether film and series search can run.
+  The Data sources row's second line: whose TMDB key film and series search is
+  running on, if any — given what `tmdb_state/0` answered.
 
   It said *TVmaze, Open Library, MusicBrainz · 3 reachable* — a count nothing
   measured. The one source every film and series search needs is TMDB, and
-  whether the reader has given it a token is a fact this device holds.
+  whether it has a key is a fact this device holds.
+
+  Three answers and not two (N40). A development build carries Kati's own key,
+  and with it chosen on screen 80 this line said *your token* — about a key the
+  reader never gave. *Kati's key* is only ever drawn on such a build, because
+  only there can `tmdb_state/0` answer `:kati`.
+
+      iex> Kati.Screens.Settings.tmdb_line(:own)
+      "TMDB · your token"
+
+      iex> Kati.Screens.Settings.tmdb_line(:kati)
+      "TMDB · Kati’s key"
+
+      iex> Kati.Screens.Settings.tmdb_line(:none)
+      "TMDB · no token yet"
   """
-  @spec tmdb_line(boolean()) :: String.t()
-  def tmdb_line(true), do: gettext("TMDB · your token")
-  def tmdb_line(false), do: gettext("TMDB · no token yet")
+  @spec tmdb_line(:own | :kati | :none) :: String.t()
+  def tmdb_line(:own), do: gettext("TMDB · your token")
+  def tmdb_line(:kati), do: gettext("TMDB · Kati’s key")
+  def tmdb_line(:none), do: gettext("TMDB · no token yet")
+
+  @doc """
+  Which TMDB key is in force: the reader's `:own`, the build's `:kati`, or
+  `:none` when the chosen one is not there.
+
+  `Kati.Media.Tmdb.usable?/0` first, because a choice with no key behind it is
+  no key — `:kati` chosen on a build that carries none, or `:own` with nothing
+  saved. Then `Kati.Sources.tmdb_key/0` for whose it is, which is only `:kati`
+  when `Kati.Media.Tmdb.bundled?/0` says the build has one to use.
+  """
+  @spec tmdb_state() :: :own | :kati | :none
+  def tmdb_state do
+    cond do
+      not Kati.Media.Tmdb.usable?() -> :none
+      kati_key_chosen?() -> :kati
+      true -> :own
+    end
+  end
+
+  defp kati_key_chosen? do
+    Kati.Sources.tmdb_key() == :kati and Kati.Media.Tmdb.bundled?()
+  rescue
+    _unopened -> false
+  end
 
   @doc """
   What the Export row's second line says, given what `last_backup/0` answered.
@@ -487,7 +527,8 @@ defmodule Kati.Screens.Settings do
 
   def sub(%{id: "version"}), do: Kati.Locale.number(@version)
 
-  def sub(%{id: "data_sources"}), do: Kati.Screens.Settings.tmdb_line(Kati.Media.Tmdb.usable?())
+  def sub(%{id: "data_sources"}),
+    do: Kati.Screens.Settings.tmdb_line(Kati.Screens.Settings.tmdb_state())
 
   def sub(%{sub: sub}), do: sub
 

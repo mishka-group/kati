@@ -297,6 +297,7 @@ defmodule Kati.Screens.Rating do
     # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
     # and a screen is its own process — see `Kati.Locale.activate/0`.
     Kati.Locale.activate()
+    Kati.Screens.Resume.watch()
     tracked_id = Map.get(params || %{}, :tracked_title_id)
     {draft, id} = draft_and_id(logged_record(tracked_id), tracked_id)
 
