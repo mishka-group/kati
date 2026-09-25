@@ -193,6 +193,11 @@ defmodule Kati.ScreenDesignLiteralTest do
     # frame. Same treatment as 330 and 333.
     Kati.Screens.MoreSources,
     Kati.Screens.NotificationsHelp,
+    # No board draws it. Board 24 draws a Privacy row that opened
+    # nothing; this is the page behind it, and every sentence on it is a claim
+    # about the code. `Kati.SettingsPrivacyTest` holds what it draws, including
+    # the list of HTTP callers its network sentence depends on.
+    Kati.Screens.Privacy,
     # Board 114 is a states board like the rest of this wave, and this screen is
     # what finally sits behind three surfaces that have drawn *tap to see why*
     # with nothing under it since they were written.
@@ -300,7 +305,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"56", "info"},
     {"62", "event"},
     {"62", "pin"},
-    {"62", "restaurant"}
+    {"62", "restaurant"},
+    # Board 24's *Reorder sections* row — see `DesignLiterals.retired_lines/0`,
+    # which holds its words and the argument. The glyph is the row's own tile.
+    {"24", "drag_indicator"}
   ]
 
   # Lines a screen deliberately does not draw, because what carried them is
@@ -510,9 +518,16 @@ defmodule Kati.ScreenDesignLiteralTest do
       # Named rather than counted. A budget that reports only its own arithmetic
       # tells whoever trips it to go and find the offender by hand, and the
       # offender is one literal out of some sixteen hundred.
+      #
+      # A retired line is left out of the ratio. It is not drawn at all, by
+      # decision, so it is neither a tight reading nor a loose one — counted, it
+      # was a :missing in the denominator, and retiring one more false line
+      # could push the ratio under 95% and read as a regression in how the
+      # drawn copy is matched.
       located =
         for screen <- render_all(),
             literal <- screen.design.text,
+            {screen.number, literal} not in DesignLiterals.retired_lines(),
             do: {DesignLiterals.locate(literal, screen.haystacks), screen, literal}
 
       tiers = Enum.map(located, &elem(&1, 0))

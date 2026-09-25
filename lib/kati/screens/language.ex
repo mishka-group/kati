@@ -12,22 +12,24 @@ defmodule Kati.Screens.Language do
   rather than a peer of it, so its eyebrow takes the grey dash from
   `Kati.UI.SettingsList.eyebrow_muted/1` and not the accent one.
 
-  ## Persian rows are drawn in Vazirmatn
+  Every row, word and group this page draws comes from `Kati.Language.Page`,
+  already said in the reader's language; this module lays it out and handles
+  its taps.
 
-  `فا`, `فارسی` and `ایران` are the picker's own copy, and two rows below mix
-  Persian into an English sentence. Plus Jakarta Sans carries neither Arabic
-  glyphs nor Arabic-Indic digits, so those five strings take
-  `font_family="fa"` — Vazirmatn, which Kati ships at 400–800 and which covers
-  Latin as well, so the English half of a mixed line still reads. The rows
-  carry `script: :fa` in `Kati.Language.Sample` rather than the screen
-  guessing from the characters.
+  ## Persian picker rows are drawn in Vazirmatn
 
-  The flag still says the right thing after the fold, for a reason worth
-  writing down: at `:fa` those two rows are Persian *throughout* rather than
-  mixed, so they want Vazirmatn twice over. The picker's Latin row wants the
-  opposite and now says so — `language_body/1` pins `sans` on it, because at
-  `:fa` the root's face is Vazirmatn and **English** was being set in the face
-  of the language it is offered as the alternative to.
+  `فا`, `فارسی` and `ایران` are the picker's own copy. Plus Jakarta Sans
+  carries neither Arabic glyphs nor Arabic-Indic digits, so the Persian row
+  takes `font_family="fa"` — Vazirmatn, which Kati ships at 400–800. The row
+  carries `script: :fa` in `Kati.Language.Page` rather than the screen guessing
+  from the characters. The Latin row wants the opposite and says so —
+  `language_body/1` pins `sans` on it, because at `:fa` the root's face is
+  Vazirmatn and **English** would otherwise be set in the face of the language
+  it is offered as the alternative to.
+
+  No row below the picker mixes scripts any more: each *Follows the language*
+  line is written wholly in the reader's language, so the root's face is the
+  right one for all of them.
 
   ## The picker is the real switch, not a highlight
 
@@ -35,11 +37,9 @@ defmodule Kati.Screens.Language do
   duplicating it. `Kati.Locale.put/1` writes `Mob.State`, which is a named
   GenServer over a DETS table — process-independent, app-wide and synced to
   disk before the call returns — so writing it from a screen is safe and
-  survives the screen dying on the next root switch. The picker therefore
-  reads its selection from `Kati.Locale.current/0` and not from
-  `Kati.Language.Sample`'s `on:` flag, which is now the stand-in it always
-  said it was: at `:en`, the default, the two agree exactly and the resting
-  frame is 54.html unchanged.
+  survives the screen dying on the next root switch. The picker reads its
+  selection from `Kati.Locale.current/0`; at `:en`, the default, the resting
+  frame is 54.html's.
 
   Choosing a language then **opens the interface in it**, because setting the
   locale alone would not: `Kati.Shell.roots/0` is a static list of the English
@@ -62,16 +62,14 @@ defmodule Kati.Screens.Language do
   header is the back pill alone, with nothing opposite it, so the chrome row
   reserves the pill's height and draws no disc.
 
-  ## What mishka-group/kati#103 translated here, and what it left alone
+  ## What is translated, and what is left alone
 
   Everything on this screen that is ordinary copy goes through `Kati.Gettext`
-  now — the title and its subtitle, the three eyebrows, the dashed row, the
-  eight settings and the closing promise. `Kati.Language.Sample` keeps the
-  drawing's own English, because a literal in another file is the one thing
-  `gettext/1` cannot reach — a msgid has to be at the call site, and
-  `gettext(row.title)` does not compile — so `copy/1` at the bottom of this
-  file is where the sample's sentences are said. `Kati.Screens.MealReminders`
-  is the same arrangement over the same kind of store and argues it at length.
+  — the title and its subtitle, the three eyebrows, the dashed row, the eight
+  settings and the closing promise — at its call site in `Kati.Language.Page`.
+  This screen used to hold a `copy/1` that turned the sample's English
+  literals into `gettext/1` calls at the leaf; with the rows built by
+  functions there is nothing left for it to translate.
 
   **The two picker rows stay literal.** `En / English / United Kingdom` and
   `فا / فارسی / ایران` are the specimens a reader is choosing *between*, and a
@@ -82,40 +80,39 @@ defmodule Kati.Screens.Language do
   row pins `sans` as of this round for the other half of it: see
   `language_body/1`.
 
-  **Three of the eight rows say the opposite thing in Persian**, and the
-  catalogue is where that flip lives rather than a branch here. A reader at
-  `:fa` is looking at a right-to-left page whose dates really are Shamsi —
-  `Kati.Locale.date/2` converts — and whose numerals really are Persian, so
-  *Left to right · set by English* is a sentence about somebody else's app.
-  `Kati.Screens.MealPlan.week_note/0` is the precedent: one msgid, English
-  naming Monday and Persian naming شنبه, because the two are different facts
-  rather than one fact translated.
+  ## The *Follows the language* rows read the locale
 
-  ## Audited: the locale is stored; the eight rows under it are drawn copy
+  They were frozen English whose Persian catalogue entries flipped three of
+  them into sentences about Persian — true on the day they were written and
+  held true by nothing. Each now states what the current locale actually does,
+  from the function the rest of the app acts on: `Kati.Locale.direction/1`,
+  `Kati.Locale.calendar/0`, `Kati.Locale.numerals/0` and
+  `Kati.Locale.week_start/0`, each followed by the name of the language that
+  set it. `Kati.Language.Page`'s moduledoc has the details, and
+  `Kati.LanguageFollowsTest` holds each row to its function under both
+  locales.
 
-  The picker is the app's real setting and is read and written above.
-  **Everything below it is `Kati.Language.Sample`, and no resource in the app
-  holds any of it** — the five *Follows the language* rows, the three *Content*
-  rows and the closing promise are the design's words about a locale's
-  consequences.
+  ## Audited: what is stored, what is derived, and what is fixed
 
-  None of the eight carries an `on_tap`, including the *Title language* switch,
-  and by this file's own invariant — the tags a screen draws are the choices it
-  can still make — that is the screen saying so rather than a control that lost
-  its handler. Each names a preference the app does not keep: `Kati.Locale`
-  stores the locale and derives the writing direction from it and nothing else,
-  so a calendar system, a numeral set, a week start, a time format, whether
-  original titles show, units and currency have nowhere to be written. They
-  belong on `Kati.Locale` as stored overrides — the row's own word is
-  *overridable*, and `Kati.Theme.Mode` is the shape one takes — rather than in a
-  domain: they are preferences, not rows. `Writing direction` is the exception
-  that never becomes a setting, and the drawing already says so by printing
-  `auto` where the other four print an arrow.
+    * **Stored** — the locale (the picker), *Title language*
+      (`Kati.Locale.original_titles?/0`) and *Currency* (`Kati.Money`, set on
+      screen 125). These three carry taps.
+    * **Derived** — writing direction, calendar, numerals and week start. They
+      follow the locale and have no store of their own, so they carry no tap
+      and no chevron; the writing-direction row prints `auto` where a control
+      would be, which is the drawing's own mark for a derived value.
+    * **Fixed** — *Time format* is 24-hour in both languages
+      (`Kati.Locale.time/1` is `%H:%M`) and *Units* is metric. Neither has a
+      store, so each row states the fact and offers nothing to tap.
+
+  By this file's own invariant — the tags a screen draws are the choices it
+  can still make — a row with no `on_tap` is the screen saying there is
+  nothing to choose, not a control that lost its handler.
   """
   use Kati.Screens.Pushed, back: "Settings"
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Language.Sample
+  alias Kati.Language.Page
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -123,26 +120,25 @@ defmodule Kati.Screens.Language do
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket,
-      heading: Sample.heading(),
       locale: Kati.Locale.current(),
       original_titles?: Kati.Locale.original_titles?()
     )
   end
 
-  @doc false
+  @doc """
+  The page. The heading is read here, at render, rather than stored at mount:
+  choosing a language pushes Home over this socket, and backing out re-renders
+  it under the new locale — a heading held in assigns would still be in the
+  language the reader just left.
+  """
   def content(assigns) do
-    h = assigns.heading
+    h = Page.heading()
     locale = assigns.locale
-
-    # Said in the reader's own language before the sigil rather than inside it,
-    # which is the arrangement `copy/1` describes: the sample's English is the
-    # KEY and the drawn word is the reader's, and the two must never be mistaken
-    # for each other — `tap/1` used to match on one of them.
-    title = copy(h.title)
-    subtitle = copy(h.subtitle)
-    interface_label = copy(h.interface_label)
-    follows_label = copy(h.follows_label)
-    content_label = copy(h.content_label)
+    title = h.title
+    subtitle = h.subtitle
+    interface_label = h.interface_label
+    follows_label = h.follows_label
+    content_label = h.content_label
 
     ~MOB"""
     <Scroll>
@@ -158,7 +154,7 @@ defmodule Kati.Screens.Language do
         {UI.eyebrow(interface_label)}
         {Kati.Screens.Language.picker(locale)}
         {UI.eyebrow(follows_label)}
-        {Kati.Screens.Language.group(Kati.Language.Sample.follows(), 24)}
+        {Kati.Screens.Language.group(Kati.Language.Page.follows(), 24)}
         {SettingsList.eyebrow_muted(content_label)}
         {Kati.Screens.Language.group(
           Kati.Screens.Language.settled_content(Map.get(assigns, :original_titles?, true)),
@@ -174,7 +170,7 @@ defmodule Kati.Screens.Language do
   def picker(locale) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(Kati.Language.Sample.languages(), fn l ->
+      {Enum.map(Kati.Language.Page.languages(), fn l ->
          Kati.Screens.Language.language(l, Kati.Screens.Language.locale_of(l) == locale)
        end)}
       {Kati.Screens.Language.add_language()}
@@ -186,7 +182,7 @@ defmodule Kati.Screens.Language do
   @doc """
   Which locale a picker row stands for.
 
-  `Kati.Language.Sample` already carries `script:` — it has to, so a row can
+  `Kati.Language.Page` already carries `script:` — it has to, so a row can
   choose its typeface — and the two rows it draws are exactly the two locales
   `Kati.Locale.supported/0` returns, so nothing further is needed to tell them
   apart. A third installed language would need its own key on that data and a
@@ -455,13 +451,10 @@ defmodule Kati.Screens.Language do
   # PathEffect. The 1.5pt weight and the alpha are the drawing's own.
   @doc false
   def add_language do
-    a = Sample.add_language()
+    a = Page.add_language()
     tap = {self(), :add_language}
-    # Copy, not specimens: the row names three languages Kati does not install,
-    # in the reader's own words. The two rows ABOVE it are the specimens, and
-    # they stay literal — see the moduledoc.
-    title = copy(a.title)
-    sub = copy(a.sub)
+    title = a.title
+    sub = a.sub
 
     ~MOB"""
     <Row
@@ -529,14 +522,11 @@ defmodule Kati.Screens.Language do
 
   # Routed off the row's ICON rather than off its title, as of the fold.
   #
-  # The title is drawn copy now — `copy/1` says it in the reader's language —
-  # and `tap("Currency")` was a label being used as state. `Kati.Settings.Sample`
-  # is where that goes next: its rows already call `gettext/1` on their own
-  # titles, and the day `Kati.Language.Sample` does the same, a match on the
-  # English word stops matching and the one row on this screen that leads
-  # anywhere goes quietly dead — nothing raises, nothing fails, the row just
-  # stops opening screen 125. A Material Symbols ligature is a glyph name and is
-  # never translated, so it cannot go the same way.
+  # The title is translated copy — `Kati.Language.Page` says it in the reader's
+  # language — and `tap("Currency")` was a label being used as state: under
+  # `:fa` a match on the English word stops matching and the one row that leads
+  # anywhere goes quietly dead. A Material Symbols ligature is a glyph name and
+  # is never translated, so it cannot go the same way.
   @doc false
   def tap(%{icon: "payments"}), do: {self(), :open_currency}
   def tap(%{icon: "subtitles"}), do: {self(), :toggle_original_titles}
@@ -551,40 +541,20 @@ defmodule Kati.Screens.Language do
   """
   @spec settled_content(boolean()) :: [map()]
   def settled_content(on?) do
-    Enum.map(Kati.Language.Sample.content(), fn
+    Enum.map(Kati.Language.Page.content(), fn
       %{icon: "subtitles"} = row -> %{row | control: {:switch, on?}}
       row -> row
     end)
   end
 
-  # Vazirmatn for the two rows whose second line carries Persian — see the
-  # moduledoc. The title stays in the body face; only the line with the glyphs
-  # in it changes font.
   @doc false
-  def body(%{script: :fa} = row) do
-    title = copy(row.title)
-    sub = copy(row.sub)
+  def body(row), do: SettingsList.body(row.title, row.sub)
 
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text
-        text={title}
-        text_size={13.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
-      <Spacer size={3} />
-      <Text text={sub} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
-    </Column>
-    """
-  end
-
-  def body(row), do: SettingsList.body(copy(row.title), copy(row.sub))
-
-  # A chevron says *this opens something*. Five of these rows open nothing —
-  # the moduledoc's audit — so they draw no chevron rather than a promise.
+  # A chevron says *this opens something*. Rows that open nothing — the
+  # moduledoc's audit — draw no chevron rather than a promise, whether they say
+  # `:none` or a chevron with no tap behind it.
   @doc false
+  def control(:none, _tap), do: Kati.Screens.Language.control_none()
   def control(:chevron, nil), do: Kati.Screens.Language.control_none()
   def control(control, _tap), do: Kati.Screens.Language.control(control)
 
@@ -602,9 +572,7 @@ defmodule Kati.Screens.Language do
   # beside a row that is. Asked of the STRING rather than of the reader, so a
   # value that stays ASCII keeps DM Mono in both languages and 54.html does not
   # move.
-  def control({:value, text}) do
-    value = copy(text)
-
+  def control({:value, value}) do
     ~MOB"""
     <Text
       text={value}
@@ -623,7 +591,7 @@ defmodule Kati.Screens.Language do
   # as. A no-op at `:en`.
   @doc false
   def note do
-    text = copy(Sample.note())
+    text = Page.note()
 
     ~MOB"""
     <Row
@@ -701,141 +669,4 @@ defmodule Kati.Screens.Language do
   # `Kati.Onboarding.shell_root/1` is the same answer, and this is a private
   # copy of it for the reason the function above states.
   defp shell_root(_locale), do: Kati.Screens.Home
-
-  # ── The sample's sentences, said in the reader's own language ───────────────
-
-  # `Kati.Language.Sample` holds every word this page draws — the heading, the
-  # three eyebrows, the dashed row, the eight settings and the closing promise —
-  # as English LITERALS, and a literal in another file is the one thing
-  # `gettext/1` cannot reach: a msgid has to be at the call site, and
-  # `gettext(row.title)` does not compile. The sample keeps the drawing's own
-  # copy, which is what it is for, and this is where it is said.
-  # `Kati.Screens.MealReminders.copy/1` is the same arrangement over the same
-  # kind of store.
-  #
-  # A context on the short labels and none on the sentences: `mix gettext.merge`
-  # fuzzy-matches anything under about three words onto any sentence it
-  # resembles. `Calendar`, `Language`, `Units` and `Currency` are common labels
-  # and take the plain msgid on purpose — `Calendar` and `Language` are already
-  # in the catalogue off `Kati.Screens.Pushed.back_vocabulary/0` with exactly
-  # the Persian this row wants, and a second msgid would be the app naming one
-  # thing twice.
-  #
-  # **Four of these say the opposite thing in Persian.** The writing direction,
-  # the calendar, the numerals and the week's first day are facts the app really
-  # holds at `:fa` — `Kati.Locale` derives the direction, `Kati.Locale.date/2`
-  # really does return Shamsi, `Kati.Locale.number/1` really does return ۰۱۲۳,
-  # `Kati.Locale.week_start/0` really does answer شنبه — so a literal
-  # translation of *Left to right · set by English* would be a sentence about
-  # somebody else's app, arriving in the reader's own language, which is the
-  # worst of the outcomes available: legible enough that nobody files it. The
-  # flip lives in the catalogue rather than in a branch here, exactly as
-  # `Kati.Screens.MealPlan.week_note/0` puts it — one msgid, the English naming
-  # Monday and the Persian naming شنبه, because the two are different FACTS
-  # rather than one fact translated.
-  defp copy("Language"), do: gettext("Language")
-
-  defp copy("Changes apply instantly"), do: gettext("Changes apply instantly")
-
-  defp copy("Interface language"), do: pgettext("eyebrow", "Interface language")
-
-  defp copy("Follows the language"), do: pgettext("eyebrow", "Follows the language")
-
-  defp copy("Content"), do: pgettext("eyebrow", "Content")
-
-  defp copy("Add a language"), do: gettext("Add a language")
-
-  # The three are languages Kati does not install, named in the reader's own
-  # words — copy, not the specimens the two rows above it are.
-  defp copy("Arabic, Turkish, German…"), do: gettext("Arabic, Turkish, German…")
-
-  defp copy("Writing direction"), do: pgettext("language setting", "Writing direction")
-
-  defp copy("Left to right · set by English"), do: gettext("Left to right · set by English")
-
-  # The one row of the eight that prints a value instead of a chevron, because
-  # the direction is derived rather than chosen — the moduledoc's own point. A
-  # `pgettext/2`: four letters would be fuzzy-matched onto any sentence that
-  # resembled them.
-  defp copy("auto"), do: pgettext("the derived value on the writing-direction row", "auto")
-
-  defp copy("Calendar"), do: gettext("Calendar")
-
-  defp copy("Gregorian · Shamsi available"), do: gettext("Gregorian · Shamsi available")
-
-  defp copy("Numerals"), do: pgettext("language setting", "Numerals")
-
-  # The two digit runs are the SPECIMEN and stay out of the catalogue, so a
-  # translator cannot spell `1234` in the numerals it is there to contrast with.
-  # `Kati.Locale.ltr/1` on the Latin one: it sits inside a Persian sentence at
-  # `:fa`, and a neutral beside it — the separator — otherwise resolves against
-  # the paragraph and lands at the wrong edge. A no-op at `:en`.
-  defp copy("Latin 1234 · or Persian ۰۱۲۳") do
-    gettext("Latin %{latin} · or Persian %{persian}",
-      latin: Kati.Locale.ltr("1234"),
-      persian: "۰۱۲۳"
-    )
-  end
-
-  defp copy("Week starts"), do: pgettext("language setting", "Week starts")
-
-  # The leading day comes off `Kati.Locale.week_start/0` rather than out of the
-  # sentence, because it is the one half of this row the app actually answers —
-  # `Kati.Screens.PickSections.follows_note/0` asks it the same way, and board
-  # 137 is where both get the claim. `Monday` at `:en`, which is 54.html.
-  defp copy("Monday · Saturday in فارسی") do
-    gettext("%{day} · Saturday in فارسی", day: Kati.Locale.week_start())
-  end
-
-  defp copy("Time format"), do: pgettext("language setting", "Time format")
-
-  # 24 through `Kati.Locale.number/1` rather than spelled into the Persian, so
-  # the figure is ۲۴ without a translator carrying a digit — the rule
-  # `Kati.Screens.MealReminders.copy/1` keeps for every number it draws.
-  defp copy("24-hour") do
-    pgettext("the time format a language carries", "%{n}-hour", n: Kati.Locale.number(24))
-  end
-
-  defp copy("Title language"), do: pgettext("language setting", "Title language")
-
-  defp copy("Show original titles alongside"), do: gettext("Show original titles alongside")
-
-  defp copy("Units"), do: gettext("Units")
-
-  defp copy("Metric · grams and millilitres"), do: gettext("Metric · grams and millilitres")
-
-  defp copy("Currency"), do: gettext("Currency")
-
-  # LEFT IN LATIN. `£` and `GBP` are a currency symbol and an ISO 4217 code, and
-  # a code is a name a machine gave itself — the same reading `Kati.Locale.year/1`
-  # takes of a publication year and `Kati.Locale.mono_face/1` takes of a
-  # provider's name. `Kati.Money` writes both, screen 125 is where they are
-  # chosen, and a transliterated `GBP` would spell one thing two ways.
-  #
-  # Wrapped, though: at `:fa` it is a Latin run inside a right-to-left page, and
-  # without the isolate the symbol resolves to the wrong side of its own code.
-  # The clause that did this was `copy("£ GBP")` — a literal, on a row that taps
-  # through to `Kati.Screens.Currency`, which writes the key the line now reads.
-  # It is the catch-all below that wraps it now, because the line is whichever
-  # currency the reader chose and there is no literal to match.
-  defp copy("Your own words" <> _rest) do
-    gettext(
-      "Your own words — notes, list names, meal titles — are never translated. " <>
-        "Only the interface changes."
-    )
-  end
-
-  # A string this screen does not know, drawn as it is stored. Every clause
-  # above is `Kati.Language.Sample`'s, and a row added there tomorrow must not
-  # take the whole page down with a `FunctionClauseError` — the same fallback
-  # `Kati.Screens.MealReminders.copy/1` keeps, for the same reason. It also
-  # catches the two picker rows, which never reach here: they are specimens and
-  # are drawn straight off the sample.
-  defp copy(other) do
-    if other == Kati.Language.Sample.currency_line() do
-      Kati.Locale.ltr(other)
-    else
-      other
-    end
-  end
 end

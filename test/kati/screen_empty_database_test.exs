@@ -1587,7 +1587,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"176", "info"},
     {"62", "event"},
     {"62", "pin"},
-    {"62", "restaurant"}
+    {"62", "restaurant"},
+    # Board 24's *Reorder sections* row, gone because `Kati.Sections` keeps no
+    # order to change. `DesignLiterals.retired_lines/0` holds the words and the
+    # argument; `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this
+    # entry's twin.
+    {"24", "drag_indicator"}
   ]
 
   # The floor this screen is actually held to. Three answers, in order: a screen
@@ -2505,7 +2510,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with, and the pair is here to catch those drifting apart, not to permit
       # a drawing. The row was the literal `"£ GBP"` until the reader's own
       # currency replaced it.
-      {"54", Kati.Screens.Language, &Kati.Language.Sample.currency_line/0, fn -> "£ GBP" end}
+      {"54", Kati.Screens.Language, &Kati.Language.Page.currency_line/0, fn -> "£ GBP" end}
     ]
   end
 

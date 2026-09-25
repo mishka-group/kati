@@ -275,17 +275,17 @@ defmodule Kati.ScreenLanguagePickTest do
       # `Kati.Screens.Currency` — which writes the very key this reads. So
       # changing your currency there and coming back said Sterling.
       with_currency("USD", fn ->
-        assert Kati.Language.Sample.currency_line() == "$ USD"
+        assert Kati.Language.Page.currency_line() == "$ USD"
       end)
 
       with_currency("EUR", fn ->
-        assert Kati.Language.Sample.currency_line() == "€ EUR"
+        assert Kati.Language.Page.currency_line() == "€ EUR"
       end)
     end
 
     test "the row on screen 54 carries that line" do
       with_currency("USD", fn ->
-        row = Enum.find(Kati.Language.Sample.content(), &(&1.title == "Currency"))
+        row = Enum.find(Kati.Language.Page.content(), &(&1.title == "Currency"))
         assert row.sub == "$ USD"
       end)
     end
@@ -294,7 +294,7 @@ defmodule Kati.ScreenLanguagePickTest do
       # `Kati.Money.symbol/1` falls back to the code, so an unlisted currency
       # reads `XYZ XYZ` rather than crashing or drawing a blank.
       with_currency("XYZ", fn ->
-        assert Kati.Language.Sample.currency_line() == "XYZ XYZ"
+        assert Kati.Language.Page.currency_line() == "XYZ XYZ"
       end)
     end
   end

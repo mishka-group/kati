@@ -402,7 +402,11 @@ defmodule Kati.Screens.Gallery do
     # to see why* with nothing behind it since they were written; this is the
     # screen that was missing. Reachable from 80 and 82, and here for the same
     # reason as its neighbours.
-    {:open_undrawn_retired_reason, "Why not in v1", Kati.Screens.RetiredReason}
+    {:open_undrawn_retired_reason, "Why not in v1", Kati.Screens.RetiredReason},
+    # No board. Board 24 draws a Privacy row that opened nothing; this is
+    # the page it opens now, built from the settings list's own parts. Reached
+    # from Settings → About → Privacy; here for the same reason as the rest.
+    {:open_undrawn_privacy, "Privacy", Kati.Screens.Privacy}
 
     # Board 301, the Persian country sheet, was here and is not any more.
     # mishka-group/kati#103 folded `Kati.Screens.CountryPickerFa` into screen

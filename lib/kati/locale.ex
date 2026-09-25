@@ -205,6 +205,39 @@ defmodule Kati.Locale do
   def week_start, do: pick("Monday", "شنبه")
 
   @doc """
+  The calendar the reader's dates are counted in.
+
+      iex> Kati.Locale.calendar()
+      :gregorian
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.calendar() end)
+      :shamsi
+
+  The decision `date/2`, `month_name/2`, `year_start/1`, `year_of/1` and
+  `day_of_month/1` each act on, named once so that screen 54's *Calendar* row
+  can state it rather than restate it. That row used to be the frozen sentence
+  *Gregorian · Shamsi available* at every locale; it reads this now, and a
+  change here moves the dates and the row that describes them together.
+  """
+  @spec calendar() :: :gregorian | :shamsi
+  def calendar, do: pick(:gregorian, :shamsi)
+
+  @doc """
+  The digits a number inside a sentence is written in.
+
+      iex> Kati.Locale.numerals()
+      :latin
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.numerals() end)
+      :persian
+
+  What `number/1` acts on, for the same reason `calendar/0` exists: screen 54's
+  *Numerals* row states it instead of carrying its own copy of the rule.
+  """
+  @spec numerals() :: :latin | :persian
+  def numerals, do: pick(:latin, :persian)
+
+  @doc """
   Run `fun` as if the reader had chosen `locale`, then put it back.
 
       iex> Kati.Locale.as(:en, fn -> Kati.Locale.week_start() end)
@@ -264,7 +297,7 @@ defmodule Kati.Locale do
   """
   @spec date(Date.t(), :long | :full | :short | :short_padded | :dated | :numeric) :: String.t()
   def date(%Date{} = date, style \\ :long) do
-    if direction(current()) == :rtl do
+    if calendar() == :shamsi do
       # Shamsi has no `:dated` of its own: its `:long` already carries the year,
       # which is the difference between a calendar whose year the reader knows
       # by heart and one whose year they do not. `:short_padded` is a Latin
@@ -313,7 +346,7 @@ defmodule Kati.Locale do
   """
   @spec month_name(Date.t(), :long | :short) :: String.t()
   def month_name(%Date{} = date, style \\ :long) do
-    if direction(current()) == :rtl do
+    if calendar() == :shamsi do
       {_year, month, _day} = Kati.Calendar.Shamsi.from_gregorian(date)
       # `:short` is a Latin abbreviation — `August` cut to `Aug` — and Persian
       # month names are already one short word. Cutting مرداد to three letters
@@ -337,7 +370,7 @@ defmodule Kati.Locale do
   """
   @spec year_start(Date.t()) :: Date.t()
   def year_start(%Date{} = date) do
-    if direction(current()) == :rtl do
+    if calendar() == :shamsi do
       {year, month, day} = Kati.Calendar.Shamsi.from_gregorian(date)
 
       case Kati.Calendar.Shamsi.to_gregorian(year, 1, 1) do
@@ -367,7 +400,7 @@ defmodule Kati.Locale do
   """
   @spec year_of(Date.t()) :: String.t()
   def year_of(%Date{} = date) do
-    if direction(current()) == :rtl do
+    if calendar() == :shamsi do
       {year, _month, _day} = Kati.Calendar.Shamsi.from_gregorian(date)
       number(year)
     else
@@ -390,7 +423,7 @@ defmodule Kati.Locale do
   """
   @spec day_of_month(Date.t()) :: String.t()
   def day_of_month(%Date{} = date) do
-    if direction(current()) == :rtl do
+    if calendar() == :shamsi do
       {_year, _month, day} = Kati.Calendar.Shamsi.from_gregorian(date)
       number(day)
     else
@@ -464,9 +497,10 @@ defmodule Kati.Locale do
       iex> Kati.Locale.time(~T[21:40:00])
       "21:40"
 
-  24-hour in both scripts — the design's own choice, and `Kati.Screens.Settings`
-  draws it as a setting rather than a consequence of the language. What changes
-  is the numerals.
+  24-hour in both scripts — the design's own choice, and not a preference: no
+  store holds a clock format, so screen 54's *Time format* row states
+  `24-hour` as a fact and offers no way to change it. What changes with the
+  language is the numerals.
   """
   @spec time(Time.t() | DateTime.t() | NaiveDateTime.t()) :: String.t()
   def time(at), do: at |> Calendar.strftime("%H:%M") |> then(&number/1)
@@ -535,7 +569,7 @@ defmodule Kati.Locale do
   def number(value) do
     text = to_string(value)
 
-    if direction(current()) == :rtl do
+    if numerals() == :persian do
       # The SEPARATOR as well as the digits. Persian writes a decimal with
       # U+066B ARABIC DECIMAL SEPARATOR and groups with U+066C — `۷۶٫۰`, not
       # `۷۶.۰` — and board 115 draws it that way. `Kati.I18n.Digits.to_persian/1`
