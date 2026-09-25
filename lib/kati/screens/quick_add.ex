@@ -345,10 +345,10 @@ defmodule Kati.Screens.QuickAdd do
   IS.
 
   **Title** is the exception and the one the finding is named for: a film is
-  not an event, so it cannot be a value of that column. It hands the parsed
-  title to screen 06 through `Kati.Search.hand_over/1` — the same handover
-  screen 19's *Look it up* makes — and pushes it, so the add sheet opens
-  already searching for what was typed.
+  not an event, so it cannot be a value of that column. It pushes screen 06
+  with the parsed title as `query:`, so the add sheet opens already searching
+  for what was typed — see the clause's own comment for why that is the push
+  and not `Kati.Search.hand_over/1`, which screen 06 has never read.
 
   **Expense** keeps the push it had: screen 124 is drawn for it, and an amount
   is a parse this screen does not do.

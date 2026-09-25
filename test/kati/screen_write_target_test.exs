@@ -379,28 +379,16 @@ defmodule Kati.ScreenWriteTargetTest do
   # makes is written down`; an entry that stops writing fails `the write
   # inventory has no stale entries`. So this list may only shrink.
   @writes_anyway [
-    # ── Screen 19's `Look it up`, and the one write here that is about a
-    # VALUE rather than a row.
-    #
-    # `search.ex:335-338` hands the query over to screen 06 through
-    # `Kati.Search.hand_over/1` before pushing, so the add sheet opens already
-    # searching for what was typed rather than asking for it again. The thing
-    # handed over is `socket.assigns.query`, which came off this page's own
-    # params — and a uuid is a perfectly good search term. The page IS drawing
-    # what it was named; there is no row it failed to resolve.
-    #
-    # This is the same distinction `Kati.ScreenParamsSweepTest`'s
-    # `@carried_values` draws about the same key, and for the same reason: a
-    # label naming no row is still a label. `:back` and `:query` are on that
-    # list; `:scope` is deliberately not, and neither is anything here.
-    #
-    # The key is `Mob.State`'s and not a row's, which is why this file sweeps
-    # `Mob.State` at all — see the moduledoc. `Kati.Search.hand_over/1` lives
-    # with the specification rather than on the screen, and its own doc says
-    # why.
-    {Kati.Screens.Search, :look_up, {:state, :kati_search_query}},
-    # And `or add it by hand`, one row down the same card, which is the same
-    # write about the same value to a different reader. It leaves the query for
+    # (Screen 19's `Look it up` was here, writing `Mob.State`'s
+    # `:kati_search_query` through `Kati.Search.hand_over/1` before pushing
+    # screen 06. Screen 06 has never read that key — it reads `params[:query]`
+    # — so the write carried the typed word nowhere and changed what the
+    # Library's search disc opened next. It pushes the query now, and writes
+    # nothing. Found on the Pixel 9a, 25 Sep.)
+    # Screen 19's `or add it by hand`, on the same card as `Look it up`. Unlike
+    # that row it has to write rather than push: see
+    # `Kati.Screens.AddByHand.prefill/1` for why a nav param makes 154 a params
+    # reader whose every sweep question assumes the key names a row. It leaves the query for
     # screen 154 so somebody who has just been told nothing matched does not
     # retype the word the app showed them. MOVIES-AND-TV.md `19 scenario 33`.
     #

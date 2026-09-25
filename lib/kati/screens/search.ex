@@ -394,10 +394,19 @@ defmodule Kati.Screens.Search do
   # typed, so screen 06 opens already searching for it rather than asking
   # again — retyping a word the app has just shown you is what makes a dead
   # end feel like one.
-  def handle_info({:tap, :look_up}, socket) do
-    Kati.Search.hand_over(socket.assigns.query)
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
-  end
+  #
+  # IN THE PUSH. This handed over through `Kati.Search.hand_over/1` and pushed
+  # bare, and screen 06 has never read that key — it reads `params[:query]`
+  # (`Kati.Screens.AddTitle.opening_query/1`). So *Search TMDB for "Arrival"*
+  # opened a blank add sheet with the placeholder greyed in the field, while the
+  # key it did write changed what the Library's search disc opened next. Found
+  # on the Pixel 9a, 25 Sep. `Kati.Screens.QuickAdd`'s *Title* chip had already
+  # been fixed for this exact reason and said so in a comment; the fix never
+  # made it back to the row it was copied from.
+  def handle_info({:tap, :look_up}, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.AddTitle, %{query: socket.assigns.query})}
 
   # The query goes with it. The push was bare, so a reader who searched for
   # *Estuary*, was told nothing matched, and pressed *or add it by hand* landed
