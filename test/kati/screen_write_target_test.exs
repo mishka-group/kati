@@ -710,22 +710,19 @@ defmodule Kati.ScreenWriteTargetTest do
   # connect rows and Hardcover's retired row — in both locales. The measured
   # drop is six. `Kati.DeviceRoundN34N42Test` asserts none of them is drawn.
   #
-<<<<<<< HEAD
   # 1841 with P1. Screen 34's help disc opens screen 153 for one show, and a
   # bare mount of 34 draws no show, so the disc is not drawn there — one tap
   # in each locale. `Kati.NumberingTest` presses it over a real season.
-  @drawn_taps 1841
-||||||| ec552ef
-  @drawn_taps 1843
-=======
+  #
   # 1827 when screen 149 over no title stopped drawing the sheet at all. A
   # bare mount is `Kati.Screens.DropSheet.empty_sheet/0`, and its six reason
   # chips, *Drop* and *Still on it* all wrote to a row it has not got — the
   # Drop could only be refused. `body/2` draws one sentence in their place.
   # The measured drop is sixteen, eight a side in both locales;
   # `Kati.DropWriteTest` walks every one of them over a real title.
-  @drawn_taps 1827
->>>>>>> worktree-agent-a9248064a824a1f67
+  #
+  # Both at once: 1843 − 2 (P1) − 16 (screen 149).
+  @drawn_taps 1825
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are
