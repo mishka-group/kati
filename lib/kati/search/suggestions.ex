@@ -37,11 +37,18 @@ defmodule Kati.Search.Suggestions do
     _error -> []
   end
 
+  # The newest title ON THE SHELF. The cache outlives a removed title, so the
+  # newest cache row suggested films the reader had already let go of.
   defp newest_title do
-    Kati.Media.CachedTitle
+    names =
+      Kati.Media.CachedTitle
+      |> Ash.read!()
+      |> Map.new(&{{&1.source, &1.source_id}, &1.title})
+
+    Kati.Media.TrackedTitle
     |> Ash.read!()
-    |> Enum.sort_by(& &1.fetched_at, {:desc, DateTime})
-    |> Enum.find_value(fn row -> blank_to_nil(row.title) end)
+    |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
+    |> Enum.find_value(&blank_to_nil(Map.get(names, {&1.source, &1.source_id})))
   rescue
     _error -> nil
   end

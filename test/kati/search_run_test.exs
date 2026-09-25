@@ -44,6 +44,8 @@ defmodule Kati.SearchRunTest do
         title: title,
         fetched_at: DateTime.utc_now()
       })
+
+      track!(id)
     end
 
     :ok
@@ -155,6 +157,8 @@ defmodule Kati.SearchRunTest do
         title_original: "Sousou no Frieren",
         fetched_at: DateTime.utc_now()
       })
+
+      track!("9")
 
       titles = Enum.map(Query.run("sousou").titles, & &1.title)
 
@@ -499,7 +503,7 @@ defmodule Kati.SearchRunTest do
         | assigns: %{
             title: "Estuary Nights",
             kind: :movie,
-            status: "Not started",
+            status: :not_started,
             save_error: nil
           }
       })
@@ -518,7 +522,7 @@ defmodule Kati.SearchRunTest do
         | assigns: %{
             title: "Estuary Nights",
             kind: :movie,
-            status: "Not started",
+            status: :not_started,
             save_error: nil
           }
       })
@@ -540,7 +544,7 @@ defmodule Kati.SearchRunTest do
         | assigns: %{
             title: "Estuary Nights",
             kind: :movie,
-            status: "Not started",
+            status: :not_started,
             save_error: nil
           }
       })
@@ -579,7 +583,7 @@ defmodule Kati.SearchRunTest do
         | assigns: %{
             title: "Estuary Nights",
             kind: :movie,
-            status: "Not started",
+            status: :not_started,
             save_error: nil
           }
       })
@@ -630,7 +634,11 @@ defmodule Kati.SearchRunTest do
 
   # A shelf row for one of the three cached titles the setup makes, so a watch
   # has something to hang off.
+  # Replaces the row `setup` already shelved, so a test can set its own
+  # `last_touched_at`.
   defp track!(source_id, touched \\ nil) do
+    Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id = ?1", [source_id])
+
     Ash.create!(Kati.Media.TrackedTitle, %{
       source: :tmdb,
       source_id: source_id,

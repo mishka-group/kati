@@ -26,6 +26,7 @@ defmodule Kati.SearchSuggestionsTest do
 
   setup do
     on_exit(fn ->
+      Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
     end)
 
@@ -34,7 +35,7 @@ defmodule Kati.SearchSuggestionsTest do
 
   describe "with a title on the shelf" do
     setup do
-      cached!("severance", "Severance")
+      shelve!("severance", "Severance")
       :ok
     end
 
@@ -150,5 +151,25 @@ defmodule Kati.SearchSuggestionsTest do
       title: title,
       fetched_at: Kati.Time.now()
     })
+  end
+
+  defp shelve!(slug, title) do
+    cached!(slug, title)
+
+    Ash.create!(Kati.Media.TrackedTitle, %{
+      source: :tmdb,
+      source_id: @prefix <> slug,
+      kind: :tv,
+      status: :watching
+    })
+  end
+
+  describe "a title that was removed" do
+    test "is not offered, though the cache still holds it" do
+      cached!("removed", "Removal Probe")
+
+      refute "Removal Probe" in Suggestions.derived(),
+             "*Try* offered a title the reader removed — N13"
+    end
   end
 end

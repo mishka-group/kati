@@ -73,7 +73,7 @@ defmodule Kati.SearchGroupsTest do
 
   describe "the counts" do
     setup do
-      for n <- 1..7, do: cached!("match-#{n}", "Nightbird #{n}")
+      for n <- 1..7, do: shelve!("match-#{n}", "Nightbird #{n}")
       :ok
     end
 
@@ -143,29 +143,18 @@ defmodule Kati.SearchGroupsTest do
     end
   end
 
-  describe "a hit with no row behind it" do
+  describe "a title that is only cached" do
     setup do
       cached!("unshelved", "Emergence")
       :ok
     end
 
-    test "carries no tap" do
-      results = Query.run("Emergence")
-
-      assert [row] = results.titles
-      assert row.id == nil
-      assert Search.hit_tag(row) == nil
-    end
-
-    test "so it cannot open a page about a different title" do
-      results = Query.run("Emergence")
-      socket = Mob.Socket.assign(Mob.Socket.new(Search), :results, results)
-
-      # The tag of the one row, had it carried one. Nothing answers it.
-      same = Search.open_hit(socket, :open_series_Emergence, Kati.Screens.Series)
-
-      assert same.__mob__.nav_action == nil,
-             "a cache-only hit still pushes screen 04 bare, which draws the fixture"
+    # N13. The cache outlives a title — removing one keeps it, and screen 06
+    # caches a title the moment it is ticked — so a search over the whole table
+    # found films the reader had removed, under *Kati only searches what you
+    # keep*, as rows with no screen to open.
+    test "is not found" do
+      assert Query.run("Emergence").titles == []
     end
 
     test "and a shelved one does carry a tap, onto its own row" do

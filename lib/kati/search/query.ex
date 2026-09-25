@@ -200,6 +200,7 @@ defmodule Kati.Search.Query do
     # than a name. Dropped before `tier/3` rather than after, so an untitled
     # episode cannot match the empty query's body tier.
     |> Enum.reject(&(is_nil(&1.title) or String.trim(&1.title) == ""))
+    |> Enum.filter(&Map.has_key?(tracked, {&1.source, &1.title_source_id}))
     |> Enum.map(fn row -> {tier(query, row.title, ""), row} end)
     |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
     |> Enum.map(fn {tier, row} ->
@@ -259,13 +260,12 @@ defmodule Kati.Search.Query do
   # `Kati.Screens.Film.film_record/1` gives: `:shelf` is where *keeps history,
   # hides from shelf* is enforced, so an id taken around it would open a title
   # the user archived.
+  # Every tracked row, archived included: an archived title is still one the
+  # reader keeps, and since the cache is filtered by this map, the `:shelf`
+  # read — which leaves archived rows out — would make them unfindable.
   defp tracked_ids do
-    [:movie, :tv, :anime]
-    |> Enum.flat_map(fn kind ->
-      Kati.Media.TrackedTitle
-      |> Ash.Query.for_read(:shelf, %{kind: kind})
-      |> Ash.read!()
-    end)
+    Kati.Media.TrackedTitle
+    |> Ash.read!()
     # The whole row, not just its id: `title_row/2` needs the id and the sort
     # needs `last_touched_at`, and reading the shelf twice for the two halves
     # of one row is how the two would drift.
@@ -277,12 +277,18 @@ defmodule Kati.Search.Query do
   # Each read rescues on its own, so an unreadable cache still answers with the
   # shelf and the other way round — one rescue around both would let either
   # failure empty the whole group.
+  #
+  # Only cache rows the shelf holds. The cache outlives a title — removing one
+  # keeps what the provider said, and screen 06 caches a title the moment it is
+  # ticked — so reading the whole table found films the reader had removed, and
+  # a hit with no tracked row has no screen to open.
   defp cached_for(query, tracked) do
     yours = yours_by_tracked_id()
     aliases = aliases_by_tracked_id()
 
     Kati.Media.CachedTitle
     |> Ash.read!()
+    |> Enum.filter(&Map.has_key?(tracked, {&1.source, &1.source_id}))
     |> Enum.map(fn row ->
       mine = Map.get(tracked, {row.source, row.source_id})
       id = mine && mine.id
