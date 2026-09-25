@@ -11,8 +11,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   contains is somewhere in the screen's rendered tree. It cannot ask *this*
   question, because it has no say in what is stored when it runs: this suite has
   no Ecto sandbox — `test/test_helper.exs` migrates one SQLite file and every
-  test shares it — and several tests insert rows that outlive them.
-  `Kati.Seeds` in particular writes **the design's own values** as real rows.
+  test shares it — and several tests insert rows that outlive them, some of
+  them **the design's own values** as real rows.
 
   So for a migrated screen that sweep passes either way: the literals are there
   whether the screen fell back to its Sample module or read the seeded rows back
@@ -3376,7 +3376,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
 
   # Every screen sweep in the suite renders against this one shared file, so a
   # probe row left behind is a row screen 03 would draw. Same hazard
-  # `Kati.SeedsTest` documents, and the same fix.
+  # `Kati.CalendarsTest` documents, and the same fix.
   defp delete_probe_rows! do
     for table <- ~w(cached_titles cached_episodes) do
       Kati.Repo.query!("DELETE FROM #{table} WHERE source_id = ?1", [@probe_id])

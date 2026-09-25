@@ -67,8 +67,8 @@ defmodule Kati.Screens.Sync do
   shows is exactly what the device holds, and today that is very little:
 
     * **No account, ever.** Nothing in `lib/` creates a
-      `Kati.Calendars.Account` except `Kati.Seeds`, which is not wired into
-      boot. There is no sign-in screen yet, so the Accounts group is always its
+      `Kati.Calendars.Account`. There is no sign-in screen yet, so the
+      Accounts group is always its
       empty card, and that card says Kati cannot sign in to one rather than
       pointing at a door that does not exist.
     * **Calendars are the phone's own.** `Kati.Calendars.DeviceImport` writes
@@ -170,7 +170,7 @@ defmodule Kati.Screens.Sync do
 
   alias Kati.Calendars.Account
   # Deliberately aliased away from `Calendar`, which is Elixir's own module —
-  # the same trap `Kati.Screens.Calendars` and `Kati.Seeds` step around.
+  # the same trap `Kati.Screens.Calendars` steps around.
   alias Kati.Calendars.Calendar, as: CalendarRow
   alias Kati.Calendars.Event
   alias Kati.Sync.ICalendar
@@ -1385,7 +1385,7 @@ defmodule Kati.Screens.Sync do
   The empty card used to say *Connect one in Calendars and it will appear
   here*, and there is no such door: screen 32's account rows and its add row
   are `Kati.Settings.CalendarsSample`'s and answer no tap, and nothing in
-  `lib/` but the unwired `Kati.Seeds` creates an account. So the card says
+  `lib/` creates an account. So the card says
   what is true instead — Kati cannot sign in to one yet, and the phone's own
   calendars need none.
   """

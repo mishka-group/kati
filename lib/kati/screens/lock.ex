@@ -851,17 +851,12 @@ defmodule Kati.Screens.Lock do
   defp title_of(%CachedTitle{title: title}) when is_binary(title) and title != "", do: title
   defp title_of(_cached), do: gettext("Untitled")
 
-  # `Kati.Seeds` writes the design's own seed into `poster_path` and
-  # `sample_source_id/1` is the other half of that convention, so a row whose
-  # cache row has gone can still find its picture. A real provider path is a
-  # path `Kati.Design.Images.poster/1` will not find, and `thumb/1` already
-  # draws the empty rectangle for that.
-  defp seed_of(tracked, cached) do
-    case cached do
-      %CachedTitle{poster_path: path} when is_binary(path) and path != "" -> path
-      _ -> Kati.Seeds.sample_seed(tracked.source_id)
-    end
-  end
+  # The cache row's poster path, or `nil` once the cache row is gone — the
+  # renderer draws its placeholder for a `nil`.
+  defp seed_of(_tracked, %CachedTitle{poster_path: path}) when is_binary(path) and path != "",
+    do: path
+
+  defp seed_of(_tracked, _cached), do: nil
 
   defp episode_label(%TrackedTitle{progress_season: season, progress_episode: episode})
        when is_integer(season) and is_integer(episode),

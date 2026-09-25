@@ -73,7 +73,7 @@ defmodule Kati.Screens.Day do
   ## Why a real day is thinner than the drawing
 
   This screen has had its domain for longer than it has read it: the day IS in
-  `Kati.Calendars.Event` — `Kati.Seeds` writes all fourteen of its rows — and
+  `Kati.Calendars.Event` — and
   `Kati.Calendars.Today.occurrences/1` returns them in the shape
   `Kati.Calendar.Layout` takes, ids included. What it does not return is the
   rest of the drawing, and the five things below are why. A handed date
@@ -102,9 +102,9 @@ defmodule Kati.Screens.Day do
       it, which is a control that silently forgets rather than one that works.
 
     * **`£22.98`.** `money_row/0` prints a total and an event has no amount.
-      `Kati.Seeds` puts each service's price in `description`, but that is free
-      iCalendar text on any row a user or a sync wrote, so reading money out of
-      it would be a guess wearing the shape of a join.
+      A price could ride in `description`, but that is free iCalendar text on
+      any row a user or a sync wrote, so reading money out of it would be a
+      guess wearing the shape of a join.
 
     * **The meta lines.** `09:30–09:45`, `S2 · E3` and `leaves Lumen+ at
       midnight` are not stored — the seeder writes `summary` and the timing and
@@ -215,8 +215,8 @@ defmodule Kati.Screens.Day do
   here too. `Kati.Screens.Calendar.day_rows/1` falls TODAY back to
   `drawn_rows/0` on an empty store — FIDELITY's *missing data is not a reason
   for a blank screen* — and the only route into this screen is a second tap on
-  that screen's selected day cell. `Kati.Seeds` is not wired into
-  `Kati.App.on_start/0`, so a first launch really is an empty `events` table:
+  that screen's selected day cell. Nothing seeds the store, so a first launch
+  really is an empty `events` table:
   without this clause screen 02 draws five cards for today and the cell under
   them opens a page reading `Nothing scheduled`. Two screens, one date, two
   answers, one tap apart.

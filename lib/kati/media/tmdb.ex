@@ -20,9 +20,15 @@ defmodule Kati.Media.Tmdb do
 
   `Kati.Sources.tmdb_key/0` answers `:kati` or `:own`, and *which* is not a
   secret — only the key is. A user-supplied key lives in `Kati.SecureStore`
-  under `tmdb`; the bundled one is read from the environment at build time and
-  is absent in a checkout, which is why `key/0` can answer `{:error,
-  :no_api_key}` and every caller has to handle it.
+  under `tmdb`; the bundled one is a developer's token read at build time, is
+  absent in a checkout and in every store release (`compiled_key?/0`), which
+  is why `key/0` can answer `{:error, :no_api_key}` and every caller has to
+  handle it.
+
+  The key reaches exactly one place: the `authorization` header of a request
+  to TMDB. Nothing here logs, and no failure this module answers can carry it
+  — a transport error that quotes the request is replaced by `:redacted`
+  before it leaves `get/3` (`Kati.Net.Redact`).
 
   A missing key is **not** an error state the user caused, so it is reported as
   itself rather than as a failed request: screen 80 is where a key is entered,
@@ -537,9 +543,9 @@ defmodule Kati.Media.Tmdb do
   end
 
   # The environment, and nothing committed. A checkout has no bundled key, so a
-  # developer's own key is the only one there is until a release supplies one.
+  # developer's own key is the only one there is.
   #
-  # **This is where a release supplies one.** `System.get_env/1` is read on the
+  # **This is where a development device build gets one.** `System.get_env/1` is read on the
   # machine the code is RUNNING on, and the machine a Kati release runs on is a
   # phone, which has no shell and no environment: every device build answered
   # `{:error, :no_api_key}` and every search for a film came back empty. Found
@@ -563,17 +569,46 @@ defmodule Kati.Media.Tmdb do
   # shell that happened to run `mix kati.e2e.stage` had sourced the file.
   # `Kati.Media.TmdbKeyFile` carries the rest of that argument, and the
   # `@external_resource` is what makes a changed token recompile this.
+  #
+  # **Never in a store release either** — `Kati.Media.TmdbKeyFile.bundle?/2`.
+  # A release compiles under `:dev` like every Mob build, so the `Mix.env/0`
+  # guard alone would have put the developer's token in the AAB. The release
+  # flag is what tells the two apart, and a release build reads no environment
+  # at run time as well: the key it answers is the reader's or none.
   @env_file Kati.Media.TmdbKeyFile.path()
   @external_resource @env_file
 
-  @bundled_key if Mix.env() == :test,
-                 do: nil,
-                 else:
-                   System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") ||
-                     Kati.Media.TmdbKeyFile.read(@env_file)
+  @release_build Kati.Media.TmdbKeyFile.release_build?()
 
-  defp bundled_key do
-    System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") || @bundled_key
+  @bundled_key if Kati.Media.TmdbKeyFile.bundle?(Mix.env(), @release_build),
+                 do:
+                   System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") ||
+                     Kati.Media.TmdbKeyFile.read(@env_file),
+                 else: nil
+
+  @compiled_key is_binary(@bundled_key)
+
+  @doc """
+  Whether a developer's token was compiled into this build.
+
+  Answers a boolean and never the token. The `mob.release` alias in `mix.exs`
+  refuses to package a build where this is `true`.
+  """
+  @spec compiled_key?() :: boolean()
+  def compiled_key?, do: @compiled_key
+
+  @doc false
+  # Mix's recompile hook: a release compile after a dev one — same `_build/dev`,
+  # nothing in the source changed — must still recompile this module, or the
+  # token captured by the dev compile would travel in the release.
+  def __mix_recompile__?, do: Kati.Media.TmdbKeyFile.release_build?() != @release_build
+
+  if @release_build do
+    defp bundled_key, do: nil
+  else
+    defp bundled_key do
+      System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") || @bundled_key
+    end
   end
 
   # Every failure the user can be shown, named. A tuple rather than a message,
@@ -605,15 +640,26 @@ defmodule Kati.Media.Tmdb do
     |> Req.new()
     |> Req.request()
     |> case do
-      {:ok, %Req.Response{status: 200, body: body}} when is_map(body) -> {:ok, body}
-      {:ok, %Req.Response{status: 401}} -> {:error, :unauthorised}
-      {:ok, %Req.Response{status: 429}} -> {:error, :rate_limited}
-      {:ok, %Req.Response{status: 404}} -> {:error, :not_found}
-      {:ok, %Req.Response{status: status}} -> {:error, {:http, status}}
-      {:error, reason} -> {:error, Kati.Media.Tmdb.transport_failure(reason)}
+      {:ok, %Req.Response{status: 200, body: body}} when is_map(body) ->
+        {:ok, body}
+
+      {:ok, %Req.Response{status: 401}} ->
+        {:error, :unauthorised}
+
+      {:ok, %Req.Response{status: 429}} ->
+        {:error, :rate_limited}
+
+      {:ok, %Req.Response{status: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %Req.Response{status: status}} ->
+        {:error, {:http, status}}
+
+      {:error, reason} ->
+        {:error, Kati.Media.Tmdb.transport_failure(Kati.Net.Redact.reason(reason, [key]))}
     end
   rescue
-    error -> {:error, Kati.Media.Tmdb.transport_failure(error)}
+    error -> {:error, Kati.Media.Tmdb.transport_failure(Kati.Net.Redact.reason(error, [key]))}
   end
 
   @doc """

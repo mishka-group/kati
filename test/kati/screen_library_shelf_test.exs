@@ -30,7 +30,7 @@ defmodule Kati.ScreenLibraryShelfTest do
   not inert either: `Kati.Screens.Library` now reads `tracked_titles`, so a row
   left behind would put a stranger's title on the grid the moment another
   module mounts the screen. Same reasoning, and the same `on_exit`, as
-  `Kati.SeedsTest`.
+  `Kati.CalendarsTest`.
   """
   use Mob.ScreenCase, async: false
 

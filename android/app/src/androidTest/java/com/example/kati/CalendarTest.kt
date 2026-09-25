@@ -143,6 +143,49 @@ class CalendarTest {
             // WRITE_CALENDAR can be absent when the run failed before the rule
             // granted it. A cleanup that throws would mask the real failure.
         }
+        removePlantedCalendars()
+    }
+
+    /**
+     * Take the planted CALENDARS back out as well — N18.
+     *
+     * `ensureCalendar` inserts a fresh `kati-e2e` calendar on every run, and
+     * the cleanup above only ever took the events away. Twenty-four runs left
+     * twenty-four empty `kati-e2e` calendars on the emulator's provider, and
+     * `Kati.Calendars.DeviceImport` — which is idempotent on the provider's
+     * calendar `_ID`, so it never duplicated one — mirrored each of them as the
+     * distinct calendar it is. The Sync page listed all twenty-four.
+     *
+     * Deleted as the sync adapter of the `kati-e2e` local account, which needs
+     * only WRITE_CALENDAR, and by account name rather than by id so the
+     * calendars earlier runs left behind go too. Deleting a calendar deletes
+     * its events with it.
+     */
+    private fun removePlantedCalendars() {
+        try {
+            instrumentation.targetContext.contentResolver.delete(
+                asE2eSyncAdapter(CalendarContract.Calendars.CONTENT_URI),
+                "${CalendarContract.Calendars.ACCOUNT_NAME} = ? AND " +
+                    "${CalendarContract.Calendars.ACCOUNT_TYPE} = ?",
+                arrayOf(E2E_ACCOUNT, CalendarContract.ACCOUNT_TYPE_LOCAL)
+            )
+        } catch (_: Throwable) {
+            // Same reason as above: a cleanup must not mask the real failure.
+        }
+    }
+
+    private fun asE2eSyncAdapter(base: android.net.Uri): android.net.Uri =
+        base.buildUpon()
+            .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, E2E_ACCOUNT)
+            .appendQueryParameter(
+                CalendarContract.Calendars.ACCOUNT_TYPE,
+                CalendarContract.ACCOUNT_TYPE_LOCAL
+            )
+            .build()
+
+    private companion object {
+        const val E2E_ACCOUNT = "kati-e2e"
     }
 
     private fun plantEvent(): Long? {
@@ -171,21 +214,16 @@ class CalendarTest {
      * app must ask for, and pre-granting it would skip the dialog.
      *
      * Inserting as a sync adapter needs only WRITE_CALENDAR. A duplicate local
-     * calendar across runs is harmless; the event title is what identifies the
-     * row, and it is unique per run.
+     * calendar across runs is NOT harmless — it is N18, twenty-four of them on
+     * the Sync page — so any a killed run left behind are removed first, and
+     * `removePlantedCalendars` takes this one away after the test.
      */
     private fun ensureCalendar(): Long? {
         val resolver = instrumentation.targetContext.contentResolver
-        val name = "kati-e2e"
+        val name = E2E_ACCOUNT
+        removePlantedCalendars()
 
-        val uri = CalendarContract.Calendars.CONTENT_URI.buildUpon()
-            .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
-            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, name)
-            .appendQueryParameter(
-                CalendarContract.Calendars.ACCOUNT_TYPE,
-                CalendarContract.ACCOUNT_TYPE_LOCAL
-            )
-            .build()
+        val uri = asE2eSyncAdapter(CalendarContract.Calendars.CONTENT_URI)
 
         val values = ContentValues().apply {
             put(CalendarContract.Calendars.ACCOUNT_NAME, name)

@@ -27,8 +27,7 @@ defmodule Kati.ScreenUpNextTest do
   ## The shared database
 
   `test/test_helper.exs` gives the whole suite one SQLite file, so "an empty
-  library" has to be made rather than assumed — the same reason
-  `Kati.SeedsTest` empties its tables in `setup`.
+  library" has to be made rather than assumed.
   """
   use Mob.ScreenCase, async: false
 
@@ -377,8 +376,8 @@ defmodule Kati.ScreenUpNextTest do
       source_id: source_id,
       kind: :tv,
       title: attrs.title,
-      # `Kati.Seeds` puts the design's seed here on purpose, so a renderer can
-      # resolve the artwork through `Kati.Design.Images.poster/1`.
+      # A design seed rather than a TMDB path, so a renderer can resolve the
+      # artwork through `Kati.Design.Images.poster/1`.
       poster_path: attrs[:seed],
       runtime_minutes: attrs[:runtime],
       next_release_at: release_at,

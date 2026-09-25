@@ -30,7 +30,55 @@ defmodule Kati.Media.TmdbKeyFile do
   Nothing. The path is a path; the value it yields lives in `_build`, which is
   ignored, and in the pushed artefact. The file itself is outside the
   repository and mode 600.
+
+  ## Which builds may carry it
+
+  A development build and nothing else — the owner's decision: a reader brings
+  their own token, and the bundled one exists so a developer can test search
+  without pasting theirs. `bundle?/2` is that rule.
+
+  `Mix.env/0` alone cannot enforce it, and that is the finding behind this
+  section: Mob's tooling is `only: :dev`, so `mix mob.release` compiles and
+  packages `_build/dev` exactly as `mix mob.deploy` does. A store build IS a
+  dev build as far as Mix can tell. So a release says so out loud — the
+  `mob.release` alias in `mix.exs` sets `KATI_RELEASE_BUILD=1` before
+  anything compiles, `Kati.Media.Tmdb.__mix_recompile__?/0` recompiles the one
+  module whose answer changed, and the alias refuses to package a build in
+  which `Kati.Media.Tmdb.compiled_key?/0` is still `true`.
   """
+
+  @release_env "KATI_RELEASE_BUILD"
+
+  @doc """
+  Whether a build compiled under `mix_env` may carry the developer's token.
+
+      iex> Kati.Media.TmdbKeyFile.bundle?(:dev, false)
+      true
+
+      iex> Kati.Media.TmdbKeyFile.bundle?(:dev, true)
+      false
+
+      iex> Kati.Media.TmdbKeyFile.bundle?(:test, false)
+      false
+
+      iex> Kati.Media.TmdbKeyFile.bundle?(:prod, false)
+      false
+  """
+  @spec bundle?(atom(), boolean()) :: boolean()
+  def bundle?(mix_env, release_build?), do: mix_env == :dev and not release_build?
+
+  @doc """
+  Whether this compile is a store release: `KATI_RELEASE_BUILD` is `1` or `true`.
+
+  Set by the `mob.release` alias in `mix.exs`, never by hand in the ordinary
+  run of things.
+  """
+  @spec release_build?() :: boolean()
+  def release_build?, do: System.get_env(@release_env) in ["1", "true"]
+
+  @doc "The environment variable that marks a release compile."
+  @spec release_env() :: String.t()
+  def release_env, do: @release_env
 
   @doc "Where the token lives, by convention. Absent on most machines."
   @spec path() :: String.t()

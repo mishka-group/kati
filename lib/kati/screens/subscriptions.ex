@@ -82,8 +82,8 @@ defmodule Kati.Screens.Subscriptions do
   The rest of the gap is untouched by any of that, and it is the part the screen
   is actually about. The nearest thing that exists is
   `Kati.Calendars.Event.kind`'s `:money`
-  value, and `Kati.Seeds` does write two renewal events with a price in the
-  `description`. That is not a source and must not be treated as one:
+  value, and the deleted `Kati.Seeds` used to write two renewal events with a
+  price in the `description`. That was not a source and must not become one:
 
     * It is **two** of the four services the card lists, seeded only because
       screen 09 merges them into one *"2 renewals · £22.98"* row.

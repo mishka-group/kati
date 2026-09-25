@@ -24,10 +24,12 @@ defmodule Kati.Sources do
       (Music). Free and keyless is the requirement, not a preference: tier 0
       is defined by needing no account, so a provider that wants a key belongs
       in tier 1 or 2 and changes what screen 80 promises.
-    * **Tier 1 — better artwork, optional key.** TMDB. Kati ships a key and it
-      is public, because Kati is open source. That costs the user nothing —
-      TMDB counts requests per IP address, not per key — and the screen says so
-      rather than making a mystery of it.
+    * **Tier 1 — the reader's own key.** TMDB. A store build ships no key: the
+      reader pastes their own read token on screen 80 and it goes to
+      `Kati.SecureStore`. A development build may carry a developer's token
+      for testing (`tmdb_key/0`), and `mix mob.release` refuses to package one.
+      Every credential and where it can go is tabled in `Kati.SecureStore`'s
+      moduledoc.
     * **Tier 2 — connect an account.** ListenBrainz, Hardcover, TheTVDB.
 
   The tier-2 list is short on purpose and the design's caption gives the rule:

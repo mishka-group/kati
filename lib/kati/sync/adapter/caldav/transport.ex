@@ -41,6 +41,14 @@ defmodule Kati.Sync.Adapter.CalDAV.Req do
   `Req.request/1` takes `:method` as an atom and passes it through, which is
   the whole trick.
 
+  ## A failure never carries the password
+
+  The `authorization` header is the one place an account's password exists in
+  the clear, and a transport error can quote it — Mint's
+  `{:invalid_header_value, "authorization", value}` is the whole header. Such a
+  reason comes back as `:redacted`, because `Kati.Sync.Outbox` writes
+  `inspect(reason)` into `sync_outbox_entries.last_error`, a plaintext column.
+
   ## Redirects are not followed
 
   A CalDAV `PUT` that follows a redirect can land the write on a collection the
@@ -75,8 +83,18 @@ defmodule Kati.Sync.Adapter.CalDAV.Req do
         {:ok, %{status: status, headers: flatten(resp_headers), body: resp_body || ""}}
 
       {:error, reason} ->
-        {:error, reason}
+        {:error, Kati.Net.Redact.reason(reason, credentials_in(headers))}
     end
+  end
+
+  # The `authorization` value whole and without its scheme, because Mint quotes
+  # the first and an exception may quote only the second. See `Kati.Net.Redact`.
+  defp credentials_in(headers) do
+    for {name, value} <- headers,
+        String.downcase(to_string(name)) == "authorization",
+        is_binary(value),
+        part <- [value | tl(String.split(value, " ", parts: 2))],
+        do: part
   end
 
   # Req gives `%{"etag" => ["\"abc\""]}`; the rest of this subsystem wants a

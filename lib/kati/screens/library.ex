@@ -372,10 +372,9 @@ defmodule Kati.Screens.Library do
 
     * `title` is the cache's, and `nil` when there is no cache row — `shelf/0`
       drops those rather than drawing them.
-    * `seed` is `poster_path`, which for a seeded sample title is the design's
-      own picsum seed (`Kati.Seeds` writes it that way) and for a real one is a
-      provider path `Kati.Design.Images.poster/1` will not find. Both degrade
-      to the placeholder rectangle `artwork/1` already draws.
+    * `seed` is `poster_path`, a provider path `Kati.Design.Images.poster/1`
+      will not find, so it degrades to the placeholder rectangle `artwork/1`
+      already draws.
     * `progress` is a fraction or `nil`. For a series it is the tick count over
       `episode_count`, through `Kati.Media.CachedTitle.progress/2` so an
       unknown denominator answers `{:position, n}` and `ratio/1` answers `nil`

@@ -417,16 +417,12 @@ defmodule Kati.Screens.Film do
   # `Kati.Screens.SeriesMeta` answer the same msgid for the same state.
   defp title_of(_cached), do: gettext("Untitled")
 
-  # `Kati.Seeds` writes the design seed straight into `poster_path` — "not a
-  # TMDB path: the sample artwork is resolved by seed" — and `sample_source_id/1`
-  # is the other half of that convention, so a row whose cache has been evicted
-  # can still find its picture.
-  defp seed_of(tracked, cached) do
-    case cached do
-      %CachedTitle{poster_path: path} when is_binary(path) and path != "" -> path
-      _ -> Kati.Seeds.sample_seed(tracked.source_id)
-    end
-  end
+  # The cache row's poster path, or `nil` once the cache row is gone — the
+  # renderer draws its placeholder for a `nil`.
+  defp seed_of(_tracked, %CachedTitle{poster_path: path}) when is_binary(path) and path != "",
+    do: path
+
+  defp seed_of(_tracked, _cached), do: nil
 
   # `2025 · 1H 52M · DRAMA` minus the year, which nothing stores. Both halves
   # are nullable — a provider can decline either — and an absent half is left

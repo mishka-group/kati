@@ -31,7 +31,7 @@ defmodule Kati.Media.ProgressTest do
     # for screen 15's log and `Kati.Screens.UpNext` reads `tracked_titles`, so
     # fixtures left here are drawn on a screen `Kati.ScreenDesignLiteralTest`
     # compares with its drawing — and whether that passes would depend on the
-    # shuffle. Same hazard `Kati.SeedsTest` documents for events.
+    # shuffle. Same hazard `Kati.CalendarsTest` documents for calendars.
     on_exit(&empty_the_tables!/0)
     {:ok, prefix: "mp#{System.unique_integer([:positive])}-"}
   end
