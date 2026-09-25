@@ -28,10 +28,10 @@ defmodule Kati.Theme do
 
       Mob.Theme.set(Kati.Theme.current())
 
-  and not name a side. `light/0` and `dark/0` stay public because two screens
-  legitimately pin themselves: screen 28 (Home, dark) and screen 29 (Lock) are
-  drawn dark and are the reference for what dark mode looks like — they are
-  dark in a light-mode app, so `current/0` would be wrong for them.
+  and not name a side. `light/0` and `dark/0` stay public because the dark
+  colourway boards legitimately pin themselves: screen 28 (Home, dark) is drawn
+  dark and is the reference for what dark mode looks like — it is dark in a
+  light-mode app, so `current/0` would be wrong for it.
   """
 
   # ── Light ────────────────────────────────────────────────────────────────

@@ -36,8 +36,9 @@ defmodule Kati.Theme.Palette do
   Four kinds of source under nine labels, and every token says which one it
   used. Nothing here is invented and then presented as the design's.
 
-    * `:drawn` — screens 28 (Home, dark) and 29 (Lock) are the only dark
-      drawings that exist, and 28 is *the same page as screen 01*. Laid side by
+    * `:drawn` — screens 28 (Home, dark) and 29 (Lock, since deleted, its
+      board in `test/design/retired/`) were the only dark drawings when this
+      table was derived, and 28 is *the same page as screen 01*. Laid side by
       side, `Kati.Screens.Home` and `Kati.Screens.HomeDark` give the dark twin
       of a light literal role for role: the date line is `#A9A29A` on 01 and
       `#6A6560` on 28, the row meta is `#8A8479` and `#8A837B`, the timeline
@@ -563,7 +564,7 @@ defmodule Kati.Theme.Palette do
   # One `name/0` and one `name/1` per token, generated from the table so the
   # two cannot drift. `Palette.card()` reads at a call site the way a colour
   # should; `Palette.card(:light)` is for the places that are deliberately one
-  # mode, like screen 29's lock preview.
+  # mode, like screen 77's dark chart inside a light sheet.
 
   for {name, light, dark, _source, meaning} <- @tokens do
     hex = fn value -> "0x" <> String.pad_leading(Integer.to_string(value, 16), 8, "0") end

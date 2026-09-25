@@ -1,33 +1,33 @@
 defmodule Kati.ScreenDarkWidgetsTest do
   @moduledoc """
-  Screens 28 and 29 — the design's only drawn-dark pages — against the domains
-  they now read, and against a database that has nothing to give them.
+  Screen 28 — the design's drawn-dark Home — against the domains it now reads,
+  and against a database that has nothing to give it.
 
-  ## What these two screens are, and what that constrains
+  Screen 29, the lock screen, shared this file until it was deleted; its board
+  is in `test/design/retired/`.
 
-  They are the reference the whole dark palette was derived from, so two things
+  ## What this screen is, and what that constrains
+
+  It is the reference the whole dark palette was derived from, so two things
   are true at once and both are asserted here:
 
-    * **the palette does not move.** Both install `Kati.Theme.dark/0` in
+    * **the palette does not move.** It installs `Kati.Theme.dark/0` in
       `mount/3` regardless of the stored preference, and
       `Kati.ThemeModeTest`/`Kati.ThemeCoverageTest` already stand over that.
       This file's contribution is the other direction — that reading the store
-      did not quietly make them follow the app theme — asserted once, cheaply.
-    * **the clock does not move either.** Screen 28's date line and greeting and
-      screen 29's `21:40` stay the drawing's evening on a device full of data.
-      That is a decision, written out in both moduledocs, and a later round that
+      did not quietly make it follow the app theme — asserted once, cheaply.
+    * **the clock does not move either.** Screen 28's date line and greeting
+      stay the drawing's evening on a device full of data. That is a decision,
+      written out in `Kati.Screens.HomeDark`'s moduledoc, and a later round that
       "finishes the migration" by wiring the clock should fail here rather than
-      break the pairing between the two pages and cost
-      `Kati.ScreenDesignLiteralTest` three allow-list entries.
+      cost `Kati.ScreenDesignLiteralTest` allow-list entries it has no room for.
 
   ## Why the sweeps cannot settle the rest
 
   Same gap `Kati.ScreenFilmTest` and `Kati.ScreenEmptyDatabaseTest` set out:
   `Kati.ScreenRenderSweepTest` never reads the copy, and
   `Kati.ScreenDesignLiteralTest` reads it against a shared SQLite file with no
-  Ecto sandbox, so which of the two paths ran moves with `--seed`. Screen 29
-  needs more than that anyway — it falls back **one widget at a time**, and no
-  whole-screen check can tell three fallen-back widgets from four.
+  Ecto sandbox, so which of the two paths ran moves with `--seed`.
   """
   use Mob.ScreenCase, async: false
 
@@ -38,7 +38,6 @@ defmodule Kati.ScreenDarkWidgetsTest do
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
   alias Kati.Screens.HomeDark
-  alias Kati.Screens.Lock
 
   # Child tables first: overrides and events carry the foreign keys, and a watch
   # carries one to its tracked title.
@@ -266,10 +265,9 @@ defmodule Kati.ScreenDarkWidgetsTest do
 
     test "the header stays the drawing's evening even with a real day under it" do
       # A decision, not an omission — `Kati.Screens.HomeDark`'s moduledoc gives
-      # both reasons. Screens 28 and 29 are drawn at one evening and have to
-      # agree about it, and two more clock literals would cost
-      # `Kati.ScreenDesignLiteralTest` two of the four entries its allow-list
-      # is capped at.
+      # the reason: two more clock literals would cost
+      # `Kati.ScreenDesignLiteralTest` two allow-list entries it has no room
+      # for.
       #
       # `last check 18:02` is no longer part of that bargain and is asserted
       # below instead: it sat in the hero rather than the header, and it is not
@@ -424,330 +422,5 @@ defmodule Kati.ScreenDarkWidgetsTest do
       assert Mob.Theme.current() == Kati.Theme.dark(),
              "screen 28 is the design's dark reference and went light in a light app"
     end
-  end
-
-  # ── Screen 29 ───────────────────────────────────────────────────────────────
-
-  describe "29 — the lock screen, with nothing stored" do
-    test "every widget draws its own empty self, to the term" do
-      assert Map.drop(Lock.widgets(), [:clock]) == Map.drop(Lock.empty_widgets(), [:clock]),
-             "a widget answered from the store against an empty database, or one of the four " <>
-               "is back on `Kati.Screens.Lock.Sample`"
-    end
-
-    test "and the clock is the device's own evening, not the drawing's" do
-      # The one widget on this page every phone already renders correctly by
-      # itself was the one frozen at board 29's Sunday in August.
-      assert Lock.widgets().clock.date == Kati.Locale.date(Kati.Time.today(), :full)
-      refute Lock.widgets().clock == Lock.drawn_widgets().clock
-    end
-
-    test "every string the drawing carries reaches the rendered tree" do
-      # The frame, not the branch: board 29's own four are installed over the
-      # screen's assigns, exactly as `Kati.ScreenDesignLiteralTest` installs
-      # them. What this asserts is that every value the board carries still has
-      # a node to be drawn in.
-      tree =
-        Lock.render(%{assigns(mount_screen(Lock)) | widgets: Lock.drawn_widgets()})
-
-      w = Lock.drawn_widgets()
-
-      for string <- [
-            w.clock.date,
-            w.clock.time,
-            w.up_next.eyebrow,
-            w.up_next.title,
-            w.up_next.meta,
-            w.tonight.eyebrow,
-            w.tonight.count,
-            w.tonight.label,
-            w.today.eyebrow,
-            w.year.eyebrow,
-            w.year.watched,
-            w.year.streak
-          ] do
-        assert drawn?(tree, string), "#{inspect(string)} is nowhere in the tree"
-      end
-
-      for row <- w.today.rows do
-        assert drawn?(tree, row.time)
-        assert drawn?(tree, row.title)
-      end
-    end
-  end
-
-  describe "29 — Up next" do
-    test "it is the top of the watching shelf, with the bookmark and what is left" do
-      track!(
-        "lock-hollow",
-        %{
-          status: :watching,
-          progress_season: 2,
-          progress_episode: 6,
-          # 18 minutes short of a 100-minute runtime.
-          progress_seconds: 82 * 60
-        },
-        %{title: "Low Water", runtime_minutes: 100, poster_path: "hollow71"}
-      )
-
-      widget = Lock.widgets().up_next
-
-      assert widget.title == "Low Water"
-      assert widget.meta == "S2E6 · 18M"
-      assert widget.seed == "hollow71"
-
-      assert widget.eyebrow == Lock.drawn_widgets().up_next.eyebrow,
-             "the eyebrow is the widget's own name and should survive the migration"
-
-      tree = tree(mount_screen(Lock))
-      assert drawn?(tree, "Low Water")
-      refute drawn?(tree, Lock.drawn_widgets().up_next.title)
-    end
-
-    test "a shelf with nothing being watched draws the drawn widget" do
-      track!("lock-done", %{status: :finished}, %{title: "Undertow"})
-
-      assert Lock.widgets().up_next == Lock.empty_widgets().up_next,
-             ":finished is not :watching, and there is nothing to be up next"
-    end
-
-    test "an archived show is not up next either" do
-      track!("lock-hidden", %{status: :watching, archived: true}, %{title: "Hidden Coast"})
-
-      assert Lock.widgets().up_next == Lock.empty_widgets().up_next,
-             "`keeps history, hides from shelf` is the whole meaning of the flag"
-    end
-
-    test "an evicted cache leaves the position and takes the name" do
-      track!("lock-evicted", %{status: :watching, progress_season: 1, progress_episode: 4}, nil)
-
-      widget = Lock.widgets().up_next
-      assert widget.title == "Untitled"
-      assert widget.meta == "S1E4", "the bookmark is durable; the runtime was in the cache"
-    end
-  end
-
-  describe "29 — Tonight" do
-    test "it counts the episodes of followed titles that air today" do
-      track!("lock-airs", %{status: :watching}, %{title: "Marram"})
-
-      episode!("lock-airs", %{air_at: today_at(~T[20:00:00]), date_confidence: :exact})
-      episode!("lock-airs", %{air_at: today_at(~T[20:30:00]), date_confidence: :exact})
-      episode!("lock-airs", %{air_at: today_at(~T[20:45:00]), date_confidence: :day})
-
-      assert Lock.widgets().tonight.count == "3"
-    end
-
-    test "a date nobody asserted a day for is not counted" do
-      # The 1 January rule `Kati.Media.Release` exists to make impossible: a
-      # `:month` answer carries no day component, so reading its instant as
-      # "airs tonight" is asserting something no source said.
-      track!("lock-vague", %{status: :watching}, %{title: "Vellum"})
-
-      episode!("lock-vague", %{air_at: today_at(~T[20:00:00]), date_confidence: :month})
-      episode!("lock-vague", %{air_at: today_at(~T[21:00:00]), date_confidence: :unknown})
-
-      assert Lock.widgets().tonight.count == "0"
-    end
-
-    test "an episode of a title nobody follows is not counted" do
-      track!("lock-followed", %{status: :watching}, %{title: "Ashfall"})
-      episode!("lock-stranger", %{air_at: today_at(~T[20:00:00]), date_confidence: :exact})
-
-      assert Lock.widgets().tonight.count == "0"
-    end
-
-    test "a finished show's episodes are not tonight's business" do
-      track!("lock-over", %{status: :finished}, %{title: "The Cartographer"})
-      episode!("lock-over", %{air_at: today_at(~T[20:00:00]), date_confidence: :exact})
-
-      # `:followed` excludes finished and dropped outright, so this library has
-      # nothing followed at all and the widget is its own empty self.
-      assert Lock.widgets().tonight == Lock.empty_widgets().tonight
-    end
-
-    test "a followed library with a quiet evening says nought, not the drawing's six" do
-      track!("lock-quiet", %{status: :watching}, %{title: "Salt & Iron"})
-
-      assert Lock.widgets().tonight.count == "0",
-             "`how loaded tonight is` has `not at all` among its answers, and a fallback " <>
-               "here would report six episodes nobody is airing"
-    end
-
-    test "nothing followed at all draws an empty widget" do
-      assert Lock.widgets().tonight == Lock.empty_widgets().tonight
-      assert Lock.widgets().tonight.count == "0"
-    end
-  end
-
-  describe "29 — Today" do
-    test "it draws the device's day and the same events screen 28 does" do
-      cal = calendar!()
-      event!(cal, ~T[09:15:00], "Plumber")
-      event!(cal, ~T[23:59:00], "Rowing")
-
-      widget = Lock.widgets().today
-      titles = Enum.map(widget.rows, & &1.title)
-
-      assert titles != []
-      assert Enum.all?(titles, &(&1 in ["Plumber", "Rowing"]))
-
-      # The pairing the design's caption claims — the two pages are one evening.
-      # Both read `Kati.Calendars.Today.rows/1`, so an event on one is an event
-      # on the other by construction rather than by coincidence.
-      assert drawn?(tree(mount_screen(HomeDark)), "Rowing")
-      assert drawn?(tree(mount_screen(Lock)), "Rowing")
-    end
-
-    test "an event at the last minute of the day is always still ahead" do
-      # Deterministic at every hour, which a fixture at a fixed morning time
-      # would not be: `23:59` is at or after any `HH:MM` the device clock can
-      # read, so this pins the count itself rather than a shape.
-      cal = calendar!()
-      event!(cal, ~T[23:59:00], "Rowing")
-
-      assert Lock.widgets().today.eyebrow == "TODAY · 1 LEFT"
-    end
-
-    test "with nothing ahead the widget still draws the day rather than an empty panel" do
-      cal = calendar!()
-      event!(cal, ~T[00:00:00], "Morning run")
-
-      widget = Lock.widgets().today
-
-      assert widget.rows != [],
-             "a glass panel with nothing in it is not a state the design has; `0 LEFT` is " <>
-               "the honest count and the day is still what the widget is about"
-
-      assert Enum.all?(widget.rows, &(&1.title == "Morning run"))
-      assert widget.eyebrow =~ ~r/^TODAY · \d+ LEFT$/
-    end
-
-    test "it never draws more than the two rows the panel is sized for" do
-      # All ten at `23:59` on purpose. Spread across the evening they would be
-      # past or ahead depending on the hour this file runs at, and the count
-      # this pins would be right for most of the day and wrong for the rest.
-      cal = calendar!()
-      for n <- 1..10, do: event!(cal, ~T[23:59:00], "Thing #{n}")
-
-      widget = Lock.widgets().today
-
-      assert widget.eyebrow == "TODAY · 10 LEFT"
-      assert length(widget.rows) == 2, "the medium widget has room for two rows and draws two"
-    end
-
-    test "an empty calendar draws an empty widget" do
-      assert Lock.widgets().today == Lock.empty_widgets().today
-      assert Lock.widgets().today.rows == []
-    end
-  end
-
-  describe "29 — This year" do
-    test "the hours and the streak are the watch log's, not the drawing's" do
-      tracked =
-        track!("lock-year", %{status: :watching}, %{title: "Ashfall", runtime_minutes: 100})
-
-      # Three consecutive nights inside the current year whatever today's date
-      # is: a fixture counted back from today would fall into last year every
-      # January and this file would be green for eleven months out of twelve.
-      for day <- 4..6 do
-        watch!(tracked, %{watched_on: Date.new!(Kati.Time.today().year, 1, day)})
-      end
-
-      widget = Lock.widgets().year
-
-      assert widget.watched == "5h watched", "three 100-minute watches is 300 minutes"
-      assert widget.streak == "3-night streak"
-      assert widget.eyebrow == Lock.drawn_widgets().year.eyebrow
-
-      refute widget.watched == Lock.drawn_widgets().year.watched
-      refute widget.streak == Lock.drawn_widgets().year.streak
-    end
-
-    test "the field keeps the drawing's shape: 78 cells, chunked 33" do
-      tracked = track!("lock-field", %{status: :watching}, %{title: "Marram"})
-      watch!(tracked, %{watched_on: Kati.Time.today()})
-
-      rows = Lock.widgets().year.rows
-
-      assert Enum.map(rows, &length/1) == [33, 33, 12],
-             "the ragged last row of twelve is what the drawing shows, and a field built " <>
-               "from real watches has to be the same object"
-
-      assert Enum.map(rows, &length/1) ==
-               Enum.map(Lock.drawn_widgets().year.rows, &length/1)
-    end
-
-    test "the field ends today, and today is the cell that lit" do
-      tracked = track!("lock-today", %{status: :watching}, %{title: "Harbour"})
-      watch!(tracked, %{watched_on: Kati.Time.today()})
-
-      cells = Lock.widgets().year.rows |> List.flatten()
-
-      assert List.last(cells) == 1, "the last cell is today, and today has one watch on it"
-      assert Enum.count(cells, &(&1 > 0)) == 1
-    end
-
-    test "a heavy day stops at the darkest cell there is" do
-      tracked = track!("lock-heavy", %{status: :watching}, %{title: "Vellum"})
-      for _ <- 1..6, do: watch!(tracked, %{watched_on: Kati.Time.today()})
-
-      cells = Lock.widgets().year.rows |> List.flatten()
-
-      assert List.last(cells) == 3,
-             "`Kati.Screens.Lock.Sample.intensity/1` paints four steps; a busier day is not " <>
-               "a different colour"
-    end
-
-    test "a watch with no date takes part in none of it" do
-      # *"I have seen this, I do not remember when"* is an answer
-      # `Kati.Media.Watch` deliberately allows, and every figure on this widget
-      # is a question about when.
-      tracked = track!("lock-undated", %{status: :watching}, %{title: "Low Water"})
-      watch!(tracked, %{rating: 8})
-
-      assert Lock.widgets().year == Lock.empty_widgets().year
-    end
-
-    test "an empty log draws an empty widget" do
-      assert Lock.widgets().year == Lock.empty_widgets().year
-      assert Lock.widgets().year.rows == []
-    end
-  end
-
-  describe "29 — what does not move" do
-    test "the clock is the device's, on a full library and on an empty one" do
-      cal = calendar!()
-      event!(cal, ~T[23:59:00], "Rowing")
-      tracked = track!("lock-full", %{status: :watching}, %{title: "Ashfall"})
-      watch!(tracked, %{watched_on: Kati.Time.today()})
-
-      # It used to be `@drawn_evening` and `@drawn_time` — board 29's Sunday 16
-      # August, 21:40 — on every device, which is the one thing a lock screen
-      # cannot be wrong about.
-      assert Lock.widgets().clock.date == Kati.Locale.date(Kati.Time.today(), :full)
-
-      tree = tree(mount_screen(Lock))
-      assert drawn?(tree, Lock.widgets().clock.date)
-      refute drawn?(tree, Lock.drawn_widgets().clock.date)
-    end
-
-    test "reading the store did not make it follow the app theme" do
-      Kati.Theme.Mode.put(:light)
-      _view = mount_screen(Lock)
-
-      assert Mob.Theme.current() == Kati.Theme.dark(),
-             "screen 29 is the design's dark reference and went light in a light app"
-    end
-  end
-
-  # Noon-and-so-on today, in the device's own zone, as the UTC instant a cache
-  # row stores. `Kati.Media.Release.air/1` reads `:exact` back through the same
-  # zone, so this lands on today wherever the machine thinks it is.
-  defp today_at(%Time{} = time) do
-    {:ok, utc} =
-      Kati.Time.to_utc(NaiveDateTime.new!(Kati.Time.today(), time), Kati.Time.device_zone())
-
-    utc
   end
 end

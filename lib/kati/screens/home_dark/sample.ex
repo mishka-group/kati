@@ -1,20 +1,20 @@
 defmodule Kati.Screens.HomeDark.Sample do
   @moduledoc """
-  Home's content at the one moment screens 28 and 29 are both drawn at.
+  Home's content at the one moment board 28 is drawn at.
 
   ## Why this moment is pinned rather than computed
 
   `Kati.Screens.Home` reads the device clock, and should. This screen does
   not, because it is not a second Home — it is Home **held still** so the dark
-  palette can be compared against its drawing. Screen 29 draws the lock screen
-  of the same evening, down to the same two events at 20:00 and 21:30, so the
-  two pages have to agree about what time it is or they stop being one design.
+  palette can be compared against its drawing. Screen 29, the lock screen,
+  was drawn at the same evening and shared it; 29 is deleted and its board
+  retired, so this is now board 28's moment alone.
 
   When dark stops being a separate page and becomes `Kati.Shell`'s `mode`,
   this module goes with it and the real clock takes over.
   """
 
-  @doc "The evening screens 28 and 29 share."
+  @doc "The evening board 28 is drawn at."
   @spec moment() :: map()
   def moment do
     %{date: "Sunday · 16 August", greeting: "Good evening", last_check: "last check 18:02"}

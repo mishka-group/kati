@@ -238,9 +238,10 @@ defmodule Kati.Theme.PaletteTest do
   # So the number can only go down, and it can only go down by deleting a row
   # that says why it was there. Nothing here can rot into "93 is correct".
   @survivors %{
-    # ── Screens 28 and 29 are drawn dark IN A LIGHT APP ──────────────────
-    # `home_dark.ex` and `lock.ex` pin `Kati.Theme.dark/0` at mount, which is
-    # the one legitimate reason a screen names a side. Every literal below IS
+    # ── Screen 28 is drawn dark IN A LIGHT APP ───────────────────────────
+    # `home_dark.ex` pins `Kati.Theme.dark/0` at mount, which is the one
+    # legitimate reason a screen names a side. (`lock.ex`, screen 29, pinned
+    # too and held ten rows here; it is deleted and they went with it.) Every literal below IS
     # the table's dark column, so a zero-arity token would be actively wrong
     # here: it reads the installed palette, and in a light app that resolves to
     # the LIGHT value. Migrating these means the two-arity form —
@@ -251,19 +252,10 @@ defmodule Kati.Theme.PaletteTest do
     0x0FF5F2EE => {:pinned_dark, ~w(home_dark)},
     0x12F5F2EE => {:pinned_dark, ~w(home_dark)},
     0x24E8823C => {:pinned_dark, ~w(home_dark)},
-    0x24FFFFFF => {:pinned_dark, ~w(lock)},
-    0x26FFFFFF => {:pinned_dark, ~w(lock)},
-    0x66FFFFFF => {:pinned_dark, ~w(lock)},
-    0x801C1A18 => {:pinned_dark, ~w(lock)},
-    0x80FFFFFF => {:pinned_dark, ~w(lock)},
-    0x8CFFFFFF => {:pinned_dark, ~w(lock)},
-    0x99FFFFFF => {:pinned_dark, ~w(lock)},
-    0xD9FFFFFF => {:pinned_dark, ~w(lock)},
     0xEB1E1D1B => {:pinned_dark, ~w(home_dark)},
     0xFF0E0D0C => {:pinned_dark, ~w(home_dark)},
     0xFF16150F => {:pinned_dark, ~w(home_dark)},
     0xFF1A1917 => {:pinned_dark, ~w(home_dark)},
-    0xFF1C1A18 => {:pinned_dark, ~w(lock)},
     0xFF1E1D1B => {:pinned_dark, ~w(home_dark)},
     0xFF2A2622 => {:pinned_dark, ~w(home_dark)},
     0xFF2A2826 => {:pinned_dark, ~w(home_dark)},
@@ -275,7 +267,6 @@ defmodule Kati.Theme.PaletteTest do
     0xFFA89B87 => {:pinned_dark, ~w(home_dark)},
     0xFFF5F2EE => {:pinned_dark, ~w(home_dark)},
     0xFFF7EFE4 => {:pinned_dark, ~w(home_dark)},
-    0xFFFFFFFF => {:pinned_dark, ~w(lock)},
 
     # ── The table holds this value only as a DARK one ────────────────────
     # `muted`, `segment_idle` and `tertiary` all land on `0xFF6A6560` in dark
@@ -304,13 +295,13 @@ defmodule Kati.Theme.PaletteTest do
       {:collision, ~w(habits language_pick meals_day meals_today onboarding pick_sections states)},
 
     # ── The value has a token; the token means something else ────────────
-    # `0xA6FFFFFF` is `rgba(255,255,255,.65)`. On `lock.ex` it is `lock_ink_65`
-    # and could be named today. On `plan_share.ex` and `quick_add.ex` it is a
-    # patch raised a step off a cream card — which is what `cream_raise` means,
+    # `0xA6FFFFFF` is `rgba(255,255,255,.65)`, which is `lock_ink_65`. On
+    # `plan_share.ex` and `quick_add.ex` it is a patch raised a step off a
+    # cream card — which is what `cream_raise` means,
     # and `cream_raise` is `0x99FFFFFF`, .60 not .65. Naming it would move a
     # baseline frame by an alpha step; naming `lock_ink_65` would put a
     # lock-screen token on a share sheet. Wants a `cream_raise_strong` row.
-    0xA6FFFFFF => {:no_token, ~w(lock plan_share quick_add)},
+    0xA6FFFFFF => {:no_token, ~w(plan_share quick_add)},
 
     # ── Simply not done yet ──────────────────────────────────────────────
     # One unambiguous token each, no collision, no missing row: substituting
@@ -325,8 +316,8 @@ defmodule Kati.Theme.PaletteTest do
     0xFFC4BDB3 => {:unmigrated, ~w(states)},
     0xFFC98A3E => {:unmigrated, ~w(states)},
     # `accent` is one of the three tokens that is the same in both modes, so
-    # `Palette.accent()` is safe even on 28 and 29.
-    0xFFE8823C => {:unmigrated, ~w(home_dark lock meals_day states)},
+    # `Palette.accent()` is safe even on 28.
+    0xFFE8823C => {:unmigrated, ~w(home_dark meals_day states)},
     0xFFFBF1DE => {:unmigrated, ~w(states)}
   }
 
@@ -334,7 +325,7 @@ defmodule Kati.Theme.PaletteTest do
   # lowered and never raised — and it is not typed twice: the test below
   # asserts it against `map_size(@survivors)`, so deleting a row is the only
   # way to change it.
-  @ceiling 40
+  @ceiling 30
 
   @reasons [:pinned_dark, :dark_only, :collision, :no_token, :unmigrated]
 
@@ -469,13 +460,15 @@ defmodule Kati.Theme.PaletteTest do
   test "the scan reads the screens, so an empty read cannot pass the ratchet" do
     # Every assertion above is a set difference, and two empty sets agree. This
     # is the guard: the scan has to have found real files with real markup in
-    # them, or the ratchet is measuring nothing.
+    # them, or the ratchet is measuring nothing. The floor was 100 while
+    # `lock.ex` held ten `:pinned_dark` rows' worth of literals; with it deleted
+    # the scan finds 82, and 50 still tells a real read from an empty one.
     assert length(@screens) > 50, "only #{length(@screens)} screen sources were scanned"
 
     occurrences =
       @screens |> Enum.flat_map(&literals_in/1) |> length()
 
-    assert occurrences > 100,
+    assert occurrences > 50,
            "the scan found #{occurrences} literal occurrences, which is too few to be reading " <>
              "the screens at all"
   end

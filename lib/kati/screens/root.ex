@@ -42,9 +42,9 @@ defmodule Kati.Screens.Root do
   place this macro cannot reach — and it is invisible, because the screen looks
   correct in isolation and only reads wrong after a navigation.
 
-  Screens 28 (Home, dark) and 29 (Lock) pin `Kati.Theme.dark/0` legitimately:
-  they are drawn dark *in a light app*, so the resolved answer would be wrong
-  for them.
+  Screen 28 (Home, dark) and the other dark colourway boards pin
+  `Kati.Theme.dark/0` legitimately: they are drawn dark *in a light app*, so
+  the resolved answer would be wrong for them.
 
   ## Taps are rescued — but two different failures are not the same failure
 

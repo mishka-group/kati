@@ -50,48 +50,25 @@ defmodule Kati.Screens.LaunchScreen do
   stored theme preference — which is `Kati.Theme.Mode`'s question, not a
   screen's.
 
-  ## What screen 29 has that this could call, and why none of it fits
+  ## Two layout findings this screen is built on
 
-  Screen 29 is the other drawing of the app seen from outside, and the reuse
-  check against it comes back empty for one structural reason:
-  **every public builder in `Kati.Screens.Lock` paints on a photograph.** They
-  are the `lock_*` family, which `Kati.Theme.Palette` labels `:media` and
-  defines as *a colour whose ground is a photograph, not a themed surface — a
-  photograph does not get lighter when the app does*. Screen 65's ground is
-  `paper`, the themed surface, so a call into any of them would paint a
-  wallpaper colour on a page that has no wallpaper. Candidate by candidate:
+  Screen 29, the lock screen, was the other drawing of the app seen from
+  outside, and a reuse check against it came back empty: every builder it had
+  painted on a photograph — the `lock_*` family, which `Kati.Theme.Palette`
+  labels `:media` — and screen 65's ground is `paper`, the themed surface. 29
+  is deleted now (its board is in `test/design/retired/`). Two findings from
+  that check carry over, and both are about the bridge rather than about 29:
 
-    * **`Lock.scrim/0`** is the right *node* — one full-bleed `Box` carrying a
-      vertical gradient over the ground — and the wrong three stops: it darkens
-      a picture at both ends, where `glow/0` warms a 280pt band at the top and
-      is transparent everywhere else.
-    * **`Lock.eyebrow/1`** is the right *idea*. Both screens set a mono,
-      letter-spaced, uppercase label with **no accent dash**, and for the same
-      reason — Kati's orange means new/now, and neither an OS-idiom widget
-      title nor a brand line is either. It is still uncallable: it is 9pt at
-      .14 tracking in `lock_ink_55`, against 10pt at .2 and .18 in `eyebrow`
-      and `tertiary` here. If it took its colour the way `Kati.UI.paper_fade/3`
-      takes its mode — as a parameter with the drawn value as the default —
-      this screen would call it twice. That is the one upstream ask this
-      comparison produced.
-    * **`Lock.clock/1`** is the same stack in the other order (small line over
-      large), in the same photograph whites.
-    * **`wallpaper/0`, `thumb/1`, `today_card/1`, `year_card/1`,
-      `small_widgets/2`, `pixel/1`** draw objects screen 65 does not contain.
-
-  Two things do carry over, and both are findings rather than code:
-
-    * **No `Scroll`.** 29's `render/1` records that a vertical `Scroll` hands
-      its children an unbounded height, where `fill_height` collapses back to
-      wrap-content — and that directly inside the root `Box` the bound is the
-      viewport. This screen needs exactly that: the boot bar is pinned 56 from
-      the **bezel**, so nothing here may scroll.
+    * **No `Scroll`.** A vertical `Scroll` hands its children an unbounded
+      height, where `fill_height` collapses back to wrap-content — and directly
+      inside the root `Box` the bound is the viewport. This screen needs
+      exactly that: the boot bar is pinned 56 from the **bezel**, so nothing
+      here may scroll.
     * **Centring is a `Row`, not a `Column` property.** `MobBridge.kt` builds a
       `column` as `Column(modifier = m)` with no `horizontalAlignment` argument
-      at all, so a Column's children are start-aligned always. `Lock.clock/1`
-      centres its two lines with `fill_width` Rows and weighted `Spacer`s on
-      both sides; `centred/1` here is that idiom given a name, because this
-      screen does it five times.
+      at all, so a Column's children are start-aligned always. `centred/1` is
+      the `fill_width` Row with weighted `Spacer`s on both sides, given a name,
+      because this screen does it five times.
 
   ## The mark is drawn, not imported
 
@@ -283,7 +260,7 @@ defmodule Kati.Screens.LaunchScreen do
   @doc """
   Screen 65's frame: the wash, the lockup, and the bottom band, in that order.
 
-  A `Box` and not a `Scroll`, for the reason `Kati.Screens.Lock` records — a
+  A `Box` and not a `Scroll`, for the reason the moduledoc records — a
   vertical `Scroll` hands its children an unbounded height and `fill_height`
   becomes a no-op inside one. The bottom band is pinned 56 from the bezel, so
   this screen has to measure against the viewport, and directly inside the
@@ -483,8 +460,7 @@ defmodule Kati.Screens.LaunchScreen do
   Hand-rolled rather than `Kati.UI.eyebrow/2`, which draws a 13x2 accent dash
   and then a left-aligned label inside a `fill_width` Column. Both differences
   are fatal here: the label is centred between two rules rather than trailing
-  one mark, and Kati's orange means new/now, which a line name is not — the same
-  reason `Kati.Screens.Lock.eyebrow/1` drops the dash on the lock screen.
+  one mark, and Kati's orange means new/now, which a line name is not.
 
   Written in sentence case and upcased at render, as `Kati.UI.eyebrow/2` does,
   because the drawing sets it in sentence case under `text-transform: uppercase`
@@ -673,9 +649,8 @@ defmodule Kati.Screens.LaunchScreen do
   @doc """
   One node, centred across the width.
 
-  A `fill_width` Row with a weighted `Spacer` on each side — the idiom
-  `Kati.Screens.Lock.clock/1` uses to centre the lock screen's date and time,
-  and it is an idiom rather than a preference: `MobBridge.kt` builds a `column`
+  A `fill_width` Row with a weighted `Spacer` on each side, and it is an idiom
+  rather than a preference: `MobBridge.kt` builds a `column`
   as `Column(modifier = m)` with no `horizontalAlignment` argument, so a
   Column's children are start-aligned and nothing in the markup can ask
   otherwise. Named here because this screen centres five things and five copies

@@ -891,7 +891,8 @@ defmodule Kati.Screens.AutoDetect do
   def tap("Browser extension"), do: {self(), :open_retired}
   # #100's two, and both are the row's whole point. *This phone* is the
   # permission — there is no runtime dialog for a notification listener, so the
-  # row opens the system page that grants it — and *Tick at* is the threshold
+  # row opens screen 151, which explains the grant and opens the system page
+  # that makes it — and *Tick at* is the threshold
   # `Kati.Media.Detect.threshold/0` reads.
   def tap("This phone"), do: {self(), :open_media_access}
   def tap("Tick at"), do: {self(), :cycle_threshold}
@@ -1183,17 +1184,19 @@ defmodule Kati.Screens.AutoDetect do
     {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
   end
 
-  # Open the page that grants notification access.
+  # Open screen 151, the page about notification access.
   #
   # There is no runtime dialog for `BIND_NOTIFICATION_LISTENER_SERVICE` —
-  # `ACTION_NOTIFICATION_LISTENER_SETTINGS` is the whole of what an app may do,
-  # and `K-44 open-settings` already carries it. So the row is a door rather than
-  # a switch, which is also the honest shape: the reader grants this somewhere
-  # Kati cannot reach.
+  # `ACTION_NOTIFICATION_LISTENER_SETTINGS` is the whole of what an app may do.
+  # This row used to fire that intent straight from here, which sent a reader
+  # to a system list with nothing saying why Kati wanted a permission that
+  # reads every notification on the phone. Screen 151 is that explanation,
+  # drawn, and its own `Open system settings` button is the same intent — so
+  # the row is a door to the page that asks, and the page is the door to the
+  # system screen that grants.
   def handle_tap(:open_media_access, socket) do
-    _ = Kati.Native.Links.settings(:notification_listener)
-
-    {:noreply, socket}
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.NotificationAccess, %{back: "Auto-detect"})}
   end
 
   # Step the threshold through the values a person would pick.

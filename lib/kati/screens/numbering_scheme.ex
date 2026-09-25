@@ -62,12 +62,10 @@ defmodule Kati.Screens.NumberingScheme do
 
   ## The vertical rule in the comparison card is a declared height
 
-  Screen `mark_ios.ex`'s `widget/2` already argues this once: the drawing gets
-  the rule's height from `align-items: stretch`, which has no Mob prop, and an
-  unsized `Box` measures zero. `comparison_column/2`'s two lines — a 9.5pt
-  mono kicker, a 7pt gap, a 17pt mono value — are declared at 40 the same way
-  that widget's 32 is, for the same reason: nothing comes back from `render/1`
-  to measure it with.
+  The drawing gets the rule's height from `align-items: stretch`, which has no
+  Mob prop, and an unsized `Box` measures zero. `comparison_column/2`'s two
+  lines — a 9.5pt mono kicker, a 7pt gap, a 17pt mono value — are declared at
+  40 for that reason: nothing comes back from `render/1` to measure it with.
 
   ## What this file translates, and what `Kati.NumberingScheme.Sample` owns
 

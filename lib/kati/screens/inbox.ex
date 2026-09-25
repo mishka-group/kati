@@ -562,8 +562,7 @@ defmodule Kati.Screens.Inbox do
   end
 
   # `title_source_id in ids` can match a row from a different provider that
-  # happens to use the same id, so the pair is checked in memory afterwards —
-  # `Kati.Screens.Lock.airing_today/1` makes the same move for the same reason.
+  # happens to use the same id, so the pair is checked in memory afterwards.
   defp references(tracked), do: MapSet.new(tracked, &{&1.source, &1.source_id})
   defp source_ids(tracked), do: tracked |> Enum.map(& &1.source_id) |> Enum.uniq()
 

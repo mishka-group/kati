@@ -70,11 +70,8 @@ defmodule Kati.PushedFrameTest do
     # — is not inset with the text. The outer column still carries 64 above and
     # 40 below; it is the sides that are deliberately not there.
     Kati.Screens.Day,
-    # 63, 64 and 65 are drawings of Kati seen from OUTSIDE the app: a phone's
-    # home screen with the icon on it, and the splash. A margin would be a
-    # margin around a picture of a phone.
-    Kati.Screens.MarkAndroid,
-    Kati.Screens.MarkIos,
+    # 65 is a drawing of Kati seen from OUTSIDE the app: the splash. A margin
+    # would be a margin around a picture of a phone.
     Kati.Screens.LaunchScreen,
     # The developer index. Not a page of the app — `Kati.AppReachabilityTest`
     # calls it scaffold and #94 is the ticket to delete it.

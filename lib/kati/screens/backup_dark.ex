@@ -76,7 +76,7 @@ defmodule Kati.Screens.BackupDark do
   "does not travel" rows is `#8A8479` on both boards — `Palette.sub/0`'s light
   value. Both are pinned with the explicit-mode form the module itself
   documents as legitimate (`Palette.green_text(:light)`, `Palette.sub(:light)`
-  — see screen 29's lock preview for the same move) rather than read as
+  — see screen 77's dark chart for the same move) rather than read as
   `#3E8460`/`#8A8479` literals nothing else could follow into a future
   palette change.
 

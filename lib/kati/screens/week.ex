@@ -282,9 +282,8 @@ defmodule Kati.Screens.Week do
   # The one label a block carries is its start hour, and a clock converts where
   # a date does not: 08 is eight in the morning in every calendar, so nothing
   # about it depends on the fixture's Gregorian week. `Kati.Locale.number/1`
-  # is what `Kati.Screens.AddMedication.time_chip/2` and
-  # `Kati.Screens.MarkAndroid.widget_row/1` put their own clocks through, and
-  # the face follows the CONVERTED string for the reason those two give:
+  # is what `Kati.Screens.AddMedication.time_chip/2` puts its own clocks
+  # through, and the face follows the CONVERTED string for the reason it gives:
   # `kati_mono.ttf` carries none of U+06F0–U+06F9, so `۰۸` asked for in DM Mono
   # comes back in Android's substitute face, while the English `08` stays in DM
   # Mono with no second branch here.
@@ -355,7 +354,6 @@ defmodule Kati.Screens.Week do
   # `Lunch — Jo` and `6 episodes air` are `Kati.Calendar.SampleWeek`'s copy and
   # that module's msgids to add; translating them here would give one evening
   # two catalogue entries that could then disagree about the same sentence.
-  # `Kati.Screens.MarkAndroid.widget_row/1` says the same of the same string.
   #
   # The **length** is left whole rather than half-converted: `15m`, `1h` and
   # `to 23:00` are a figure and a WORD, and `Kati.Locale.number/1` over them

@@ -20,8 +20,7 @@ defmodule Kati.DarkBoardThemeTest do
     Kati.Screens.HomeDark,
     Kati.Screens.BackupDark,
     Kati.Screens.BookDetailDark,
-    Kati.Screens.HomeEmptyDark,
-    Kati.Screens.Lock
+    Kati.Screens.HomeEmptyDark
   ]
 
   setup do

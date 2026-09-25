@@ -74,7 +74,6 @@ defmodule Kati.Screens.Gallery do
     {"26", "Pick sections", Kati.Screens.PickSections, :push},
     {"27", "States", Kati.Screens.States, :push},
     {"28", "Home, dark", Kati.Screens.HomeDark, :push},
-    {"29", "Lock screen", Kati.Screens.Lock, :push},
     {"30", "Agenda", Kati.Screens.Agenda, :push},
     {"31", "Event detail", Kati.Screens.EventDetail, :push},
     {"32", "Calendars", Kati.Screens.Calendars, :push},
@@ -211,8 +210,6 @@ defmodule Kati.Screens.Gallery do
     {"121", "The week as an image", Kati.Screens.WeekImage, :push},
     # mishka-group/kati#103. Board 127 is screen 122 under `:fa`.
     {"127", "پول — Money, RTL", Kati.Screens.Money, :push},
-    {"63", "iOS home screen", Kati.Screens.MarkIos, :push},
-    {"64", "Android home screen", Kati.Screens.MarkAndroid, :push},
     {"65", "Launch screen", Kati.Screens.LaunchScreen, :push},
     # #25 — backup and restore, the two screens three others had been promising.
     {"128", "Back up everything", Kati.Screens.Backup, :push},
@@ -317,7 +314,7 @@ defmodule Kati.Screens.Gallery do
   # asserting reader outside Elixir — the capture harness parsed this file for
   # `{"NN", label, module, kind}` and opened the frame of that number to label
   # each shot — and it is deleted along with the rest of the device tooling, for
-  # the reasons `docs/DESIGN-ASSETS.md` sets out. So inventing a "63" for a
+  # the reasons `docs/DESIGN-ASSETS.md` sets out. So inventing a number for a
   # screen the design has never contained fails both of the readers that are
   # left, and it was never what made a screen reachable in the first place.
   #
@@ -364,8 +361,9 @@ defmodule Kati.Screens.Gallery do
     # no artboard in the 152.
     #
     # The two notification screens. Neither has an artboard: the 127 drawings
-    # hold screen 29 (the lock screen showing a Kati notification) and screen 25
-    # (the release watcher's loudness settings) and nothing between them, and
+    # hold screen 29 (the lock screen showing a Kati notification, since
+    # retired to `test/design/retired/`) and screen 25 (the release watcher's
+    # loudness settings) and nothing between them, and
     # #26 is a *design* ticket that names the components rather than supplying a
     # frame. Both are built from those components — settings rows with status
     # values, the tinted info footnote, screen 40's Allow treatment — and each
@@ -565,8 +563,9 @@ defmodule Kati.Screens.Gallery do
     #
     # What is LEFT in the list after this is what the list is for: reference
     # sheets in screen 27's manner, dark and 235% colourways of pages that are
-    # themselves reachable, the three home-screen and lock-screen marks, and
-    # the state boards. Not one of them is a page of the app.
+    # themselves reachable, the launch screen, and the state boards. (The
+    # lock-screen and two home-screen marks, 29, 63 and 64, are deleted; their
+    # boards are in `test/design/retired/`.) Not one of them is a page of the app.
     # ── The calendar pages. Reached from the Schedule tab, its ⋯ and its own rows.
     # Calendar → a second tap on the already-selected day cell
     #   (calendar.ex:1351); also the Day segment of the view switcher.

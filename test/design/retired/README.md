@@ -23,3 +23,23 @@ Both faces are on screen 98 now, and out of the reader's own year rather than
 `Kati.Stats.Sample`'s: the grid is `Kati.Screens.Stats`'s own 26 weeks and the
 bars are the reader's own genres (#45). The board is here so the two faces can
 be checked against what they were drawn as.
+
+## 29 — Lock screen
+
+A drawing of the operating system's lock screen with four Kati widgets on it.
+Nothing inside an app can navigate to the lock screen, so `Kati.Screens.Lock`
+was reachable only from the gallery, and what it stood in for has shipped for
+real: the home-screen widget in `KatiContinueWidget.kt`, fed by
+`Kati.Widgets.Snapshot`. The module, its `Sample`, and the tests that existed
+only for it are deleted. The board is here as the record of what the widget
+family was drawn as.
+
+## 63 — iOS home screen, and 64 — Android home screen
+
+Mockups of two other operating systems' launchers with Kati's icon and a
+widget on them. Unreachable for 29's reason — an app cannot navigate to the
+surface it is launched from — and each carried a `Settings` back pill that led
+nowhere and drew the same invented evening on every device.
+`Kati.Screens.MarkIos` and `Kati.Screens.MarkAndroid` are deleted with 29,
+whose wallpaper, scrim and widgets they borrowed. Screen 65, the launch
+screen, stays: it is the frame the app itself puts up.

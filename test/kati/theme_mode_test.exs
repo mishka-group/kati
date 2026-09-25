@@ -468,11 +468,11 @@ defmodule Kati.ThemeModeTest do
 
     test "only the screens drawn dark pin dark against the stored choice" do
       # The mirror of the sweep above, and the reason it is not just "no screen
-      # may ever name a side". Screens 28 and 29 are drawn dark IN A LIGHT APP
-      # — they are the reference for what dark mode looks like — so
-      # `Kati.Theme.current/0` would be wrong for them and `Kati.Theme.dark/0`
-      # is right. Two, named. A third appearing here is a screen that has
-      # picked up the bug this file exists to keep out.
+      # may ever name a side". Screen 28 and its dark colourway siblings are
+      # drawn dark IN A LIGHT APP — 28 is the reference for what dark mode looks
+      # like — so `Kati.Theme.current/0` would be wrong for them and
+      # `Kati.Theme.dark/0` is right. Each one named. Another appearing here is
+      # a screen that has picked up the bug this file exists to keep out.
       pinning =
         Enum.filter(Kati.ScreenSweep.screens(), fn module ->
           Mob.Theme.set(Theme.light())
@@ -486,8 +486,7 @@ defmodule Kati.ThemeModeTest do
                Kati.Screens.BackupDark,
                Kati.Screens.BookDetailDark,
                Kati.Screens.HomeDark,
-               Kati.Screens.HomeEmptyDark,
-               Kati.Screens.Lock
+               Kati.Screens.HomeEmptyDark
              ]
     end
   end
