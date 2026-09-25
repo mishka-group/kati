@@ -470,6 +470,16 @@ defmodule Kati.DesignLiterals do
       # see `Kati.Screens.ImportRecognised`'s moduledoc for why the editor is a
       # feature and not a fix. MOVIES-AND-TV.md `141 #10`.
       {"141", "7 matched · 2 skipped · still editable"},
+      # Board 86's note promises a 180 ms debounce and seven counted queries per
+      # pause. The search that page opens runs on every keystroke over the
+      # reader's own library, so it says so — `Kati.Search.local_note/0`, which
+      # screen 19 already draws for the same reason (MOVIES-AND-TV.md #63).
+      {"86",
+       "counts stay off the chips until a query exists — eight zeroes on open would read as an empty app. searching starts at"},
+      {"86",
+       "for persian, arabic and cjk, where one character is a word. keystrokes debounce at"},
+      {"86", "180 ms"},
+      {"86", ", so one pause costs seven counted queries, not seven per letter."},
       {"80", "enter this code"},
       {"80", "k4q9b2"},
       {"80", "listenbrainz.org/link"},

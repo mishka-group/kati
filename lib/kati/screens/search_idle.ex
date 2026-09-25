@@ -412,9 +412,17 @@ defmodule Kati.Screens.SearchIdle do
     """
   end
 
-  @doc "The sentence that explains the three numbers this screen rests on."
+  @doc """
+  The sentence that explains the numbers this screen rests on.
+
+  `Kati.Search.local_note/0`, not board 88's `counts_note/0`: that one promises
+  a 180 ms debounce and seven counted queries per pause, and the search this
+  page opens runs on every keystroke over the reader's own library. Screen 19
+  was moved off it for the same reason (MOVIES-AND-TV.md #63); this page kept
+  saying it.
+  """
   @spec counts_note() :: map()
-  def counts_note, do: SettingsList.note("info", Search.counts_note())
+  def counts_note, do: SettingsList.note("info", Search.local_note())
 
   @doc """
   What was typed, and where it goes.
