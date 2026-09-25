@@ -29,13 +29,36 @@ defmodule Kati.TickRefusalTest do
       assert is_binary(ticked.assigns.save_error)
     end
 
+    # Over a real series: a bare mount over a shelf with no series is now the
+    # page that says so, with no episode to tick and nowhere a band belongs.
     test "and draws it" do
-      {:ok, socket} = Series.mount(%{}, %{}, Mob.Socket.new(Series))
-      ticked = Series.tick(socket, "0")
+      source_id = "tick-refusal-#{System.unique_integer([:positive])}"
 
-      drawn = inspect(Series.render(ticked.assigns), limit: :infinity)
+      Ash.create!(Kati.Media.CachedTitle, %{
+        source: :manual,
+        source_id: source_id,
+        kind: :tv,
+        title: "Refusal Probe",
+        fetched_at: Kati.Time.now()
+      })
 
-      assert drawn =~ ticked.assigns.save_error,
+      tracked =
+        Ash.create!(Kati.Media.TrackedTitle, %{
+          source: :manual,
+          source_id: source_id,
+          kind: :tv,
+          status: :watching
+        })
+
+      {:ok, socket} = Series.mount(%{id: tracked.id}, %{}, Mob.Socket.new(Series))
+      failed = Mob.Socket.assign(socket, :save_error, "That did not save.")
+
+      drawn = inspect(Series.render(failed.assigns), limit: :infinity)
+
+      Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id = ?1", [source_id])
+      Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id = ?1", [source_id])
+
+      assert drawn =~ "That did not save.",
              "screen 04 assigns the refusal and draws it nowhere, which is the defect"
     end
 
