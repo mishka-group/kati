@@ -692,7 +692,14 @@ defmodule Kati.ScreenWriteTargetTest do
   # measured drop is twelve, six a side in both locales: each page's one way
   # out (29's dismiss, 63's and 64's back pills) and the gallery row that
   # opened it.
-  @drawn_taps 1851
+  #
+  # 1849 with N22. Screen 151 draws the one state the phone's grant is in, and
+  # a host has no bridge, so a bare mount draws the retired row alone rather
+  # than the board's four states and their three settings and log taps; its
+  # gallery row went to `@routed` with it. The measured drop is two. Every
+  # control is still drawn in its own state — `Kati.NotificationAccessRouteTest`
+  # walks all four.
+  @drawn_taps 1849
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

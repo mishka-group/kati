@@ -537,6 +537,9 @@ defmodule Kati.Screens.Gallery do
     "33",
     # Settings → Auto-detect.
     "36",
+    # Settings → Auto-detect → This phone (auto_detect.ex:897,1197). N22 — it
+    #   draws the one card for the phone's own grant, not the board's four.
+    "151",
     # Home → the search field, which opens idle before a query exists.
     "86",
     # 86 → the tune disc. #131 made its back pill name the page it returns to.

@@ -1110,7 +1110,58 @@ defmodule Kati.DesignLiterals do
       {"132", "۱ از ۶ · برای همه"},
       {"132", "ادغام ۳۸۴ مورد"},
       {"132",
-       "هر ۴۱۸ عنوان، همه یادداشت‌ها و جلسه‌ها حذف می‌شوند و فایل جای آن‌ها نوشته می‌شود. بعد از پایان، بازگشتی نیست."}
+       "هر ۴۱۸ عنوان، همه یادداشت‌ها و جلسه‌ها حذف می‌شوند و فایل جای آن‌ها نوشته می‌شود. بعد از پایان، بازگشتی نیست."},
+      # Board 151 is a specimen sheet: four states of notification access stacked
+      # at once. The screen draws the ONE state `Kati.Media.Detect.access/0` and
+      # the detected-tick count read (N22), and a host has no bridge, so the
+      # compared render is the *Not on this build* state — its retired row.
+      #
+      # Gone for good: the three eyebrows that annotate the design rather than
+      # label a state (*purpose, then scope, then the action*; *different
+      # wording*; *what actually ships*), each replaced by the state's plain
+      # name; the footnote explaining that the states above are a design
+      # record; the revoked card's four fragments around the board's `128
+      # tracks`, which are one sentence with the real count of detected ticks
+      # now (detection ticks films and episodes, so it does not say tracks);
+      # *music apps … every track*, which described a detector Kati does not
+      # have; and *row on 40*, which named a board number to a reader.
+      {"151", "not granted — purpose, then scope, then the action"},
+      {"151", "revoked after being granted — different wording"},
+      {"151", "what actually ships — retired"},
+      {"151", "play protect blocks sideloaded apks declaring"},
+      {"151", "notification_listener"},
+      {"151", ", and kati installs directly. so the three states above are the"},
+      {"151", "design record"},
+      {"151", ", and the live row wears"},
+      {"151",
+       "’s retired treatment — it keeps its place and explains itself rather than vanishing."},
+      {"151", "kati logged"},
+      {"151", "128 tracks"},
+      {"151", "while it was on and"},
+      {"151", "keeps all of them"},
+      {"151",
+       "to see what your music apps are playing, so you do not have to log every track by hand."},
+      {"151", "folded into the ordinary notifications row on"},
+      # Drawn, but only in a state a host cannot be in: the not-granted card, the
+      # turned-off card and the granted row. A device draws whichever one its
+      # grant is in; `Kati.NotificationAccessStatesTest` draws all three and
+      # asserts each carries its own lines and none of the others'.
+      {"151", "why kati wants it"},
+      {"151", "what it can see."},
+      {"151", "android grants this as access to"},
+      {"151", "every notification on the device, messages included"},
+      {"151", ". kati reads only media notifications and never stores anything else."},
+      {"151", "open system settings"},
+      {"151", "special access · no dialog to raise"},
+      {"151", "it is"},
+      {"151",
+       ". a permission that can read every message in a person’s life does not belong in a list next to “show me notifications”."},
+      {"151", "turned off in system settings"},
+      {"151", ". nothing new is detected until it is turned back on."},
+      {"151", "log by hand instead"},
+      {"151", "granted"},
+      {"151", "on · media notifications only"},
+      {"151", "live"}
     ]
   end
 end

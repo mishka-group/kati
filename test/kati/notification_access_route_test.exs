@@ -61,10 +61,21 @@ defmodule Kati.NotificationAccessRouteTest do
       assert navigated_to(render_info(view, {:tap, :back})) == {:pop}
     end
 
-    test "draws every control this file answers for, and nothing else" do
+    test "across its four states, draws every control this file answers for, and nothing else" do
       view = mount_screen(NotificationAccess, %{back: "Auto-detect"})
 
-      assert Enum.sort(Enum.uniq(tags(view))) ==
+      drawn =
+        for access <- [
+              NotificationAccess.status(:denied, 0),
+              NotificationAccess.status(:denied, 1),
+              NotificationAccess.status(:granted, 0),
+              NotificationAccess.status(:unavailable, 0)
+            ],
+            tag <- tags(%{view | socket: Mob.Socket.assign(view.socket, :access, access)}),
+            uniq: true,
+            do: tag
+
+      assert Enum.sort(drawn) ==
                Enum.sort([
                  :back,
                  :open_settings,
