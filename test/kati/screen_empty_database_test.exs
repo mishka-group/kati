@@ -1318,11 +1318,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 153 with no show is the back pill, the heading, an empty subtitle and
     # one note — six strings. Everything else on the board is one show's.
     "153" => 6,
-    # 14 with nothing stored is the back pill, the empty hero's two lines and
-    # the "no cast, no scores" card — ten strings. The synopsis, cast, ratings
-    # and where-to-watch rows that padded it past the floor are exactly what a
-    # page about no series has not got.
-    "14" => 10,
+    # 14 with nothing stored is `Kati.Screens.Series.none/2`'s page — a glyph,
+    # *No series in your library yet*, and the back pill's glyph and label:
+    # four strings. It was the series frame with nothing in it, an empty hero
+    # over board 311's claim card, whose sentence was a note about the app's
+    # schema rather than about the reader's shelf.
+    "14" => 4,
+    # 04 and 58 (the same screen under `:fa`) with nothing stored are that same
+    # page, for the same push: four strings. The frame they drew before was an
+    # empty title over board 248's *You added this by hand* card and three
+    # untappable rows, about a show that did not exist.
+    "04" => 4,
+    "58" => 4,
     # 11 with nothing on the shelf to seed from is the back pill, the heading,
     # its two discs and one card saying where picks come from — eight strings.
     # The match lines, the people card, the leaving rail and the chips that
@@ -2314,7 +2321,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # drawing's on BOTH branches, so a gate that looked only at the episode
       # list would pass while one of the frozen parts quietly changed.
       # 35 gates the whole `show/1` map for 34's reason and one of its own: the
-      # map carries both the values (status, the four season-pass switches) and
+      # map carries both the values (status, the season-pass switches) and
       # the two flags that decide whether *Region & availability* and *This
       # show* are drawn at all. On an empty store every one of those is the
       # board's, groups included, which is the page the gallery renders.

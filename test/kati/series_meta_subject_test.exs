@@ -10,15 +10,15 @@ defmodule Kati.SeriesMetaSubjectTest do
   was confident, specific, and about something else. It was filed
   `lies-to-user`.
 
-  Four of those values are expressible today and now come off the row: the
-  title, the still, the meta line and the synopsis. The other seven have no
-  resource behind them — the screen's own moduledoc spends a page on why — so
-  on a real series they are empty and the bands go with them. That second half
-  is what this file is mostly for: a page that answered the fixture's cast
-  under a real title would be the same defect with better artwork.
+  The title, the still, the meta line, the synopsis, the rating trio and the
+  offers come off the row now. Cast, tags and a trailer have nothing behind
+  them, so on a real series they are empty and their bands go with them: a
+  page that answered the fixture's cast under a real title would be the same
+  defect with better artwork.
 
-  `Kati.ScreenEmptyDatabaseTest` holds the other side, that an empty store
-  still answers the board whole.
+  Three faces are pinned: a real series, a push whose series has gone, and no
+  series at all. None of them reaches `Kati.Screens.SeriesMeta.Sample`, which
+  is the board `Kati.ScreenDesignLiteralTest` installs.
   """
 
   use Mob.ScreenCase, async: false
@@ -121,10 +121,91 @@ defmodule Kati.SeriesMetaSubjectTest do
         refute drawn =~ gone, "screen 14 still draws #{inspect(gone)} over a real series"
       end
 
-      # And board 311's claim card is in their place, so the page names what is
-      # absent instead of leaving 40% of it as paper.
-      assert drawn =~ "No cast, and no scores"
+      # Board 311's claim card was a note about the app's schema — *a resource
+      # Kati has no column for* — printed to a reader. A page is allowed to be
+      # short, and the bands simply are not there.
+      refute drawn =~ "No cast, and no scores"
+      refute drawn =~ "no column for"
       assert drawn =~ "Severance"
+    end
+  end
+
+  describe "the still" do
+    test "is nothing, not the board's, for a title with no poster" do
+      tracked = tracked!("posterless", "Posterless", "Drama", 3, poster_path: nil)
+      page = SeriesMeta.series(tracked.id)
+
+      assert page.seed == nil
+
+      drawn = inspect(SeriesMeta.artwork(page), limit: :infinity)
+
+      refute drawn =~ "type: :image",
+             "a title with no poster drew an image — the board's own still was the fallback"
+
+      refute drawn =~ "hollow71"
+    end
+  end
+
+  describe "a push whose series has gone" do
+    test "says so, and draws nothing about any other show" do
+      page = SeriesMeta.series(Ecto.UUID.generate())
+
+      assert page.gone?
+
+      drawn = inspect(SeriesMeta.render(%{series: page, back: "Series"}), limit: :infinity)
+
+      assert drawn =~ "This title is no longer in your library"
+      refute drawn =~ "Ines Karvel"
+      refute drawn =~ ":toggle_menu"
+    end
+
+    test "and a series removed while the page sat under a sheet is gone on the way back" do
+      tracked = tracked!("removed", "Removed", "Drama", 3)
+      {:ok, socket} = SeriesMeta.mount(%{id: tracked.id}, %{}, Mob.Socket.new(SeriesMeta))
+
+      refute Map.get(socket.assigns.series, :gone?, false)
+
+      Ash.destroy!(tracked)
+
+      {:noreply, back} = SeriesMeta.handle_info({:kati, :resumed, nil}, socket)
+
+      assert back.assigns.series.gone?
+    end
+  end
+
+  describe "the ⋯ disc" do
+    test "opens the sibling pages over the same show" do
+      tracked = tracked!("menu", "Menu", "Drama", 3)
+      {:ok, socket} = SeriesMeta.mount(%{id: tracked.id}, %{}, Mob.Socket.new(SeriesMeta))
+
+      drawn = inspect(SeriesMeta.render(socket.assigns), limit: :infinity)
+      assert drawn =~ ":toggle_menu"
+
+      {:noreply, open} = SeriesMeta.handle_info({:tap, :toggle_menu}, socket)
+      assert open.assigns.menu?
+
+      menu = inspect(SeriesMeta.render(open.assigns), limit: :infinity)
+      assert menu =~ ":go_show_settings"
+      assert menu =~ ":go_episode_order"
+      refute menu =~ ":go_show_details"
+
+      {:noreply, pushed} = SeriesMeta.handle_info({:tap, :go_show_settings}, open)
+
+      assert {:push, Kati.Screens.SeriesSettings, %{tracked_id: id, back: "Show details"}} =
+               Map.get(pushed.__mob__, :nav_action)
+
+      assert id == tracked.id
+      refute pushed.assigns.menu?
+    end
+
+    test "is a picture over the board, which has no show to open pages about" do
+      drawn =
+        inspect(
+          SeriesMeta.render(%{series: SeriesMeta.Sample.series(), back: "Series", menu?: false}),
+          limit: :infinity
+        )
+
+      refute drawn =~ ":toggle_menu"
     end
   end
 
@@ -142,13 +223,15 @@ defmodule Kati.SeriesMetaSubjectTest do
           limit: :infinity
         )
 
-      for gone <- ["Ines Karvel", "Lumen+", "slow burn"] do
+      for gone <- ["Ines Karvel", "Lumen+", "slow burn", "hollow71"] do
         refute drawn =~ gone, "#{inspect(gone)} is on the page of a reader who owns nothing"
       end
+
+      assert drawn =~ "No series in your library yet"
     end
   end
 
-  defp tracked!(slug, title, genres, episodes) do
+  defp tracked!(slug, title, genres, episodes, opts \\ []) do
     source_id = @prefix <> slug
 
     Ash.create!(CachedTitle, %{
@@ -157,7 +240,7 @@ defmodule Kati.SeriesMetaSubjectTest do
       kind: :tv,
       title: title,
       overview: "Mark leads a team whose memories are severed between work and home.",
-      poster_path: "/#{slug}.jpg",
+      poster_path: Keyword.get(opts, :poster_path, "/#{slug}.jpg"),
       genres: genres,
       episode_count: episodes,
       fetched_at: Kati.Time.now()

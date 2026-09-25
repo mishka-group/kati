@@ -721,8 +721,16 @@ defmodule Kati.ScreenWriteTargetTest do
   # The measured drop is sixteen, eight a side in both locales;
   # `Kati.DropWriteTest` walks every one of them over a real title.
   #
-  # Both at once: 1843 − 2 (P1) − 16 (screen 149).
-  @drawn_taps 1825
+  #
+  # And screen 04 stopped drawing its frame over no series. The seed
+  # holds no `:tv` or `:anime` row, so a bare mount of 04 is the page that
+  # says the shelf has no series, and the ⋯ disc that frame carried — whose
+  # rows pushed Show details, Episode order and Show settings over nothing —
+  # goes with it. The measured drop is two, one a side in both locales.
+  # `Kati.OverflowMenuTest` keeps a series on the shelf and presses the menu.
+  #
+  # All three: 1843 − 2 (P1) − 16 (screen 149) − 2 (screen 04).
+  @drawn_taps 1823
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

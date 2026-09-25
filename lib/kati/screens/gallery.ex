@@ -440,7 +440,7 @@ defmodule Kati.Screens.Gallery do
     # Series → ⋯ → Show settings, which now carries the show it was opened
     # over. The walk is a test now rather than a memory of one:
     # `SeriesSettingsTest` in `android/app/src/androidTest/` drives the ⋯ menu,
-    # taps the Status tiles and all four season-pass switches, and reads each
+    # taps the Status tiles and both season-pass switches, and reads each
     # write back out of `kati.db` — including after a pop and a return, which
     # is the half a socket assign would otherwise fake.
     "35",
