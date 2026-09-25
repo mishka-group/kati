@@ -109,13 +109,14 @@ defmodule Kati.Screens.HomeDark do
   ## The header stays pinned, and that is a decision rather than an omission
 
   Home's other real value is its header: the date line and the greeting come off
-  the device clock. This screen cannot take that one, and the reason is written
-  into `Kati.Screens.HomeDark.Sample` — screen 29 draws the lock screen of *this
-  same evening*, down to the same two events at 20:00 and 21:30, so the two
-  pages have to agree about what time it is or they stop being one design.
+  the device clock. This screen does not take that one. The first reason it gave
+  was screen 29, which drew the lock screen of *this same evening* so the two
+  pages had to agree about what time it was; 29 is deleted — its board is in
+  `test/design/retired/` — so that reason is gone and the one below is what
+  holds the pin now.
 
-  There is a second reason, and its arithmetic is restated here because the
-  number this paragraph carried was wrong. `Kati.ScreenDesignLiteralTest` can
+  Its arithmetic is restated here because the number this paragraph carried
+  was wrong. `Kati.ScreenDesignLiteralTest` can
   only excuse a drawn literal a screen replaces with a clock value by naming it
   on an allow-list, and the bound on that list is not four: it is **30, and the
   list holds all 30** — moved eight times since it was seven, up and back down
@@ -125,9 +126,8 @@ defmodule Kati.Screens.HomeDark do
   without moving the bound again. A screen is not worth making the suite check
   less of the app.
 
-  That is the smaller of the two reasons even so, and it is worth saying which
-  way round they stand: if the allow-list had room tomorrow, screen 29 would
-  still be drawn at this evening and these two lines would still be pinned.
+  With 29 gone this is the whole of the case, so an allow-list with room in it
+  is the day these two lines can come off the pin.
 
   The cost is stated rather than hidden: on a device with a mirrored calendar
   this page prints the drawing's evening over the device's own today. That is
@@ -189,9 +189,8 @@ defmodule Kati.Screens.HomeDark do
   # The header on this branch is HomeEmpty's, so it reads the device clock
   # rather than `Sample.moment/0`. That is not a departure from this file's
   # *the header stays pinned* rule but the end of the case for it: the pin
-  # exists because screen 29 draws the lock screen of board 28's own evening
-  # and the two have to agree, and a device with nothing kept has no evening to
-  # agree about.
+  # exists to hold board 28's own evening still for the comparison, and a
+  # device with nothing kept has no evening to hold.
   #
   # HomeEmpty's blocks build their taps as `{self(), tag}` and `self()` here is
   # this screen, so `:choose_sections`, `:restore_backup` and `:open_search`
@@ -284,8 +283,8 @@ defmodule Kati.Screens.HomeDark do
   Stand-in data and marked as such, and — since this round — **unreachable from
   a render**, exactly as `Kati.Screens.Home.drawn_hero/0` is. Every string comes
   out of `Kati.Screens.HomeDark.Sample`, which is what the board was captured
-  from and what screen 29's lock screen is drawn against; nothing is restated
-  here, so the two pages cannot drift by an edit to one of them.
+  from; nothing is restated here, so the page and its fixture cannot drift by
+  an edit to one of them.
 
   `checked` is `Sample.moment/0`'s, not the header's — see the moduledoc's note
   on why `last check 18:02` left the pinned-clock bargain.

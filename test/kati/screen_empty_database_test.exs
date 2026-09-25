@@ -340,17 +340,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # file would do against the shelf. Given no file it answers board 141
     # whole, which is what the gallery and every sweep render.
     {"141", Kati.Screens.ImportRecognised},
-    # The two screens the design draws DARK, and the log sheet.
+    # The screen the design draws DARK, and the log sheet.
     #
     # 28 is Home in dark and reads exactly what Home reads — `Rest of today`,
     # through `Kati.Calendars.Today` — so its `[]` clause is Home's `[]` clause
     # and is guarded here the same way. Its header stays the drawing's evening
     # on purpose; `Kati.Screens.HomeDark`'s moduledoc gives both reasons.
-    #
-    # 29's four widgets fall back one at a time rather than as a page, which is
-    # why the pair below compares the whole `widgets/0` map: a widget that
-    # quietly stopped falling back would leave the other three drawing the
-    # drawing and pass every literal check in this file.
     #
     # 33 reads the newest logged watch. It is the one screen here whose
     # fallback fires on a database that is NOT empty — a library full of
@@ -358,7 +353,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # sheet can draw — so the empty case guarded here is the floor, not the
     # whole of it.
     {"28", Kati.Screens.HomeDark},
-    {"29", Kati.Screens.Lock},
     {"33", Kati.Screens.Rating},
     {"42", Kati.Screens.Health},
     {"43", Kati.Screens.MealsToday},
@@ -533,16 +527,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # so rendering it against an empty database would assert nothing, and the
     # derivation below says so. The render and literal sweeps still cover it.
     #
-    # The four pictures. None of these reads anything itself — each is a frame
-    # drawn from another screen's `drawn_*` value — and each lands here anyway
-    # because the derivation reads the compiled import table, which cannot tell
-    # calling `Kati.Screens.Lock.drawn_widgets/0` from calling
-    # `Kati.Screens.Lock.widgets/0`. That is the right way round: what these
-    # four depend on is precisely that the borrowed pair still agrees on an
-    # empty database, and their gates below ask exactly that.
+    # The picture. It reads nothing itself — it is a frame drawn from another
+    # screen's `drawn_*` value — and lands here anyway because the derivation
+    # reads the compiled import table, which counts the `Kati.Screens.MealPlan`
+    # it borrows from as a read. That is the right way round: what it depends
+    # on is precisely that the borrowed pair still agrees on an empty
+    # database, and its gate below asks exactly that.
     {"121", Kati.Screens.WeekImage},
-    {"63", Kati.Screens.MarkIos},
-    {"64", Kati.Screens.MarkAndroid},
     # #25 and #11's screens that reach a store. `Kati.Screens.Backup` left
     # `@undrawn` on 24 August when 128 landed — the comment there says to move
     # an entry the moment its drawing arrives, and this is that move.
@@ -736,20 +727,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # review placeholder, the three context titles and the tag row are the
     # screen's structure — but every VALUE board 33 draws is Blue Hour's, so an
     # unlogged sheet has none of them left to be held to.
-    # 29 → no board: the wallpaper, the clock and the four widget frames are the
-    # screen's structure and all four still draw, but every VALUE on board 29 is
-    # the drawing's, so an empty store has none of them left to be held to.
-    #
-    # 63 and 64 are NOT here. They are launcher mockups that read nothing —
-    # `Kati.Screens.MarkIos.tonight/0` quotes board 29's own Today row and
-    # `Kati.Meals.SamplePlan`'s dinner outright — so their pages are the same on
-    # an empty store as on a full one. They are on this file's `@migrated` list
-    # only because they import `Kati.Screens.Lock`, which is the 120/140/142 case
-    # the comment above `@migrated` writes up. Their gate below is borrowed from
-    # 29 for that reason: what they depend on is that 29's pair still agree.
-    # Making their own two halves real is launcher-widget work — Part 18 of
-    # fake_hardcoded.md — and the meal half is out of the film/series scope.
-    "29" => [],
     # 37 and 141 → no board: an unpicked file has no name, no shape, no columns,
     # no plan and no conflict, so board 37's `trakt-backup.csv` and board 141's
     # 418 rows have nothing left on either screen to be held to. Both keep their
@@ -2510,9 +2487,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"123", Kati.Screens.MoneyStates, &Kati.Screens.Money.months/0,
        &Kati.Screens.Money.drawn_months/0},
       {"61", Kati.Screens.Stats, &Kati.Screens.Goals.goals/0, &Kati.Screens.Goals.drawn_goals/0},
-      # The four pictures, each gated on the pair it borrows rather than on a
-      # read of its own — the same shape 120 already uses. 121 draws 44's week
-      # grid, 127 draws 122's months, and 63 and 64 both draw 28's lock widgets.
+      # The pictures, each gated on the pair it borrows rather than on a read of
+      # its own — the same shape 120 already uses. 121 draws 44's week grid and
+      # 127 draws 122's months.
       {"121", Kati.Screens.WeekImage, fn -> Kati.Screens.MealPlan.plan(today) end,
        &Kati.Screens.MealPlan.drawn_plan/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
@@ -2618,21 +2595,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> ["what leaves this week", "notes about the estuary"] end},
       {"87", Kati.Screens.SearchTyping, &Kati.Search.Suggestions.derived/0, [],
        fn -> ["what leaves this week", "notes about the estuary"] end},
-      # 29 answers four empty widgets. It used to answer the board's four, so a
-      # fresh install's lock screen promised *The Long Hollow S2E6*, six
-      # episodes airing tonight, four things left today and a 312-hour year on
-      # an eleven-night streak — every figure on the page the board's own.
-      # 63 and 64 borrow 29's pair rather than reading anything themselves, the
-      # shape 120 already uses.
-      #
-      # `:clock` is dropped from all three: it reads the device now, so the two
-      # calls below are a moment apart over a field that is neither branch's.
-      {"29", Kati.Screens.Lock, fn -> Map.drop(Kati.Screens.Lock.widgets(), [:clock]) end,
-       Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
-      {"63", Kati.Screens.MarkIos, fn -> Map.drop(Kati.Screens.Lock.widgets(), [:clock]) end,
-       Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
-      {"64", Kati.Screens.MarkAndroid, fn -> Map.drop(Kati.Screens.Lock.widgets(), [:clock]) end,
-       Map.drop(Kati.Screens.Lock.empty_widgets(), [:clock]), &Kati.Screens.Lock.drawn_widgets/0},
       # 37 and 141 answer their own empty state. A push naming no file is not
       # only the gallery: *Something else* on screen 140 is a routed row, and it
       # opened 37 on `trakt-backup.csv` — five columns of somebody else's film

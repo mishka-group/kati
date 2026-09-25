@@ -40,8 +40,8 @@ defmodule Kati.Screens.HomeEmpty do
 
   The date line and the greeting are `Kati.Screens.Home.today/0`, not the
   drawing's own `Sunday · 16 August`. Screen 28 pins the drawing's literal
-  deliberately, because it has to agree with screen 29's lock screen about
-  what evening it is; this page carries no such twin, so it takes the device
+  deliberately — `Kati.Screens.HomeDark`'s moduledoc says why; this page
+  carries no such pin, so it takes the device
   clock the way `Kati.Screens.Home` itself does rather than freezing a date
   that will be wrong the day after it ships.
 

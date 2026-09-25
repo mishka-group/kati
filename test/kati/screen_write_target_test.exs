@@ -679,10 +679,20 @@ defmodule Kati.ScreenWriteTargetTest do
   # `Kati.Screens.DropSheet.empty_sheet/0`, which carries no captured position,
   # so the position card and the controls reading off it are not drawn over a
   # sheet naming no title. The measured drop is four.
-  @screens_swept 156
+  #
+  # The screen floor went from 156 to 153 when screens 29, 63 and 64 were
+  # deleted: a lock screen and two launchers no app can navigate to, their
+  # boards now in `test/design/retired/`. Three modules gone, three fewer
+  # mounts; nothing the app can reach was among them.
+  @screens_swept 153
   # 1869 until A5: screen 41's six guarantee switches became a legend with no
   # tap, because they stored nothing and nothing read them.
-  @drawn_taps 1863
+  #
+  # 1851 with screens 29, 63 and 64 deleted — see `@screens_swept`. The
+  # measured drop is twelve, six a side in both locales: each page's one way
+  # out (29's dismiss, 63's and 64's back pills) and the gallery row that
+  # opened it.
+  @drawn_taps 1851
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

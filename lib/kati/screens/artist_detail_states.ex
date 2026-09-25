@@ -667,7 +667,7 @@ defmodule Kati.Screens.ArtistDetailStates do
   Every colour is asked for in `:dark` explicitly rather than resolved through
   `Kati.Theme.Palette.mode/0`, because the sheet around it is light and the mode
   would answer for the sheet. That one-argument form exists for exactly this —
-  a panel that is deliberately one mode, the way screen 29's lock preview is.
+  a panel that is deliberately one mode.
 
   The card lifts with an inset hairline instead of a shadow, which is screen
   28's rule: a drop shadow on a near-black ground is invisible, so depth is

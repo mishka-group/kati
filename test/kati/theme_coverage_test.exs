@@ -37,13 +37,13 @@ defmodule Kati.ThemeCoverageTest do
   end
 
   # Screens drawn dark BY DESIGN. They install their own palette and are
-  # supposed to look the same whatever the app is set to — 28 and 29 are the
-  # design's only dark drawings and the reference the rest were derived from.
+  # supposed to look the same whatever the app is set to — 28 is the design's
+  # dark reference drawing, the one the rest were derived from. (29, the lock
+  # screen, was the other until it was deleted; its board is retired.)
   @drawn_dark [
     Kati.Screens.HomeDark,
-    Kati.Screens.Lock,
-    # Screen 68 joined the pair: it is screen 66 in the dark colourway and pins
-    # dark for the same reason 28 and 29 do — the page IS the dark one, and a
+    # Screen 68 joined it: it is screen 66 in the dark colourway and pins
+    # dark for the same reason 28 does — the page IS the dark one, and a
     # dark drawing that followed the stored theme would draw its light twin
     # whenever the phone was set to light.
     Kati.Screens.AddByHandDark,

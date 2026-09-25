@@ -46,9 +46,8 @@ defmodule Kati.Widgets.Sample do
   names for its own glyphs.
 
   *Kati* itself is the one name that reads two ways in this app, and the share
-  card is prose: `Kati.Screens.MarkAndroid` keeps the mark Latin on a launcher
-  tile because there it IS the mark, while the catalogue writes کاتی in every
-  sentence that has the app as its subject. The card's note is such a sentence
+  card is prose: the mark stays Latin wherever it IS the mark, while the
+  catalogue writes کاتی in every sentence that has the app as its subject. The card's note is such a sentence
   and its title sits two lines above it, so both say کاتی — a card that spelt
   the name one way in its heading and another in its paragraph would be the
   drift the rule is there to prevent.
@@ -57,8 +56,6 @@ defmodule Kati.Widgets.Sample do
   # Six is one fact rather than two that agree today: it is what the TONIGHT
   # tile counts and what the wide widget's 20:00 row names, which is the
   # export's own caption — *four widget sizes off one data model*.
-  # `Kati.Screens.Lock` keeps `@drawn_airing` and `@drawn_nights` for the same
-  # reason on the same evening's widgets.
   #
   # Integers, and deliberately not msgids: `gettext/1` inside a module
   # attribute is evaluated while the file compiles and freezes into whichever
@@ -79,39 +76,33 @@ defmodule Kati.Widgets.Sample do
   # `pgettext/2` on all four: each is under three words, and `mix
   # gettext.merge` fuzzy-matches a msgid that short against any sentence it
   # resembles — the catalogue holds `Tomorrow — needs prep tonight` and `13
-  # What fits tonight` for `TONIGHT` alone. The context names the surface, the
-  # way `Kati.Screens.Lock`'s own captions do.
+  # What fits tonight` for `TONIGHT` alone. The context names the surface.
   #
-  # The Persian is deliberately that screen's — بعدی and امشب — so one widget
-  # met on the lock screen and on the home screen is one word rather than two
-  # translations of it. The contexts stay apart because the surfaces are: 29's
-  # caption is a lock-screen widget's name and this is a home-screen widget's,
-  # and one shared msgctxt would say the two are one object.
+  # The Persian is بعدی and امشب, the words board 29's lock-screen widgets
+  # used for the same two captions (29 is deleted; its board is retired), so
+  # the widget family keeps one vocabulary.
   def widgets do
     %{
       up_next: %{
         label: pgettext("a home-screen widget's own name", "UP NEXT"),
         # An invented series the app already names in both scripts:
-        # `Kati.Library.Sample` and `Kati.Screens.Lock` put this exact msgid on
-        # the same show, گودال بلند. The board writes it without the article —
+        # `Kati.Library.Sample` puts this exact msgid on the same show,
+        # گودال بلند. The board writes it without the article —
         # 113pt beside a poster — and the catalogue holds that spelling too.
         title: gettext("Long Hollow"),
         # `S2E6` is the app's bookmark rather than this board's string, and the
-        # app writes it ف۲ق۶ — the initials of فصل and قسمت — on the lock
-        # screen's Up next widget and on an activity row. A Latin `S2E6` here
-        # would be one bookmark spelt two ways on two widgets of one app, which
-        # is the mixture `Kati.Screens.Lock.episode_text/2` refuses.
+        # app writes it ف۲ق۶ — the initials of فصل and قسمت — on an activity
+        # row. A Latin `S2E6` here would be one bookmark spelt two ways in one
+        # app.
         #
-        # `pgettext/3` like both of those, and for the reason that function
-        # gives: `S%{s}E%{e}` is eight characters, far under the length
+        # `pgettext/3` because `S%{s}E%{e}` is eight characters, far under the length
         # `mix gettext.merge` stops fuzzy-matching at, and the catalogue already
         # holds four spellings of this same bookmark for it to match against.
         # The context is what keeps this entry the home screen's own — the
         # catalogue holds one bookmark per surface here, not one shared entry,
-        # which is how screen 29's and the activity row's already sit. What
-        # the merge does with it is harmless either way: the lock screen's
-        # msgid is byte-identical, so the fuzzy pre-fill this gets is ف%{s}ق%{e}
-        # — the right answer, wearing a flag somebody has to clear.
+        # which is how the activity row's already sits. A fuzzy pre-fill from
+        # a byte-identical msgid under another context is ف%{s}ق%{e} — the
+        # right answer, wearing a flag somebody has to clear.
         #
         # `Kati.Screens.Widgets.up_next_tile/1` asks `Kati.Locale.mono_face/1`
         # about this string rather than about the reader, so the Latin form
@@ -129,19 +120,15 @@ defmodule Kati.Widgets.Sample do
         # Latin here on purpose — `Kati.Screens.Widgets.count_tile/5` converts
         # it. See the moduledoc.
         count: Integer.to_string(@airing),
-        # The catalogue's own pair, from `Kati.Screens.Lock.tonight_widget/1`:
-        # that widget counts the same evening's episodes and says قسمت در حال
-        # پخش under the same figure, so this reuses the entry rather than
-        # opening a second one for one line. The plural form is the one the
-        # board's six selects.
+        # One plural entry, قسمت در حال پخش under the figure. The plural form
+        # is the one the board's six selects.
         line: ngettext("episode airing", "episodes airing", @airing)
       },
       streak: %{
         label: pgettext("a home-screen widget's own name", "STREAK"),
         count: Integer.to_string(@nights),
-        # Plural in the msgid rather than `ngettext/3`, which is the call
-        # `Kati.Screens.Lock.drawn_today/0` makes for a board's own figure: this
-        # line is the drawing's, its eleven is the drawing's, and nothing
+        # Plural in the msgid rather than `ngettext/3`: this line is the
+        # drawing's, its eleven is the drawing's, and nothing
         # varies it — a plural form nothing could ever select is a form to
         # translate for nothing. It becomes an `ngettext/3` the day a habit
         # completion exists to count, which is the move screen 39's moduledoc
@@ -164,15 +151,14 @@ defmodule Kati.Widgets.Sample do
         # handed, so `Kati.Screens.Widgets.wide_event/1` — which converts the
         # clock beside it — never sees this one, and it is converted here:
         # ۶ قسمت پخش می‌شود. One msgid with the count as a binding, the
-        # catalogue's own, which is what keeps this row and the lock screen's
-        # 20:00 row one sentence.
+        # catalogue's own.
         %{
           time: "20:00",
           title: gettext("%{n} episodes air", n: Kati.Locale.number(@airing)),
           color: 0xFFE8823C
         },
-        # The evening's second row is the one screen 29 draws too, and the
-        # catalogue already holds it: تماس با مامان.
+        # The evening's second row; the catalogue already holds it:
+        # تماس با مامان.
         %{time: "21:30", title: gettext("Call Mum"), color: 0xFFC4BDB3}
       ],
       shortcuts: shortcuts(),

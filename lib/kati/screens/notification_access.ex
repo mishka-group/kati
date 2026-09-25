@@ -3,6 +3,11 @@ defmodule Kati.Screens.NotificationAccess do
   Screen 151 — Notification access, a reference sheet for the one permission
   unlike every other, pushed under Auto-detect.
 
+  Reached from screen 36's *This phone* row — the Sources card's permission
+  row, which reads the same grant through `Kati.Media.Detect.access/0` —
+  so a reader who taps it is told what the permission is before being sent to
+  the system screen that grants it. Back returns to Auto-detect.
+
   ## Why this cannot be screen 40's Notifications row with an extra line
 
   Every other permission in the app is a runtime dialog: Android raises it,
@@ -104,18 +109,14 @@ defmodule Kati.Screens.NotificationAccess do
   nearest token would move that token's meaning to match one drawing, and the
   three greys are doing three different jobs on this board.
 
-  ## Two actions with nowhere to go, and one line documents why for both
+  ## Every control goes somewhere
 
   `Open system settings` (drawn twice — the state-1 button and the state-2
-  pill) and `Log by hand instead` all name a destination this build cannot
-  reach yet: nothing in `native/LEDGER.md` launches an Android settings
-  intent, the same gap #26's diagnostic states outright, and *log by hand* is
-  `Kati.Screens.LogListen`, a sheet that opens over a specific album rather
-  than from a bare permissions screen with no album in hand. Wiring either
-  would be a button that lies about what pressing it does, which
-  `Kati.Screens.NotificationsHelp` argues at length is worse than a button
-  that admits it has nowhere to go yet. Drawn, reachable, honest about
-  waiting — the same treatment that screen gives its own settings taps.
+  pill) opens the notification-listener list through
+  `Kati.Native.Links.settings/1`, the `K-44 open-settings` fence; when that
+  refuses, the refusal is drawn under the title with `Kati.UI.notice/1`
+  rather than swallowed. `Log by hand instead` pushes `Kati.Screens.LogListen`,
+  and the retired row pushes `Kati.Screens.RetiredTile`. See `handle_tap/2`.
   """
 
   use Kati.Screens.Pushed, back: "Auto-detect"
@@ -137,7 +138,7 @@ defmodule Kati.Screens.NotificationAccess do
   # The English still reads GRANTED: `SettingsList.eyebrow_muted/1` upcases,
   # which is a no-op on the Persian and the right answer for both.
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
     ~MOB"""
     <Scroll>
       <Column
@@ -149,6 +150,7 @@ defmodule Kati.Screens.NotificationAccess do
       >
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("Notification access"), gettext("THE ONE PERMISSION UNLIKE EVERY OTHER"))}
+        {Kati.UI.notice(assigns[:link_error])}
         {UI.eyebrow(gettext("Not granted — purpose, then scope, then the action"))}
         {Kati.Screens.NotificationAccess.not_granted()}
         {SettingsList.eyebrow_muted(gettext("Revoked after being granted — different wording"))}
@@ -634,11 +636,10 @@ defmodule Kati.Screens.NotificationAccess do
   offers is the same hand-logging screen `Kati.Screens.AlbumDetail` pushes for
   `Log a listen`. One way in, whichever way you arrived.
 
-  Both `Open system settings` taps answer with the screen unchanged. Reaching
-  the system notification-listener settings needs an Android intent no build
-  has yet, and `Kati.Screens.NotificationsHelp` leaves `:open_battery` in the
-  same honest state for the same reason. Drawn, reachable, and waiting on the
-  intent rather than pretending to have it.
+  Both `Open system settings` taps open the system notification-listener
+  list, and a refusal — no bridge, or a phone that will not open it — is
+  assigned to `:link_error` and drawn under the title, the way
+  `Kati.Screens.NotificationsHelp` draws its own settings taps' refusals.
   """
   @spec handle_tap(atom(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
   def handle_tap(:open_retired, socket) do

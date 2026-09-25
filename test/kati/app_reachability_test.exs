@@ -176,9 +176,6 @@ defmodule Kati.AppReachabilityTest do
     {Screens.HomeDark,
      "screen 01 in the dark colourway. The same screen, not another one — " <>
        "reached by changing the theme, not by navigating."},
-    {Screens.Lock,
-     "a drawing of the OS lock screen showing Kati's notification. Nothing in " <>
-       "an app can navigate to the lock screen."},
     # ── The 24 August batch: #25, #11, #12, #15, #17, #19, #20, #21 ──────
     #
     # Every one below is 27's reason again in one of its three forms — a
@@ -205,26 +202,10 @@ defmodule Kati.AppReachabilityTest do
        "`Kati.Screens.Series.rating_column/1` draws that column beside every " <>
        "aired episode on 04 and 34, and opens screen 144 over the one you " <>
        "tapped."},
-    # ── Drawn, built, and waiting on an entry point ──────────────────────
-    #
-    # These eight are NOT reference sheets. Each is a real destination whose
-    # own board draws the control that opens it — and that control belongs on a
-    # PARENT screen the 23 August export did not redraw. Adding it anyway would
-    # mean inventing a control on a board that does not have one, which is the
-    # one thing the design pipeline in this repo does not allow.
-    #
-    # Each entry names the edit it is waiting for, so this list stays a queue
-    # rather than becoming a graveyard.
-    {Screens.NotificationAccess,
-     "the special-access row. Reached from 150, which is itself waiting."},
-    # 63, 64 and 65 — the three drawings of Kati seen from outside the app.
-    # 29's reason, three more times: an app cannot navigate to the surface it
-    # is being launched from.
-    {Screens.MarkIos,
-     "a drawing of an iOS home screen with Kati's icon on it. Nothing in an " <>
-       "app can navigate to the launcher — 29's reason exactly, and 63's own " <>
-       "moduledoc names 29 as its precedent."},
-    {Screens.MarkAndroid, "the same drawing on an Android launcher. As above."},
+    # 65 — the drawing of Kati seen from outside the app. The lock screen (29)
+    # and the two launchers (63, 64) were the others and are deleted, their
+    # boards in `test/design/retired/`; this one stays because it is the frame
+    # the app itself puts up.
     {Screens.LaunchScreen,
      "the frame the app puts up while it boots, drawn as a picture of itself. " <>
        "Reached by launching Kati, and by the time anything could navigate it " <>

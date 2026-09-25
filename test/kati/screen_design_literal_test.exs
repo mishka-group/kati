@@ -406,8 +406,12 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.Theme.Palette.mode/0` already draws 98 dark on a dark device.
       # What it held was two card faces 98 never previewed, which is what made
       # them unreachable in light. Both are on 98 now (MOVIES-AND-TV.md #3).
-      assert length(on_disk) == 173,
-             "expected 173 drawings under test/design/screens, found #{length(on_disk)} — " <>
+      #
+      # 170 since 25 September, when boards 29, 63 and 64 moved OUT the same
+      # way: the lock screen and two launchers, which no app can navigate to.
+      # Their screens are deleted and the retired README says why.
+      assert length(on_disk) == 170,
+             "expected 170 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -1512,10 +1516,6 @@ defmodule Kati.ScreenDesignLiteralTest do
       # three context rows and its three tags — is installed here to compare
       # the frame against .scratch/design/audit/33.png.
       {"33", Kati.Screens.Rating, &Map.put(&1, :watch, Kati.Screens.Rating.drawn_watch())},
-      # 29 answers four empty widgets over an empty store now, so board 29's own
-      # four are installed here — the clock included, since the live one reads
-      # the device and board 29 was captured on a Sunday in August.
-      {"29", Kati.Screens.Lock, &Map.put(&1, :widgets, Kati.Screens.Lock.drawn_widgets())},
       # 37 and 141 answer their own empty state over a push naming no file now,
       # so each board's own job is installed here to compare the frame.
       {"37", Kati.Screens.Import, &Map.put(&1, :job, Kati.Import.Sample.job(:trakt))},
@@ -1732,8 +1732,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # its state is 01's with one entry fewer: board 28 has no Watching row and
       # no Sections band. `:moment` is deliberately NOT replaced — the date line
       # and the greeting are pinned to the drawing's evening in `mount/3`
-      # itself, because screen 29 draws the lock screen of that same evening and
-      # the two have to agree; `Kati.Screens.HomeDark`'s moduledoc argues it and
+      # itself, because board 28 is a picture of that evening and the pin is
+      # what keeps it one; `Kati.Screens.HomeDark`'s moduledoc argues it and
       # `Kati.ScreenDarkWidgetsTest` holds it. `last check 18:02` used to ride on
       # that pin and now rides on `drawn_hero/0`, where the fact it stands for —
       # nothing records when the watcher last swept — can be stated.

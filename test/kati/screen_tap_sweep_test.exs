@@ -326,17 +326,12 @@ defmodule Kati.ScreenTapSweepTest do
     # segment drawn without a tap at all would read as a broken control rather
     # than a settled one.
     {Kati.Screens.AutoDetect, :tv},
-    # Screen 36's permission row and its threshold, on a host with no bridge.
-    # MOVIES-AND-TV.md #100 wired both: *This phone* opens the system page that
-    # grants notification access — there is no runtime dialog for a
-    # notification listener, so a door is the only honest shape — and *Tick at*
-    # steps the threshold `Kati.Media.Detect.threshold/0` reads.
-    #
-    # Neither can change anything here. `Kati.Native.Links.settings/1` answers
-    # `{:error, :no_bridge}` off a device, and `Mob.State` is not running in
-    # this sweep so the threshold write is rescued into a no-op. Both are
-    # pressed over a real preference store in `Kati.MediaDetectTest`.
-    {Kati.Screens.AutoDetect, :open_media_access},
+    # Screen 36's threshold, on a host with no bridge. MOVIES-AND-TV.md #100
+    # wired it: *Tick at* steps the threshold `Kati.Media.Detect.threshold/0`
+    # reads. It cannot change anything here — `Mob.State` is not running in
+    # this sweep, so the write is rescued into a no-op — and it is pressed over
+    # a real preference store in `Kati.MediaDetectTest`. (*This phone*, the
+    # permission row beside it, pushes screen 151 and so is not inert.)
     {Kati.Screens.AutoDetect, :cycle_threshold},
     # Screen 13's own selected window, for screen 36's reason one line up. The
     # board is drawn at `45m` and this sweep renders it, so pressing `45m`
@@ -687,18 +682,6 @@ defmodule Kati.ScreenTapSweepTest do
     # `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` carries Play-policy risk. The row
     # is drawn, reachable and honest about waiting on that fence — the same
     # state screen 83's six link rows are in.
-
-    # ── Screen 151, the notification-listener sheet. Both `Open system
-    # settings` rows want the Android notification-listener settings intent,
-    # which no fence in `native/LEDGER.md` launches — the same missing fence
-    # `:open_battery` above is waiting on, one permission over. `:log_by_hand`
-    # is NOT here: it pushes `Kati.Screens.LogListen`, because this sheet gates
-    # auto-detecting a listen and hand-logging one is a screen Kati already has.
-
-    # The revoked band's pill, renamed for the band it belongs to (#97). Both
-    # pills say *Open system settings* and both did it under one tag, so the
-    # two states of this board were one id. Neither opens anything: Mob has no
-    # route out to the system settings app.
 
     # ── Screen 136, the loudness prompt's `Continue`. Wired, and the change
     # lives outside the socket twice over: `Mob.Permissions.request/2` raises

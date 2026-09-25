@@ -36,6 +36,8 @@ defmodule Kati.Native.Links do
   open `intent:` and `file:` with it.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   alias Kati.Native.Bridge
 
   @type reason ::
@@ -106,6 +108,11 @@ defmodule Kati.Native.Links do
   the emulator-without-a-browser case both, and it says the honest thing
   rather than naming a bridge nobody outside this repo has heard of.
 
+  Each sentence is a msgid, because each is drawn under a screen title in the
+  reader's own language — screens 83, 151 and the notification diagnostic all
+  put it on the page — and an English refusal on a Persian page is a second
+  failure on top of the first.
+
       iex> Kati.Native.Links.message(:no_handler)
       "Nothing on this phone can open that."
 
@@ -113,13 +120,13 @@ defmodule Kati.Native.Links do
       "That is not a web address."
   """
   @spec message(reason()) :: String.t()
-  def message(:no_handler), do: "Nothing on this phone can open that."
-  def message(:unknown_destination), do: "Kati does not know that settings screen."
-  def message(:unsupported_scheme), do: "That is not a web address."
-  def message(:unparseable), do: "That is not a web address."
-  def message(:no_bridge), do: "That does not open here yet."
-  def message(:no_context), do: "That does not open here yet."
-  def message(_other), do: "That did not open. Nothing else changed."
+  def message(:no_handler), do: gettext("Nothing on this phone can open that.")
+  def message(:unknown_destination), do: gettext("Kati does not know that settings screen.")
+  def message(:unsupported_scheme), do: gettext("That is not a web address.")
+  def message(:unparseable), do: gettext("That is not a web address.")
+  def message(:no_bridge), do: gettext("That does not open here yet.")
+  def message(:no_context), do: gettext("That does not open here yet.")
+  def message(_other), do: gettext("That did not open. Nothing else changed.")
 
   @doc """
   Open one of the phone's own settings screens.
