@@ -174,6 +174,7 @@ defmodule Kati.Media.Artwork do
       with :ok <- File.mkdir_p(dir()),
            {:ok, body} <- get(url(path, size)),
            :ok <- File.write(file, body) do
+        arrived(size)
         {:ok, file}
       else
         other ->
@@ -182,6 +183,13 @@ defmodule Kati.Media.Artwork do
       end
     end
   end
+
+  # A poster that has just landed may be the one the home-screen widget is
+  # showing without a picture: the widget only ever draws a file that is on
+  # the device (`Kati.Widgets.Snapshot`), and a title is tracked BEFORE its
+  # poster finishes downloading, so the snapshot written for the add has none.
+  defp arrived(:poster), do: Kati.Widgets.Notifier.poke()
+  defp arrived(_wide), do: :ok
 
   # The same two preparations `Kati.Media.Tmdb.get/3` makes, and for the same
   # reasons: the pure-BEAM TLS stack needs its CA bundle wired up, and Android's

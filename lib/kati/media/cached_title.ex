@@ -31,7 +31,10 @@ defmodule Kati.Media.CachedTitle do
   everywhere for the same reason: a zero denominator is not "0% read", it is a
   division by zero wearing a progress ring.
   """
-  use Ash.Resource, domain: Kati.Media, data_layer: AshSqlite.DataLayer
+  use Ash.Resource,
+    domain: Kati.Media,
+    data_layer: AshSqlite.DataLayer,
+    simple_notifiers: [Kati.Widgets.Notifier]
 
   sqlite do
     table "cached_titles"

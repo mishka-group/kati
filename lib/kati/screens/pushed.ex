@@ -89,6 +89,12 @@ defmodule Kati.Screens.Pushed do
         Kati.Screens.Root.rescue_kati(__MODULE__, topic, payload, socket)
       end
 
+      # A notification or widget tap that brought a running Kati to the front
+      # while this screen was showing — see `Kati.Widgets.Launch`.
+      def handle_info({:notification, notification}, socket) when is_map(notification) do
+        {:noreply, Kati.Widgets.Launch.open(socket, notification)}
+      end
+
       def handle_info(_message, socket), do: {:noreply, socket}
 
       defoverridable load: 1, handle_info: 2

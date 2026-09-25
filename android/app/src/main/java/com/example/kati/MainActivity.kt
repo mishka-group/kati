@@ -386,6 +386,27 @@ class MainActivity : ComponentActivity() {
             Log.i(TAG, "onCreate — BEAM already running, re-attached only")
         }
         // KATI-END(K-38 one-beam-per-process)
+        // KATI-BEGIN(K-51 widget-tap-relaunch) mob_new=0.4.33
+        // A tap that starts a NEW Activity in a process whose BEAM is already
+        // up — Android destroyed the Activity and kept the process. The stock
+        // line above stored the payload for `Mob.Router`'s init, which has
+        // already run and will not run again, so the tap went nowhere. When a
+        // relay is registered (`notifyPid` is only non-zero once the BEAM's
+        // `Kati.Native.TapRelay` has started, which is never true on a cold
+        // start) take the payload back and deliver it the way `onNewIntent`
+        // does. Not for a restore from saved state or from Recents: that
+        // intent is the ORIGINAL one, and replaying an old tap would open a
+        // title nobody just asked for.
+        val relay = io.mob.plugin.MobNotifyHub.notifyPid
+        val fromHistory =
+            (intent?.flags ?: 0) and android.content.Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
+        if (relay != 0L && savedInstanceState == null && !fromHistory) {
+            intent?.extras?.getString("mob_notification_json")?.let { json ->
+                MobBridge.setLaunchNotification(null)
+                MobBridge.nativeDeliverNotification(relay, json)
+            }
+        }
+        // KATI-END(K-51 widget-tap-relaunch)
     }
 
     private fun extractPythonAssetsIfNeeded() {

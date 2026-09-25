@@ -206,6 +206,39 @@ static ERL_NIF_TERM kb_drain_sessions(ErlNifEnv *env, int argc, const ERL_NIF_TE
     return kati_bridge_call(env, "katiDrainSessions", "()Ljava/lang/String;", NULL, NULL);
 }
 
+/* ── K-51: the home-screen widget ────────────────────────────────────────── */
+
+/*
+ * Redraw every placed "continue watching" widget from the snapshot the BEAM
+ * has just written. Answers at once: the redraw itself is a coroutine on the
+ * Kotlin side, because Glance's update API is suspending.
+ */
+static ERL_NIF_TERM kb_widget_redraw(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kati_bridge_call(env, "katiWidgetRedraw", "()Ljava/lang/String;", NULL, NULL);
+}
+
+/*
+ * Make the CALLING process the one a tap on a running Kati is delivered to —
+ * `MobNotifyHub.notifyPid`, which the dropped mob_notify plugin used to set.
+ * The pid travels the way `kati_bridge_call_pid` already sends it for the
+ * file transport, and `mob_deliver_notification` reads it back the same way.
+ * The string is only a name for the log line.
+ */
+static ERL_NIF_TERM kb_route_taps(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *who;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    who = kati_take_cstr(env, argv[0]);
+    if (who == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call_pid(env, "katiRouteTaps", "(JLjava/lang/String;)V", who);
+    kati_free_cstr(who);
+    return reply;
+}
+
 /* ── #58: the periodic refresh worker ────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -313,6 +346,36 @@ static ERL_NIF_TERM kb_capture_screen(ErlNifEnv *env, int argc, const ERL_NIF_TE
     return kb_unavailable(env);
 }
 
+static ERL_NIF_TERM kb_now_playing(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
+static ERL_NIF_TERM kb_media_access(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
+static ERL_NIF_TERM kb_drain_sessions(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
+static ERL_NIF_TERM kb_widget_redraw(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
+static ERL_NIF_TERM kb_route_taps(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     (void)argc;
     (void)argv;
@@ -343,6 +406,8 @@ static ErlNifFunc nif_funcs[] = {
     {"now_playing", 0, kb_now_playing, 0},
     {"media_access", 0, kb_media_access, 0},
     {"drain_sessions", 0, kb_drain_sessions, 0},
+    {"widget_redraw", 0, kb_widget_redraw, 0},
+    {"route_taps", 1, kb_route_taps, 0},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

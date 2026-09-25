@@ -254,6 +254,13 @@ defmodule Kati.Screens.Root do
         Kati.Screens.Root.rescue_kati(__MODULE__, topic, payload, socket)
       end
 
+      # A notification or home-screen widget tap, delivered by `Mob.Router` —
+      # see `Kati.Widgets.Launch`. A cold launch lands on a root, so this is
+      # the clause the widget's tap usually reaches.
+      def handle_info({:notification, notification}, socket) when is_map(notification) do
+        {:noreply, Kati.Widgets.Launch.open(socket, notification)}
+      end
+
       def handle_info(_message, socket), do: {:noreply, socket}
 
       # No default `handle_tap/2` and no default `handle_kati/3` on purpose.
