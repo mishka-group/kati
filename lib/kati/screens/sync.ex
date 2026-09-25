@@ -2,16 +2,28 @@ defmodule Kati.Screens.Sync do
   @moduledoc """
   Sync — pushed under Settings. The screen that makes `Kati.Sync` visible.
 
-  ## There is no drawing for this screen, and this is what it follows instead
+  ## The drawing arrived after the page, and is not compared against it
 
   Every other file in `lib/kati/screens/` is built to a numbered frame under
-  `test/design/screens/`. This one is not. Issue #25 asks for a drawing of
-  the sync surface and it does not exist, and the two frames the sync
-  moduledocs point at are not pictures of this page:
-  `test/design/screens/37.html` is the CSV **import** wizard — its
+  `test/design/screens/`. This one was built with none — issue #25 asked for
+  one — and the two frames the sync moduledocs point at are not pictures of
+  this page: `test/design/screens/37.html` is the CSV **import** wizard — its
   *Keep mine / Take file / Keep both* strip is what `Kati.Sync.resolve/3`'s doc
   borrows a vocabulary from — and `27.html` is the states reference sheet whose
   error card carries the **Retry** `Kati.Sync.Outbox.retry/1` names.
+
+  Board 270 (`test/design/incoming/270.html`) has since drawn this page, and
+  mostly blesses what was already here: four account pills where 32 draws two,
+  the derived account glyph, Retry only on a push failure, the twelve-row cap,
+  no Send now. It overruled one thing, and that is taken — the three answers
+  to a conflict carry an action pill rather than a chevron, because they
+  resolve in place and a chevron says a row leads somewhere. It stays in
+  `incoming/` and this screen stays in `Kati.ScreenDesignLiteralTest`'s
+  `@undesigned`, which is the right place for it: every value 270 draws —
+  *iCloud*, *work@studio.co*, *fastmail*, *3 CALENDARS · LAST SENT 6 MIN AGO*,
+  the 4 / 1 / 1 tallies, *Design review*, *Plumber* — is a sample of a store
+  this page reads, and a literal comparison could only pass by drawing them.
+  `Kati.SyncRealTest` pins the opposite: none of them is ever on screen.
 
   So the look is borrowed rather than invented, and screen 24
   (`Kati.Screens.Settings`) is what it is borrowed from: the same 21pt gutter,
@@ -47,6 +59,33 @@ defmodule Kati.Screens.Sync do
       three answers `Kati.Sync.resolve/3` takes.
     * **Kept, not sent** — the preserved losing edits, and the statement that
       re-applying one is another three-way merge rather than a clobber.
+
+  ## What a phone can actually show today
+
+  Every figure on this page is a row read back from the store — no `Sample`
+  module stands behind it and nothing falls back to one — so what a device
+  shows is exactly what the device holds, and today that is very little:
+
+    * **No account, ever.** Nothing in `lib/` creates a
+      `Kati.Calendars.Account` except `Kati.Seeds`, which is not wired into
+      boot. There is no sign-in screen yet, so the Accounts group is always its
+      empty card, and that card says Kati cannot sign in to one rather than
+      pointing at a door that does not exist.
+    * **Calendars are the phone's own.** `Kati.Calendars.DeviceImport` writes
+      them as `kind: :provider` with no `account_id` and
+      `writeback_policy: :none`. With no account to name, such a row is
+      attributed to *the phone's calendars* — `provider_label(:android_provider)`,
+      which is where it came from — rather than to *this device*, which is the
+      word for `:local` calendars Kati itself owns.
+    * **Nothing sends.** No caller of `Kati.Sync.Engine.sync/3` exists in the
+      app, so there is no background syncer yet, and the only caller of
+      `Kati.Sync.edit/3` is this page's own Re-apply — so nothing is ever
+      queued, conflicted or set aside in the first place. The outbox, the
+      questions and the kept edits draw their empty cards, and the tallies read
+      0 / 0 / 0 because they count those same rows.
+
+  The page does not pretend otherwise and does not need to: the day an account
+  or a syncer lands, the rows it writes are the rows this page draws.
 
   ## Ownership is not symmetric, and the copy says so
 
@@ -114,7 +153,9 @@ defmodule Kati.Screens.Sync do
     * **No Send now.** Draining is `Kati.Sync.Engine.drain/3` and it takes an
       adapter. `Kati.SyncBoundaryTest` asserts that `lib/kati/sync/engine.ex`
       is the only file in the app that speaks to a transport, and a screen
-      choosing one would be the second. Sending is the background syncer's job.
+      choosing one would be the second. Sending belongs to a background
+      syncer, and none exists yet — see *What a phone can actually show
+      today*.
     * **No Dismiss on a kept edit.** `Kati.Sync.RejectedChange.dismissed_at`
       has no writer anywhere in `lib/`, and inventing one on this side would be
       a discard button for the one table whose entire purpose is that nothing
@@ -309,8 +350,7 @@ defmodule Kati.Screens.Sync do
     %{
       id: calendar.id,
       title: calendar.display_name || gettext("Untitled calendar"),
-      account:
-        if(account, do: Kati.Screens.Sync.account_label(account), else: gettext("This device")),
+      account: Kati.Screens.Sync.owner_label(account, calendar.kind),
       kind: calendar.kind,
       read_only: calendar.read_only,
       writeback_policy: calendar.writeback_policy,
@@ -321,6 +361,21 @@ defmodule Kati.Screens.Sync do
       last_sync_at: calendar.last_sync_at
     }
   end
+
+  @doc """
+  Whose a calendar is, as the row's second line names it.
+
+  The account's own name when the row has one. Without one the calendar's
+  `kind` decides: a `:provider` row with no account is what
+  `Kati.Calendars.DeviceImport` writes for every calendar Android hands over,
+  so it is *the phone's calendars*; only a `:local` row is *this device*, the
+  calendar Kati itself keeps. Calling a mirrored Google calendar "this device"
+  would claim Kati owns what it only copies.
+  """
+  @spec owner_label(Account.t() | nil, atom()) :: String.t()
+  def owner_label(%Account{} = account, _kind), do: Kati.Screens.Sync.account_label(account)
+  def owner_label(nil, :provider), do: Kati.Screens.Sync.provider_label(:android_provider)
+  def owner_label(nil, _kind), do: Kati.Screens.Sync.provider_label(:local)
 
   @doc "`Kati.Sync.status/1`, with the empty answer when the store is unreachable."
   @spec status(String.t()) :: map()
@@ -1324,12 +1379,25 @@ defmodule Kati.Screens.Sync do
     """
   end
 
-  @doc false
+  @doc """
+  The Accounts group.
+
+  The empty card used to say *Connect one in Calendars and it will appear
+  here*, and there is no such door: screen 32's account rows and its add row
+  are `Kati.Settings.CalendarsSample`'s and answer no tap, and nothing in
+  `lib/` but the unwired `Kati.Seeds` creates an account. So the card says
+  what is true instead — Kati cannot sign in to one yet, and the phone's own
+  calendars need none.
+  """
+  @spec accounts([map()]) :: term()
   def accounts([]) do
     Kati.Screens.Sync.empty_card(
       "person",
       gettext("No account is connected"),
-      gettext("Kati is complete with none. Connect one in Calendars and it will appear here.")
+      gettext(
+        "Kati cannot sign in to a calendar account yet. The phone's own calendars are read " <>
+          "without one."
+      )
     )
   end
 
@@ -1618,12 +1686,21 @@ defmodule Kati.Screens.Sync do
     ]
   end
 
-  @doc false
+  @doc """
+  One answer: what it is called, what it does, and a **Choose** pill.
+
+  A pill and not a chevron, which is board 270's one correction to this page.
+  An answer resolves the question where it stands — the page re-reads and the
+  card goes — and a chevron is the app's sign that a row leads to another
+  page. Three of them per conflict promised three pages that do not exist.
+  The pill carries no tag of its own; the row does, as Retry's row does.
+  """
+  @spec answer_row(String.t(), String.t(), String.t(), {pid(), atom()}, boolean()) :: term()
   def answer_row(icon, title, sub, tap, rule?) do
     SettingsList.row(
       SettingsList.icon_tile(icon),
       Kati.Screens.Sync.body(title, sub),
-      SettingsList.chevron(),
+      SettingsList.action_pill(pgettext("answer to a sync question", "Choose")),
       padding: 12,
       rule: rule?,
       on_tap: tap
