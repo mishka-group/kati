@@ -49,10 +49,9 @@ defmodule Kati.Import.Sample do
       empty cell has no value, so the words under `show_notes` are Kati
       counting rows rather than quoting one, and they fold.
     * `Blue Hour` is in the fixture twice and folds once. The conflict card
-      names a title already on the reader's shelf, and
-      `Kati.Backup.SampleRestore.conflict/0` — which draws the same film for
-      screen 129 and is meant to stay character for character with this one —
-      has written it «ساعت آبی» since that board folded. The mapping row's
+      names a title already on the reader's shelf, and screen 129's copy of
+      this card — retired on 25 September, because the restore engine has no
+      per-row conflict to show — wrote it «ساعت آبی» when that board folded. The mapping row's
       `"Blue Hour"` is the first cell of the `title` column, quote marks and
       all, and stays exactly as the file typed it.
 
@@ -256,11 +255,9 @@ defmodule Kati.Import.Sample do
   you have not read is how an import quietly destroys a rating.
 
   Every string here is already in the catalogue, and all four come from the one
-  board this card was copied onto: `Kati.Backup.SampleRestore.conflict/0` is
-  screen 129 drawing screen 37's conflict resolver verbatim, down to the film.
-  Two copies of the same card that fold to two different Persians would be the
-  drift that module's own doc says the copy exists to avoid, so this reuses its
-  msgids rather than writing four more.
+  board this card was copied onto: screen 129 drew screen 37's conflict
+  resolver verbatim, down to the film, until it stopped drawing a conflict the
+  restore engine cannot produce. The msgids stay shared rather than four more.
 
   The `★` survives into Persian on purpose. `kati_fa_400.ttf` has no U+2605 —
   which is why the two mapping notes below say their conversion in words — but

@@ -110,17 +110,20 @@ defmodule Kati.Screens.BackupDark do
   `Kati.Theme.shadow_card_soft/0` for the hairline border pair, geometry
   otherwise untouched.
 
-  ## The last-backup figures are sample data, named as such
+  ## The last-backup figures are this phone's, read off 128's ledger
 
-  `14 Aug`, `214 MB` and `2 WEEKS AGO` are not read from
-  `Kati.Screens.Settings.last_backup/0` — that ledger stores a bare
-  `DateTime`, with no byte count and no relative-time phrasing, and growing it
-  to carry both is a bigger change than a dark-colourway screen should make on
-  its own. They are the same figures `Kati.Settings.Sample.data/0` already
-  gives the "Back up everything" row on screen 24, restated here because both
-  boards draw them character for character. `last_backup_date/0` and
-  `last_backup_meta/0` name this plainly rather than pretending the card reads
-  a live ledger it does not.
+  The board draws `14 Aug`, `2 WEEKS AGO` and `214 MB`. Until 25 September
+  this card drew them on every phone, typed. It now reads exactly what
+  `Kati.Screens.Backup.status_card/0` reads: the date from
+  `Kati.Screens.Settings.last_backup/0`, and the age and size from
+  `Kati.Screens.Backup.caption/1` — the byte ledger `record_bytes/1` stamps on
+  a completed Save As. A phone that has never saved one reads `Never` over
+  *Still only on this phone*, with the `cloud_off` glyph in the gold 128 gives
+  that state, and no size is printed that nothing measured.
+
+  `handle_info/2` stamps the byte ledger as well as the date on a completed
+  save, the pair `Kati.Screens.Backup.apply_event/2` stamps, so a backup made
+  from this screen shows its size on 128, and one made from 128 shows here.
 
   ## Under `:fa` this is one screen and not two
 
@@ -133,12 +136,9 @@ defmodule Kati.Screens.BackupDark do
       `@formats` held their copy in module attributes, and a `gettext/1` inside
       one is evaluated at COMPILE time — the list would freeze in whichever
       locale the compiler was in. See the comment above `travels/0`.
-    * **`14 Aug` is a `Date` and not a string.** `Kati.Locale.date/2` answers
-      ۲۳ مرداد under `:fa`, which is a different CALENDAR rather than the same
-      date translated. The `Date` itself is `Kati.Settings.Sample.data/0`'s own
-      `~D[2026-08-14]`, so the card and the row it pictures cannot drift; the
-      age and the byte count take the same msgids
-      `Kati.Screens.BackupStates.recent/0` takes, for the same reason.
+    * **The date is a `Date` and not a string.** `Kati.Screens.Backup.date_text/1`
+      asks `Kati.Locale.date/2`, which answers ۲۳ مرداد under `:fa` — a
+      different CALENDAR rather than the same date translated.
     * **Every mono line asks `Kati.Locale.mono_face/0`.** `kati_mono.ttf`
       carries no Persian glyph and none of U+06F0–U+06F9, so a Persian line
       left in `mono` renders in Android's substitute face beside cards that do
@@ -346,48 +346,40 @@ defmodule Kati.Screens.BackupDark do
   # ── The summary card ────────────────────────────────────────────────────
 
   @doc """
-  The day a backup was last taken — sample data; see the moduledoc.
-
-  A `Date` rather than the string `14 Aug`, and it is the same
-  `~D[2026-08-14]` `Kati.Settings.Sample.data/0` gives the *Back up everything*
-  row this card is a picture of, so the two cannot drift apart.
-  `Kati.Locale.date/2` answers `14 Aug` in Latin and ۲۳ مرداد in Shamsi — a
-  different CALENDAR rather than the same date translated, which is the half of
-  mishka-group/kati#103 gettext cannot do. `Kati.Screens.BackupStates.recent/0`
-  draws the same figure the same way.
+  The day the last backup was saved, or `Never` — the value 128's status card
+  draws, from the same ledger. See the moduledoc.
   """
-  @spec last_backup_date() :: String.t()
-  def last_backup_date, do: Kati.Locale.date(~D[2026-08-14], :short)
-
-  @doc "The figures a backup would carry — sample data; see the moduledoc."
-  @spec last_backup_meta() :: String.t()
-  def last_backup_meta do
-    # ONE MSGID RATHER THAN TWO JOINED BY A LITERAL `·`: the separator sits
-    # between two translated runs and a Persian reader meets the whole line as
-    # one phrase. Both figures are MEASUREMENTS and go through
-    # `Kati.Locale.number/1`, and the age reuses the catalogue's existing
-    # weeks-ago plural so this card and screen 07's *More numbers* say it with
-    # the same words. Byte for byte the msgids `Kati.Screens.BackupStates.recent/0`
-    # already uses — two pictures of one fixture should not be two entries.
-    UI.eyebrow_label(
-      gettext("%{ago} · %{n} MB",
-        ago: ngettext("%{n} week ago", "%{n} weeks ago", 2, n: Kati.Locale.number(2)),
-        n: Kati.Locale.number(214)
-      )
-    )
-  end
+  @spec last_backup_date(DateTime.t() | nil) :: String.t()
+  def last_backup_date(nil), do: pgettext("last backup", "Never")
+  def last_backup_date(%DateTime{} = at), do: Kati.Screens.Backup.date_text(at)
 
   @doc """
-  The `Last backup` card: label, date, meta, and the done glyph — lifted with
+  The line under the date: how long ago and how big, or the warning that the
+  data is still only on this phone. 128's own caption, not a second one.
+  """
+  @spec last_backup_meta(DateTime.t() | nil) :: String.t()
+  def last_backup_meta(nil), do: gettext("STILL ONLY ON THIS PHONE")
+  def last_backup_meta(%DateTime{} = at), do: Kati.Screens.Backup.caption(at)
+
+  @doc false
+  def last_backup_glyph(nil), do: UI.symbol("cloud_off", size: 22, color: Palette.gold_icon())
+  def last_backup_glyph(_at), do: UI.symbol("cloud_done", size: 22, color: Palette.green())
+
+  @doc """
+  The `Last backup` card: label, date, meta, and the glyph for which of the
+  two the ledger answered — lifted with
   the hairline pair rather than `Kati.Theme.shadow_card/0`, radius and padding
   the board's own (22, 17) rather than any shared card recipe's.
   """
   @spec summary_card() :: map()
   def summary_card do
+    at = Settings.last_backup()
+
     assigns = %{
       label: UI.eyebrow_label(gettext("Last backup")),
-      date: Kati.Screens.BackupDark.last_backup_date(),
-      meta: Kati.Screens.BackupDark.last_backup_meta()
+      date: Kati.Screens.BackupDark.last_backup_date(at),
+      meta: Kati.Screens.BackupDark.last_backup_meta(at),
+      glyph: Kati.Screens.BackupDark.last_backup_glyph(at)
     }
 
     # All three lines ask `Kati.Locale.mono_face/0` rather than naming `mono`.
@@ -439,7 +431,7 @@ defmodule Kati.Screens.BackupDark do
             />
           </Column>
           <Spacer size={12} />
-          {UI.symbol("cloud_done", size: 22, color: Palette.green())}
+          {@glyph}
         </Row>
       </Column>
       <Spacer size={24} />
@@ -909,8 +901,9 @@ defmodule Kati.Screens.BackupDark do
   @impl true
   def handle_info(message, socket) do
     case Files.decode(message) do
-      {:saved, _item} ->
+      {:saved, item} ->
         :ok = Settings.record_backup()
+        :ok = Kati.Screens.Backup.record_bytes(item[:bytes])
         {:noreply, socket}
 
       :ignore ->

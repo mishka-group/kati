@@ -95,11 +95,23 @@ defmodule Kati.Backup.Restore do
     Error.error(:bad_manifest, "#{inspect(mode)} is not a restore mode.", %{modes: @modes})
   end
 
+  @doc """
+  Every backed-up table that holds anything on this device, with its count.
+
+  The exact question `:into_empty` asks before it refuses, made public so a
+  screen that has to say *this device already has data* — or *Replace deletes
+  these* — reads the same answer the engine will act on rather than a count of
+  its own. An empty device answers `[]`.
+  """
+  @spec occupied() :: [{String.t(), pos_integer()}]
+  def occupied do
+    Catalog.entries()
+    |> Enum.map(fn entry -> {entry.table, Ash.count!(entry.resource)} end)
+    |> Enum.reject(fn {_table, count} -> count == 0 end)
+  end
+
   defp check_precondition(:into_empty, _rows) do
-    occupied =
-      Catalog.entries()
-      |> Enum.map(fn entry -> {entry.table, Ash.count!(entry.resource)} end)
-      |> Enum.reject(fn {_table, count} -> count == 0 end)
+    occupied = occupied()
 
     if occupied == [] do
       :ok

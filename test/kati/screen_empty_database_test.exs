@@ -546,13 +546,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # an entry the moment its drawing arrives, and this is that move.
     {"128", Kati.Screens.Backup},
     {"131", Kati.Screens.BackupDark},
+    # 133 joined on 25 September, when its status card stopped typing the
+    # board's backup and started reading 128's ledger through
+    # `Kati.Screens.Backup`, which reaches the store through its count.
+    {"133", Kati.Screens.BackupLarge},
     {"139", Kati.Screens.HomeEmpty},
     {"144", Kati.Screens.RateEpisode},
     {"149", Kati.Screens.DropSheet},
     # 129 and 135 joined on 24 August, when #25's restore half moved off
-    # `Kati.Screens.Backup` and onto the screen its drawing puts it on. They
-    # reach the store through `Kati.Backup.restore_file/2` — a tap, not a
-    # mount — and 135 inherits the classification through its one reuse of
+    # `Kati.Screens.Backup` and onto the screen its drawing puts it on. 129
+    # reads the store at mount since 25 September — `Kati.Backup.occupied/0`,
+    # for its merge note and its Replace card — and restores on a tap; 135
+    # inherits the classification through its one reuse of
     # `Kati.Screens.Restore.qr_pattern/0`. Both are here anyway: this list is
     # derived from the compiled import table precisely so that a screen cannot
     # opt itself out by only touching the store on a tap.
@@ -1558,10 +1563,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     glyph is a `Text` node like any other, so a page with no tile ticked
   #     renders exactly one string fewer than the board it is held to. 163 is
   #     not here: its own board holds enough copy to clear the floor without it.
-  @floor_allowance %{"144" => 5, "149" => 3, "190" => 2, "166" => 1}
+  #
+  #   * 129 lost its conflict card — thirteen of the board's literals, the
+  #     film, its two ratings, three answer pills, the progress line, the
+  #     eyebrow and the dry run's labels — because the restore engine has no
+  #     per-row conflict and no dry run to fill them. `DesignLiterals.retired_lines/0`
+  #     carries the argument. The empty page draws its own sentences in their
+  #     place, which is why the allowance is seven and not thirteen.
+  @floor_allowance %{"144" => 5, "149" => 3, "190" => 2, "166" => 1, "129" => 7}
 
   @moment_symbols [
     {"128", "cloud_done"},
+    # 128's status card in the dark colourway and at 235%, reading the same
+    # ledger — `Kati.ScreenDesignLiteralTest`'s `@unreachable_symbols` carries
+    # the argument, and `Kati.BackupRestoreRealTest` the assertion.
+    {"131", "cloud_done"},
+    {"133", "cloud_done"},
+    # Board 129's conflict card, retired with its words — see
+    # `DesignLiterals.retired_lines/0`.
+    {"129", "star"},
     {"144", "expand_more"},
     {"144", "visibility_off"},
     {"149", "undo"},
@@ -2325,11 +2345,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # on, which is the shape 120 already uses: the screen draws another
       # screen's `drawn_*` value, so what it depends on is that the borrowed
       # pair still agrees on an empty database, and that is what this asks.
-      # 129 and 135 write rather than read: what they draw at rest is
+      # 135 writes rather than reads: what it draws at rest is
       # `Kati.Backup.SampleRestore`'s fixture, and the database only enters on
-      # the tap that restores. Their gate is 128's for the reason 106's is
+      # the tap that restores. Its gate is 128's for the reason 106's is
       # 104's — a screen that restored into a Kati whose service list disagreed
       # with the page that sent it there would be the defect worth catching.
+      # 129 left this borrow on 25 September for a gate of its own above, and
+      # 133 took it when it began reading 128's ledger.
       # 26 writes rather than reads: what it draws is its own section tiles, and
       # the database is only touched when someone answers the calendar dialog.
       # Gated on 128's reader for the reason 106 is gated on 104's — a first run
@@ -2548,6 +2570,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 40's *Storage used* counts the shelf. It said 1,206 titles on every
       # phone (A4); over an empty store it counts none.
       {"40", Kati.Screens.Account, &Kati.Account.Sample.titles_kept/0, 0, fn -> 1206 end},
+      # 129's merge note and Replace card read how much is on the device. They
+      # said `418 titles` on every phone (A1); over an empty store they count
+      # none, and say there is nothing to merge with or delete.
+      {"129", Kati.Screens.Restore, &Kati.Screens.Restore.records_on_device/0, 0, fn -> 418 end},
       {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
       {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,
@@ -2790,7 +2816,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"131", Kati.Screens.BackupDark,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"129", Kati.Screens.Restore,
+      {"133", Kati.Screens.BackupLarge,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"135", Kati.Screens.RestoreFirstRun,
@@ -3135,6 +3161,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # error*, and the default state of every user. Same pair 24 and 62 carry.
       {"128", "14 aug", ~r/^(\d{1,2} \p{L}{3}|never)$/u},
       {"128", "2 weeks ago · 214 mb", ~r/^(.*ago · \d+ mb|still only on this phone)$/u},
+      # 131 and 133 read 128's ledger since 25 September — the same two
+      # branches, and 133 breaks the caption onto lines of its own and adds a
+      # status line that says what the ledger knows rather than *Up to date*.
+      {"131", "14 aug", ~r/^(\d{1,2} \p{L}{3}|never)$/u},
+      {"131", "2 weeks ago · 214 mb", ~r/^(.*ago · \d+ mb|still only on this phone)$/u},
+      {"133", "14 aug", ~r/^(\d{1,2} \p{L}{3}|never)$/u},
+      {"133", "2 weeks ago", ~r/^(.*ago|still only on this phone)$/u},
+      {"133", "214 mb", ~r/^(\d+ [km]b|still only on this phone)$/u},
+      {"133", "up to date", ~r/^(saved to a file you chose|not backed up yet)$/u},
+      # 129's merge note says the device has data only when
+      # `Kati.Backup.occupied/0` finds some; an empty store takes the other
+      # branch, which is the one this file always renders.
+      {"129", "this device already has data, so the file is",
+       ~r/^(this device already has data, so the file is merged|nothing is stored on this device yet, so the file goes in as it is)/u},
       # 94's field placeholder counts `Kati.Services.countries/0` rather than
       # JustWatch's 190. Board 94 froze the wrong number over a list of seven,
       # and the field was a picture that filtered nothing —

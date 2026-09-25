@@ -227,6 +227,13 @@ defmodule Kati.Backup do
     end
   end
 
+  @doc """
+  What is on this device now, per backed-up table — the tables `:into_empty`
+  would refuse over. See `Kati.Backup.Restore.occupied/0`.
+  """
+  @spec occupied() :: [{String.t(), pos_integer()}]
+  defdelegate occupied(), to: Restore
+
   @doc "Write an already-verified bundle. See `Kati.Backup.Restore`."
   @spec restore(Bundle.t(), keyword()) :: {:ok, map()} | {:error, Error.t()}
   def restore(%Bundle{} = bundle, opts \\ []) do

@@ -154,13 +154,17 @@ defmodule Kati.ScreenBackupTest do
                "the file — see the moduledoc on why the count comes first"
     end
 
-    test "the restore screen reads nothing at mount either" do
-      # `Kati.Screens.Restore` holds `Kati.Backup.SampleRestore`'s stand-in
-      # preview at rest — the drawing's own three counts — and reads no file
-      # and no table to do it. Everything it says about a real backup arrives
-      # with the file.
-      assert assigns(mount_screen(Restore)).restore == Restore.blank()
-      assert assigns(mount_screen(Restore)).restore.file == nil
+    test "the restore screen reads the device at mount, and no file" do
+      # `Kati.Screens.Restore` reads one thing at mount — how much is on this
+      # device, the engine's own `:into_empty` question — because its merge
+      # note and its Replace card are claims about the device. Everything it
+      # says about a backup arrives with the file.
+      restore = assigns(mount_screen(Restore)).restore
+
+      assert restore == Restore.blank()
+      assert restore.file == nil
+      assert restore.here == Restore.records_on_device()
+      assert restore.here > 0, "setup wrote a row, so the device is not empty"
       refute drawn?(tree(mount_screen(Restore)), "records across")
     end
   end
@@ -378,18 +382,20 @@ defmodule Kati.ScreenBackupTest do
                "so a screen can show a file's contents without touching anything"
     end
 
-    test "the picked file's name replaces the drawing's, and the count row with it", %{dir: dir} do
-      # `129.html` is drawn mid-preview, so the resting frame carries
-      # `Kati.Backup.SampleRestore`'s filename and its three stand-in counts.
-      # A real file has to displace both, or the screen would be reporting the
-      # mockup's numbers about the user's backup.
+    test "the picked file's name and count fill rows that were empty", %{dir: dir} do
+      # `129.html` is drawn mid-preview over a file on the designer's desk.
+      # The resting frame names no file and draws no count; a real file fills
+      # both, and the Merge button carries the count the row drew.
       {:ok, staged} = Transport.stage(dir: dir)
 
-      assert drawn?(tree(mount_screen(Restore)), Kati.Backup.SampleRestore.file())
+      resting = mount_screen(Restore)
+      assert drawn?(tree(resting), "No file chosen yet")
+      assert Restore.count_cards(assigns(resting).restore) == []
 
       view = pick(mount_screen(Restore), staged.path, staged.filename)
 
-      refute drawn?(tree(view), Kati.Backup.SampleRestore.file())
+      refute drawn?(tree(view), "No file chosen yet")
+      assert drawn?(tree(view), staged.filename)
 
       assert Restore.new_count(Restore.count_cards(assigns(view).restore)) ==
                Restore.group(staged.total_records)
@@ -438,9 +444,9 @@ defmodule Kati.ScreenBackupTest do
       refute drawn?(tree, "records across"), "a count was drawn for a file nobody has opened"
       assert find(tree, :text_field) != nil, "no passphrase field for a locked backup"
 
-      # The count row still shows the drawing's three, because a sealed file
-      # has answered no number at all — see `Kati.Screens.Restore.count_cards/1`.
-      assert Restore.count_cards(assigns(view).restore) == Kati.Backup.SampleRestore.counts()
+      # The count row draws no number, because a sealed file has answered no
+      # number at all — see `Kati.Screens.Restore.count_cards/1`.
+      assert Restore.count_cards(assigns(view).restore) == []
     end
 
     test "a wrong passphrase says exactly what the engine says", %{staged: staged} do

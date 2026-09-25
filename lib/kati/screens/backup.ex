@@ -1508,9 +1508,10 @@ defmodule Kati.Screens.Backup do
   What a device message does to the screen.
 
   `{:saved, item}` is the one branch `Kati.Screens.Settings`' moduledoc names
-  as the only writer of the backup ledger, and it still is: this is the one
-  place `record_backup/0` and `record_bytes/1` are called, and the only place
-  either is called from.
+  as the writer of the backup ledger: a completed Save As stamps the moment
+  with `record_backup/0` and the size with `record_bytes/1`. The only other
+  caller of the pair is `Kati.Screens.BackupDark`, the same page in its dark
+  colourway, whose `Save a backup` is the same Save As and stamps the same two.
   """
   def apply_event({:saved, item}, socket) do
     :ok = Kati.Screens.Settings.record_backup()
