@@ -304,7 +304,12 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"56", "info"},
     {"62", "event"},
     {"62", "pin"},
-    {"62", "restaurant"}
+    {"62", "restaurant"},
+    # Board 129's conflict card led with a `star` tile over a film nobody had
+    # logged — see `DesignLiterals.retired_lines/0`, which holds its words and
+    # the argument. 132 is the same card in Persian.
+    {"129", "star"},
+    {"132", "star"}
   ]
 
   # Lines a screen deliberately does not draw, because what carried them is
@@ -363,7 +368,18 @@ defmodule Kati.ScreenDesignLiteralTest do
   # `Kati.FirstRunTest`'s "finishing puts the chosen title on the shelf" taps a
   # tile and asserts what follows, in both locales — delete these two entries
   # if that test goes.
-  @unreachable_symbols [{"128", "cloud_done"}, {"163", "check"}, {"166", "check"}]
+  #
+  # 131 and 133 draw 128's status card in the dark colourway and at 235%, and
+  # read the same ledger since 25 September, so their `cloud_done` is 128's
+  # branch too. `Kati.BackupRestoreRealTest` seeds the ledger and asserts it on
+  # both — delete these two entries if that test goes.
+  @unreachable_symbols [
+    {"128", "cloud_done"},
+    {"131", "cloud_done"},
+    {"133", "cloud_done"},
+    {"163", "check"},
+    {"166", "check"}
+  ]
 
   describe "the registry" do
     test "every drawing has a screen, and every screen but the gallery has a drawing" do
@@ -514,16 +530,17 @@ defmodule Kati.ScreenDesignLiteralTest do
       # Named rather than counted. A budget that reports only its own arithmetic
       # tells whoever trips it to go and find the offender by hand, and the
       # offender is one literal out of some sixteen hundred.
-      # Retired lines are out of the count: each is an absence the list above
-      # explains, and counting it as "not found inside one Text" made every
-      # honest retirement erode this ratio.
       located =
         for screen <- render_all(),
             literal <- screen.design.text,
-            {screen.number, literal} not in DesignLiterals.retired_lines(),
             do: {DesignLiterals.locate(literal, screen.haystacks), screen, literal}
 
-      tiers = Enum.map(located, &elem(&1, 0))
+      # `:missing` is not a tier of "found", and every literal in it is already
+      # answered for by the test above — retired, or a device value whose
+      # pattern stands in. Counting a retired line as a loose match made every
+      # retirement push this ratio down, so the drawing that told the most
+      # truth about the user's data was the one that tripped it.
+      tiers = located |> Enum.map(&elem(&1, 0)) |> Enum.reject(&(&1 == :missing))
 
       squashed =
         for {:squashed, screen, literal} <- located,
@@ -796,7 +813,16 @@ defmodule Kati.ScreenDesignLiteralTest do
       # needs no exemption. Two literals move from "checked against somebody
       # else's number" to "checked against a contract the row still keeps",
       # which is the trade this bound exists to make visible.
-      assert length(device_values()) <= 56,
+      #
+      # Raised to 64 for boards 129, 131, 132 and 133 (A1, A3). 131 and 133
+      # stopped typing the board's `14 Aug · 2 WEEKS AGO · 214 MB · Up to date`
+      # and read 128's ledger, so they carry 128's two-branch contract; 133
+      # breaks the caption onto its own lines and adds a status line, which is
+      # four entries rather than two. 129's merge note says the device has data
+      # only when it does, and 132 is that sentence in Persian. Eight literals
+      # move from "checked against a backup nobody made" to "checked against
+      # what the ledger and the store say".
+      assert length(device_values()) <= 64,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -1074,6 +1100,46 @@ defmodule Kati.ScreenDesignLiteralTest do
          "is `STILL ONLY ON THIS PHONE`, and the size half drops out on its own when only " <>
          "the date was ever recorded",
        ~r/^(today|yesterday|\d+ (days|weeks|months|years) ago|1 (week|month|year) ago)( · \d+ [km]b)?$|^still only on this phone$/},
+      # 131 is 128 in the dark colourway and reads the same ledger through the
+      # same two functions, so its pair is 128's pair.
+      {"131", "14 aug",
+       "`Kati.Screens.BackupDark.last_backup_date/1` is `Kati.Screens.Backup.date_text/1` " <>
+         "over the ledger, and `Never` until a Save As completes — 128's entry above. Both " <>
+         "branches are asserted in `Kati.BackupRestoreRealTest`",
+       ~r/^(\d{1,2} \p{L}{3}|never)$/u},
+      {"131", "2 weeks ago · 214 mb",
+       "`Kati.Screens.BackupDark.last_backup_meta/1` is `Kati.Screens.Backup.caption/1` — " <>
+         "128's entry above, with the same resting sentence",
+       ~r/^(today|yesterday|\d+ (days|weeks|months|years) ago|1 (week|month|year) ago)( · \d+ [km]b)?$|^still only on this phone$/},
+      # 133 is 128 at 235%, with the caption broken onto lines of its own and a
+      # status line 128 does not draw. Same ledger, same two branches.
+      {"133", "14 aug",
+       "the date line is `Kati.Screens.Backup.date_text/1` over the ledger, or `Never` — " <>
+         "128's entry above", ~r/^(\d{1,2} \p{L}{3}|never)$/u},
+      {"133", "2 weeks ago",
+       "the age line is `Kati.Screens.UpNext.age/1` over the ledger, or 128's resting " <>
+         "`STILL ONLY ON THIS PHONE`",
+       ~r/^(today|yesterday|\d+ (days|weeks|months|years) ago|1 (week|month|year) ago|still only on this phone)$/},
+      {"133", "214 mb",
+       "the size line is the byte ledger through `Kati.Screens.Backup.format_size/1`, and " <>
+         "is not drawn at all when nothing measured a size — the age line's resting " <>
+         "sentence is what an empty ledger draws in its place",
+       ~r/^(\d+ [km]b|still only on this phone)$/},
+      {"133", "up to date",
+       "the board's *Up to date* is a judgement nothing in `Kati.Backup` can make. The line " <>
+         "says what the ledger knows: a file was saved where the reader chose, or none was",
+       ~r/^(saved to a file you chose|not backed up yet)$/},
+      # 129's merge note is a claim about the DEVICE: it says the device already
+      # has data only when `Kati.Backup.occupied/0` finds some, and that the
+      # file goes straight in when it finds none. 132 is the same sentence in
+      # Persian. The runs are one `Text` after `rich_text/1`, so the pattern is
+      # anchored at the start and not the end.
+      {"129", "this device already has data, so the file is",
+       "the note reads `Kati.Screens.Restore.records_on_device/0`; an empty store takes " <>
+         "the other branch. Both are asserted in `Kati.BackupRestoreRealTest`",
+       ~r/^(this device already has data, so the file is merged|nothing is stored on this device yet, so the file goes in as it is)/u},
+      {"132", "این دستگاه داده دارد، پس فایل با آن", "129's entry, in Persian",
+       ~r/^(این دستگاه داده دارد، پس فایل با آن|هنوز چیزی روی این دستگاه ذخیره نشده، پس فایل همان‌طور که هست)/u},
       {"80", "connected as ines.k · 412 listens",
        "the account name and the listen count come from ListenBrainz, and Kati has no " <>
          "client for it yet. The row's contract is the alternation: what the provider " <>

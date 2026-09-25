@@ -4,13 +4,41 @@ defmodule Kati.Screens.Restore do
   @moduledoc """
   Screen 129 — Restore from a backup, pushed under Settings.
 
-  Built to `test/design/reference/129.html`. This is screen 37's import
+  Built to `test/design/reference/129.html`. The board is screen 37's import
   idiom moved onto a device: a file is acknowledged, the write is summarised
-  as three counts, one conflict is answered at a time, and nothing is written
-  until the last step. `Kati.Screens.PlanImport` is the pattern this file was
-  told to follow, because it is the same idiom's second drawing already —
-  five of screen 37's builders reused rather than copied, the frame re-drawn
-  wherever the two designs actually differ. This is the idiom's third.
+  as counts, and nothing is written until the last step.
+  `Kati.Screens.PlanImport` is the pattern this file was told to follow,
+  because it is the same idiom's second drawing already — screen 37's builders
+  reused rather than copied, the frame re-drawn wherever the two designs
+  actually differ. This is the idiom's third.
+
+  ## Everything on this page is this device's or the picked file's
+
+  The board is drawn mid-preview, over a file on the designer's desk:
+  `kati-backup-2026-08-14.json`, `384 / 28 / 6`, a `Blue Hour` conflict at
+  `1 of 6`, and a Replace card threatening `418 titles`. Every one of those is
+  a claim about somebody's data, and until 25 September this screen drew all
+  of them on every phone, out of a `Kati.Backup.SampleRestore` fixture. None
+  of them is drawn now:
+
+    * **The file row** names the picked file, or says no file has been
+      chosen — `file_label/1`.
+    * **The count row** draws the one figure an opened file answers, or a
+      sentence saying nothing has been read — `count_cards/1`, `count_row/1`.
+    * **The merge note and the Replace card** read `records_on_device/0` —
+      `Kati.Backup.occupied/0`, the engine's own `:into_empty` question — so
+      *this device already has data* is only said when it is true and Replace
+      names the number of records it would delete, or says there is nothing
+      to delete.
+    * **The conflict card and its eyebrow are gone.** `Kati.Backup.Restore`
+      merges insert-only and skips a row whose id is already here; there is no
+      API that hands a screen one collision at a time, and a card naming a
+      film the reader may never have logged, with ratings nobody gave, was the
+      board's example standing in for the reader's library. The day the
+      engine can answer a collision, the card comes back reading it.
+
+  That is the reason `load/1` reads the store at all: two sentences on this
+  page are about the device, and a device's state is not the drawing's.
 
   ## This screen owns the restore half of #25, and the split is the design's
 
@@ -35,16 +63,16 @@ defmodule Kati.Screens.Restore do
 
   ### What that behaviour is allowed to draw
 
-  The board draws one state — a file already picked, its counts known, the
-  first of six conflicts open — and this screen still draws exactly that at
-  rest. Everything the moved behaviour needs beyond it is drawn **only once
-  the resting frame has been left**: the notice card appears when something
-  has happened, the file card when `inspect_file/2` has answered, the
-  passphrase field when the file it belongs to is sealed, the mode note when
-  a mode other than the default has been chosen. At rest every one of them is
-  a zero-height spacer, which is why `Kati.ScreenDesignLiteralTest` still
-  compares this file against `129.html` and finds the board's own copy and
-  nothing else.
+  The board draws one state — a file already picked, its counts known — and
+  this screen draws that frame's copy at rest: the headings, the scan card,
+  the merge and replace paths. The board's figures are not copy and are
+  retired in `Kati.DesignLiterals.retired_lines/0` with this reason.
+  Everything the moved behaviour needs beyond it is drawn **only once the
+  resting frame has been left**: the notice card appears when something has
+  happened, the file card when `inspect_file/2` has answered, the passphrase
+  field when the file it belongs to is sealed, the mode note when a mode other
+  than the default has been chosen. At rest every one of them is a
+  zero-height spacer.
 
   That is not a loophole. `130.html` — *Backup & restore — eight states* —
   draws these states as a board of their own: *Restoring*, *This file is from
@@ -58,24 +86,15 @@ defmodule Kati.Screens.Restore do
   screen:
 
     * `Kati.Screens.PlanImport.count_card/1` — the DM Mono figure over its
-      letter-spaced caps label, at weight 500 and 9.5pt. This board's counts
-      are set in the same face PlanImport's are, for the same reason: `384`,
-      `28` and `6` are read off a document, not announced.
-    * `Kati.Screens.Import.outcome_gap/0` — the 10pt between the three count
-      cards, unchanged between all three drawings.
-    * `Kati.Screens.PlanImport.conflict_tile/1` — the 40pt icon tile a
-      conflict leads with when it has no artwork, at `poster_on_cream` under a
-      `gold_icon` glyph.
-    * `Kati.Screens.Import.choice/1`, `choice_gap/0` and `star_text/3` — the
-      three 32pt answer pills, the 8pt gap between them, and the ★ rendered as
-      the Material Symbols glyph rather than as text, because Plus Jakarta
-      Sans carries no U+2605 and screen 08 already proved that renders as
-      nothing.
+      letter-spaced caps label, at weight 500 and 9.5pt. This board's count is
+      set in the same face PlanImport's are, for the same reason: it is read
+      off a document, not announced.
+    * `Kati.Screens.Import.outcome_gap/0` — the 10pt between count cards,
+      unchanged between all three drawings.
 
   Everything else is re-drawn, because this board's own rhythm is tighter
   than either of its ancestors': 11pt after the file card and the count row
-  rather than 22, 24pt after the scan card, the note and the conflict rather
-  than 22. Those are this drawing's own numbers, kept rather than rounded to
+  rather than 22, 24pt after the scan card and the note rather than 22. Those are this drawing's own numbers, kept rather than rounded to
   match a sibling screen that draws a different gap on purpose.
 
   ## Two things the brief asked to be decided, and where they landed
@@ -154,28 +173,24 @@ defmodule Kati.Screens.Restore do
   field, because "this is encrypted" and "this is unreadable" are different
   sentences and a person holding their only backup needs the first one.
 
-  ## The three-count summary collapses when it is a reading
+  ## The count row is a reading or a sentence, never three numbers
 
-  `384 / 28 / 6` is `Kati.Backup.SampleRestore`'s, and it is screen 37's
-  pre-write summary reused verbatim — the board says so in its own caption.
-  It stays exactly that until a real file has been opened, because it is the
-  drawing's illustration of a dry run and Kati has no dry run: `Kati.Backup.Restore`
-  is insert-only in `:merge` and reports what it skipped **after** it has run,
-  and there is no per-row conflict resolver behind those three pills at all.
+  The board's `384 / 28 / 6` is screen 37's pre-write summary — `New`,
+  `Merged`, `Conflicts` — and Kati has no dry run that could produce it:
+  `Kati.Backup.Restore` is insert-only in `:merge` and reports what it skipped
+  **after** it has run. What this screen *can* read out of a real file is one
+  number — how many records are in it — so once one is open the row is that
+  single figure, which is the move `135.html` already makes for the same
+  reason: *"on an empty device 37's three-count summary is dishonest — there
+  is nothing to merge or conflict — so it collapses to a single figure and
+  says so in words."* With no file read the row is a sentence saying so.
 
-  What this screen *can* read out of a real file is one number — how many
-  records are in it — so once one is open the row collapses to that single
-  figure, which is the move `135.html` already makes for the same reason:
-  *"on an empty device 37's three-count summary is dishonest — there is
-  nothing to merge or conflict — so it collapses to a single figure and says
-  so in words."* Inventing a `Merged` and a `Conflicts` count for a file
-  nothing has diffed would be three numbers where the app has one.
-
-  `merge_button/1` is still handed `new_count/1`'s reading of whatever the
-  count row drew rather than a fourth typed `"384"` — the same argument
+  `merge_button/1` is handed `new_count/1`'s reading of whatever the count
+  row drew rather than a figure typed a second time — the same argument
   `PlanImport.title/1` makes for building its `STEP 3 OF 4` kicker out of the
   step meter's own numbers: two chances to write one figure is how a button
-  and a card quietly stop agreeing.
+  and a card quietly stop agreeing. With nothing read, the button names no
+  number at all.
 
   ## A wrong passphrase gets the engine's sentence, unedited
 
@@ -247,32 +262,20 @@ defmodule Kati.Screens.Restore do
 
   ## The note that cannot be `Kati.UI.SettingsList.note/2`
 
-  `merge_note/0` draws the same dashed-read-as-solid frame `note/2` draws —
+  `merge_note/1` draws the same dashed-read-as-solid frame `note/2` draws —
   `Kati.Components.MishkaPill` at `border_color: Palette.border/0`, the same
   16% this board's own `rgba(26,25,23,.16)` already is — but is not a call to
   it, because three of this board's numbers are not `note/2`'s: `padding: 15`
   where that helper writes 16, an 17pt glyph where it writes 18, and a
   `1.65` line height where its own `note_text/1` is pinned to `1.55`. On top
   of that, the sentence needs a bold word — *merged* — mid-paragraph, which
-  `note/2`'s single-string `text` argument cannot carry at all. `merge_note/0`
+  `note/2`'s single-string `text` argument cannot carry at all. `merge_note/1`
   therefore builds the same component with this board's own five numbers and
   a `Kati.UI.rich_text/1` paragraph in place of the plain string, which is the
   reason `PlanImport.footer/0` exists as a hand-built card and not a call to
   `note/2` either: a paragraph with an emphasis inside it needs the one node
   that can wrap, and `rich_text/1`'s own doc records that the emphasis is
   therefore rendered plain rather than dropped or orphaned.
-
-  ## The conflict card is still the drawing's, and says so
-
-  Nothing behind the three answer pills exists: `Kati.Backup.Restore` merges
-  insert-only and skips a row whose id is already here, and there is no API
-  that hands a screen one collision at a time. The pills therefore carry no
-  tap, for the reason `Kati.Screens.PlanImport`'s own Audited section gives —
-  there is nowhere to hold an answered conflict alive across two renders, and
-  a control that forgets its answer the moment the screen pops is worse than
-  one that is honestly still a drawing. The conflict resolver is the one part
-  of `129.html` this file has not made real, and it is the one part the engine
-  cannot yet answer.
 
   ## Nothing here is persisted
 
@@ -287,7 +290,6 @@ defmodule Kati.Screens.Restore do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Backup.Error
-  alias Kati.Backup.SampleRestore
   alias Kati.Backup.Transport
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
@@ -302,13 +304,15 @@ defmodule Kati.Screens.Restore do
   def load(socket), do: Mob.Socket.assign(socket, :restore, Kati.Screens.Restore.blank())
 
   @doc """
-  The screen at rest: no file, no notice, the safest mode, and the board's own
-  stand-in preview.
+  The screen at rest: no file, no notice, the safest mode, and how much is on
+  this device right now.
 
-  `load/1` reads nothing — not the database, not a file, not `Mob.State` — so a
-  fresh install and an empty database render exactly this. Every fact this
-  screen reports about a real backup is read out of that backup when it is
-  picked, and never before.
+  `here` is the one reading taken at mount — `records_on_device/0`, the count
+  `Kati.Backup.Restore`'s own `:into_empty` check refuses over — because two
+  things on this page are claims about the device rather than about a file:
+  whether a restore would merge into something, and what Replace would delete.
+  Every fact about a backup is read out of that backup when it is picked, and
+  never before, so a fresh install renders no file, no count and no conflict.
   """
   @spec blank() :: map()
   def blank do
@@ -317,10 +321,20 @@ defmodule Kati.Screens.Restore do
       unlock: "",
       mode: :into_empty,
       notice: nil,
-      counts: SampleRestore.counts(),
-      conflict: SampleRestore.conflict(),
-      replace: SampleRestore.replace()
+      here: Kati.Screens.Restore.records_on_device()
     }
+  end
+
+  @doc """
+  How many records this device holds across every backed-up table.
+
+  The sum of `Kati.Backup.occupied/0`, which is the engine's own answer to
+  *is anything here?* — so the merge note and the Replace card can never say
+  something different from what the restore then does. `0` on a fresh install.
+  """
+  @spec records_on_device() :: non_neg_integer()
+  def records_on_device do
+    Kati.Backup.occupied() |> Enum.map(&elem(&1, 1)) |> Enum.sum()
   end
 
   @doc "Every collision mode, in the order safest first — the engine's own three."
@@ -346,20 +360,18 @@ defmodule Kati.Screens.Restore do
         {Kati.Screens.Restore.title()}
         {Kati.Screens.Restore.notice_block(job.notice)}
         {UI.eyebrow(gettext("Choose a file"))}
-        {Kati.Screens.Restore.file_row(Kati.Screens.Restore.file_name(job))}
+        {Kati.Screens.Restore.file_row(Kati.Screens.Restore.file_label(job))}
         {Kati.Screens.Restore.file_card(job.file)}
         {Kati.Screens.Restore.unlock_field(job)}
         {Kati.Screens.Restore.scan_card()}
         {UI.eyebrow(gettext("What will happen"))}
         {Kati.Screens.Restore.count_row(cards)}
-        {Kati.Screens.Restore.merge_note()}
+        {Kati.Screens.Restore.merge_note(job.here)}
         {Kati.Screens.Restore.mode_note(job)}
-        {UI.eyebrow(gettext("Conflicts · keep which?"))}
-        {Kati.Screens.Restore.conflict_card(job.conflict)}
         {Kati.Screens.Restore.merge_button(Kati.Screens.Restore.new_count(cards))}
         {Kati.Screens.Restore.divider()}
         {SettingsList.eyebrow_muted(gettext("Or start clean"))}
-        {Kati.Screens.Restore.replace_card(job.replace)}
+        {Kati.Screens.Restore.replace_card(job.here)}
         <Spacer size={14} />
         {Kati.Screens.Restore.replace_button()}
       </Column>
@@ -418,43 +430,43 @@ defmodule Kati.Screens.Restore do
   # ── Choose a file ────────────────────────────────────────────────────────────
 
   @doc """
-  The filename the file row shows: the picked file's own, or the drawing's.
+  The file row's second line: the picked file's own name, or a plain
+  statement that nothing has been picked.
 
-  `129.html` is drawn with a file already chosen, and `SampleRestore.file/0`
-  is that name. It stands until a real one replaces it — never beside one,
-  because two filenames on a row that names one file is the one thing this
-  row must not do.
+  `129.html` is drawn with a file already chosen and names it
+  `kati-backup-2026-08-14.json`. That is a file on the designer's desk, not on
+  this device, so the row never shows it: until a real file arrives the row
+  says there is none.
+
+  The NAME is not copy and is not translated — it is what the file is called,
+  and a reader comparing this row against their file manager has to see the
+  same word — but it is a Latin run on a right-to-left row, and
+  `kati-backup-2026-09-12.katibackup` is hyphens and dots between digit
+  groups: all bidi NEUTRALS, which resolve against the paragraph rather than
+  against the run and put the extension at the wrong end of the name.
+  `Kati.Locale.ltr/1` isolates it, exactly as
+  `Kati.Screens.Backup.dropped_line/1` isolates a column path. The sentence for
+  no file is copy and takes no isolate.
   """
-  @spec file_name(map()) :: String.t()
-  def file_name(%{file: %{name: name}}) when is_binary(name), do: name
-  def file_name(_job), do: SampleRestore.file()
+  @spec file_label(map()) :: String.t()
+  def file_label(%{file: %{name: name}}) when is_binary(name), do: Kati.Locale.ltr(name)
+  def file_label(_job), do: gettext("No file chosen yet")
 
   @doc """
   The single-row card offering the picked file.
 
   `rule: false` because it is the only row a card this small holds — the last
   row in a `Kati.UI.SettingsList` card never draws the hairline under it, and
-  here that is also the first and only one.
+  here that is also the first and only one. `SettingsList.chevron/0` already
+  asks `Kati.Locale.forward_chevron/0`, so the row that OPENS the picker points
+  the way the reader reads.
   """
   @spec file_row(String.t()) :: term()
-  def file_row(name) do
-    # The NAME is not copy and is not translated — it is what the file is
-    # called, and a reader comparing this row against their file manager has to
-    # see the same word — but it is a Latin run sitting on a right-to-left row,
-    # and `kati-backup-2026-08-14.json` is hyphens and a dot between digit
-    # groups: all bidi NEUTRALS, which resolve against the paragraph rather
-    # than against the run and put the extension at the wrong end of the name.
-    # `Kati.Locale.ltr/1` isolates it, exactly as
-    # `Kati.Screens.Backup.dropped_line/1` isolates a column path. A no-op in
-    # English.
-    #
-    # `SettingsList.chevron/0` already asks `Kati.Locale.forward_chevron/0`, so
-    # the row that OPENS the picker points the way the reader reads without
-    # this screen saying anything.
+  def file_row(label) do
     row =
       SettingsList.row(
         SettingsList.icon_tile("upload_file"),
-        SettingsList.body(gettext("Pick a file"), Kati.Locale.ltr(name)),
+        SettingsList.body(gettext("Pick a file"), label),
         SettingsList.chevron(),
         rule: false,
         on_tap: {self(), :choose_file}
@@ -792,14 +804,12 @@ defmodule Kati.Screens.Restore do
   # ── What will happen ─────────────────────────────────────────────────────────
 
   @doc """
-  The counts the summary row draws: the drawing's three, or the one figure a
-  real file actually answers. See the moduledoc.
+  The counts the summary row draws: the one figure a real, opened file
+  answers, or nothing at all. See the moduledoc.
   """
   @spec count_cards(map()) :: [map()]
   def count_cards(%{file: %{summary: %{unlocked: true, total_records: n}}}) when is_integer(n) do
-    # `key` as well as `label`, so this card has the same shape
-    # `Kati.Backup.SampleRestore.counts/0`'s three do. Its comment there records
-    # what the missing key cost: screen 132's mirror matched on the English
+    # `key` as well as `label`: screen 132's old mirror matched on the English
     # WORD with no catch-all and raised mid-render the moment a card said
     # anything else — and once the label is a `gettext/1` it says something else
     # in every locale but one. Nothing reads this key yet; the point is that the
@@ -814,10 +824,28 @@ defmodule Kati.Screens.Restore do
     ]
   end
 
-  def count_cards(job), do: job.counts
+  def count_cards(_job), do: []
 
-  @doc "The three count cards, gapped `Kati.Screens.Import.outcome_gap/0`'s 10pt."
+  @doc """
+  The count cards, gapped `Kati.Screens.Import.outcome_gap/0`'s 10pt — or, with
+  no file read, the sentence that says there is nothing to count yet.
+  """
   @spec count_row([map()]) :: term()
+  def count_row([]) do
+    text =
+      gettext(
+        "No file has been read yet, so there is nothing to count. Kati shows what a " <>
+          "backup holds before it writes any of it."
+      )
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.Restore.paragraph(text)}
+      <Spacer size={11} />
+    </Column>
+    """
+  end
+
   def count_row(cards) do
     ~MOB"""
     <Column fill_width={true}>
@@ -832,18 +860,29 @@ defmodule Kati.Screens.Restore do
   end
 
   @doc """
-  The `New` count's own value, read out of the list `count_row/1` draws rather
-  than typed a second time on the Merge button — see the moduledoc.
+  The ink count's own value, read out of the list `count_row/1` draws rather
+  than typed a second time on the Merge button — see the moduledoc. `nil` when
+  no file has been read and the row drew no count.
   """
-  @spec new_count([map()]) :: String.t()
+  @spec new_count([map()]) :: String.t() | nil
   def new_count(counts) do
-    %{value: value} = Enum.find(counts, fn card -> card.tone == :ink end)
-    value
+    case Enum.find(counts, fn card -> card.tone == :ink end) do
+      %{value: value} -> value
+      nil -> nil
+    end
   end
 
-  @doc "The dashed-frame note explaining what a merge does. See the moduledoc for why this is not `Kati.UI.SettingsList.note/2`."
-  @spec merge_note() :: term()
-  def merge_note do
+  @doc """
+  The dashed-frame note saying what a restore would do to this device, given
+  how many records `records_on_device/0` found on it.
+
+  The board's sentence — *this device already has data, so the file is merged
+  into it* — is a claim about the device, so it is only drawn when it is true.
+  An empty device is told the file goes straight in. See the moduledoc for why
+  this is not `Kati.UI.SettingsList.note/2`.
+  """
+  @spec merge_note(non_neg_integer()) :: term()
+  def merge_note(here) do
     # The `1.65` the moduledoc argues for stays the LATIN value and is now the
     # argument to `Kati.Locale.leading/1` rather than the number itself:
     # Vazirmatn's metrics are not Plus Jakarta's, and `Kati.Theme.fa_line_height/0`
@@ -864,12 +903,7 @@ defmodule Kati.Screens.Restore do
       font_weight: "semibold"
     ]
 
-    paragraph =
-      UI.rich_text([
-        {gettext("This device already has data, so the file is "), body},
-        {gettext("merged"), emphasis},
-        {gettext(" into it. Nothing is written until you finish the last conflict."), body}
-      ])
+    paragraph = Kati.Screens.Restore.merge_sentence(here, body, emphasis)
 
     card =
       MishkaPill.pill(
@@ -894,6 +928,25 @@ defmodule Kati.Screens.Restore do
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc false
+  def merge_sentence(0, body, _emphasis) do
+    UI.rich_text([
+      {gettext(
+         "Nothing is stored on this device yet, so the file goes in as it is — there " <>
+           "is nothing here for it to be merged with."
+       ), body}
+    ])
+  end
+
+  def merge_sentence(_here, body, emphasis) do
+    UI.rich_text([
+      {gettext("This device already has data, so the file is "), body},
+      {gettext("merged"), emphasis},
+      {gettext(" into it: a row already here is kept, and the file’s copy of it is skipped."),
+       body}
+    ])
   end
 
   # ── The three modes ─────────────────────────────────────────────────────────
@@ -993,56 +1046,6 @@ defmodule Kati.Screens.Restore do
 
   def mode_note(_job), do: ~MOB"<Spacer size={0} />"
 
-  # ── Conflicts · keep which? ──────────────────────────────────────────────────
-
-  @doc """
-  The open conflict, on the palette's one warm surface.
-
-  Built from `Kati.Screens.PlanImport.conflict_tile/1` and
-  `Kati.Screens.Import.choice/1`, `choice_gap/0` and `star_text/3` — see the
-  moduledoc for which piece comes from which screen and why.
-  """
-  @spec conflict_card(map()) :: term()
-  def conflict_card(c) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={15}>
-        <Row fill_width={true} align="center">
-          {Kati.Screens.PlanImport.conflict_tile(c.icon)}
-          <Spacer size={12} />
-          <Column weight={1.0}>
-            <Text
-              text={c.title}
-              text_size={13}
-              font_weight="bold"
-              text_color={Palette.cream_ink()}
-              max_lines={1}
-            />
-            <Spacer size={3} />
-            {Kati.Screens.Import.star_text(c.line, 11.5, Palette.cream_sub())}
-          </Column>
-        </Row>
-        <Spacer size={13} />
-        <Row fill_width={true} align="center">
-          {c.choices
-           |> Enum.map(fn choice -> Kati.Screens.Import.choice(choice) end)
-           |> Enum.intersperse(Kati.Screens.Import.choice_gap())}
-        </Row>
-        <Spacer size={12} />
-        <Text
-          text={c.progress}
-          font_family={Kati.Locale.mono_face()}
-          text_size={10.5}
-          text_color={Palette.cream_meta()}
-          text_align="center"
-          max_lines={1}
-        />
-      </Column>
-      <Spacer size={24} />
-    </Column>
-    """
-  end
-
   @doc """
   The single ink CTA — the safe path's only button, and the one that commits.
 
@@ -1050,9 +1053,9 @@ defmodule Kati.Screens.Restore do
   why it commits in the mode currently chosen rather than in the one its own
   label names.
   """
-  @spec merge_button(String.t()) :: term()
+  @spec merge_button(String.t() | nil) :: term()
   def merge_button(new_count) do
-    label = gettext("Merge %{count} into this device", count: new_count)
+    label = Kati.Screens.Restore.merge_label(new_count)
     tap = {self(), :restore_now}
 
     ~MOB"""
@@ -1079,6 +1082,14 @@ defmodule Kati.Screens.Restore do
     """
   end
 
+  @doc """
+  The button's words: the count read out of the file, or none when no file has
+  been read — never the board's `384`.
+  """
+  @spec merge_label(String.t() | nil) :: String.t()
+  def merge_label(nil), do: pgettext("restore button, no file read yet", "Merge into this device")
+  def merge_label(count), do: gettext("Merge %{count} into this device", count: count)
+
   # ── Or start clean ───────────────────────────────────────────────────────────
 
   @doc "The full-width rule separating the safe path from the destructive one. See the moduledoc for the token this settles on."
@@ -1094,15 +1105,16 @@ defmodule Kati.Screens.Restore do
     """
   end
 
-  @doc "The destructive card naming exactly what Replace deletes, before anyone can choose it."
-  @spec replace_card(map()) :: term()
-  def replace_card(r) do
-    body =
-      gettext(
-        "Deletes all %{count} %{noun}, every note and every session, then writes the file in their place. There is no undo once it finishes.",
-        count: Kati.Locale.number(r.count),
-        noun: r.noun
-      )
+  @doc """
+  The destructive card naming exactly what Replace deletes, before anyone can
+  choose it — `records_on_device/0`'s count, not the board's `418 titles`.
+
+  On an empty device there is nothing to delete, and the card says so rather
+  than threatening a loss that cannot happen.
+  """
+  @spec replace_card(non_neg_integer()) :: term()
+  def replace_card(here) do
+    body = Kati.Screens.Restore.replace_body(here)
 
     ~MOB"""
     <Column
@@ -1134,6 +1146,25 @@ defmodule Kati.Screens.Restore do
       </Row>
     </Column>
     """
+  end
+
+  @doc false
+  def replace_body(0) do
+    gettext(
+      "Nothing is stored on this device yet, so a replace has nothing to delete — " <>
+        "the file would simply go in."
+    )
+  end
+
+  def replace_body(here) do
+    ngettext(
+      "Deletes the %{count} record on this device, then writes the file in its place. " <>
+        "There is no undo once it finishes.",
+      "Deletes all %{count} records on this device, then writes the file in their place. " <>
+        "There is no undo once it finishes.",
+      here,
+      count: Kati.Screens.Restore.group(here)
+    )
   end
 
   @doc """
@@ -1584,8 +1615,8 @@ defmodule Kati.Screens.Restore do
       title: gettext("There is no file to restore"),
       body:
         gettext(
-          "The name above the picker is the drawing's, not a file on this device. " <>
-            "Choose a %{ext} and Kati will read it before it writes anything.",
+          "No file has been chosen yet. Choose a %{ext} and Kati will read it before " <>
+            "it writes anything.",
           ext: Kati.Locale.ltr(".katibackup")
         )
     })
@@ -1597,7 +1628,9 @@ defmodule Kati.Screens.Restore do
 
     case Kati.Backup.restore_file(job.file.path, opts) do
       {:ok, report} ->
-        Kati.Screens.Restore.put(socket, :notice, Kati.Screens.Restore.restored_notice(report))
+        socket
+        |> Kati.Screens.Restore.put(:notice, Kati.Screens.Restore.restored_notice(report))
+        |> Kati.Screens.Restore.put(:here, Kati.Screens.Restore.records_on_device())
 
       {:error, %Error{} = error} ->
         Kati.Screens.Restore.put(socket, :notice, Kati.Screens.Restore.restore_notice(error))

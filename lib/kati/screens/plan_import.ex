@@ -350,10 +350,10 @@ defmodule Kati.Screens.PlanImport do
   # is called, which is why `tone` waits for `count_card/1`. A locale does not
   # move under a mounted screen the way a theme does — `Kati.Screens.Language`
   # restarts the frame — so `Kati.Locale.number/1` can answer at load, which is
-  # where `Kati.Backup.SampleRestore.counts/0` answers it for the three cards
-  # screen 132 hands to this screen's own `count_card/1`. Both lists therefore
-  # arrive already converted and the shared card stays a drawing rather than
-  # having to decide whether the figure it was handed is converted yet.
+  # where `Kati.Screens.Restore.count_cards/1` answers it for the card screen
+  # 129 hands to this screen's own `count_card/1`. Both lists therefore arrive
+  # already converted and the shared card stays a drawing rather than having
+  # to decide whether the figure it was handed is converted yet.
 
   # Board 316: *"120's counts read 0 new rather than 29, so the pre-write
   # summary matches what lands."* A code carries settings, so the write adds no
@@ -413,9 +413,9 @@ defmodule Kati.Screens.PlanImport do
         {:take_file, gettext("Take file"), false},
         {:keep_both, gettext("Keep both"), false}
       ],
-      # `Kati.Backup.SampleRestore.conflict/0` opened this msgid for the same
-      # line on screen 132 and the queue is a different length here, which is
-      # the whole reason both numbers are holes. One entry, two screens.
+      # Screen 132's conflict card opened this msgid for the same line, and
+      # the queue is a different length here, which is the whole reason both
+      # numbers are holes. 129 no longer draws a conflict it cannot resolve.
       progress:
         gettext("%{index} of %{total} · apply to all",
           index: Kati.Locale.number(1),
@@ -685,7 +685,7 @@ defmodule Kati.Screens.PlanImport do
   def count_card(card) do
     # The figure's tracking goes the way the headline's does. `-0.03em` is a
     # Latin tightening and the Arabic-Indic digits are joined to nothing, but
-    # this card is shared — `Kati.Screens.Restore.count_row/1` draws its three
+    # this card is shared — `Kati.Screens.Restore.count_row/1` draws its count
     # through here — and a `value` that is one day a word rather than a figure
     # would be tracked apart letter by letter. `Kati.Screens.Import.outcome_card/1`
     # made the same call on the same slot.

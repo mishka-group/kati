@@ -10,32 +10,30 @@ defmodule Kati.Screens.BackupLarge do
   here clips* can be checked by looking rather than asserted — the same job
   screen 91 does for search, and this file follows its shape line for line.
 
-  ## This is a frozen specimen, not 128 re-run at a bigger scale
+  ## The status card is this phone's, not the board's backup
 
-  Every literal below is typed, the way `Kati.Screens.SearchLarge`'s `@query`
-  and `@counts` are typed: this sheet exists to show one scenario — a backup
-  fourteen days old — at one text size, and it has to render that scenario
-  every time it is opened, on a fresh install with an empty ledger and all.
+  Until 25 September every figure on the status card was typed — `14 Aug`,
+  `2 WEEKS AGO`, `214 MB`, *Up to date* — on the argument that a specimen has
+  to show the one scenario it was drawn for, on a fresh install with an empty
+  ledger and all. That argument is what put a backup nobody made in front of a
+  person who has never made one, which is the one lie a backup screen must not
+  tell. So the card reads what 128's `status_card/0` reads:
 
-  The fold did not change that, only where the typing lives. What was a module
-  attribute holding five strings is now `last_backup/0` holding five typed
-  values: `gettext/1` inside an attribute is evaluated at COMPILE time and
-  freezes in whichever locale the compiler stood in, which is the one thing a
-  sheet that has to render in both scripts cannot hold. The day went from the
-  string `14 Aug` to the `Date` it is a spelling of, because `14 Aug` and
-  ۲۳ مرداد are one day in two CALENDARS and no catalogue translates an
-  arithmetic — `Kati.Locale.date/2` does.
-  `Kati.Screens.BackupDark.last_backup_date/0` and
-  `Kati.Screens.BackupStates.recent/0` type the identical `~D[2026-08-14]` for
-  the identical fixture, so three pictures of one backup cannot come out three
-  different days.
+    * the date is `Kati.Screens.Settings.last_backup/0` through
+      `Kati.Screens.Backup.date_text/1`, or `Never`;
+    * the age is `Kati.Screens.UpNext.age/1`, the ladder 128's caption uses,
+      or 128's own *Still only on this phone*;
+    * the size is `Kati.Screens.Backup.last_backup_bytes/0` through
+      `format_size/1`, and is not drawn at all when nothing measured it;
+    * the status line says what the ledger actually knows — that a file was
+      saved where the reader chose, or that nothing has been — rather than
+      the board's *Up to date*, which nothing in `Kati.Backup` can decide:
+      there is no measure of what changed since the file was written.
 
-  Reading `Kati.Screens.Settings.last_backup/0` the way 128's own
-  `status_card/0` does would make that impossible: an empty ledger answers
-  `nil`, and 128 already has an opinion about what `nil` draws — the cream
-  `Never` card, not `14 Aug`. A specimen that sometimes shows the thing it
-  exists to specimen and sometimes shows a different card entirely is not a
-  reference sheet, so this file does not call it.
+  The sheet still does its job. What it exists to prove is that the stack
+  holds at 235%, and it holds for the ledger's answer exactly as it held for
+  the typed one; the longest of the two states is the one it should be read
+  in.
 
   What 133 does reuse is the copy that has a real, shared home: the two
   formats are read off `Kati.Backup.Sample.formats/0` — the exact source
@@ -71,9 +69,10 @@ defmodule Kati.Screens.BackupLarge do
       only for want of the board asking for it.
     * **133's status card ends in a fourth stacked line that 128 does not
       draw at all.** 128 puts the `cloud_done` glyph beside a three-line
-      block (label, date, caption) in one `Row`; it never spells out "Up to
-      date" as a word. 133 draws that word, behind a hairline, on its own
-      row. That is the board pushing "the row becomes a stack" one step
+      block (label, date, caption) in one `Row`; it never spells the status
+      out as words. 133 does, behind a hairline, on its own row — the
+      ledger's answer rather than the board's *Up to date*, see above. That
+      is the board pushing "the row becomes a stack" one step
       further than 128 needed to — a fourth fact earns a fourth line instead
       of riding shotgun on the icon.
     * **133's footnote is shorter than 128's.** 128: *"…not something stored
@@ -94,7 +93,8 @@ defmodule Kati.Screens.BackupLarge do
   > wraps in full, since that is the one line a user must not miss."
 
   Three moves follow it: `status_card/0` gives the date, the age and the size
-  three independent `Text` nodes rather than one two-line block; `format_row/1`
+  independent `Text` nodes rather than one two-line block, the size dropping
+  out when there is none; `format_row/1`
   puts the glyph tile in its own header strip above the title and the
   wrapping sub-line, with the selection mark beside it; `footnote/0` puts the
   `info` glyph on its own line above the paragraph. No `Text` below carries
@@ -113,8 +113,8 @@ defmodule Kati.Screens.BackupLarge do
   `Kati.Screens.SearchLarge`'s: **content grows, chrome whose size carries
   structure caps instead.**
 
-    * **Uncapped**: the title, the status card's four figures and its "Up to
-      date" line, both format rows' title and sub-line, and the footnote's
+    * **Uncapped**: the title, the status card's figures and its status
+      line, both format rows' title and sub-line, and the footnote's
       paragraph — none sits inside a container whose *height* is fixed, so
       none needs protecting from a real device's own 235%.
     * **Capped at `cap/0`**: the save button (a 64pt stadium holding one
@@ -211,34 +211,35 @@ defmodule Kati.Screens.BackupLarge do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  # The scenario this specimen freezes. Typed rather than read off
-  # `Kati.Screens.Settings.last_backup/0` — see the moduledoc on why a
-  # reference sheet cannot answer "it depends on the ledger" — and a function
-  # rather than the `@last_backup` attribute it was, because `gettext/1` in a
-  # module attribute is evaluated at compile time and freezes in one locale.
-  #
-  # The age and the size are two msgids where `Kati.Screens.BackupDark` and
-  # `Kati.Screens.BackupStates` join theirs into a single `%{ago} · %{n} MB`:
-  # those boards draw the pair on one line either side of a separator and 133
-  # breaks them onto lines of their own, which is the whole *row becomes a
-  # stack* of it. Both figures go through `Kati.Locale.number/1` and both lines
-  # ask `Kati.Locale.mono_face/0` for a face, so ۲۱۴ lands in Vazirmatn rather
+  # The age and the size are two msgids where `Kati.Screens.Backup.caption/1`
+  # joins them on one line: 133 breaks them onto lines of their own, which is
+  # the whole *row becomes a stack* of it. Both lines ask
+  # `Kati.Locale.mono_face/1` of the string, so ۲۱۴ lands in Vazirmatn rather
   # than in a DM Mono that carries none of U+06F0–U+06F9.
-  #
-  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1` on the two lines
-  # the board sets in caps: upper-casing is a LATIN operation, and Persian
-  # passing through it comes out unchanged while the call site reads as though
-  # something happened.
-  @spec last_backup() :: map()
-  defp last_backup do
-    age = ngettext("%{n} week ago", "%{n} weeks ago", 2, n: Kati.Locale.number(2))
-
+  @spec last_backup(DateTime.t() | nil) :: map()
+  defp last_backup(nil) do
     %{
       label: UI.eyebrow_label(gettext("Last backup")),
-      date: Kati.Locale.date(~D[2026-08-14], :short),
-      age: UI.eyebrow_label(age),
-      size: gettext("%{n} MB", n: Kati.Locale.number(214)),
-      status: pgettext("backup status", "Up to date")
+      date: pgettext("last backup", "Never"),
+      age: gettext("STILL ONLY ON THIS PHONE"),
+      size: nil,
+      status: pgettext("backup status", "Not backed up yet"),
+      icon: "cloud_off",
+      icon_color: Palette.gold_icon(),
+      status_color: Palette.ink()
+    }
+  end
+
+  defp last_backup(%DateTime{} = at) do
+    %{
+      label: UI.eyebrow_label(gettext("Last backup")),
+      date: Kati.Screens.Backup.date_text(at),
+      age: UI.eyebrow_label(Kati.Screens.UpNext.age(at)),
+      size: Kati.Screens.Backup.format_size(Kati.Screens.Backup.last_backup_bytes()),
+      status: pgettext("backup status", "Saved to a file you chose"),
+      icon: "cloud_done",
+      icon_color: Palette.green(),
+      status_color: Palette.green_text()
     }
   end
 
@@ -395,15 +396,13 @@ defmodule Kati.Screens.BackupLarge do
   end
 
   @doc """
-  The status card: label, three broken-apart figures, then "Up to date"
-  behind a rule — the fourth stacked line 128 never draws. See the
+  The status card: label, the ledger's figures broken apart, then the status
+  line behind a rule — the fourth stacked line 128 never draws. See the
   moduledoc.
   """
   @spec status_card() :: map()
   def status_card do
-    # `last_backup/0` does the upcasing now, through `Kati.UI.eyebrow_label/1`
-    # — see the comment on it for why `String.upcase/1` could not stay here.
-    s = last_backup()
+    s = last_backup(Kati.Screens.Settings.last_backup())
 
     ~MOB"""
     <Column
@@ -424,7 +423,7 @@ defmodule Kati.Screens.BackupLarge do
       <Spacer size={12} />
       <Text
         text={s.date}
-        font_family={Kati.Locale.mono_face()}
+        font_family={Kati.Locale.mono_face(s.date)}
         text_size={30}
         font_weight="medium"
         letter_spacing={Kati.Locale.tracking(-0.02)}
@@ -434,34 +433,46 @@ defmodule Kati.Screens.BackupLarge do
       <Spacer size={9} />
       <Text
         text={s.age}
-        font_family={Kati.Locale.mono_face()}
+        font_family={Kati.Locale.mono_face(s.age)}
         text_size={15}
         text_color={Palette.muted()}
         max_lines={1}
       />
-      <Spacer size={4} />
-      <Text
-        text={s.size}
-        font_family={Kati.Locale.mono_face()}
-        text_size={15}
-        text_color={Palette.muted()}
-        max_lines={1}
-      />
+      {Kati.Screens.BackupLarge.size_line(s.size)}
       <Spacer size={14} />
       {SettingsList.hairline(true)}
       <Spacer size={14} />
       <Row fill_width={true} align="center">
-        {UI.symbol("cloud_done", size: 22, color: Palette.green())}
+        {UI.symbol(s.icon, size: 22, color: s.icon_color)}
         <Spacer size={9} />
         <Text
           text={s.status}
           text_size={17}
           font_weight="semibold"
-          text_color={Palette.green_text()}
+          text_color={s.status_color}
           max_lines={1}
         />
       </Row>
       <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc "The size of the last saved backup on its own line, or nothing when no size was measured."
+  @spec size_line(String.t() | nil) :: map()
+  def size_line(nil), do: ~MOB"<Spacer size={0} />"
+
+  def size_line(size) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={4} />
+      <Text
+        text={size}
+        font_family={Kati.Locale.mono_face(size)}
+        text_size={15}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end

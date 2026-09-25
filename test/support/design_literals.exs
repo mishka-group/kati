@@ -1049,7 +1049,46 @@ defmodule Kati.DesignLiterals do
       # caller in `lib/` at all and the badge went on naming a wait that had
       # ended. `share_screen/1` is the join, and the badge is not reworded —
       # a marker naming no fence is a marker the next reader believes.
-      {"98", "when file sharing lands"}
+      {"98", "when file sharing lands"},
+      # Board 129 is drawn mid-preview over a file on the designer's desk, and
+      # every figure on it is a claim about somebody's data: the filename, the
+      # `384 / 28 / 6` dry run, the `Blue Hour` conflict at `1 of 6`, `Merge
+      # 384`, and the `418 titles` Replace would delete. Kati has no dry run
+      # and no per-row conflict — `Kati.Backup.Restore` merges insert-only and
+      # reports skips afterwards — so the conflict card, its eyebrow and the
+      # `New` / `Conflicts` labels are gone, and the merge note's *until you
+      # finish the last conflict* went with them. The filename row, the button
+      # and the Replace card draw the picked file's name and count and
+      # `Kati.Backup.occupied/0`'s count instead, and say so plainly when there
+      # is none; `Kati.BackupRestoreRealTest` asserts both branches. 132 is 129
+      # in Persian and lost the same lines for the same reason.
+      {"129", "kati-backup-2026-08-14.json"},
+      {"129", "new"},
+      {"129", "conflicts"},
+      {"129", "into it. nothing is written until you finish the last conflict."},
+      {"129", "conflicts · keep which?"},
+      {"129", "blue hour"},
+      {"129", "yours 4 · file says 5"},
+      {"129", "keep mine"},
+      {"129", "take file"},
+      {"129", "keep both"},
+      {"129", "1 of 6 · apply to all"},
+      {"129", "merge 384 into this device"},
+      {"129",
+       "deletes all 418 titles, every note and every session, then writes the file in their place. there is no undo once it finishes."},
+      {"132", "kati-backup-2026-08-14.json"},
+      {"132", "تازه"},
+      {"132", "تعارض"},
+      {"132", "می‌شود. تا پایان آخرین تعارض چیزی نوشته نمی‌شود."},
+      {"132", "تعارض‌ها · کدام بماند؟"},
+      {"132", "ساعت آبی"},
+      {"132", "شما ۴ · فایل می‌گوید ۵"},
+      {"132", "مال من"},
+      {"132", "هر دو"},
+      {"132", "۱ از ۶ · برای همه"},
+      {"132", "ادغام ۳۸۴ مورد"},
+      {"132",
+       "هر ۴۱۸ عنوان، همه یادداشت‌ها و جلسه‌ها حذف می‌شوند و فایل جای آن‌ها نوشته می‌شود. بعد از پایان، بازگشتی نیست."}
     ]
   end
 end
