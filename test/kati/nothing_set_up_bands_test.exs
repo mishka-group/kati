@@ -102,11 +102,12 @@ defmodule Kati.NothingSetUpBandsTest do
 
       unset = inspect(Kati.Screens.WhatFits.unfiltered(tonight), limit: :infinity)
 
-      # `Nothing fits that window` and not `0 you can watch`: with nothing on the
-      # shelf there is no count to give, and the band says the truer of the two.
-      # The point this test is making is unchanged — the band sits ABOVE the
-      # list with its own call to action, rather than replacing it.
-      assert unset =~ "Nothing fits that window"
+      # Not `0 you can watch`, and not *nothing fits that window* either: with
+      # nothing on the shelf there is no count to give and no window to blame,
+      # so the band says the shelf is empty. The point this test is making is
+      # unchanged — the band sits ABOVE the list with its own call to action,
+      # rather than replacing it.
+      assert unset =~ "Nothing on your shelf to measure yet"
       assert unset =~ "size the gap but not fill it"
       assert unset =~ "my_services_what_fits"
 

@@ -3,7 +3,7 @@ defmodule Kati.Screens.WhatFits do
   Screen 13 — What fits?, pushed under Library.
 
   Built to `test/design/screens/13.html`: a cream card carrying the window
-  of time you actually have, then the episodes that fit inside it, then the
+  of time you actually have, then the episodes and films that fit inside it, then the
   nearest thing that does not.
 
   Cream is doing the same job here as on Home and on screen 08 — it marks the
@@ -30,55 +30,29 @@ defmodule Kati.Screens.WhatFits do
   and would draw them, but its own docs send anything with a checked state to
   the chip, and a selected/unselected pair is precisely what these are.
 
-  ## Why this screen still reads `Kati.Screens.WhatFits.Sample`
+  ## Where every row comes from
 
-  **This section used to say `Kati.Media` has no episode, and that is no longer
-  true.** `20260821231241_media_seasons_and_episodes` built
-  `Kati.Media.CachedEpisode` with `title`, `runtime_minutes`, `season_number`,
-  `episode_number` and `air_at`, and `for_title/2` and `for_season/3` to read
-  them — which is what took `Kati.Screens.Series` and `Kati.Screens.Inbox` off
-  their Sample modules. Three of the four things listed below were blocked on
-  exactly that resource and are now expressible:
+  The tracked shelf, and nothing else. `fitting/1` lists what the reader could
+  start now and finish inside the window: each show's NEXT episode
+  (`Kati.Media.NextEpisode.of/1` over the bookmark) when it has aired and its
+  own `Kati.Media.CachedEpisode.runtime_minutes` fits, and each film not yet
+  finished or dropped whose `Kati.Media.CachedTitle.runtime_minutes` fits —
+  longest first. `nearest_over/1` is the shortest of those films that does NOT
+  fit, measured against the chosen window. The clock is `Kati.Time`. A shelf
+  with nothing on it says so (`fits_label/2`) rather than *nothing fits*.
 
-    * **`41m`, `43m`, `44m`** — a per-episode runtime. Available:
-      `CachedEpisode.runtime_minutes`, which is the per-episode number this
-      screen sorts on rather than `Kati.Media.CachedTitle.runtime_minutes`, the
-      title's nominal length that a three-episode window could never be measured
-      against.
-    * **`S3 · E2`** — an unwatched episode's place in its series. Available:
-      `for_title/2` is the inventory `Kati.Media.TrackedTitle.progress_season`
-      and `progress_episode` could not be, and those two remain the bookmark
-      that says where to start reading it.
-    * **`3 episodes fit`** — the count follows the list.
+  `Kati.Screens.WhatFits.Sample` is board 13's own evening and is reached only
+  through `drawn_tonight/0`, which the design-literal test installs, and by
+  screen 96, which borrows the window card as a reference drawing. No reader
+  path draws it.
 
-  One thing is still genuinely absent, and it is a WRITER rather than a column:
+  ## What the board draws and this page does not
 
-    * **`Light`, `Tense`, `Long-form`** — a mood. **`Kati.Media.Watch.moods` is
-      real**, and this list used to say it was not: `{:array, :atom}`
-      constrained to `Kati.Media.Mood.vocabulary/0`, migrated by
-      `20260822190546_add_mood_pace_and_content_warnings`, with a whole module
-      built to read it. What does not exist is anything that WRITES it — none
-      of the five paths that create a watch sets it, the importer has no field
-      that could carry one, and no board draws a control that would, board 33's
-      log sheet included. So the column is `[]` on every device and a chip over
-      it narrows nothing.
-
-  So what keeps this screen on its Sample module is a decision about scope
-  rather than a fact about the schema — and about a missing writer rather than
-  a missing column: the list is derivable and the three chips above it are
-  not, and a page whose rows are real while its only filter is
-  invented would be the same kind of half-truth the paragraph below objects to.
-  Recorded plainly so the next pass weighs that rather than re-deriving a
-  blocker that has already been cleared.
-
-  Two things here *are* expressible and are deliberately not split out. The
-  over-budget row is one — `Quiet Harbour` at `1H 46M · 61 MIN OVER` is a
-  `kind: :movie` tracked row's `runtime_minutes` measured against the chosen
-  window — and `Sunday, 21:40` is the other, a wall clock `Kati.Time` would
-  answer (and which the audit frame pins to the drawing's own evening). A
-  screen whose *nothing else fits* row is the user's real film while the three
-  episodes above it are invented would be making its most specific claim about
-  data it does not have. Both land on the round the list above them does.
+    * **The mood chips** — `Light`, `Tense`, `Long-form`. `Kati.Media.Watch.moods`
+      is a real column and nothing writes it, so a chip over it narrows nothing
+      and is not drawn; the overflow disc goes with it, having nothing to hold.
+    * **The `Tomorrow` pill** on the over-budget row. Nothing records a
+      deferral — see `defer_pill/1` — so the offer is not made.
 
   ## Board 310 — the third page screen 92's sentence names
 
@@ -150,20 +124,18 @@ defmodule Kati.Screens.WhatFits do
   end
 
   @doc """
-  Tonight, measured against a window: the reader's, or the drawing's.
+  Tonight, measured against a window: the reader's shelf, or `empty_tonight/1`.
 
   The board's caption is *"Set the window you actually
   have and the library filters itself"* and none of the eleven controls on the
   page carried a tap — `grep -n 'on_tap\|handle_tap'` returned nothing across
   424 lines — over a fixture that could not be filtered anyway.
 
-  Three of the four things the moduledoc listed as blocked stopped being
-  blocked when `Kati.Media.CachedEpisode` was built, and this is that round:
-  the list is unwatched aired episodes off the tracked shelf whose
-  `runtime_minutes` fits, longest first, because the point of a window is to
-  use it. The over-budget row is the nearest tracked FILM that does not fit,
-  which is the row the screen exists for — `Nothing else fits` is only worth
-  saying about something.
+  The list is `fitting/1` — each show's next aired episode and each unwatched
+  film that fits, longest first, because the point of a window is to use it.
+  The over-budget row is `nearest_over/1`, the nearest unwatched FILM that does
+  not fit, which is the row the screen exists for — `Nothing else fits` is only
+  worth saying about something.
 
   The fourth is still absent and is an axis rather than a value: **mood**.
   `Kati.Media.CachedTitle.genres` is a genre, which is a different claim about
@@ -202,7 +174,7 @@ defmodule Kati.Screens.WhatFits do
           %{key: key, label: Kati.Screens.WhatFits.window_word(key), selected: m == minutes}
         end),
       moods: [],
-      fits_label: Kati.Screens.WhatFits.fits_label([]),
+      fits_label: Kati.Screens.WhatFits.fits_label([], Kati.Screens.WhatFits.shelf_empty?()),
       fits: [],
       over_label: nil,
       over: nil
@@ -345,51 +317,128 @@ defmodule Kati.Screens.WhatFits do
   # screen that crashes over a button label is the wrong way to find that out.
   def window_word(key) when is_binary(key), do: key
 
-  @doc false
-  # The empty window keeps a sentence of its own. `ngettext/4` over zero would
-  # say *0 episodes fit*, and screen 96's rule — *never render a plausible
-  # looking zero* — is exactly about that shape.
-  def fits_label([]), do: gettext("Nothing fits that window")
+  @doc """
+  The eyebrow over the list: how many things fit, or why nothing does.
 
-  def fits_label(fits) do
+  The rows are episodes and films together, so the count names neither.
+  `ngettext/4` because English moves the verb and Persian does not inflect a
+  noun after a numeral. An empty window keeps a sentence of its own — `0 fit`
+  is the plausible-looking zero screen 96's rule is about — and a shelf with
+  nothing on it says THAT, because *nothing fits that window* would send the
+  reader off to try another window over an empty shelf.
+  """
+  @spec fits_label([map()], boolean()) :: String.t()
+  def fits_label(fits, shelf_empty? \\ false)
+  def fits_label([], true), do: gettext("Nothing on your shelf to measure yet")
+  def fits_label([], _shelf), do: gettext("Nothing fits that window")
+
+  def fits_label(fits, _shelf) do
     n = length(fits)
-
-    # Persian does not inflect a noun after a numeral, so both forms are
-    # `%{n} قسمت جا می‌شود`; English needs the two because the verb moves.
-    ngettext("%{n} episode fits", "%{n} episodes fit", n, n: Kati.Locale.number(n))
+    ngettext("%{n} fits tonight", "%{n} fit tonight", n, n: Kati.Locale.number(n))
   end
 
   @doc """
-  The unwatched aired episodes that fit, longest first.
+  Whether the reader has nothing on the screen shelf at all — no series, no
+  anime, no film — before any availability rule is applied.
+  """
+  @spec shelf_empty?() :: boolean()
+  def shelf_empty? do
+    Enum.all?([:tv, :anime, :movie], fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.Query.limit(1)
+      |> Ash.read!()
+      |> Enum.empty?()
+    end)
+  rescue
+    _error -> false
+  end
+
+  @doc """
+  What the reader could start now and finish inside the window, longest first.
+
+  Two kinds of row, both off the tracked shelf:
+
+    * **a series' next episode** — `Kati.Media.NextEpisode.of/1`, the first
+      cached episode after the bookmark, which is the one definition of *next*
+      Home, Up next and the widget share — when it has aired
+      (`Kati.Media.Release.airing/2`) and its own `CachedEpisode.runtime_minutes`
+      fits. One row per show, because the episode after it is not what fits
+      tonight: this one is. A dropped show offers nothing.
+    * **a film** whose `Kati.Media.CachedTitle.runtime_minutes` fits and that
+      the reader has not finished or dropped.
 
   Longest first because the point of a window is to fill it: a reader with 45
-  minutes and a 41-minute episode wants the 41, not the 20. Three of them,
-  which is what the board draws and as many as a list you are choosing from
-  wants to be.
-
-  Aired, and unwatched: `Kati.Media.Release.airing/2` decides the first — an
-  episode that has not gone out does not fit any window — and the ticks decide
-  the second. An episode with no runtime is left out rather than assumed short.
+  minutes and a 41-minute episode wants the 41, not the 20. A runtime nobody
+  knows is left out rather than assumed short.
   """
   @spec fitting(pos_integer()) :: [map()]
   def fitting(minutes) do
     now = Kati.Time.now()
 
-    Kati.Screens.WhatFits.series()
-    |> Enum.flat_map(fn {tracked, cached} ->
-      ticked = CachedEpisode.ticked_ids(Kati.Screens.WhatFits.watches(tracked))
+    episodes =
+      Kati.Screens.WhatFits.series()
+      |> Enum.reject(fn {tracked, _cached} -> tracked.status == :dropped end)
+      |> Enum.flat_map(fn {tracked, cached} ->
+        case Kati.Screens.WhatFits.next_episode(tracked) do
+          %CachedEpisode{runtime_minutes: m} = e when is_integer(m) and m > 0 and m <= minutes ->
+            if Release.airing(Release.air(e), now) == :upcoming,
+              do: [],
+              else: [Kati.Screens.WhatFits.fit_of(e, tracked, cached)]
 
-      tracked.source
-      |> CachedEpisode.for_title(tracked.source_id)
-      |> Enum.reject(&CachedEpisode.ticked?(&1, ticked))
-      |> Enum.filter(fn e ->
-        is_integer(e.runtime_minutes) and e.runtime_minutes <= minutes and
-          Release.airing(Release.air(e), now) != :upcoming
+          _none ->
+            []
+        end
       end)
-      |> Enum.map(&Kati.Screens.WhatFits.fit_of(&1, tracked, cached))
-    end)
-    |> Enum.sort_by(& &1.minutes, :desc)
-    |> Enum.take(3)
+
+    films =
+      Kati.Screens.WhatFits.films()
+      |> Enum.flat_map(fn {tracked, cached} ->
+        case cached && cached.runtime_minutes do
+          m when is_integer(m) and m > 0 and m <= minutes ->
+            [Kati.Screens.WhatFits.film_fit(tracked, cached, m)]
+
+          _over_or_unknown ->
+            []
+        end
+      end)
+
+    Enum.sort_by(episodes ++ films, & &1.minutes, :desc)
+  end
+
+  @doc """
+  The cached episode `Kati.Media.NextEpisode.of/1` names for a show, or `nil`
+  when nothing is cached after the bookmark.
+  """
+  @spec next_episode(TrackedTitle.t()) :: CachedEpisode.t() | nil
+  def next_episode(tracked) do
+    case Kati.Media.NextEpisode.of(tracked) do
+      {s, e} ->
+        tracked.source
+        |> CachedEpisode.for_title(tracked.source_id)
+        |> Enum.find(&(&1.season_number == s and &1.episode_number == e and not &1.special))
+
+      nil ->
+        nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc """
+  One film that fits, as a row: its title, its poster, the word *Film* where an
+  episode prints its place, and its own length.
+  """
+  @spec film_fit(TrackedTitle.t(), term(), pos_integer()) :: map()
+  def film_fit(tracked, cached, minutes) do
+    %{
+      title: Kati.Screens.WhatFits.name_of(cached),
+      seed: cached && cached.poster_path,
+      meta: UI.eyebrow_label(gettext("Film")),
+      run: Kati.Screens.WhatFits.hours(minutes),
+      minutes: minutes,
+      tracked_id: tracked.id
+    }
   end
 
   @doc false
@@ -440,8 +489,9 @@ defmodule Kati.Screens.WhatFits do
   The nearest film that does NOT fit, or nothing.
 
   Nearest over, because *nothing else fits* is a sentence about the thing you
-  almost had time for. A film with no runtime cannot be measured and is not
-  offered as the one you nearly fitted in.
+  almost had time for. Only films still to be watched — `films/0` — and a film
+  with no runtime cannot be measured and is not offered as the one you nearly
+  fitted in.
   """
   @spec nearest_over(pos_integer()) :: map() | nil
   def nearest_over(minutes) do
@@ -522,8 +572,14 @@ defmodule Kati.Screens.WhatFits do
   @doc false
   def series, do: Kati.Screens.WhatFits.shelf(@series_kinds)
 
-  @doc false
-  def films, do: Kati.Screens.WhatFits.shelf([:movie])
+  @doc """
+  The films on the shelf still to be watched: a film finished or dropped is
+  not something the reader is choosing tonight, whether it fits or not.
+  """
+  def films do
+    Kati.Screens.WhatFits.shelf([:movie])
+    |> Enum.reject(fn {tracked, _cached} -> tracked.status in [:finished, :dropped] end)
+  end
 
   # Through `:shelf`, which is what keeps a title the reader hid out of every
   # list in the app — including this one.
@@ -576,15 +632,6 @@ defmodule Kati.Screens.WhatFits do
     end
   rescue
     _error -> rows
-  end
-
-  @doc false
-  def watches(tracked) do
-    Kati.Media.Watch
-    |> Ash.Query.for_read(:episode_ticks, %{tracked_title_id: tracked.id})
-    |> Ash.read!()
-  rescue
-    _error -> []
   end
 
   @doc """
@@ -987,7 +1034,7 @@ defmodule Kati.Screens.WhatFits do
   def unfiltered_title(%{fits: []} = t), do: t.fits_label
 
   def unfiltered_title(t) do
-    gettext("%{fit} episodes fit — %{watchable} you can watch",
+    gettext("%{fit} fit tonight — %{watchable} you can watch",
       fit: Kati.Locale.number(length(t.fits)),
       watchable: Kati.Locale.number(0)
     )

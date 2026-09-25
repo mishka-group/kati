@@ -239,12 +239,25 @@ defmodule Kati.ScreenFilmTest do
       end
     end
 
-    test "the year is absent from the meta line, because nothing stores one" do
+    test "the year is absent from the meta line when the provider gave none" do
       a_watched_film!()
 
       # `next_release_at` is the NEXT release and would print next Tuesday as a
-      # film's year. The line is the runtime and the genres and nothing else.
+      # film's year, so it is never read as one.
       refute Film.film().meta =~ ~r/\d{4}/
+    end
+
+    test "and is the cache row's own first_release_year when it has one" do
+      track!("film-year", %{status: :watching}, %{
+        title: "Low Water",
+        runtime_minutes: 112,
+        genres: "Drama",
+        first_release_year: 2019
+      })
+
+      f = Film.film()
+      assert f.meta == "2019 · 1H 52M · DRAMA"
+      assert Film.share_line(f) == "Low Water (2019)"
     end
 
     test "the action row is still drawn — those are affordances, not data" do

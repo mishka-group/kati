@@ -113,127 +113,81 @@ defmodule Kati.Screens.Rating do
 
   `Kati.Media.Watch` models this sheet column for column — rating, review,
   `contains_spoilers`, `rewatch_number`, `watched_on` beside `watched_at`,
-  `service`, `place`, `companions`, `tags` — and its own moduledoc names screen
-  33 four times over. So the question was not *whether* this screen belongs to
-  that resource but *which direction*, and the answer is now **both**.
+  `service`, `place`, `companions`, `tags` — and every one of those is both
+  drawn from the row and written back to it. Nothing the sheet draws comes from
+  anywhere else: the title, the poster and the runtime are the title's cache
+  row, the scale is `Kati.Rating.Scale`, and every other value is the watch's.
 
-  **The drawing is a filled-in sheet, and only a stored watch can fill it.** The
-  rating is set, the review is typed, the spoiler toggle is on, three context
-  rows have values and three tags are attached. A sheet composing a *new* watch
-  has none of that: it is five empty cards, which is not this drawing and not
-  anything screen 27's empty state would call a state either. The only thing in
-  the app that looks like this picture is a watch that already exists — so this
-  screen reads the newest one and shows it, which is what reopening a log to
-  edit it looks like.
+  **Two ways in, two kinds of Save.** Opened on a title with `new: true` —
+  `params_for/2`, screen 08's *Log a watch* / *Log rewatch* — the sheet is
+  blank and Save CREATES a watch, numbered by `viewing_number/1`. Opened on a
+  title without it — the rating card and the note pencil — the sheet is that
+  title's newest watch and Save UPDATES it, so *I changed my mind about the
+  rating* is one row rather than two contradictory logs of one night;
+  `Kati.RatingWriteTest` pins that: rate, save, rate again, save again, one row.
+  A title with nothing logged opens `blank_for/1` either way.
 
-  **So Save UPDATES that watch, and cannot create a second one.** A sheet that
-  reopens a log and commits a new row would answer "I changed my mind about the
-  rating" with two contradictory logs of one night, and screen 15's activity
-  list would show both. `save_watch/1` therefore starts from the id the sheet
-  mounted with, and `Kati.RatingWriteTest` pins the consequence directly:
-  rate, save, rate again, save again, one row.
-
-  **Every value the sheet draws is editable now.** Each star carries two tap
-  targets — left half and right half, which is precisely what the drawing's own
-  `TAP LEFT OR RIGHT OF CENTRE` promises — so the ten of them address
-  `Kati.Media.Watch.rating`'s ten points one for one, and the review is a real
-  field. This paragraph used to end *`contains_spoilers`, the three context
-  rows and `:add_tag` are still drawn and still inert*, and each of those has
-  since been given the control it was waiting for: the spoiler line toggles
-  (`:toggle_spoilers`), the three rows disclose one at a time (#95), and the
-  tag field opens on `:add_tag` and commits on `:commit_tag` (#96). Each is
-  live only when the sheet has a row behind it — `writable?/1` — because a
-  control over a drawn page would be editing nothing.
+  **Every value the sheet draws is editable.** Each star carries two tap
+  targets — left half and right half, which is what `TAP LEFT OR RIGHT OF
+  CENTRE` promises — so the ten of them address `Kati.Media.Watch.rating`'s ten
+  points one for one; the review is a real field; the spoiler line toggles
+  (`:toggle_spoilers`); *Watched on*, *Where* (service and place) and *With*
+  disclose one at a time (#95); and the tag field opens on `:add_tag` and
+  commits on `:commit_tag` (#96). Each is live only when the sheet has a title
+  behind it — `writable?/1`.
 
   ## What the tap sweep does with a Save that writes
 
-  `Kati.ScreenTapSweepTest` taps **every** control **every** screen draws, in
-  both locales, against the one shared SQLite file — the suite has no Ecto
-  sandbox. The version of this moduledoc that predicted `:save` would start
-  creating `Kati.Media.Watch` rows for every other sweep to render was right
-  about the risk and wrong about the fix: no scratch database is needed, because
-  a save that can only UPDATE has nothing to leave behind.
-
-  With nothing logged — which is what the sweep sees, since every test that
-  writes a watch empties the table on the way out — the sheet is the drawing,
-  there is no id, and `save_watch/1` answers `{:error, :nothing_to_save}`.
-  Refusing to write is the honest answer rather than a concession to the sweep:
-  the values on screen belong to `Kati.Rating.Sample`, and committing them would
-  file the drawing's own review under somebody's name. With a watch present the
-  sweep writes back to that watch what it had just read from it.
+  `Kati.ScreenTapSweepTest` taps every control every screen draws, against the
+  one shared SQLite file. A bare push names no title, so the sheet is
+  `empty_watch/0`, nothing on it is live, and `save_watch/1` answers
+  `{:error, :nothing_to_save}` — there is nothing to leave behind.
 
   ## Where the watch comes from
 
-  Nothing hands this screen an id — `Kati.Screens.Gallery` pushes it with no
-  watch attached, exactly as it pushes `Kati.Screens.Film` with no film — so the
-  referent is chosen here and stated: **the newest watch that carries a rating
-  or a review**, which is the newest thing the user actually *logged* as opposed
-  to *ticked*. `Kati.Media.Watch` is explicit that a tick and a log are one row
-  shape at two levels of detail; a tick has no rating, no review and no context,
-  so a sheet drawn from one would be five empty cards for a second reason.
+  The push names the title (`:tracked_title_id`) and the sheet reads that
+  title's **newest watch that carries a rating or a review**, which is the
+  newest thing the user *logged* as opposed to *ticked*; failing that, its
+  newest whole-title watch, so a film marked seen with nothing else on it can
+  still be rated. Episode ticks never fill it: a tick has no rating, no review
+  and no context.
 
   Three reads, never one per row: that watch, its durable row (loaded with it),
   and the one cache row that row names — by `{source, source_id}` as a **value
   pair**, so an evicted poster cannot take the user's own review down with it.
 
-  With nothing logged there is no such watch and `Kati.Rating.Sample` is drawn
-  instead, the values `test/design/screens/33.html` was captured from.
-  FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
-  module stays exactly where it is; it is the fallback and the fixture, not a
-  stage this screen has passed through.
+  `Kati.Rating.Sample` is board 33's own values and is reached only through
+  `drawn_watch/0`, which the design-literal test installs to compare the frame
+  against its capture. No reader path draws it.
 
-  ### What no resource can express, and is therefore not drawn
+  ### What is not drawn
 
-    * **`2025` in the meta line.** The same gap `Kati.Screens.Film` records:
-      `Kati.Media.CachedTitle.next_release_at` is the NEXT release, and reading
-      it as a first-release year would print next Tuesday's date as a film's
-      year. The line degrades to `1H 52M`, which is `runtime_minutes` and
-      nothing else.
-    * **`HALF STARS ON`, and the `5★`/`10pt` toggle.** Both are display
-      preferences — which scale the user reads ratings on — and no resource
-      holds one. `Kati.Media.Watch.rating` is the ten-point integer either way,
-      and screen 35's settings are where a scale preference would live. So both
-      stay the drawing's, on a real watch as on the fallback.
+    * **The bold, italic and link glyphs under the review.** The review is one
+      plain string and nothing formats it, so the three were pictures of
+      buttons; they are gone.
 
-      The note is now asked for BY NAME — `rating_note/0` — where it used to be
-      read off the draft. mishka-group/kati#103: a msgid has to be a literal at
-      its call site, so a sentence a Persian reader must be able to read cannot
-      arrive as `w.rating_note`. The msgid is `Kati.Rating.Sample`'s own
-      sentence letter for letter, which is the same "one place that copy lives"
-      rule one level up — the fixture still holds the English, and the
-      catalogue holds what it becomes.
-
-      The second half of that same line, `TAP LEFT OR RIGHT OF CENTRE`, is not
-      a preference and is no longer a claim: it is what `star_cell/3` draws, and
-      the reason the ten targets are half-star wide rather than five stars wide.
+  `HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE` is `rating_note/0`, copy about
+  the control rather than a value: it is what `star_cell/3` draws. The `5★` /
+  `10pt` toggle is `scale_options/0`, and the lit tile is the reader's stored
+  choice.
 
   ## What this sheet says in Persian, and what stays in Latin
 
-  mishka-group/kati#103 folded the mirrors away, so this module is both
-  languages now. Three of its decisions are worth naming here because they are
-  not simply a `gettext/1` around a literal:
+  Every string this module writes goes through `gettext/1` or `pgettext/2`.
+  Three decisions are worth naming because they are not simply a `gettext/1`
+  around a literal:
 
     * **`sub_of/2` is keyed by the row's glyph name, not by its title.** The
-      three context titles are drawn copy — `تاریخ تماشا` — and
-      `Kati.Rating.Sample` writes the drawing's rows in English, so a lookup by
-      title finds nothing the moment the reader's language is not the
-      fixture's. `event`, `tv` and `group` are the same three names in both
-      scripts.
+      three context titles are drawn copy — `تاریخ تماشا` — so a lookup by title
+      would find nothing the moment the reader's language changed. `event`,
+      `tv` and `group` are the same three names in both scripts.
     * **`no_service/0` is a label that gets STORED.** It is the one chip on the
       Where row whose words are Kati's, and `choose_where/2` writes the label
       itself into `Kati.Media.Watch.service` — so a Persian reader's night at
-      the cinema is stored in Persian. That function's doc carries the trade
-      and what closing it properly would take.
-    * **The values `Kati.Rating.Sample` holds are still English, and that is
-      the fixture's file to fix.** `Blue Hour`, `2025 · 1H 52M`, `2nd rewatch`,
-      `184 characters`, `Spoilers hidden`, the three context sub-lines and the
-      three tags all reach the screen as data, and `gettext(w.title)` does not
-      compile. A real watch answers in the reader's own language — `shaped/3`
-      builds every one of those through a msgid — so what is left in Latin is
-      the DRAWING, on a device with nothing logged. The scale toggle's `5` and
-      `10pt` are the fixture's too, and `scale_from/1` matches those two
-      strings to decide which scale was tapped: translating the label without
-      moving that match would make the toggle stop working.
+      the cinema is stored in Persian. That function's doc carries the trade.
+    * **The scale tiles tap by KEY.** `scale_options/0` gives each tile a
+      language-free `key` for its tag and a translated `label` for its face, so
+      `:scale_10pt` names the same tile in both scripts.
   """
   use Mob.Screen
   use Gettext, backend: Kati.Gettext
@@ -257,7 +211,8 @@ defmodule Kati.Screens.Rating do
   `watch` is the DRAFT from here on: the stars and the field write into it and
   Save commits it, so it starts as what was read and diverges as it is edited.
   `watch_id` is what makes the commit an update — it is the row the draft came
-  out of, and `nil` when the draft is the drawing's and there is no row.
+  out of, and `nil` when there is no row yet — a blank sheet, whose Save
+  creates one, or `empty_watch/0`, whose Save refuses.
 
   The id is carried rather than re-derived at save time, and that is the whole
   of what stops a second write landing on a different watch: `newest_log/1`
@@ -271,25 +226,25 @@ defmodule Kati.Screens.Rating do
   Reading the row and shaping it are two steps that can fail *independently*:
   `logged_record/0` can find a watch and `shape/1` can still answer `nil`,
   because `shaped/3` reads a zone and a cache row and its rescue exists for
-  exactly that. When it does, the sheet falls back to `Kati.Rating.Sample` — and
-  an id carried past that point would leave the drawing's values sitting on the
-  socket with a real row's id beside them.
-
-  Measured, by making `shape/1` raise: the sheet drew "Blue Hour", Save reported
-  success, popped, and replaced the user's own rating and review with the
-  fixture's. Silently, because a save that lands is *supposed* to close. That is
-  the same rule `save_watch/1` states for the no-row case — the drawing is never
-  committed — and it has to hold for both ways of arriving at the drawing, not
-  just the empty-database one. `watch/0`'s gate says it for the render:
-  *either every value on it is this watch's or every value is the drawing's*.
-  The id is one of those values.
+  exactly that. When it does, the sheet falls back to `empty_watch/0` — and an
+  id carried past that point would leave an empty draft on the socket with a
+  real row's id beside it, and Save would blank the reader's own rating and
+  review. So the id goes with the shaped draft or not at all.
 
   ## Which title the sheet is a log of
 
-  `:tracked_title_id` in the push's params names it — `Kati.Screens.Film`'s
-  "Log a watch" row puts the film on screen there, through `params_for/1`.
-  Without the key, which is the gallery's door and every sweep's, the sheet
-  draws the newest log in the library: the one answer it has ever given.
+  `:tracked_title_id` in the push's params names it, through `params_for/1`.
+  Without the key, which is the gallery's door and every sweep's, the sheet is
+  `empty_watch/0` and Save refuses.
+
+  ## Editing the last watch, or logging another one
+
+  `new: true` in the params — `params_for/2` with `:new` — opens a blank sheet
+  for that title whatever it already holds, and Save creates a watch. That is
+  screen 08's *Log a watch* / *Log rewatch* row: a second viewing is a second
+  row, and `blank_for/1` numbers it. Without it the sheet reopens the title's
+  newest watch (`logged_record/1`) and Save edits that row, which is what the
+  rating card and the note pencil mean.
   """
   def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
@@ -299,7 +254,8 @@ defmodule Kati.Screens.Rating do
     Kati.Locale.activate()
     Kati.Screens.Resume.watch()
     tracked_id = Map.get(params || %{}, :tracked_title_id)
-    {draft, id} = draft_and_id(logged_record(tracked_id), tracked_id)
+    opened = if Map.get(params || %{}, :new) == true, do: nil, else: logged_record(tracked_id)
+    {draft, id} = draft_and_id(opened, tracked_id)
 
     {:ok,
      socket
@@ -314,23 +270,11 @@ defmodule Kati.Screens.Rating do
      |> Mob.Socket.assign(:save_error, nil)}
   end
 
-  # The draft and the id it may be committed under. `nil` for the id whenever
-  # the draft is the drawing's, by either route: no logged watch at all, or one
-  # that could not be shaped.
-  # Nothing logged yet, but a film was NAMED: a blank sheet about that film.
-  #
-  # It used to answer the drawing here whatever it had been handed, and on a
-  # device that meant pressing *Log a watch* on **Arrival** opened a sheet
-  # about **Blue Hour** — its poster, its `2nd rewatch`, its review, its tags,
-  # its `Watched on Sun 16 Aug`, its `With Jo`. Pressing Save then wrote all
-  # of it against Arrival's id, which is the whole of what this app must not
-  # do. Found on a Pixel 9a the first time a film could be logged at all.
-  #
-  # `blank_for/1` is the sheet in the state a first watch is actually in:
-  # this title, this poster, this runtime, no stars, no review, no tags, and
-  # no claim about a night. The drawing is still the answer when NOTHING was
-  # named — the gallery pushes with no params, and board 33 is what it must
-  # draw.
+  # The draft and the id it may be committed under. No watch to open and a
+  # title named: `blank_for/1`, the sheet a new watch of that title starts
+  # from, with no id so Save creates. No title, or a title that has gone:
+  # `empty_watch/0`, which nothing can commit. A watch that cannot be shaped
+  # is `empty_watch/0` too, and its id is dropped with it.
   defp draft_and_id(nil, tracked_id) when is_binary(tracked_id) do
     case blank_for(tracked_id) do
       nil -> {empty_watch(), nil}
@@ -348,16 +292,13 @@ defmodule Kati.Screens.Rating do
   end
 
   @doc """
-  The watch this sheet draws: the user's newest log, or the drawing's.
+  The watch this sheet draws for `title_id`: its newest watch shaped, or
+  `empty_watch/0`.
 
   The gate is the whole sheet rather than each card, for the reason
-  `Kati.Screens.Film.film/0` gives: a page whose review is the user's own and
-  whose title is somebody else's film reads as entirely real. Either every value
-  on it is this watch's or every value is the drawing's.
-
-  `title_id` is the title the push named. Without one there is no subject and
-  the answer is the drawing — see `newest_log/1`, which used to run the query
-  unnarrowed and hand back the newest rated watch anywhere in the library.
+  `Kati.Screens.Film.film/0` gives: either every value on it is this watch's or
+  there are none. Without a `title_id` there is no subject and the answer is
+  `empty_watch/0` — `newest_log/1` never reads the library unnarrowed.
   """
   @spec watch(String.t() | nil) :: map()
   def watch(title_id \\ nil), do: shaped_or_empty(logged_record(title_id))
@@ -375,10 +316,10 @@ defmodule Kati.Screens.Rating do
   @doc """
   The user's newest log, shaped for the markup, or `nil` when there is not one.
 
-  `nil` is the ordinary answer on a fresh install and the one `watch/0` reads as
-  "draw the drawing". A database that cannot be read at all answers `nil` too —
-  `Ash.read!` on a device mid-migration raises, and a sheet that dies is
-  strictly worse than a sheet showing the values it was drawn from.
+  With no title named this is always `nil`: a log is a log OF something. A
+  database that cannot be read at all answers `nil` too — `Ash.read!` on a
+  device mid-migration raises, and a sheet that dies is strictly worse than an
+  empty one.
   """
   @spec logged_watch() :: map() | nil
   def logged_watch do
@@ -434,6 +375,23 @@ defmodule Kati.Screens.Rating do
   def params_for(_film), do: %{}
 
   @doc """
+  The params that open a BLANK sheet for a film, so Save logs another watch.
+
+  See `mount/3`'s *Editing the last watch, or logging another one*.
+
+      iex> Kati.Screens.Rating.params_for(%{tracked_id: "abc"}, :new)
+      %{tracked_title_id: "abc", new: true}
+
+      iex> Kati.Screens.Rating.params_for(%{}, :new)
+      %{}
+  """
+  @spec params_for(map() | nil, :new) :: map()
+  def params_for(%{tracked_id: id}, :new) when is_binary(id),
+    do: %{tracked_title_id: id, new: true}
+
+  def params_for(_film, :new), do: %{}
+
+  @doc """
   A film you have watched is a film you have finished.
 
   Nothing in the reachable app could set a title's status: the only writer was
@@ -472,24 +430,30 @@ defmodule Kati.Screens.Rating do
 
   Every field the markup reads, answered about THIS title and about nothing
   else: the title, the poster and the runtime off the cache, and then absence
-  — no rating, no review, no spoiler flag, no context rows, no tags, and no
-  rewatch line, because a first watch is not a rewatch.
+  — no rating, no review, no spoiler flag, no context rows and no tags.
 
-  `nil` when the id names no row, which sends `draft_and_id/2` back to the
-  drawing — the same rule `Kati.Screens.BookDetail.shelved_book/1` states: a
-  title deleted under you draws the drawing, never somebody else's.
+  The rewatch badge is the one thing it states, and it is counted rather than
+  assumed: `viewing_number/1` over the title's own watches. A film nobody has
+  logged is a first watch and has no badge; one seen twice opens *3rd
+  rewatch*, and `rewatch_number` carries the 3 to Save.
+
+  `nil` when the id names no row, which sends `draft_and_id/2` back to
+  `empty_watch/0` — the same rule `Kati.Screens.BookDetail.shelved_book/1`
+  states: a title deleted under you is never swapped for somebody else's.
   """
   @spec blank_for(String.t()) :: map() | nil
   def blank_for(tracked_id) when is_binary(tracked_id) do
     case Ash.get(TrackedTitle, tracked_id) do
       {:ok, %TrackedTitle{} = tracked} ->
         cached = cached_for(tracked)
+        n = viewing_number(tracked_id)
 
         %{
           title: title_of(cached),
           seed: seed_of(tracked, cached),
-          meta: runtime_label(cached),
-          rewatch: nil,
+          meta: meta_label(cached),
+          rewatch: rewatch_label(n),
+          rewatch_number: if(n > 1, do: n),
           rating: nil,
           rating_note: rating_note(),
           spoilers: nil,
@@ -514,6 +478,34 @@ defmodule Kati.Screens.Rating do
     end
   rescue
     _error -> nil
+  end
+
+  @doc """
+  Which viewing of a title the next logged watch is: one more than it has seen.
+
+  Counted the way `Kati.Screens.Film`'s `SEEN` line counts — whole-title
+  watches, or the reader's own highest `rewatch_number` when that is larger,
+  because a film seen twice before Kati existed carries its history in that
+  column rather than in rows. Episode ticks are not viewings of the title.
+  `1` for a title with nothing logged, and for a store that cannot be read.
+  """
+  @spec viewing_number(String.t()) :: pos_integer()
+  def viewing_number(tracked_id) do
+    watches =
+      Watch
+      |> Ash.Query.for_read(:for_title, %{tracked_title_id: tracked_id})
+      |> Ash.read!()
+      |> Enum.filter(&is_nil(&1.episode_source_id))
+
+    claimed =
+      watches
+      |> Enum.map(& &1.rewatch_number)
+      |> Enum.filter(&is_integer/1)
+      |> Enum.max(fn -> 0 end)
+
+    max(length(watches), claimed) + 1
+  rescue
+    _error -> 1
   end
 
   @doc """
@@ -564,7 +556,7 @@ defmodule Kati.Screens.Rating do
   # night the log is about; `inserted_at` behind it so a watch recorded with no
   # instant ("I have seen this, I do not remember when") still orders by when it
   # was written down rather than arbitrarily.
-  # A push that named nothing gets NOTHING, and the sheet falls to its drawing.
+  # A push that named nothing gets NOTHING, and the sheet is `empty_watch/0`.
   #
   # It used to run the query unnarrowed, so a sheet opened without a subject
   # showed the newest rated watch anywhere in the library — somebody else's
@@ -573,13 +565,32 @@ defmodule Kati.Screens.Rating do
   # and the gallery's is a seventh.
   #
   # `nil` is the sheet's own documented no-row state and is safe: `watch/0`
-  # gates the whole page on it, and `save_watch/1` refuses to commit the
-  # drawing. Screen 08's door passes `params_for/1` and is unaffected.
+  # gates the whole page on it, and `save_watch/1` refuses to commit an empty
+  # sheet. Screen 08's doors pass `params_for/1` and `params_for/2`.
+  #
+  # A title whose watches carry no rating and no review yet — a film marked
+  # seen, a watch imported bare — still has a newest watch of ITSELF, and the
+  # rating card on screen 08 is a door onto rating that viewing. So the second
+  # read takes the newest whole-title watch; episode ticks stay out of it, for
+  # the moduledoc's reason.
   defp newest_log(nil), do: nil
 
-  defp newest_log(title_id) do
+  defp newest_log(title_id), do: newest_logged(title_id) || newest_viewing(title_id)
+
+  defp newest_logged(title_id) do
     Watch
     |> Ash.Query.filter(not is_nil(rating) or (not is_nil(review) and review != ""))
+    |> of_title(title_id)
+    |> Ash.Query.sort(watched_at: :desc, inserted_at: :desc)
+    |> Ash.Query.load(:tracked_title)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> List.first()
+  end
+
+  defp newest_viewing(title_id) do
+    Watch
+    |> Ash.Query.filter(is_nil(episode_source_id))
     |> of_title(title_id)
     |> Ash.Query.sort(watched_at: :desc, inserted_at: :desc)
     |> Ash.Query.load(:tracked_title)
@@ -637,7 +648,7 @@ defmodule Kati.Screens.Rating do
     %{
       title: title_of(cached),
       seed: seed_of(tracked, cached),
-      meta: runtime_label(cached),
+      meta: meta_label(cached),
       rewatch: rewatch_label(logged.rewatch_number),
       rating: logged.rating && logged.rating / 2,
       # A display preference with no resource behind it — see the moduledoc.
@@ -722,9 +733,17 @@ defmodule Kati.Screens.Rating do
 
   defp seed_of(_tracked, _cached), do: nil
 
-  # `2025 · 1H 52M` minus the year, which nothing stores. An unknown runtime
-  # leaves the line empty rather than spelling the absence as a dash.
-  #
+  # `2025 · 1H 52M`: `first_release_year` and `runtime_minutes`, each left
+  # out when the provider gave none rather than spelled as a dash.
+  defp meta_label(cached) do
+    [year_label(cached), runtime_label(cached)]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" · ")
+  end
+
+  defp year_label(%CachedTitle{first_release_year: y}) when is_integer(y), do: Kati.Locale.year(y)
+  defp year_label(_cached), do: nil
+
   # The catalogue's own `%{h}h %{m}m` — eight other screens ask for a runtime
   # with it — raised by `Kati.UI.eyebrow_label/1` rather than a second, upper
   # case msgid of the same two words. The board prints this line in caps,
@@ -1178,9 +1197,16 @@ defmodule Kati.Screens.Rating do
     )
   end
 
-  @doc false
+  @doc """
+  The title's own poster, or the placeholder swatch.
+
+  `Kati.Design.Images.poster/1` answers a provider path through
+  `Kati.Media.Artwork`, so a sheet about a film Kati has no artwork for draws
+  the swatch rather than a picture of some other film.
+  """
+  @spec poster(map()) :: map()
   def poster(w) do
-    case Sample.poster(w.seed) do
+    case Kati.Design.Images.poster(w.seed) do
       nil ->
         ~MOB"<Box width={74} height={106} corner_radius={10} background={Palette.placeholder()} />"
 
@@ -1269,26 +1295,18 @@ defmodule Kati.Screens.Rating do
   @doc """
   The `5★` / `10pt` toggle, lit from the stored preference.
 
-  It was drawn from `Kati.Rating.Sample.scales/0` with
-  its first tile hardcoded `on` and no tap on either, and the moduledoc argued
-  that was right because no resource holds a display preference. No Ash
-  resource does and none should — see `Kati.Rating.Scale`, which keeps it where
-  `Kati.Locale` keeps the locale.
-
-  The tiles are built here rather than read from the fixture now, because the
-  fixture cannot know which one is lit; their labels still come from it, so the
-  drawing stays the source of the copy.
+  The tiles are `scale_options/0`, the app's own two scales; the lit one is
+  `Kati.Rating.Scale.current/0`, which is where a tap writes the choice. No Ash
+  resource holds it and none should — see `Kati.Rating.Scale`, which keeps it
+  where `Kati.Locale` keeps the locale.
   """
   @spec scale_toggle(boolean()) :: map()
   def scale_toggle(live? \\ false) do
     active = Kati.Rating.Scale.current()
 
     tiles =
-      Kati.Rating.Scale.supported()
-      |> Enum.zip(Sample.scales())
-      |> Enum.map(fn {scale, drawn} ->
-        Kati.Screens.Rating.scale(%{drawn | on: scale == active}, live?)
-      end)
+      scale_options()
+      |> Enum.map(&Kati.Screens.Rating.scale(Map.put(&1, :on, &1.scale == active), live?))
       |> Enum.intersperse(Kati.Screens.Rating.scale_gap())
 
     ~MOB"""
@@ -1296,6 +1314,31 @@ defmodule Kati.Screens.Rating do
       {tiles}
     </Row>
     """
+  end
+
+  @doc """
+  The two scales a rating can be read on, in `Kati.Rating.Scale.supported/0`'s
+  order.
+
+  `key` is the suffix of the tile's tap tag and is the same in every language,
+  so `:scale_10pt` addresses one tile in both scripts; `label` is what the tile
+  says. The five-star tile is a figure beside a star glyph, and a figure set
+  beside the rating numeral keeps that numeral's Latin digits.
+
+      iex> Kati.Screens.Rating.scale_options() |> Enum.map(& &1.key)
+      ["5", "10pt"]
+  """
+  @spec scale_options() :: [map()]
+  def scale_options do
+    [
+      %{scale: :stars, key: "5", label: "5", star: true},
+      %{
+        scale: :points,
+        key: "10pt",
+        label: pgettext("the ten-point side of the rating scale toggle", "10pt"),
+        star: false
+      }
+    ]
   end
 
   @doc false
@@ -1309,7 +1352,9 @@ defmodule Kati.Screens.Rating do
   def scale(option, live? \\ false)
 
   def scale(%{on: true} = option, live?) do
-    assigns = %{tap: if(live?, do: Kati.Screens.Rating.scale_tap(option.label))}
+    assigns = %{
+      tap: if(live?, do: Kati.Screens.Rating.scale_tap(Map.get(option, :key, option.label)))
+    }
 
     ~MOB"""
     <Row
@@ -1335,7 +1380,9 @@ defmodule Kati.Screens.Rating do
   end
 
   def scale(option, live?) do
-    assigns = %{tap: if(live?, do: Kati.Screens.Rating.scale_tap(option.label))}
+    assigns = %{
+      tap: if(live?, do: Kati.Screens.Rating.scale_tap(Map.get(option, :key, option.label)))
+    }
 
     ~MOB"""
     <Row
@@ -1359,7 +1406,7 @@ defmodule Kati.Screens.Rating do
   end
 
   @doc """
-  A scale tile's tap, keyed by the label the drawing gives it.
+  A scale tile's tap, keyed by the tile's `key` — see `scale_options/0`.
 
       iex> {_pid, tag} = Kati.Screens.Rating.scale_tap("10pt")
       iex> tag
@@ -1596,6 +1643,10 @@ defmodule Kati.Screens.Rating do
   # own argument one card up. The character count is a SENTENCE and not a
   # figure — `۱۸۴ نویسه` — so it asks `Kati.Locale.mono_face/1` what its own
   # script needs; a Latin count is still DM Mono, which is what the board draws.
+  #
+  # The board's bold, italic and link glyphs beside the count are not drawn:
+  # `Kati.Media.Watch.review` is one plain string and nothing formats it, so
+  # the three were pictures of buttons with no tap behind any of them.
   @doc false
   def review_card(w) do
     ~MOB"""
@@ -1632,12 +1683,6 @@ defmodule Kati.Screens.Rating do
             text_color={Palette.cream_meta()}
             max_lines={1}
           />
-          <Spacer weight={1.0} />
-          {Kati.UI.symbol("format_bold", size: 16, color: Palette.gold_icon())}
-          <Spacer size={7} />
-          {Kati.UI.symbol("format_italic", size: 16, color: Palette.gold_icon())}
-          <Spacer size={7} />
-          {Kati.UI.symbol("link", size: 16, color: Palette.gold_icon())}
         </Row>
       </Column>
       <Spacer size={14} />
@@ -2695,17 +2740,18 @@ defmodule Kati.Screens.Rating do
   end
 
   @doc """
-  Write the draft back onto the watch the sheet opened on.
+  Write the draft: onto the watch the sheet opened on, or as a new watch of the
+  title it names.
 
-  `Ash.update/1`, never `Ash.create/2`, and `watch_id` is what makes that
-  possible: the sheet is an editor for an existing log, so a second row would be
-  a second, contradicting account of one night — see the moduledoc.
+  With a `watch_id` it is `Ash.update/1` on that row — the sheet reopened a
+  log, and a second row would be a second, contradicting account of one night.
+  With no id and a title that still exists it is `Ash.create/2`: the blank
+  sheet of `blank_for/1`, a first watch or another viewing, carrying the
+  `rewatch_number` it was opened with.
 
-  **With no id there is nothing to update, and that is the whole answer.** The
-  draft on screen is then `Kati.Rating.Sample`'s and belongs to the drawing;
-  committing it would file "Blue Hour" and a review nobody wrote under the
-  user's own log. `{:error, :nothing_to_save}` is `Kati.Write`'s own term for
-  it and `Kati.Write.message/1` already renders it as *"Nothing to save yet."*
+  **With neither there is nothing to write, and that is the whole answer.**
+  `{:error, :nothing_to_save}` is `Kati.Write`'s own term for it and
+  `Kati.Write.message/1` renders it as *"Nothing to save yet."*
 
   A blank review is stored as `nil` rather than `""`, because
   `Kati.Media.Watch.review` is nullable and a review of nothing but whitespace
@@ -2757,6 +2803,7 @@ defmodule Kati.Screens.Rating do
           # from the day it existed and written by nothing, so `Lumen+ · living
           # room` could only ever print its first half.
           place: Map.get(w, :place),
+          rewatch_number: Map.get(w, :rewatch_number),
           # The night the reader said, and tonight when they did not — #95 gave
           # the row a writer, so this is no longer always "now".
           watched_on: Map.get(w, :watched_on) || Kati.Time.today(),

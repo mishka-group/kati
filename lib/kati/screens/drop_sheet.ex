@@ -25,22 +25,14 @@ defmodule Kati.Screens.DropSheet do
   on the dark pill is the third — closing the loop 148 opened rather than
   inventing a fourth behaviour for a control 148 never drew.
 
-  ## `:active` and `:gone_cold` are 148's vocabulary, not this resource's yet
+  ## Gone cold is noticed, paused and dropped are decided
 
-  148's own `Kati.Settings.DropStatesSample` states plainly that
-  `Kati.Media.TrackedTitle.status` "really does hold `:active` / `:paused` /
-  `:gone_cold` / `:dropped` / `:finished`" — but that resource, read here
-  rather than quoted, still constrains `status` to `:not_started, :watching,
-  :paused, :finished, :dropped`. 148 is itself Sample-only and unwired ("Nothing
-  here is read from `Kati.Media`"), so the five-way split is a drawn intention,
-  not a shipped migration. `Kati.Screens.UpNext` — which *is* wired — already
-  answers the gap the same way this screen does: its own moduledoc calls
-  `:paused` "gone cold," full stop. So `gone_cold_title/0` below reads
-  `status == :paused`, and every write this screen makes sets `:dropped` or
-  `:watching` — the two current-enum values 148's `:dropped` and `:active`
-  will rename to once the migration lands. Nothing here invents a third status
-  or touches the resource to add one; that migration is a bigger change than
-  one screen module.
+  `Kati.Media.TrackedTitle.status` is `:not_started, :watching, :paused,
+  :finished, :dropped`; *gone cold* is not a status but
+  `Kati.Media.Staleness.gone_cold?/1`, a `:watching` row nobody has touched in
+  a while. So the sheet writes `:dropped` to drop, `:watching` to keep a cold or
+  paused title, and on Undo puts back whatever the row held when it opened.
+  Nothing here invents a status.
 
   ## Not `Kati.UI.Sheet.sheet/2` — the board's own top radius, again
 
@@ -94,34 +86,24 @@ defmodule Kati.Screens.DropSheet do
   exactly the trade `Kati.Screens.RetiredTile.no_date/1` already made for the
   same reason.
 
-  ## `Change` steps the captured position back by one episode, locally
+  ## The position is the bookmark, and the discs correct it
 
-  No episode-picker screen exists anywhere in this app yet — `Season 34` is a
-  fixed board, not a title-scoped destination, and pushing there from this
-  sheet would land on a different show entirely. So `Change` is answered
-  in-place: `step_back/1` moves the sheet's own `season`/`episode` pair back
-  one episode, flooring at `S1 E1` rather than wrapping, the same bounded
-  local edit `Kati.Screens.LogProgress`'s manual field makes for a page
-  number. It is not decoration — 148's own `dropped_note` names the reason:
-  *"The captured position is the single thing that makes this better than
-  every incumbent, all of which throw it away."* Whatever `Change` leaves the
-  position at is exactly what `Drop at S# E#`'s label reads and exactly what
-  `commit_drop/1` writes to `progress_season` / `progress_episode` — so a
-  correction made here is not lost the moment the sheet closes.
+  The sheet opens on the row's own bookmark — `progress_season` /
+  `progress_episode`, which `Kati.Screens.Series.bookmark/1` writes as episodes
+  are ticked — and a series that has none says *Not started* rather than
+  inventing `S1 E1`. No episode-picker screen exists, so the two discs beside
+  it step the pair back and forward one episode in place, flooring at `S1 E1`
+  (`step_back/1`, `step_forward/1`). Whatever they leave it at is what `Drop at
+  S# E#` reads and what `commit_drop/1` writes to `progress_season` /
+  `progress_episode`, so a correction made here survives the sheet closing.
 
-  ## The reason chip has nowhere durable to go, and that is written down rather than hidden
+  ## The reason goes into the event log with the position
 
-  148's own transition table says a drop captures "position + optional
-  reason," and the position half has a real column. The reason half does not:
-  `Kati.Media.TrackedTitle` has no `drop_reason` attribute, and `Kati.Activity`
-  — the append-only log both this board and 148 invoke — is Sample data with
-  no writer anywhere in the app (`Kati.Activity.Sample`'s own moduledoc: "the
-  shape here is the shape a real entry has to have," not a resource that
-  exists yet). So `reason` lives in this screen's assigns for exactly as long
-  as the sheet is open, tapped, shown selected, and then discarded when the
-  drop commits — the same honest gap `Kati.Screens.SeriesSettings` names for
-  its own four Media columns with no writer, rather than a silent no-op typed
-  to look like a save.
+  148's transition table says a drop captures *position + optional reason*.
+  The position is the row's; the reason has no column on the row and goes
+  where it belongs, into `Kati.Media.Event` beside the position through
+  `Kati.Media.Log.write/3` — screen 15 draws *Dropped after S1E3 · too slow*
+  from that row. See `commit_drop/1` and `reason_label/1`.
 
   ## The undo pill is drawn in both moments, because the board's caption is a promise
 
@@ -164,18 +146,13 @@ defmodule Kati.Screens.DropSheet do
   wherever the copy is short enough for `mix gettext.merge` to fuzzy-match it
   onto a neighbour, which on a sheet made of buttons and chips is most of it.
 
-  Three strings it draws and does not own, each named where it is drawn rather
+  Two strings it draws and does not own, each named where it is drawn rather
   than left to be noticed:
 
-    * `The Quiet Ones` and `GONE COLD · 4 MONTHS` come off
-      `Kati.Screens.DropSheet.Sample`, which is board 149 typed once and is
-      that module's to translate — the same split `Kati.Screens.DropStates`
-      keeps with `Kati.Settings.DropStatesSample`, and for its reason: a msgid
-      has to be a literal at its own call site, so wrapping the specimen from
-      here would move the copy out of the specimen. A REAL title is a
-      `Kati.Media.CachedTitle` row and is never translated at all.
-    * the age inside that mark is `Kati.Screens.UpNext.age/1`'s bucket,
-      borrowed rather than re-typed — see `duration_of/1`.
+    * the title is a `Kati.Media.CachedTitle` row and is never translated: a
+      show is called what it is called. The age inside the cold mark is
+      `Kati.Screens.UpNext.age/1`'s bucket, borrowed rather than re-typed —
+      see `duration_of/1`.
     * the refusal band's sentence is `Kati.Write.message/1`'s, and that module
       already speaks both languages.
 
@@ -211,15 +188,13 @@ defmodule Kati.Screens.DropSheet do
 
   ## Referent
 
-  `gone_cold_title/1` reads the `status == :paused, archived == false` rows —
-  `Kati.Screens.UpNext`'s own cold-section query, independently written
-  here because this sheet needs the integer position that row's own `cold`
-  formatter throws away — and takes the one the push NAMED, or the newest when
-  the push named none. No such row falls back to `Kati.Screens.DropSheet.
-  Sample.sheet/0` whole, the same all-or-nothing fallback
-  `Kati.Screens.UpNext.queue/0` and `Kati.Screens.RateEpisode.sheet/0` both
-  take, for the reason both give: a real position under the drawing's own
-  title would be the one value on the sheet that is not what it claims to be.
+  `gone_cold_title/1` takes the row the push NAMED, looked up in the whole
+  unarchived shelf, or — named nothing — the newest cold or paused one. No such
+  row is `empty_sheet/0`, which `body/2` draws as one sentence and no controls:
+  a real position under somebody else's title would be the one value on the
+  sheet that is not what it claims to be. `Kati.Screens.DropSheet.Sample` is
+  board 149's own values and is reached only through `drawn_sheet/0`, which the
+  design-literal test installs; no reader path draws it.
   """
 
   use Mob.Screen
@@ -318,7 +293,7 @@ defmodule Kati.Screens.DropSheet do
 
   @doc """
   The title this sheet drops: the one it was named, the newest gone-cold row,
-  or the board's own.
+  or `empty_sheet/0`.
 
   See the moduledoc's "Referent" section. Without the id every door into this
   sheet opened the same row — the newest paused one — however many gone-cold
@@ -366,7 +341,8 @@ defmodule Kati.Screens.DropSheet do
       cold_label: "",
       kind: :tv,
       season: nil,
-      episode: nil
+      episode: nil,
+      empty?: true
     }
   end
 
@@ -417,23 +393,44 @@ defmodule Kati.Screens.DropSheet do
     _error -> nil
   end
 
-  defp from_tracked(tracked) do
+  @doc """
+  The sheet for one tracked row: its title, its mark, and where the reader got
+  to.
+
+  The position is the row's own bookmark — `progress_season` /
+  `progress_episode`, the furthest episode ticked, which
+  `Kati.Screens.Series.bookmark/1` writes on every tick. A series with no
+  bookmark has watched nothing and carries no position rather than an invented
+  `S1 E1`; `position_card/1` says *Not started* and the forward disc is how
+  a reader sets one. A film has no episode to have stopped after, so it
+  carries no position at all and no card.
+
+  `was` is what the row held before this sheet touched it — status and
+  bookmark — so `commit_undo/1` puts back exactly that rather than guessing.
+  """
+  @spec from_tracked(TrackedTitle.t()) :: map()
+  def from_tracked(tracked) do
     cached = cached_for(tracked)
+    series? = tracked.kind != :movie
 
     %{
       tracked: tracked,
       title: title_of(cached),
       seed: seed_of(cached),
       cold_label: Kati.Screens.DropSheet.mark(tracked),
-      # A film has no episode to have stopped after, so
-      # it carries no position at all rather than a manufactured `S1 E1` — and
-      # `position_card/1` draws nothing for it. Inventing a position would put
-      # *after S1E1* on a two-hour film's own history.
       kind: tracked.kind,
-      season: if(tracked.kind == :movie, do: nil, else: tracked.progress_season || 1),
-      episode: if(tracked.kind == :movie, do: nil, else: tracked.progress_episode || 1)
+      season: if(series? and bookmarked?(tracked), do: tracked.progress_season),
+      episode: if(series? and bookmarked?(tracked), do: tracked.progress_episode),
+      was: %{
+        status: tracked.status,
+        progress_season: tracked.progress_season,
+        progress_episode: tracked.progress_episode
+      }
     }
   end
+
+  defp bookmarked?(%{progress_season: s, progress_episode: e}),
+    do: is_integer(s) and is_integer(e)
 
   @doc """
   The mono line under the title: what Kati noticed, or what the reader decided,
@@ -551,6 +548,10 @@ defmodule Kati.Screens.DropSheet do
   """
   @spec step_forward(map()) :: map()
   def step_forward(%{episode: e} = sheet) when is_integer(e), do: %{sheet | episode: e + 1}
+
+  def step_forward(%{kind: kind, season: nil} = sheet) when kind != :movie,
+    do: %{sheet | season: 1, episode: 1}
+
   def step_forward(sheet), do: sheet
 
   @doc """
@@ -583,13 +584,31 @@ defmodule Kati.Screens.DropSheet do
     })
   end
 
-  @doc "Gone cold → Active: \"nothing — 'still on it' just clears it.\""
+  @doc """
+  Gone cold → Active: *"nothing — 'still on it' just clears it."*
+
+  Only a title that HAS a mark to clear is written: a cold or paused one goes
+  back to `:watching`, and the write's own touch is what moves it out of the
+  cold slice. Anything else — a show being watched normally, a film not yet
+  started — is left exactly as it was, which is what `keep_effect/1` promises
+  for it: *changes nothing at all*. A sheet with no row still refuses.
+  """
   @spec commit_keep(Mob.Socket.t()) :: Mob.Socket.t()
-  def commit_keep(socket),
-    do: written(socket, socket.assigns.sheet.tracked, %{status: :watching})
+  def commit_keep(socket) do
+    tracked = socket.assigns.sheet.tracked
+
+    if is_nil(tracked) or marked?(tracked),
+      do: written(socket, tracked, %{status: :watching}),
+      else: Mob.Socket.assign(socket, :save_error, nil)
+  end
+
+  defp marked?(tracked),
+    do: tracked.status == :paused or Kati.Media.Staleness.gone_cold?(tracked)
 
   @doc """
-  Dropped → Active: the position was never touched, so it is already resumed at.
+  Dropped → back to what it was: the status and the bookmark the row held when
+  the sheet opened (`from_tracked/1`'s `was`), so an undo after moving the
+  position with the discs does not leave the moved position behind.
 
   Logged as `:resumed` rather than by deleting the drop. `Kati.Media.Event` is
   append-only and the point of it is that a title dropped in July and picked
@@ -598,9 +617,11 @@ defmodule Kati.Screens.DropSheet do
   """
   @spec commit_undo(Mob.Socket.t()) :: Mob.Socket.t()
   def commit_undo(socket) do
+    sheet = socket.assigns.sheet
+
     socket
-    |> written(socket.assigns.sheet.tracked, %{status: :watching})
-    |> Kati.Screens.DropSheet.log(socket.assigns.sheet.tracked, :resumed, %{})
+    |> written(sheet.tracked, Map.get(sheet, :was, %{status: :watching}))
+    |> Kati.Screens.DropSheet.log(sheet.tracked, :resumed, %{})
   end
 
   @doc """
@@ -684,9 +705,17 @@ defmodule Kati.Screens.DropSheet do
   # what it always meant literally: there is no title to drop.
   defp update_tracked(nil, _attrs), do: {:error, :not_tracked}
 
+  #
+  # The row is read again before it is written. The struct on the sheet is the
+  # one it opened with, and Ash diffs a change against the struct it is handed:
+  # an Undo that puts back the opening values over that struct is a change of
+  # nothing, and nothing is written — the drop stood while the sheet said it
+  # had been undone.
   defp update_tracked(tracked, attrs) do
-    case Ash.update(tracked, attrs) do
-      {:ok, _updated} -> :ok
+    with {:ok, fresh} <- Ash.get(TrackedTitle, tracked.id),
+         {:ok, _updated} <- Ash.update(fresh, attrs) do
+      :ok
+    else
       {:error, reason} -> {:error, reason}
     end
   rescue
@@ -719,19 +748,51 @@ defmodule Kati.Screens.DropSheet do
           padding_bottom={34}
         >
           {Sheet.header(Kati.Screens.DropSheet.heading(s))}
-          {Kati.Screens.DropSheet.identity(s)}
-          {Kati.Screens.DropSheet.position_card(s)}
-          {Eyebrow.quiet(gettext("Why, if you like"))}
-          {Kati.Screens.DropSheet.reasons(assigns.reason)}
-          {Kati.Screens.DropSheet.info_card()}
-          {Kati.Screens.DropSheet.keep_card(s)}
-          {Kati.Screens.DropSheet.refusal(Map.get(assigns, :save_error))}
-          {Kati.Screens.DropSheet.actions(s)}
-          {Kati.Screens.DropSheet.trail(s, assigns.dropped?)}
+          {Kati.Screens.DropSheet.body(s, assigns)}
         </Column>
       </Box>
     </Box>
     """
+  end
+
+  @doc """
+  Everything under the header: the drop itself, or one sentence when there is
+  no title to drop.
+
+  A sheet named nothing — a bare push, or an id whose row has gone — has no
+  title, no mark and no position, and every control on the full sheet writes to
+  a row. Drawing them over `empty_sheet/0` was a blank title above a *Drop*
+  button that could only be refused, so the sheet says there is nothing here
+  and the close disc is the one way on.
+  """
+  @spec body(map(), map()) :: [map()]
+  def body(%{empty?: true}, _assigns) do
+    [
+      ~MOB"""
+      <Column fill_width={true} padding_top={8} padding_bottom={24}>
+        <Text
+          text={gettext("There is no title here to drop.")}
+          text_size={14}
+          line_height={Kati.Locale.leading(1.5)}
+          text_color={Palette.ink_soft()}
+        />
+      </Column>
+      """
+    ]
+  end
+
+  def body(s, assigns) do
+    [
+      Kati.Screens.DropSheet.identity(s),
+      Kati.Screens.DropSheet.position_card(s),
+      Eyebrow.quiet(gettext("Why, if you like")),
+      Kati.Screens.DropSheet.reasons(assigns.reason),
+      Kati.Screens.DropSheet.info_card(),
+      Kati.Screens.DropSheet.keep_card(s),
+      Kati.Screens.DropSheet.refusal(Map.get(assigns, :save_error)),
+      Kati.Screens.DropSheet.actions(s),
+      Kati.Screens.DropSheet.trail(s, assigns.dropped?)
+    ]
   end
 
   @doc """
@@ -902,19 +963,18 @@ defmodule Kati.Screens.DropSheet do
   already says. A card headed **Stopping at** over a blank would be a question
   with no answer, so it is dropped: a control with nothing behind it is not
   drawn dead.
+
+  A series with no bookmark draws the card with *Not started* in the slot: it
+  is a true answer about where the reader stopped, and the forward disc beside
+  it is how they set a position if the ticks never recorded one.
   """
   @spec position_card(map()) :: map()
-  def position_card(%{season: nil}), do: ~MOB"<Spacer size={0} />"
-  def position_card(%{episode: nil}), do: ~MOB"<Spacer size={0} />"
+  def position_card(%{kind: :movie}), do: ~MOB"<Spacer size={0} />"
+
+  def position_card(%{season: s, episode: e} = sheet) when is_nil(s) or is_nil(e),
+    do: position_body(pgettext("a drop captured before any episode", "Not started"), sheet)
 
   def position_card(s) do
-    # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: the Arabic
-    # script has no case, so upper-casing **جای توقف** does nothing to it and
-    # reads as a decision somebody made. `pgettext/2` because two words is
-    # under the line where `mix gettext.merge` stops fuzzy-matching, and
-    # because *stopping* alone is a word this app also uses about a timer.
-    label = pgettext("the card holding the position a drop captures", "Stopping at")
-
     # The msgid `Kati.Screens.Stats` already draws — **ف%{s} ق%{e}**, ف for
     # فصل and ق for قسمت — so a position is spelled one way on every board
     # that names one. Plain `gettext/1` precisely BECAUSE the msgid exists: an
@@ -930,6 +990,19 @@ defmodule Kati.Screens.DropSheet do
         s: Kati.Locale.number(s.season),
         e: Kati.Locale.number(s.episode)
       )
+
+    position_body(position, s)
+  end
+
+  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: the Arabic
+  # script has no case, so upper-casing **جای توقف** does nothing to it and
+  # reads as a decision somebody made. `pgettext/2` because two words is
+  # under the line where `mix gettext.merge` stops fuzzy-matching, and
+  # because *stopping* alone is a word this app also uses about a timer.
+  @doc false
+  @spec position_body(String.t(), map()) :: map()
+  def position_body(position, _sheet) do
+    label = pgettext("the card holding the position a drop captures", "Stopping at")
 
     ~MOB"""
     <Column fill_width={true}>

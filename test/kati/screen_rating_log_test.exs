@@ -248,12 +248,20 @@ defmodule Kati.ScreenRatingLogTest do
       assert Rating.watch(tracked_id()).review == "newer"
     end
 
-    test "the year is absent from the meta line, because nothing stores one" do
+    test "the year is absent from the meta line when the provider gave none" do
       a_logged_watch!()
 
-      # `next_release_at` is the NEXT release and would print next Tuesday as a
-      # film's year. The same gap `Kati.Screens.Film` records.
+      # `next_release_at` is the NEXT release and is never read as a year.
       refute Rating.watch(tracked_id()).meta =~ ~r/\d{4}/
+    end
+
+    test "and is the cache row's first_release_year when it has one" do
+      tracked =
+        track!("log-year", %{title: "Low Water", runtime_minutes: 112, first_release_year: 2019})
+
+      watch!(tracked, %{watched_on: ~D[2026-07-04], rating: 6})
+
+      assert Rating.watch(tracked_id()).meta == "2019 · 1H 52M"
     end
 
     test "a rating this screen cannot claim is drawn as five empty stars and a dash" do
@@ -325,16 +333,15 @@ defmodule Kati.ScreenRatingLogTest do
       assert w.meta == "", "there is no cache row, so there is no runtime to print"
     end
 
-    test "the scale toggle and the half-star note stay the drawing's either way" do
+    test "the scale toggle and the half-star note are the app's own, on a real log" do
       a_logged_watch!()
       tree = tree(mount_rating())
 
-      # Both are display preferences and no resource holds one — see
-      # `Kati.Screens.Rating`'s moduledoc. They are the same on a real log as on
-      # the fallback, which is what makes them a decision rather than a gap.
+      # The note is copy about the star control, and the two tiles are the
+      # app's own two scales — `Kati.Rating.Scale` keeps which one is lit.
       assert drawn?(tree, String.upcase(Sample.watch().rating_note))
 
-      for %{label: label} <- Sample.scales(), do: assert(drawn?(tree, label))
+      for %{label: label} <- Rating.scale_options(), do: assert(drawn?(tree, label))
     end
   end
 

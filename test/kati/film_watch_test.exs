@@ -16,6 +16,8 @@ defmodule Kati.FilmWatchTest do
 
   use Mob.ScreenCase, async: false
 
+  doctest Kati.Screens.Rating, only: [params_for: 1, params_for: 2, scale_options: 0]
+
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
   alias Kati.Screens.Rating
@@ -196,6 +198,73 @@ defmodule Kati.FilmWatchTest do
 
       assert socket.assigns.tracked_title_id == film.id,
              "the sheet looked the id up and threw it away, which is the whole defect"
+    end
+  end
+
+  describe "Log rewatch on screen 08" do
+    test "opens a blank sheet numbered as the next viewing, and Save adds a row" do
+      film = a_film!()
+      rated = Ash.create!(Watch, %{tracked_title_id: film.id, rating: 8, review: "First."})
+
+      page =
+        Kati.Screens.Film
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:film, Kati.Screens.Film.film(film.id))
+
+      assert inspect(Kati.Screens.Film.log_item(page.assigns.film), limit: :infinity) =~
+               "Log rewatch"
+
+      {:noreply, pushed} = Kati.Screens.Film.handle_info({:tap, :log_watch}, page)
+      {:push, Rating, params} = Map.get(pushed.__mob__, :nav_action)
+      assert params == %{tracked_title_id: film.id, new: true}
+
+      {:ok, sheet} = Rating.mount(params, %{}, Mob.Socket.new(Rating))
+
+      assert sheet.assigns.watch_id == nil, "a rewatch edited the first watch"
+      assert sheet.assigns.watch.rating == nil
+      assert sheet.assigns.watch.review == ""
+      assert sheet.assigns.watch.rewatch == "2nd rewatch"
+
+      {:noreply, starred} = Rating.handle_info({:tap, :star_7}, sheet)
+      {:noreply, _saved} = Rating.handle_info({:tap, :save}, starred)
+
+      rows = watches_for(film.id)
+      assert length(rows) == 2
+      second = Enum.find(rows, &(&1.id != rated.id))
+      assert second.rating == 7
+      assert second.rewatch_number == 2
+      assert Ash.get!(Watch, rated.id).rating == 8, "the first viewing was rewritten"
+      assert Kati.Screens.Film.film(film.id).seen == "2 times"
+    end
+
+    test "reads Log a watch on a film nobody has seen" do
+      film = a_film!()
+
+      assert inspect(Kati.Screens.Film.log_item(Kati.Screens.Film.film(film.id)),
+               limit: :infinity
+             ) =~ "Log a watch"
+    end
+
+    test "the rating card rates the watch already there rather than adding one" do
+      film = a_film!()
+      bare = Ash.create!(Watch, %{tracked_title_id: film.id, watched_on: ~D[2026-09-01]})
+
+      page =
+        Kati.Screens.Film
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:film, Kati.Screens.Film.film(film.id))
+
+      {:noreply, pushed} = Kati.Screens.Film.handle_info({:tap, :rate}, page)
+      {:push, Rating, params} = Map.get(pushed.__mob__, :nav_action)
+      {:ok, sheet} = Rating.mount(params, %{}, Mob.Socket.new(Rating))
+
+      assert sheet.assigns.watch_id == bare.id
+
+      {:noreply, starred} = Rating.handle_info({:tap, :star_9}, sheet)
+      {:noreply, _saved} = Rating.handle_info({:tap, :save}, starred)
+
+      assert [only] = watches_for(film.id)
+      assert only.rating == 9
     end
   end
 
