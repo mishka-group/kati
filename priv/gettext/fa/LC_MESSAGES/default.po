@@ -270,6 +270,7 @@ msgstr "صبحانه"
 
 #: lib/kati/calendars/today.ex:244
 #: lib/kati/language/page.ex:145
+#: lib/kati/notifications/inbox.ex:112
 #: lib/kati/screens/mark_android.ex:318
 #: lib/kati/screens/mark_ios.ex:318
 #: lib/kati/screens/pushed.ex:180
@@ -515,6 +516,7 @@ msgstr "شروع کنیم"
 msgid "Gone — not empty"
 msgstr "حذف شده — خالی نیست"
 
+#: lib/kati/notifications/inbox.ex:114
 #: lib/kati/screens/calendars.ex:580
 #: lib/kati/screens/goals.ex:608
 #: lib/kati/screens/habits.ex:166
@@ -708,6 +710,7 @@ msgid "Marram"
 msgstr "مرام"
 
 #: lib/kati/calendars/today.ex:241
+#: lib/kati/notifications/inbox.ex:115
 #: lib/kati/screens/home.ex:477
 #: lib/kati/screens/home.ex:580
 #: lib/kati/screens/home_omitted_sections.ex:205
@@ -740,6 +743,7 @@ msgid "Miso salmon, greens, rice"
 msgstr "سالمون میسو، سبزیجات، برنج"
 
 #: lib/kati/calendars/today.ex:243
+#: lib/kati/notifications/inbox.ex:117
 #: lib/kati/screens/calendar.ex:648
 #: lib/kati/screens/day.ex:495
 #: lib/kati/screens/money_day.ex:363
@@ -1009,6 +1013,7 @@ msgstr "سریال"
 msgid "Save image"
 msgstr "ذخیره تصویر"
 
+#: lib/kati/notifications/inbox.ex:113
 #: lib/kati/screens/anime_filter.ex:351
 #: lib/kati/screens/anime_filter.ex:726
 #: lib/kati/screens/books.ex:539
@@ -1247,7 +1252,7 @@ msgstr "تعداد قسمت‌ها"
 #: lib/kati/screens/health.ex:102
 #: lib/kati/screens/home.ex:299
 #: lib/kati/screens/library.ex:1213
-#: lib/kati/screens/settings.ex:494
+#: lib/kati/screens/settings.ex:550
 #, elixir-autogen, elixir-format
 msgid "Watching"
 msgstr "در حال تماشا"
@@ -1287,7 +1292,7 @@ msgid "Where the hours went"
 msgstr "ساعت‌ها کجا رفتند"
 
 #: lib/kati/screens/attribution.ex:145
-#: lib/kati/settings/sample.ex:420
+#: lib/kati/settings/sample.ex:431
 #, elixir-autogen, elixir-format
 msgid "Where this comes from"
 msgstr "این‌ها از کجا می‌آیند"
@@ -1460,7 +1465,7 @@ msgstr "هنرمند"
 #: lib/kati/screens/auto_detect.ex:503
 #: lib/kati/screens/auto_detect_music.ex:176
 #: lib/kati/screens/pushed.ex:177
-#: lib/kati/settings/sample.ex:375
+#: lib/kati/settings/sample.ex:386
 #, elixir-autogen, elixir-format
 msgid "Auto-detect"
 msgstr "تشخیص خودکار"
@@ -1474,7 +1479,7 @@ msgstr "بازگشت"
 #: lib/kati/screens/data_sources.ex:1519
 #: lib/kati/screens/data_sources_states.ex:211
 #: lib/kati/screens/pushed.ex:181
-#: lib/kati/settings/sample.ex:307
+#: lib/kati/settings/sample.ex:318
 #, elixir-autogen, elixir-format
 msgid "Data sources"
 msgstr "منابع داده"
@@ -1492,6 +1497,7 @@ msgstr "ترتیب قسمت‌ها"
 msgid "Episodes"
 msgstr "قسمت‌ها"
 
+#: lib/kati/notifications/inbox.ex:116
 #: lib/kati/screens/health.ex:509
 #: lib/kati/screens/health_empty_states.ex:209
 #: lib/kati/screens/mark_ios.ex:331
@@ -1504,7 +1510,7 @@ msgstr "سلامت"
 #: lib/kati/screens/import.ex:425
 #: lib/kati/screens/import_states.ex:163
 #: lib/kati/screens/pushed.ex:186
-#: lib/kati/settings/sample.ex:286
+#: lib/kati/settings/sample.ex:297
 #, elixir-autogen, elixir-format
 msgid "Import"
 msgstr "درون‌ریزی"
@@ -1556,7 +1562,7 @@ msgid "My services"
 msgstr "سرویس‌های من"
 
 #: lib/kati/account/sample.ex:162
-#: lib/kati/screens/inbox_notifications.ex:186
+#: lib/kati/screens/inbox_notifications.ex:188
 #: lib/kati/screens/pushed.ex:196
 #, elixir-autogen, elixir-format
 msgid "Notifications"
@@ -1581,7 +1587,7 @@ msgid "Search"
 msgstr "جست‌وجو"
 
 #: lib/kati/backup/sample.ex:92
-#: lib/kati/screens/account.ex:363
+#: lib/kati/screens/account.ex:428
 #: lib/kati/screens/backup_dark.ex:223
 #: lib/kati/screens/home.ex:493
 #: lib/kati/screens/home.ex:596
@@ -1589,7 +1595,7 @@ msgstr "جست‌وجو"
 #: lib/kati/screens/mark_android.ex:343
 #: lib/kati/screens/mark_ios.ex:332
 #: lib/kati/screens/pushed.ex:201
-#: lib/kati/screens/settings.ex:494
+#: lib/kati/screens/settings.ex:550
 #, elixir-autogen, elixir-format
 msgid "Settings"
 msgstr "تنظیمات"
@@ -1836,7 +1842,7 @@ msgstr "هر دو"
 msgid "Keep mine"
 msgstr "مال من"
 
-#: lib/kati/screens/restore.ex:1091
+#: lib/kati/screens/restore.ex:1093
 #, elixir-autogen, elixir-format
 msgid "Merge %{count} into this device"
 msgstr "ادغام %{count} مورد در این دستگاه"
@@ -1873,12 +1879,12 @@ msgstr "یا از نو"
 msgid "Pick a file"
 msgstr "انتخاب فایل"
 
-#: lib/kati/screens/restore.ex:1119
+#: lib/kati/screens/restore.ex:1121
 #, elixir-autogen, elixir-format
 msgid "Replace everything on this device"
 msgstr "جایگزینی همه‌چیز روی این دستگاه"
 
-#: lib/kati/screens/restore.ex:1182
+#: lib/kati/screens/restore.ex:1184
 #, elixir-autogen, elixir-format
 msgid "Replace everything…"
 msgstr "جایگزین کن…"
@@ -3102,7 +3108,7 @@ msgstr "ذخیره"
 
 #: lib/kati/screens/backup.ex:1523
 #: lib/kati/screens/data_sources.ex:443
-#: lib/kati/screens/restore.ex:1925
+#: lib/kati/screens/restore.ex:1929
 #, elixir-autogen, elixir-format
 msgid "Saved"
 msgstr "ذخیره شد"
@@ -3273,7 +3279,7 @@ msgid_plural "%{n} entries"
 msgstr[0] "%{n} مورد"
 msgstr[1] "%{n} مورد"
 
-#: lib/kati/screens/settings.ex:612
+#: lib/kati/screens/settings.ex:668
 #, elixir-autogen, elixir-format
 msgid "%{n} section"
 msgid_plural "%{n} sections"
@@ -3297,12 +3303,12 @@ msgstr "%{region} · %{subscribed}"
 msgid "%{region} · none yet"
 msgstr "%{region} · هنوز هیچ‌کدام"
 
-#: lib/kati/screens/settings.ex:494
+#: lib/kati/screens/settings.ex:550
 #, elixir-autogen, elixir-format
 msgid "About"
 msgstr "درباره"
 
-#: lib/kati/screens/settings.ex:494
+#: lib/kati/screens/settings.ex:550
 #, elixir-autogen, elixir-format
 msgid "Appearance"
 msgstr "ظاهر"
@@ -3317,12 +3323,12 @@ msgstr "خودکار"
 #: lib/kati/screens/backup_dark.ex:319
 #: lib/kati/screens/backup_large.ex:316
 #: lib/kati/screens/clear_history.ex:274
-#: lib/kati/settings/sample.ex:268
+#: lib/kati/settings/sample.ex:283
 #, elixir-autogen, elixir-format
 msgid "Back up everything"
 msgstr "پشتیبان‌گیری از همه‌چیز"
 
-#: lib/kati/settings/sample.ex:287
+#: lib/kati/settings/sample.ex:298
 #, elixir-autogen, elixir-format
 msgid "CSV, JSON, or another tracker’s backup"
 msgstr "CSV، JSON یا پشتیبان دیگر"
@@ -3336,13 +3342,13 @@ msgstr "تقویم"
 #: lib/kati/account/sample.ex:172
 #: lib/kati/screens/calendars.ex:228
 #: lib/kati/screens/sync.ex:1217
-#: lib/kati/settings/sample.ex:344
+#: lib/kati/settings/sample.ex:355
 #, elixir-autogen, elixir-format
 msgid "Calendars"
 msgstr "تقویم‌ها"
 
 #: lib/kati/screens/clear_history.ex:68
-#: lib/kati/settings/sample.ex:317
+#: lib/kati/settings/sample.ex:328
 #, elixir-autogen, elixir-format
 msgid "Clear watch history"
 msgstr "پاک‌کردن تاریخچه تماشا"
@@ -3355,12 +3361,12 @@ msgstr "پاک‌کردن تاریخچه تماشا"
 msgid "Dark"
 msgstr "تیره"
 
-#: lib/kati/screens/settings.ex:494
+#: lib/kati/screens/settings.ex:550
 #, elixir-autogen, elixir-format
 msgid "Data"
 msgstr "داده‌ها"
 
-#: lib/kati/settings/sample.ex:293
+#: lib/kati/settings/sample.ex:304
 #, elixir-autogen, elixir-format
 msgid "Export everything"
 msgstr "برون‌ریزی همه‌چیز"
@@ -3380,45 +3386,39 @@ msgstr "کارت خانه، تقویم، قفسه"
 msgid "Home card, shelf"
 msgstr "کارت خانه، قفسه"
 
-#: lib/kati/screens/settings.ex:414
-#: lib/kati/settings/sample.ex:294
+#: lib/kati/screens/settings.ex:424
 #, elixir-autogen, elixir-format
 msgid "Last backup %{date}"
 msgstr "آخرین پشتیبان %{date}"
-
-#: lib/kati/settings/sample.ex:270
-#, elixir-autogen, elixir-format
-msgid "Last backup %{date} · %{n} MB"
-msgstr "آخرین پشتیبان %{date} · %{n} مگابایت"
 
 #: lib/kati/settings/sample.ex:171
 #, elixir-autogen, elixir-format
 msgid "Light"
 msgstr "روشن"
 
-#: lib/kati/screens/settings.ex:411
+#: lib/kati/screens/settings.ex:421
 #, elixir-autogen, elixir-format
 msgid "Never backed up"
 msgstr "هنوز پشتیبانی گرفته نشده"
 
-#: lib/kati/settings/sample.ex:376
+#: lib/kati/settings/sample.ex:387
 #, elixir-autogen, elixir-format
 msgid "Notice what you play"
 msgstr "آنچه پخش می‌کنید را تشخیص بده"
 
-#: lib/kati/settings/sample.ex:414
+#: lib/kati/settings/sample.ex:425
 #, elixir-autogen, elixir-format
 msgid "Permissions and storage"
 msgstr "دسترسی‌ها و فضای ذخیره"
 
-#: lib/kati/settings/sample.ex:369
+#: lib/kati/settings/sample.ex:380
 #, elixir-autogen, elixir-format
 msgid "Premieres, new episodes, price drops"
 msgstr "آغاز پخش، قسمت تازه، افت قیمت"
 
-#: lib/kati/screens/account.ex:90
+#: lib/kati/screens/account.ex:155
 #: lib/kati/screens/privacy.ex:111
-#: lib/kati/settings/sample.ex:406
+#: lib/kati/settings/sample.ex:417
 #, elixir-autogen, elixir-format
 msgid "Privacy"
 msgstr "حریم خصوصی"
@@ -3430,12 +3430,12 @@ msgid "Reduce motion"
 msgstr "کاهش حرکت"
 
 #: lib/kati/screens/release_watcher.ex:231
-#: lib/kati/settings/sample.ex:368
+#: lib/kati/settings/sample.ex:379
 #, elixir-autogen, elixir-format
 msgid "Release watcher"
 msgstr "پایش انتشارها"
 
-#: lib/kati/settings/sample.ex:279
+#: lib/kati/settings/sample.ex:290
 #, elixir-autogen, elixir-format
 msgid "Restore a Kati backup"
 msgstr "بازگردانی پشتیبان کاتی"
@@ -3443,7 +3443,7 @@ msgstr "بازگردانی پشتیبان کاتی"
 #: lib/kati/screens/health.ex:102
 #: lib/kati/screens/home.ex:299
 #: lib/kati/screens/home_omitted_sections.ex:67
-#: lib/kati/screens/settings.ex:494
+#: lib/kati/screens/settings.ex:550
 #, elixir-autogen, elixir-format
 msgid "Sections"
 msgstr "بخش‌ها"
@@ -3454,18 +3454,18 @@ msgid "Shelf only"
 msgstr "فقط قفسه"
 
 #: lib/kati/screens/auto_detect.ex:503
-#: lib/kati/screens/settings.ex:494
+#: lib/kati/screens/settings.ex:550
 #, elixir-autogen, elixir-format
 msgid "Sources"
 msgstr "منابع"
 
-#: lib/kati/settings/sample.ex:421
+#: lib/kati/settings/sample.ex:432
 #, elixir-autogen, elixir-format
 msgid "Sources and licences"
 msgstr "پروانه‌ها و اعتبارها"
 
 #: lib/kati/screens/sync.ex:1217
-#: lib/kati/settings/sample.ex:300
+#: lib/kati/settings/sample.ex:311
 #, elixir-autogen, elixir-format
 msgid "Sync"
 msgstr "همگام‌سازی"
@@ -3480,14 +3480,14 @@ msgstr "اندازه متن"
 msgid "Theme"
 msgstr "پوسته"
 
-#: lib/kati/screens/account.ex:200
+#: lib/kati/screens/account.ex:265
 #: lib/kati/screens/sync.ex:311
-#: lib/kati/settings/sample.ex:413
+#: lib/kati/settings/sample.ex:424
 #, elixir-autogen, elixir-format
 msgid "This device"
 msgstr "این دستگاه"
 
-#: lib/kati/settings/sample.ex:318
+#: lib/kati/settings/sample.ex:329
 #, elixir-autogen, elixir-format
 msgid "Ticks, ratings and reviews — the shelves stay"
 msgstr "تیک‌ها، امتیازها و نقدها — قفسه‌ها می‌مانند"
@@ -3499,12 +3499,12 @@ msgstr "تیک‌ها، امتیازها و نقدها — قفسه‌ها می�
 msgid "United Kingdom"
 msgstr "بریتانیا"
 
-#: lib/kati/settings/sample.ex:399
+#: lib/kati/settings/sample.ex:410
 #, elixir-autogen, elixir-format
 msgid "Version"
 msgstr "نسخه"
 
-#: lib/kati/settings/sample.ex:345
+#: lib/kati/settings/sample.ex:356
 #, elixir-autogen, elixir-format
 msgid "Which calendars Kati may read"
 msgstr "کاتی کدام تقویم‌ها را بخواند"
@@ -3520,7 +3520,7 @@ msgstr "ابزارک‌ها"
 msgid "Your Kati"
 msgstr "کاتی شما"
 
-#: lib/kati/settings/sample.ex:280
+#: lib/kati/settings/sample.ex:291
 #, elixir-autogen, elixir-format
 msgid "Your own file — merges or replaces"
 msgstr "فایل خودتان — ادغام می‌کند یا جایگزین"
@@ -6867,7 +6867,7 @@ msgid "Kati could not make the backup"
 msgstr "کاتی نتوانست پشتیبان را بسازد"
 
 #: lib/kati/screens/import_recognised.ex:442
-#: lib/kati/screens/restore.ex:1829
+#: lib/kati/screens/restore.ex:1833
 #, elixir-autogen, elixir-format
 msgid "Kati could not read that file"
 msgstr "کاتی نتوانست آن فایل را بخواند"
@@ -7048,8 +7048,8 @@ msgid "Nothing is stored on this device yet. A backup taken now would be a real 
 msgstr "هنوز چیزی روی این دستگاه ذخیره نشده است. پشتیبانی که همین حالا گرفته شود فایلی واقعی با ساختاری واقعی و بدون حتی یک سطر خواهد بود — بازمی‌گردد، و هیچ‌چیز را بازنمی‌گرداند."
 
 #: lib/kati/screens/backup.ex:1576
-#: lib/kati/screens/restore.ex:1904
-#: lib/kati/screens/restore.ex:1945
+#: lib/kati/screens/restore.ex:1908
+#: lib/kati/screens/restore.ex:1949
 #, elixir-autogen, elixir-format
 msgid "Nothing on this device has changed."
 msgstr "چیزی روی این دستگاه تغییر نکرده است."
@@ -7444,7 +7444,7 @@ msgid "The sheet is open — this is not a backup"
 msgstr "برگه هم‌رسانی باز است — این پشتیبان نیست"
 
 #: lib/kati/screens/backup.ex:1575
-#: lib/kati/screens/restore.ex:1944
+#: lib/kati/screens/restore.ex:1948
 #, elixir-autogen, elixir-format
 msgid "The system dialog failed"
 msgstr "پنجره سیستم با خطا مواجه شد"
@@ -8755,7 +8755,7 @@ msgstr "نه بازیگری، نه امتیازی"
 msgid "No nudge during a calendar event"
 msgstr "در زمان رویداد تقویم چیزی نمی‌آید"
 
-#: lib/kati/screens/account.ex:534
+#: lib/kati/screens/account.ex:621
 #, elixir-autogen, elixir-format
 msgid "Not available here"
 msgstr "اینجا در دسترس نیست"
@@ -9044,7 +9044,7 @@ msgstr "بررسی کلید واردشده · کلید نادرست"
 msgid "Week %{n} of %{total}"
 msgstr "هفتهٔ %{n} از %{total}"
 
-#: lib/kati/screens/account.ex:90
+#: lib/kati/screens/account.ex:155
 #, elixir-autogen, elixir-format
 msgid "What Kati is allowed to do"
 msgstr "کاتی اجازهٔ چه کارهایی دارد"
@@ -9054,7 +9054,7 @@ msgstr "کاتی اجازهٔ چه کارهایی دارد"
 msgid "What each scope searches, and in what order"
 msgstr "هر دامنه چه چیزهایی را جست‌وجو می‌کند، و به چه ترتیبی"
 
-#: lib/kati/screens/account.ex:90
+#: lib/kati/screens/account.ex:155
 #, elixir-autogen, elixir-format
 msgid "What it asks for by being installed"
 msgstr "آنچه با نصب شدن می‌خواهد"
@@ -9098,7 +9098,7 @@ msgstr "پاک‌کردن توکن‌ها"
 msgid "Within a group"
 msgstr "درون هر گروه"
 
-#: lib/kati/screens/account.ex:90
+#: lib/kati/screens/account.ex:155
 #, elixir-autogen, elixir-format
 msgid "Your data lives here"
 msgstr "داده‌های شما همین‌جاست"
@@ -9138,7 +9138,7 @@ msgstr "به‌زودی تازه‌سازی خودکار"
 msgid "last checked %{at} · couldn’t reach %{provider}"
 msgstr "آخرین بررسی %{at} · %{provider} در دسترس نبود"
 
-#: lib/kati/screens/account.ex:200
+#: lib/kati/screens/account.ex:265
 #, elixir-autogen, elixir-format
 msgid "nothing leaves it unless you send it"
 msgstr "چیزی از آن بیرون نمی‌رود مگر خودتان بفرستید"
@@ -9442,7 +9442,7 @@ msgctxt "eyebrow"
 msgid "Active"
 msgstr "فعال"
 
-#: lib/kati/screens/inbox_notifications.ex:512
+#: lib/kati/screens/inbox_notifications.ex:514
 #: lib/kati/screens/meal_reminders.ex:89
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
@@ -9509,14 +9509,14 @@ msgctxt "note joiner"
 msgid " and "
 msgstr " و "
 
-#: lib/kati/screens/account.ex:355
+#: lib/kati/screens/account.ex:420
 #: lib/kati/screens/notifications_help.ex:378
 #, elixir-autogen, elixir-format
 msgctxt "permission"
 msgid "Allow"
 msgstr "اجازه دادن"
 
-#: lib/kati/screens/account.ex:533
+#: lib/kati/screens/account.ex:598
 #, elixir-autogen, elixir-format
 msgctxt "permission"
 msgid "Allowed"
@@ -9637,13 +9637,13 @@ msgctxt "state mark"
 msgid "NOT YET"
 msgstr "هنوز نه"
 
-#: lib/kati/screens/account.ex:834
+#: lib/kati/screens/account.ex:920
 #, elixir-autogen, elixir-format
 msgctxt "switch"
 msgid "Off"
 msgstr "خاموش"
 
-#: lib/kati/screens/account.ex:833
+#: lib/kati/screens/account.ex:919
 #, elixir-autogen, elixir-format
 msgctxt "switch"
 msgid "On"
@@ -10483,7 +10483,7 @@ msgstr "از کجا می‌آیید؟"
 msgid "Which calendars show"
 msgstr "کدام تقویم‌ها نشان داده شوند"
 
-#: lib/kati/screens/inbox_notifications.ex:525
+#: lib/kati/screens/inbox_notifications.ex:527
 #: lib/kati/screens/notifications_help.ex:121
 #, elixir-autogen, elixir-format
 msgid "Why am I not getting these?"
@@ -13945,12 +13945,12 @@ msgstr " دارد که فایل‌های %{source} ندارند. چیزی درو
 msgid " rather than what failed. “Unrecognised format” tells a switcher nothing; “this looks like %{source}” hands them the next tap."
 msgstr " را نام می‌برند، نه آنچه شکست خورده. «قالب ناشناخته» به کسی که تازه از برنامهٔ دیگری آمده چیزی نمی‌گوید؛ «این شبیه %{source} است» زدنِ بعدی را کف دستش می‌گذارد."
 
-#: lib/kati/screens/inbox_notifications.ex:482
+#: lib/kati/screens/inbox_notifications.ex:484
 #, elixir-autogen, elixir-format
 msgid "%{count} of %{limit} slots"
 msgstr "%{count} از %{limit} نوبت"
 
-#: lib/kati/screens/inbox_notifications.ex:235
+#: lib/kati/screens/inbox_notifications.ex:237
 #, elixir-autogen, elixir-format
 msgid "%{now} today · %{held} held back"
 msgstr "%{now} امروز · %{held} نگه داشته شده"
@@ -14076,7 +14076,7 @@ msgstr "اگر نه بگویید، کاتی به نشان صندوق برمی‌
 msgid "Kati asks the system for permission on the next screen. It is used for new episodes and the meal reminders you switch on — nothing else."
 msgstr "کاتی در صفحهٔ بعد از سیستم اجازه می‌گیرد. برای قسمت‌های تازه و یادآورهای وعده‌ای که خودتان روشن می‌کنید به کار می‌رود — نه چیز دیگری."
 
-#: lib/kati/screens/inbox_notifications.ex:392
+#: lib/kati/screens/inbox_notifications.ex:394
 #, elixir-autogen, elixir-format
 msgid "Kati is quiet unless you ask it not to be. Turn a reminder on and it will show up here first, before it ever interrupts you."
 msgstr "کاتی ساکت است مگر خودتان بخواهید نباشد. یک یادآور را روشن کنید تا اول همین‌جا نشان داده شود، پیش از آنکه اصلاً کارتان را قطع کند."
@@ -14148,7 +14148,7 @@ msgstr "در مرورگر شما باز می‌شود"
 msgid "Partial columns — right source, old export"
 msgstr "ستون‌های ناقص — منبع درست، خروجی قدیمی"
 
-#: lib/kati/screens/inbox_notifications.ex:526
+#: lib/kati/screens/inbox_notifications.ex:528
 #, elixir-autogen, elixir-format
 msgid "Permissions, alarms and battery"
 msgstr "دسترسی‌ها، زنگ‌ها و باتری"
@@ -14158,7 +14158,7 @@ msgstr "دسترسی‌ها، زنگ‌ها و باتری"
 msgid "Play counts, ratings and notes still render"
 msgstr "شمار پخش، امتیازها و یادداشت‌ها همچنان نمایش داده می‌شوند"
 
-#: lib/kati/screens/inbox_notifications.ex:517
+#: lib/kati/screens/inbox_notifications.ex:519
 #, elixir-autogen, elixir-format
 msgid "Quiet hours, digest, stop after two skips"
 msgstr "ساعات سکوت، خلاصه، توقف پس از دو بار رد کردن"
@@ -14310,7 +14310,7 @@ msgstr "سه حالت"
 msgid "will not ask again"
 msgstr "دیگر نمی‌پرسد"
 
-#: lib/kati/screens/inbox_notifications.ex:516
+#: lib/kati/screens/inbox_notifications.ex:518
 #, elixir-autogen, elixir-format
 msgctxt "a row on the inbox that opens the loudness settings"
 msgid "How loudly"
@@ -14340,7 +14340,7 @@ msgctxt "a runtime bucket"
 msgid "Under %{n}m"
 msgstr "زیر %{n} دقیقه"
 
-#: lib/kati/screens/inbox_notifications.ex:479
+#: lib/kati/screens/inbox_notifications.ex:481
 #, elixir-autogen, elixir-format
 msgctxt "a section with nothing armed"
 msgid "Nothing today"
@@ -14418,25 +14418,25 @@ msgctxt "board 143's gesture rule"
 msgid "selects; long press on an"
 msgstr "انتخاب می‌کند؛ فشار طولانی روی"
 
-#: lib/kati/screens/inbox_notifications.ex:186
+#: lib/kati/screens/inbox_notifications.ex:188
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "By section"
 msgstr "بر اساس بخش"
 
-#: lib/kati/screens/inbox_notifications.ex:186
+#: lib/kati/screens/inbox_notifications.ex:188
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "Held back"
 msgstr "نگه داشته شده"
 
-#: lib/kati/screens/inbox_notifications.ex:186
+#: lib/kati/screens/inbox_notifications.ex:188
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "Later"
 msgstr "بعداً"
 
-#: lib/kati/screens/inbox_notifications.ex:186
+#: lib/kati/screens/inbox_notifications.ex:188
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "Now"
@@ -14546,7 +14546,7 @@ msgctxt "the note under screen 33's star row"
 msgid "HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE"
 msgstr "نیم‌ستاره روشن · چپ یا راست مرکز را بزنید"
 
-#: lib/kati/screens/inbox_notifications.ex:392
+#: lib/kati/screens/inbox_notifications.ex:394
 #, elixir-autogen, elixir-format
 msgctxt "the notification inbox's empty state"
 msgid "Nothing waiting"
@@ -15202,27 +15202,27 @@ msgstr "چیزی مطابقت ندارد"
 msgid "%{file} · made %{made} · Kati %{version}"
 msgstr "%{file} · ساخته‌شده %{made} · کاتی %{version}"
 
-#: lib/kati/screens/restore.ex:1927
+#: lib/kati/screens/restore.ex:1931
 #, elixir-autogen, elixir-format
 msgid "%{n} bytes were written where you chose. That is the copy of what was on this device before the restore, not a backup of what is on it now."
 msgstr "%{n} بایت همان‌جا که انتخاب کردید نوشته شد. آن، نسخهٔ چیزی است که پیش از بازگردانی روی این دستگاه بود، نه پشتیبانِ چیزی که الان روی آن است."
 
-#: lib/kati/screens/restore.ex:1691
+#: lib/kati/screens/restore.ex:1695
 #, elixir-autogen, elixir-format
 msgid "%{n} records went in and %{skipped} were skipped because their rows were already on this device. Nothing existing was overwritten."
 msgstr "%{n} رکورد وارد شد و %{skipped} رکورد رد شد، چون ردیف‌هایشان از قبل روی این دستگاه بود. هیچ‌چیزِ موجود بازنویسی نشد."
 
-#: lib/kati/screens/restore.ex:1706
+#: lib/kati/screens/restore.ex:1710
 #, elixir-autogen, elixir-format
 msgid "%{n} records went in, into tables that were empty."
 msgstr "%{n} رکورد وارد شد، به جدول‌هایی که خالی بودند."
 
-#: lib/kati/screens/restore.ex:1699
+#: lib/kati/screens/restore.ex:1703
 #, elixir-autogen, elixir-format
 msgid "%{n} records went in. Everything that was here first was written out to a file before any of it was deleted."
 msgstr "%{n} رکورد وارد شد. هرچه پیش‌تر اینجا بود، پیش از آنکه چیزی از آن حذف شود در یک فایل نوشته شد."
 
-#: lib/kati/screens/restore.ex:1688
+#: lib/kati/screens/restore.ex:1692
 #, elixir-autogen, elixir-format
 msgid "%{n} records went in. Nothing that was already here was touched."
 msgstr "%{n} رکورد وارد شد. به چیزی که از قبل اینجا بود دست نخورد."
@@ -15249,7 +15249,7 @@ msgstr "ردیفی که شناسه‌اش از قبل روی این دستگاه
 msgid "A wrong passphrase and an altered file fail identically — GCM cannot tell a wrong key from changed bytes — so Kati will say so rather than pick one."
 msgstr "عبارت عبورِ اشتباه و فایلِ دست‌کاری‌شده دقیقاً یک‌جور شکست می‌خورند — GCM نمی‌تواند کلید اشتباه را از بایت‌های تغییرکرده تشخیص دهد — پس کاتی همین را می‌گوید و یکی را حدس نمی‌زند."
 
-#: lib/kati/screens/restore.ex:1732
+#: lib/kati/screens/restore.ex:1736
 #, elixir-autogen, elixir-format
 msgid "Choose where to keep the old data"
 msgstr "انتخاب کنید داده‌های قدیمی را کجا نگه دارید"
@@ -15284,17 +15284,17 @@ msgstr "در فایل"
 msgid "Kati can see that this is a Kati backup and when it was sealed. It cannot see how many records are inside until the passphrase opens it, and it will not guess at a number it has not read."
 msgstr "کاتی می‌بیند که این یک پشتیبان کاتی است و کِی قفل شده. تا وقتی عبارت عبور بازش نکند نمی‌بیند چند رکورد داخلش است، و عددی را که نخوانده حدس نمی‌زند."
 
-#: lib/kati/screens/restore.ex:1745
+#: lib/kati/screens/restore.ex:1749
 #, elixir-autogen, elixir-format
 msgid "Kati cannot hand that file to the system here"
 msgstr "کاتی اینجا نمی‌تواند آن فایل را به سیستم بسپارد"
 
-#: lib/kati/screens/restore.ex:1767
+#: lib/kati/screens/restore.ex:1771
 #, elixir-autogen, elixir-format
 msgid "Merge instead"
 msgstr "به‌جایش ادغام کن"
 
-#: lib/kati/screens/restore.ex:1903
+#: lib/kati/screens/restore.ex:1907
 #, elixir-autogen, elixir-format
 msgid "No file was chosen"
 msgstr "فایلی انتخاب نشد"
@@ -15309,12 +15309,12 @@ msgstr "هنوز وعده‌ای نیست"
 msgid "Not encrypted. Anyone holding this file can read everything in it, which is why it is worth keeping somewhere you would keep a passport."
 msgstr "رمزنگاری‌نشده. هر کسی این فایل را داشته باشد می‌تواند همه‌چیزِ داخلش را بخواند؛ برای همین می‌ارزد جایی نگهش دارید که گذرنامه‌تان را نگه می‌دارید."
 
-#: lib/kati/screens/restore.ex:1764
+#: lib/kati/screens/restore.ex:1768
 #, elixir-autogen, elixir-format
 msgid "Nothing has been changed"
 msgstr "چیزی تغییر نکرده است"
 
-#: lib/kati/screens/restore.ex:1777
+#: lib/kati/screens/restore.ex:1781
 #, elixir-autogen, elixir-format
 msgid "Nothing has been deleted"
 msgstr "چیزی حذف نشده است"
@@ -15329,12 +15329,12 @@ msgstr "با عبارت عبوری که وارد کردید باز شد. این 
 msgid "Passphrase for this file"
 msgstr "عبارت عبور این فایل"
 
-#: lib/kati/screens/restore.ex:1768
+#: lib/kati/screens/restore.ex:1772
 #, elixir-autogen, elixir-format
 msgid "Replace instead"
 msgstr "به‌جایش جایگزین کن"
 
-#: lib/kati/screens/restore.ex:1712
+#: lib/kati/screens/restore.ex:1716
 #, elixir-autogen, elixir-format
 msgid "Restored"
 msgstr "بازگردانی تمام شد"
@@ -15349,7 +15349,7 @@ msgstr "ردیف‌ها ستونی می‌شوند، ردیف چیپ‌ها به
 msgid "Save listen"
 msgstr "ذخیرهٔ شنیدن"
 
-#: lib/kati/screens/restore.ex:1721
+#: lib/kati/screens/restore.ex:1725
 #, elixir-autogen, elixir-format
 msgid "Save that copy"
 msgstr "ذخیرهٔ آن نسخه"
@@ -15369,52 +15369,52 @@ msgstr "سریال · فصل %{n} · در حال تماشا"
 msgid "TWO STATES"
 msgstr "دو حالت"
 
-#: lib/kati/screens/restore.ex:1820
+#: lib/kati/screens/restore.ex:1824
 #, elixir-autogen, elixir-format
 msgid "That is not a Kati backup"
 msgstr "آن یک پشتیبان کاتی نیست"
 
-#: lib/kati/screens/restore.ex:1802
+#: lib/kati/screens/restore.ex:1806
 #, elixir-autogen, elixir-format
 msgid "That passphrase did not open it"
 msgstr "آن عبارت عبور بازش نکرد"
 
-#: lib/kati/screens/restore.ex:1746
+#: lib/kati/screens/restore.ex:1750
 #, elixir-autogen, elixir-format
 msgid "The copy of your old data is written and waiting on the device."
 msgstr "نسخهٔ داده‌های قدیمی‌تان نوشته شده و روی دستگاه منتظر است."
 
-#: lib/kati/screens/restore.ex:1912
+#: lib/kati/screens/restore.ex:1916
 #, elixir-autogen, elixir-format
 msgid "The copy was not saved"
 msgstr "نسخه ذخیره نشد"
 
-#: lib/kati/screens/restore.ex:1568
+#: lib/kati/screens/restore.ex:1572
 #, elixir-autogen, elixir-format
 msgid "The system document picker is not bound here, so there is no way to hand Kati a file to restore. Nothing on the device has changed."
 msgstr "انتخابگر سندِ سیستم اینجا وصل نیست، پس راهی نیست که فایلی برای بازگردانی به کاتی بسپارید. چیزی روی دستگاه تغییر نکرده است."
 
-#: lib/kati/screens/restore.ex:1615
+#: lib/kati/screens/restore.ex:1619
 #, elixir-autogen, elixir-format
 msgid "There is no file to restore"
 msgstr "فایلی برای بازگردانی نیست"
 
-#: lib/kati/screens/restore.ex:1811
+#: lib/kati/screens/restore.ex:1815
 #, elixir-autogen, elixir-format
 msgid "This backup is encrypted"
 msgstr "این پشتیبان رمزنگاری‌شده است"
 
-#: lib/kati/screens/restore.ex:1792
+#: lib/kati/screens/restore.ex:1796
 #, elixir-autogen, elixir-format
 msgid "This backup was not written"
 msgstr "این پشتیبان نوشته نشد"
 
-#: lib/kati/screens/restore.ex:1566
+#: lib/kati/screens/restore.ex:1570
 #, elixir-autogen, elixir-format
 msgid "This build cannot open a file picker"
 msgstr "این نسخه نمی‌تواند انتخابگر فایل را باز کند"
 
-#: lib/kati/screens/restore.ex:1734
+#: lib/kati/screens/restore.ex:1738
 #, elixir-autogen, elixir-format
 msgid "This is everything that was on the device before the restore. Kati keeps its own copy either way; this is the one you can hold."
 msgstr "این همهٔ چیزی است که پیش از بازگردانی روی دستگاه بود. کاتی در هر حال نسخهٔ خودش را نگه می‌دارد؛ این همانی است که می‌توانید در دست داشته باشید."
@@ -15439,12 +15439,12 @@ msgstr "آنچه جزر در خور هنگام آب کم باقی گذاشت"
 msgid "Whole album"
 msgstr "کل آلبوم"
 
-#: lib/kati/screens/restore.ex:1914
+#: lib/kati/screens/restore.ex:1918
 #, elixir-autogen, elixir-format
 msgid "You closed the folder chooser, so nothing was written outside Kati. The copy of your old data is still on the device and saving again costs nothing."
 msgstr "انتخابگر پوشه را بستید، پس چیزی بیرون از کاتی نوشته نشد. نسخهٔ داده‌های قدیمی‌تان هنوز روی دستگاه است و ذخیرهٔ دوباره هزینه‌ای ندارد."
 
-#: lib/kati/screens/restore.ex:1506
+#: lib/kati/screens/restore.ex:1510
 #, elixir-autogen, elixir-format
 msgid "at an unrecorded time"
 msgstr "در زمانی که ثبت نشده"
@@ -15532,7 +15532,7 @@ msgctxt "the word a search matched"
 msgid "Hollow"
 msgstr "گودال"
 
-#: lib/kati/screens/restore.ex:1512
+#: lib/kati/screens/restore.ex:1516
 #, elixir-autogen, elixir-format
 msgctxt "when a backup was made"
 msgid "%{day} %{month} %{year}, %{time}"
@@ -17521,12 +17521,12 @@ msgstr "کاتی برای پیدا کردن فیلم‌ها و سریال‌ها
 msgid "Kati uses your own TMDB token, so searches are yours and nobody else’s. It is free: sign in at themoviedb.org, open Settings → API, and paste the API Read Access Token — the long one starting eyJ."
 msgstr "کاتی از توکن TMDB خودتان استفاده می‌کند، پس جست‌وجوها مال شماست و نه کس دیگری. رایگان است: در themoviedb.org وارد شوید، به Settings ← API بروید و API Read Access Token را اینجا بچسبانید — همان رشتهٔ بلندی که با eyJ شروع می‌شود."
 
-#: lib/kati/screens/settings.ex:393
+#: lib/kati/screens/settings.ex:403
 #, elixir-autogen, elixir-format
 msgid "TMDB · no token yet"
 msgstr "TMDB · هنوز توکنی ندارید"
 
-#: lib/kati/screens/settings.ex:392
+#: lib/kati/screens/settings.ex:402
 #, elixir-autogen, elixir-format
 msgid "TMDB · your token"
 msgstr "TMDB · توکن خودتان"
@@ -17573,7 +17573,7 @@ msgstr "کارت بعدی"
 msgid " into it: a row already here is kept, and the file’s copy of it is skipped."
 msgstr " می‌شود: ردیفی که از قبل اینجاست می‌ماند و نسخهٔ آن در فایل کنار گذاشته می‌شود."
 
-#: lib/kati/screens/restore.ex:1160
+#: lib/kati/screens/restore.ex:1162
 #, elixir-autogen, elixir-format
 msgid "Deletes the %{count} record on this device, then writes the file in its place. There is no undo once it finishes."
 msgid_plural "Deletes all %{count} records on this device, then writes the file in their place. There is no undo once it finishes."
@@ -17585,7 +17585,7 @@ msgstr[1] "هر %{count} رکورد روی این دستگاه حذف می‌ش�
 msgid "No file chosen yet"
 msgstr "هنوز فایلی انتخاب نشده"
 
-#: lib/kati/screens/restore.ex:1617
+#: lib/kati/screens/restore.ex:1621
 #, elixir-autogen, elixir-format
 msgid "No file has been chosen yet. Choose a %{ext} and Kati will read it before it writes anything."
 msgstr "هنوز فایلی انتخاب نشده است. یک %{ext} انتخاب کنید تا کاتی پیش از نوشتن چیزی آن را بخواند."
@@ -17595,7 +17595,7 @@ msgstr "هنوز فایلی انتخاب نشده است. یک %{ext} انتخا
 msgid "No file has been read yet, so there is nothing to count. Kati shows what a backup holds before it writes any of it."
 msgstr "هنوز فایلی خوانده نشده، پس چیزی برای شمردن نیست. کاتی پیش از نوشتن هر چیزی نشان می‌دهد که پشتیبان چه در خود دارد."
 
-#: lib/kati/screens/restore.ex:1153
+#: lib/kati/screens/restore.ex:1155
 #, elixir-autogen, elixir-format
 msgid "Nothing is stored on this device yet, so a replace has nothing to delete — the file would simply go in."
 msgstr "هنوز چیزی روی این دستگاه ذخیره نشده، پس جایگزینی چیزی برای حذف ندارد — فایل به‌سادگی نوشته می‌شود."
@@ -17617,7 +17617,7 @@ msgctxt "backup status"
 msgid "Saved to a file you chose"
 msgstr "در فایلی که خودتان انتخاب کردید ذخیره شد"
 
-#: lib/kati/screens/restore.ex:1090
+#: lib/kati/screens/restore.ex:1092
 #, elixir-autogen, elixir-format
 msgctxt "restore button, no file read yet"
 msgid "Merge into this device"
@@ -17653,7 +17653,7 @@ msgstr "لاتین %{digits} · از %{language} می‌آید"
 msgid "Left to right · set by %{language}"
 msgstr "چپ به راست · از %{language} می‌آید"
 
-#: lib/kati/settings/sample.ex:407
+#: lib/kati/settings/sample.ex:418
 #, elixir-autogen, elixir-format
 msgid "No account, no server, no analytics"
 msgstr "بدون حساب، بدون سرور، بدون آمارگیری"
@@ -17734,3 +17734,19 @@ msgstr "بدون آمارگیری"
 msgctxt "privacy"
 msgid "Your data"
 msgstr "داده‌های شما"
+
+#: lib/kati/notifications/inbox.ex:163
+#, elixir-autogen, elixir-format
+msgid "%{section} reminder"
+msgstr "یادآور %{section}"
+
+#: lib/kati/screens/settings.ex:453
+#, elixir-autogen, elixir-format
+msgid "Last backup %{date} · %{size}"
+msgstr "آخرین پشتیبان %{date} · %{size}"
+
+#: lib/kati/screens/account.ex:620
+#, elixir-autogen, elixir-format
+msgctxt "permission"
+msgid "Checking…"
+msgstr "در حال بررسی…"

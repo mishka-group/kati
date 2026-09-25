@@ -3144,6 +3144,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.ScreenDesignLiteralTest` carries the same pair with the full
       # reasoning; this list is that one's shorter twin.
       {"24", "last backup 14 aug", ~r/^(last backup \d{1,2} \p{L}{3}|never backed up)$/u},
+      # 24's Back up row, which reads the same ledger since N19 and adds the
+      # byte count stamped on the same Save As.
+      {"24", "last backup 14 aug · 214 mb",
+       ~r/^(last backup \d{1,2} \p{L}{3}( · \d+ [km]b)?|never backed up)$/u},
       {"62", "آخرین پشتیبان ۱۴ مرداد",
        ~r/^(آخرین پشتیبان \p{N}+ #{word}|هنوز پشتیبانی گرفته نشده)$/u},
       # 62's My services row, which board 62 froze at **ایران · ۳ سرویس** — a

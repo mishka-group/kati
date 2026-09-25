@@ -285,9 +285,9 @@ defmodule Kati.Screens.BackupStates do
   def recent do
     label = UI.eyebrow_label(gettext("Last backup"))
 
-    # `Kati.Settings.Sample.data/0`'s own backup row, to the day and to the
-    # megabyte — that row is the thing this card is a picture of, and a second
-    # date typed here would be a second answer to one question. `:short` sets
+    # Board 24's own backup row, to the day and to the megabyte — the drawing
+    # this card is a picture of. Settings itself reads the ledger now (N19);
+    # this sheet draws the drawing's specimen. `:short` sets
     # `14 Aug` in Latin and ۲۳ مرداد in Shamsi.
     date = Kati.Locale.date(~D[2026-08-14], :short)
 
@@ -656,8 +656,8 @@ defmodule Kati.Screens.BackupStates do
   @doc "A file that stopped part-way through writing, named as what it is rather than as an error code."
   @spec corrupt() :: map()
   def corrupt do
-    # 214 is the whole backup — `Kati.Settings.Sample.data/0`'s figure and the
-    # one the second card prints — so the truncation is stated against the size
+    # 214 is the whole backup — board 24's figure and the one the second card
+    # prints — so the truncation is stated against the size
     # the file should have been rather than against a number of its own.
     detail =
       gettext("It ends part-way through — %{got} MB of an expected %{expected}",

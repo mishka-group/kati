@@ -37,6 +37,8 @@ defmodule Kati.Notifications.Inbox do
   day, with no edit to this module.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   alias Kati.Notifications.Budget
   alias Kati.Notifications.Candidate
   alias Kati.Notifications.Plan
@@ -87,18 +89,32 @@ defmodule Kati.Notifications.Inbox do
   end
 
   @doc """
-  A domain's display name.
+  A domain's display name, in the reader's language.
 
   Kati's own section names rather than the atoms — `Screen` and not `tv` — so
   the inbox reads in the vocabulary the rest of the app uses.
+
+  They were English literals, so the Persian inbox's *By section* card listed
+  Calendar, Screen, Habits, Meals, Health and Money under بر اساس بخش (N21).
+  Each is now a bare msgid the catalogue already carries for that section —
+  *Screen*, *Habits* and *Money* are `Kati.Settings.Sample.sections/0`'s own,
+  and *Calendar*, *Meals* and *Health* are the bare words `Kati.Shell` and
+  `Kati.Screens.Pushed` already say — so the inbox says
+  نمایش where Settings says نمایش rather than opening a second Persian for one
+  section. No context: a context would be a new msgid, and a
+  new msgid is a second translation to keep in step with the first.
+
+  The fallback for a domain this list has not met yet stays the capitalised
+  atom. A runtime value cannot be a msgid, and a new domain arrives in
+  `Kati.Notifications.Budget` before anybody has written its name.
   """
   @spec domain_label(Budget.domain()) :: String.t()
-  def domain_label(:calendar), do: "Calendar"
-  def domain_label(:tv), do: "Screen"
-  def domain_label(:habits), do: "Habits"
-  def domain_label(:meals), do: "Meals"
-  def domain_label(:health), do: "Health"
-  def domain_label(:money), do: "Money"
+  def domain_label(:calendar), do: gettext("Calendar")
+  def domain_label(:tv), do: gettext("Screen")
+  def domain_label(:habits), do: gettext("Habits")
+  def domain_label(:meals), do: gettext("Meals")
+  def domain_label(:health), do: gettext("Health")
+  def domain_label(:money), do: gettext("Money")
   def domain_label(other), do: other |> Atom.to_string() |> String.capitalize()
 
   @doc "The glyph a domain's rows carry — the same one its section uses elsewhere."
@@ -135,8 +151,14 @@ defmodule Kati.Notifications.Inbox do
   makes `title` and `body` nullable because the scheduler's job is *when*, not
   *what*. The inbox is the one place that has to print something anyway, so it
   falls back to the domain rather than to an empty row.
+
+  One msgid with the section as a hole, not the translated section with an
+  English ` reminder` glued on: Persian puts the noun first — یادآور وعده‌ها —
+  so a suffix decided the word order before a translator saw it.
   """
   @spec title(Candidate.t()) :: String.t()
   def title(%Candidate{title: title}) when is_binary(title) and title != "", do: title
-  def title(%Candidate{domain: domain}), do: domain_label(domain) <> " reminder"
+
+  def title(%Candidate{domain: domain}),
+    do: gettext("%{section} reminder", section: domain_label(domain))
 end

@@ -62,9 +62,10 @@ defmodule Kati.Permissions do
   The platform's answer for `capability`, right now.
 
   `:unknown` when the native half is absent — on a host, or if the bridge
-  method goes missing. Deliberately not folded into `:denied`: a screen can say
-  "not available here" where it would otherwise offer an Allow button that
-  cannot work.
+  method goes missing — or cannot answer yet, as on Android right after a hot
+  deploy. Deliberately not folded into `:denied`: a screen can say "not
+  available here" where it would otherwise offer an Allow button that cannot
+  work. `platform_answers?/0` tells the two apart.
   """
   @spec status(capability()) :: state()
   def status(capability) when is_atom(capability) do
@@ -72,6 +73,30 @@ defmodule Kati.Permissions do
       {:ok, reply} -> decode(reply, capability)
       _ -> :unknown
     end
+  end
+
+  @doc """
+  Whether this build runs somewhere that answers `status/1` at all.
+
+  `true` on Android, the one platform whose build carries the bridge, and
+  `false` on a host or on iOS, where `status/1` answers `:unknown` for good.
+  The two `:unknown`s mean different things and a screen has to say different
+  words for them: off Android it is a fact about the platform, and on Android
+  it is a read that happened before the native half could answer — right after
+  a hot deploy reloads the bridge's module, or while a restored screen mounts
+  ahead of it (N17). The second is worth reading again; the first is not.
+
+  Asked of `:mob_nif.platform/0`, which is not a bridge call and so answers
+  the same whether or not the bridge is ready yet — and only once `:mob_nif`
+  is loaded, which it is before any screen mounts on a phone and never is on a
+  host. Calling it unloaded would retry the failing `on_load` on every row of
+  every render, so `Code.loaded?/1` asks first without loading anything.
+  """
+  @spec platform_answers?() :: boolean()
+  def platform_answers? do
+    Code.loaded?(:mob_nif) and :mob_nif.platform() == :android
+  rescue
+    _error -> false
   end
 
   @doc """

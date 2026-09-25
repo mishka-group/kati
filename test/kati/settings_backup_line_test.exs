@@ -31,8 +31,9 @@ defmodule Kati.SettingsBackupLineTest do
       can tell a stored fact from one computed in the render that drew it.
 
   The last test is the one that keeps the frame still: recording a backup must
-  change **exactly one** `Text` on screen 24. 62 captured frames are this app's
-  baseline, and "the Export row now reads a ledger" may not become "screen 24
+  change **exactly the two backup rows' lines** on screen 24 — Export's, and
+  since N19 *Back up everything*'s above it. 62 captured frames are this app's
+  baseline, and "the backup rows now read a ledger" may not become "screen 24
   now looks different".
   """
   use Mob.ScreenCase, async: false
@@ -218,11 +219,12 @@ defmodule Kati.SettingsBackupLineTest do
     assert fa(fn -> Enum.count(Kati.Settings.Sample.data(), &(&1.id == "export")) end) == 1
   end
 
-  test "recording a backup moves exactly one Text on screen 24" do
+  test "recording a backup moves exactly the two backup rows on screen 24" do
     # The resting frame is 62 captured drawings and may not drift. Everything
     # else on this screen — the account card, the four groups, the trough — has
     # to be byte-for-byte what it was, so the whole rendered copy is compared
-    # rather than the one row.
+    # rather than the one row. Two Texts since N19: *Back up everything* reads
+    # the same ledger as *Export everything*, above it and in draw order first.
     before = texts(mount_screen(Settings))
     :ok = Settings.record_backup(@drawn)
     after_ = texts(mount_screen(Settings))
@@ -231,10 +233,13 @@ defmodule Kati.SettingsBackupLineTest do
 
     changed = for {a, b} <- Enum.zip(before, after_), a != b, do: {a, b}
 
-    assert changed == [{@never_en, "Last backup 14 Aug"}]
+    assert changed == [
+             {@never_en, "Last backup 14 Aug"},
+             {@never_en, "Last backup 14 Aug"}
+           ]
   end
 
-  test "recording a backup moves exactly one Text on board 62" do
+  test "recording a backup moves exactly the two backup rows on board 62" do
     before = fa(fn -> texts(mount_screen(Settings)) end)
     :ok = Settings.record_backup(@drawn)
     after_ = fa(fn -> texts(mount_screen(Settings)) end)
@@ -243,7 +248,10 @@ defmodule Kati.SettingsBackupLineTest do
 
     changed = for {a, b} <- Enum.zip(before, after_), a != b, do: {a, b}
 
-    assert changed == [{@never_fa, "آخرین پشتیبان ۲۳ مرداد"}]
+    assert changed == [
+             {@never_fa, "آخرین پشتیبان ۲۳ مرداد"},
+             {@never_fa, "آخرین پشتیبان ۲۳ مرداد"}
+           ]
   end
 
   # Read as a Persian reader. Board 62 is screen 24 under `:fa` since #103, so

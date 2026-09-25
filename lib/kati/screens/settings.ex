@@ -199,6 +199,16 @@ defmodule Kati.Screens.Settings do
   Save As, and both settings screens then draw *Never backed up*. That is not a
   placeholder but the truth about that device.
 
+  ### The Back up row reads it too
+
+  *Back up everything* sat one row above Export still printing the sample's
+  `Last backup 14 Aug · 214 MB`, so a fresh install said it had a backup and
+  had none in the same card (N19). `sub/1` now answers that row from the same
+  ledger, adding the size `Kati.Screens.Backup.record_bytes/1` stamps on the
+  same Save As — see `backup_line/2`. Both rows open `Kati.Screens.Backup`, so
+  today they are one action with two titles; `Kati.Settings.Sample.data/0`
+  says why both stay.
+
   ## The Sections switches persist, and the two things that stopped them no longer do
 
   A tap here used to flip a switch in this screen's assigns and die with the
@@ -339,11 +349,11 @@ defmodule Kati.Screens.Settings do
   # ── The backup ledger ───────────────────────────────────────────────────────
   #
   # `last_backup/0` and `record_backup/1` are the whole of it. This screen owns
-  # them for the same reason it owns the appearance boundary above: the Export
-  # row is the only thing in the app that reads the value, and
-  # `Kati.Screens.SettingsFa` reads it through here rather than keeping a second
-  # key. If a backup domain ever wants it, the three functions lift out verbatim
-  # and neither screen changes.
+  # them for the same reason it owns the appearance boundary above: its Export
+  # row was the ledger's first reader, and the Back up row, screen 128's status
+  # card and screen 40's storage card all read it through here rather than
+  # keeping a second key. If a backup domain ever wants it, the functions lift
+  # out verbatim and no reader changes.
 
   @backup_key :last_backup_at
 
@@ -415,8 +425,47 @@ defmodule Kati.Screens.Settings do
   end
 
   @doc """
-  A row's second line: the sample's copy, except on the Export row, which
-  reports the ledger.
+  The Back up row's second line: `backup_line/1`, and the size when the ledger
+  has one.
+
+  Board 24 draws `Last backup 14 Aug · 214 MB`. The size is the byte count
+  `Kati.Screens.Backup.record_bytes/1` stamps beside the date on the same
+  completed Save As, set by `Kati.Screens.Backup.format_size/1` — `214 MB`, or
+  `8 KB` for the small backup a new install makes. When the size is missing —
+  a date recorded by a build older than the byte key — the line is the date
+  alone rather than a guessed figure, which is the call
+  `Kati.Screens.Backup.caption/1` makes on screen 128. With no date there is
+  no backup, and a size without one is ignored.
+
+  One msgid with the size as a hole rather than `%{n} MB`: the unit changes
+  with the figure, and both units are already words of their own in the
+  catalogue.
+  """
+  @spec backup_line(DateTime.t() | nil, non_neg_integer() | nil) :: String.t()
+  def backup_line(nil, _bytes), do: Kati.Screens.Settings.backup_line(nil)
+
+  def backup_line(%DateTime{} = at, bytes) do
+    case Kati.Screens.Backup.format_size(bytes) do
+      nil ->
+        Kati.Screens.Settings.backup_line(at)
+
+      size ->
+        gettext("Last backup %{date} · %{size}",
+          date: Kati.Locale.date(DateTime.to_date(at), :short),
+          size: size
+        )
+    end
+  end
+
+  @doc """
+  A row's second line: the sample's copy, except on the two backup rows, which
+  report the ledger.
+
+  *Back up everything* and *Export everything* read the same two keys — the
+  date from `last_backup/0` and the size from
+  `Kati.Screens.Backup.last_backup_bytes/0` — so the two rows beside each other
+  cannot disagree about whether a backup exists. The Back up row adds the size
+  because board 24 draws it there and not on Export; see `backup_line/2`.
 
   Matched on the row's **id** rather than on its title or its glyph. It was the
   glyph, which was the best field available while there were two screens and the
@@ -428,6 +477,13 @@ defmodule Kati.Screens.Settings do
   @spec sub(map()) :: String.t() | nil
   def sub(%{id: "export"}),
     do: Kati.Screens.Settings.backup_line(Kati.Screens.Settings.last_backup())
+
+  def sub(%{id: "back_up"}),
+    do:
+      Kati.Screens.Settings.backup_line(
+        Kati.Screens.Settings.last_backup(),
+        Kati.Screens.Backup.last_backup_bytes()
+      )
 
   def sub(%{id: "version"}), do: Kati.Locale.number(@version)
 

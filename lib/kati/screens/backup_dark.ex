@@ -19,8 +19,8 @@ defmodule Kati.Screens.BackupDark do
   `YearShare`/`BookDetail` — and repaint. There is no `Kati.Screens.Backup128`
   to read from: `128.html` has no built screen behind it yet, only the
   Settings row that will one day open it
-  (`Kati.Settings.Sample.data/0`'s "Back up everything", `sub: "Last backup 14
-  Aug · 214 MB"` — the same figures 128 and 131 both draw). So this module is
+  (board 24's "Back up everything", drawn as `Last backup 14 Aug · 214 MB` —
+  the same figures 128 and 131 both draw). So this module is
   not a repaint of a sibling; it is the first screen built against `128.html`,
   drawn straight in the dark palette because dark is the board this task was
   given. `Kati.Screens.Backup` — the export/restore engine screen reached from
