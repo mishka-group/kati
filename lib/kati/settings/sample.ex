@@ -257,7 +257,22 @@ defmodule Kati.Settings.Sample do
   `Export everything` stays alongside `Back up everything` rather than being
   folded into it: a backup is the restorable format and an export is the
   portable one, and screen 128 draws both as choices *within* the backup screen.
-  The row here is the shortcut for someone who already knows which they want.
+
+  **Today the two rows are one action.** Both ids open `Kati.Screens.Backup`
+  with no parameters, so both land on the same page with *Everything (JSON)*
+  selected — the only format `Kati.Backup` writes — and the Export row is not
+  yet the shortcut to a portable format it was drawn as. Neither row is
+  removed: board 24 draws both, and the Export row becomes its own door the day
+  a per-section CSV or `.ics` writer exists to preselect.
+
+  ## Neither backup row carries a second line of its own
+
+  `sub: nil` on both, and `Kati.Screens.Settings.sub/1` supplies the line from
+  the backup ledger. The Back up row used to carry the drawing's own
+  `Last backup 14 Aug · 214 MB` here — a date and a size nobody had made — so
+  the row printed it on every phone while the Export row beside it, which
+  already read the ledger, said *Never backed up* (N19). A second line written
+  here is a second answer to one question.
   """
   @spec data() :: [map()]
   def data do
@@ -266,11 +281,7 @@ defmodule Kati.Settings.Sample do
         id: "back_up",
         icon: "cloud_done",
         title: gettext("Back up everything"),
-        sub:
-          gettext("Last backup %{date} · %{n} MB",
-            date: Kati.Locale.date(~D[2026-08-14], :short),
-            n: Kati.Locale.number(214)
-          ),
+        sub: nil,
         control: :chevron
       },
       %{
@@ -291,7 +302,7 @@ defmodule Kati.Settings.Sample do
         id: "export",
         icon: "upload",
         title: gettext("Export everything"),
-        sub: gettext("Last backup %{date}", date: Kati.Locale.date(~D[2026-08-14], :short)),
+        sub: nil,
         control: :chevron
       },
       %{

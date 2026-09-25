@@ -54,7 +54,9 @@ defmodule Kati.Screens.InboxNotifications do
       well — `Kati.Screens.NotificationsHelp.held_line/1` joins the same five —
       and one of them translated twice would be two Persians for one rule. The
       frame around them is this screen's and is translated; the words arrive as
-      the inbox says them.
+      the inbox says them. The inbox now translates the section names and the
+      *%{section} reminder* fallback itself, on the msgids Settings' Sections
+      group already carries (N21); its held-back reasons are still English.
     * **A candidate's own body.** `Kati.Notifications.Sources.*` writes it per
       domain, out of a meal's name or an episode's number, and a line built
       from a record is not copy.

@@ -830,7 +830,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # only when it does, and 132 is that sentence in Persian. Eight literals
       # move from "checked against a backup nobody made" to "checked against
       # what the ledger and the store say".
-      assert length(device_values()) <= 64,
+      #
+      # Raised to 65 for board 24's Back up row (N19). The same class as the
+      # Export row's entry beside it — the drawing froze a backup nobody made,
+      # and the row reads the ledger — and the pattern insists on the size's
+      # own form, so a row that kept printing the sample's figure fails it on
+      # every device that has not saved exactly 214 MB on 14 August.
+      assert length(device_values()) <= 65,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -1270,6 +1276,14 @@ defmodule Kati.ScreenDesignLiteralTest do
          "always the second branch, because `Mob.ScreenCase` starts `Mob.State` empty. See " <>
          "`Kati.SettingsBackupLineTest` for the branch this cannot reach",
        ~r/^(last backup \d{1,2} \p{L}{3}|never backed up)$/u},
+      {"24", "last backup 14 aug · 214 mb",
+       "the Back up row above Export, which printed the drawing's date AND size from " <>
+         "`Kati.Settings.Sample` on every phone while Export said the opposite (N19). It " <>
+         "reads the same ledger now, plus the byte count `Kati.Screens.Backup.record_bytes/1` " <>
+         "stamps on the same Save As, so the size is a third branch: absent when the ledger " <>
+         "has a date from before the byte key. `Kati.SettingsBackUpRowTest` reaches the dated " <>
+         "branches",
+       ~r/^(last backup \d{1,2} \p{L}{3}( · \d+ [km]b)?|never backed up)$/u},
       {"62", "آخرین پشتیبان ۱۴ مرداد",
        "the Persian mirror of 24's Export row, on the same reading through " <>
          "`Kati.Screens.Settings.last_backup/0`, with the date in Shamsi because that is the " <>

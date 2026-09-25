@@ -35,6 +35,15 @@ defmodule Kati.Screens.Account do
   Notifications unasked, Calendars, Photos and Local network on, Microphone
   and Share anonymous usage off.
 
+  ## A read with no answer says so, and is read again
+
+  The permission rows are read from the platform at every render, so a row is
+  only ever as stale as the last render. After a hot deploy (N17) the last
+  render came before the bridge could answer, and the rows said *Not available
+  here* on a phone where every permission was granted. On Android an unanswered
+  row now says *Checking…*, and `settle/2` and `handle_kati/3` render the page
+  again — once after the first frame, and whenever the reader comes back.
+
   Chevron rows carry no tap. A chevron means *leads elsewhere*, and there is
   nowhere yet for a device or Delete everything to lead — the rule
   `Kati.Screens.Series.episode/1` applies to an unaired episode.
@@ -80,7 +89,63 @@ defmodule Kati.Screens.Account do
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :account, Sample.account())
+  def load(socket) do
+    account = Sample.account()
+    :ok = Kati.Screens.Account.settle(account.permissions)
+    Mob.Socket.assign(socket, :account, account)
+  end
+
+  @doc """
+  Ask for one more read when this mount got no answer from a platform that
+  gives one.
+
+  N17: right after a hot deploy the rows said *Not available here* while
+  `Kati.Permissions.status/1` answered `:granted` over RPC a minute later. The
+  rows are read at every render, but nothing rendered again, so the first
+  answer — taken before the bridge could give one — stayed on the page.
+
+  `{:kati, :permissions_settle, nil}` to the screen's own process is
+  `Kati.Screens.Library`'s mount-time `send/2`, not a timer: it is read once
+  the first frame is out, and `handle_kati/3` answering it is what makes Mob
+  render — and so read — again. One message and not a loop, because a loop
+  would spin a render per turn for as long as the bridge stays away. What
+  covers the longer gap is `:resumed` (see `handle_kati/3`) and the word the
+  row wears meanwhile, which is *Checking…* rather than a claim — see
+  `state_label/2`.
+
+  Nothing is sent where `Kati.Permissions.platform_answers?/0` says no answer
+  is coming, or where every capability already answered.
+  """
+  @spec settle([map()], boolean()) :: :ok
+  def settle(permissions, answers? \\ Kati.Permissions.platform_answers?())
+
+  def settle(permissions, true) do
+    if Enum.any?(permissions, &(Kati.Permissions.status(&1.capability) == :unknown)),
+      do: send(self(), {:kati, :permissions_settle, nil})
+
+    :ok
+  end
+
+  def settle(_permissions, false), do: :ok
+
+  @doc """
+  Read the permissions again: once after the first frame, and every time the
+  reader comes back to this page.
+
+  Both clauses leave the assigns alone on purpose. The permission rows are
+  read from the platform inside `content/1`, and `Mob.Screen.Server` renders
+  after every handled message, so the render this answer causes IS the
+  re-read. Storing the states here would be a remembered answer, which
+  `Kati.Permissions` argues against.
+
+  `:resumed` is `Kati.Screens.Resume`'s: the reader who opened a page pushed on
+  top of this one and came back. A permission changed in between is drawn as it
+  now is, and a *Checking…* row gets its answer.
+  """
+  @impl true
+  def handle_kati(:permissions_settle, _payload, socket), do: {:noreply, socket}
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, socket}
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @doc false
   def content(assigns) do
@@ -530,8 +595,29 @@ defmodule Kati.Screens.Account do
   translated empty string would stop matching.
   """
   def state_label(:granted), do: pgettext("permission", "Allowed")
-  def state_label(:unknown), do: gettext("Not available here")
+
+  def state_label(:unknown),
+    do: Kati.Screens.Account.state_label(:unknown, Kati.Permissions.platform_answers?())
+
   def state_label(_state), do: ""
+
+  @doc """
+  What an unanswered row says, given whether this platform answers at all.
+
+  *Not available here* only where it is true — a host, or a build with no
+  bridge. On Android an `:unknown` is a read taken before the native half could
+  answer (N17), and saying *not available* there stated a fact about the phone
+  that the next read contradicted. *Checking…* says only that the answer has
+  not come; `settle/2` and `handle_kati/3` are what bring it.
+
+  `pgettext/2` under the `permission` context, beside *Allow* and *Allowed*,
+  for the reason `state_label/1` gives: the catalogue already holds a
+  *Checking…* under `release watcher`, and a bare msgid this short is what
+  `mix gettext.merge` fuzzy-matches.
+  """
+  @spec state_label(:unknown, boolean()) :: String.t()
+  def state_label(:unknown, true), do: pgettext("permission", "Checking…")
+  def state_label(:unknown, false), do: gettext("Not available here")
 
   @doc """
   A granted permission's trailing state: mono, quiet, and not a control.
