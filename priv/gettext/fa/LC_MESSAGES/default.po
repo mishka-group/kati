@@ -521,7 +521,7 @@ msgstr "حذف شده — خالی نیست"
 #: lib/kati/screens/home.ex:588
 #: lib/kati/screens/home_omitted_sections.ex:205
 #: lib/kati/screens/pick_sections/sample.ex:49
-#: lib/kati/screens/retired_tile.ex:276
+#: lib/kati/screens/retired_tile.ex:293
 #: lib/kati/settings/sample.ex:225
 #: lib/kati/stats/sample.ex:86
 #: lib/kati/stats/share_sample.ex:35
@@ -714,7 +714,7 @@ msgstr "مرام"
 #: lib/kati/screens/meal.ex:657
 #: lib/kati/screens/meals_day.ex:565
 #: lib/kati/screens/pushed.ex:198
-#: lib/kati/screens/retired_tile.ex:275
+#: lib/kati/screens/retired_tile.ex:292
 #: lib/kati/stats/share_sample.ex:34
 #, elixir-autogen, elixir-format
 msgid "Meals"
@@ -1534,7 +1534,7 @@ msgstr "فهرست‌ها"
 #: lib/kati/screens/medication.ex:506
 #: lib/kati/screens/medication_empty.ex:106
 #: lib/kati/screens/pushed.ex:199
-#: lib/kati/screens/retired_tile.ex:278
+#: lib/kati/screens/retired_tile.ex:295
 #, elixir-autogen, elixir-format
 msgid "Medication"
 msgstr "دارو"
@@ -2309,7 +2309,7 @@ msgstr "خوردم"
 msgid "The reminder"
 msgstr "یادآور"
 
-#: lib/kati/screens/retired_tile.ex:277
+#: lib/kati/screens/retired_tile.ex:294
 #: lib/kati/screens/weight.ex:225
 #: lib/kati/screens/weight_states.ex:201
 #, elixir-autogen, elixir-format
@@ -2991,14 +2991,14 @@ msgstr "در این نسخه نیست"
 #: lib/kati/screens/data_sources.ex:759
 #: lib/kati/screens/health_empty_states.ex:609
 #: lib/kati/screens/health_empty_states.ex:673
-#: lib/kati/screens/notification_access.ex:571
+#: lib/kati/screens/notification_access.ex:563
 #: lib/kati/screens/retired_reason.ex:87
 #, elixir-autogen, elixir-format
 msgid "Not in v1"
 msgstr "در نسخه ۱ نیست"
 
 #: lib/kati/screens/data_sources.ex:733
-#: lib/kati/screens/notification_access.ex:537
+#: lib/kati/screens/notification_access.ex:532
 #, elixir-autogen, elixir-format
 msgid "Not set up — tap to see why"
 msgstr "راه‌اندازی نشده — برای دیدن دلیل بزنید"
@@ -3123,7 +3123,7 @@ msgid "Sessions with a kind, a length and an effort against them."
 msgstr "جلسه‌هایی با نوع، مدت و میزان تلاش ثبت‌شده."
 
 #: lib/kati/retired.ex:114
-#: lib/kati/screens/retired_tile.ex:273
+#: lib/kati/screens/retired_tile.ex:290
 #: lib/kati/settings/states_sample.ex:231
 #, elixir-autogen, elixir-format
 msgid "Sleep"
@@ -3221,7 +3221,7 @@ msgid "Working out of the box"
 msgstr "بدون تنظیم کار می‌کند"
 
 #: lib/kati/retired.ex:129
-#: lib/kati/screens/retired_tile.ex:274
+#: lib/kati/screens/retired_tile.ex:291
 #, elixir-autogen, elixir-format
 msgid "Workouts"
 msgstr "تمرین‌ها"
@@ -4067,7 +4067,6 @@ msgstr "%{n} این ماه"
 #: lib/kati/screens/add_title_music.ex:200
 #: lib/kati/screens/album_detail.ex:176
 #: lib/kati/screens/log_listen.ex:504
-#: lib/kati/screens/notification_access.ex:451
 #: lib/kati/settings/detect_music_sample.ex:138
 #, elixir-autogen, elixir-format
 msgid "%{n} track"
@@ -5594,7 +5593,7 @@ msgstr "%{day} %{month}، %{time}"
 msgid "%{name} already exists. Nothing was made — open it from the list above."
 msgstr "%{name} از قبل وجود دارد. چیزی ساخته نشد — از همین بالا بازش کنید."
 
-#: lib/kati/screens/retired_tile.ex:409
+#: lib/kati/screens/retired_tile.ex:426
 #, elixir-autogen, elixir-format
 msgid "%{name} isn’t in this version"
 msgstr "%{name} در این نسخه نیست"
@@ -5631,7 +5630,7 @@ msgstr "%{out} منتشرشده · %{up} در راه"
 msgid "%{tier} · paused"
 msgstr "%{tier} · متوقف"
 
-#: lib/kati/screens/retired_tile.ex:574
+#: lib/kati/screens/retired_tile.ex:591
 #, elixir-autogen, elixir-format
 msgid ". When Kati can read the data properly, this %{noun} turns on."
 msgstr ". وقتی کاتی بتواند این داده را درست بخواند، این %{noun} روشن می‌شود."
@@ -5684,7 +5683,7 @@ msgstr "هر ماه، همان روز"
 msgid "Every service you have told Kati about"
 msgstr "هر سرویسی که به کاتی گفته‌اید"
 
-#: lib/kati/screens/retired_tile.ex:334
+#: lib/kati/screens/retired_tile.ex:351
 #, elixir-autogen, elixir-format
 msgid "Fair enough"
 msgstr "قبول است"
@@ -5902,7 +5901,7 @@ msgstr "چیپ بخش واحد را عوض می‌کند، نه چیدمان ر�
 msgid "The watcher is running"
 msgstr "پایشگر در حال کار است"
 
-#: lib/kati/screens/retired_tile.ex:567
+#: lib/kati/screens/retired_tile.ex:584
 #, elixir-autogen, elixir-format
 msgid "There is no date for it"
 msgstr "تاریخی برای آن تعیین نشده است"
@@ -5964,7 +5963,7 @@ msgid_plural "Watching for %{n} titles"
 msgstr[0] "در حال پایش %{n} عنوان"
 msgstr[1] "در حال پایش %{n} عنوان"
 
-#: lib/kati/screens/retired_tile.ex:257
+#: lib/kati/screens/retired_tile.ex:274
 #, elixir-autogen, elixir-format
 msgid "What Kati can do today"
 msgstr "کاری که کاتی امروز می‌تواند بکند"
@@ -6137,13 +6136,13 @@ msgctxt "the suggestions section on the search page"
 msgid "Try"
 msgstr "پیشنهادها"
 
-#: lib/kati/screens/retired_tile.ex:293
+#: lib/kati/screens/retired_tile.ex:310
 #, elixir-autogen, elixir-format
 msgctxt "the thing the sheet was opened from"
 msgid "row"
 msgstr "ردیف"
 
-#: lib/kati/screens/retired_tile.ex:292
+#: lib/kati/screens/retired_tile.ex:309
 #, elixir-autogen, elixir-format
 msgctxt "the thing the sheet was opened from"
 msgid "tile"
@@ -12920,7 +12919,7 @@ msgstr "پایبندی"
 msgid "After you drop it"
 msgstr "بعد از رهاکردن"
 
-#: lib/kati/screens/notification_access.ex:286
+#: lib/kati/screens/notification_access.ex:307
 #, elixir-autogen, elixir-format
 msgid "Android grants this as access to"
 msgstr "اندروید این اجازه را این‌طور می‌دهد: دسترسی به"
@@ -13108,7 +13107,7 @@ msgstr "کاتی هیچ‌وقت گذشته را بی‌صدا از نو نمی�
 msgid "Kati only searches what you keep. If it is a title you have not added yet, look it up."
 msgstr "کاتی فقط آنچه را نگه می‌دارید جست‌وجو می‌کند. اگر عنوانی است که هنوز اضافه‌اش نکرده‌اید، بیرون دنبالش بگردید."
 
-#: lib/kati/screens/notification_access.ex:288
+#: lib/kati/screens/notification_access.ex:309
 #, elixir-autogen, elixir-format
 msgid "Kati reads only media notifications and never stores anything else."
 msgstr "کاتی فقط اعلان‌های رسانه‌ای را می‌خواند و هیچ چیز دیگری را ذخیره نمی‌کند."
@@ -13133,7 +13132,7 @@ msgstr "در حال بارگذاری · خطا · آفلاین"
 msgid "Local play counts and ratings still render"
 msgstr "شمار پخش و امتیازهای محلی همچنان نمایش داده می‌شوند"
 
-#: lib/kati/screens/notification_access.ex:375
+#: lib/kati/screens/notification_access.ex:392
 #, elixir-autogen, elixir-format
 msgid "Log by hand instead"
 msgstr "به‌جایش دستی ثبت کنید"
@@ -13173,11 +13172,6 @@ msgstr "نه حلقهٔ کالری، نه نسبت درشت‌مغذی‌ها �
 msgid "No results anywhere"
 msgstr "هیچ نتیجه‌ای، هیچ‌جا"
 
-#: lib/kati/screens/notification_access.ex:142
-#, elixir-autogen, elixir-format
-msgid "Not granted — purpose, then scope, then the action"
-msgstr "اجازه داده نشده — هدف، بعد دامنه، بعد آن کار"
-
 #: lib/kati/screens/artist_detail_states.ex:237
 #, elixir-autogen, elixir-format
 msgid "Nothing announced since %{album}, %{year}"
@@ -13208,7 +13202,8 @@ msgstr "چیزی در سلامت راه‌اندازی نشده"
 msgid "Nothing in this scope, something elsewhere"
 msgstr "در این دامنه چیزی نیست، جای دیگر هست"
 
-#: lib/kati/screens/notification_access.ex:455
+#: lib/kati/screens/notification_access.ex:453
+#: lib/kati/screens/notification_access.ex:461
 #, elixir-autogen, elixir-format
 msgid "Nothing new is detected until it is turned back on."
 msgstr "تا دوباره روشن نشود، چیز تازه‌ای تشخیص داده نمی‌شود."
@@ -13218,9 +13213,10 @@ msgstr "تا دوباره روشن نشود، چیز تازه‌ای تشخیص 
 msgid "Nothing new — says so plainly"
 msgstr "چیزی تازه نیست — و صریح می‌گوید"
 
-#: lib/kati/screens/notification_access.ex:142
-#: lib/kati/screens/notification_access.ex:479
-#: lib/kati/screens/notification_access.ex:537
+#: lib/kati/screens/notification_access.ex:160
+#: lib/kati/screens/notification_access.ex:480
+#: lib/kati/screens/notification_access.ex:532
+#: lib/kati/screens/retired_tile.ex:258
 #, elixir-autogen, elixir-format
 msgid "Notification access"
 msgstr "دسترسی به اعلان‌ها"
@@ -13240,7 +13236,7 @@ msgstr "پیشنهاد می‌شود، انجام نمی‌شود — %{screen} 
 msgid "Offline — still searching"
 msgstr "آفلاین — جست‌وجو همچنان کار می‌کند"
 
-#: lib/kati/screens/notification_access.ex:479
+#: lib/kati/screens/notification_access.ex:480
 #, elixir-autogen, elixir-format
 msgid "On · media notifications only"
 msgstr "روشن · فقط اعلان‌های رسانه‌ای"
@@ -13250,8 +13246,8 @@ msgstr "روشن · فقط اعلان‌های رسانه‌ای"
 msgid "One scope only — seven zeroes are not a fault"
 msgstr "فقط یک دامنه — هفت صفر ایراد نیست"
 
-#: lib/kati/screens/notification_access.ex:343
-#: lib/kati/screens/notification_access.ex:375
+#: lib/kati/screens/notification_access.ex:360
+#: lib/kati/screens/notification_access.ex:392
 #, elixir-autogen, elixir-format
 msgid "Open system settings"
 msgstr "باز کردن تنظیمات سیستم"
@@ -13265,11 +13261,6 @@ msgstr "تا حدی پر شده — %{provider} اجازهٔ %{n} درخواست
 #, elixir-autogen, elixir-format
 msgid "Period rolled over"
 msgstr "دوره از نو شروع شد"
-
-#: lib/kati/screens/notification_access.ex:614
-#, elixir-autogen, elixir-format
-msgid "Play Protect blocks sideloaded APKs declaring %{listener}, and Kati installs directly. So the three states above are the design record, and the live row wears 114’s retired treatment — it keeps its place and explains itself rather than vanishing."
-msgstr "Play Protect جلوی بسته‌های APK بیرونِ فروشگاه را که %{listener} را اعلام می‌کنند می‌گیرد، و کاتی مستقیم نصب می‌شود. پس آن سه حالت بالا سند طراحی‌اند و ردیفی که واقعاً نمایش داده می‌شود همان شیوهٔ «بازنشسته»ی ۱۱۴ را می‌گیرد — جایش را نگه می‌دارد و به‌جای ناپدید شدن، خودش را توضیح می‌دهد."
 
 #: lib/kati/screens/search_result_states.ex:256
 #, elixir-autogen, elixir-format
@@ -13307,17 +13298,12 @@ msgstr "اگر گوشی برای صرفه‌جویی در باتری زنگ‌ه
 msgid "Retired tiles stay visible with a "
 msgstr "کاشی‌های کنار گذاشته‌شده به‌جای آنکه ناپدید شوند، با نشانِ «"
 
-#: lib/kati/screens/notification_access.ex:142
-#, elixir-autogen, elixir-format
-msgid "Revoked after being granted — different wording"
-msgstr "پس از اجازه، پس گرفته شده — با عبارتی دیگر"
-
 #: lib/kati/screens/rate_episode.ex:1028
 #, elixir-autogen, elixir-format
 msgid "Rewatch — your last verdict, above the input"
 msgstr "بازتماشا — آخرین نظرتان، بالای کادر نوشتن"
 
-#: lib/kati/screens/notification_access.ex:190
+#: lib/kati/screens/notification_access.ex:221
 #, elixir-autogen, elixir-format
 msgid "SPECIAL ACCESS · NO DIALOG TO RAISE"
 msgstr "دسترسی ویژه · هیچ پنجره‌ای برای باز کردن نیست"
@@ -13337,7 +13323,7 @@ msgstr "تعیین هدف سال بعد"
 msgid "Source data changed"
 msgstr "داده‌های منبع تغییر کرد"
 
-#: lib/kati/screens/notification_access.ex:142
+#: lib/kati/screens/notification_access.ex:160
 #, elixir-autogen, elixir-format
 msgid "THE ONE PERMISSION UNLIKE EVERY OTHER"
 msgstr "تنها اجازه‌ای که مثل بقیه نیست"
@@ -13367,12 +13353,7 @@ msgstr "تاریخچه، یادداشت‌ها و امتیازهای فرستن�
 msgid "Time you have"
 msgstr "فرصتی که دارید"
 
-#: lib/kati/screens/notification_access.ex:190
-#, elixir-autogen, elixir-format
-msgid "To see what your music apps are playing, so you do not have to log every track by hand."
-msgstr "تا ببیند برنامه‌های موسیقی‌تان چه چیزی پخش می‌کنند و لازم نباشد هر آهنگ را دستی ثبت کنید."
-
-#: lib/kati/screens/notification_access.ex:375
+#: lib/kati/screens/notification_access.ex:392
 #, elixir-autogen, elixir-format
 msgid "Turned off in system settings"
 msgstr "در تنظیمات سیستم خاموش شده"
@@ -13381,11 +13362,6 @@ msgstr "در تنظیمات سیستم خاموش شده"
 #, elixir-autogen, elixir-format
 msgid "Type it, or save without —"
 msgstr "واردش کنید، یا بدون آن ذخیره کنید —"
-
-#: lib/kati/screens/notification_access.ex:142
-#, elixir-autogen, elixir-format
-msgid "What actually ships — retired"
-msgstr "آنچه واقعاً منتشر می‌شود — بازنشسته"
 
 #: lib/kati/screens/rate_album.ex:576
 #: lib/kati/screens/rate_episode.ex:1182
@@ -13399,7 +13375,7 @@ msgstr "نظرتان دربارهٔ آن چه بود؟"
 msgid "What goes, and what stays"
 msgstr "چه می‌رود و چه می‌ماند"
 
-#: lib/kati/screens/notification_access.ex:285
+#: lib/kati/screens/notification_access.ex:306
 #, elixir-autogen, elixir-format
 msgid "What it can see."
 msgstr "چه چیزهایی را می‌بیند."
@@ -13419,7 +13395,7 @@ msgstr "آنچه کد با خود می‌آورد"
 msgid "What the data says"
 msgstr "داده‌ها چه می‌گویند"
 
-#: lib/kati/screens/notification_access.ex:190
+#: lib/kati/screens/notification_access.ex:221
 #, elixir-autogen, elixir-format
 msgid "Why Kati wants it"
 msgstr "چرا کاتی این را می‌خواهد"
@@ -13459,15 +13435,10 @@ msgstr "هزینه‌ای بدون مبلغ هم همچنان چیزی است ک
 msgid "clears the Gone cold mark and changes nothing else."
 msgstr "نشان سردشده را پاک می‌کند و چیز دیگری را تغییر نمی‌دهد."
 
-#: lib/kati/screens/notification_access.ex:287
+#: lib/kati/screens/notification_access.ex:308
 #, elixir-autogen, elixir-format
 msgid "every notification on the device, messages included"
 msgstr "هر اعلان روی دستگاه، از جمله پیام‌ها"
-
-#: lib/kati/screens/notification_access.ex:330
-#, elixir-autogen, elixir-format
-msgid "folded into the ordinary Notifications row on 40. A permission that can read every message in a person’s life does not belong in a list next to “show me notifications”."
-msgstr "در ردیف عادی اعلان‌ها روی ۴۰ گنجانده نمی‌شود. اجازه‌ای که می‌تواند هر پیام زندگی یک نفر را بخواند، جایش در فهرستی کنار «اعلان‌ها را نشانم بده» نیست."
 
 #: lib/kati/screens/clear_history.ex:155
 #, elixir-autogen, elixir-format
@@ -13603,43 +13574,25 @@ msgctxt "money day case label"
 msgid "A single renewal"
 msgstr "تنها یک تمدید"
 
-#: lib/kati/screens/notification_access.ex:481
+#: lib/kati/screens/notification_access.ex:482
 #, elixir-autogen, elixir-format
 msgctxt "notification access status pill"
 msgid "Live"
 msgstr "فعال"
 
-#: lib/kati/screens/notification_access.ex:327
+#: lib/kati/screens/notification_access.ex:344
 #, elixir-autogen, elixir-format
 msgctxt "notification access, the cream card"
 msgid "It is"
 msgstr "این"
 
-#: lib/kati/screens/notification_access.ex:328
+#: lib/kati/screens/notification_access.ex:345
 #, elixir-autogen, elixir-format
 msgctxt "notification access, the cream card"
 msgid "not"
 msgstr "هرگز"
 
-#: lib/kati/screens/notification_access.ex:450
-#, elixir-autogen, elixir-format
-msgctxt "notification access, the revoked card"
-msgid "Kati logged"
-msgstr "کاتی تا وقتی روشن بود"
-
-#: lib/kati/screens/notification_access.ex:454
-#, elixir-autogen, elixir-format
-msgctxt "notification access, the revoked card"
-msgid "keeps all of them"
-msgstr "همهٔ آن‌ها را نگه می‌دارد"
-
-#: lib/kati/screens/notification_access.ex:452
-#, elixir-autogen, elixir-format
-msgctxt "notification access, the revoked card"
-msgid "while it was on and"
-msgstr "ثبت کرده و"
-
-#: lib/kati/screens/notification_access.ex:142
+#: lib/kati/screens/notification_access.ex:192
 #, elixir-autogen, elixir-format
 msgctxt "permission"
 msgid "Granted"
@@ -17651,3 +17604,43 @@ msgstr "این هنوز این‌جا باز نمی‌شود."
 #, elixir-autogen, elixir-format
 msgid "That is not a web address."
 msgstr "این نشانی وب نیست."
+
+#: lib/kati/screens/retired_tile.ex:261
+#, elixir-autogen, elixir-format
+msgid "Kati notices what you play through Android's notification access, and this build has no way to ask for it. Nothing is detected here, so what you watch is logged by hand."
+msgstr "کاتی از راه دسترسی به اعلان‌های اندروید می‌فهمد چه چیزی پخش می‌کنید، و این نسخه راهی برای درخواست آن ندارد. اینجا چیزی تشخیص داده نمی‌شود، پس آنچه تماشا می‌کنید دستی ثبت می‌شود."
+
+#: lib/kati/screens/notification_access.ex:221
+#, elixir-autogen, elixir-format
+msgid "To see what your apps are playing, so you do not have to log everything by hand."
+msgstr "تا ببیند برنامه‌هایتان چه چیزی پخش می‌کنند و لازم نباشد همه‌چیز را دستی ثبت کنید."
+
+#: lib/kati/screens/notification_access.ex:456
+#, elixir-autogen, elixir-format
+msgid "While it was on, Kati ticked %{n} thing you watched, and it keeps it."
+msgid_plural "While it was on, Kati ticked %{n} things you watched, and it keeps all of them."
+msgstr[0] "تا وقتی روشن بود، کاتی %{n} مورد از چیزهایی را که تماشا کردید تیک زد و آن را نگه می‌دارد."
+msgstr[1] "تا وقتی روشن بود، کاتی %{n} مورد از چیزهایی را که تماشا کردید تیک زد و همه را نگه می‌دارد."
+
+#: lib/kati/screens/notification_access.ex:347
+#, elixir-autogen, elixir-format
+msgid "folded into the ordinary Notifications row under This device. A permission that can read every message in a person’s life does not belong in a list next to “show me notifications”."
+msgstr "در ردیف عادی اعلان‌ها زیر «این دستگاه» گنجانده نمی‌شود. اجازه‌ای که می‌تواند هر پیام زندگی یک نفر را بخواند، جایش در فهرستی کنار «اعلان‌ها را نشانم بده» نیست."
+
+#: lib/kati/screens/notification_access.ex:190
+#, elixir-autogen, elixir-format
+msgctxt "permission"
+msgid "Not granted"
+msgstr "اجازه داده نشده"
+
+#: lib/kati/screens/notification_access.ex:193
+#, elixir-autogen, elixir-format
+msgctxt "permission"
+msgid "Not on this build"
+msgstr "در این نسخه نیست"
+
+#: lib/kati/screens/notification_access.ex:191
+#, elixir-autogen, elixir-format
+msgctxt "permission"
+msgid "Turned off"
+msgstr "خاموش شده"

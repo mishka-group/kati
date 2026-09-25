@@ -317,7 +317,16 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"132", "star"},
     # Board 24's *Reorder sections* row — see `DesignLiterals.retired_lines/0`,
     # which holds its words and the argument. The glyph is the row's own tile.
-    {"24", "drag_indicator"}
+    {"24", "drag_indicator"},
+    # Board 151's four stacked states — see `DesignLiterals.retired_lines/0`,
+    # which holds the words and the argument. `info` was the design-record
+    # footnote's own glyph and is gone; `settings` and `lock` are the
+    # not-granted card's button and cream card, and `notifications_off` the
+    # turned-off card's, drawn only in states a host cannot be in.
+    {"151", "info"},
+    {"151", "settings"},
+    {"151", "lock"},
+    {"151", "notifications_off"}
   ]
 
   # Lines a screen deliberately does not draw, because what carried them is
@@ -1286,8 +1295,7 @@ defmodule Kati.ScreenDesignLiteralTest do
          "reads the same ledger now, plus the byte count `Kati.Screens.Backup.record_bytes/1` " <>
          "stamps on the same Save As, so the size is a third branch: absent when the ledger " <>
          "has a date from before the byte key. `Kati.SettingsBackUpRowTest` reaches the dated " <>
-         "branches",
-       ~r/^(last backup \d{1,2} \p{L}{3}( · \d+ [km]b)?|never backed up)$/u},
+         "branches", ~r/^(last backup \d{1,2} \p{L}{3}( · \d+ [km]b)?|never backed up)$/u},
       {"62", "آخرین پشتیبان ۱۴ مرداد",
        "the Persian mirror of 24's Export row, on the same reading through " <>
          "`Kati.Screens.Settings.last_backup/0`, with the date in Shamsi because that is the " <>

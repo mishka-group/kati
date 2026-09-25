@@ -334,6 +334,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # answers `:unavailable` and the page is board 36 whole, which is what the
     # gallery and every sweep render.
     {"36", Kati.Screens.AutoDetect},
+    # 151 joined when it stopped being a specimen sheet (N22): it draws the one
+    # state `Kati.Media.Detect.access/0` and `detected_count/0` put it in, and
+    # the count on its turned-off card is the store's own. On a host there is
+    # no bridge, so the page is the *Not on this build* state whatever is
+    # stored.
+    {"151", Kati.Screens.NotificationAccess},
     {"37", Kati.Screens.Import},
     # 141 joined with it, and reads for the same reason: it describes the file
     # the picker handed over, and `Kati.Import.Job.read/2` counts what that
@@ -1549,7 +1555,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     per-row conflict and no dry run to fill them. `DesignLiterals.retired_lines/0`
   #     carries the argument. The empty page draws its own sentences in their
   #     place, which is why the allowance is seven and not thirteen.
-  @floor_allowance %{"144" => 5, "149" => 3, "190" => 2, "166" => 1, "129" => 7}
+  #
+  #   * 151 draws four states at once, and the screen draws the one the phone
+  #     is in (N22). A host has no bridge, so it draws *Not on this build* —
+  #     the title, the state's label and the retired row, nine strings of the
+  #     board's thirty-six. `DesignLiterals.retired_lines/0` names the other
+  #     twenty-seven and why each is not here; `Kati.NotificationAccessStatesTest`
+  #     draws the other three states.
+  @floor_allowance %{
+    "144" => 5,
+    "149" => 3,
+    "190" => 2,
+    "166" => 1,
+    "129" => 7,
+    "151" => 27
+  }
 
   @moment_symbols [
     {"128", "cloud_done"},
@@ -1595,7 +1615,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # order to change. `DesignLiterals.retired_lines/0` holds the words and the
     # argument; `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this
     # entry's twin.
-    {"24", "drag_indicator"}
+    {"24", "drag_indicator"},
+    # Board 151's four stacked states, of which a host draws one.
+    # `DesignLiterals.retired_lines/0` holds the words and the argument;
+    # `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this entry's twin.
+    {"151", "info"},
+    {"151", "settings"},
+    {"151", "lock"},
+    {"151", "notifications_off"}
   ]
 
   # The floor this screen is actually held to. Three answers, in order: a screen
@@ -2650,6 +2677,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # reader of this APK is always in was the one drawing the fixture.
       {"36", Kati.Screens.AutoDetect, &Kati.Screens.AutoDetect.detect/0,
        Kati.Screens.AutoDetect.detect(), &Kati.Screens.AutoDetect.drawn_detect/0},
+      # 151 answers the state the phone is in, with the store's count of
+      # detected ticks. It was board 151 whole — four states at once and a
+      # revoked card that counted `128 tracks` on every phone (N22). Over an
+      # empty store on a host there is no bridge and nothing kept.
+      {"151", Kati.Screens.NotificationAccess, &Kati.Screens.NotificationAccess.status/0,
+       %{state: :unavailable, kept: 0}, fn -> %{state: :revoked, kept: 128} end},
       # 34 answers an empty season. `tracked_season/2` answers nil for a season
       # nobody named as readily as for an empty shelf, so a push that lost its
       # params described somebody else's running order. The order strip keeps

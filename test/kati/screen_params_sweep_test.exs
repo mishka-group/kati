@@ -395,17 +395,13 @@ defmodule Kati.ScreenParamsSweepTest do
     # push would be changing the door screen 46 was built around.
     {Kati.Screens.MealsToday, :swap, Kati.Screens.MealSwap},
 
-    # ── Screen 151's `Log by hand`, and correctly bare.
+    # ── Screen 151's `Log by hand`, and why it is no longer here.
     #
-    # 151 is a permission board about the notification listener
-    # (`notification_access.ex:105`); it holds no album, no artist and no shelf
-    # read of any kind. Its own doc says what the tap means at
-    # `notification_access.ex:461-464`: the sheet gates AUTO-detecting a listen,
-    # so what it offers instead is hand-logging in general.
-    # `Kati.Screens.LogListen`'s no-id path — the shelf's first, then the
-    # drawing (`log_listen.ex:50-52`) — is the right semantics for that, and an
-    # explicit `%{}` would be the same value this push already sends. No edit.
-    {Kati.Screens.NotificationAccess, :log_by_hand, Kati.Screens.LogListen},
+    # It is still a bare push of `Kati.Screens.LogListen`, and correctly: 151
+    # holds no album, and the tap offers hand-logging in general. But since
+    # N22 the page draws only the phone's own state, and `Log by hand` is on
+    # the turned-off card alone — a state a host with no bridge is never in, so
+    # this sweep cannot see it. `Kati.NotificationAccessRouteTest` taps it.
 
     # ── The Persian roots' search button, and why it is no longer here.
     #

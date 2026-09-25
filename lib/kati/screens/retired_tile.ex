@@ -249,6 +249,23 @@ defmodule Kati.Screens.RetiredTile do
     }
   end
 
+  # Screen 151's retired row, drawn only on a build with no native half. It
+  # pushed the Sleep subject until the row stopped being a specimen, which
+  # answered *why is notification access not set up* with a paragraph about
+  # sleep data.
+  defp offsite("Notification access") do
+    %{
+      name: gettext("Notification access"),
+      icon: "sensors",
+      why:
+        gettext(
+          "Kati notices what you play through Android's notification access, " <>
+            "and this build has no way to ask for it. Nothing is detected here, " <>
+            "so what you watch is logged by hand."
+        )
+    }
+  end
+
   defp offsite(_health_section), do: nil
 
   # The label of the slot, not of the destination — it says what the row is for,

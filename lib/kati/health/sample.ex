@@ -180,9 +180,9 @@ defmodule Kati.Health.Sample do
   #     through it;
   #   * `Kati.Screens.RetiredTile.section_subject/1` finds a section by
   #     `&1.name == name`, then falls back to `&1.name == "Sleep"`;
-  #   * `Kati.Screens.States` and `Kati.Screens.NotificationAccess` both push
-  #     `%{section: "Sleep"}` into that lookup, and both say in as many words
-  #     that they are pushing a key rather than a label.
+  #   * `Kati.Screens.States` pushes `%{section: "Sleep"}` into that lookup,
+  #     and says in as many words that it is pushing a key rather than a
+  #     label.
   #
   # Fold `name` into `gettext/1` and all three miss under `:fa`: `built?/1`
   # answers false for every tile, so `unbuilt/0` returns all six; both
