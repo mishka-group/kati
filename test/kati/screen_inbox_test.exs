@@ -377,6 +377,50 @@ defmodule Kati.ScreenInboxTest do
     end
   end
 
+  describe "a followed show with an episode airing today" do
+    setup do
+      show = track!(%{title: "Tidewrack", seed: "hollow71", kind: :tv})
+      episode!(show, %{season: 1, episode: 3, title: "Low Water", runtime: 44, midnight: true})
+      :ok
+    end
+
+    test "is on screen 05, read from CachedEpisode.air_at" do
+      words = text(tree(mount_screen(Inbox)))
+
+      assert words =~ "Tidewrack"
+      assert words =~ "S1 E3 — Low Water"
+      assert words =~ "1 out now · 0 coming up"
+    end
+
+    test "and Home's New this week hero announces it" do
+      :ok = Kati.Sections.put(Kati.Sections.all())
+
+      assert %{count: 1} = Kati.Screens.Home.hero_summary()
+
+      texts =
+        mount_screen(Kati.Screens.Home)
+        |> tree()
+        |> find_all(:text)
+        |> Enum.map(&(&1.props[:text] || ""))
+
+      assert "NEW THIS WEEK" in texts
+      assert "1 new episode" in texts
+    end
+
+    test "and neither says anything once New episodes is switched off" do
+      Kati.Settings.Watcher.put_kind(:new_episodes, true)
+      Kati.Settings.Watcher.put_kind(:premieres, false)
+
+      assert length(Inbox.inbox().out_now) == 1, "episode 3 is not a premiere"
+
+      Kati.Settings.Watcher.put_kind(:premieres, true)
+      Kati.Settings.Watcher.put_kind(:new_episodes, false)
+
+      assert Inbox.inbox().out_now == []
+      assert Kati.Screens.Home.hero_summary() == nil
+    end
+  end
+
   describe "the same three over the drawing" do
     test "carry no taps, because the board's rows have no episode behind them" do
       drawn = Inbox.drawn_inbox()

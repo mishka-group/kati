@@ -265,6 +265,14 @@ defmodule Kati.ScreenDesignLiteralTest do
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
     {"49", "auto_mode"},
+    # Board 11's person row's `check` and board 25's leaving-soon, people,
+    # price-drop, renewal and weekly-digest rows — see `retired_lines/0`.
+    {"11", "check"},
+    {"25", "mail"},
+    {"25", "payments"},
+    {"25", "person"},
+    {"25", "sell"},
+    {"25", "timer"},
     # Board 41's specimen card's Resume button and the Increase contrast row —
     # see `retired_lines/0`'s board-41 entry (A5).
     {"41", "play_arrow"},
@@ -1559,7 +1567,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"37", Kati.Screens.Import, &Map.put(&1, :job, Kati.Import.Sample.job(:trakt))},
       {"141", Kati.Screens.ImportRecognised, &Map.put(&1, :job, Kati.Import.Sample.recognised())},
       # 11 answers an empty feed now, so the board's own is installed here.
-      {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
+      {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.DesignLiterals.discover_board_feed())},
       # 34 answers an empty season now, so the board's own goes in here.
       {"34", Kati.Screens.Season, &Map.put(&1, :season, Kati.Screens.Season.drawn_season())},
       # 153 is one show's numbering and a bare mount names no show, so the
@@ -1582,14 +1590,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"36", Kati.Screens.AutoDetect,
        &Map.put(&1, :detect, Kati.Screens.AutoDetect.drawn_detect())},
       # 25's banner counts zero now, so the board's own two lines are installed
-      # to compare the frame. Only the banner — every other band on 25 is
-      # `Kati.Settings.WatcherSample`'s already.
+      # to compare the frame. Only the banner — every other band on 25 reads
+      # the store, and the store's defaults are the board's switch states.
       {"25", Kati.Screens.ReleaseWatcher,
        &Map.update!(&1, :watcher, fn w ->
-         Map.put(w, :banner, %{
-           Kati.Settings.WatcherSample.banner()
-           | on: w.banner.on
-         })
+         Map.put(w, :banner, %{Kati.DesignLiterals.watcher_board_banner() | on: w.banner.on})
        end)},
       {"98", Kati.Screens.YearShare, &Map.put(&1, :share, Kati.Screens.YearShare.drawn_share())},
       {"99", Kati.Screens.YearShareBooks,

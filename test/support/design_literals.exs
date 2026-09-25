@@ -446,6 +446,52 @@ defmodule Kati.DesignLiterals do
   @spec retired_lines() :: [{String.t(), String.t()}]
   def retired_lines do
     [
+      # Board 11: the match percentages, the corpus size, the people card, the
+      # leaving-soon rail and the chip row that chose between them. Nothing
+      # scores a title against a history, Kati has no person, nothing stores
+      # when a title leaves a service, and with one section there is nothing
+      # for a chip to choose — so `Kati.Screens.Discover` draws none of them on
+      # any device. The glyph is `@retired_symbols`' in
+      # `Kati.ScreenDesignLiteralTest`.
+      {"11", "tuned to 128 titles"},
+      {"11", "for you"},
+      {"11", "people"},
+      {"11", "leaving"},
+      {"11", "awards"},
+      {"11", "94% match"},
+      {"11", "89% match"},
+      {"11", "81% match"},
+      {"11", "people you follow"},
+      {"11", "ines karvel"},
+      {"11", "director · 2 new projects"},
+      {"11", "tomas rhee"},
+      {"11", "writer · 1 in production"},
+      {"11", "ada vance"},
+      {"11", "actor · nothing new"},
+      {"11", "leaving lumen+ in 7 days"},
+      {"11", "nightbirds"},
+      {"11", "on your wishlist"},
+      {"11", "schedule"},
+      {"11", "a quieter place to land"},
+      {"11", "never started"},
+      # Board 25: the switches with nothing behind them — leaving soon (no
+      # availability data), people you follow (no person), price drops (no
+      # prices), renewals (a subscriptions reminder, not a release) and the
+      # weekly digest (no weekly job). The rows that stay say what they do now:
+      # *New episodes* is episodes of shows you follow, and the badge is the dot
+      # on Home's bell rather than a count. The glyphs are `@retired_symbols`'.
+      {"25", "shows you are watching"},
+      {"25", "leaving soon"},
+      {"25", "7 days’ notice"},
+      {"25", "people you follow"},
+      {"25", "announcements, not just releases"},
+      {"25", "price drops"},
+      {"25", "titles on your wishlist"},
+      {"25", "renewals"},
+      {"25", "2 days before"},
+      {"25", "unread count on the bell"},
+      {"25", "weekly digest"},
+      {"25", "sundays at 18:00"},
       # Screen 80's two key chips are drawn only on a build that carries Kati's
       # own key (`Kati.Media.Tmdb.bundled?/0`) — a development and testing
       # convenience, never present in a public build and never under test. The
@@ -1236,5 +1282,40 @@ defmodule Kati.DesignLiterals do
       {"151", "on · media notifications only"},
       {"151", "live"}
     ]
+  end
+
+  @doc """
+  Board 11's feed, as the drawing shows it: its heading and its three posters.
+
+  The screen keeps no copy of it — a fresh install draws `empty_feed/0`, and a
+  real one draws TMDB's picks — so the board's state lives here, with the
+  tests that install it. The match line, the people, the leaving rail and the
+  chips are not in it: the screen no longer draws them, and
+  `retired_lines/0` holds their words.
+  """
+  def discover_board_feed do
+    %{
+      Kati.Screens.Discover.empty_feed()
+      | because: "Because you watched The Long Hollow",
+        empty_shelf?: false,
+        picks: [
+          %{title: "Vellum", seed: "vellum97"},
+          %{title: "Quietus", seed: "quietus39"},
+          %{title: "Quiet Harbour", seed: "harbour86"}
+        ]
+    }
+  end
+
+  @doc """
+  Board 25's banner, `Watching 24 titles · 3 FOUND THIS WEEK`, said through
+  the screen's own two sentences. The screen counts the reader's library and
+  keeps no copy of the board's figures.
+  """
+  def watcher_board_banner do
+    %{
+      title: Kati.Screens.ReleaseWatcher.watching_line(%{followed: 24}),
+      meta: Kati.Screens.ReleaseWatcher.found_line(%{out_now: [%{}, %{}, %{}]}),
+      on: true
+    }
   end
 end

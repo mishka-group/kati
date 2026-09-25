@@ -2,7 +2,7 @@ defmodule Kati.DiscoverFeedTest do
   @moduledoc """
   Screen 11 stops making claims about a reader it has never met.
 
-  Discover was `Kati.Screens.Discover.Sample.feed()` end to end — no
+  Discover was a fixture feed end to end — no
   `Kati.Media` read anywhere in the file — and six of its lines were specific
   claims about the person holding the phone: *Tuned to 128 titles* on a shelf
   of six, *Because you watched The Long Hollow* for somebody who never had,
@@ -12,9 +12,10 @@ defmodule Kati.DiscoverFeedTest do
   confident lie.
 
   One of its three sections can be true and now is. The other two need a person
-  resource and an offers resource, neither of which exists — so on a real
-  device they are empty, and their headings and their chips go with them rather
-  than being filled from the fixture.
+  resource and an offers resource, neither of which exists — so they are not
+  drawn at all, and neither is the chip row that chose between them, nor the
+  match percentage nothing computes. A shelf with nothing to recommend from
+  gets one honest card instead.
 
   What this file does NOT test is the network. `Kati.Media.Recommendations.ask/2`
   and `picks_for/1` are the TMDB call, and a test that made one would be
@@ -25,7 +26,7 @@ defmodule Kati.DiscoverFeedTest do
   use Mob.ScreenCase, async: false
 
   doctest Kati.Media.Recommendations, only: [because: 1]
-  doctest Kati.Screens.Discover, only: [pick_tag: 1, mark: 2]
+  doctest Kati.Screens.Discover, only: [pick_tag: 1, mark: 2, tunable?: 1]
 
   alias Kati.Media.CachedTitle
   alias Kati.Media.Recommendations
@@ -82,7 +83,7 @@ defmodule Kati.DiscoverFeedTest do
       tracked!("severance", "Severance", :tv)
 
       refute Discover.tunable?(Discover.feed())
-      refute Discover.tunable?(Discover.Sample.feed())
+      refute Discover.tunable?(Discover.empty_feed())
     end
 
     test "is offered once the shelf holds two" do
@@ -115,8 +116,6 @@ defmodule Kati.DiscoverFeedTest do
         Discover
         |> Mob.Socket.new()
         |> Mob.Socket.assign(:feed, Discover.feed())
-        |> Mob.Socket.assign(:chip, "For you")
-        |> Mob.Socket.assign(:scheduled, [])
         |> Mob.Socket.assign(:tune?, true)
         |> Mob.Socket.assign(:seed_id, @prefix <> "severance")
         |> Mob.Socket.assign(:add_error, nil)
@@ -125,9 +124,6 @@ defmodule Kati.DiscoverFeedTest do
 
       assert reseeded.assigns.feed.because =~ "Arrival"
       assert reseeded.assigns.feed.seed_id == @prefix <> "arrival"
-      # The heading and the posters are one answer: a heading naming a show
-      # over picks fetched for another is exactly the substitution this app
-      # spends its moduledocs preventing.
       assert reseeded.assigns.feed.picks == []
       refute reseeded.assigns.tune?
     end
@@ -142,24 +138,10 @@ defmodule Kati.DiscoverFeedTest do
       assert inspect(Discover.tune_panel(feed, true), limit: :infinity) =~ "seed_on_"
     end
 
-    test "and the disc is a picture over the board" do
-      drawn = inspect(Discover.header(Discover.Sample.feed(), false), limit: :infinity)
+    test "and the disc carries no tap over an empty shelf" do
+      drawn = inspect(Discover.header(Discover.empty_feed(), false), limit: :infinity)
 
       refute drawn =~ "open_tune"
-    end
-  end
-
-  describe "the Schedule button" do
-    test "is not tappable, in either state" do
-      # It was "the one working control on the page", and
-      # what it did was toggle a socket assign the next pop threw away. There
-      # is nothing to schedule against — `leaving` is `[]` on every real feed —
-      # so both drawn states are pictures now.
-      row = %{title: "Anything", line: "Leaving Lumen+ in 7 days", action: "Schedule"}
-
-      assert Discover.schedule_tap(row) == nil
-      refute inspect(Discover.leaving_action(row, false), limit: :infinity) =~ "schedule_"
-      refute inspect(Discover.leaving_action(row, true), limit: :infinity) =~ "schedule_"
     end
   end
 
@@ -174,18 +156,10 @@ defmodule Kati.DiscoverFeedTest do
       refute feed.because =~ "The Long Hollow"
     end
 
-    test "claims no corpus size", %{feed: feed} do
-      assert feed.subtitle == nil
-    end
-
-    test "has no people and nothing leaving", %{feed: feed} do
-      assert feed.people == []
-      assert feed.leaving == []
-      assert feed.leaving_label == nil
-    end
-
-    test "offers only the chip it has a section for", %{feed: feed} do
-      assert Enum.map(feed.chips, & &1.label) == ["For you"]
+    test "holds no corpus size, no people, nothing leaving and no chips", %{feed: feed} do
+      for key <- [:subtitle, :people, :leaving, :leaving_label, :chips] do
+        refute Map.has_key?(feed, key), "the feed still carries #{inspect(key)}"
+      end
     end
 
     test "and the render draws none of the fixture's claims", %{feed: feed} do
@@ -198,7 +172,10 @@ defmodule Kati.DiscoverFeedTest do
             "Ines Karvel",
             "PEOPLE YOU FOLLOW",
             "Leaving Lumen+ in 7 days",
-            "Nightbirds"
+            "LEAVING SOON",
+            "Nothing to leave yet",
+            "Nightbirds",
+            "filter_"
           ] do
         refute drawn =~ gone, "screen 11 still draws #{inspect(gone)} on a real library"
       end
@@ -318,13 +295,15 @@ defmodule Kati.DiscoverFeedTest do
       assert drawn(feed) =~ "add_82708"
     end
 
-    test "and the board's picks carry none" do
-      # Which is what keeps board 11 the node it always was, and why
-      # `Kati.ScreenTapSweepTest` — which runs against an empty store, and so
-      # renders the board — cannot see this tap at all.
-      for pick <- Discover.Sample.feed().picks do
-        assert Discover.pick_tag(pick) == nil
-      end
+    test "and a pick naming no title carries none" do
+      assert Discover.pick_tag(%{title: "Vellum", seed: "vellum97"}) == nil
+    end
+
+    test "draws the title's own poster and nothing else in its place", %{feed: feed} do
+      assert Discover.poster("/emergence.jpg") == Discover.poster(nil),
+             "a poster this device has not fetched draws nothing, not a stand-in"
+
+      refute drawn(feed) =~ "vellum97"
     end
 
     test "ticking one marks it and leaves the others", %{feed: feed} do
@@ -337,7 +316,7 @@ defmodule Kati.DiscoverFeedTest do
       socket =
         Discover
         |> Mob.Socket.new()
-        |> Mob.Socket.assign(feed: feed, chip: "For you", scheduled: [], add_error: nil)
+        |> Mob.Socket.assign(feed: feed, add_error: nil)
 
       assert Discover.add(socket, "not-in-the-rail").assigns.feed == feed
     end
@@ -348,7 +327,7 @@ defmodule Kati.DiscoverFeedTest do
       socket =
         Discover
         |> Mob.Socket.new()
-        |> Mob.Socket.assign(feed: added, chip: "For you", scheduled: [], add_error: nil)
+        |> Mob.Socket.assign(feed: added, add_error: nil)
 
       assert Discover.add(socket, "82708").assigns.feed == added
       assert Ash.read!(TrackedTitle) |> Enum.map(& &1.source_id) |> Enum.member?("82708") == false
@@ -362,7 +341,7 @@ defmodule Kati.DiscoverFeedTest do
       socket =
         Discover
         |> Mob.Socket.new()
-        |> Mob.Socket.assign(feed: feed, chip: "For you", scheduled: [], add_error: nil)
+        |> Mob.Socket.assign(feed: feed, add_error: nil)
 
       after_tap = Discover.add(socket, "82708")
 
@@ -376,12 +355,14 @@ defmodule Kati.DiscoverFeedTest do
       assert Discover.feed() == Discover.empty_feed(),
              "a reader who had watched nothing was told *Tuned to 128 titles* over three " <>
                "picks at 94% match"
-
-      refute Discover.feed() == Discover.Sample.feed()
     end
 
-    test "and none of the board's claims are on it" do
+    test "and says so, with the two ways in" do
       drawn = drawn(Discover.feed())
+
+      assert drawn =~ "Nothing to recommend from yet"
+      assert drawn =~ "Picks here are built from the films and series on your shelf."
+      refute drawn =~ "BECAUSE YOU WATCHED"
 
       for gone <- ["Tuned to 128 titles", "Ines Karvel", "Nightbirds", "94% match"] do
         refute drawn =~ gone,
@@ -390,38 +371,25 @@ defmodule Kati.DiscoverFeedTest do
     end
   end
 
-  describe "a chip that names a section this feed does not carry" do
-    test "says so rather than leaving the rail over a blank page" do
-      # `shows?/2` answers false for every section under
-      # Awards, so all three vanished together — and the rail IS drawn on the
-      # board's own fixture, which is what a fresh install sees.
-      blank =
-        drawn_with(%{feed: Discover.Sample.feed(), chip: "Awards", scheduled: [], add_error: nil})
+  describe "the empty-shelf card in Persian" do
+    test "says both lines in Persian" do
+      Kati.Locale.put(:fa)
 
-      assert blank =~ "Nothing under Awards"
-      assert blank =~ "For you"
-    end
+      drawn =
+        try do
+          drawn(Discover.empty_feed())
+        after
+          Kati.Locale.put(:en)
+        end
 
-    test "and does not appear under a chip that narrows to a real section" do
-      feed = Discover.Sample.feed()
-
-      for chip <- ["For you", "People", "Leaving"] do
-        refute drawn_with(%{feed: feed, chip: chip, scheduled: [], add_error: nil}) =~
-                 "Nothing under ",
-               "#{chip} narrows to a section that exists and must not draw the card"
-      end
-    end
-
-    test "the card names the chips that do have something" do
-      feed = Discover.Sample.feed()
-
-      assert Discover.other_chips(feed, "Awards") =~ "For you"
-      refute Discover.other_chips(feed, "Awards") =~ "Awards"
+      assert drawn =~ "هنوز عنوانی برای پیشنهاد گرفتن نیست"
+      assert drawn =~ "پیشنهادهای این صفحه از فیلم"
+      refute drawn =~ "Nothing to recommend from yet"
     end
   end
 
   defp drawn(feed) do
-    drawn_with(%{feed: feed, chip: Discover.default_chip(feed), scheduled: [], add_error: nil})
+    drawn_with(%{feed: feed, add_error: nil})
   end
 
   defp drawn_with(assigns) do

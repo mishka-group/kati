@@ -215,7 +215,7 @@ defmodule Kati.Screens.NotificationsHelp do
   this reads the setting instead of the default without the copy being touched.
 
   One msgid with two holes rather than a label joined to a range, for the
-  reason `Kati.Screens.ReleaseWatcher.copy/1` gives about its own quiet-hours
+  reason `Kati.Screens.ReleaseWatcher.copy/2` gives about its own quiet-hours
   row: Persian puts a WORD between the two times where the drawing puts an en
   dash, and a screen that concatenates has already decided. Both times go
   through `Kati.Locale.time/1`, so `23:00` is ۲۳:۰۰ without a translator

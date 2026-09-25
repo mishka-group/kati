@@ -657,10 +657,14 @@ defmodule Kati.Screens.Home do
   leads to are one answer rather than two. A plan that cannot be built at all
   answers `false`: a dot promising something the next screen cannot show is
   worse than no dot.
+
+  Screen 25's *Inbox badge* switch (`Kati.Settings.Watcher.loud?(:badge)`) is
+  the reader's own say over it: off, and the dot is never drawn.
   """
   @spec unread?() :: boolean()
   def unread? do
-    Kati.Screens.InboxNotifications.plan().armed != []
+    Kati.Settings.Watcher.loud?(:badge) and
+      Kati.Screens.InboxNotifications.plan().armed != []
   rescue
     _error -> false
   end

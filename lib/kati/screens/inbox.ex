@@ -3,141 +3,78 @@ defmodule Kati.Screens.Inbox do
   Screen 05 — the new releases inbox, pushed under Home.
 
   Built to `test/design/screens/05.html`. Two lists that look different
-  because they answer different questions: **Out now** is a card per title with
-  its poster and a Watch button, because each row is something you can act on;
-  **Coming up** is one card of dated rows, because it is a schedule and the
-  dates are the spine.
+  because they answer different questions: **Out now** is a card per episode
+  with its show's poster and a Watch button, because each row is something you
+  can act on; **Coming up** is one card of dated rows, because it is a schedule
+  and the dates are the spine.
 
-  The watcher card at the top is the honest bit — it says how many titles are
-  watched and when it last checked, so background work that runs every six
-  hours is visible rather than assumed.
+  ## Where every value comes from
 
-  ## Where the two lists come from
-
-  `Kati.Media`, through `inbox/0`. Both lists are episode-level and neither
-  could exist before `Kati.Media.CachedEpisode` and `Kati.Media.CachedSeason`
-  did — this moduledoc used to say *"`Kati.Media` has no episode resource at
-  all"*, and that sentence is now false. `S2 E6 — Ash and After`, `48 min` and
-  `aired 20:00` are `season_number`, `episode_number`, `title`,
-  `runtime_minutes` and an air date; the coming-up rows and the bell beside each
-  are `Kati.Media.Release`.
-
-  Five reads, never one per row: the followed titles, the cache rows they name,
-  the episodes those titles have scheduled, the seasons they have scheduled, and
+  `Kati.Media`, through `releases/0`. Five reads, never one per row: the
+  followed titles (`Kati.Media.TrackedTitle`'s `:followed` action — the titles
+  *"the release watcher has any business looking at"*), the cache rows they
+  name, the episodes and seasons those titles have scheduled
+  (`Kati.Media.CachedEpisode.air_at`, `Kati.Media.CachedSeason.air_at`), and
   the episode ticks. The cache is reached by the value pair the durable rows
   reference it by, so an evicted poster cannot take a release out of the list.
 
-  `:followed` rather than a filter written out here: it is the action
-  `Kati.Media.TrackedTitle` describes as *"the titles the release watcher has
-  any business looking at"* — finished and dropped shows excluded, because an
-  announcement about a show the user abandoned is noise. This screen is that
-  watcher's output, so it must not have a second opinion about what it watches.
+  Both lists are filtered by screen 25's *Tell me about* switches
+  (`Kati.Settings.Watcher.kind?/1`): a season drop or an episode 1 answers to
+  *Premieres*, any other episode to *New episodes*, a film's own date to *Film
+  releases*. This page is the watcher's output, so a kind switched off there is
+  absent here, from Home's *New this week* hero (which reads `releases/0`), and
+  from every release alert (`alerts/0`).
 
-  With nothing followed there is nothing to be new and `Kati.Library.Sample` is
-  drawn instead, the values `test/design/screens/05.html` was captured from.
-  FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
-  module stays exactly where it is; it is the fallback and the fixture, not a
-  stage this screen has passed through. A user who follows something and has
-  nothing out this week sees an **empty** Out now section rather than the
-  drawing's three rows: that is the true answer, and substituting the drawing
-  there would be three titles they do not have.
+  ## The three states
+
+    * **Nothing followed** — board 260: the watcher card becomes a sentence and
+      the page offers the one door that fills it (screen 06).
+    * **Followed, nothing new** — the page proper, with an empty Out now and an
+      empty Coming up. That is the true answer.
+    * **Releases** — the page proper, every line a column.
+
+  `drawn_inbox/0` is board 05's own state, installed only by
+  `Kati.ScreenDesignLiteralTest`; no reader reaches it.
 
   ### Out now
 
   Episodes of followed titles that `Kati.Media.Release.airing/2` says have
-  `:aired`, are not already ticked, and went out within the last seven days. Newest
-  first.
+  `:aired`, are not already ticked, and went out within the last seven days,
+  newest first. The window is this screen's own: `Kati.Settings.Watcher.last_checked/0`
+  is written only by screen 25's *Check now*, so it cannot bound the list, and
+  without a bound *out now* would be the reader's whole unwatched backlog.
 
-  Two of those bounds are worth stating plainly:
-
-    * **"Now" is a window, and it is this screen's own.** Nothing stores when
-      the watcher last swept (see below), so an episode cannot be "new since the
-      last check"; without a bound, *out now* would be the user's entire
-      unwatched backlog. A week is the cadence of the weekly show the drawing
-      is of, and it bounds a **display**, never an alarm — `Kati.Media.Release`
-      is still the only thing that arms anything.
-    * **Films are not in this list**, and the drawing's `Blue Hour · Premiere`
-      row is why the rule is written down. A film's date is
-      `Kati.Media.CachedTitle.next_release_at`, which is *the next* release — a
-      pointer that moves forward as soon as the thing it named is out. Reading
-      it backwards to say "this came out today" is asking a forward-looking
-      column a question about the past. An episode's `air_at` is a fact about
-      one episode and does not move, so the list is episodes. The green dot the
-      design gives a film premiere is therefore drawn only on the drawn rows.
-
-  ## Board 307's three shelves, and why the row still carries a poster
-
-  307 draws this page with four rows across three shelves and one row recipe: a
-  40x40 **glyph tile** instead of the 44x62 poster, because *"a record has
-  square art, a book a portrait cover, an episode a landscape still, and three
-  aspect ratios in one list breaks the row rhythm."*
-
-  The reason is conditional on the list holding more than one shelf, and it
-  holds one. Nothing in the app produces a book release, a record release or a
-  film release — each would need a producer of its own — so swapping a real
-  poster for a generic `live_tv` glyph today would
-  degrade the only state that can occur, to fix a rhythm problem that cannot
-  yet happen. The recipe goes in with the first producer that makes this list
-  hold two kinds of thing.
-
-  What 307 asked for that COULD be true is built: screen 25 offers the three
-  shelves, and screen 66 has the Follow row that feeds one of them
-  (`Kati.Books.FollowedAuthor`).
+  Films are not in this list. A film's date is
+  `Kati.Media.CachedTitle.next_release_at` — *the next* release, a pointer that
+  moves forward once the thing it named is out — so reading it backwards to say
+  "this came out today" would ask a forward-looking column about the past.
 
   ### Coming up
 
-  Three kinds of thing can be next, and the drawing has one of each: an episode
-  (`The Long Hollow — S2E6`), a whole-season drop (`Nightbirds — Season 2`) and
-  a film (`Vellum`). Episodes and seasons resolve through
-  `Kati.Media.Release.air/1`; a film through `Kati.Media.Release.resolve/2`,
-  which is the path a `user_override_date` wins on. A **series** contributes no
-  title-level row, because `next_release_at` on a series is a restatement of its
-  own next episode and the row would be drawn twice.
-
-  Only dates `Kati.Media.Release` is willing to name — `:exact` or `:day` —
-  reach the list. The card's whole left edge is a month and a day, and an
-  `:approximate` answer carries no day at all; the same rule
-  `Kati.Screens.UpNext.airing_soon/2` counts by, honoured rather than
-  re-decided.
+  Episodes and season drops resolve through `Kati.Media.Release.air/1`; a film
+  through `Kati.Media.Release.resolve/2`, which is where a `user_override_date`
+  wins. A series contributes no title-level row, because `next_release_at` on a
+  series restates its own next episode. Only dates `Kati.Media.Release` will
+  name to the day (`:exact`, `:day`) reach the list, because the card's left
+  edge is a month and a day.
 
   The bell is `Kati.Media.Release.alarm_for/3` (`alarm_at/3` for a film): filled
-  and orange when an alarm can actually be set for that row, hollow when it
-  cannot. That is exactly the design's distinction — *already being watched
-  for* against *only listed* — and it comes out of the one gate, so a muted show
-  and a vague date both draw the hollow bell without this screen deciding
-  either.
+  when an alarm can be set for the row, hollow when it cannot — a muted show and
+  a vague date both draw the hollow bell without this screen deciding either.
 
-  ## What is still frozen, and why
+  ## Not drawn, because no column holds it
 
-    * **`LUMEN+`, `CINEMA`, `In cinemas` and `Full season drop`.** The first
-      three are availability, which no column holds —
-      `Kati.Media.Watch.service` is where the *user* watched something, which is
-      a different fact and is per-watch. The fourth is a claim that a season
-      lands all at once rather than weekly, and nothing records a release
-      pattern. A real row draws what is left: `48 min · aired 20:00`, and a
-      coming-up line that is the episode's own name and its hour.
-    * **The watcher card's count, until something is followed.** All three of
-      its values move now, and each moves the way the screen its cog opens
-      moves them:
+  Board 05's `LUMEN+`, `CINEMA`, `In cinemas` and `Full season drop` are
+  availability and release pattern, which nothing records. A real row draws
+  what is left: `48 min · aired 20:00`, and a coming-up line that is the
+  episode's own name and its hour.
 
-        * `Watching for 24 titles` is `:followed`, counted — through the same
-          list the two sections below it are built from, so the banner and the
-          inbox it is a banner FOR cannot disagree. A device following nothing
-          keeps the drawing's 24, which is the gate this whole screen is on.
-        * `last checked 18:02` is `Kati.Settings.Watcher.last_checked/0`, drawn
-          relative: `never checked` on a fresh install. This section used to
-          say *nothing records when the watcher last ran*, and board 314 built
-          the record. What records one today is screen 25's **Check now** and
-          nothing else, which `watcher_line/0` states rather than rounds up.
-        * `every 6h` is `Kati.Settings.Watcher.cadence/0`, the interval boot
-          asks the scheduler for. A reader who picks `Daily` is told daily —
-          which is the finding: 05 said `every 6h` to a reader whose own
-          setting, one tap away, said otherwise.
+  ## The watcher card
 
-      The last two are not gated on the library, because neither lives in the
-      store this screen falls back FROM. Screen 25's own line is the precedent:
-      it draws `never checked` on a device that follows nothing.
-
+  `Watching for 3 titles` counts the `:followed` list the two sections are
+  built from. The mono line is `watcher_line/0`: when a check last completed
+  and the cadence, both from `Kati.Settings.Watcher`, the store screen 25
+  writes.
   """
   use Kati.Screens.Pushed, back: "Home"
   use Gettext, backend: Kati.Gettext
@@ -152,6 +89,8 @@ defmodule Kati.Screens.Inbox do
   alias Kati.Media.Release
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
+  alias Kati.Notifications.Candidate
+  alias Kati.Notifications.Sources.Media, as: MediaSource
   alias Kati.Settings.Watcher
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -308,28 +247,119 @@ defmodule Kati.Screens.Inbox do
     _ -> nil
   end
 
-  # The real inbox is the drawn one with its two lists and its count replaced.
-  # Laying the reader's values over the drawn map rather than building a fresh
-  # one is what keeps "which parts are still the design's" a single visible
-  # line instead of an omission.
-  #
-  # `length(tracked)` rather than `followed_count/0`: `tracked` IS the
-  # `:followed` read that function counts, already in hand, and counting the
-  # list this screen is drawing is what makes *the banner and the list it is a
-  # banner FOR cannot disagree* structural rather than a promise. Screen 25
-  # reaches the same number through `followed_count/0` because it has no list.
+  # `length(tracked)` is the count because `tracked` is the `:followed` read the
+  # two lists are built from, so the banner and the lists cannot disagree.
   defp assemble(tracked) do
     cache = cached_titles(tracked)
     episodes = scheduled_episodes(tracked)
+    wanted = Watcher.wanted_kinds()
     now = Kati.Time.now()
 
     %{
-      drawn_inbox()
-      | watching: length(tracked),
-        out_now: out_now_rows(tracked, cache, episodes, ticked_ids(tracked), now),
-        coming_up: upcoming_rows(tracked, cache, episodes, scheduled_seasons(tracked), now)
+      watching: length(tracked),
+      last_checked: watcher_line(),
+      out_now: out_now_rows(tracked, cache, episodes, ticked_ids(tracked), now, wanted),
+      coming_up:
+        tracked
+        |> upcoming(cache, episodes, scheduled_seasons(tracked), now, wanted)
+        |> Enum.map(fn {tracked_row, airing, air} ->
+          upcoming_row(tracked_row, airing, air, cached_for(tracked_row, cache))
+        end),
+      nothing_followed?: false
     }
   end
+
+  @doc """
+  The release alerts behind the **Coming up** list — one
+  `Kati.Notifications.Candidate` per row, in the `:tv` domain.
+
+  The rows and the alerts are one list read twice, so a filled bell on screen
+  05 and an alarm on the platform are the same answer: the gate is
+  `Kati.Media.Release.alarm_for/3` (`alarm_at/3` for a film), and a row that
+  draws the hollow bell becomes a suppressed candidate carrying the gate's
+  reason — `:muted`, `:low_confidence` — so the bell's inbox can say why.
+
+  The same *Tell me about* switches filter both. `[]` when nothing is followed
+  or the store cannot be read. A row whose provider id cannot be part of a
+  notification id — it contains `:` — is left out rather than given an id the
+  platform side could not rebuild.
+
+  `Kati.Notifications.Releases` arms these; `Kati.Screens.InboxNotifications`
+  plans them beside the other domains.
+  """
+  @spec alerts() :: [Kati.Notifications.Candidate.t()]
+  def alerts do
+    case followed() do
+      [] ->
+        []
+
+      tracked ->
+        cache = cached_titles(tracked)
+
+        tracked
+        |> upcoming(
+          cache,
+          scheduled_episodes(tracked),
+          scheduled_seasons(tracked),
+          Kati.Time.now(),
+          Watcher.wanted_kinds()
+        )
+        |> Enum.map(fn {tracked_row, airing, _air} ->
+          alert(tracked_row, airing, cached_for(tracked_row, cache))
+        end)
+        |> Enum.reject(&is_nil/1)
+    end
+  rescue
+    _error -> []
+  end
+
+  defp alert(tracked_row, airing, cached) do
+    id = alert_id(tracked_row, airing)
+    meta = %{source: tracked_row.source, source_id: tracked_row.source_id, kind: tracked_row.kind}
+
+    case gate(tracked_row, airing, cached) do
+      {:ok, at} ->
+        Candidate.absolute(id, :tv, at,
+          title: show_title(cached),
+          body: alert_body(airing),
+          meta: meta
+        )
+
+      {:suppressed, reason} ->
+        Candidate.suppressed(id, :tv, reason, meta: meta)
+    end
+  rescue
+    ArgumentError -> nil
+  end
+
+  defp gate(tracked_row, :title, cached), do: Release.alarm_at(tracked_row, cached)
+  defp gate(tracked_row, airing, _cached), do: Release.alarm_for(tracked_row, airing)
+
+  defp alert_id(tracked_row, :title), do: MediaSource.id(tracked_row)
+
+  defp alert_id(_tracked_row, %CachedEpisode{season_number: s, episode_number: e} = episode)
+       when is_integer(s) and is_integer(e),
+       do: MediaSource.episode_id(episode.source, episode.title_source_id, s, e)
+
+  defp alert_id(_tracked_row, %CachedEpisode{} = episode),
+    do:
+      Candidate.id(["ep", episode.source, episode.title_source_id, "episode", episode.source_id])
+
+  defp alert_id(_tracked_row, %CachedSeason{} = season),
+    do:
+      Candidate.id(["ep", season.source, season.title_source_id, "season", season.season_number])
+
+  defp alert_body(%CachedEpisode{} = episode) do
+    case episode_line(episode) do
+      "" -> pgettext("release alert", "A new episode is out")
+      line -> pgettext("release alert", "New episode: %{episode}", episode: line)
+    end
+  end
+
+  defp alert_body(%CachedSeason{} = season),
+    do: pgettext("release alert", "%{season} starts today", season: season_label(season))
+
+  defp alert_body(:title), do: pgettext("release alert", "Out today")
 
   @doc """
   The `Watch` pill's tap, or `nil` for a row with no episode behind it.
@@ -387,24 +417,15 @@ defmodule Kati.Screens.Inbox do
     )
   end
 
-  @doc false
+  @doc """
+  The gear on the watcher card, which opens screen 25.
+
+  Sized, deliberately: a `Box` with no width fills its parent, and as the last
+  child of the card's Row it swallowed the width the weighted Column beside it
+  needed, leaving both of the card's lines clipped to nothing on a device.
+  """
+  @spec watcher_gear() :: map()
   def watcher_gear do
-    # **Sized, and that is the whole of the fix.** A `Box` with no
-    # width fills its parent, so this gear — the last child of the watcher
-    # card's Row — swallowed every point the weighted `Column` beside it should
-    # have had. The card came out as two icons in an empty cream bar: the
-    # Column was left about 20pt wide and `max_lines={1}` clipped both of its
-    # lines to nothing.
-    #
-    # Nothing on the host could see it. `render/1` answers a TREE, the tree was
-    # correct, and `Kati.ScreenInboxTest` reads both strings out of it — so the
-    # whole suite passed while the card was blank on a phone. It took a device
-    # and one deliberately wrapped line, one letter per row, to prove where the
-    # width had gone.
-    #
-    # `Kati.Screens.Inbox.watcher_idle/0`'s own gear is `width={34} height={34}`
-    # and `Kati.UI.SettingsList.icon_tile/1` is sized too, which is why neither
-    # has ever shown this.
     assigns = %{tap: {self(), :open_watcher}}
 
     ~MOB"""
@@ -416,12 +437,6 @@ defmodule Kati.Screens.Inbox do
 
   @impl true
   def handle_tap(:mark_all, socket) do
-    # The re-read happens whatever the outcome, because ticks that DID land
-    # must leave the list — a partial run is a true state, and hiding it would
-    # be the same silence this is fixing. Only the FIRST refusal is spoken:
-    # `Kati.Write.message/1` is the app's whole refusal vocabulary and "3 of 5
-    # did not save" is copy no board words. `nil` on a clean run, which clears
-    # a refusal an earlier tap left behind.
     refused =
       socket.assigns.inbox
       |> Kati.Screens.Inbox.tickable()
@@ -466,7 +481,7 @@ defmodule Kati.Screens.Inbox do
   Tick one Out now row, and re-read.
 
   Re-read rather than dropped from the list in place: a tick moves the episode
-  out of `out_now` because `out_now_rows/5` rejects what is already ticked, and
+  out of `out_now` because `out_now_rows/6` rejects what is already ticked, and
   the subtitle counts the same list. Removing the row here and leaving the
   count alone is how the two come to disagree.
 
@@ -476,6 +491,9 @@ defmodule Kati.Screens.Inbox do
   pill. That is the defect screens 04 and 34 had; it
   reached this screen with #82, which gave the two controls something to
   refuse.
+
+  A tag naming no row on the page leaves the socket as it was — it is not a
+  refused write, it is a tag this screen does not own.
   """
   @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def tick(socket, source_id) do
@@ -493,11 +511,6 @@ defmodule Kati.Screens.Inbox do
       {:error, reason} ->
         Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
 
-      # MANDATORY, and it must stay silent. A tag naming no row on the page is
-      # not a refused write, it is a tag this screen does not own — the answer
-      # `handle_tap/2`'s `_other` clause already gives. Collapse it into the
-      # error clause and `case nil do` raises `CaseClauseError`, which
-      # `Kati.Screens.Root.rescue_tap/3` then logs as a dead tap.
       nil ->
         socket
     end
@@ -590,10 +603,11 @@ defmodule Kati.Screens.Inbox do
 
   # ── Out now ────────────────────────────────────────────────────────────────
 
-  defp out_now_rows(tracked, cache, episodes, ticked, now) do
+  defp out_now_rows(tracked, cache, episodes, ticked, now, wanted) do
     by_reference = Map.new(tracked, &{{&1.source, &1.source_id}, &1})
 
     episodes
+    |> Enum.filter(&MapSet.member?(wanted, Watcher.release_kind(&1)))
     |> Enum.reject(&MapSet.member?(ticked, &1.source_id))
     |> Enum.map(&{&1, Release.air(&1)})
     |> Enum.filter(fn {_episode, air} -> Release.airing(air, now) == :aired end)
@@ -614,13 +628,6 @@ defmodule Kati.Screens.Inbox do
       line: episode_line(episode),
       meta: join([episode_runtime(episode), aired_label(air, now)]),
       dot: Palette.accent(),
-      # What a tick is written against, and none of it is drawn.
-      # The `Watch` pill on every row and `Mark all` at
-      # the top had no taps, and the rows had nothing to carry a tap's meaning
-      # even if they had. `Kati.Media.Watch` names an episode by
-      # `episode_source_id` and nothing else, and takes the season and number
-      # off the COLUMNS — the same shape screen 34's rows carry, for the same
-      # reason: the numbering is a label and the tick follows the episode.
       tracked_id: tracked && tracked.id,
       source_id: episode.source_id,
       season: episode.season_number,
@@ -705,22 +712,24 @@ defmodule Kati.Screens.Inbox do
 
   # ── Coming up ──────────────────────────────────────────────────────────────
 
-  # One dated row per thing a followed title has ahead of it: its episodes, its
-  # season drops, and — for a film only — the title's own next release. See the
-  # moduledoc for why a series contributes no title-level row.
-  defp upcoming_rows(tracked, cache, episodes, seasons, now) do
+  # One dated entry per thing a followed title has ahead of it — its episodes,
+  # its season drops and, for a film only, the title's own next release — as
+  # `{tracked, airing, air}`, soonest first. See the moduledoc for why a series
+  # contributes no title-level entry.
+  defp upcoming(tracked, cache, episodes, seasons, now, wanted) do
     by_reference = Map.new(tracked, &{{&1.source, &1.source_id}, &1})
 
     (episode_candidates(episodes, by_reference) ++
        season_candidates(seasons, by_reference) ++
        film_candidates(tracked, cache))
+    |> Enum.filter(fn {_row, airing, _air} -> MapSet.member?(wanted, kind_of(airing)) end)
     |> Enum.filter(fn {_row, _airing, air} -> resolved_date(air) != nil end)
     |> Enum.filter(fn {_row, _airing, air} -> Release.airing(air, now) != :aired end)
     |> Enum.sort_by(fn {_row, _airing, air} -> resolved_date(air) end, Date)
-    |> Enum.map(fn {tracked_row, airing, air} ->
-      upcoming_row(tracked_row, airing, air, cached_for(tracked_row, cache))
-    end)
   end
+
+  defp kind_of(:title), do: Watcher.release_kind(:film)
+  defp kind_of(airing), do: Watcher.release_kind(airing)
 
   defp episode_candidates(episodes, by_reference) do
     for episode <- episodes,
@@ -747,16 +756,6 @@ defmodule Kati.Screens.Inbox do
     date = resolved_date(air)
 
     %{
-      # The card's whole left edge is a month and a day, and under `:fa` both
-      # are Shamsi: 20 August 2026 is ۲۹ مرداد, and no upcasing or padding of
-      # the Gregorian pair produces it. `Kati.UI.eyebrow_label/1` carries the
-      # case, which Persian does not have at all — `String.upcase/1` on مرداد
-      # is a no-op that reads as one.
-      #
-      # The leading zero is the other half of the same argument, and
-      # `Kati.Locale.date/2` makes it for `:short_padded` in as many words: a
-      # zero is a Latin typographic device for lining a column of dates up, and
-      # Persian numerals are already even-width, so the Shamsi day takes none.
       month: UI.eyebrow_label(Kati.Locale.month_name(date, :short)),
       day: Kati.Locale.pick(Calendar.strftime(date, "%d"), Kati.Locale.day_of_month(date)),
       title: upcoming_title(show_title(cached), airing),
@@ -774,10 +773,6 @@ defmodule Kati.Screens.Inbox do
         title
 
       label ->
-        # The tightening is the DRAWING's typography and it is Latin-only.
-        # `S2 E6` closes up to `S2E6` because the two halves read as one token
-        # to an English eye; `ف۲ ق۶` is two Persian words, and closing the gap
-        # runs them into a third word that is neither of them.
         title <> " — " <> Kati.Locale.pick(String.replace(label, " ", ""), label)
     end
   end
@@ -898,11 +893,6 @@ defmodule Kati.Screens.Inbox do
   end
 
   def body(inbox, save_error) do
-    # The count goes through `Kati.Locale.number/1` and into the label rather
-    # than being interpolated onto the end of it: an eyebrow is one translated
-    # phrase, and `"Out now · " <> n` is a sentence a translator cannot move
-    # the number inside of. Hoisted out of the sigil only to keep the line
-    # readable — `Kati.UI.eyebrow/2` does the case and the face itself.
     out_now = gettext("Out now · %{count}", count: Kati.Locale.number(length(inbox.out_now)))
 
     ~MOB"""
@@ -1137,18 +1127,6 @@ defmodule Kati.Screens.Inbox do
 
   @doc false
   def title(%{nothing_followed?: true}) do
-    # Board 260 draws the name and nothing under it. `0 out now · 0 coming up`
-    # is a true sentence and still the wrong one: it counts two sections the
-    # page is no longer drawing, so it reads as a report on a search that ran
-    # rather than as the fact that nothing is being watched for. The eyebrow
-    # under it says that instead.
-    #
-    # `max_lines={1}` on the heading in both clauses, which the board did not
-    # need and this one does: انتشارهای تازه is a longer run than *New
-    # releases* at the same 28pt, and a display heading that wraps to two lines
-    # pushes the card under it off the fold. The tracking goes the other way —
-    # `Kati.Locale.tracking/1` drops it, because Arabic script joins and a
-    # negative letter_spacing pulls the joins apart.
     ~MOB"""
     <Column fill_width={true}>
       <Text
@@ -1166,10 +1144,6 @@ defmodule Kati.Screens.Inbox do
   end
 
   def title(inbox) do
-    # Both numbers through `Kati.Locale.number/1`, and the sentence around them
-    # through one msgid rather than two halves joined by a middot here: the
-    # Persian for *out now* and *coming up* has to be able to sit either side
-    # of that mark, and a screen that concatenates has already decided.
     subtitle =
       gettext("%{out} out now · %{up} coming up",
         out: Kati.Locale.number(length(inbox.out_now)),
@@ -1202,14 +1176,6 @@ defmodule Kati.Screens.Inbox do
 
   @doc false
   def watcher(inbox) do
-    # Both glyphs are boxed at their own size, and the trailing one is why this
-    # card was blank on a device for as long as it existed — see
-    # `watcher_gear/0`, which carries the finding.
-    #
-    # The mono line is `Kati.Locale.mono_face/0` and not `"mono"`, asked of the
-    # READER rather than of the string: `watcher_line/0` is translated end to
-    # end — *هرگز بررسی نشده · هر ۶ ساعت* — so under `:fa` there is never a
-    # Latin run in it, and `kati_mono.ttf` carries no Persian glyph at all.
     ~MOB"""
     <Column fill_width={true}>
       <Row
