@@ -85,53 +85,50 @@ defmodule Kati.Account.Sample do
         %{
           icon: "inventory_2",
           title: gettext("Storage used"),
-          # Both figures go through `Kati.Locale.number/1` rather than being
-          # spelled into the msgid: they are numerals inside a line the reader
-          # reads, which is that function's own case, and a Persian page with a
-          # Latin `214` in it is the exact defect mishka-group/kati#103 keeps
-          # finding.
-          #
-          # The grouping comma stays Latin, which is `number/1`'s own decision
-          # and not an oversight — it converts the decimal mark and leaves the
-          # group alone because `test/design/screens/59.html` draws ۱,۴۸۰ with
-          # this comma. So the string goes in already grouped and comes back
-          # ۱,۲۰۶.
-          #
-          # 214 is deliberately the same figure `Kati.Settings.Sample.data/0`
-          # puts on the row that pushes here, so the two screens agree about
-          # one database by quoting one number.
-          #
-          # This would have to change if `Kati.Screens.Account.storage_row/1`'s
-          # `mono_sub` ever reached a `font_family`: `kati_mono.ttf` carries no
-          # U+06F0–U+06F9 at all, so a figure the design sets in DM Mono keeps
-          # Latin digits in both scripts. Today that key is read by nothing and
-          # the value is drawn in the reader's own face, so the reader's own
-          # digits are right.
+          # The database file and the shelf, read now. It was `214 MB · 1,206
+          # titles` on every phone — the drawing's figures (A4).
           value:
             gettext("%{n} MB · %{count} titles",
-              n: Kati.Locale.number(214),
-              count: Kati.Locale.number("1,206")
+              n: Kati.Locale.number(Kati.Screens.DataSources.database_megabytes()),
+              count: Kati.Locale.number(Kati.Account.Sample.titles_kept())
             )
         },
-        # "Never" is the honest empty value and should read as a gentle warning
-        # rather than an error — nothing has gone wrong, but nothing is safe
-        # either.
-        #
-        # `pgettext/2` and not a bare msgid, which is the call
-        # `Kati.Screens.Backup.status_frame/2` and `Kati.Screens.BackupStates`
-        # already make for this exact word. The catalogue also holds *Never
-        # backed up* and *never checked*, and `mix gettext.merge` fuzzy-matches
-        # a msgid this short against either of them; the context says which
-        # never this is — the answer to *when was the last backup* — so all
-        # three places in the app that answer that question share one entry.
-        %{
-          icon: "upload",
-          title: gettext("Last backup"),
-          value: pgettext("last backup", "Never"),
-          warn: true
-        },
+        Kati.Account.Sample.last_backup_row(Kati.Screens.Settings.last_backup()),
         %{icon: "phone_iphone", title: gettext("Move to a new phone"), value: nil, chevron: true}
       ]
+    }
+  end
+
+  @doc "How many titles are on the shelf, archived included."
+  @spec titles_kept() :: non_neg_integer()
+  def titles_kept do
+    Kati.Media.TrackedTitle |> Ash.count!()
+  rescue
+    _error -> 0
+  end
+
+  @doc """
+  The *Last backup* row, from the ledger `Kati.Screens.Settings` keeps.
+
+  *Never* reads as a gentle warning rather than an error — nothing has gone
+  wrong, but nothing is safe either. `pgettext/2` because the catalogue also
+  holds *Never backed up* and *never checked*, and the context says which never
+  this is. It was *Never* on every phone, including one that had just exported.
+  """
+  @spec last_backup_row(DateTime.t() | nil) :: map()
+  def last_backup_row(nil),
+    do: %{
+      icon: "upload",
+      title: gettext("Last backup"),
+      value: pgettext("last backup", "Never"),
+      warn: true
+    }
+
+  def last_backup_row(%DateTime{} = at) do
+    %{
+      icon: "upload",
+      title: gettext("Last backup"),
+      value: Kati.Locale.date(DateTime.to_date(at), :short)
     }
   end
 

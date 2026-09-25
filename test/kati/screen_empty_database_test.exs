@@ -246,6 +246,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # following nothing keeps the board's line, because `Watching 0 titles`
     # over a page of switches is a page about nothing.
     {"25", Kati.Screens.ReleaseWatcher},
+    # A4: *Storage used* reads the database file and the shelf, and *Last
+    # backup* reads the ledger, where both were the drawing's figures.
+    {"40", Kati.Screens.Account},
     # 145 joined when the sort disc's sheet stopped being a picture. It reads
     # the shelf twice — once as it stands and once with nothing selected — so
     # `showing N of M` is two numbers about this reader rather than board
@@ -2542,6 +2545,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # than on most screens: a share card is built to be saved and sent, so an
       # invented one does not merely mislead the person holding the phone — it
       # travels. 99 is 98 with the Books chip lit and reaches the same read.
+      # 40's *Storage used* counts the shelf. It said 1,206 titles on every
+      # phone (A4); over an empty store it counts none.
+      {"40", Kati.Screens.Account, &Kati.Account.Sample.titles_kept/0, 0, fn -> 1206 end},
       {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
       {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,

@@ -476,6 +476,9 @@ defmodule Kati.DesignLiterals do
       # count nothing measured, and `0.1 · mock build`. THE RULE: print no
       # figure rather than the board's. The card keeps the section tally, Data
       # sources says whether TMDB has a token, Version is `mix.exs`'s (N1–N4).
+      # Board 40's *Storage used* figure is the drawing's; the row reads the
+      # database file and the shelf now (A4).
+      {"40", "214 mb · 1,206 titles"},
       {"24", "synced 2 min ago"},
       {"24", "1,204 entries · 4 sections"},
       {"24", "synced"},
