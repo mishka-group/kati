@@ -56,7 +56,9 @@ defmodule Kati.ScreenStatsEmptyTest do
   alias Kati.Stats.Sample
 
   # Child first: a watch carries the foreign key to a tracked title.
-  @tables ~w(media_watches media_content_warnings tracked_titles cached_titles)
+  # `media_events` too: the Activity log row counts the log (N31), and events
+  # other files leave behind would otherwise land in this file's count.
+  @tables ~w(media_events media_watches media_content_warnings tracked_titles cached_titles)
 
   # Board 101's own words, and the sentence written to its cadence. Named once so
   # the presence checks and the "what the card is" check cannot drift apart.
