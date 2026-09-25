@@ -470,6 +470,22 @@ defmodule Kati.DesignLiterals do
       # see `Kati.Screens.ImportRecognised`'s moduledoc for why the editor is a
       # feature and not a fix. MOVIES-AND-TV.md `141 #10`.
       {"141", "7 matched · 2 skipped · still editable"},
+      # Boards 24 and 62's account card and Data/About rows described an
+      # account, a sync and a build Kati does not have: `Synced 2 min ago`, the
+      # *Synced* pill, `1,204 ENTRIES`, `iCloud · this device + iPad`, a source
+      # count nothing measured, and `0.1 · mock build`. THE RULE: print no
+      # figure rather than the board's. The card keeps the section tally, Data
+      # sources says whether TMDB has a token, Version is `mix.exs`'s (N1–N4).
+      {"24", "synced 2 min ago"},
+      {"24", "1,204 entries · 4 sections"},
+      {"24", "synced"},
+      {"24", "tvmaze, open library, musicbrainz · 3 reachable"},
+      {"24", "icloud · this device + ipad"},
+      {"24", "0.1 · mock build"},
+      {"62", "۲ دقیقه پیش همگام‌سازی شد"},
+      {"62", "۱,۲۰۴ مورد · ۴ بخش"},
+      {"62", "tvmaze، open library، musicbrainz"},
+      {"62", "آی‌کلاد · این دستگاه و آی‌پد"},
       # Board 86's note promises a 180 ms debounce and seven counted queries per
       # pause. The search that page opens runs on every keystroke over the
       # reader's own library, so it says so — `Kati.Search.local_note/0`, which

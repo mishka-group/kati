@@ -48,36 +48,13 @@ defmodule Kati.Settings.Sample do
   use Gettext, backend: Kati.Gettext
 
   @doc """
-  The mono line under the title.
-
-  A stand-in with a number in it, so the number is `Kati.Locale.number/1`'s
-  rather than a Latin `2` sitting in a Persian sentence — board 62 draws
-  **۲ دقیقه پیش همگام‌سازی شد** and the digit is the half a translation cannot
-  supply.
-  """
-  @spec synced() :: String.t()
-  def synced, do: gettext("Synced %{n} min ago", n: Kati.Locale.number(2))
-
-  @doc """
-  The account card: the design's own photograph, its counts and its sync state.
-
-  `entries` and not a `meta` STRING. It was `"1,204 ENTRIES · 4 SECTIONS"`, and
-  `Kati.Screens.Settings.meta/2` kept the tally honest by running
-  `Regex.replace(~r/\d+ SECTIONS/, …)` over it — a pattern that matches neither
-  half of **۱,۲۰۴ مورد · ۴ بخش**: not the Persian digits, which are not `\d`,
-  and not the word, which is translated. So the count would have silently
-  stopped following the switches under it, which is the one thing that line
-  exists to do. `Kati.Screens.Settings.meta/2` composes the line from the two
-  numbers now.
+  The account card's name. Only the name: the design's photograph, its
+  `1,204 ENTRIES` and its *Synced* pill described an account and a sync Kati
+  does not have (N1, N2), so the card draws a glyph and the section tally.
   """
   @spec account() :: map()
   def account do
-    %{
-      seed: "face68",
-      name: gettext("Your Kati"),
-      entries: 1204,
-      status: gettext("Synced")
-    }
+    %{name: gettext("Your Kati")}
   end
 
   @doc "Appearance — the one group whose first row carries a segmented control."
@@ -310,17 +287,14 @@ defmodule Kati.Settings.Sample do
         id: "sync",
         icon: "sync",
         title: gettext("Sync"),
-        sub: gettext("iCloud · this device + iPad"),
+        sub: nil,
         control: :chevron
       },
       %{
         id: "data_sources",
         icon: "dns",
         title: gettext("Data sources"),
-        sub:
-          gettext("TVmaze, Open Library, MusicBrainz · %{n} reachable",
-            n: Kati.Locale.number(3)
-          ),
+        sub: nil,
         control: :chevron
       },
       # Board 267's own edit to this row: it was the only row in this group
@@ -402,7 +376,7 @@ defmodule Kati.Settings.Sample do
         id: "version",
         icon: "info",
         title: gettext("Version"),
-        sub: gettext("%{version} · mock build", version: Kati.Locale.number("0.1")),
+        sub: nil,
         control: :chevron
       },
       %{

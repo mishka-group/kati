@@ -87,28 +87,15 @@ defmodule Kati.Screens.Settings do
   which one this is — separately for each mode the screen might have been
   mounted in.
 
-  ## Audited: the theme choice and the backup ledger are what is stored
+  ## Audited: every reading on this page is a stored or derived fact
 
-  **Everything else on this screen is drawn copy in `Kati.Settings.Sample`, and
-  no resource in the app holds any of it.** That is not an oversight to be
-  found again next round, so the three things that look like readings and are
-  not are named here with what each would actually need:
-
-    * `1,204 ENTRIES` — there is no *entry* anywhere in Kati. The word spans
-      four domains that count different things (`Kati.Media.Watch`,
-      `Kati.Calendars.Event`, `Kati.Meals.MealLog`, a tracked title), and a
-      total over them is a unit this app has never defined. Summing the tables
-      to reach a number would be inventing the noun, not reading it.
-    * `Synced 2 min ago`, the `Synced` pill, and `iCloud · this device + iPad` —
-      Kati has no account and no device table. `Kati.Sync` is the CalDAV engine
-      and its two resources are a queue and a rejection log;
-      `Kati.Calendars.Account.last_sync_at` is *a calendar account's* last poll,
-      which is the different fact screen 32's Live/Stale pill is about. What
-      this card needs is an account/device record — one row per paired device
-      with its own `last_sync_at` — and nothing models one.
-    * `0.1 · mock build` — the app version is real (`mix.exs` says `0.1.2`) and
-      the rest of the line is not, so reading half of it would print a truthful
-      number beside a claim about a build nobody makes.
+  The design's account card carried a photograph, `1,204 ENTRIES`, a *Synced*
+  pill and `Synced 2 min ago`; the Data group said `iCloud · this device + iPad`
+  and `TVmaze, Open Library, MusicBrainz · 3 reachable`; About said `0.1 · mock
+  build`. None was a reading: Kati has no account, no device table and no
+  *entry* noun, and nothing counted the sources. They are gone — the card draws
+  a glyph and the section tally, Sync has no second line, Data sources says
+  whether TMDB has a token (`tmdb_line/1`), and Version is `mix.exs`'s own.
 
   Two lines used to be on that list and are not any more. `4 SECTIONS` is the
   Sections group's own tally — `meta/2` rewrites it from the switches below it,
@@ -251,7 +238,7 @@ defmodule Kati.Screens.Settings do
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket, :settings, %{
-      synced: Sample.synced(),
+      synced: nil,
       account: Sample.account(),
       appearance: Kati.Screens.Settings.settle(Sample.appearance()),
       watching: Sample.watching(),
@@ -381,6 +368,19 @@ defmodule Kati.Screens.Settings do
     :ok
   end
 
+  @version Mix.Project.config()[:version]
+
+  @doc """
+  The Data sources row's second line: whether film and series search can run.
+
+  It said *TVmaze, Open Library, MusicBrainz · 3 reachable* — a count nothing
+  measured. The one source every film and series search needs is TMDB, and
+  whether the reader has given it a token is a fact this device holds.
+  """
+  @spec tmdb_line(boolean()) :: String.t()
+  def tmdb_line(true), do: gettext("TMDB · your token")
+  def tmdb_line(false), do: gettext("TMDB · no token yet")
+
   @doc """
   What the Export row's second line says, given what `last_backup/0` answered.
 
@@ -417,6 +417,10 @@ defmodule Kati.Screens.Settings do
   @spec sub(map()) :: String.t() | nil
   def sub(%{id: "export"}),
     do: Kati.Screens.Settings.backup_line(Kati.Screens.Settings.last_backup())
+
+  def sub(%{id: "version"}), do: Kati.Locale.number(@version)
+
+  def sub(%{id: "data_sources"}), do: Kati.Screens.Settings.tmdb_line(Kati.Media.Tmdb.usable?())
 
   def sub(%{sub: sub}), do: sub
 
@@ -507,7 +511,7 @@ defmodule Kati.Screens.Settings do
 
   @doc false
   def account(a, sections) do
-    meta = Kati.Screens.Settings.meta(a.entries, Kati.Screens.Settings.enabled(sections))
+    meta = Kati.Screens.Settings.meta(Kati.Screens.Settings.enabled(sections))
 
     ~MOB"""
     <Column fill_width={true}>
@@ -539,75 +543,10 @@ defmodule Kati.Screens.Settings do
             max_lines={1}
           />
         </Column>
-        <Spacer size={14} />
-        {Kati.Screens.Settings.status(a.status)}
       </Row>
       <Spacer size={24} />
     </Column>
     """
-  end
-
-  @doc """
-  The green *Synced* token at the trailing end of the account card.
-
-  `Kati.Components.MishkaPill`, because that is what this is: a compact,
-  untappable label on a tinted ground — the port's own line for telling the two
-  apart is *"a Chip is selected, a Pill is removed"*, and this is neither, which
-  leaves the pill's plain body. It could not be one until the port took `height`,
-  per-edge padding and `corner_radius`; on its old hardcoded `:space_sm` and
-  `:radius_pill` it could only draw a differently shaped token.
-
-  The glyph and the label go in as **content** rather than as `label`, for the
-  reason `Kati.Screens.Subscriptions.badge/1` gives about the avatar: the
-  component's own `Text` carries one string, and this token is an icon *and* a
-  word in a shared colour. Content replaces that `Text` wholesale, so the
-  drawing's `cloud_done` at 14 and its semibold 11 survive untouched.
-
-  **The pixels are the same node.** The port builds
-
-      <Box background={0x294E9A73} corner_radius={13} padding={0}
-           fill_width={false} height={26} padding_left={10} padding_right={10}
-           align={:center}>
-        <Row><Row>{glyph, gap, label}</Row><Row /></Row>
-      </Box>
-
-  where this was a single `<Row height={26} corner_radius={13} background
-  padding_left={10} padding_right={10} align="center">` holding the same three
-  children. Both hug: a `Row` never fills, and a `Box` told `fill_width={false}`
-  hugs too (K-17). `padding` is `0` rather than left to the port's `:space_sm`
-  so the uniform and the two edges agree — the bridge's `pad/1` resolves an
-  unset edge to the uniform, so top and bottom come out `0`, which is what a
-  `Row` with only horizontal padding had. `height` is applied after padding on
-  both, so both measure 26 outside. The port's two wrapper `Row`s carry no
-  props: the outer one hugs, the empty trailing one is `with_remove: false` and
-  measures 0x0, and Compose's `Row` centres vertically unless told `top` or
-  `bottom` — the same default the hand-rolled `align="center"` was asking for.
-  """
-  def status(label) do
-    Kati.Components.MishkaPill.pill(
-      [
-        background: 0x294E9A73,
-        corner_radius: 13,
-        height: 26,
-        padding: 0,
-        padding_left: 10,
-        padding_right: 10,
-        align: :center
-      ],
-      [
-        Kati.UI.symbol("cloud_done", size: 14, color: Palette.green_text()),
-        ~MOB"<Spacer size={5} />",
-        ~MOB"""
-        <Text
-          text={label}
-          text_size={11}
-          font_weight="semibold"
-          text_color={Palette.green_text()}
-          max_lines={1}
-        />
-        """
-      ]
-    )
   end
 
   @doc """
@@ -628,62 +567,39 @@ defmodule Kati.Screens.Settings do
   What it adds is the moment in between. The disc is painted while the poster is
   still being read off disk, where the old markup drew a hole.
   """
-  def avatar(a) do
-    Kati.Components.MishkaAvatar.avatar(
-      src: Kati.Design.Images.poster(a.seed),
-      size: 52,
-      background: Palette.placeholder()
-    )
+  def avatar(_a) do
+    ~MOB"""
+    <Box width={52} height={52} corner_radius={26} background={Palette.placeholder()} align="center">
+      {Kati.UI.symbol("person", size: 26, color: Palette.sub())}
+    </Box>
+    """
   end
 
   @doc "How many sections are switched on right now."
   def enabled(sections), do: Enum.count(sections, &match?(%{control: {:switch, true}}, &1))
 
   @doc """
-  The account line: how much is in this Kati, and how many sections are on.
+  The account line: how many sections are on.
 
-      iex> Kati.Screens.Settings.meta(1204, 4)
-      "1,204 ENTRIES · 4 SECTIONS"
+      iex> Kati.Screens.Settings.meta(4)
+      "4 SECTIONS"
 
-      iex> Kati.Screens.Settings.meta(1, 1)
-      "1 ENTRY · 1 SECTION"
+      iex> Kati.Screens.Settings.meta(1)
+      "1 SECTION"
 
-  Composed, not substituted. It was `Regex.replace(~r/\d+ SECTIONS/, text, …)`
-  over the sample's own drawn line — a pattern that matches neither half of
-  board 62's **۱,۲۰۴ مورد · ۴ بخش**: `\d` is not `۴`, and `SECTIONS` is
-  translated. The tally would have gone on being computed and silently stopped
-  reaching the screen, which is the one thing this line exists to do.
-  mishka-group/kati#103.
+  It also said `1,204 ENTRIES`, and there is no *entry* in Kati — the word spans
+  watches, events, meal logs and titles, which count different things. A total
+  over them would be inventing the noun (N1), so the line says the one count
+  this page actually controls.
 
   `Kati.UI.eyebrow_label/1` for the capitals rather than `String.upcase/1`:
   Persian has no upper case.
   """
-  @spec meta(non_neg_integer(), non_neg_integer()) :: String.t()
-  def meta(entries, count) do
+  @spec meta(non_neg_integer()) :: String.t()
+  def meta(count) do
     Kati.UI.eyebrow_label(
-      ngettext("%{n} entry", "%{n} entries", entries, n: Kati.Screens.Settings.grouped(entries)) <>
-        " · " <> ngettext("%{n} section", "%{n} sections", count, n: Kati.Locale.number(count))
+      ngettext("%{n} section", "%{n} sections", count, n: Kati.Locale.number(count))
     )
-  end
-
-  @doc """
-  A count with the drawing's own thousands separator, in the reader's digits.
-
-      iex> Kati.Screens.Settings.grouped(1204)
-      "1,204"
-
-  A Latin comma in both scripts, which is board 62's own choice — it writes
-  **۱,۲۰۴** — and `Kati.Locale.number/1`'s doc records why the app follows the
-  drawings rather than CLDR's U+066C here.
-  """
-  @spec grouped(non_neg_integer()) :: String.t()
-  def grouped(n) do
-    n
-    |> Integer.to_string()
-    |> String.reverse()
-    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
-    |> String.reverse()
-    |> Kati.Locale.number()
   end
 
   @doc false

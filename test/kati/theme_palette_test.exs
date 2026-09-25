@@ -319,7 +319,6 @@ defmodule Kati.Theme.PaletteTest do
     # round touched at all; `meals_day.ex` was, and these are its leftovers.
     # This is the block the next round should empty first — it is the only one
     # where the work is mechanical.
-    0x294E9A73 => {:unmigrated, ~w(settings)},
     0xFF8A7B60 => {:unmigrated, ~w(states)},
     0xFF8A8479 => {:unmigrated, ~w(states)},
     0xFFB08E55 => {:unmigrated, ~w(meals_day)},
@@ -335,7 +334,7 @@ defmodule Kati.Theme.PaletteTest do
   # lowered and never raised — and it is not typed twice: the test below
   # asserts it against `map_size(@survivors)`, so deleting a row is the only
   # way to change it.
-  @ceiling 41
+  @ceiling 40
 
   @reasons [:pinned_dark, :dark_only, :collision, :no_token, :unmigrated]
 
