@@ -72,6 +72,28 @@ defmodule Kati.ResumeDeliveryTest do
     def handle_info(_message, socket), do: {:noreply, socket}
   end
 
+  # A screen that watches from mount, as every `Kati.Screens.Pushed` screen
+  # does, and whose back pill still goes through `Resume.pop/1`.
+  defmodule Watched do
+    @moduledoc false
+    use Mob.Screen
+    import Mob.Sigil
+
+    def mount(_params, _session, socket) do
+      Kati.Screens.Resume.watch()
+      {:ok, socket}
+    end
+
+    def render(assigns) do
+      assigns = %{label: "watched"}
+      ~MOB"<Text text={@label} />"
+    end
+
+    def handle_info(:back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+    def handle_info({:go_on, dest}, socket), do: {:noreply, Mob.Socket.push_screen(socket, dest)}
+    def handle_info(_message, socket), do: {:noreply, socket}
+  end
+
   # The router applies a navigation asynchronously (0.8.0), so a bare assert
   # after `send/2` races it.
   defp until(fun, tries \\ 100) do
@@ -147,5 +169,65 @@ defmodule Kati.ResumeDeliveryTest do
 
     assert until(fn -> resumes(bottom) >= 1 end) == :ok,
            "the courier did not find the router by its registered name"
+  end
+
+  describe "the system back gesture" do
+    # N10. `Mob.Router` answers `{:mob, :back}` itself and pops without asking
+    # the screen, so `Resume.pop/1` never runs. Show settings → *Hide unwatched
+    # titles* → swipe back, and the episode list still named what was hidden.
+
+    test "a gesture pop over a watched screen tells the screen it lands on" do
+      {:ok, router} = Mob.Router.start_link(Bottom, %{})
+      on_exit(fn -> if Process.alive?(router), do: GenServer.stop(router) end)
+
+      bottom = bottom_pid(router)
+      send(router, {:go, Watched})
+      assert until(fn -> Mob.Router.get_current_module(router) == Watched end) == :ok
+
+      send(router, {:mob, :back})
+      assert until(fn -> Mob.Router.get_current_module(router) == Bottom end) == :ok
+
+      assert until(fn -> resumes(bottom) >= 1 end) == :ok,
+             "the system back gesture popped without telling the screen underneath"
+
+      Process.sleep(50)
+      assert resumes(bottom) == 1
+    end
+
+    test "and the pill is still one :resumed, not two" do
+      {:ok, router} = Mob.Router.start_link(Bottom, %{})
+      on_exit(fn -> if Process.alive?(router), do: GenServer.stop(router) end)
+
+      bottom = bottom_pid(router)
+      send(router, {:go, Watched})
+      assert until(fn -> Mob.Router.get_current_module(router) == Watched end) == :ok
+
+      send(router, :back)
+      assert until(fn -> resumes(bottom) >= 1 end) == :ok
+
+      Process.sleep(50)
+
+      assert resumes(bottom) == 1,
+             "the watcher and announce/0 both delivered, so every screen re-read twice"
+    end
+
+    test "and a watched screen that is only covered, not left, says nothing" do
+      {:ok, router} = Mob.Router.start_link(Bottom, %{})
+      on_exit(fn -> if Process.alive?(router), do: GenServer.stop(router) end)
+
+      bottom = bottom_pid(router)
+      send(router, {:go, Watched})
+      assert until(fn -> Mob.Router.get_current_module(router) == Watched end) == :ok
+
+      watched =
+        router |> Mob.Router.entries() |> Enum.find_value(fn {m, pid} -> m == Watched && pid end)
+
+      send(watched, {:go_on, Top})
+      assert until(fn -> Mob.Router.get_current_module(router) == Top end) == :ok
+      Process.sleep(50)
+
+      assert Process.alive?(watched)
+      assert resumes(bottom) == 0
+    end
   end
 end

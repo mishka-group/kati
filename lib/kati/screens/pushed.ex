@@ -55,6 +55,7 @@ defmodule Kati.Screens.Pushed do
         # choice away.
         Kati.Theme.activate()
         Kati.Locale.activate()
+        Kati.Screens.Resume.watch()
 
         socket
         |> Mob.Socket.assign(:params, params)

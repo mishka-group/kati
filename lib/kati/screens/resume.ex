@@ -58,6 +58,8 @@ defmodule Kati.Screens.Resume do
   # navigate cannot leave a process parked for ever.
   @courier_ms 5_000
 
+  @watched :kati_resume_watched
+
   @doc """
   Pop, and tell whatever is underneath that it is coming back.
 
@@ -107,10 +109,40 @@ defmodule Kati.Screens.Resume do
   def announce do
     message = {:kati, @topic, nil}
 
-    if under_router?() do
-      deliver_after_this_screen_dies(message)
-    else
-      send(self(), message)
+    cond do
+      Process.get(@watched) -> :ok
+      under_router?() -> deliver_after_this_screen_dies(message, @courier_ms)
+      true -> send(self(), message)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Tell whatever is underneath when this screen goes, however it goes.
+
+  `pop/1` only runs for Kati's own back pill. The system back gesture never
+  reaches the screen at all: `Mob.Router` answers `{:mob, :back}` itself and
+  applies `{:pop}` without asking (`deps/mob/lib/mob/router.ex`, the handler
+  under *System back gesture*). So a reader who flipped *Hide unwatched titles*
+  on screen 159 and swiped back saw the episode titles they had just hidden,
+  until they left the stack — the defect this module exists for, through the
+  one door it did not cover.
+
+  A pushed screen dies on every pop, whichever back caused it, so its death is
+  the signal. `Kati.Screens.Pushed` calls this from `mount/3`; the courier it
+  starts waits for the screen's `:DOWN` with no deadline, because the screen
+  may be looked at for an hour, and exits on it. It re-activates the theme
+  first, since the gesture skips `pop/1`'s `Kati.Theme.activate/0` as well.
+
+  Once watched, `announce/0` stands down, so a pill tap is one `:resumed`, not
+  two.
+  """
+  @spec watch() :: :ok
+  def watch do
+    if under_router?() and not Process.get(@watched, false) do
+      Process.put(@watched, true)
+      deliver_after_this_screen_dies({:kati, @topic, nil}, :infinity)
     end
 
     :ok
@@ -162,7 +194,13 @@ defmodule Kati.Screens.Resume do
   # names it, a `terminate/2` on Kati's macros would miss the screens that
   # `use Mob.Screen` directly, and monkey-patching `Mob.Screen` is the fork
   # this module exists to avoid.
-  defp deliver_after_this_screen_dies(message) do
+  #
+  # The deadline is `@courier_ms` for an `announce/0`: that screen did not die,
+  # so no navigation happened and nothing is waiting to be told, and a
+  # `:resumed` that arrives seconds later lands on whatever the reader has since
+  # opened. `watch/0` passes `:infinity` — its screen dies when it is left, and
+  # not before.
+  defp deliver_after_this_screen_dies(message, deadline) do
     owner = owner()
     screen = self()
 
@@ -170,15 +208,29 @@ defmodule Kati.Screens.Resume do
       ref = Process.monitor(screen)
 
       receive do
-        {:DOWN, ^ref, :process, ^screen, _reason} -> send(owner, message)
+        {:DOWN, ^ref, :process, ^screen, _reason} ->
+          reactivate_theme()
+          deliver(owner, message)
       after
-        # The screen did not die, so no navigation happened and nothing is
-        # waiting to be told. Exit rather than deliver: a `:resumed` that
-        # arrives seconds later lands on whatever the reader has since opened.
-        @courier_ms -> :ok
+        deadline -> :ok
       end
     end)
   end
+
+  defp reactivate_theme do
+    Kati.Theme.activate()
+    Kati.Locale.activate()
+  catch
+    _kind, _reason -> :ok
+  end
+
+  # A name that is no longer registered — the router going down with the app —
+  # raises in `send/2`; there is nobody left to tell.
+  defp deliver(owner, message) when is_atom(owner) do
+    if Process.whereis(owner), do: send(owner, message)
+  end
+
+  defp deliver(owner, message), do: send(owner, message)
 
   # `:mob_screen` is `Mob.Router`'s registered name — it takes it in `init/1`
   # so the native layer can address the UI without holding a pid, and
