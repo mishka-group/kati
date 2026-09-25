@@ -135,7 +135,11 @@ defmodule Kati.Backup.Upgrade do
       # is a free string on `books` and following one is the reader's own
       # statement — so a version-17 file restores with nobody followed, which
       # is exactly what the device it came off had.
-      {17, 18, &unchanged/1}
+      {17, 18, &unchanged/1},
+      # `tracked_titles` gained `numbering`. Nothing moves: a version-18 row
+      # takes `NULL` — no choice made — and follows the default numbering,
+      # which is what the device it came off showed.
+      {18, 19, &unchanged/1}
     ]
 
   @doc """

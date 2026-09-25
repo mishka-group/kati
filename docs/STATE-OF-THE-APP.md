@@ -265,7 +265,7 @@ diagram rather than a screen, and `lib/kati/screens/gallery.ex:164-169` says so 
 | 150 | Auto-detect — music | `S.AutoDetectMusic` | Sample only | Settings.DetectMusicSample | **Gallery only** |
 | 151 | Notification access | `S.NotificationAccess` | Literals only | — | **Gallery only** |
 | 152 | Anime — a type, not a section | `S.AnimeFilter` | Sample only | Media.AnimeSample | **Gallery only** |
-| 153 | Numbering — inherited and overridden | `S.NumberingScheme` | Sample only | NumberingScheme.Sample | **Gallery only** |
+| 153 | Numbering — inherited and overridden | `S.NumberingScheme` | Ash (direct) | — | Pushed from 34 |
 
 ### 2.2 The database is real, and it is empty by construction
 

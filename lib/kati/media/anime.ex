@@ -8,9 +8,9 @@ defmodule Kati.Media.Anime do
   carry, and screen 152 — a whole board about the flag — had no column and no
   writer behind a word of it.
 
-  Screen 152 is not a filter sheet; its own eyebrow says it is the argument for
-  one, and `Kati.Media.AnimeSample.priority_rules/0` is that argument in three
-  lines. This module is those three lines, in that order:
+  Screen 152 states the rule in three lines — `rules/0`, which that screen
+  draws as fixed app behaviour — and this module is those three lines, in that
+  order:
 
     1. **Your own tag** — *always wins, you know.*
        `Kati.Media.TrackedTitle.anime_override`, which is three-valued so that
@@ -55,6 +55,23 @@ defmodule Kati.Media.Anime do
   """
   @spec promote_threshold() :: pos_integer()
   def promote_threshold, do: @promote_threshold
+
+  @doc """
+  The three rules, as screen 152 prints them: rank, name, and what it means.
+
+  English keys; `Kati.Screens.AnimeFilter.sample_text/1` turns each into the
+  reader's words. They describe what `kind_for/3`, `source_says?/1` and
+  `provider_says?/1` do, in that priority, and they are not a setting — no
+  control on any screen reorders or disables them.
+  """
+  @spec rules() :: [{pos_integer(), String.t(), String.t()}]
+  def rules do
+    [
+      {1, "Your own tag", "Always wins — you know"},
+      {2, "The import source", "A MAL or AniList file marks everything in it"},
+      {3, "The provider genre", "TMDB’s Animation + Japanese origin"}
+    ]
+  end
 
   @doc """
   The kind to file a title under, given what is known about it.

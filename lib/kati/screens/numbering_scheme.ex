@@ -1,139 +1,185 @@
 defmodule Kati.Screens.NumberingScheme do
   @moduledoc """
-  Screen 153 — pushed under Series, explaining the numbering feature rather
-  than showing one show's setting.
+  Screen 153 — how one show's episodes are numbered, and why.
 
-  Built to `test/design/reference/153.html`. Its own eyebrow is the thesis:
-  *"a default that announces its own reason"*. Kati stores absolute episode
-  numbers and season/episode pairs for the same show at once — every anime
-  tracker's oldest footgun — and picks Absolute for anime on no other basis
-  than genre. A silent guess and an explained one look identical until the
-  guess is wrong, and then the explained one is the only one a user can
-  correct with confidence instead of suspicion. So the board draws the
-  mechanism in three moves: what the row looks like **before** anyone touches
-  it (`tile_card/1` over `Sample.inherited/0`, an untouched guess with its
-  reason on show), **after** the guess turns out wrong (the same `tile_card/1`
-  over `Sample.overridden/0`, correcting itself and naming what it overrode),
-  and what flipping between the two actually **costs** (`comparison_card/1` —
-  nothing: display changes, storage does not). `Kati.NumberingScheme.Sample`
-  explains at length why
-  those are two illustrations of one feature rather than one show's state
-  shown twice, and why that puts this screen outside the migration question
-  `Kati.Screens.SeriesSettings` spends its own moduledoc on.
+  Pushed from the help disc beside screen 34's order strip, with the show it
+  was opened for in `:title_id` (`params_for/1`). Everything on the page is
+  that show's:
 
-  No dock — this is a pushed screen — so the frame closes at 40, not 132, and
-  `SettingsList.chrome/2` reserves the back pill's height with `nil` rather
-  than a right-hand disc: the board draws nothing on that side.
+    * **The scheme and its reason.** `Kati.Media.Numbering.effective/1` over
+      the tracked row. With nothing stored the row is *Inherited* and says why
+      — *because this is anime*, or *because this is not anime*, which is
+      `Kati.Media.Numbering.default/1`'s whole rule. With
+      `Kati.Media.TrackedTitle.numbering` set it is *Overridden* and says *you
+      set this*, naming the default it replaced. Nothing claims an override the
+      column does not hold.
+    * **Override and Reset.** The row's pill. *Override* stores the scheme the
+      default is not; *Reset* clears the column. Both write through
+      `Kati.Media.Numbering` and the page re-reads the row, so what it shows
+      is what was saved. Screen 34 re-reads on the way back.
+    * **What it changes.** One of this show's own episodes, numbered both ways
+      — its absolute number beside its season and episode. The first episode
+      whose two numbers differ is the one shown, because that is the case the
+      comparison is about. A show with no episode that has an absolute number
+      (`Kati.Media.Numbering.absolute_numbers/1`) draws no comparison at all.
 
-  ## Why nothing here carries `on_tap`
+  The scheme words are screen 34's tile words (`Kati.Screens.Season.
+  order_title/1`), so the page and the strip it explains cannot call one
+  choice two things.
 
-  "Override" and "Reset" are drawn as `Kati.UI.SettingsList.action_pill/1`,
-  which does not accept one. That is not a gap to work around.
-  `Kati.Screens.SeriesSettings`
-  argues that a switch which flips and forgets is worse than one that visibly
-  does nothing — a screen that *looks* saved and is not. The same is true
-  here a step earlier: there is no `numbering_scheme` column anywhere in
-  `Kati.Media` for a tap to write, because (per `Kati.NumberingScheme.Sample`)
-  this screen was never a single show's live control to begin with. Wiring a
-  tap that flipped a local assign between the two cards would perform a
-  toggle the feature does not have — the design draws two titles, not one
-  title in two states — so the honest control is the one the board actually
-  gives these pills: none.
+  Opened without a show — or for one that is no longer in the library — the
+  page says so and offers nothing to press.
 
-  ## Two literals the shared components could not carry unstyled
+  Board 153 also drew a MyAnimeList import tile (*animelist.xml*, scores and
+  watched counts coming across). Kati's importer reads CSV only and maps none
+  of those fields from a MyAnimeList export, so the tile described an
+  integration that does not exist and is not drawn.
 
-  `Kati.UI.SettingsList.note/2` and `Kati.UI.rich_text/1` share one limit,
-  spelled out on `rich_text/1`: the bridge has no `AnnotatedString`, so a `Text` carries
-  exactly one style and a bold word inside a sentence cannot survive as bold.
-  Both notes below lose theirs — "**why**" in the first, "**only what is
-  displayed**" and "**not**" in the comparison card and the MAL tile — the
-  same trade `rich_text/1` documents: a bold that renders plain reads as
-  typography, an orphaned emphasis reads as a layout bug, and the first is the
-  one this bridge can actually produce.
+  No dock — this is a pushed screen — so the frame closes at 40, not 132.
 
-  ## The MyAnimeList tile's check background is a stated literal
+  ## The mono slots ask the string
 
-  `rgba(78,154,115,.14)` behind the two `check` glyphs is fourteen percent
-  green, and `Kati.Theme.Palette` has no token at that alpha — `green_wash` is
-  sixteen (`0x294E9A73`), and reaching for the nearest neighbour is exactly
-  the move `Kati.UI.chip/2`'s moduledoc warns against for `0xFFB5AEA3`: taking
-  a close token would move this tile without moving the drawing it copies.
-  `mal_check_bg/0` states the drawing's own `0x244E9A73` instead.
+  `kicker/1` and `comparison_column/1` set their text with
+  `Kati.Locale.mono_face/1` rather than `"mono"`: `kati_mono.ttf` carries no
+  Persian glyph, so a label or a number in Persian digits is handed to
+  Vazirmatn, and an ASCII one keeps DM Mono.
 
   ## The vertical rule in the comparison card is a declared height
 
   The drawing gets the rule's height from `align-items: stretch`, which has no
-  Mob prop, and an unsized `Box` measures zero. `comparison_column/2`'s two
-  lines — a 9.5pt mono kicker, a 7pt gap, a 17pt mono value — are declared at
-  40 for that reason: nothing comes back from `render/1` to measure it with.
-
-  ## What this file translates, and what `Kati.NumberingScheme.Sample` owns
-
-  The board's words arrive from two places and only one of them is here. The
-  four eyebrows, the two info notes and the MAL tile's three row labels are
-  literals at these call sites, so they are the msgids this file carries.
-  Everything the cards are *filled* with — the header, both rows' titles, subs
-  and pills, the comparison card's two labels, its two values and its
-  footnote, and every line of the MAL tile's body — is declared in
-  `Kati.NumberingScheme.Sample` and is wrapped **there**, the split
-  `Kati.Screens.SeriesSettings` states for its own fixture: one msgid per
-  string, wherever the string lives, and a screen that made its own copy of a
-  fixture's copy would be two strings to keep in step. A `gettext/1` here could
-  not reach them anyway — its argument has to be a literal at the call site for
-  `mix gettext.extract` to see a msgid at all, and what this file holds is a
-  map key.
-
-  What this file DOES owe those strings is the typesetting, which is why the
-  mechanical half of the fold is all on this side of the line. `kicker/1` and
-  `comparison_column/2` both pinned `font_family="mono"` on a slot the fixture
-  fills, and `kati_mono.ttf` carries no glyph in U+0600–U+06FF: the moment the
-  Sample says «مطلق» those two lines are handed to Android's own substitute
-  face, beside Kati's, in a way `Kati.PersianFontTest` is the only reader of.
-  Both ask `Kati.Locale.mono_face/1` — the STRING's script rather than the
-  reader's — so `E32` and `S2 E6` stay in DM Mono in both scripts exactly as
-  screen 80's provider names do, and a Persian label does not.
-
-  The one name on this board that is not copy in either script is
-  `MyAnimeList` itself, and `animelist.xml` with it: a service's name for
-  itself and a file it writes. Board 127 draws `Lumen+` in Latin on a Persian
-  page for the same reason, and the eyebrow above the tile keeps the Latin run
-  inside its Persian sentence rather than transliterating it.
+  Mob prop, and an unsized `Box` measures zero. The two columns — a 9.5pt
+  kicker, a 7pt gap, a 17pt value — are declared at 40 for that reason.
   """
-  # `back: "Series"` stays the English word and is translated at RUNTIME by
-  # `Kati.Screens.Pushed` — the label lands in a module attribute on the way,
-  # and `gettext/1` inside an attribute is evaluated at COMPILE time and frozen
-  # in whichever locale the compiler happened to be in.
-  # `Kati.Screens.Pushed.back_vocabulary/0` is what keeps the msgid alive for
-  # the extractor; `Series` is in it, and so is the `Episodes` that
-  # `Kati.Screens.Season` pushes this screen with.
   use Kati.Screens.Pushed, back: "Series"
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.NumberingScheme.Sample
+  alias Kati.Media.CachedEpisode
+  alias Kati.Media.Numbering
+  alias Kati.Media.TrackedTitle
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  @doc """
+  The push that opens this page for one show, from screen 34.
+
+      iex> Kati.Screens.NumberingScheme.params_for("t1")
+      %{back: "Episodes", title_id: "t1"}
+
+      iex> Kati.Screens.NumberingScheme.params_for(nil)
+      %{back: "Episodes"}
+  """
+  @spec params_for(String.t() | nil) :: map()
+  def params_for(id) when is_binary(id), do: %{back: "Episodes", title_id: id}
+  def params_for(_none), do: %{back: "Episodes"}
+
   @impl true
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:header, Sample.header())
-    |> Mob.Socket.assign(:inherited, Sample.inherited())
-    |> Mob.Socket.assign(:overridden, Sample.overridden())
-    |> Mob.Socket.assign(:comparison, Sample.comparison())
-    |> Mob.Socket.assign(:mal, Sample.mal())
+    |> Mob.Socket.assign(:numbering, numbering(socket.assigns.params))
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
+  The page's facts for the show `params` names, or `nil` when it names none
+  that is tracked.
+  """
+  @spec numbering(map() | nil) :: map() | nil
+  def numbering(params) do
+    with id when is_binary(id) <- params && Map.get(params, :title_id),
+         {:ok, %TrackedTitle{} = tracked} <- Ash.get(TrackedTitle, id) do
+      facts(tracked)
+    else
+      _none -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc "What the page draws about one tracked show."
+  @spec facts(TrackedTitle.t()) :: map()
+  def facts(%TrackedTitle{} = tracked) do
+    cached = Kati.Media.Release.cached_for(tracked)
+
+    %{
+      tracked_id: tracked.id,
+      name: (cached && cached.title) || gettext("Untitled"),
+      scheme: Numbering.effective(tracked),
+      default: Numbering.default(tracked),
+      chosen?: Numbering.chosen?(tracked),
+      anime?: Numbering.anime?(tracked),
+      example: example(tracked)
+    }
+  end
+
+  @doc """
+  One of the show's episodes numbered both ways, or `nil`.
+
+  The first in aired order whose absolute number differs from its number in
+  the season, and failing that the first with an absolute number at all.
+  """
+  @spec example(TrackedTitle.t()) :: map() | nil
+  def example(%TrackedTitle{} = tracked) do
+    episodes = CachedEpisode.for_title(tracked.source, tracked.source_id)
+    absolute = Numbering.absolute_numbers(episodes)
+
+    placed =
+      episodes
+      |> CachedEpisode.in_order(:aired)
+      |> Enum.filter(
+        &(Map.has_key?(absolute, &1.source_id) and is_integer(&1.season_number) and
+            is_integer(&1.episode_number))
+      )
+
+    case Enum.find(placed, &(Map.fetch!(absolute, &1.source_id) != &1.episode_number)) ||
+           List.first(placed) do
+      nil ->
+        nil
+
+      episode ->
+        %{
+          absolute: Map.fetch!(absolute, episode.source_id),
+          season: episode.season_number,
+          episode: episode.episode_number
+        }
+    end
+  rescue
+    _error -> nil
+  end
+
+  @impl true
+  def handle_tap(:override_numbering, socket),
+    do: {:noreply, write(socket, &Numbering.choose(&1, Numbering.other(Numbering.default(&1))))}
+
+  def handle_tap(:reset_numbering, socket),
+    do: {:noreply, write(socket, &Numbering.reset/1)}
+
+  @doc """
+  Apply one write to the show on the page, then re-read it.
+
+  The row is the one the page drew — its `:tracked_id` — and a page drawing
+  no show writes nothing.
+  """
+  @spec write(Mob.Socket.t(), (TrackedTitle.t() -> {:ok, term()} | {:error, term()})) ::
+          Mob.Socket.t()
+  def write(socket, change) do
+    with %{tracked_id: id} <- socket.assigns.numbering,
+         {:ok, tracked} <- Ash.get(TrackedTitle, id),
+         {:ok, saved} <- change.(tracked) do
+      socket
+      |> Mob.Socket.assign(:numbering, facts(saved))
+      |> Mob.Socket.assign(:save_error, nil)
+    else
+      nil ->
+        socket
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+    end
   end
 
   @doc false
-  def content(assigns) do
-    # `pgettext/2` for the two short eyebrows and plain `gettext/1` for the two
-    # long ones. `mix gettext.merge` fuzzy-matches a short msgid against any
-    # entry close to it, and both short ones have a near neighbour already in
-    # the catalogue — *What it changes* against screen 92's *What it would be*,
-    # one word apart in the half of the string a distance metric weighs most.
-    # An untranslated eyebrow arriving pre-filled with another board's sentence,
-    # marked fuzzy, is the failure this whole fold keeps meeting: legible enough
-    # that nobody files it. The two long ones are their own nearest neighbour.
+  def content(%{numbering: nil}) do
     ~MOB"""
     <Scroll>
       <Column
@@ -144,90 +190,178 @@ defmodule Kati.Screens.NumberingScheme do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title(assigns.header.title, assigns.header.subtitle)}
-        {UI.eyebrow(pgettext("a setting nobody has changed", "Inherited"))}
-        {Kati.Screens.NumberingScheme.tile_card(assigns.inherited)}
-        <Spacer size={11} />
-        {SettingsList.note("info", Kati.Screens.NumberingScheme.reason_note())}
-        <Spacer size={20} />
-        {UI.eyebrow(gettext("Overridden — the override announces itself"))}
-        {Kati.Screens.NumberingScheme.tile_card(assigns.overridden)}
-        <Spacer size={20} />
-        {UI.eyebrow(pgettext("what switching numbering affects", "What it changes"))}
-        {Kati.Screens.NumberingScheme.comparison_card(assigns.comparison)}
-        <Spacer size={14} />
-        {SettingsList.note("info", Kati.Screens.NumberingScheme.clutter_note())}
-        <Spacer size={20} />
-        {UI.eyebrow(gettext("The MyAnimeList tile — sole integration those users get"))}
-        {Kati.Screens.NumberingScheme.mal_card(assigns.mal)}
+        {SettingsList.title(Kati.Screens.NumberingScheme.heading(), "")}
+        {SettingsList.note("info", Kati.Screens.NumberingScheme.no_show_note())}
       </Column>
     </Scroll>
     """
   end
 
-  @doc "The single-row card both `Sample.inherited/0` and `Sample.overridden/0` draw — same shape, opposite state."
-  def tile_card(row) do
+  def content(assigns) do
+    n = assigns.numbering
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
+        {SettingsList.chrome(nil, 44)}
+        {SettingsList.title(Kati.Screens.NumberingScheme.heading(), n.name)}
+        {UI.eyebrow(Kati.Screens.NumberingScheme.state_eyebrow(n.chosen?))}
+        {Kati.Screens.NumberingScheme.tile_card(n)}
+        {Kati.Screens.NumberingScheme.refusal(Map.get(assigns, :save_error))}
+        <Spacer size={11} />
+        {SettingsList.note("info", Kati.Screens.NumberingScheme.rule_note())}
+        {Kati.Screens.NumberingScheme.comparison(n)}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc false
+  def heading, do: pgettext("the screen that explains episode numbering", "Numbering")
+
+  @doc false
+  def no_show_note,
+    do:
+      gettext(
+        "Open this from a show's episode list to see how that show is numbered " <>
+          "and change it."
+      )
+
+  @doc false
+  def rule_note,
+    do:
+      gettext(
+        "Anime is numbered absolutely unless you change it, and everything else " <>
+          "by season. A choice here applies to this show only."
+      )
+
+  @doc false
+  def state_eyebrow(true), do: pgettext("a setting the reader changed", "Overridden")
+  def state_eyebrow(false), do: pgettext("a setting nobody has changed", "Inherited")
+
+  @doc """
+  A scheme's name, in screen 34's words: *Aired* for seasons, *Absolute*.
+  """
+  @spec scheme_name(Numbering.scheme()) :: String.t()
+  def scheme_name(scheme) do
+    scheme
+    |> Numbering.order()
+    |> Kati.Screens.Season.order_label()
+    |> Kati.Screens.Season.order_title()
+  end
+
+  @doc """
+  Why the show is numbered the way it is.
+
+      iex> Kati.Screens.NumberingScheme.reason(%{chosen?: false, anime?: true, default: :absolute})
+      "because this is anime"
+
+      iex> Kati.Screens.NumberingScheme.reason(%{chosen?: false, anime?: false, default: :seasons})
+      "because this is not anime"
+  """
+  @spec reason(map()) :: String.t()
+  def reason(%{chosen?: false, anime?: true}), do: gettext("because this is anime")
+  def reason(%{chosen?: false, anime?: false}), do: gettext("because this is not anime")
+
+  def reason(%{chosen?: true, anime?: true, default: default}),
+    do: gettext("you set this · anime default was %{default}", default: scheme_name(default))
+
+  def reason(%{chosen?: true, default: default}),
+    do: gettext("you set this · the default here is %{default}", default: scheme_name(default))
+
+  @doc "The show's scheme, its reason, and the pill that changes it."
+  def tile_card(n) do
+    {label, tag} =
+      if n.chosen?,
+        do:
+          {pgettext("the pill that reverts an override to the inherited default", "Reset"),
+           :reset_numbering},
+        else:
+          {pgettext("the pill that replaces an inherited default", "Override"),
+           :override_numbering}
+
     SettingsList.card([
       SettingsList.row(
-        SettingsList.icon_tile(row.icon),
-        # `lines: 2`, which is `Kati.UI.SettingsList.body/3`'s own exception and
-        # this row's whole point. That function pins a sub-line to one line
-        # because *"one line is right for a setting and wrong for an
-        # explanation"* — and per `Kati.NumberingScheme.Sample.inherited/0` this
-        # sub IS the explanation: *because this is anime* is the fact that turns
-        # a guess into something a user can correct on sight, and *you set this ·
-        # anime default was Absolute* names both halves of the override. A row
-        # that truncates either has deleted the only thing on it worth reading,
-        # the same way screen 26's diagnostic printed `…the phone …` and stopped.
-        #
-        # It was already truncating in ENGLISH. `test/design/screens/153.html`
-        # gives the body `flex:1;min-width:0` with no `nowrap`, so the drawing
-        # wraps it; at 402pt the slot is about 198 wide and the overridden row's
-        # sub needs more. Persian only makes a live defect louder — it is longer
-        # again, and it is the half of the board an untranslated screen was
-        # hiding.
-        SettingsList.body(row.title, row.sub, lines: 2),
-        SettingsList.action_pill(row.action),
+        SettingsList.icon_tile("pin"),
+        SettingsList.body(scheme_name(n.scheme), reason(n), lines: 2),
+        SettingsList.action_pill(label, {self(), tag}),
         padding: 13,
         rule: false
       )
     ])
   end
 
-  # Both notes are one msgid each, `<>`-joined for the line width rather than
-  # split into sentences: Gettext expands a concatenation of literals at compile
-  # time (`Gettext.Macros.expand_to_binary/3`), so the extractor sees the whole
-  # paragraph, and a translator gets the argument in one piece instead of three
-  # clauses whose Persian order is not the English one. The bold word each one
-  # loses — **why** here, **only what is displayed** below — is the trade this
-  # module's own moduledoc states for `Kati.UI.rich_text/1`.
-  @doc false
-  def reason_note do
-    gettext(
-      "That phrasing is the point. An inherited default that says why is the " <>
-        "difference between a helpful guess and a confusing one — and " <>
-        "numbering is the single most common thing anime trackers get wrong."
-    )
-  end
+  @doc "A write the store refused, said under the row it failed to change."
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
 
-  @doc false
-  def clutter_note do
-    gettext(
-      "Showing both is clutter; showing the wrong one is a bug. Storage is " <>
-        "one scheme, display is a preference."
-    )
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={11} />
+      {Kati.UI.SettingsList.note("error", @message)}
+    </Column>
+    """
   end
 
   @doc """
-  Absolute vs Seasons, same episode, side by side over one footnote.
+  The comparison band — eyebrow, card — or nothing when no episode of the show
+  has an absolute number.
+  """
+  def comparison(%{example: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def comparison(%{example: example}) do
+    assigns = %{card: Kati.Screens.NumberingScheme.comparison_card(example)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={20} />
+      {UI.eyebrow(pgettext("what switching numbering affects", "What it changes"))}
+      {@card}
+    </Column>
+    """
+  end
+
+  @doc """
+  One episode, absolute beside season and episode, over one footnote.
 
   Not `SettingsList.card/1` — that recipe is 20pt radius over 4/15pt padding
   for a stack of rows, and this is a 22pt radius over 17pt padding holding a
-  two-column comparison with no row in it at all. Same shadow, same card
-  fill, different shape entirely; reaching for the row card here would be
-  reaching for the wrong tool because the numbers happen to be close.
+  two-column comparison.
   """
-  def comparison_card(data) do
+  def comparison_card(example) do
+    left = %{
+      label: scheme_name(:absolute),
+      value: pgettext("episode number", "E%{e}", e: Kati.Locale.number(example.absolute))
+    }
+
+    right = %{
+      label: scheme_name(:seasons),
+      value:
+        gettext("S%{s} · E%{e}",
+          s: Kati.Locale.number(example.season),
+          e: Kati.Locale.number(example.episode)
+        )
+    }
+
+    assigns = %{
+      left: left,
+      right: right,
+      note:
+        gettext(
+          "Same episode. Numbering changes only what is displayed — Kati always " <>
+            "stores season and episode, so switching never loses a tick and never " <>
+            "shows both at once."
+        )
+    }
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -237,17 +371,17 @@ defmodule Kati.Screens.NumberingScheme do
       padding={17}
     >
       <Row fill_width={true} align="top">
-        {Kati.Screens.NumberingScheme.comparison_column(data.left)}
+        {Kati.Screens.NumberingScheme.comparison_column(@left)}
         <Spacer size={12} />
         <Box width={1} height={40} background={Palette.hairline_strong()} />
         <Spacer size={12} />
-        {Kati.Screens.NumberingScheme.comparison_column(data.right)}
+        {Kati.Screens.NumberingScheme.comparison_column(@right)}
       </Row>
       <Spacer size={13} />
       {SettingsList.hairline(true)}
       <Spacer size={13} />
       <Text
-        text={data.note}
+        text={@note}
         text_size={12.5}
         line_height={Kati.Locale.leading(1.65)}
         text_color={Palette.ink_soft()}
@@ -256,15 +390,6 @@ defmodule Kati.Screens.NumberingScheme do
     """
   end
 
-  # `Kati.Locale.mono_face/1` and not the literal `"mono"`, and not
-  # `mono_face/0` either: the question this slot has to ask is the VALUE's
-  # script, not the reader's. `E32` and `S2 E6` are a machine's shorthand and
-  # pure ASCII, so they keep DM Mono on a Persian page exactly as screen 80's
-  # provider names do — including their Latin DIGITS, which is
-  # `Kati.Locale.number/1`'s own stated exception, since `kati_mono.ttf` carries
-  # none of U+06F0–U+06F9. If `Kati.NumberingScheme.Sample.comparison/0` ever
-  # spells these out as words, the same call hands them Vazirmatn instead of
-  # letting Android substitute a face nobody chose.
   @doc false
   def comparison_column(%{label: label, value: value}) do
     ~MOB"""
@@ -282,25 +407,11 @@ defmodule Kati.Screens.NumberingScheme do
     """
   end
 
-  # The 9.5pt mono uppercase label both the comparison card and the MAL tile
-  # draw over their values — the board's one small-print recipe, used twice.
-  #
-  # It is `Kati.UI.eyebrow/2`'s inner Text one size down, so it takes that
-  # recipe whole rather than half of it. `Kati.UI.eyebrow_label/1`'s doc is
-  # where the four differences are argued and it says they travel together:
-  # `String.upcase/1` is a **Latin** operation and the Arabic script has no
-  # case, `.1em` of tracking is a Latin small-caps effect that breaks the joins
-  # between Persian letters, and Vazirmatn wants half a point more than DM Mono
-  # at semibold to hold the same optical weight — 10 over 9.5 here, the same
-  # +0.5 that makes the eyebrow's 11 out of 10.5.
-  #
-  # `mono_face/1` rather than `mono_face/0`, for the reason
-  # `comparison_column/2` above carries: this slot draws BOTH this file's own
-  # translated labels and whatever `Kati.NumberingScheme.Sample` hands the
-  # comparison card, so the face has to follow the string rather than the
-  # reader. Note it asks the RAW text — `eyebrow_label/1` upcases ASCII and
-  # returns Persian untouched, so either way the answer is the same.
-  @doc false
+  @doc """
+  The 9.5pt uppercase label over each comparison value: `Kati.UI.eyebrow/2`'s
+  inner recipe one size down, with its Persian adjustments — no upcasing,
+  no tracking, half a point larger.
+  """
   def kicker(text) do
     ~MOB"""
     <Text
@@ -312,151 +423,6 @@ defmodule Kati.Screens.NumberingScheme do
       text_color={Palette.tertiary()}
       max_lines={1}
     />
-    """
-  end
-
-  @doc """
-  The MAL import tile: what it reads, what it does not, and why the tile has
-  to say both.
-
-  The three row labels are this file's msgids and the three bodies are not —
-  `Kati.NumberingScheme.Sample.mal/0` owns those, along with the tile's title
-  and its file name. All three labels take one `msgctxt` because they are one
-  set of three and two of them are too short to be safe without it: *Does not*
-  is an elliptical two words (*does not come across*) that `mix gettext.merge`
-  would fuzzy-match against any sentence with a negation in it, and *Comes
-  across* is an idiom rather than a phrase a catalogue can guess at. The
-  context also keeps the pair readable as a pair for whoever translates it —
-  Persian mirrors the ellipsis with «چه می‌آید» / «چه نمی‌آید», which only works
-  if both arrive together.
-  """
-  def mal_card(data) do
-    ~MOB"""
-    <Column
-      fill_width={true}
-      background={Kati.Theme.card(Palette.mode())}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_card_soft()}
-      padding={17}
-    >
-      <Row fill_width={true} align="center">
-        {Kati.Screens.NumberingScheme.mal_glyph(data.glyph)}
-        <Spacer size={13} />
-        <Column weight={1.0}>
-          <Text
-            text={data.title}
-            text_size={13.5}
-            font_weight="bold"
-            text_color={Palette.ink()}
-            max_lines={1}
-          />
-          <Spacer size={4} />
-          <Text
-            text={data.file}
-            font_family="mono"
-            text_size={10.5}
-            text_color={Palette.sub()}
-            max_lines={1}
-          />
-        </Column>
-      </Row>
-      <Spacer size={14} />
-      {Kati.Screens.NumberingScheme.mal_fact(
-        "check",
-        Kati.Screens.NumberingScheme.mal_check_bg(),
-        Palette.green_text(),
-        pgettext("what a MyAnimeList import brings", "Comes across"),
-        data.comes_across,
-        Palette.ink(),
-        true
-      )}
-      {Kati.Screens.NumberingScheme.mal_fact(
-        "check",
-        Kati.Screens.NumberingScheme.mal_check_bg(),
-        Palette.green_text(),
-        pgettext("what a MyAnimeList import brings", "Numbering"),
-        data.numbering,
-        Palette.ink(),
-        true
-      )}
-      {Kati.Screens.NumberingScheme.mal_fact(
-        "block",
-        Kati.Theme.paper(Palette.mode()),
-        Palette.sub(),
-        pgettext("what a MyAnimeList import brings", "Does not"),
-        data.does_not,
-        Palette.sub(),
-        false
-      )}
-      <Spacer size={13} />
-      {SettingsList.hairline(true)}
-      <Spacer size={12} />
-      <Text
-        text={data.footnote}
-        text_size={11.5}
-        line_height={Kati.Locale.leading(1.55)}
-        text_color={Palette.sub()}
-      />
-    </Column>
-    """
-  end
-
-  # The literal `rgba(78,154,115,.14)` behind the tile's two `check` glyphs —
-  # see the moduledoc for why the nearest named token is the wrong reach.
-  @doc false
-  def mal_check_bg, do: Palette.green_wash_soft()
-
-  # 34pt, mono "M" — not `SettingsList.icon_tile/1`, which types a Material
-  # Symbols ligature and would render this letter as a blank box: `M` is not
-  # in the icon subset, it is the drawing's own literal glyph.
-  #
-  # The one `font_family="mono"` on this board that is NOT
-  # `Kati.Locale.mono_face/1`, and deliberately. Every other mono slot here
-  # holds a string that could one day be Persian; this one holds MyAnimeList's
-  # own initial, which is the service's name for itself in the same sense
-  # `Kati.Services.Service` keeps `TMDB` and board 127 keeps `Lumen+` in Latin
-  # on a Persian page. A transliterated `M` would be a brand spelled two ways.
-  @doc false
-  def mal_glyph(letter) do
-    ~MOB"""
-    <Box
-      width={34}
-      height={34}
-      corner_radius={11}
-      background={Kati.Theme.paper(Palette.mode())}
-      align="center"
-    >
-      <Text text={letter} font_family="mono" text_size={14} text_color={Palette.ink()} />
-    </Box>
-    """
-  end
-
-  # One MAL fact: a 22pt tinted glyph, a kicker, a line, the hairline unless
-  # it is the tile's last fact. `align="top"` rather than `SettingsList.row/4`'s
-  # centred one — these bodies wrap to a second line and the glyph has to sit
-  # on the first, the same reason `Kati.UI.SettingsList.note/2` pins its own icon to `:top`.
-  @doc false
-  def mal_fact(icon, icon_bg, icon_color, label, text, text_color, rule?) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="top" padding_top={11} padding_bottom={11}>
-        <Box width={22} height={22} corner_radius={8} background={icon_bg} align="center">
-          {Kati.UI.symbol(icon, size: 13, color: icon_color)}
-        </Box>
-        <Spacer size={11} />
-        <Column weight={1.0}>
-          {Kati.Screens.NumberingScheme.kicker(label)}
-          <Spacer size={5} />
-          <Text
-            text={text}
-            text_size={12.5}
-            line_height={Kati.Locale.leading(1.5)}
-            text_color={text_color}
-          />
-        </Column>
-      </Row>
-      {SettingsList.hairline(rule?)}
-    </Column>
     """
   end
 end

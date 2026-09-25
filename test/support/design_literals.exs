@@ -1006,6 +1006,45 @@ defmodule Kati.DesignLiterals do
       {"07", "cutting v3 · 86%"},
       {"12", "wishlist"},
       {"12", "owned on disc"},
+      # Board 153 drew the numbering feature rather than one show's numbering:
+      # both states at once, design-note eyebrows, and a MyAnimeList import
+      # tile. The page is one show's now (`Kati.Media.TrackedTitle.numbering`):
+      #   * the subtitle is the show's name, not the board's thesis line, and
+      #     the two notes that argued the design to its reader are replaced by
+      #     one that states the rule;
+      #   * a show is inherited OR overridden, so the overridden row, its sub
+      #     and its Reset pill are drawn only when the column is set —
+      #     `Kati.NumberingTest` draws them — and its eyebrow is a plain
+      #     *Overridden*;
+      #   * the scheme words are screen 34's tiles (*Aired*, *Absolute*), so
+      #     *Seasons* is not a second name for Aired, and a season-and-episode
+      #     is spelled `S2 · E6` as everywhere else in Kati;
+      #   * the MyAnimeList tile described an XML importer, scores and watched
+      #     counts coming across — Kati imports CSV and maps none of those from
+      #     a MyAnimeList export, so the tile is not drawn. Its glyphs are
+      #     `@retired_symbols`' in `Kati.ScreenDesignLiteralTest`.
+      {"153", "a default that announces its own reason"},
+      {"153", "that phrasing is the point. an inherited default that says"},
+      {"153", "why"},
+      {"153",
+       "is the difference between a helpful guess and a confusing one — and numbering is the single most common thing anime trackers get wrong."},
+      {"153", "overridden — the override announces itself"},
+      {"153", "seasons"},
+      {"153", "you set this · anime default was absolute"},
+      {"153", "reset"},
+      {"153", "s2 e6"},
+      {"153",
+       "showing both is clutter; showing the wrong one is a bug. storage is one scheme, display is a preference."},
+      {"153", "the myanimelist tile — sole integration those users get"},
+      {"153", "myanimelist"},
+      {"153", "animelist.xml"},
+      {"153", "comes across"},
+      {"153", "titles, scores, watched counts, status, dates"},
+      {"153", "set to absolute — mal exports are absolute"},
+      {"153", "does not"},
+      {"153", "reviews, tags and your mal friends"},
+      {"153",
+       "xml is importer-only — there is no mal sync. this tile is the whole of a mal user’s onboarding, so it states both halves."},
       {"152", "marram"},
       {"152", "tagged anime from a mal import — it is live action"},
       {"152", "not anime"},
