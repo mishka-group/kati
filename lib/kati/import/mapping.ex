@@ -52,6 +52,7 @@ defmodule Kati.Import.Mapping do
   # Header → {field, scale}. The scale is only meaningful for `:rating`.
   @known %{
     "title" => {:title, nil},
+    "animetitle" => {:title, nil},
     "name" => {:title, nil},
     "movietitle" => {:title, nil},
     "showtitle" => {:title, nil},
@@ -70,6 +71,7 @@ defmodule Kati.Import.Mapping do
     "yourrating" => {:rating, :ten},
     "rating10" => {:rating, :ten},
     "myrating" => {:rating, nil},
+    "myscore" => {:rating, :ten},
     "rating5" => {:rating, :five},
     "review" => {:review, nil},
     "myreview" => {:review, nil},

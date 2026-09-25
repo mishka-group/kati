@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<myanimelist>
+  <myinfo>
+    <user_name>kati_tester</user_name>
+    <user_export_type>1</user_export_type>
+  </myinfo>
+  <anime>
+    <series_animedb_id>52991</series_animedb_id>
+    <series_title><![CDATA[Sousou no Frieren]]></series_title>
+    <series_type>TV</series_type>
+    <series_episodes>28</series_episodes>
+    <my_watched_episodes>28</my_watched_episodes>
+    <my_start_date>2024-01-02</my_start_date>
+    <my_finish_date>2024-03-22</my_finish_date>
+    <my_score>10</my_score>
+    <my_status>Completed</my_status>
+  </anime>
+  <anime>
+    <series_animedb_id>1</series_animedb_id>
+    <series_title><![CDATA[Cowboy Bebop]]></series_title>
+    <series_type>TV</series_type>
+    <series_episodes>26</series_episodes>
+    <my_watched_episodes>12</my_watched_episodes>
+    <my_start_date>2024-05-01</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>0</my_score>
+    <my_status>Watching</my_status>
+  </anime>
+  <anime>
+    <series_animedb_id>199</series_animedb_id>
+    <series_title><![CDATA[Sen to Chihiro no Kamikakushi]]></series_title>
+    <series_type>Movie</series_type>
+    <series_episodes>1</series_episodes>
+    <my_watched_episodes>1</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>2023-08-12</my_finish_date>
+    <my_score>9</my_score>
+    <my_status>Completed</my_status>
+  </anime>
+</myanimelist>

@@ -59,7 +59,7 @@ defmodule Kati.Import.Job do
   @spec read(String.t(), String.t()) :: {:ok, map()} | {:error, atom()}
   def read(path, name) when is_binary(path) do
     with {:ok, text} <- file(path),
-         {:ok, {headers, rows}} <- Csv.read(text) do
+         {:ok, {headers, rows}} <- Kati.Import.Job.table(text) do
       columns = Mapping.columns(headers, rows)
       looks_like = Mapping.looks_like(headers)
 
@@ -80,6 +80,19 @@ defmodule Kati.Import.Job do
          |> Kati.Import.Job.shaped(headers, rows, columns, records)
          |> Map.put(:looks_like, looks_like)}
       end
+    end
+  end
+
+  @doc """
+  The file as headers and rows: an anime service's own export when it is one
+  (`Kati.Import.Exports`), CSV otherwise.
+  """
+  @spec table(String.t()) :: {:ok, {[String.t()], [[String.t()]]}} | {:error, atom()}
+  def table(text) do
+    case Kati.Import.Exports.table(text) do
+      {:ok, {_headers, []}} -> {:error, :empty}
+      {:ok, table} -> {:ok, table}
+      :not_an_export -> Csv.read(text)
     end
   end
 
