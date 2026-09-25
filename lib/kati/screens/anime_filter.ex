@@ -8,43 +8,26 @@ defmodule Kati.Screens.AnimeFilter do
   wires the three controls it actually puts a finger on: the misclassified
   Marram card, and the two selectable pairs in Onboarding.
 
-  ## Anime is not a new kind — the override is
+  ## What is read, and what is fixed behaviour
 
-  `Kati.Media.TrackedTitle` and `Kati.Media.CachedTitle` already constrain
-  `:kind` to `[:movie, :tv, :anime, :book, :album]`, and
-  `Kati.Screens.Library.shelf/0` already reads all three Screen kinds —
-  `:movie`, `:tv` **and** `:anime` — into one shelf. Anime has been "a type,
-  not a section" since that module was written; screen 03's grid just never
-  surfaced it as one. What board 152 is actually proposing is three things
-  with no column yet: a per-title override that beats every guess, a rule for
-  what a fresh import decides before anyone overrides it, and the two
-  placements — sheet chip, tab-row chip — that let a user see and act on the
-  flag. `Kati.Media.AnimeSample` carries the board's own numbers for exactly
-  that reason; see its moduledoc for the full account of what is real and what
-  is not.
+  The counts are the reader's shelf: the Type card splits the tracked Screen
+  titles into anime, animation (`Animation` in the cached genres) and live
+  action, and the tab row counts the anime ones by status. The guess card is
+  the most recently touched title filed as anime that the reader has not
+  tagged either way (`anime_override` is `nil`), with the rule that filed it.
 
-  ## The tab-row chip is computed, not drawn twice
-
-  `promote?/2` reads the Anime count against `Kati.Media.AnimeSample`'s own
-  threshold and only then appends the fourth chip to the tab row. The board's
-  own info box states the rule in words — *"the tab-row chip appears at 10 or
-  more anime titles"* — and the sample's `12` clears it, so the promoted row
-  the board draws is this function's output, not a second copy of it typed
-  into the markup a second time. Drop the sample below 10 and the fourth chip
-  disappears on its own.
-
-  The two captions that state the rule now read the same number: `10` was a
-  literal in the muted eyebrow and in the info box, so the sample could move
-  and leave both sentences behind, still saying ten over a row that had stopped
-  promoting. Both take `%{n}` from `Sample.promote_threshold/0`, which is also
-  how the numeral reaches a Persian reader as `۱۰` — `Kati.Locale.number/1`
-  inside a sentence.
+  The three priority rows and the tab-row threshold are not settings, and
+  nothing on the page offers to change them. They are how the app behaves,
+  owned by `Kati.Media.Anime`: `rules/0` is what `Kati.Media.Anime.kind_for/3`
+  and the importer do, in that order, and `promote_threshold/0` is the count at
+  which `Kati.Screens.Library` adds its Anime chip. Both sentences that state
+  the threshold take `%{n}` from that one function, so the words and the chip
+  cannot disagree.
 
   ## A word is not a key
 
-  Everything `Kati.Media.AnimeSample` hands over is English, and it stays
-  English: it is `test/design/reference/152.html` written out, and it is what
-  `anime_count/1` counts, what `type_card/1` and `tab_row/3` test to find the
+  The type keys, the tab keys and the rule lines are English, and they stay
+  English: they are what `anime_count/1` counts, what `type_card/1` and `tab_row/3` test to find the
   selected chip, and what `promote?/2`'s appended fourth chip is named. The
   word the reader sees comes out of `sample_text/1` instead, one layer later.
 
@@ -111,7 +94,6 @@ defmodule Kati.Screens.AnimeFilter do
 
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaToggle
-  alias Kati.Media.AnimeSample, as: Sample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -126,8 +108,8 @@ defmodule Kati.Screens.AnimeFilter do
       type_counts: counts,
       tab_counts: tab_counts(tracked),
       anime_count: anime_count(counts),
-      threshold: Sample.promote_threshold(),
-      rules: Sample.priority_rules(),
+      threshold: Kati.Media.Anime.promote_threshold(),
+      rules: Kati.Media.Anime.rules(),
       misclassified: misclassified_guess(tracked, cached),
       marram_fixed?: false,
       onboarding_pick: :screen,
@@ -234,7 +216,7 @@ defmodule Kati.Screens.AnimeFilter do
   # one number, read once, rather than a second literal that could drift from
   # the first.
   #
-  # `"Anime"` here is the sample's KEY, not a label: the word on the chip comes
+  # `"Anime"` here is the page's KEY, not a label: the word on the chip comes
   # from `sample_text/1` and changes with the reader, and this lookup must not.
   defp anime_count(type_counts) do
     {_key, count} = Enum.find(type_counts, {"Anime", 0}, fn {key, _} -> key == "Anime" end)
@@ -253,12 +235,11 @@ defmodule Kati.Screens.AnimeFilter do
   def promote?(count, threshold), do: count >= threshold
 
   @doc """
-  The reader's own word for a string `Kati.Media.AnimeSample` hands over.
+  The reader's own word for one of the page's English keys — a type, a tab or
+  a line of `Kati.Media.Anime.rules/0`.
 
-  The sample is the BOARD written out — `test/design/reference/152.html`'s own
-  labels, in the board's own English — and it stays that way. What travels out
-  of it is a **key**: `"Anime"` is what `anime_count/1` counts, what
-  `type_card/1` compares against to decide which of the three chips is the
+  What travels through the page is a **key**: `"Anime"` is what
+  `anime_count/1` counts, what `type_card/1` compares against to decide which of the three chips is the
   selected one, and what `tab_row/3` appends when `promote?/2` says so. A key
   that translated itself would break all three the moment the reader chose
   Persian, and would break them silently — the chips would still draw and the
@@ -268,13 +249,12 @@ defmodule Kati.Screens.AnimeFilter do
   argument in its own comment, because the shelf already paid for it: its four
   filters were one string doing both jobs, so the Persian shelf's filter was
   «همه» and every clause of `matching/2` fell through to `_all`. This is the
-  same split one module further out — the sample keeps the key, and this is the
+  same split one module further out — the page keeps the key, and this is the
   only place that turns one into a word.
 
-  A string with no clause of its own comes back untouched. A fourth type chip
-  added to the sample tomorrow then draws in English rather than raising, which
-  is the right failure for a design fixture to have: `mix gettext.extract` reads
-  literal call sites and could not have a msgid for it either way.
+  A string with no clause of its own comes back untouched, and draws in English
+  rather than raising: `mix gettext.extract` reads literal call sites and could
+  not have a msgid for it either way.
   """
   @spec sample_text(String.t()) :: String.t()
   def sample_text("Anime"), do: gettext("Anime")

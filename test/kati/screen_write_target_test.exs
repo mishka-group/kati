@@ -709,7 +709,11 @@ defmodule Kati.ScreenWriteTargetTest do
   # and with them the three taps they carried — ListenBrainz's and TheTVDB's
   # connect rows and Hardcover's retired row — in both locales. The measured
   # drop is six. `Kati.DeviceRoundN34N42Test` asserts none of them is drawn.
-  @drawn_taps 1843
+  #
+  # 1841 with P1. Screen 34's help disc opens screen 153 for one show, and a
+  # bare mount of 34 draws no show, so the disc is not drawn there — one tap
+  # in each locale. `Kati.NumberingTest` presses it over a real season.
+  @drawn_taps 1841
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

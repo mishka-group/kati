@@ -48,6 +48,15 @@ defmodule Kati.Media.TrackedTitle do
   not a rounding error. This is the rating that stands **now**; what the user
   thought on a particular night is on that night's `Kati.Media.Watch`.
 
+  ## Numbering
+
+  `numbering` is how a reader wants this show's episodes counted — `:seasons`
+  (`S4 E12`) or `:absolute` (`E87`) — and `nil` until they say. The effective
+  scheme, the default it inherits and the reason for that default are
+  `Kati.Media.Numbering`'s, and `:set_numbering` is the one action that writes
+  it. What a title is numbered is display only: a tick is keyed on the
+  episode's `source_id` and never on either number.
+
   `last_touched_at` is what the shelves sort by, and it is forced on every write
   by `Kati.Media.Changes.Touch` rather than left to callers — a shelf ordered by
   a field that some write paths remember to set is a shelf that reorders at
@@ -184,6 +193,12 @@ defmodule Kati.Media.TrackedTitle do
     # is the whole of what this column is for.
     attribute :anime_override, :boolean, public?: true
 
+    # How this title's episodes are numbered on screens 04, 34 and 153.
+    # `nil` is *I have not said* and inherits `Kati.Media.Numbering.default/1`
+    # — absolute for anime, seasons for everything else — so a title later
+    # reclassified follows the new default rather than a guess nobody made.
+    attribute :numbering, :atom, public?: true, constraints: [one_of: [:seasons, :absolute]]
+
     # ── Shelf order ────────────────────────────────────────────────────────
     attribute :last_touched_at, :utc_datetime_usec,
       allow_nil?: false,
@@ -212,6 +227,13 @@ defmodule Kati.Media.TrackedTitle do
       require_atomic? false
       accept :*
       change Kati.Media.Changes.Touch
+    end
+
+    # Screens 34 and 153. A display preference, so it does not bump the shelf:
+    # choosing how a show is numbered is not watching it.
+    update :set_numbering do
+      require_atomic? false
+      accept [:numbering]
     end
 
     # Bumping the shelf without claiming anything else changed.

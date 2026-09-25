@@ -282,6 +282,9 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"144", "expand_more"},
     {"12", "bookmark"},
     {"12", "inventory_2"},
+    # Board 153's MyAnimeList tile — see `DesignLiterals.retired_lines/0`.
+    {"153", "block"},
+    {"153", "check"},
     # Board 115's medication half — see `DesignLiterals.retired_lines/0`. The
     # two glyphs are the dose card's Taken and Skip discs, which screen 112
     # draws and screen 109 does not.
@@ -1559,6 +1562,19 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.Screens.Discover.Sample.feed())},
       # 34 answers an empty season now, so the board's own goes in here.
       {"34", Kati.Screens.Season, &Map.put(&1, :season, Kati.Screens.Season.drawn_season())},
+      # 153 is one show's numbering and a bare mount names no show, so the
+      # board's own state — an anime inheriting Absolute, compared at E32 —
+      # is installed as the facts `NumberingScheme.facts/1` would read.
+      {"153", Kati.Screens.NumberingScheme,
+       &Map.put(&1, :numbering, %{
+         tracked_id: nil,
+         name: "",
+         scheme: :absolute,
+         default: :absolute,
+         chosen?: false,
+         anime?: true,
+         example: %{absolute: 32, season: 2, episode: 6}
+       })},
       # 13 answers an empty window now, so the board's own evening goes here.
       {"13", Kati.Screens.WhatFits,
        &Map.put(&1, :tonight, Kati.Screens.WhatFits.drawn_tonight())},

@@ -104,8 +104,7 @@ defmodule Kati.Screens.Widgets do
   *Long Hollow* and its `S2E6`, both count lines, the wide widget's two events,
   the four shortcut rows with their spoken phrases, and the share card's three
   strings. Those belong to that module the way `Kati.Settings.DetectSample`'s
-  rows belong to it, and the split is the one `Kati.Screens.NumberingScheme`
-  states for its own fixture: one msgid per string, wherever the string lives.
+  rows belong to it: one msgid per string, wherever the string lives.
   A `gettext/1` here could not reach them anyway — its argument has to be a
   literal at the call site for `mix gettext.extract` to see a msgid at all, and
   what this file holds is a map key — and a screen that made its own copy of a

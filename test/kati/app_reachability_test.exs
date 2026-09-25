@@ -498,7 +498,8 @@ defmodule Kati.AppReachabilityTest do
       source: :tmdb,
       source_id: source_id,
       kind: kind,
-      status: :watching
+      status: :watching,
+      progress_season: if(kind == :tv, do: 1)
     })
     |> Ash.create!()
 
@@ -515,19 +516,27 @@ defmodule Kati.AppReachabilityTest do
   # column beside an episode (`Kati.Screens.Series.rating_column/1`), which is
   # drawn per episode and cannot exist without one, and the walk called it
   # stranded on the day that route shipped.
+  #
+  # Two seasons rather than one, and a bookmark in the first, for screen 153.
+  # Screen 34 draws its order strip — and the help disc beside it, the only
+  # route to 153 — only over a season it can find and a show that can be
+  # numbered two ways; a series of one season numbers absolutely exactly as it
+  # does by season, and a bare push to 34 opens the bookmarked season.
   defp episode!(title_source_id) do
-    Kati.Media.CachedEpisode
-    |> Ash.Changeset.for_create(:create, %{
-      source: :tmdb,
-      title_source_id: title_source_id,
-      source_id: "#{title_source_id}:s1e1",
-      season_number: 1,
-      episode_number: 1,
-      title: "The Weight of Water",
-      runtime_minutes: 48,
-      fetched_at: Kati.Time.now()
-    })
-    |> Ash.create!()
+    for {season, title} <- [{1, "The Weight of Water"}, {2, "Low Tide"}] do
+      Kati.Media.CachedEpisode
+      |> Ash.Changeset.for_create(:create, %{
+        source: :tmdb,
+        title_source_id: title_source_id,
+        source_id: "#{title_source_id}:s#{season}e1",
+        season_number: season,
+        episode_number: 1,
+        title: title,
+        runtime_minutes: 48,
+        fetched_at: Kati.Time.now()
+      })
+      |> Ash.create!()
+    end
   end
 
   # `Mob.State` is the third global a tap pass writes to, and the only one

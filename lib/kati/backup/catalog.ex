@@ -114,7 +114,11 @@ defmodule Kati.Backup.Catalog do
   #   * **16** — `lists` and `list_memberships` arrived: hand-made lists and
   #     what is in them. A version-15 file has neither and neither can be
   #     derived, so a restored 15 has no lists — which is what that device had.
-  @schema_version 18
+  #   * **19** — `tracked_titles` gained `numbering`: how the reader wants a
+  #     show's episodes counted (screens 34 and 153). Nothing moves, for 10's
+  #     reason — a version-18 row takes `NULL`, *I have not said*, and inherits
+  #     `Kati.Media.Numbering.default/1`, which is what that device showed.
+  @schema_version 19
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

@@ -202,6 +202,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # everything else and this file compares it there.
     {"12", Kati.Screens.Lists},
     {"152", Kati.Screens.AnimeFilter},
+    # 153 reads the show its push names — `Kati.Media.TrackedTitle.numbering`
+    # and that show's episodes. A bare mount names none and draws its own
+    # note saying so, with nothing to press.
+    {"153", Kati.Screens.NumberingScheme},
     {"05", Kati.Screens.Inbox},
     {"07", Kati.Screens.Stats},
     {"08", Kati.Screens.Film},
@@ -715,6 +719,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 34 → no board: no episodes, no options and no note, so board 34's own
     # nine rows have nothing left to compare.
     "34" => [],
+    # 153 → no board: a push naming no show has no scheme, no reason and no
+    # episode to compare, so the page is its title and one note saying where
+    # to open it from.
+    "153" => [],
     # 36 → no board: an unavailable device has no sessions, no now-playing card
     # and no decision, so board 36's own content has nothing left to compare.
     "36" => [],
@@ -1277,8 +1285,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   @small_empty_boards %{
     "23" => 9,
     # 34 with no season is the subtitle, three order labels, the zero eyebrow
-    # and the back pill's chrome — twelve strings. The nine episode rows and the
-    # two switches that padded it past the floor act on rows it has not got.
+    # and the back pill's chrome — eleven strings. The nine episode rows and the
+    # two switches that padded it past the floor act on rows it has not got,
+    # and the help disc opens screen 153 for a show, so with none it is not
+    # drawn.
     # 37 with no file picked is the Import pill, the heading, its subtitle, the
     # file card's two lines, the Match columns eyebrow and one worded sentence
     # where the mapping table was — ten strings. The five mapped columns, the
@@ -1299,7 +1309,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # is the argument against padding it: *"a page that draws them anyway is
     # lying in nine places to apologise in one"*.
     "141" => 5,
-    "34" => 12,
+    "34" => 11,
+    # 153 with no show is the back pill, the heading, an empty subtitle and
+    # one note — six strings. Everything else on the board is one show's.
+    "153" => 6,
     # 14 with nothing stored is the back pill, the empty hero's two lines and
     # the "no cast, no scores" card — ten strings. The synopsis, cast, ratings
     # and where-to-watch rows that padded it past the floor are exactly what a
@@ -2703,6 +2716,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # its three labels — that is the app's vocabulary, not a claim.
       {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
        Kati.Screens.Season.empty_season(), &Kati.Screens.Season.drawn_season/0},
+      # 153 answers `nil` for a push that names no show, and draws a note
+      # rather than the board's anime inheriting Absolute.
+      {"153", Kati.Screens.NumberingScheme, fn -> Kati.Screens.NumberingScheme.numbering(%{}) end,
+       nil,
+       fn ->
+         %{
+           tracked_id: nil,
+           name: "",
+           scheme: :absolute,
+           default: :absolute,
+           chosen?: false,
+           anime?: true,
+           example: %{absolute: 32, season: 2, episode: 6}
+         }
+       end},
       # 13 answers an empty window. `real_tonight/1` answers nil for two reasons
       # and only one is "nothing fits" — it is wrapped in a `rescue`, so a read
       # that raised landed on the drawing too. The clock and the chosen window

@@ -459,6 +459,7 @@ defmodule Kati.Screens.Series do
     now = Kati.Time.now()
     inventory = Map.new(seasons, &{&1.season_number, &1})
     grouped = Enum.group_by(episodes, & &1.season_number)
+    absolute = Kati.Screens.Series.shown_absolute(tracked, episodes)
 
     %{
       title: cached && cached.title,
@@ -489,7 +490,8 @@ defmodule Kati.Screens.Series do
             Map.get(grouped, &1, []),
             ticked,
             ratings,
-            now
+            now,
+            absolute
           )
         ),
       current: current_number(tracked, numbers),
@@ -522,22 +524,36 @@ defmodule Kati.Screens.Series do
     if n in numbers, do: n, else: List.first(numbers)
   end
 
-  defp season_facts(number, inventory, episodes, ticked, ratings, now) do
+  @doc """
+  The absolute numbers screen 04 labels its rows with, by `source_id` — `%{}`
+  unless the show is numbered absolutely (`Kati.Media.Numbering.effective/1`),
+  and `%{}` for any episode no absolute number can be given to, which then
+  keeps its number in the season.
+  """
+  @spec shown_absolute(TrackedTitle.t(), [CachedEpisode.t()]) :: %{String.t() => pos_integer()}
+  def shown_absolute(tracked, episodes) do
+    if Kati.Media.Numbering.effective(tracked) == :absolute,
+      do: Kati.Media.Numbering.absolute_numbers(episodes),
+      else: %{}
+  end
+
+  defp season_facts(number, inventory, episodes, ticked, ratings, now, absolute) do
     %{
       number: number,
       name: inventory && inventory.name,
       # The provider's count when it gave one, and how many are cached when it
       # did not. `denominator/1` is what turns a stored zero back into nil.
       total: CachedSeason.denominator(inventory) || length(episodes),
-      episodes: Enum.map(episodes, &episode_facts(&1, ticked, ratings, now))
+      episodes: Enum.map(episodes, &episode_facts(&1, ticked, ratings, now, absolute))
     }
   end
 
-  defp episode_facts(episode, ticked, ratings, now) do
+  defp episode_facts(episode, ticked, ratings, now, absolute) do
     air = Release.air(episode)
 
     %{
       number: episode.episode_number,
+      absolute: Map.get(absolute, episode.source_id),
       # Which season this episode belongs to, off the cached row rather than
       # off the strip's label — the label is `S2` and this is `2`, and a
       # provider's specials sit in season 0.
@@ -691,6 +707,7 @@ defmodule Kati.Screens.Series do
   defp episode_row(episode, zone, hide?) do
     %{
       n: episode.number,
+      shown: Map.get(episode, :absolute) || episode.number,
       title: episode_title(episode, hide? and not episode.watched),
       sub: episode_sub(episode, zone),
       watched: episode.watched,
@@ -1894,8 +1911,8 @@ defmodule Kati.Screens.Series do
       >
         <Column width={22}>
           <Text
-            text={Kati.Locale.number(ep.n)}
-            font_family={Kati.Locale.mono_face(Kati.Locale.number(ep.n))}
+            text={Kati.Locale.number(Map.get(ep, :shown, ep.n))}
+            font_family={Kati.Locale.mono_face(Kati.Locale.number(Map.get(ep, :shown, ep.n)))}
             text_size={12}
             text_color={Palette.tertiary()}
             max_lines={1}
