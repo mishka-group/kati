@@ -1276,6 +1276,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # that. Named, with a number, so a page that shrinks further still fails.
   @small_empty_boards %{
     "23" => 9,
+    # 149 over no title is the header's title, its close disc and one
+    # sentence — three strings. The position card, six reason chips, both
+    # cards, both buttons and the undo pill that padded it past the floor all
+    # write to a row, and a sheet named nothing has no row: drawn, they were a
+    # blank title over a Drop button that could only be refused.
+    "149" => 3,
     # 34 with no season is the subtitle, three order labels, the zero eyebrow
     # and the back pill's chrome — twelve strings. The nine episode rows and the
     # two switches that padded it past the floor act on rows it has not got.
@@ -1521,7 +1527,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # floor below subtracts this from the board's count, so it is a smaller
   # number rather than an absent check.
   #
-  #   * 144 and 149 draw a moment the live screen is not in. See the pairs in
+  #   * 144 draws a moment the live screen is not in. See the pairs in
   #     `device_values/0` for which literals those are.
   #
   #   * 190 is an annotation board, and its two long notes are prose with
@@ -1566,7 +1572,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     twenty-six strings in either script.
   @floor_allowance %{
     "144" => 5,
-    "149" => 3,
     "190" => 2,
     "166" => 1,
     "129" => 7,

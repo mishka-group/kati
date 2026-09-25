@@ -7,21 +7,18 @@ defmodule Kati.ScreenWhatFitsTest do
   four mood chips, a defer pill and an overflow disc, all pictures, over a
   fixture that could not have been filtered anyway.
 
-  Three of the four things the screen's own moduledoc listed as blocked
-  stopped being blocked when `Kati.Media.CachedEpisode` was built. What it
-  asserts here is the shape that follows:
+  What it asserts here is the shape the page has now, read off the shelf:
 
-    * **The list is the window.** Unwatched aired episodes that fit, longest
-      first, because the point of a window is to fill it.
-    * **The over-budget row is the nearest film that does NOT fit**, and there
-      is no row at all when everything the reader has fits. *Nothing else fits*
-      is a sentence about a particular film.
+    * **The list is what could be started now and finished in the window.**
+      Each show's NEXT episode — one row per show, the one after the bookmark —
+      when it has aired and its own runtime fits, and each film not finished
+      or dropped whose runtime fits. Longest first, because the point of a
+      window is to fill it.
+    * **The over-budget row is the nearest unwatched film that does NOT fit**,
+      and there is no row at all when everything the reader has fits.
     * **The mood chips are dropped**, not drawn dead. `Kati.Media.Watch.moods`
-      is a real column that none of its five writers sets, so it is `[]` on
-      every device and a chip over it narrows nothing; the board keeps all
-      four.
-    * **Everything is the board's when nothing is stored**, which is what the
-      gallery and every sweep render.
+      is a real column that nothing writes; the board keeps all four.
+    * **An empty shelf says so**, rather than *nothing fits that window*.
   """
 
   use Mob.ScreenCase, async: false
@@ -58,6 +55,10 @@ defmodule Kati.ScreenWhatFitsTest do
       refute WhatFits.tonight() == WhatFits.drawn_tonight()
     end
 
+    test "and it says the shelf is empty, not that nothing fits the window" do
+      assert WhatFits.tonight().fits_label == "Nothing on your shelf to measure yet"
+    end
+
     test "and its five buttons are pictures on the card screen 93 borrows" do
       card = inspect(WhatFits.window(WhatFits.drawn_tonight()), limit: :infinity)
 
@@ -77,34 +78,66 @@ defmodule Kati.ScreenWhatFitsTest do
   describe "a shelf with something on it" do
     setup :seed_shelf
 
-    test "lists the unwatched aired episodes that fit, longest first" do
+    test "lists each show's next episode and each unwatched film that fits, longest first" do
       t = WhatFits.tonight(45)
 
-      assert Enum.map(t.fits, & &1.run) == ["44m", "43m", "41m"]
-      assert t.fits_label == "3 episodes fit"
+      assert Enum.map(t.fits, &{&1.title, &1.run}) == [
+               {"The Long Hollow", "44m"},
+               {"Salt & Iron", "43m"},
+               {"Short Walk", "41m"},
+               {"Marram", "22m"}
+             ]
+
+      assert t.fits_label == "4 fit tonight"
       assert t.window == "45 min"
+    end
+
+    test "one row per show: the episode after the bookmark, not any unwatched one" do
+      titles = Enum.map(WhatFits.tonight(600).fits, & &1.title)
+
+      assert Enum.count(titles, &(&1 == "The Long Hollow")) == 1
+
+      refute Enum.any?(WhatFits.tonight(30).fits, &(&1.title == "The Long Hollow")),
+             "E5 is 22 minutes and unwatched, but E4 is next and does not fit"
     end
 
     test "and a shorter window drops what no longer fits" do
       t = WhatFits.tonight(30)
 
       assert Enum.map(t.fits, & &1.run) == ["22m"]
-      assert t.fits_label == "1 episode fits"
+      assert t.fits_label == "1 fits tonight"
+    end
+
+    test "a window nothing fits says so, over a shelf that is not empty" do
+      t = WhatFits.tonight(20)
+
+      assert t.fits == []
+      assert t.fits_label == "Nothing fits that window"
     end
 
     test "and never an episode that has not gone out" do
-      refute Enum.any?(WhatFits.tonight(600).fits, &(&1.title =~ "Unaired"))
+      refute Enum.any?(WhatFits.tonight(600).fits, &(&1.title == "Not Yet"))
     end
 
-    test "and never one already ticked" do
+    test "and never the bookmarked episode, which is already watched" do
       refute Enum.any?(WhatFits.tonight(600).fits, &(&1.run == "40m"))
     end
 
-    test "names the episode's place in the show" do
-      assert %{meta: "S2 · E4"} = Enum.find(WhatFits.tonight(45).fits, &(&1.run == "44m"))
+    test "and nothing from a dropped show, or a film already finished" do
+      titles = Enum.map(WhatFits.tonight(600).fits, & &1.title)
+
+      refute "Let Go" in titles
+      refute "Seen It" in titles
     end
 
-    test "the over-budget row is the nearest film that does not fit" do
+    test "names the episode's place in the show, and a film as a film" do
+      fits = WhatFits.tonight(45).fits
+
+      assert %{meta: "S2 · E4"} = Enum.find(fits, &(&1.title == "The Long Hollow"))
+      assert %{meta: "FILM"} = Enum.find(fits, &(&1.title == "Short Walk"))
+    end
+
+    test "the over-budget row is the nearest unwatched film that does not fit" do
       over = WhatFits.tonight(45).over
 
       assert over.title == "Quiet Harbour"
@@ -131,11 +164,6 @@ defmodule Kati.ScreenWhatFitsTest do
     end
 
     test "and the overflow disc goes with them, having nothing left to hold" do
-      # The moods were the one thing an overflow on this page could have held,
-      # and they have no VALUES either — `Kati.Media.Watch.moods` exists and
-      # nothing writes it — so a disc here would be a second promise of the
-      # same missing axis. The row stays: it reserves the back pill's
-      # space, which `Kati.Screens.Pushed` floats.
       glyph = Kati.Icons.glyph!("more_horiz")
 
       refute inspect(WhatFits.more_row(false), limit: :infinity) =~ glyph
@@ -147,7 +175,7 @@ defmodule Kati.ScreenWhatFitsTest do
     setup :seed_shelf
 
     test "off, which is every device's default, and the whole shelf is here" do
-      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"]
+      assert length(WhatFits.tonight(45).fits) == 4
       assert WhatFits.tonight(45).over.title == "Quiet Harbour"
     end
 
@@ -158,12 +186,12 @@ defmodule Kati.ScreenWhatFitsTest do
 
       t = WhatFits.tonight(45)
 
-      assert t.fits == [], "the series is rent-only and rentals are off, so no episode fits"
+      refute Enum.any?(t.fits, &(&1.title == "The Long Hollow")),
+             "the series is rent-only and rentals are off, so its episode does not fit"
 
-      # Not `nil`. `Quiet Harbour` at 1h 46m was the nearest film over the
-      # window and is hidden; `The Long One` at 3h has no provider block at
-      # all, which is `:unknown` and stays. So the row moves rather than going
-      # — which is the whole of `hide?/3`'s third answer, seen from a screen.
+      # `Quiet Harbour` was the nearest film over the window and is hidden;
+      # `The Long One` has no provider block at all, which is `:unknown` and
+      # stays. So the row moves rather than going.
       assert t.over.title == "The Long One"
     end
 
@@ -172,13 +200,13 @@ defmodule Kati.ScreenWhatFitsTest do
       offer!("hollow", %{"flatrate" => [@prefix <> "Aria"]})
       hide!()
 
-      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"]
+      assert Enum.any?(WhatFits.tonight(45).fits, &(&1.title == "The Long Hollow"))
     end
 
     test "on, and a title nobody has looked up stays — unknown is not unavailable" do
       hide!()
 
-      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"],
+      assert length(WhatFits.tonight(45).fits) == 4,
              "hiding a title with no provider data would empty the page for a reason " <>
                "the reader has no way to discover"
     end
@@ -187,7 +215,7 @@ defmodule Kati.ScreenWhatFitsTest do
       offer!("hollow", %{"rent" => ["Apple TV"]})
       rules!(%{rentals: true, purchases: false, hide_unavailable: true})
 
-      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"]
+      assert Enum.any?(WhatFits.tonight(45).fits, &(&1.title == "The Long Hollow"))
     end
   end
 
@@ -202,7 +230,8 @@ defmodule Kati.ScreenWhatFitsTest do
       assert shorter.assigns.window == 30
       assert shorter.assigns.tonight.window == "30 min"
       assert Enum.map(shorter.assigns.tonight.fits, & &1.run) == ["22m"]
-      assert shorter.assigns.tonight.over.meta =~ "76 MIN OVER"
+      assert shorter.assigns.tonight.over.title == "Short Walk"
+      assert shorter.assigns.tonight.over.meta =~ "11 MIN OVER"
     end
 
     test "and the one already chosen re-reads the same page rather than going dead" do
@@ -237,6 +266,16 @@ defmodule Kati.ScreenWhatFitsTest do
       assert id == row.tracked_id
     end
 
+    test "and a film row opens its film" do
+      socket = mount_screen(WhatFits).socket
+      index = Enum.find_index(socket.assigns.tonight.fits, &(&1.title == "Short Walk"))
+
+      {:noreply, pushed} = WhatFits.handle_tap(String.to_atom("open_#{index}"), socket)
+
+      assert {:push, Kati.Screens.Film, %{id: _id, back: "What fits?"}} =
+               Map.get(pushed.__mob__, :nav_action)
+    end
+
     test "and the over-budget row opens its film" do
       socket = mount_screen(WhatFits).socket
 
@@ -250,33 +289,50 @@ defmodule Kati.ScreenWhatFitsTest do
       assert Enum.all?(WhatFits.drawn_tonight().fits, &(WhatFits.row_tap(&1, 0) == nil))
       assert WhatFits.row_tap(WhatFits.drawn_tonight().over, :over) == nil
 
-      # And a tag naming a row this page does not have changes nothing.
       socket = mount_screen(WhatFits).socket
       {:noreply, after_tap} = WhatFits.handle_tap(:open_9, socket)
       assert Map.get(after_tap.__mob__, :nav_action) == nil
     end
   end
 
+  # Five shows and four films, each there for one rule:
+  #
+  #   * The Long Hollow — bookmarked at S2E3 (40m, watched); next is E4 at 44m,
+  #     and E5 at 22m is unwatched but not next.
+  #   * Salt & Iron — bookmarked at S1E1; next is S1E2 at 43m.
+  #   * Marram — no bookmark; next is S1E1 at 22m.
+  #   * Not Yet — next episode airs in five days.
+  #   * Let Go — dropped; its next episode would fit.
+  #   * Short Walk (41m, not started) fits 45; Quiet Harbour (106m) and The
+  #     Long One (180m) do not; Seen It (30m) is finished.
   defp seed_shelf(_context) do
-    series = track!("hollow", "The Long Hollow", :tv)
+    hollow = track!("hollow", "The Long Hollow", :tv, %{s: 2, e: 3})
+    ticked = episode!(hollow, %{s: 2, n: 3, runtime: 40, days: -12})
+    tick!(hollow, ticked)
+    episode!(hollow, %{s: 2, n: 4, runtime: 44, days: -3})
+    episode!(hollow, %{s: 2, n: 5, runtime: 22, days: -2})
 
-    episode!(series, %{n: 2, runtime: 41, days: -9})
-    episode!(series, %{n: 3, runtime: 43, days: -6})
-    episode!(series, %{n: 4, runtime: 44, days: -3})
-    episode!(series, %{n: 5, runtime: 22, days: -2})
-    episode!(series, %{n: 6, runtime: 90, days: -1, title: "Unaired"})
-    ticked = episode!(series, %{n: 7, runtime: 40, days: -12})
-    episode!(series, %{n: 8, runtime: 55, days: 5, title: "Unaired"})
+    salt = track!("salt", "Salt & Iron", :tv, %{s: 1, e: 1})
+    episode!(salt, %{s: 1, n: 2, runtime: 43, days: -6})
 
-    tick!(series, ticked)
+    marram = track!("marram", "Marram", :tv)
+    episode!(marram, %{s: 1, n: 1, runtime: 22, days: -9})
 
+    later = track!("later", "Not Yet", :tv, %{s: 1, e: 1})
+    episode!(later, %{s: 1, n: 2, runtime: 30, days: 5})
+
+    dropped = track!("dropped", "Let Go", :tv, %{s: 1, e: 1}, :dropped)
+    episode!(dropped, %{s: 1, n: 2, runtime: 20, days: -4})
+
+    film!("short", "Short Walk", 41, :not_started)
     film!("harbour", "Quiet Harbour", 106)
     film!("longer", "The Long One", 180)
+    film!("seen", "Seen It", 30, :finished)
 
     :ok
   end
 
-  defp track!(suffix, title, kind, runtime \\ nil) do
+  defp track!(suffix, title, kind, bookmark \\ nil, status \\ :watching, runtime \\ nil) do
     Ash.create!(CachedTitle, %{
       source: :tmdb,
       source_id: @prefix <> suffix,
@@ -290,11 +346,14 @@ defmodule Kati.ScreenWhatFitsTest do
       source: :tmdb,
       source_id: @prefix <> suffix,
       kind: kind,
-      status: :watching
+      status: status,
+      progress_season: bookmark && bookmark.s,
+      progress_episode: bookmark && bookmark.e
     })
   end
 
-  defp film!(suffix, title, runtime), do: track!(suffix, title, :movie, runtime)
+  defp film!(suffix, title, runtime, status \\ :watching),
+    do: track!(suffix, title, :movie, nil, status, runtime)
 
   defp episode!(tracked, attrs) do
     source_id = @prefix <> "ep-#{System.unique_integer([:positive])}"
@@ -303,9 +362,9 @@ defmodule Kati.ScreenWhatFitsTest do
       source: :tmdb,
       source_id: source_id,
       title_source_id: tracked.source_id,
-      season_number: 2,
+      season_number: attrs.s,
       episode_number: attrs.n,
-      title: attrs[:title] || "Episode #{attrs.n}",
+      title: "Episode #{attrs.n}",
       runtime_minutes: attrs.runtime,
       air_at: DateTime.add(Kati.Time.now(), attrs.days * @day, :second),
       date_confidence: :exact,

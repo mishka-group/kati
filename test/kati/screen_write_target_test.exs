@@ -709,7 +709,14 @@ defmodule Kati.ScreenWriteTargetTest do
   # and with them the three taps they carried — ListenBrainz's and TheTVDB's
   # connect rows and Hardcover's retired row — in both locales. The measured
   # drop is six. `Kati.DeviceRoundN34N42Test` asserts none of them is drawn.
-  @drawn_taps 1843
+  #
+  # 1827 when screen 149 over no title stopped drawing the sheet at all. A
+  # bare mount is `Kati.Screens.DropSheet.empty_sheet/0`, and its six reason
+  # chips, *Drop* and *Still on it* all wrote to a row it has not got — the
+  # Drop could only be refused. `body/2` draws one sentence in their place.
+  # The measured drop is sixteen, eight a side in both locales;
+  # `Kati.DropWriteTest` walks every one of them over a real title.
+  @drawn_taps 1827
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

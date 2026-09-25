@@ -1189,10 +1189,17 @@ defmodule Kati.SheetRowIdentityTest do
       named = Mob.Socket.assign(socket, :film, Map.put(drawn, :tracked_id, "t1"))
       {:noreply, moved} = Kati.Screens.Film.handle_info({:tap, :log_watch}, named)
 
+      # `new: true` because the ⋯ row logs ANOTHER viewing: a blank sheet about
+      # this film, where the rating card and the note pencil reopen the last.
       assert moved.__mob__.nav_action ==
-               {:push, Kati.Screens.Rating, %{tracked_title_id: "t1"}},
+               {:push, Kati.Screens.Rating, %{tracked_title_id: "t1", new: true}},
              "the sheet opened on the newest log in the whole library, whatever film the " <>
                "menu was opened over"
+
+      {:noreply, rated} = Kati.Screens.Film.handle_info({:tap, :rate}, named)
+
+      assert rated.__mob__.nav_action ==
+               {:push, Kati.Screens.Rating, %{tracked_title_id: "t1"}}
     end
 
     test "screen 04's Episode order names the series and the lit pill" do

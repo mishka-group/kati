@@ -1,6 +1,11 @@
 defmodule Kati.Rating.Sample do
   @moduledoc """
-  Stand-in data for the log sheet, until watches are a domain.
+  Board 33's own values, for the design-literal test and nothing else.
+
+  `Kati.Screens.Rating.drawn_watch/0` is the one caller: the test installs it
+  over the sheet to compare the frame against its capture. No reader path
+  draws it — a real sheet reads `Kati.Media.Watch`, and a sheet with no title
+  is `Kati.Screens.Rating.empty_watch/0`.
 
   Screen 33 is one watch being written down, so this is one map rather than a
   list: the title it is about, the rating, the review as typed, and the three
@@ -38,23 +43,4 @@ defmodule Kati.Rating.Sample do
       tags: ["slow burn", "coastal", "rewatchable"]
     }
   end
-
-  @doc """
-  The two rating scales, the five-star one selected.
-
-  The design labels them `5★` and `10pt`. The star is a glyph rather than a
-  character here — see `Kati.Screens.Rating`'s moduledoc — so the first option
-  carries its numeral and a `star:` flag instead of a composed string.
-  """
-  @spec scales() :: [map()]
-  def scales do
-    [
-      %{label: "5", star: true, on: true},
-      %{label: "10pt", star: false, on: false}
-    ]
-  end
-
-  @doc "Absolute path to the poster, or `nil` when that seed was never drawn."
-  @spec poster(String.t()) :: String.t() | nil
-  def poster(seed), do: Kati.Design.Images.poster(seed)
 end

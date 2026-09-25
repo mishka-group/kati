@@ -26,39 +26,26 @@ defmodule Kati.Screens.Film do
   a value pair, not a foreign key — so an evicted poster cannot take the user's
   memory of the film down with it.
 
-  **Which film.** Nothing hands this screen an id: `Kati.Screens.Library` taps a
-  poster and pushes `Kati.Screens.Film` with no title attached, exactly as
-  `Kati.Screens.MealsToday` pushes `Kati.Screens.Meal`. So the referent is the
-  one the shelf itself puts first — the most recently touched film — and it is
-  `:shelf` that decides that, not an ordering written out here.
+  **Which film.** The push names it: `Kati.Screens.Library`, What fits, Up
+  next, Activity and a list all push `%{id: tracked_id}`. A bare push — the
+  gallery's door — draws the top of the film shelf, which `:shelf` decides.
 
-  With nothing tracked there is no such film and `Kati.Library.Sample` is drawn
-  instead, the values `test/design/screens/08.html` was captured from.
-  FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
-  module stays exactly where it is; it is the fallback and the fixture, not a
-  stage this screen has passed through.
+  With nothing tracked the page is `empty_film/0`, the frame with nothing in
+  any slot and no control that acts on a title. An id the shelf no longer holds
+  is `gone/2`'s page. `Kati.Library.Sample.film/0` is board 08's own values and
+  is reached only through `drawn_film/0`, which the design-literal test installs
+  to compare the frame against its capture; no reader path draws it.
 
-  ## What no resource can express, and is therefore not drawn
+  ## Where to watch, and the meta line
 
-  Two things on this drawing have no store anywhere in the app, and neither is
-  invented for a real film. Both are drawn in full on the fallback, because
-  there they are the drawing rather than a claim about a title.
+  **The `Where to watch` card** is `Kati.Media.CachedTitle.providers` through
+  `Kati.Screens.SeriesMeta.where_rows/1`, the same band screen 14 draws. TMDB
+  says where and never how much, so a row carries no price. A film nobody has
+  looked up has no rows and the band is not drawn — or, while the reader has
+  set up no services, board 96's prompt stands in its place.
 
-    * **The whole `Where to watch` card.** `Lumen+ · included` and
-      `Kino store · £9.99` are availability and pricing, and `Kati.Media` holds
-      neither: `Kati.Media.Watch.service` is where the *user* watched something,
-      which is a different fact, is per-watch, and carries no price.
-      `Kati.Media.CachedTitle` has a poster, a runtime and a release date and no
-      offers. A frozen `£9.99` beside a real film is not a placeholder, it is a
-      price quoted for a film nobody priced — so `where/1` gets an empty list
-      and `where_section/1` takes the eyebrow with it. What this needs is an
-      offers resource per `{title, service, region}`, which screen 35's *Region
-      & availability* group is the settings half of.
-    * **`2025` in the meta line.** `Kati.Media.CachedTitle.next_release_at` is
-      the NEXT release; a first-release year would be a new column, and reading
-      the next one as the first would print next Tuesday's date as a film's
-      year. The line degrades to `1H 52M · DRAMA`, which is `runtime_minutes`
-      and `genres` and nothing else.
+  **The meta line** is `2025 · 1H 52M · DRAMA` out of `first_release_year`,
+  `runtime_minutes` and `genres`, each left out when the provider gave none.
 
   Three smaller ones are derived rather than dropped, and each states what it is
   derived from: `seen` counts watches against the user's own `rewatch_number`
@@ -164,7 +151,7 @@ defmodule Kati.Screens.Film do
   # `use Mob.Screen` and not `Kati.Screens.Root`, so this screen's own `mount/3`
   # takes the push's params directly where a pushed screen reads them off
   # `assigns.params`. `Map.get/2` and not a pattern match on the key, so a bare
-  # push — the gallery's, every sweep's — still takes the drawing's branch.
+  # push — the gallery's, every sweep's — still takes the top-of-shelf branch.
   #
   # `Kati.Screens.Resume.watch/0`, which `Kati.Screens.Pushed`'s macro calls
   # and a hand-rolled screen has to call itself: it is what tells the page
@@ -198,12 +185,12 @@ defmodule Kati.Screens.Film do
   end
 
   @doc """
-  The film this screen draws: the user's, or the drawing's.
+  The film this screen draws: the user's, or `empty_film/0`.
 
   The gate is the whole screen rather than each card, for the reason
   `Kati.Screens.Series` gives for not moving half of itself: a page whose title
   is a real film and whose note is somebody else's evening reads as entirely
-  real. Either every value is this user's or every value is the drawing's.
+  real. Either every value is this user's or there are none.
 
   `id` names the shelf row the caller meant. Without one — the gallery's door,
   and every arrival before there was anything to name — it is the top of the
@@ -250,6 +237,7 @@ defmodule Kati.Screens.Film do
       title: "",
       seed: nil,
       meta: "",
+      year: nil,
       watched: "",
       stars: 0,
       seen: "",
@@ -278,11 +266,11 @@ defmodule Kati.Screens.Film do
   @doc """
   The user's own film, shaped for the markup, or `nil` when there is not one.
 
-  `nil` is the ordinary answer on a fresh install and the one `film/0` reads as
-  "draw the drawing". A database that cannot be read at all answers `nil` too:
+  `nil` is the ordinary answer on a fresh install and the one `film/1` reads as
+  `empty_film/0`. A database that cannot be read at all answers `nil` too:
   `Ash.read!` on a device mid-migration raises, and a screen that dies is
-  strictly worse than a screen showing the values it was drawn from — the same
-  degradation `Kati.Screens.Library.shelf/0` and `Kati.Calendars.Today` make.
+  strictly worse than an empty one — the same degradation
+  `Kati.Screens.Library.shelf/0` and `Kati.Calendars.Today` make.
 
   An id that names no shelf row answers `nil` as well, rather than the top of
   the shelf. That is `Kati.Screens.BookDetail.shelved_book/1`'s rule and its
@@ -374,7 +362,8 @@ defmodule Kati.Screens.Film do
       `track_off` rectangle `hero_art/1` already leaves behind.
     * `watched`, `note` and `note_date` are `nil` when nothing was logged, and
       each draws nothing at all rather than an empty pill or a blank cream card.
-    * `where` is `[]`, always. See the moduledoc: there is no offers resource.
+    * `where` is the cache row's providers, `[]` for a film nobody has looked
+      up — see the moduledoc.
   """
   @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, [Watch.t()]) :: map()
   def shaped(tracked, cached, watches) do
@@ -394,6 +383,7 @@ defmodule Kati.Screens.Film do
       original: Kati.Locale.original_title(cached),
       seed: seed_of(tracked, cached),
       meta: meta_line(cached),
+      year: cached && cached.first_release_year,
       watched: watched_label(tracked, dated, zone),
       # The rating comes off the newest WATCH, not off the tracked row.
       # `Kati.Media.TrackedTitle.rating` has no writer anywhere in the app —
@@ -444,11 +434,11 @@ defmodule Kati.Screens.Film do
 
   defp seed_of(_tracked, _cached), do: nil
 
-  # `2025 · 1H 52M · DRAMA` minus the year, which nothing stores. Both halves
-  # are nullable — a provider can decline either — and an absent half is left
-  # out rather than spelled as a dash, so the line is `DRAMA` alone or empty.
+  # `2025 · 1H 52M · DRAMA`: `first_release_year`, `runtime_minutes` and
+  # `genres`. Every part is nullable — a provider can decline any — and an
+  # absent part is left out rather than spelled as a dash.
   defp meta_line(cached) do
-    [runtime_label(cached), genre_label(cached)]
+    [year_label(cached), runtime_label(cached), genre_label(cached)]
     |> Enum.reject(&is_nil/1)
     |> Enum.join(" · ")
   end
@@ -479,6 +469,9 @@ defmodule Kati.Screens.Film do
   end
 
   defp runtime_label(_cached), do: nil
+
+  defp year_label(%CachedTitle{first_release_year: y}) when is_integer(y), do: Kati.Locale.year(y)
+  defp year_label(_cached), do: nil
 
   # The genres are the provider's own words and no msgid reaches them, so this
   # raises their case and nothing else — through `Kati.UI.eyebrow_label/1` for
@@ -1010,7 +1003,7 @@ defmodule Kati.Screens.Film do
       trigger,
       menu?,
       [
-        Kati.UI.Menu.item("star", gettext("Log a watch"), :log_watch),
+        Kati.Screens.Film.log_item(f),
         # The one control that can set `Kati.Media.TrackedTitle.private`, and
         # therefore the one thing that makes screen 98's *Hide titles I marked
         # private* a switch about anything. A decision
@@ -1036,12 +1029,33 @@ defmodule Kati.Screens.Film do
   end
 
   @doc """
+  *Log a watch* — or *Log rewatch* once the film has been seen — or nothing
+  at all when there is no film to log.
+
+  The label is `action_label/3` over the page's own `seen_count`, and the row
+  opens screen 33 BLANK (`Kati.Screens.Rating.params_for/2` with `:new`), so
+  Save adds a viewing rather than editing the last one. The rating card and the
+  note pencil are the doors that edit.
+  """
+  @spec log_item(map()) :: map() | []
+  def log_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item(
+        "star",
+        Kati.Screens.Film.action_label("", :log_watch, Map.get(f, :seen_count, 0)),
+        :log_watch
+      )
+    else
+      []
+    end
+  end
+
+  @doc """
   *Drop this film*, or nothing at all when there is no film to drop.
 
   A film can be dropped, which gives the row, and the app's own rule takes it away
-  again over the drawing: screen 08 renders a fixture when nothing is tracked,
-  and a Drop row there would open the sheet on whatever the newest gone-cold
-  title happens to be — the exact swap `Kati.Screens.DropSheet.sheet/1`'s
+  again over an empty page: with nothing tracked there is no id to name, and a
+  Drop row there would open the sheet on nothing — the swap `Kati.Screens.DropSheet.sheet/1`'s
   argument exists to prevent. Dropped rather than drawn dead, which is what
   `rating_card/1` already does with its own tap on the same page.
   """
@@ -1251,12 +1265,11 @@ defmodule Kati.Screens.Film do
   @doc """
   The `Where to watch` eyebrow and its card, or neither.
 
-  See the moduledoc: nothing in `Kati.Media` can say a film is on Lumen+ for
-  nothing and in the Kino store for £9.99, so a real film has no offers and the
-  section is not drawn. An eyebrow over an empty card is the shape
+  The rows are `Kati.Media.CachedTitle.providers` (see the moduledoc). A film
+  with none has no card, because an eyebrow over an empty card is the shape
   `Kati.Screens.Activity` already rejects — *"a headed card with no rows inside
-  it is a worse answer than no card"* — and here it would be worse still,
-  because the drawing's two rows quote a price.
+  it is a worse answer than no card"* — unless the reader has set up no
+  services, when board 96's prompt says what would fill it.
 
   A list, so the flattened result is the two nodes `render/1` used to name
   itself and the drawn film is unchanged to the node.
@@ -1553,10 +1566,21 @@ defmodule Kati.Screens.Film do
   # The sheet is about a watch OF this film, so it is told which. Bare, "Log a
   # watch" on one film opened whatever the newest logged watch in the whole
   # library happened to be.
-  # Three doors onto screen 33 — the action pill, the rating card and the note
-  # pencil — and one behaviour. Three tags because two nodes may not share an
-  # `accessibility_id`; one clause because it is one action.
-  def handle_info({:tap, tag}, socket) when tag in [:log_watch, :rate, :edit_note] do
+  # Three doors onto screen 33 and two behaviours. The ⋯ row logs ANOTHER
+  # viewing, so it opens the sheet blank and Save creates a watch; the rating
+  # card and the note pencil are about the viewing already logged, so they
+  # reopen it and Save edits it. See `log_item/1`.
+  def handle_info({:tap, :log_watch}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(
+       Kati.Screens.Rating,
+       Kati.Screens.Rating.params_for(socket.assigns.film, :new)
+     )}
+  end
+
+  def handle_info({:tap, tag}, socket) when tag in [:rate, :edit_note] do
     {:noreply,
      socket
      |> Mob.Socket.assign(:menu?, false)
@@ -1890,7 +1914,7 @@ defmodule Kati.Screens.Film do
   @doc """
   The row, or nothing at all when there is no title behind it.
 
-  Dropped rather than drawn dead over the drawing, which is `drop_item/1`'s
+  Dropped rather than drawn dead over an empty page, which is `drop_item/1`'s
   rule on this page and the app's everywhere.
   """
   @spec anime_item(map()) :: map() | []
@@ -1993,7 +2017,7 @@ defmodule Kati.Screens.Film do
   title's watches, ratings and notes with it (N11) and that is not a thing one
   mis-tap should do.
 
-  Shared by screens 08 and 04, and dropped over the drawing for `drop_item/1`'s
+  Shared by screens 08 and 04, and dropped over an empty page for `drop_item/1`'s
   reason: there is no row behind it.
   """
   @spec remove_item(map()) :: map() | []
@@ -2053,6 +2077,10 @@ defmodule Kati.Screens.Film do
   @doc """
   What gets shared: the title, the year, and where it can be watched.
 
+  The year is the film's stored `first_release_year` when the page carries it,
+  in Latin digits whatever the reader's script, because the message goes to
+  somebody else; a page without one reads a four-digit year off the meta line.
+
   The last part is the one worth sending. `Kati.Media.Availability` knows it
   now, and *Dune (2021) — On Netflix* is a message somebody can act on where
   *Dune* is a message they have to look up.
@@ -2066,12 +2094,15 @@ defmodule Kati.Screens.Film do
   @spec share_line(map()) :: String.t()
   def share_line(film) do
     [
-      film.title <> year_suffix(Map.get(film, :meta)),
+      film.title <> year_suffix(Map.get(film, :year), Map.get(film, :meta)),
       Map.get(film, :where_line)
     ]
     |> Enum.reject(&(&1 in [nil, ""]))
     |> Enum.join(" — ")
   end
+
+  defp year_suffix(year, _meta) when is_integer(year), do: " (" <> Integer.to_string(year) <> ")"
+  defp year_suffix(_none, meta), do: year_suffix(meta)
 
   defp year_suffix(meta) when is_binary(meta) do
     case Regex.run(~r/\b(\d{4})\b/, meta) do

@@ -15,6 +15,8 @@ defmodule Kati.DropWriteTest do
 
   use Mob.ScreenCase, async: false
 
+  doctest Kati.Screens.DropSheet, only: [at: 1, heading: 1, step_forward: 1, params_for: 1]
+
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Screens.DropSheet
@@ -103,7 +105,7 @@ defmodule Kati.DropWriteTest do
 
   describe "the reason, which used to be thrown away" do
     setup do
-      %{tracked: tracked!(:paused)}
+      %{tracked: tracked!(:paused, %{progress_season: 1, progress_episode: 3})}
     end
 
     test "is written with the position it was picked at", %{tracked: tracked} do
@@ -123,7 +125,7 @@ defmodule Kati.DropWriteTest do
       assert event.tracked_title_id == tracked.id
       assert event.from_status == :paused
       assert event.season_number == 1
-      assert event.episode_number == 1
+      assert event.episode_number == 3
     end
 
     test "and a drop with no reason still records the drop", %{tracked: tracked} do
@@ -222,6 +224,69 @@ defmodule Kati.DropWriteTest do
     end
   end
 
+  describe "the position is the row's own bookmark" do
+    test "the sheet opens at the furthest episode ticked, and Drop writes it back" do
+      tracked = tracked!(:watching, %{progress_season: 2, progress_episode: 5})
+      socket = sheet_for(tracked)
+
+      assert {socket.assigns.sheet.season, socket.assigns.sheet.episode} == {2, 5}
+
+      drawn = inspect(DropSheet.render(socket.assigns), limit: :infinity)
+      assert drawn =~ "S2 E5"
+      assert drawn =~ "Drop at S2 E5"
+
+      {:noreply, back} = DropSheet.handle_info({:tap, :step_back}, socket)
+      {:noreply, _dropped} = DropSheet.handle_info({:tap, :drop}, back)
+
+      stored = Ash.get!(TrackedTitle, tracked.id)
+      assert {stored.status, stored.progress_season, stored.progress_episode} == {:dropped, 2, 4}
+    end
+
+    test "a show with nothing ticked says Not started, not an invented S1 E1" do
+      socket = sheet_for(tracked!(:watching))
+
+      assert socket.assigns.sheet.season == nil
+      drawn = inspect(DropSheet.render(socket.assigns), limit: :infinity)
+      assert drawn =~ "Not started"
+      refute drawn =~ "S1 E1"
+      assert drawn =~ "\"Drop\""
+
+      {:noreply, forward} = DropSheet.handle_info({:tap, :step_forward}, socket)
+      assert {forward.assigns.sheet.season, forward.assigns.sheet.episode} == {1, 1}
+    end
+
+    test "Undo puts back the status and the bookmark the row had" do
+      tracked = tracked!(:paused, %{progress_season: 1, progress_episode: 6})
+      socket = sheet_for(tracked)
+
+      {:noreply, moved} = DropSheet.handle_info({:tap, :step_back}, socket)
+      {:noreply, dropped} = DropSheet.handle_info({:tap, :drop}, moved)
+      assert Ash.get!(TrackedTitle, tracked.id).progress_episode == 5
+
+      {:noreply, undone} = DropSheet.handle_info({:tap, :undo}, dropped)
+      refute undone.assigns.dropped?
+
+      stored = Ash.get!(TrackedTitle, tracked.id)
+      assert {stored.status, stored.progress_season, stored.progress_episode} == {:paused, 1, 6}
+    end
+  end
+
+  describe "Still on it" do
+    test "leaves a show being watched normally exactly as it was" do
+      tracked = tracked!(:watching)
+      before = Ash.get!(TrackedTitle, tracked.id)
+
+      {:noreply, after_tap} = DropSheet.handle_info({:tap, :keep}, sheet_for(tracked))
+
+      assert after_tap.__mob__.nav_action == {:pop}
+      stored = Ash.get!(TrackedTitle, tracked.id)
+      assert stored.status == :watching
+
+      assert stored.last_touched_at == before.last_touched_at,
+             "the card says it changes nothing at all, and the write reordered the shelf"
+    end
+  end
+
   describe "the empty sheet" do
     test "has no row to write against, and refuses rather than claiming a drop" do
       # This test used to assert the opposite, and it was pinning a live defect:
@@ -247,6 +312,17 @@ defmodule Kati.DropWriteTest do
 
       refute after_tap.assigns.dropped?,
              "the sheet turned to its Dropped face over a title it never wrote"
+    end
+
+    test "draws one sentence and no control that writes" do
+      {:ok, socket} = DropSheet.mount(%{}, %{}, Mob.Socket.new(DropSheet))
+      drawn = inspect(DropSheet.render(socket.assigns), limit: :infinity)
+
+      assert drawn =~ "There is no title here to drop."
+
+      for tag <- [":drop", ":keep", ":step_back", ":step_forward", ":reason_too_slow"] do
+        refute drawn =~ tag <> "}", "#{tag} is drawn over a sheet with no title"
+      end
     end
   end
 
@@ -348,7 +424,7 @@ defmodule Kati.DropWriteTest do
     })
   end
 
-  defp tracked!(status) do
+  defp tracked!(status, attrs \\ %{}) do
     source_id = @prefix <> "one"
 
     Ash.create!(CachedTitle, %{
@@ -359,11 +435,9 @@ defmodule Kati.DropWriteTest do
       fetched_at: Kati.Time.now()
     })
 
-    Ash.create!(TrackedTitle, %{
-      source: :tmdb,
-      source_id: source_id,
-      kind: :tv,
-      status: status
-    })
+    Ash.create!(
+      TrackedTitle,
+      Map.merge(%{source: :tmdb, source_id: source_id, kind: :tv, status: status}, attrs)
+    )
   end
 end

@@ -265,6 +265,13 @@ defmodule Kati.ScreenDesignLiteralTest do
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
     {"49", "auto_mode"},
+    # Board 33's bold, italic and link glyphs under the review. The review is
+    # one plain string and nothing formats it, so the three were pictures of
+    # buttons with no tap behind them; `Kati.Screens.Rating.review_card/1`
+    # carries the argument.
+    {"33", "format_bold"},
+    {"33", "format_italic"},
+    {"33", "link"},
     # Board 41's specimen card's Resume button and the Increase contrast row —
     # see `retired_lines/0`'s board-41 entry (A5).
     {"41", "play_arrow"},
