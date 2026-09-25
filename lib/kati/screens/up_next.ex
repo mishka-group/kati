@@ -580,7 +580,7 @@ defmodule Kati.Screens.UpNext do
     %{
       title: title_of(c),
       seed: seed_of(c),
-      meta: join(episode(row) ++ hero_tail(row, c)),
+      meta: hero_meta(row, c),
       progress: fraction(row, c),
       # The row a tap opens. Carried on the shape rather than looked up again
       # in the handler, for `Kati.Screens.Series`' reason: the title the reader
@@ -591,6 +591,31 @@ defmodule Kati.Screens.UpNext do
       kind: row.kind
     }
   end
+
+  # A title with no bookmark and no runtime — anything added by hand — left the
+  # line empty, and the home-screen widget, which copies this hero, drew a blank
+  # second line under the title (W6, found on the owner's A55 with *Marram*).
+  # What it is and when it came out are both still true of it.
+  defp hero_meta(row, c) do
+    case join(episode(row) ++ hero_tail(row, c)) do
+      "" -> join(Enum.map(identity(row, c), &Kati.UI.eyebrow_label/1))
+      meta -> meta
+    end
+  end
+
+  defp identity(row, c) do
+    year =
+      case c do
+        %CachedTitle{first_release_year: y} when is_integer(y) -> [Kati.Locale.year(y)]
+        _unknown -> []
+      end
+
+    [kind_word(row.kind) | year]
+  end
+
+  defp kind_word(:movie), do: gettext("Film")
+  defp kind_word(:anime), do: gettext("Anime")
+  defp kind_word(_series), do: gettext("Series")
 
   defp ready_data(row, cache) do
     c = cached(row, cache)

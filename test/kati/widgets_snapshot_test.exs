@@ -70,4 +70,45 @@ defmodule Kati.Widgets.SnapshotTest do
     body = File.read!(Snapshot.path(dir: dir))
     assert %{"hero" => %{"title" => "Ashfall"}} = JSON.decode!(body)
   end
+
+  describe "a title with no bookmark and no runtime" do
+    # W6. The A55 wrote `{"meta":"","title":"Marram"}` — a hand-added series
+    # with nothing to say on the second line, so the widget drew a blank one.
+
+    defp hand_added!(title, kind, year) do
+      Ash.create!(CachedTitle, %{
+        source: :manual,
+        source_id: title,
+        kind: kind,
+        title: title,
+        first_release_year: year,
+        fetched_at: Kati.Time.now()
+      })
+
+      Ash.create!(TrackedTitle, %{
+        source: :manual,
+        source_id: title,
+        kind: kind,
+        status: :watching
+      })
+    end
+
+    test "says what it is, rather than nothing", %{tmp_dir: dir} do
+      hand_added!("Marram", :tv, nil)
+
+      :ok = Snapshot.refresh(dir: dir)
+
+      assert %{"hero" => %{"title" => "Marram", "meta" => "SERIES"}} =
+               JSON.decode!(File.read!(Snapshot.path(dir: dir)))
+    end
+
+    test "and when it came out, when that is known", %{tmp_dir: dir} do
+      hand_added!("Estuary", :movie, 2024)
+
+      :ok = Snapshot.refresh(dir: dir)
+
+      assert %{"hero" => %{"meta" => "FILM · 2024"}} =
+               JSON.decode!(File.read!(Snapshot.path(dir: dir)))
+    end
+  end
 end
