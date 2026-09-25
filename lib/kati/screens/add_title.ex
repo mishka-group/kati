@@ -161,7 +161,7 @@ defmodule Kati.Screens.AddTitle do
 
   def render(assigns) do
     filter = assigns.filter
-    shown = visible(assigns.results, filter)
+    shown = assigns.results |> Kati.Screens.AddTitle.positioned() |> visible(filter)
     # Board 308's first band draws no count before a keystroke: `0 results` over
     # a sheet nobody has asked anything of is a report on a search that has not
     # happened. `Kati.Search.long_enough?/1` is the same seam the search itself
@@ -416,11 +416,8 @@ defmodule Kati.Screens.AddTitle do
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
 
-      # The toggle runs over the FULL list, not the filtered one: the row the
-      # user tapped is identified by its title, so which chip was on when they
-      # tapped it cannot matter.
-      "add_" <> title ->
-        {:noreply, Kati.Screens.AddTitle.add(socket, title)}
+      "add_" <> position ->
+        {:noreply, Kati.Screens.AddTitle.add_at(socket, position)}
 
       _ ->
         {:noreply, socket}
@@ -736,6 +733,39 @@ defmodule Kati.Screens.AddTitle do
   end
 
   @doc """
+  The row a tap names by its position, toggled.
+
+  The tag is `add_<position>`, not `add_<source_id>`: an atom is minted per tag
+  and the BEAM never collects one, so keying on TMDB's id left an atom behind
+  for every distinct title ever searched. A position is bounded by one page of
+  results. It is the position in the FULL list — `render/1` stamps it through
+  `positioned/1` before the chips filter — so which chip was on when the reader
+  tapped cannot change which row it means.
+  """
+  @spec add_at(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def add_at(socket, position) do
+    with {index, ""} when index >= 0 <- Integer.parse(position),
+         %{} = row <- Enum.at(socket.assigns.results, index) do
+      Kati.Screens.AddTitle.add(socket, Kati.Screens.AddTitle.row_key(row))
+    else
+      _unknown -> socket
+    end
+  end
+
+  @doc """
+  Each row stamped with its place in the full list, which is what its tag names.
+
+      iex> Kati.Screens.AddTitle.positioned([%{title: "A"}, %{title: "B"}])
+      [%{title: "A", position: 0}, %{title: "B", position: 1}]
+  """
+  @spec positioned([map()]) :: [map()]
+  def positioned(rows) do
+    rows
+    |> Enum.with_index()
+    |> Enum.map(fn {row, index} -> Map.put(row, :position, index) end)
+  end
+
+  @doc """
   Every row that is already on the shelf, ticked.
 
   `row/1` writes `added: false` and nothing corrected it, so searching for a
@@ -788,10 +818,9 @@ defmodule Kati.Screens.AddTitle do
   first — so tapping the 1986 film added the 2016 one and ticked both discs.
   Reproduced on a Pixel 9a with that exact query.
 
-  A TMDB row is named by its own id, which is what the store keys on anyway;
-  the design's four fixture rows have none and keep their titles, so board 06's
-  tags — `add_The Quiet Coast` and the rest — are unchanged and every sweep
-  that names them still names them.
+  A TMDB row is named by its own id, which is what the store keys on anyway; a
+  row with none keeps its title. The tap tag is no longer this — see
+  `add_at/2` — but `add/2` and `mark/2` still find the row by it.
 
       iex> Kati.Screens.AddTitle.row_key(%{title: "Arrival", source_id: "329865"})
       "329865"
@@ -1219,7 +1248,7 @@ defmodule Kati.Screens.AddTitle do
           <Text text={r.note} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
-        {Kati.Screens.AddTitle.add_button(r.added, Kati.Screens.AddTitle.row_key(r))}
+        {Kati.Screens.AddTitle.add_button(r.added, r.position)}
       </Row>
     </Column>
     """
@@ -1260,11 +1289,10 @@ defmodule Kati.Screens.AddTitle do
   # structural difference is the `<Row>` the component wraps children in, which
   # hugs its single Text and is centred by the same Box — no measurement moves.
   @doc false
-  def add_button(added?, key) do
-    # Keyed on the row's own identity, not its position: the chips reorder
-    # nothing but they do renumber, and `add_1` would mean a different film
-    # under `Films`. See `row_key/1` for why it is not the title either.
-    tap = {self(), String.to_atom("add_" <> key)}
+  def add_button(added?, position) when is_integer(position) do
+    # See `add_at/2`: the position in the full list, so a chip that hides rows
+    # renumbers nothing, and one page of results bounds the atoms.
+    tap = {self(), String.to_atom("add_" <> Integer.to_string(position))}
     bg = if added?, do: Palette.placeholder(), else: Palette.ink_fill()
     icon = if added?, do: "check", else: "add"
     ink = if added?, do: Palette.sub(), else: Palette.on_ink()

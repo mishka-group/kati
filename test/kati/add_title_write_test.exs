@@ -40,7 +40,7 @@ defmodule Kati.AddTitleWriteTest do
 
       assert Ash.read!(Kati.Media.TrackedTitle) == []
 
-      _ = render_info(view, {:tap, String.to_atom("add_" <> title)})
+      _ = render_info(view, {:tap, tag_for(title)})
 
       # The receipt is the store, not the socket. A boolean on an assign is
       # exactly what this ticket replaced.
@@ -70,10 +70,10 @@ defmodule Kati.AddTitleWriteTest do
       view = drawn_results(mount_screen(AddTitle))
       title = "The Quiet Coast"
 
-      view = render_info(view, {:tap, String.to_atom("add_" <> title)})
+      view = render_info(view, {:tap, tag_for(title)})
       assert length(Ash.read!(Kati.Media.TrackedTitle)) == 1
 
-      _ = render_info(view, {:tap, String.to_atom("add_" <> title)})
+      _ = render_info(view, {:tap, tag_for(title)})
 
       assert Ash.read!(Kati.Media.TrackedTitle) == [],
              "untracking left the decision behind"
@@ -86,9 +86,9 @@ defmodule Kati.AddTitleWriteTest do
       view = drawn_results(mount_screen(AddTitle))
       title = "Quiet Earth"
 
-      view = render_info(view, {:tap, String.to_atom("add_" <> title)})
-      view = render_info(view, {:tap, String.to_atom("add_" <> title)})
-      _ = render_info(view, {:tap, String.to_atom("add_" <> title)})
+      view = render_info(view, {:tap, tag_for(title)})
+      view = render_info(view, {:tap, tag_for(title)})
+      _ = render_info(view, {:tap, tag_for(title)})
 
       assert length(Ash.read!(Kati.Media.TrackedTitle)) == 1
     end
@@ -109,6 +109,13 @@ defmodule Kati.AddTitleWriteTest do
   # its four results belong to that query (MOVIES-AND-TV.md #43). These tests
   # are about the write behind a result row, so they put the board's rows on
   # the socket the way a search would.
+  # The tag names the row's position in the full list — see
+  # `Kati.Screens.AddTitle.add_at/2`.
+  defp tag_for(title) do
+    index = Enum.find_index(Kati.Library.Sample.search_results(), &(&1.title == title))
+    String.to_atom("add_#{index}")
+  end
+
   defp drawn_results(view) do
     render_info(view, {:results_for_test, Kati.Library.Sample.search_results()})
   end
