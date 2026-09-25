@@ -1725,8 +1725,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # arrival board 92 is a drawing OF, and it is one assign because the page
       # renders from one map: that is the change the audit asked for
       # in as many words, and the reason it could not be closed before.
+      #
+      # A chosen country rides with it. The region row says *Not picked yet —
+      # Kati assumes this until you choose* over the `"GB"` default
+      # `Kati.Services.region/0` answers for a reader who has picked nothing,
+      # and board 92 is captured from a reader who has picked one.
       {"92", Kati.Screens.MyServices,
-       &Map.put(&1, :services, Kati.Screens.MyServices.drawn_page())},
+       &(&1
+         |> Map.put(:services, Kati.Screens.MyServices.drawn_page())
+         |> Map.put(:chosen_region, &1.region))},
       # 97 is 92 in Persian and reads through the same map, so it takes the
       # same arrival. `:on` rides with it: the switches are lit from the
       # subscribed names, and a page whose services came from the drawing must
@@ -1737,6 +1744,7 @@ defmodule Kati.ScreenDesignLiteralTest do
 
          assigns
          |> Map.put(:services, drawn)
+         |> Map.put(:chosen_region, assigns.region)
          |> Map.put(:on, MapSet.new(Enum.map(drawn.subscribed, & &1.name)))
        end},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},

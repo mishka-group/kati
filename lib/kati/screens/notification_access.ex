@@ -94,8 +94,9 @@ defmodule Kati.Screens.NotificationAccess do
   pill) opens the notification-listener list through
   `Kati.Native.Links.settings/1`, the `K-44 open-settings` fence; when that
   refuses, the refusal is drawn under the title with `Kati.UI.notice/1` rather
-  than swallowed. `Log by hand instead` pushes `Kati.Screens.LogListen`, and
-  the retired row pushes `Kati.Screens.RetiredTile`. See `handle_tap/2`.
+  than swallowed. `Log by hand instead` opens `Kati.Screens.Search` scoped to
+  the Screen shelf — see `log_by_hand/2` — and the retired row pushes
+  `Kati.Screens.RetiredTile`. See `handle_tap/2`.
   """
 
   use Kati.Screens.Pushed, back: "Auto-detect"
@@ -587,8 +588,8 @@ defmodule Kati.Screens.NotificationAccess do
   `Kati.Screens.RetiredTile.subject/1` matches it untranslated, and the name
   the sheet draws comes from its own gettext call.
 
-  `:log_by_hand` goes to `Kati.Screens.LogListen`: this page gates
-  *auto*-detecting, so the alternative it offers is logging by hand.
+  `:log_by_hand` is `log_by_hand/2`: this page gates *auto*-detecting, so
+  the alternative it offers is logging by hand.
 
   Both `Open system settings` taps open the system notification-listener
   list, and a refusal — no bridge, or a phone that will not open it — is
@@ -604,7 +605,8 @@ defmodule Kati.Screens.NotificationAccess do
   end
 
   def handle_tap(:log_by_hand, socket) do
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogListen)}
+    {:noreply,
+     Kati.Screens.NotificationAccess.log_by_hand(socket, gettext("Notification access"))}
   end
 
   def handle_tap(tag, socket) when tag in [:open_settings, :open_settings_revoked] do
@@ -612,6 +614,26 @@ defmodule Kati.Screens.NotificationAccess do
   end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
+
+  @doc """
+  Where a reader goes to log by hand what detection would have ticked.
+
+  `Kati.Screens.Search`, opened on the Screen scope: detection only ever ticks
+  a film or an episode already on the reader's shelf, and the search is how a
+  reader finds that title and opens its page, where a film is marked watched
+  and an episode ticked. A title not on the shelf is one tap further — the
+  search's own *Look it up* opens screen 06 with the query in it.
+
+  This used to push `Kati.Screens.LogListen`, which logs a music listen:
+  detection is about films and series, so the hand-logging door has to be too.
+
+  `back` is the label the search's back pill draws, already translated,
+  because `Kati.Screens.Search.back/1` draws what it is handed.
+  """
+  @spec log_by_hand(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def log_by_hand(socket, back) do
+    Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", scope: :screen, back: back})
+  end
 
   @doc false
   @spec open_listener_settings(Mob.Socket.t()) :: Mob.Socket.t()

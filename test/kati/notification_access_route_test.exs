@@ -100,10 +100,22 @@ defmodule Kati.NotificationAccessRouteTest do
       end
     end
 
-    test "Log by hand opens the hand-logging sheet" do
+    test "Log by hand opens the search over the reader's film and series shelf, not music" do
       view = mount_screen(NotificationAccess, %{back: "Auto-detect"})
 
-      assert navigated_to(render_info(view, {:tap, :log_by_hand})) == Kati.Screens.LogListen
+      pushed = render_info(view, {:tap, :log_by_hand})
+
+      assert navigated_to(pushed) == Kati.Screens.Search
+      refute navigated_to(pushed) == Kati.Screens.LogListen
+
+      assert {:push, Kati.Screens.Search,
+              %{scope: :screen, query: "", back: "Notification access"}} =
+               pushed.socket.__mob__.nav_action
+
+      search = mount_screen(Kati.Screens.Search, elem(pushed.socket.__mob__.nav_action, 2))
+
+      assert assigns(search).filter == :screen
+      assert "Notification access" in texts(search)
     end
 
     test "the retired row opens the sheet that says why" do

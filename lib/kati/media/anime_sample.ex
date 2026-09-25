@@ -41,9 +41,13 @@ defmodule Kati.Media.AnimeSample do
   @spec tab_counts() :: [{String.t(), non_neg_integer()}]
   def tab_counts, do: [{"All", 92}, {"Watching", 4}, {"Finished", 3}]
 
-  @doc "The board's own threshold: `10 or more`, stated as a number and not a feeling."
+  @doc """
+  The board's own threshold: `10 or more`. The number is not a sample value —
+  it is `Kati.Media.Anime.promote_threshold/0`, the rule the Library applies,
+  and this reads it so board 152 cannot disagree with the shelf.
+  """
   @spec promote_threshold() :: pos_integer()
-  def promote_threshold, do: 10
+  def promote_threshold, do: Kati.Media.Anime.promote_threshold()
 
   @doc "What sets the flag, and what wins — in priority order, 1 first."
   @spec priority_rules() :: [{pos_integer(), String.t(), String.t()}]

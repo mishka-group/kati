@@ -1,6 +1,9 @@
 defmodule Kati.Screens.UpNext.Sample do
   @moduledoc """
-  Stand-in queue data for screen 10, until the Screen domain exists.
+  Board 10's own queue: the fixture `Kati.ScreenDesignLiteralTest` and
+  `Kati.ScreenEmptyDatabaseTest` compare screen 10 against. No reader path
+  reaches it — `Kati.Screens.UpNext.queue/0` reads `Kati.Media` and draws its
+  own empty card over an empty queue.
 
   Every string here is the drawing's own copy, not an invention: the counts in
   the subtitle and in both section labels, the season/episode lines, the
@@ -53,8 +56,4 @@ defmodule Kati.Screens.UpNext.Sample do
   """
   @spec hero_art() :: String.t() | nil
   def hero_art, do: Kati.Design.Images.path("hollow71", {700, 400})
-
-  @doc "A row's poster, or `nil` when that seed was never drawn."
-  @spec poster(String.t()) :: String.t() | nil
-  def poster(seed), do: Kati.Design.Images.poster(seed)
 end

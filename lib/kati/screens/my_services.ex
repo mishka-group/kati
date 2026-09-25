@@ -483,7 +483,7 @@ defmodule Kati.Screens.MyServices do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("My services"), gettext("So Kati only shows you what you can actually watch."), nil, :name)}
         {UI.eyebrow(gettext("Region"))}
-        {Kati.Screens.MyServices.region_group(assigns.region)}
+        {Kati.Screens.MyServices.region_group(assigns.region, Map.get(assigns, :chosen_region) != nil)}
         {Kati.Screens.MyServices.search_field(query, services.set_up?, Map.get(assigns, :query_epoch, 0))}
         {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services, query))}
         {Kati.Screens.MyServices.service_group(services.subscribed, true, query)}
@@ -500,17 +500,29 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  @doc "The country row, and the sentence that says why it is first."
-  @spec region_group(String.t()) :: map()
-  def region_group(code) do
-    assigns = %{flag: Services.flag(code), name: Services.region_name(code)}
+  @doc """
+  The country row, and the sentence that says why it is first.
+
+  `chosen?` is whether the reader has picked a country
+  (`Kati.Services.chosen_region/0`). `Kati.Services.region/0` answers `"GB"`
+  on a phone nobody has told anything, so every availability question has an
+  answer; that is an assumption rather than the reader's country, and the row
+  says so until a country is picked. See `region_sub/1`.
+  """
+  @spec region_group(String.t(), boolean()) :: map()
+  def region_group(code, chosen? \\ true) do
+    assigns = %{
+      flag: Services.flag(code),
+      name: Services.region_name(code),
+      sub: Kati.Screens.MyServices.region_sub(chosen?)
+    }
 
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.Screens.MyServices.flag_tile(@flag),
-          Kati.UI.SettingsList.body(@name, gettext("Decides what “available” means")),
+          Kati.UI.SettingsList.body(@name, @sub),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :pick_country}
         )
@@ -521,6 +533,17 @@ defmodule Kati.Screens.MyServices do
     </Column>
     """
   end
+
+  @doc """
+  The region row's sub-line: what a chosen country decides, or that the
+  country shown is an assumption.
+
+      iex> Kati.Screens.MyServices.region_sub(false)
+      "Not picked yet — Kati assumes this until you choose"
+  """
+  @spec region_sub(boolean()) :: String.t()
+  def region_sub(true), do: gettext("Decides what “available” means")
+  def region_sub(false), do: gettext("Not picked yet — Kati assumes this until you choose")
 
   @doc """
   The flag, in a plain tile.

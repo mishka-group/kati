@@ -1219,7 +1219,7 @@ defmodule Kati.Screens.Library do
   A fifth chip, once there is enough anime on the shelf to want one.
 
   Board 152's own rule, in the board's own words: *the tab-row chip appears at
-  10 or more anime titles*. `Kati.Media.AnimeSample.promote_threshold/0` is
+  10 or more anime titles*. `Kati.Media.Anime.promote_threshold/0` is
   where the number lives and this reads it rather than typing a second copy,
   so moving it moves both.
 
@@ -1240,7 +1240,7 @@ defmodule Kati.Screens.Library do
   """
   @spec anime_chip(non_neg_integer()) :: [{atom(), String.t(), non_neg_integer()}]
   def anime_chip(count) do
-    if count >= Kati.Media.AnimeSample.promote_threshold(),
+    if count >= Kati.Media.Anime.promote_threshold(),
       do: [{:anime, gettext("Anime"), count}],
       else: []
   end

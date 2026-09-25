@@ -117,6 +117,13 @@ defmodule Kati.AppReachabilityTest do
     {Screens.AnimeFilter,
      "the argument for a feature that exists: screen 04's anime toggle and " <>
        "the Library's fifth chip. A board about a rule, not a place in the app."},
+    {Screens.AutoDetectMusic,
+     "board 150, auto-detect for music. Every value on it is the drawing's — " <>
+       "`3 SOURCES · 41 EPISODES, 128 TRACKS`, a now-playing card, four app " <>
+       "switches — and Kati has no music detection: `Kati.Media.Detect` ticks " <>
+       "films and episodes, and music is outside the film and series scope. " <>
+       "Screen 36 stopped drawing the TV & film / Music control that led here, " <>
+       "so the gallery is the only door until music detection exists."},
     {Screens.YearCards, "the year card's render spec, not a place in the app."},
     {Screens.YearCardsStates, "screen 100's states. As above."},
     {Screens.HomeOmittedSections,
