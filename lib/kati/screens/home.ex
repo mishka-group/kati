@@ -422,20 +422,65 @@ defmodule Kati.Screens.Home do
   `meta_for/4` counts ticks and has no season, so it printed `S1 · E<ticks+1>`
   whatever season the reader was in, and disagreed with screen 10 about where
   they were (N15). `Kati.Media.NextEpisode` is what both ask now.
+
+  When neither has anything to say — a series with no episodes cached, which
+  is every imported anime until TMDB has been asked about it — the card fell
+  through to `meta_for/4`'s `nil` and drew an empty second line (N45). It
+  falls back to what the title IS instead, `identity_line/1`, which is the
+  line screen 10's hero draws in the same case.
   """
   @spec continue_meta(map()) :: String.t() | nil
-  def continue_meta(%{id: id, meta: meta}) when is_binary(id) do
+  def continue_meta(%{id: id} = row) when is_binary(id) do
     with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
          {s, e} <- Kati.Media.NextEpisode.of(tracked) do
       gettext("S%{s} · E%{e}", s: Kati.Locale.number(s), e: Kati.Locale.number(e))
     else
-      _film_or_unknown -> meta
+      _film_or_unknown -> Kati.Screens.Home.meta_or_identity(row)
     end
   rescue
-    _error -> meta
+    _error -> Kati.Screens.Home.meta_or_identity(row)
   end
 
-  def continue_meta(row), do: Map.get(row, :meta)
+  def continue_meta(row), do: Kati.Screens.Home.meta_or_identity(row)
+
+  @doc false
+  def meta_or_identity(row) do
+    case Map.get(row, :meta) do
+      meta when is_binary(meta) and meta != "" -> meta
+      _nothing -> Kati.Screens.Home.identity_line(row)
+    end
+  end
+
+  @doc """
+  What a title is, and when it came out: `ANIME · 2023`, or `FILM` alone.
+
+  The fallback `Kati.Screens.UpNext` draws under its hero for a title with no
+  bookmark and no runtime — the kind word and the year, each as an eyebrow
+  label — so a card and the hero never describe one bare title two ways.
+  Reads the shelf row's `media_kind` (the fact, not the route) and `year`.
+
+      iex> Kati.Screens.Home.identity_line(%{media_kind: :anime, year: 2023})
+      "ANIME · 2023"
+
+      iex> Kati.Screens.Home.identity_line(%{media_kind: :movie, year: nil})
+      "FILM"
+  """
+  @spec identity_line(map()) :: String.t()
+  def identity_line(row) do
+    year =
+      case Map.get(row, :year) do
+        y when is_integer(y) -> [Kati.Locale.year(y)]
+        _unknown -> []
+      end
+
+    [Kati.Screens.Home.kind_word(Map.get(row, :media_kind)) | year]
+    |> Enum.map_join(" · ", &Kati.UI.eyebrow_label/1)
+  end
+
+  @doc false
+  def kind_word(:movie), do: gettext("Film")
+  def kind_word(:anime), do: gettext("Anime")
+  def kind_word(_series), do: gettext("Series")
 
   @doc """
   The region Kati answers *available* for, and how many services are set up.

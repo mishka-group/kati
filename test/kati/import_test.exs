@@ -38,7 +38,9 @@ defmodule Kati.ImportTest do
       possessive: 1
     ]
 
-  doctest Kati.Import.Mapping, only: [looks_like: 1, books?: 1]
+  doctest Kati.Import.Mapping, only: [looks_like: 1, books?: 1, rating_scale: 2]
+
+  doctest Kati.Screens.Home, only: [identity_line: 1]
 
   alias Kati.Import.Commit
   alias Kati.Import.Job
@@ -202,7 +204,11 @@ defmodule Kati.ImportTest do
       {:ok, job} = read(letterboxd())
 
       assert job.plan.conflicts == []
-      assert length(job.plan.merged) == 1
+
+      assert job.plan.merged == [],
+             "the watch is already there, so committing it writes nothing and Import N must not count it"
+
+      assert Enum.map(job.plan.present, & &1.title) == ["Arrival"]
     end
 
     test "and a different day is two watches rather than a disagreement", %{tracked: tracked} do
@@ -361,6 +367,131 @@ defmodule Kati.ImportTest do
 
       assert Ash.read!(TrackedTitle) == []
       assert Map.get(after_tap.__mob__, :nav_action) == nil
+    end
+  end
+
+  describe "screen 141 after the import (N43)" do
+    test "says it worked in the success card, not in the refusal red" do
+      {:noreply, done} = Recognised.handle_tap(:commit, recognised(letterboxd()))
+
+      assert Recognised.result_band(done.assigns.result) ==
+               Kati.UI.ImportChrome.done_notice("3 added.")
+
+      refute Recognised.result_band(done.assigns.result) == Kati.UI.notice("3 added.")
+
+      drawn = inspect(Recognised.content(done.assigns), limit: :infinity)
+
+      assert drawn =~ "Import finished"
+      assert drawn =~ "3 added."
+    end
+
+    test "turns the pill into Imported, and a second press writes nothing" do
+      {:noreply, done} = Recognised.handle_tap(:commit, recognised(letterboxd()))
+
+      header = inspect(Recognised.header(done.assigns.job), limit: :infinity)
+
+      assert header =~ "Imported"
+      refute header =~ "commit"
+
+      watches = length(Ash.read!(Watch))
+      {:noreply, again} = Recognised.handle_tap(:commit, done)
+
+      assert again.assigns.result == "3 added."
+      assert length(Ash.read!(TrackedTitle)) == 3
+      assert length(Ash.read!(Watch)) == watches
+    end
+
+    test "and the same job committed twice through Commit writes it once" do
+      {:ok, job} = read(letterboxd())
+
+      {:ok, first} = Commit.run(job)
+      {:ok, second} = Commit.run(job)
+
+      assert first.new == 3
+      assert %{new: 0, merged: 0, failed: 0} = second
+      assert length(Ash.read!(TrackedTitle)) == 3
+      assert length(Ash.read!(Watch)) == 2
+    end
+
+    test "draws one mapping card, under a reader's eyebrow rather than the board's notes" do
+      drawn =
+        inspect(Recognised.content(%{job: Recognised.job_for(file(letterboxd())), result: nil}),
+          limit: :infinity
+        )
+
+      refute drawn =~ "Mapping — collapsed"
+      refute drawn =~ "Mapping — expanded"
+      refute drawn =~ "MAPPING"
+      assert drawn =~ "MATCH COLUMNS"
+      assert length(String.split(drawn, "Check the mapping")) == 2
+    end
+
+    test "says what the commit does to a ten-point score: nothing" do
+      job =
+        Recognised.job_for(%{
+          path: Path.expand("../fixtures/import/animelist.xml", __DIR__),
+          name: "animelist.xml",
+          source: "myanimelist"
+        })
+
+      assert job.rating_scale == :ten
+
+      assert Recognised.scale_line(job) ==
+               "ten-point scores kept as they are, shown as stars"
+
+      {:ok, _tally} = Commit.run(job.job)
+
+      frieren = Enum.find(Ash.read!(TrackedTitle), &(&1.source_id == "Sousou no Frieren"))
+
+      assert [%Watch{rating: 10}] =
+               Enum.filter(Ash.read!(Watch), &(&1.tracked_title_id == frieren.id))
+    end
+
+    test "and that a five-star column is the one that is converted" do
+      assert Recognised.scale_line(Recognised.job_for(file(letterboxd()))) == "5★ → 10pt"
+    end
+
+    test "screen 37's pill does the same" do
+      {:noreply, done} = Screen.handle_tap(:commit, sheet(letterboxd()))
+
+      assert inspect(Screen.header(done.assigns.job), limit: :infinity) =~ "Imported"
+
+      assert Screen.result_notice(done.assigns.result, true) ==
+               Kati.UI.ImportChrome.done_notice("3 added.")
+
+      {:noreply, again} = Screen.handle_tap(:commit, done)
+
+      assert again.assigns.job == done.assigns.job
+      assert length(Ash.read!(TrackedTitle)) == 3
+    end
+  end
+
+  describe "an imported series on Home (N45)" do
+    test "draws what it is when no episode is cached, never an empty line" do
+      Ash.create!(CachedTitle, %{
+        source: :import,
+        source_id: "Sousou no Frieren",
+        kind: :anime,
+        title: "Sousou no Frieren",
+        fetched_at: Kati.Time.now()
+      })
+
+      Ash.create!(TrackedTitle, %{
+        source: :import,
+        source_id: "Sousou no Frieren",
+        kind: :anime,
+        status: :watching
+      })
+
+      assert [card] = Kati.Screens.Home.continue_watching_rows()
+      assert card.meta == "ANIME"
+    end
+
+    test "with the year when the cache knows it" do
+      assert Kati.Screens.Home.identity_line(%{media_kind: :anime, year: 2023}) == "ANIME · 2023"
+
+      assert Kati.Screens.Home.continue_meta(%{meta: nil, media_kind: :tv, year: 1998}) ==
+               "SERIES · 1998"
     end
   end
 

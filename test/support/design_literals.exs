@@ -506,6 +506,34 @@ defmodule Kati.DesignLiterals do
       # see `Kati.Screens.ImportRecognised`'s moduledoc for why the editor is a
       # feature and not a fix.
       {"141", "7 matched · 2 skipped · still editable"},
+      # N43. Board 141 draws its mapping card twice — `Mapping — collapsed`
+      # and `Mapping — expanded`, each under a mono label, captioned *expanded
+      # below so both states are comparable*. The labels are a note to the
+      # builder, and a reader importing a MyAnimeList list was shown the same
+      # mapping twice under two design-review eyebrows. The screen draws the
+      # collapsed card only, under screen 37's plain `Match columns`, and its
+      # chevron opens screen 37 — where these nine rows are drawn with a
+      # sampled value beside each. So the two labels and the expanded frame's
+      # rows (the file's column names, the field each maps to, and the two
+      # row notes) are this board's and not this screen's.
+      {"141", "mapping — collapsed"},
+      {"141", "mapping — expanded"},
+      {"141", "title"},
+      {"141", "author"},
+      {"141", "my rating"},
+      {"141", "converts 10pt → 5"},
+      {"141", "rating"},
+      {"141", "date read"},
+      {"141", "finished on"},
+      {"141", "bookshelves"},
+      {"141", "to-read → wishlist"},
+      {"141", "status"},
+      {"141", "my review"},
+      {"141", "review"},
+      {"141", "number of pages"},
+      {"141", "length"},
+      {"141", "publisher"},
+      {"141", "binding"},
       # Boards 24 and 62's account card and Data/About rows described an
       # account, a sync and a build Kati does not have: `Synced 2 min ago`, the
       # *Synced* pill, `1,204 ENTRIES`, `iCloud · this device + iPad`, a source

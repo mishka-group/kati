@@ -264,6 +264,11 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
+    # Board 141's expanded mapping frame, which the screen no longer draws —
+    # see `DesignLiterals.retired_lines/0`'s N43 entry. The arrow and the
+    # `block` glyph are its rows' own; screen 37 draws the same rows.
+    {"141", "arrow_forward"},
+    {"141", "block"},
     {"49", "auto_mode"},
     # Board 41's specimen card's Resume button and the Increase contrast row —
     # see `retired_lines/0`'s board-41 entry (A5).

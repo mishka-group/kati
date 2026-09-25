@@ -29,6 +29,21 @@ defmodule Kati.Import.Commit do
   A row that cannot be written is counted and the walk continues. An import of
   four hundred is a long enough operation that failing the lot on the four
   hundredth is not a behaviour anybody wants, and the result says how many.
+
+  ## Twice is once
+
+  The walk is planned again against the shelf at the moment of writing
+  (`plan/1`), and a watch already stored for the same day and rating is not
+  written again (`log/2`). So a second press of the same pill — or the same
+  file picked again — finds every title already there and writes nothing,
+  and says so.
+
+  ## Then TMDB
+
+  Every title this created is handed to `Kati.Import.Match.start/1`, which
+  looks it up on TMDB off this process and, on a match, moves it onto TMDB's
+  row so it gains a poster, a runtime, genres and episodes. Whatever that
+  finds or fails to find, the import has already been written.
   """
 
   alias Kati.Media.CachedTitle
@@ -51,13 +66,16 @@ defmodule Kati.Import.Commit do
              failed: non_neg_integer()
            }}
   def run(job, answers \\ %{}) do
-    plan = job.plan
+    plan = Kati.Import.Commit.plan(job)
 
     tally = %{new: 0, merged: 0, resolved: 0, failed: 0}
 
-    tally =
-      Enum.reduce(plan.new, tally, fn record, acc ->
-        bump(acc, :new, Kati.Import.Commit.create(record))
+    {tally, created} =
+      Enum.reduce(plan.new, {tally, []}, fn record, {acc, made} ->
+        case Kati.Import.Commit.create(record) do
+          {:ok, tracked} -> {bump(acc, :new, :ok), [{tracked, record} | made]}
+          :error -> {bump(acc, :new, :error), made}
+        end
       end)
 
     tally =
@@ -75,18 +93,34 @@ defmodule Kati.Import.Commit do
     # for the batch, not one per title: the reader did one thing.
     Kati.Media.Log.imported(tally.new + tally.merged + tally.resolved, Map.get(job, :file))
 
+    _matching = Kati.Import.Match.start(Enum.reverse(created))
+
     {:ok, tally}
   end
 
+  @doc """
+  What to write, counted against the shelf as it is NOW rather than when the
+  file was read.
+
+  This is what makes committing one job twice write it once. A plan kept from
+  the read still calls every title *new* after the first commit has created
+  them, and a second press would create each one again; re-counted, they are
+  on the shelf, their watches are already there, and `log/2` writes nothing it
+  would duplicate. A job with no records of its own keeps the plan it carries.
+  """
+  @spec plan(map()) :: map()
+  def plan(%{records: records}) when is_list(records), do: Kati.Import.Job.plan(records)
+  def plan(job), do: job.plan
+
   @doc false
-  @spec create(map()) :: :ok | :error
+  @spec create(map()) :: {:ok, TrackedTitle.t()} | :error
   def create(record) do
     kind = Map.get(record, :kind, :movie)
 
     with {:ok, _cached} <- Kati.Import.Commit.cache(record, kind),
          {:ok, tracked} <- Kati.Import.Commit.track(record, kind),
-         :ok <- Kati.Import.Commit.log(tracked.id, record) do
-      :ok
+         written when written in [:ok, :same] <- Kati.Import.Commit.log(tracked.id, record) do
+      {:ok, tracked}
     else
       _refused -> :error
     end
@@ -120,16 +154,23 @@ defmodule Kati.Import.Commit do
   end
 
   @doc """
-  The watch a record describes, or `:ok` when it describes none.
+  The watch a record describes: `:ok` when written, `:same` when there was
+  nothing to write, `:error` when the write failed.
 
   A row with no date, no rating and no review is a title somebody keeps rather
   than an evening they had — a Letterboxd watchlist export is exactly that —
   and writing an empty watch for it would put a film in *Your year* nobody
   watched.
+
+  A watch already stored for the same title, day and rating is the same
+  evening, and writing it again is how importing one file twice would double
+  somebody's history. `run/2` counts `:same` as nothing.
   """
-  @spec log(String.t(), map()) :: :ok | :error
+  @spec log(String.t(), map()) :: :ok | :same | :error
   def log(tracked_id, record) do
-    if Kati.Import.Commit.watch?(record) do
+    if Kati.Import.Job.logged?(tracked_id, record) do
+      :same
+    else
       Watch
       |> Ash.Changeset.for_create(:create, Kati.Import.Commit.attrs(tracked_id, record))
       |> Ash.create()
@@ -137,8 +178,6 @@ defmodule Kati.Import.Commit do
         {:ok, _watch} -> :ok
         {:error, _reason} -> :error
       end
-    else
-      :ok
     end
   end
 
@@ -193,7 +232,7 @@ defmodule Kati.Import.Commit do
 
   Silence is *Keep mine*: see `run/2`.
   """
-  @spec resolve(map(), atom() | nil) :: :ok | :error
+  @spec resolve(map(), atom() | nil) :: :ok | :same | :error
   def resolve(_clash, answer) when answer in [nil, :keep_mine], do: :ok
 
   def resolve(clash, :take_file) do
@@ -217,5 +256,6 @@ defmodule Kati.Import.Commit do
   def resolve(_clash, _unknown), do: :ok
 
   defp bump(tally, key, :ok), do: Map.update!(tally, key, &(&1 + 1))
+  defp bump(tally, _key, :same), do: tally
   defp bump(tally, _key, :error), do: Map.update!(tally, :failed, &(&1 + 1))
 end

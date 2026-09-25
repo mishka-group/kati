@@ -78,7 +78,8 @@ defmodule Kati.Import.Job do
         {:ok,
          name
          |> Kati.Import.Job.shaped(headers, rows, columns, records)
-         |> Map.put(:looks_like, looks_like)}
+         |> Map.put(:looks_like, looks_like)
+         |> Map.put(:rating_scale, Mapping.rating_scale(headers, rows))}
       end
     end
   end
@@ -103,8 +104,15 @@ defmodule Kati.Import.Job do
   nothing about what it is and neither does this; what the source knows is
   that everything in it is anime, not whether any given row is a film.
 
+  What the row DID say is kept as `:format` — MyAnimeList's `Type` is `TV` or
+  `Movie` — because `Kati.Import.Match` has to ask TMDB for a series or a
+  film, and `:anime` answers neither.
+
       iex> Kati.Import.Job.marked([%{kind: :tv}], "myanimelist")
-      [%{kind: :anime}]
+      [%{kind: :anime, format: :tv}]
+
+      iex> Kati.Import.Job.marked([%{title: "Mushishi"}], "myanimelist")
+      [%{title: "Mushishi", kind: :anime}]
 
       iex> Kati.Import.Job.marked([%{kind: :tv}], "letterboxd")
       [%{kind: :tv}]
@@ -112,11 +120,17 @@ defmodule Kati.Import.Job do
   @spec marked([map()], String.t() | nil) :: [map()]
   def marked(records, source) do
     if Kati.Media.Anime.source_says?(source) do
-      Enum.map(records, &Map.put(&1, :kind, :anime))
+      Enum.map(records, &Kati.Import.Job.as_anime/1)
     else
       records
     end
   end
+
+  @doc false
+  def as_anime(%{kind: format} = record) when format in [:movie, :tv],
+    do: Map.merge(record, %{kind: :anime, format: format})
+
+  def as_anime(record), do: Map.put(record, :kind, :anime)
 
   @doc """
   The same job in the shape screen 141 draws — one file, described.
@@ -140,6 +154,7 @@ defmodule Kati.Import.Job do
       total_columns: length(job.columns),
       skipped: length(job.columns) - matched,
       columns: job.columns,
+      rating_scale: Map.get(job, :rating_scale),
       outcome: job.outcome,
       # The whole job, carried. 141 and 37 are two views of one file (#53) and
       # 141's own `Import 412` pill has to be able to commit it (#89) — without
@@ -172,23 +187,61 @@ defmodule Kati.Import.Job do
   What committing this file would do, against the shelf as it stands.
 
   Nothing is written. See the moduledoc.
+
+  A fourth list, `present`, holds the records that are already on the shelf in
+  full — the title is there and so is the watch, same day and same rating, or
+  the row carries no watch at all. They are neither new nor merged, because
+  committing them writes nothing, and counting them into `Import N` is how the
+  same file read a second time offered to import everything again.
   """
-  @spec plan([map()]) :: %{new: [map()], merged: [map()], conflicts: [map()]}
+  @spec plan([map()]) :: %{
+          new: [map()],
+          merged: [map()],
+          conflicts: [map()],
+          present: [map()]
+        }
   def plan(records) do
     shelf = Kati.Import.Job.shelf()
 
-    Enum.reduce(records, %{new: [], merged: [], conflicts: []}, fn record, acc ->
+    Enum.reduce(records, %{new: [], merged: [], conflicts: [], present: []}, fn record, acc ->
       case Map.get(shelf, Kati.Import.Job.name_key(record.title)) do
         nil ->
           %{acc | new: acc.new ++ [record]}
 
         tracked ->
-          case Kati.Import.Job.clash(tracked, record) do
-            nil -> %{acc | merged: acc.merged ++ [Map.put(record, :tracked_id, tracked.id)]}
-            clash -> %{acc | conflicts: acc.conflicts ++ [clash]}
+          placed = Map.put(record, :tracked_id, tracked.id)
+
+          cond do
+            clash = Kati.Import.Job.clash(tracked, record) ->
+              %{acc | conflicts: acc.conflicts ++ [clash]}
+
+            Kati.Import.Job.logged?(tracked.id, record) ->
+              %{acc | present: acc.present ++ [placed]}
+
+            true ->
+              %{acc | merged: acc.merged ++ [placed]}
           end
       end
     end)
+  end
+
+  @doc """
+  Whether a title already holds everything a record would write: the record
+  carries no watch, or the same watch — same day (or both undated), same
+  rating — is already stored.
+  """
+  @spec logged?(String.t(), map()) :: boolean()
+  def logged?(tracked_id, record) do
+    day = Map.get(record, :watched_on)
+    rating = Map.get(record, :rating)
+
+    not Kati.Import.Commit.watch?(record) or
+      Watch
+      |> Ash.Query.filter(tracked_title_id == ^tracked_id)
+      |> Ash.read!()
+      |> Enum.any?(&(&1.watched_on == day and &1.rating == rating))
+  rescue
+    _error -> false
   end
 
   @doc """
@@ -336,6 +389,12 @@ defmodule Kati.Import.Job do
   Through `:shelf`, so a title the reader hid is not silently merged into.
   A tracked row whose cache has gone keys on its own `source_id`, which for a
   hand-added or imported title IS the name — see `Kati.Screens.AddByHand`.
+
+  A `Kati.Media.TitleAlias` answers too: an imported title that
+  `Kati.Import.Match` moved onto TMDB is called by TMDB's name from then on,
+  and the export's own name for it is kept as an alias so the same file read
+  again merges rather than adding the title a second time. A name the cache
+  gives wins over an alias of the same spelling.
   """
   @spec shelf() :: %{String.t() => TrackedTitle.t()}
   def shelf do
@@ -356,14 +415,26 @@ defmodule Kati.Import.Job do
     # `Kati.Media.CachedTitle.names/1` gives TMDB's own two, so an export that
     # names a show by its original title merges into the row the reader
     # already has rather than creating a second copy of it beside it.
-    for row <- tracked,
-        name <-
-          (case CachedTitle.names(Map.get(cached, {row.source, row.source_id})) do
-             [] -> [row.source_id]
-             names -> names
-           end),
-        into: %{},
-        do: {Kati.Import.Job.name_key(name), row}
+    named =
+      for row <- tracked,
+          name <-
+            (case CachedTitle.names(Map.get(cached, {row.source, row.source_id})) do
+               [] -> [row.source_id]
+               names -> names
+             end),
+          into: %{},
+          do: {Kati.Import.Job.name_key(name), row}
+
+    by_id = Map.new(tracked, &{&1.id, &1})
+
+    taught =
+      for {heard, id} <- Kati.Media.TitleAlias.all(),
+          row = Map.get(by_id, id),
+          row != nil,
+          into: %{},
+          do: {heard, row}
+
+    Map.merge(taught, named)
   rescue
     _error -> %{}
   end
