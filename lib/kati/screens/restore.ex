@@ -1069,6 +1069,7 @@ defmodule Kati.Screens.Restore do
         shadow="0 14 28 -12 #801A1917"
         align="center"
       >
+        <Spacer weight={1.0} />
         <Text
           text={label}
           text_size={14.5}
@@ -1076,6 +1077,7 @@ defmodule Kati.Screens.Restore do
           text_color={Palette.on_ink()}
           max_lines={1}
         />
+        <Spacer weight={1.0} />
       </Row>
       <Spacer size={24} />
     </Column>
@@ -1189,6 +1191,7 @@ defmodule Kati.Screens.Restore do
       border_width={1.5}
       align="center"
     >
+      <Spacer weight={1.0} />
       <Text
         text={gettext("Replace everything…")}
         text_size={12.5}
@@ -1196,6 +1199,7 @@ defmodule Kati.Screens.Restore do
         text_color={Palette.red()}
         max_lines={1}
       />
+      <Spacer weight={1.0} />
     </Row>
     """
   end
