@@ -267,17 +267,30 @@ defmodule Kati.Screens.Import do
   Refuses on the drawing, which is `Kati.Write`'s own `:nothing_to_save`: the
   board's `Import 412` describes a file nobody picked, and committing it would
   file four hundred invented films under the reader's own shelf.
+
+  Once written, the job carries its tally and the pill reads `Imported` with
+  no tap; a second press finds the mark and changes nothing.
   """
   @spec commit(Mob.Socket.t()) :: Mob.Socket.t()
   def commit(socket) do
     job = socket.assigns.job
 
-    if Kati.Screens.Import.live?(job) do
-      {:ok, tally} = Kati.Import.Commit.run(job, socket.assigns.answers)
+    cond do
+      Map.has_key?(job, :committed) ->
+        socket
 
-      Mob.Socket.assign(socket, :result, Kati.Screens.Import.result_line(tally))
-    else
-      Mob.Socket.assign(socket, :result, Kati.Write.message({:error, :nothing_to_save}))
+      Kati.Screens.Import.live?(job) ->
+        {:ok, tally} = Kati.Import.Commit.run(job, socket.assigns.answers)
+
+        socket
+        |> Mob.Socket.assign(:result, Kati.Screens.Import.result_line(tally))
+        |> Mob.Socket.assign(
+          :job,
+          Map.merge(job, %{committed: tally, action: Kati.UI.ImportChrome.done_label()})
+        )
+
+      true ->
+        Mob.Socket.assign(socket, :result, Kati.Write.message({:error, :nothing_to_save}))
     end
   end
 
@@ -353,7 +366,7 @@ defmodule Kati.Screens.Import do
         padding_bottom={40}
       >
         {Kati.Screens.Import.header(job)}
-        {Kati.Screens.Import.result_notice(Map.get(assigns, :result))}
+        {Kati.Screens.Import.result_notice(Map.get(assigns, :result), Map.has_key?(job, :committed))}
         {Kati.Screens.Import.title(job)}
         {Kati.Screens.Import.steps(job)}
         {Kati.Screens.Import.file_card(job)}
@@ -369,10 +382,18 @@ defmodule Kati.Screens.Import do
 
   # The 44pt height reserves the row the back pill floats in — the pill itself
   # is drawn by Kati.Screens.Pushed — so the ink action sits opposite it.
-  @doc false
-  def result_notice(nil), do: ~MOB"<Spacer size={0} />"
+  @doc """
+  What the commit said: the success card once the file is written, the red
+  refusal band otherwise — never a finished import in the colour of a failure.
+  """
+  @spec result_notice(String.t() | nil, boolean()) :: map()
+  def result_notice(message, committed? \\ false)
 
-  def result_notice(message) do
+  def result_notice(nil, _committed?), do: ~MOB"<Spacer size={0} />"
+
+  def result_notice(message, true), do: Kati.UI.ImportChrome.done_notice(message)
+
+  def result_notice(message, false) do
     assigns = %{notice: Kati.UI.notice(message)}
 
     ~MOB"""
@@ -394,8 +415,13 @@ defmodule Kati.Screens.Import do
   The markup is `Kati.UI.ImportChrome.header/2`, which is where it moved when
   this module started reaching the database: three other screens draw the same
   pill and none of them reads anything.
+
+  After the commit it is `Kati.UI.ImportChrome.done_header/1` instead: the
+  same place, `Imported`, nothing to press.
   """
   @spec header(map()) :: map()
+  def header(%{committed: _tally} = job), do: Kati.UI.ImportChrome.done_header(job.action)
+
   def header(job) do
     Kati.UI.ImportChrome.header(
       job.action,
@@ -641,8 +667,8 @@ defmodule Kati.Screens.Import do
   it would then be pointing back at the column it came from.
   `Kati.Locale.forward_glyph/0` is the answer `Kati.Screens.OnboardingWelcome`
   takes for the arrow on its primary pill, and the glyph in the middle of this
-  row means the same word. `Kati.Screens.ImportRecognised.map_row/2` makes the
-  identical mapping over the identical rows.
+  row means the same word. Screen 141 draws no table of its own any more — its
+  mapping card opens this one — so this is the only place the mapping is made.
 
   Mapped here rather than in `Kati.Import.Mapping.columns/2`, which is where
   the name is written: that module decides whether a column maps at all —

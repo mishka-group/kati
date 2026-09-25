@@ -10,34 +10,31 @@ defmodule Kati.Screens.ImportRecognised do
   mapping opens collapsed to one line and the guess itself is offered a
   correction before anything else on the screen.
 
-  ## The board draws the mapping twice, and so does the screen
+  ## One mapping card, and the page it opens
 
-  Board 141 lays the mapping card out twice, each under its own mono label —
-  `Mapping — collapsed` after a grey dash, `Mapping — expanded` after an
-  orange one — and its caption says why in one line: *expanded below so both
-  states are comparable*. That is the same sentence, and the same two dash
-  colours, that a dozen screens in this app already answer by drawing every
-  state one under the other with a labelled divider between them
-  (`Kati.Screens.EpisodeRatings` draws its episode list rated and unrated,
-  `Kati.Screens.BackupStates` its card never-backed-up and stale). Grey is
-  `Kati.UI.SettingsList.eyebrow_muted/1` — a footnote to the section above it —
-  and orange is `Kati.UI.eyebrow/2`, new-or-now. Both labels are copy on the
-  board and both are drawn.
+  Board 141 lays the mapping card out twice, each under a mono label —
+  `Mapping — collapsed` and `Mapping — expanded` — with the caption *expanded
+  below so both states are comparable*. That is a note to whoever builds the
+  screen, not copy for whoever reads it, and an earlier build drew both frames
+  and both labels anyway: a reader importing their MyAnimeList list was shown
+  the same mapping twice under two design-review eyebrows (N43).
 
-  An earlier build of this screen read the two frames as a *spec caption*
-  rather than copy and collapsed them into one disclosure: one card, an
-  `:toggle_mapping` assign, `chevron_right` swapping for `expand_more`. That
-  invented a control the board does not draw and hid nine rows of copy behind
-  it, which is the failure `Kati.ScreenDesignLiteralTest` exists to catch — a
-  section the drawing shows, built but never mounted, with every frame still
-  looking right. The board's chevron is `chevron_right`, which everywhere else
-  in this app means *this row opens a page*, not *this row unfolds*.
+  So the page draws one card, at rest — `mapping_collapsed/1`, *Check the
+  mapping · N matched · M skipped* — under the plain eyebrow screen 37 uses
+  for the same thing. Its chevron is `chevron_right`, which everywhere in this
+  app means *this row opens a page*, and it does: `:check_mapping` pushes
+  `Kati.Screens.Import`, screen 37, which is this mapping with a sampled value
+  beside every row. Nothing is hidden by the change — the expanded table is one
+  tap away, where it has room for its samples.
+  `Kati.Support.DesignLiterals.retired_lines/0` records the board lines this
+  page no longer draws, and why.
 
-  So `mapping_collapsed/1` draws the resting card and `mapping_expanded/1` the
-  open one, both always, and the summary row's tap does what its chevron
-  promises: `:check_mapping` pushes `Kati.Screens.Import`, screen 37, which is
-  this same mapping with a sampled value beside every row. Screen 140 already
-  pushes here; this is the next step of the same flow, not a placeholder.
+  ## After the import
+
+  Pressing the pill writes the file (`Kati.Import.Commit.run/2`), then the
+  page says so in the success card (`result_band/1`) and the pill becomes
+  `Imported` with nothing to press (`header/1`). The titles are looked up on
+  TMDB afterwards, off this process (`Kati.Import.Match`).
 
   ## `What will happen` keeps its footnote grey rather than screen 37's orange
 
@@ -50,9 +47,10 @@ defmodule Kati.Screens.ImportRecognised do
 
   ## The star the font turned out to have
 
-  Board 141 draws ★ twice — `converts 10pt → 5★` under *My Rating*, and
-  `10pt → 5★` inside the `auto_awesome` banner. Both are the character, in
-  one `Text` each, and that contradicts screens 08, 15, 33 and 37, which all
+  Board 141 draws ★ twice — `converts 10pt → 5★` under *My Rating* in the
+  expanded table this page no longer draws, and `10pt → 5★` inside the
+  `auto_awesome` banner. The banner's is the character, in one `Text`, and
+  that contradicts screens 08, 15, 33 and 37, which all
   splice a Material Symbols `star` glyph into a `Row` because *Plus Jakarta
   Sans carries no U+2605*. **That is no longer true of the font this app
   ships**, and it is worth writing down where it can be re-checked:
@@ -66,16 +64,14 @@ defmodule Kati.Screens.ImportRecognised do
 
   Ten points alternating outer and inner radius about (440,372) is a
   five-pointed star, and it is in all five weights (400-800) with the advance
-  scaling 882→938. `kati_mono` genuinely has no U+2605, which is why the
-  mapping row's mono *column* is not where this note lives.
+  scaling 882→938. `kati_mono` genuinely has no U+2605.
 
   The splice was never free, and this board is where the cost shows. A
   `Row` of [Text, glyph, Text] cannot wrap, so the banner's sentence — three
   lines at the card's width — could not have the mark at all: an earlier build
   of this screen wrote `5 stars` there and said the literal was unreachable.
   With the character it is one `Text`, it wraps, and it says what the board
-  says. The mapping row's note gets the same treatment for consistency within
-  the screen rather than necessity.
+  says.
 
   **This is deliberately not a change to screens 08, 15, 33 or 37.** Those
   splice a *rating* — five glyphs in a row at 30px, one of them outlined for a
@@ -108,16 +104,15 @@ defmodule Kati.Screens.ImportRecognised do
   the nine-column mapping from. `Kati.Import.Sample.recognised/0` is a second
   job beside `job/0` in the same module, not a new one, because both are the
   same stand-in for the same not-yet-real reader — and `recognised_columns/0`
-  is what both mapping frames on this screen draw, so the two states cannot
-  drift apart into two hand-written tables.
+  is what the mapping card's counts are taken from, so the board's summary and
+  the board's table cannot drift apart into two hand-written sets of numbers.
 
   ## Audited
 
-  Two taps are drawn and both reach a handler that navigates: `Check the
-  mapping` pushes screen 37, and `Not Goodreads? Change` pops back to whoever
-  offered the file. Nothing else on the board is a control — the mapping
-  table's rows describe a match, they do not offer one, and the three outcome
-  cards are a count, not a button.
+  Three taps are drawn and each reaches a handler: `Check the mapping` pushes
+  screen 37, `Not Goodreads? Change` pops back to whoever offered the file, and
+  the `Import N` pill commits — once. Nothing else on the page is a control;
+  the three outcome cards are a count, not a button.
 
   **What neither tap can do yet is change the mapping** — and the line no
   longer says otherwise. Board 141's summary ends `still editable`, screen 37
@@ -149,13 +144,12 @@ defmodule Kati.Screens.ImportRecognised do
       on its way into a sentence instead, because a Latin run inside a Persian
       line takes the line's direction for its neighbouring punctuation and
       would otherwise put the full stop on the wrong edge.
-    * **The file's own name and its own headers.** `goodreads_library_export.csv`
-      and the nine column names down the left of the mapping table are what the
-      reader's file says, not what Kati says.
+    * **The file's own name.** `goodreads_library_export.csv` is what the
+      reader's file is called, not what Kati says.
     * **Everything `Kati.Import.Job` and `Kati.Import.Sample` write.** The
-      `Import 412` pill, `418 ROWS · 9 COLUMNS`, `STEP 1 OF 4`, the three
-      outcome labels and the field names on the right of each arrow are all
-      those modules' strings; they fold there, not here. What this screen owes
+      `Import 412` pill, `418 ROWS · 9 COLUMNS`, `STEP 1 OF 4` and the three
+      outcome labels are all those modules' strings; they fold there, not
+      here. What this screen owes
       them is a TYPEFACE — `Kati.Locale.mono_face/1` asks each of those strings
       what script it is in rather than asking the reader, because DM Mono
       carries no Persian glyph and half of them will never be Persian.
@@ -643,16 +637,14 @@ defmodule Kati.Screens.ImportRecognised do
         padding_bottom={40}
       >
         {Kati.Screens.ImportRecognised.header(job)}
-        {Kati.Screens.Import.result_notice(Map.get(assigns, :result))}
+        {Kati.Screens.ImportRecognised.result_band(Map.get(assigns, :result))}
         {Kati.Screens.ImportRecognised.title(job)}
         {Kati.Screens.ImportRecognised.mismatch_band(job)}
         {Kati.Screens.ImportRecognised.steps(job)}
         {Kati.Screens.ImportRecognised.file_card(job)}
         {Kati.Screens.ImportRecognised.matched_note(job)}
-        {UI.SettingsList.eyebrow_muted(gettext("Mapping — collapsed"))}
+        {UI.SettingsList.eyebrow_muted(gettext("Match columns"))}
         {Kati.Screens.ImportRecognised.mapping_collapsed(job)}
-        {UI.eyebrow(gettext("Mapping — expanded"))}
-        {Kati.Screens.ImportRecognised.mapping_expanded(job)}
         {UI.SettingsList.eyebrow_muted(gettext("What will happen"))}
         {Kati.Screens.ImportRecognised.outcome(job)}
       </Column>
@@ -679,14 +671,31 @@ defmodule Kati.Screens.ImportRecognised do
 
   No tap over the board, for 37's reason: committing the drawing would file
   four hundred invented titles under the reader's own shelf.
+
+  And none once the file is written: `Kati.UI.ImportChrome.done_header/1`
+  draws `Imported` on paper in the pill's place, because an ink `Import 3`
+  still offered after the three are on the shelf is an offer to do it twice.
   """
   @spec header(map()) :: map()
+  def header(%{committed: _tally} = job), do: Kati.UI.ImportChrome.done_header(job.action)
+
   def header(job) do
     Kati.UI.ImportChrome.header(
       job.action,
       if(Kati.Screens.ImportRecognised.live?(job), do: {self(), :commit})
     )
   end
+
+  @doc """
+  What the commit said, in the tone of a thing that worked — or nothing.
+
+  It was `Kati.Screens.Import.result_notice/1`, which is `Kati.UI.notice/1`:
+  the red refusal band. The only message this screen ever puts in `:result`
+  is a finished import's, so `3 added.` was drawn in the colour of a failure.
+  """
+  @spec result_band(String.t() | nil) :: map()
+  def result_band(nil), do: Kati.Screens.ImportRecognised.blank()
+  def result_band(message), do: Kati.UI.ImportChrome.done_notice(message)
 
   @doc """
   Whether this page is describing a real file or the board.
@@ -1168,13 +1177,43 @@ defmodule Kati.Screens.ImportRecognised do
   Which way the rating column is being converted, or that none is.
 
   The board says `10pt → 5★` because the file it was captured from wrote ten
-  points. `Kati.Import.Mapping.scale_of/2` reads the column, so this says what
-  is actually happening to this file — and `no rating column` when there is
-  nothing to convert, which is a true sentence where the drawing's would be a
-  claim about a column the file does not have.
+  points — and over a real file that sentence was false. A ten-point score is
+  stored as it is (`Kati.Media.TrackedTitle` keeps every rating on the
+  ten-point scale) and stars are only how it is DRAWN, so nothing is converted
+  and a MyAnimeList `9` is still a 9 after the import. The line now says what
+  the commit does, from the job's `rating_scale` — the same answer
+  `Kati.Import.Mapping.records/2` acts on, not a guess from the first row:
+
+    * ten-point: kept as they are, shown as stars;
+    * five-point: `5★ → 10pt`, which is the one real conversion — a
+      Letterboxd `4.5` is stored as `9`;
+    * no rating column: says so.
+
+  The board's own columns carry no scale, and it keeps its drawn sentence
+  (`drawn_scale/1`).
   """
   @spec scale_line(map()) :: String.t()
   def scale_line(job) do
+    case {Map.get(job, :rating_scale), Kati.Screens.ImportRecognised.sample_for(job, :rating)} do
+      {_scale, nil} ->
+        pgettext("rating conversion", "no rating column")
+
+      {:ten, _sample} ->
+        pgettext("rating conversion", "ten-point scores kept as they are, shown as stars")
+
+      {:five, _sample} ->
+        pgettext("rating conversion", "5★ → 10pt")
+
+      {nil, sample} ->
+        Kati.Screens.ImportRecognised.drawn_scale(sample)
+    end
+  end
+
+  @doc """
+  The board's sentence for the board's columns, which name no scale.
+  """
+  @spec drawn_scale(String.t()) :: String.t()
+  def drawn_scale(sample) do
     # `Map.get` with a default: board 141's own columns carry no `:sample` —
     # they are a mapping table, not a preview — and the drawing must keep its
     # sentence.
@@ -1198,10 +1237,7 @@ defmodule Kati.Screens.ImportRecognised do
     # instead of one `Text` at a time. The mark was never the fact: the
     # conversion is, Persian has words for both ends of it, and a mirrored
     # arrow would have needed the glyph this face does not have either.
-    case Kati.Screens.ImportRecognised.sample_for(job, :rating) do
-      nil ->
-        pgettext("rating conversion", "no rating column")
-
+    case sample do
       "" ->
         pgettext("rating conversion", "10pt → 5★")
 
@@ -1307,13 +1343,14 @@ defmodule Kati.Screens.ImportRecognised do
         )
 
   @doc """
-  The mapping at rest: one row, the counts, and the chevron that opens it.
+  The mapping card — the only one this page draws: one row, the counts, and
+  the chevron that opens screen 37, where every column is shown against a
+  sampled value.
 
   `rule: false` because it is the only row in its card — the hairline in
   `Kati.UI.SettingsList.row/4` separates a row from the next one, and there is
   no next one. The sub-line is built from `job.matched` and `job.skipped`
-  rather than written out, so the board's `7 matched · 2 skipped` and the nine
-  rows `mapping_expanded/1` draws cannot disagree with each other.
+  rather than written out, so it cannot disagree with the table 37 draws.
   """
   def mapping_collapsed(job) do
     summary_row =
@@ -1338,119 +1375,6 @@ defmodule Kati.Screens.ImportRecognised do
     </Column>
     """
   end
-
-  @doc """
-  The mapping opened: every column in the file against the field it will write.
-
-  The board draws no summary row above this frame and none is added — the two
-  frames are the same control at rest and open, and a header repeated in both
-  would read as two cards rather than two states of one. `rule?` is false on
-  the last row for `mapping_collapsed/1`'s reason.
-  """
-  def mapping_expanded(job) do
-    last = length(job.columns) - 1
-
-    table_rows =
-      job.columns
-      |> Enum.with_index()
-      |> Enum.map(fn {row, i} -> Kati.Screens.ImportRecognised.map_row(row, i < last) end)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {SettingsList.card(table_rows)}
-      <Spacer size={24} />
-    </Column>
-    """
-  end
-
-  @doc false
-  def map_row(row, rule?) do
-    field_color = if row.skipped?, do: Palette.tertiary(), else: Palette.ink()
-
-    # AN ARROW IS A PICTURE, AND `layout_direction` MIRRORS NEITHER PICTURES
-    # NOR THE FONT THEY COME OUT OF.
-    #
-    # The row itself mirrors under `rtl` — the file's column moves to the right
-    # and Kati's field to the left — and an `arrow_forward` left alone in the
-    # middle of it would then be pointing back at the column it came from.
-    # `Kati.Locale.forward_glyph/0` is the answer `Kati.Screens.OnboardingWelcome`
-    # and `Kati.Screens.PickSections` take for the arrow on their primary pill,
-    # and the glyph in the middle of this row means the same word.
-    #
-    # Mapped here rather than in `Kati.Import.Mapping.columns/2`, which is
-    # where the name is written: that module decides whether a column maps at
-    # all — `arrow_forward` or `block` — and which way an arrow points on a
-    # page is this screen's question, not the mapper's.
-    icon = if row.icon == "arrow_forward", do: Kati.Locale.forward_glyph(), else: row.icon
-
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
-        <Column weight={1.0}>
-          <Text
-            text={row.column}
-            font_family={Kati.Locale.mono_face(row.column)}
-            text_size={11}
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          {Kati.Screens.ImportRecognised.map_note(row.note)}
-        </Column>
-        <Spacer size={11} />
-        {UI.symbol(icon, size: 15, color: Palette.rail_idle())}
-        <Spacer size={11} />
-        <Column width={96}>
-          <Text
-            text={row.field}
-            text_size={12.5}
-            font_weight="semibold"
-            text_color={field_color}
-            text_align="right"
-            max_lines={1}
-          />
-        </Column>
-      </Row>
-      {Kati.Screens.ImportRecognised.hairline(rule?)}
-    </Column>
-    """
-  end
-
-  @doc false
-  def map_note(nil), do: ~MOB"<Spacer size={0} />"
-
-  def map_note(note) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Spacer size={4} />
-      {Kati.Screens.ImportRecognised.note_line(note)}
-    </Column>
-    """
-  end
-
-  @doc """
-  A mapping row's own note — `converts 10pt → 5★`, `to-read → Wishlist`,
-  `skipped` — at `Palette.eyebrow/0`, the drawing's `#A0998F` and not
-  screen 37's `tertiary`.
-
-  One `Text`, star and all. See "The star the font turned out to have" in this
-  module's doc for why this does not split at the ★ the way screen 37's
-  `star_text/3` does.
-  """
-  def note_line(text) do
-    ~MOB"<Text text={text} text_size={10} text_color={Palette.eyebrow()} max_lines={1} />"
-  end
-
-  @doc """
-  The `rgba(26,25,23,.07)` rule between two mapping rows — `render: :box`
-  for the reason screen 37's own `hairline/1` gives in full: the default
-  `:divider` primitive antialiases a 1dp rule unevenly at this device's pixel
-  ratio, and `render: :box` draws a filled rect instead, every row at the
-  drawing's flat 7% ink.
-  """
-  def hairline(false), do: ~MOB"<Spacer size={0} />"
-
-  def hairline(true),
-    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @doc """
   The three outcome cards — `job.outcome`, reused whole from
@@ -1569,12 +1493,20 @@ defmodule Kati.Screens.ImportRecognised do
 
   Neither branch commits the board: `live?/1` is what keeps the drawing's
   `Import 412` a picture.
+
+  A committed job is marked with its tally and its pill says `Imported`, and a
+  second tap — a double press arrives as two — finds the mark and does
+  nothing. `Kati.Import.Commit.run/2` would write nothing the second time
+  either; this is what keeps the page from saying it did.
   """
   def handle_tap(:commit, socket) do
     job = socket.assigns.job
 
     cond do
       not Kati.Screens.ImportRecognised.live?(job) ->
+        {:noreply, socket}
+
+      Map.has_key?(job, :committed) ->
         {:noreply, socket}
 
       job.job.plan.conflicts != [] ->
@@ -1591,7 +1523,13 @@ defmodule Kati.Screens.ImportRecognised do
       true ->
         {:ok, tally} = Kati.Import.Commit.run(job.job, %{})
 
-        {:noreply, Mob.Socket.assign(socket, :result, Kati.Screens.Import.result_line(tally))}
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:result, Kati.Screens.Import.result_line(tally))
+         |> Mob.Socket.assign(
+           :job,
+           Map.merge(job, %{committed: tally, action: Kati.UI.ImportChrome.done_label()})
+         )}
     end
   end
 

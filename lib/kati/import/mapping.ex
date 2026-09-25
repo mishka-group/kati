@@ -246,6 +246,34 @@ defmodule Kati.Import.Mapping do
   end
 
   @doc """
+  The scale the file's rating column is read on, or `nil` when it has none.
+
+  The same answer `records/2` acts on — the header's hint where it names one,
+  `scale_of/2` otherwise — asked once more so a screen can say what the commit
+  will do rather than guess it from one sample.
+
+      iex> Kati.Import.Mapping.rating_scale(["Anime Title", "My Score"], [["Frieren", "4"]])
+      :ten
+
+      iex> Kati.Import.Mapping.rating_scale(["Name", "Rating"], [["Dune", "4.5"]])
+      :five
+
+      iex> Kati.Import.Mapping.rating_scale(["Name"], [["Dune"]])
+      nil
+  """
+  @spec rating_scale([String.t()], [[String.t()]]) :: :five | :ten | nil
+  def rating_scale(headers, rows) do
+    headers
+    |> Enum.with_index()
+    |> Enum.find_value(fn {header, i} ->
+      case Map.get(@known, Kati.Import.Mapping.key(header)) do
+        {:rating, hinted} -> hinted || Kati.Import.Mapping.scale_of(rows, i)
+        _other -> nil
+      end
+    end)
+  end
+
+  @doc """
   Which scale a rating column is written on, read off the column.
 
   See the moduledoc for why the header cannot answer this.

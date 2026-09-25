@@ -65,6 +65,98 @@ defmodule Kati.UI.ImportChrome do
   end
 
   @doc """
+  The action pill once the import has been written: the same 38pt pill in
+  the same place, on paper instead of ink, with a check and no tap.
+
+  An ink pill still reading `Import 3` after the three are on the shelf is a
+  control offering to do again what it has just done. This one says it is
+  done, and there is nothing to press.
+  """
+  @spec done_header(String.t()) :: map()
+  def done_header(label) do
+    assigns = %{label: label, check: Kati.UI.symbol("check", size: 16, color: Palette.green())}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} height={44} align="center">
+        <Spacer weight={1.0} />
+        <Row
+          height={38}
+          corner_radius={19}
+          background={Palette.paper()}
+          padding_left={14}
+          padding_right={16}
+          align="center"
+        >
+          {@check}
+          <Spacer size={6} />
+          <Text
+            text={@label}
+            text_size={13}
+            font_weight="bold"
+            text_color={Palette.ink_soft()}
+            max_lines={1}
+          />
+        </Row>
+      </Row>
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc """
+  What a finished import says, above the page it finished: a card with a green
+  `check_circle`, never the red refusal band.
+
+  `Kati.UI.notice/1` is the app's *that did not save* line, in `Palette.red()`,
+  and a successful import was drawn through it — `3 added.` in the colour of a
+  failure. The card is the one board 142 draws its states in (`Kati.Screens.
+  ImportRecognised.notice/3`'s geometry), with the tone that means done.
+  """
+  @spec done_notice(String.t()) :: map()
+  def done_notice(message) do
+    assigns = %{
+      title: gettext("Import finished"),
+      message: message,
+      check: Kati.UI.symbol("check_circle", size: 19, color: Palette.green(), fill: true)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        padding={17}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Row fill_width={true} align="top">
+          {@check}
+          <Spacer size={11} />
+          <Column weight={1.0}>
+            <Text text={@title} text_size={13.5} font_weight="bold" text_color={:on_surface} />
+            <Spacer size={6} />
+            <Text
+              text={@message}
+              text_size={12.5}
+              line_height={1.65}
+              text_color={Palette.ink_soft()}
+            />
+          </Column>
+        </Row>
+      </Column>
+      <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The action pill's word once the import is written — `Imported`, «وارد شد».
+  """
+  @spec done_label() :: String.t()
+  def done_label, do: pgettext("the import action pill, once written", "Imported")
+
+  @doc """
   The step meter's mono kicker — `STEP 1 OF 4`, and «گام ۱ از ۴».
 
   Here rather than in either caller because there are two, and one of them had

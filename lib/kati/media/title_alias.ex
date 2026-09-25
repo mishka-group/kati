@@ -35,6 +35,16 @@ defmodule Kati.Media.TitleAlias do
   `Kati.Import.Job.name_key/1`, which is the comparison every other name in
   this domain uses.
 
+  ## Or said in an export
+
+  The reader's own export is the other place they name a title, and it is
+  written down the same way. When `Kati.Import.Match` moves an imported title
+  onto TMDB's row and TMDB spells it differently — the export's `Sousou no
+  Frieren`, TMDB's `Frieren: Beyond Journey's End` — the export's name is
+  learned here, so the next import of the same file merges into the row
+  (`Kati.Import.Job.shelf/0` reads these) and a player announcing that name
+  is recognised.
+
   ## It is the reader's, not a cache
 
   `on_delete: :delete_all` against `Kati.Media.TrackedTitle`: an alias for a
