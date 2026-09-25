@@ -207,7 +207,7 @@ defmodule Kati.ScreenDayTest do
       # This asked the CATALOGUE for the three titles, because
       # `Kati.Calendar.SampleDay` wraps them in `gettext/1` and screen 09 drew
       # that fixture. It draws real events now, and a real event's summary is
-      # the READER'S OWN WORDS — the thing `Kati.Language.Sample`'s own note
+      # the READER'S OWN WORDS — the thing `Kati.Language.Page.note/0`
       # promises is never translated: "Your own words — notes, list names, meal
       # titles — are never translated. Only the interface changes."
       #

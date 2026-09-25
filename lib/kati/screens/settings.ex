@@ -102,6 +102,17 @@ defmodule Kati.Screens.Settings do
   see `enabled/1` — and `Last backup 14 Aug` now reports a ledger, which is the
   next section.
 
+  ## Every chevron opens something
+
+  Two rows drew a chevron and opened nothing. *Privacy* now opens
+  `Kati.Screens.Privacy` — a privacy row that does nothing is worse than no
+  row, and the store listing needs the page — and its second line no longer
+  claims *Nothing leaves the device*, which TMDB searches make false.
+  *Reorder sections* is gone: `Kati.Sections` keeps no order to change, and
+  `Kati.Settings.Sample.sections/0` says why building one is not a row's worth
+  of work. *Version* keeps its row and loses its chevron — `row/3` draws one only
+  where `tap_for/1` found a destination.
+
   ## The Data group is the door to the two engines nothing was calling
 
   `Kati.Backup` and `Kati.Sync` have both been finished and exercised against
@@ -619,15 +630,24 @@ defmodule Kati.Screens.Settings do
     """
   end
 
-  @doc false
+  @doc """
+  One settings row. A `:chevron` is drawn only on a row that opens something:
+  *Version* states `mix.exs`'s version and leads nowhere, and a chevron beside
+  it promised a page that did not exist. `Kati.Screens.Language.control/2`
+  makes the same call for screen 54's rows.
+  """
   def row(row, pad, rule?) do
+    tap = Kati.Screens.Settings.tap_for(row)
+
     SettingsList.row(
       SettingsList.icon_tile(row.icon),
       SettingsList.body(row.title, Kati.Screens.Settings.sub(row)),
-      Kati.Screens.Settings.control(row.control),
+      Kati.Screens.Settings.control(
+        if(row.control == :chevron and is_nil(tap), do: nil, else: row.control)
+      ),
       padding: pad,
       rule: rule?,
-      on_tap: Kati.Screens.Settings.tap_for(row)
+      on_tap: tap
     )
   end
 
@@ -676,7 +696,8 @@ defmodule Kati.Screens.Settings do
     # could not be read before tapping it, which is why it now carries a
     # second line as well as a destination.
     "clear_history" => Kati.Screens.ClearHistory,
-    "attribution" => Kati.Screens.Attribution
+    "attribution" => Kati.Screens.Attribution,
+    "privacy" => Kati.Screens.Privacy
     # (`dropping` and `anime` were here. Both sheets are arguments for features
     # that now live where a reader meets them — the ⋯ anime toggle and the
     # Library chip, the shelf's own paused/dropped/cold marks and the drop
@@ -706,6 +727,7 @@ defmodule Kati.Screens.Settings do
   end
 
   @doc false
+  def control(nil), do: nil
   def control(:chevron), do: SettingsList.chevron()
   def control({:switch, on?}), do: SettingsList.switch(on?)
 
@@ -835,7 +857,7 @@ defmodule Kati.Screens.Settings do
   end
 
   # Appearance and Sections are the only two groups holding a control that can
-  # move; Data and About are chevrons all the way down. Both lists go through
+  # move; every other group is links and statements. Both lists go through
   # the same function because a title is unique across the screen, so a rule
   # written once cannot hit the wrong row.
   defp put_rows(socket, fun) do

@@ -176,6 +176,24 @@ defmodule Kati.Settings.Sample do
   Each row states which surfaces its section appears on, which is why the
   secondary line is not decoration: turning Music off removes a shelf, and the
   row says so before you touch it.
+
+  ## No *Reorder sections* row
+
+  Board 24 closes this group with *Reorder sections · Drag to change home
+  order* and a chevron. It opened nothing, and there is nothing it could
+  have opened: `Kati.Sections` stores WHICH sections are kept and not in what
+  order — `chosen/0` filters the canonical `all/0` list, so every surface draws
+  sections in one fixed order whatever was written — and no surface reads an
+  order either: Home and Library each filter their own static list by
+  `Kati.Sections.on?/1`. Boards 265 and 266 (`test/design/incoming/`, D-53) draw
+  the page this row would open and say the same thing about themselves: they
+  are waiting on a stored order. Building it means an ordered store, every
+  surface reading it, and a drag-to-reorder list, which Mob does not offer —
+  its only drag gesture belongs to a static canvas, as
+  `Kati.Components.MishkaTree` records.
+  Until then the honest row is no row: a chevron that promises a page and opens
+  none is worse than a list that does not offer the feature. When the store
+  lands, the row comes back with its destination in the same change.
   """
   @spec sections() :: [map()]
   def sections do
@@ -214,13 +232,6 @@ defmodule Kati.Settings.Sample do
         title: gettext("Money"),
         sub: gettext("Calendar feed"),
         control: {:switch, false}
-      },
-      %{
-        id: "reorder_sections",
-        icon: "drag_indicator",
-        title: gettext("Reorder sections"),
-        sub: gettext("Drag to change home order"),
-        control: :chevron
       }
     ]
   end
@@ -368,7 +379,17 @@ defmodule Kati.Settings.Sample do
     ]
   end
 
-  @doc "About — version, the privacy claim the app has to keep, and this phone."
+  @doc """
+  About — version, the privacy claim the app has to keep, and this phone.
+
+  ## The Privacy row says less than the drawing, because the drawing was wrong
+
+  Board 24 prints *Nothing leaves the device* under Privacy, and it is
+  false: a film or series search is a request to TMDB, and so is every poster.
+  The row now says the three things that are true without qualification — no
+  account, no server, no analytics — and opens `Kati.Screens.Privacy`, which
+  states the rest, including exactly what does leave and where it goes.
+  """
   @spec about() :: [map()]
   def about do
     [
@@ -383,7 +404,7 @@ defmodule Kati.Settings.Sample do
         id: "privacy",
         icon: "shield",
         title: gettext("Privacy"),
-        sub: gettext("Nothing leaves the device"),
+        sub: gettext("No account, no server, no analytics"),
         control: :chevron
       },
       %{

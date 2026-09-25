@@ -511,6 +511,28 @@ defmodule Kati.DesignLiterals do
       {"62", "۱,۲۰۴ مورد · ۴ بخش"},
       {"62", "tvmaze، open library، musicbrainz"},
       {"62", "آی‌کلاد · این دستگاه و آی‌پد"},
+      # Board 24's *Reorder sections* row opened nothing, and there is nothing
+      # it could open: `Kati.Sections` keeps which sections are on and not their
+      # order, and no surface reads one. The row is gone rather than a
+      # chevron promising a page — `Kati.Settings.Sample.sections/0` has the
+      # argument. Its Privacy line, *Nothing leaves the device*, is false the
+      # moment a film is searched on TMDB; the row now says *No account, no
+      # server, no analytics* and opens `Kati.Screens.Privacy`, which says what
+      # does leave and where it goes.
+      {"24", "reorder sections"},
+      {"24", "drag to change home order"},
+      {"24", "nothing leaves the device"},
+      # Board 54's *Follows the language* rows were frozen sentences, the same
+      # at every locale. Each now states what the current locale does, from the
+      # function the app acts on — `Kati.Locale.calendar/0`, `numerals/0`,
+      # `week_start/0` — and names the language that set it, the way the
+      # writing-direction row always did: *Gregorian · set by English*, *Latin
+      # 1234 · set by English*, *Monday · set by English*. The other language's
+      # behaviour is one tap away on the picker above, and a line describing it
+      # was a line nothing kept true. `Kati.LanguageFollowsTest` holds all four.
+      {"54", "gregorian · shamsi available"},
+      {"54", "latin 1234 · or persian ۰۱۲۳"},
+      {"54", "monday · saturday in فارسی"},
       # Board 86's note promises a 180 ms debounce and seven counted queries per
       # pause. The search that page opens runs on every keystroke over the
       # reader's own library, so it says so — `Kati.Search.local_note/0`, which

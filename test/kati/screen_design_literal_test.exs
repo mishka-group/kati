@@ -193,6 +193,11 @@ defmodule Kati.ScreenDesignLiteralTest do
     # frame. Same treatment as 330 and 333.
     Kati.Screens.MoreSources,
     Kati.Screens.NotificationsHelp,
+    # No board draws it. Board 24 draws a Privacy row that opened
+    # nothing; this is the page behind it, and every sentence on it is a claim
+    # about the code. `Kati.SettingsPrivacyTest` holds what it draws, including
+    # the list of HTTP callers its network sentence depends on.
+    Kati.Screens.Privacy,
     # Board 114 is a states board like the rest of this wave, and this screen is
     # what finally sits behind three surfaces that have drawn *tap to see why*
     # with nothing under it since they were written.
@@ -309,7 +314,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     # logged — see `DesignLiterals.retired_lines/0`, which holds its words and
     # the argument. 132 is the same card in Persian.
     {"129", "star"},
-    {"132", "star"}
+    {"132", "star"},
+    # Board 24's *Reorder sections* row — see `DesignLiterals.retired_lines/0`,
+    # which holds its words and the argument. The glyph is the row's own tile.
+    {"24", "drag_indicator"}
   ]
 
   # Lines a screen deliberately does not draw, because what carried them is
