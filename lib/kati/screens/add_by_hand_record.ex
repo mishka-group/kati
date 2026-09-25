@@ -485,16 +485,14 @@ defmodule Kati.Screens.AddByHandRecord do
   @doc """
   The quiet note under the button, in five runs.
 
-  Five `<Text>` nodes and not one sentence, for the reason
-  `Kati.Screens.AddByHand.split_note/4` gives: the board writes the emphasis as
-  its own run, and `Kati.ScreenDesignLiteralTest` compares a drawing's lines
-  against the tree's — so a single joined string is a different shape from the
-  drawn one even when it reads the same.
+  Five `<Text>` nodes and not one sentence, because the board writes the
+  emphasis as its own run. Screen 154's own note was built this way and is now
+  one `Text` (`Kati.Screens.AddByHand.note/2`), because a `Column` of runs
+  stacks rather than flows and broke the sentence into lines on the device.
 
-  That costs the translator the sentence's shape, and 154's Persian is the
-  worked answer: it lets the bold run carry the verb — *پوستر و فهرست قسمت
-  ندارد* — so the three runs still read as one sentence in the other direction.
-  This card's Persian follows it.
+  That costs the translator the sentence's shape. The Persian here lets the
+  bold run carry the verb, which is how 154's three runs were translated, so
+  the runs still read as one sentence in the other direction.
 
   `No Status row` is three words and takes `pgettext/2`. A msgid that short is
   what `mix gettext.merge` fuzzy-matches against any sentence that happens to

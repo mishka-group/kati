@@ -801,8 +801,8 @@ defmodule Kati.Screens.BookDetail do
   @doc """
   Five glyphs, `filled` of them solid.
 
-  Whole stars from a ten-point scale, exactly as `Kati.Screens.Film.star_count/1`
-  does it — `9` draws four, because rounding it to five would claim half a star
+  Whole stars from a ten-point scale, as screen 08 drew them before it drew
+  halves — `9` draws four, because rounding it to five would claim half a star
   nobody gave, and the `4.5` beside the row is where the half is said.
   """
   @spec stars(integer() | nil) :: map()

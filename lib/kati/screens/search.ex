@@ -355,8 +355,7 @@ defmodule Kati.Screens.Search do
           {Kati.Screens.Search.field(query, true, Map.get(assigns, :query_epoch, 0))}
           {Kati.Screens.Search.chips(filter, results)}
           {Kati.Screens.Search.state_or_groups(results, filter, history)}
-          {Kati.Screens.Search.section(gettext("Recent"))}
-          {Kati.Screens.Search.recent(results, history, recent)}
+          {Kati.Screens.Search.recent_shelf(results, history, recent)}
         </Column>
       </Scroll>
     </Box>
@@ -381,7 +380,7 @@ defmodule Kati.Screens.Search do
   typing when you can see them.
   """
   def handle_info({:change, :query, typed}, socket) when is_binary(typed) do
-    Kati.Search.Recent.remember(typed)
+    Kati.Search.Recent.remember(typed, Map.get(socket.assigns, :query))
 
     {:noreply,
      socket
@@ -522,6 +521,27 @@ defmodule Kati.Screens.Search do
     end
   end
 
+  # Coming back to this page after something above it was written. A
+  # popped-to screen restores its saved socket (`Kati.Screens.Resume`), so the
+  # results were the ones computed before the reader left: search *quiet*,
+  # open the hand-added film it found, remove it, press back — and the removed
+  # film was still listed, counted, and a tap away from a page about a title
+  # that no longer exists.
+  #
+  # So the query is run again and the history re-read. The query, the chip and
+  # the picked recent are the reader's and stay as they were; the field's epoch
+  # does not move, because the words in it have not changed. This screen is
+  # `use Mob.Screen` rather than `Kati.Screens.Pushed`, so the clause is the
+  # routing, as it is on screens 04 and 08.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    query = Map.get(socket.assigns, :query, "")
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:results, Kati.Search.Query.run(query))
+     |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @doc """
@@ -529,10 +549,16 @@ defmodule Kati.Screens.Search do
 
   `Kati.Screens.Library.open_tile/3`'s rule again, over this screen's own
   group: the tag is resolved by re-running `hit_tag/1` over `results.titles`
-  rather than by reversing the string, and a hit with no id pushes with **no
-  params at all**. A cached title nobody keeps is a real hit — it matched —
-  and there is no shelf row for it to open, so the destination draws its own
-  branch rather than being handed a `nil` to take for an answer.
+  rather than by reversing the string, and a hit with no id pushes **nothing**.
+  A cached title nobody keeps is a real hit — it matched — but there is no
+  shelf row for it to open, and a destination handed no id draws its own
+  fixture branch rather than the title that was tapped.
+
+  The push names `back: "Search"`, because that is where the pill returns to.
+  Screens 04 and 08 default theirs to `Library` — the door almost every push
+  onto them comes through — so a hit opened from here read *Library* over a
+  back that landed on this page. The English word is the catalogue key:
+  `Kati.Screens.Pushed.back_label/2` translates it on the far side.
   """
   @spec open_hit(Mob.Socket.t(), atom(), module()) :: Mob.Socket.t()
   def open_hit(socket, tag, module) do
@@ -549,7 +575,7 @@ defmodule Kati.Screens.Search do
       # second add flow on a screen whose subject is finding things — screen 06
       # is one tap away and is where a title is added.
       nil -> socket
-      id -> Mob.Socket.push_screen(socket, module, %{id: id})
+      id -> Mob.Socket.push_screen(socket, module, %{id: id, back: "Search"})
     end
   end
 
@@ -1521,6 +1547,29 @@ defmodule Kati.Screens.Search do
   def note_lines(note) do
     {inline, rest} = note.tail |> String.split(" ") |> Enum.split(note.inline_words)
     {Enum.join(inline, " "), Enum.join(rest, " ")}
+  end
+
+  @doc """
+  The *Recent* eyebrow and chip rows under the results, or nothing at all.
+
+  Nothing on the idle page, because that page already draws this history:
+  `waiting/1` puts screen 86's *Recent · last 8* card at the top, which is
+  board 312's *it becomes 86*. With this shelf drawn underneath as well, a
+  field opened empty — Activity's search disc, a cleared query — showed every
+  recent query twice, the card above the note and the chips below it. The
+  chips belong to the results page, where they are the way back to a query
+  from the middle of another one.
+  """
+  @spec recent_shelf(map(), [String.t()], String.t() | nil) :: [map()]
+  def recent_shelf(results, history, picked) do
+    if Map.get(results, :idle?, false) do
+      []
+    else
+      [
+        Kati.Screens.Search.section(gettext("Recent")),
+        Kati.Screens.Search.recent(results, history, picked)
+      ]
+    end
   end
 
   @doc false

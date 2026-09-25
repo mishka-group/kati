@@ -29,7 +29,7 @@ defmodule Kati.Search.Recent do
 
   ## Why the write is separate from the read
 
-  `remember/1` is called by the screen that ran the query, not by
+  `remember/2` is called by the screen that ran the query, not by
   `Kati.Search.Query.run/1`. Running a query is what the reference boards do
   when they draw the spec, and a history that filled itself from a render
   would fill with whatever the gallery drew last.
@@ -77,12 +77,28 @@ defmodule Kati.Search.Recent do
   reverse is not true and must not be — typing `Ash` after having searched
   `Ashfall` is a shorter search, not an abandoned longer one, and both are kept
   with the newer first.
+
+  ## A query you were backing out of is not one either
+
+  The same keystroke recording has a second way to fill the shelf, and the
+  rule above cannot see it: backspacing. Searching *hollow* and deleting back
+  to *ho* recorded `hollo`, `holl`, `hol` and `ho` — each shorter than the
+  last, so none was typed *through* by the next, and four of the eight slots
+  went to letters being taken away.
+
+  So `previous` is what the field held one keystroke earlier, and a query that
+  `deleting?/2` says was reached by deleting from it records nothing. It is the
+  TRANSITION that is judged and not the history: `Ash` typed fresh after
+  `Ashfall` was searched arrives from an empty field or from another word,
+  never from `Ashfall` itself, and is kept exactly as the rule above keeps it.
+  A caller with no field behind it — a recent chip, a test — passes nothing and
+  every query it names is recorded.
   """
-  @spec remember(String.t()) :: :ok
-  def remember(query) when is_binary(query) do
+  @spec remember(String.t(), String.t() | nil) :: :ok
+  def remember(query, previous \\ nil) when is_binary(query) do
     trimmed = String.trim(query)
 
-    if Kati.Search.long_enough?(trimmed) do
+    if Kati.Search.long_enough?(trimmed) and not deleting?(trimmed, previous) do
       kept =
         [trimmed | Enum.reject(all(), &passed_through?(trimmed, &1))]
         |> Enum.take(Kati.Search.recent_kept())
@@ -94,6 +110,30 @@ defmodule Kati.Search.Recent do
   rescue
     _error -> :ok
   end
+
+  @doc """
+  Whether `now` was reached by deleting from `before`: strictly shorter than
+  it, and the start of it. Trimmed and compared without regard to case, the way
+  `remember/2` compares what it stores.
+
+      iex> Kati.Search.Recent.deleting?("holl", "hollow")
+      true
+      iex> Kati.Search.Recent.deleting?("Ash", "")
+      false
+      iex> Kati.Search.Recent.deleting?("hollow", "hollo")
+      false
+      iex> Kati.Search.Recent.deleting?("ho", nil)
+      false
+  """
+  @spec deleting?(String.t(), String.t() | nil) :: boolean()
+  def deleting?(now, before) when is_binary(now) and is_binary(before) do
+    now = now |> String.trim() |> String.downcase()
+    before = before |> String.trim() |> String.downcase()
+
+    String.length(now) < String.length(before) and String.starts_with?(before, now)
+  end
+
+  def deleting?(_now, _before), do: false
 
   # An exact repeat, or a word the new query was typed through. Compared
   # case-insensitively for the reason the search itself is: `ash` and `Ash` are

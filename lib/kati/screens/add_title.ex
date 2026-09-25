@@ -316,8 +316,19 @@ defmodule Kati.Screens.AddTitle do
   # criterion — "Persian screens are reachable after onboarding, not only
   # during it" — and it wants one answer for all of them rather than a
   # different `if` on each row that opens one.
-  def handle_info({:tap, :add_by_hand}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand.for_locale())}
+  #
+  # The typed words go with it. The row reads *Add “Quiet Earth Probe” by hand*
+  # and pushed bare, so 154 opened on its placeholder and the reader typed the
+  # name the row had just quoted back at them. Through 154's one-shot
+  # `prefill/1`, the door screen 19's *or add it by hand* already uses, and
+  # for the reason that clause gives: 154 creates a row rather than resolving
+  # one, so a nav param would make it a params reader to
+  # `Kati.ScreenParamsSweepTest` with nothing for that sweep to ask.
+  def handle_info({:tap, :add_by_hand}, socket) do
+    Kati.Screens.AddByHand.prefill(String.trim(Map.get(socket.assigns, :query, "")))
+
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand.for_locale())}
+  end
 
   @doc """
   What was typed into the search field, and the search it eventually runs.

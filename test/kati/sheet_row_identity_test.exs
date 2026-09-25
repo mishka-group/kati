@@ -1224,10 +1224,16 @@ defmodule Kati.SheetRowIdentityTest do
       # 04 answers `empty_series/0` rather than the drawing now. The argument is
       # unchanged — what a named-but-missing row must NOT do is open a different
       # series — only the answer is, and an empty page is the honest one.
+      #
+      # Marked `gone?: true` since N30, so the page says the title has gone
+      # rather than drawing the empty frame — still nothing of another title's.
       gone = Ecto.UUID.generate()
 
-      assert Kati.Screens.Film.film(gone) == Kati.Screens.Film.empty_film()
-      assert Kati.Screens.Series.series(gone) == Kati.Screens.Series.empty_series()
+      assert Kati.Screens.Film.film(gone) ==
+               Map.put(Kati.Screens.Film.empty_film(), :gone?, true)
+
+      assert Kati.Screens.Series.series(gone) ==
+               Map.put(Kati.Screens.Series.empty_series(), :gone?, true)
 
       refute Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series(),
              "a named-but-missing series is drawing the board's own show again"

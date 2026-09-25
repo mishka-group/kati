@@ -342,7 +342,7 @@ defmodule Kati.SearchRunTest do
       # MOVIES-AND-TV.md #130. `query_tag/2` replaced spaces with underscores
       # to make an atom a device test can type, and `open/2` undid it by
       # replacing underscores with spaces — which is not the inverse of
-      # anything. `sci_fi` is stored as typed (`Kati.Search.Recent.remember/1`
+      # anything. `sci_fi` is stored as typed (`Kati.Search.Recent.remember/2`
       # "never translates — they are your words"), tagged `:repeat_query_sci_fi`
       # and came back as `sci fi`: a different search, silently.
       assert Kati.Screens.SearchIdle.resolve("sci_fi", ["sci_fi"]) == "sci_fi"

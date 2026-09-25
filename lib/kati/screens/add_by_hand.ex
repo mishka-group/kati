@@ -71,10 +71,16 @@ defmodule Kati.Screens.AddByHand do
 
   @impl true
   def load(socket) do
+    title = Kati.Screens.AddByHand.take_prefill()
+
     Mob.Socket.assign(socket,
-      # Screen 19's query when the reader arrived through *or add it by hand*,
-      # and `""` every other way in. See `prefill/1`.
-      title: Kati.Screens.AddByHand.take_prefill(),
+      # The query the reader arrived with from screen 19 or 06, and `""` every
+      # other way in. See `prefill/1`.
+      title: title,
+      # 1 when the field was handed words, so the bridge takes them as a
+      # decision rather than an echo — the `K-46 text-field-epoch` fence, and
+      # the arrangement screens 06 and 19 use for a query they open on.
+      title_epoch: if(title == "", do: 0, else: 1),
       kind: :movie,
       year: "",
       status: :not_started,
@@ -86,10 +92,10 @@ defmodule Kati.Screens.AddByHand do
   @doc """
   Leave a title for this screen's next mount, once.
 
-  Screen 19's *or add it by hand* is the only caller: a reader who has just
-  been told nothing matched should not have to type the word the app showed
-  them. `take_prefill/0` deletes as it reads, so it fills that one arrival and
-  no other.
+  Screen 19's *or add it by hand* and screen 06's *Add “…” by hand* are the
+  callers: a reader who has just been told nothing matched should not have to
+  type the word the app showed them. `take_prefill/0` deletes as it reads, so
+  it fills that one arrival and no other.
 
   One-shot for the reason `hand_over/1` below is, and the reason matters more
   here than it looks: `Kati.Search.handed_over/0` is a DETS key nothing clears,
@@ -134,7 +140,7 @@ defmodule Kati.Screens.AddByHand do
       ~MOB"""
       <Column fill_width={true}>
         {Kati.Screens.AddByHand.heading()}
-        {Kati.Screens.AddByHand.labelled(gettext("Title"), Kati.Screens.AddByHand.field(:title, assigns.title, gettext("e.g. The Long Hollow"), Kati.Screens.AddByHand.untitled?(assigns)))}
+        {Kati.Screens.AddByHand.labelled(gettext("Title"), Kati.Screens.AddByHand.field(:title, assigns.title, gettext("e.g. The Long Hollow"), Kati.Screens.AddByHand.untitled?(assigns), Map.get(assigns, :title_epoch, 0)))}
         {Kati.Screens.AddByHand.labelled(gettext("Kind"), Kati.Screens.AddByHand.kinds(assigns.kind))}
         {Kati.Screens.AddByHand.labelled(gettext("Year"), Kati.Screens.AddByHand.field(:year, assigns.year, gettext("2024")), gettext("optional"))}
         {Kati.Screens.AddByHand.labelled(gettext("Status"), Kati.Screens.AddByHand.statuses(assigns.status))}
@@ -142,7 +148,7 @@ defmodule Kati.Screens.AddByHand do
         {Kati.Screens.AddByHand.error(assigns.save_error)}
         {Kati.UI.Sheet.commit(gettext("Add to library"), :add, Kati.Locale.face_prop())}
         <Spacer size={14} />
-        {Kati.Screens.AddByHand.split_note(gettext("A hand-typed title carries"), gettext("no poster and no episode list"), gettext(". If Kati finds it later both arrive, and nothing you typed is overwritten."), Kati.Locale.face_prop())}
+        {Kati.Screens.AddByHand.note(gettext("A hand-typed title carries no poster and no episode list. If Kati finds it later both arrive, and nothing you typed is overwritten."), Kati.Locale.face_prop())}
       </Column>
       """,
       Kati.Screens.Pushed.content_top()
@@ -273,9 +279,10 @@ defmodule Kati.Screens.AddByHand do
   end
 
   @doc false
-  def field(tag, value, placeholder, refused? \\ false) do
+  def field(tag, value, placeholder, refused? \\ false, epoch \\ 0) do
     assigns = %{
       value: value,
+      epoch: epoch,
       placeholder: placeholder,
       on_change: {self(), tag},
       id: Atom.to_string(tag),
@@ -304,6 +311,7 @@ defmodule Kati.Screens.AddByHand do
     >
       <TextField
         value={@value}
+        value_epoch={@epoch}
         placeholder={@placeholder}
         return_key="done"
         weight={1.0}
@@ -464,24 +472,32 @@ defmodule Kati.Screens.AddByHand do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.AddByHand.labelled(gettext("Total episodes"), Kati.Screens.AddByHand.field(:episodes, assigns.episodes, gettext("7")), gettext("optional"))}
-      {Kati.Screens.AddByHand.split_note(gettext("Without it a series still tracks, but its progress bar has"), gettext("no denominator"), gettext("— which the app already draws honestly."), Kati.Locale.face_prop())}
+      {Kati.Screens.AddByHand.note(gettext("Without it a series still tracks, but its progress bar has no denominator — which the app already draws honestly."), Kati.Locale.face_prop())}
       <Spacer size={18} />
     </Column>
     """
   end
 
   @doc """
-  A note whose middle clause is the one that matters.
+  A note under the form, as one flowing sentence.
 
-  Three `<Text>` nodes and not one sentence, because the board draws it that
-  way — the emphasis falls on *no denominator* and *no poster and no episode
-  list*, and `Kati.ScreenDesignLiteralTest` compares a drawing's lines against
-  the tree's, so a single joined string is a different shape from the drawn
-  one even when it reads the same.
+  It was three `<Text>` nodes — lead, bold clause, tail — stacked in a
+  `Column`, because the board sets the clause that matters in bold. A `Column`
+  stacks rather than flows, so on the device the note read as three lines:
+  *A hand-typed title carries* / **no poster and no episode list** / *. If Kati
+  finds it later…*, with the full stop orphaned at the head of the third.
+
+  A `Text` is the only node this bridge wraps, and a `Text` carries one style:
+  `Kati.UI`'s moduledoc records that `MobText` has no `AnnotatedString` and no
+  spans, which is why `Kati.UI.rich_text/1` drops per-run emphasis as well. So
+  the bold goes and the sentence stays whole. Each caller passes one msgid for
+  the same reason — a translator handed three fragments cannot reorder them.
+  `Kati.ScreenDesignLiteralTest` still finds every run the board draws, inside
+  the one string.
   """
-  @spec split_note(String.t(), String.t(), String.t()) :: map()
-  def split_note(lead, emphasis, tail, face \\ "sans") do
-    assigns = %{lead: lead, emphasis: emphasis, tail: tail, face: face}
+  @spec note(String.t(), String.t()) :: map()
+  def note(text, face \\ "sans") do
+    assigns = %{text: text, face: face}
 
     ~MOB"""
     <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding={13} align="top">
@@ -489,22 +505,7 @@ defmodule Kati.Screens.AddByHand do
       <Spacer size={9} />
       <Column weight={1.0}>
         <Text
-          text={@lead}
-          font_family={@face}
-          text_size={12}
-          line_height={1.5}
-          text_color={Palette.ink_soft()}
-        />
-        <Text
-          text={@emphasis}
-          font_family={@face}
-          text_size={12}
-          line_height={1.5}
-          font_weight="semibold"
-          text_color={Palette.ink()}
-        />
-        <Text
-          text={@tail}
+          text={@text}
           font_family={@face}
           text_size={12}
           line_height={1.5}

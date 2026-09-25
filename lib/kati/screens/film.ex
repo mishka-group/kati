@@ -165,6 +165,12 @@ defmodule Kati.Screens.Film do
   # takes the push's params directly where a pushed screen reads them off
   # `assigns.params`. `Map.get/2` and not a pattern match on the key, so a bare
   # push — the gallery's, every sweep's — still takes the drawing's branch.
+  #
+  # `Kati.Screens.Resume.watch/0`, which `Kati.Screens.Pushed`'s macro calls
+  # and a hand-rolled screen has to call itself: it is what tells the page
+  # underneath to re-read however this one is left, the system back gesture
+  # included. Screen 19 listed a film removed from here until it did.
+  # `:id` is the push's own, kept for `handle_info({:kati, :resumed, …})`.
   def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
     # Resolves the stored locale into THIS process. `Gettext.put_locale/2`
@@ -172,9 +178,13 @@ defmodule Kati.Screens.Film do
     # and a screen is its own process — see `Kati.Locale.activate/0`.
     Kati.Locale.activate()
 
+    Kati.Screens.Resume.watch()
+    id = Map.get(params || %{}, :id)
+
     {:ok,
      socket
-     |> Mob.Socket.assign(:film, film(Map.get(params || %{}, :id)))
+     |> Mob.Socket.assign(:film, film(id))
+     |> Mob.Socket.assign(:id, id)
      # `"Library"` stays an English literal and is not wrapped in `gettext/1`:
      # it is the catalogue KEY, not the drawn word. `Kati.Screens.Pushed.
      # back_label/2` translates whatever it is handed at runtime — the pusher's
@@ -196,10 +206,17 @@ defmodule Kati.Screens.Film do
   `id` names the shelf row the caller meant. Without one — the gallery's door,
   and every arrival before there was anything to name — it is the top of the
   film shelf, which is what this screen has always drawn.
+
+  An id the shelf no longer holds answers `empty_film/0` marked `gone?: true`,
+  which `render/1` draws as `gone/2`'s sentence rather than as the frame.
   """
   @spec film(String.t() | nil) :: map()
   def film(id \\ nil) do
-    tracked_film(id) || empty_film()
+    case tracked_film(id) do
+      nil when is_binary(id) -> Map.put(empty_film(), :gone?, true)
+      nil -> empty_film()
+      film -> film
+    end
   end
 
   @doc """
@@ -208,7 +225,8 @@ defmodule Kati.Screens.Film do
   `shaped/3`'s sixteen keys, all of them carrying nothing — the same move
   `Kati.Screens.Series.empty_series/0` makes for screen 04. A reader who owns no
   films is shown an empty frame rather than `Kati.Library.Sample`'s *Blue Hour*
-  and its invented viewing history.
+  and its invented viewing history. A push that named a row which has gone gets
+  this map marked `gone?: true` — see `film/1` — and `gone/2`'s page.
 
   Empty strings and not `nil` wherever the value reaches a `Text`: the
   typesetting helpers take a run and ask what script it is in, so a missing one
@@ -382,7 +400,7 @@ defmodule Kati.Screens.Film do
       # tracked column meant this card drew five empty stars however many times
       # somebody rated the film. Found on a device: rate Arrival four stars,
       # save, reopen, and the card is blank.
-      stars: star_count(newest_rating(watches) || tracked.rating),
+      stars: star_value(newest_rating(watches) || tracked.rating),
       seen: seen_line(watches),
       # The COUNT as well as the sentence: `action_label/2` needs to know
       # whether a rewatch is even a thing yet, and `seen_line/1` answers in
@@ -500,11 +518,6 @@ defmodule Kati.Screens.Film do
     end
   end
 
-  # Ten-point scale to whole glyphs, as `Kati.Screens.Activity.star_count/1`
-  # does it: `9` is four and a half stars and this row draws whole ones, so it
-  # draws four. Rounding 9 up to five would claim half a star nobody gave. An
-  # unrated film is five empty stars, which is what "you have not rated this"
-  # looks like — the card is the user's own rating and is never hidden.
   # The rating on the most recent watch that carries one. Watches arrive newest
   # first, and a rewatch logged without a rating does not erase the rating of
   # the viewing before it — *unrated* is a thing a log can be, and it is not a
@@ -515,8 +528,14 @@ defmodule Kati.Screens.Film do
 
   defp newest_rating(_other), do: nil
 
-  defp star_count(rating) when is_integer(rating), do: div(rating, 2)
-  defp star_count(_rating), do: 0
+  # Ten-point scale to the five-star row, halved and KEPT: `7` is `3.5`, which
+  # `stars/1` draws as three stars and a half, the row screen 33 drew when the
+  # rating was saved. This was `div(rating, 2)`, whole glyphs only, so a 3.5
+  # saved on 33 came back to this card as three. An unrated film is `0`, five
+  # empty stars, which is what "you have not rated this" looks like — the card
+  # is the user's own rating and is never hidden.
+  defp star_value(rating) when is_integer(rating), do: rating / 2
+  defp star_value(_rating), do: 0
 
   # `2 times`. Rows counted against the user's own `rewatch_number`, which
   # `Kati.Media.Watch` says exists precisely for the history that predates Kati:
@@ -591,6 +610,71 @@ defmodule Kati.Screens.Film do
   def render(assigns) do
     f = assigns.film
 
+    if Kati.Screens.Film.gone?(f),
+      do: Kati.Screens.Film.gone(__MODULE__, Map.get(assigns, :back, gettext("Library"))),
+      else: Kati.Screens.Film.page(f, assigns)
+  end
+
+  @doc """
+  Whether `f` is the answer for a push that named a row which has gone.
+
+  `film/1` and `Kati.Screens.Series.series/1` mark it: an id was named and the
+  shelf no longer holds it — removed, archived, deleted on another device. A
+  push that named nothing is a different fact, the gallery's door onto an
+  empty store, and keeps the empty frame.
+  """
+  @spec gone?(map()) :: boolean()
+  def gone?(f), do: Map.get(f, :gone?, false) == true
+
+  @doc """
+  The page for a title that is not on the shelf: one sentence and a way back.
+
+  It drew the detail frame with nothing in it — no title, a green *Watched*
+  pill holding only its tick, an empty `SEEN`, five hollow stars — which reads
+  as a page that failed to load rather than as a title that is gone. Reached by
+  opening a row that was removed underneath the list that showed it, and by a
+  pop back onto a page whose title was removed from above it.
+
+  Nothing on it acts on a title, because there is none: only the back pill, in
+  the same place and with the same label as the page it stands in for.
+  `module` is the screen drawing it, so the root carries that screen's
+  identity — screen 04 draws this too.
+  """
+  @spec gone(module(), String.t()) :: map()
+  def gone(module, back) do
+    assigns = %{identity: Kati.Screens.Identity.of(module), back: back}
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={@identity}
+    >
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
+        {Kati.UI.symbol("info", size: 28, color: Palette.sub())}
+        <Spacer size={14} />
+        <Text
+          text={gettext("This title is no longer in your library")}
+          text_size={22}
+          font_weight="bold"
+          line_height={1.25}
+          text_color={:on_surface}
+        />
+      </Column>
+      <Box fill_width={true} fill_height={true} align="top">
+        <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
+          {Kati.Screens.Film.back_control(@back)}
+        </Row>
+      </Box>
+    </Box>
+    """
+  end
+
+  @doc false
+  def page(f, assigns) do
     ~MOB"""
     <Box
       fill_width={true}
@@ -687,11 +771,24 @@ defmodule Kati.Screens.Film do
   the same place it already had them, and a film nobody has watched leaves no
   node behind at all rather than an empty lozenge or a stray gap above the
   title. Same move as `Kati.Screens.Activity.group/5`, and for the same reason.
+
+  A blank label is nothing too. `empty_film/0` carries `""` here, because a
+  value that reaches a `Text` is a string, and only `nil` had a clause — so the
+  empty frame drew a green lozenge holding a tick and no words.
+
+      iex> Kati.Screens.Film.watched("")
+      []
+      iex> Kati.Screens.Film.watched(nil)
+      []
   """
   @spec watched(String.t() | nil) :: [map()]
   def watched(nil), do: []
 
-  def watched(label) do
+  def watched(label) when is_binary(label) do
+    if String.trim(label) == "", do: [], else: watched_row(label)
+  end
+
+  defp watched_row(label) do
     [Kati.Screens.Film.watched_pill(label), ~MOB"<Spacer size={11} />"]
   end
 
@@ -770,23 +867,28 @@ defmodule Kati.Screens.Film do
   # an English literal there is a Persian page under a Latin pill.
   @doc false
   def chrome(menu?, label \\ gettext("Library"), f \\ %{}) do
-    back = {self(), :back}
-    fill = Palette.chrome_disc()
-    # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
-    # chrome over a photograph, so both controls carry the same lift. Neither
-    # had one, which is why they read as flat stickers on the still.
-    lift = "0 6 16 -8 #991A1917"
-
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        {Kati.Screens.Film.back_pill(back, fill, lift, label)}
+        {Kati.Screens.Film.back_control(label)}
         <Spacer weight={1.0} />
-        {Kati.Screens.Film.more_disc(fill, lift, menu?, f)}
+        {Kati.Screens.Film.more_disc(Palette.chrome_disc(), Kati.Screens.Film.lift(), menu?, f)}
       </Row>
     </Box>
     """
   end
+
+  @doc "The floating back pill as the chrome draws it: this page's fill, lift and tap."
+  @spec back_control(String.t()) :: map()
+  def back_control(label) do
+    Kati.Screens.Film.back_pill({self(), :back}, Palette.chrome_disc(), lift(), label)
+  end
+
+  # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
+  # chrome over a photograph, so both controls carry the same lift. Neither
+  # had one, which is why they read as flat stickers on the still.
+  @doc false
+  def lift, do: "0 6 16 -8 #991A1917"
 
   @doc """
   The floating back pill — Mishka's Pill.
@@ -1004,11 +1106,33 @@ defmodule Kati.Screens.Film do
   # Material Symbols, not U+2605. Plus Jakarta Sans has no star glyph, so the
   # text version rendered as nothing at all — an empty card rather than a
   # missing-glyph box, which is why it read as a layout bug.
-  @doc false
-  def stars(filled) do
+  @doc """
+  The five-star row for a rating on the five-star scale, halves included.
+
+  `Kati.Screens.Rating.stars/2`'s slot rule: whole stars up to the integer
+  part, a half star when the remainder is at least a half, empty stars after.
+  So `3.5` — 7 points of `Kati.Media.Watch.rating` — is three, a half and one
+  empty, which is what screen 33 drew when it was saved.
+  """
+  @spec stars(number()) :: map()
+  def stars(value) do
+    full = trunc(value)
+    half? = value - full >= 0.5
+
+    cells =
+      1..5
+      |> Enum.map(fn i ->
+        cond do
+          i <= full -> Kati.Screens.Film.star(:full)
+          i == full + 1 and half? -> Kati.Screens.Film.star(:half)
+          true -> Kati.Screens.Film.star(:empty)
+        end
+      end)
+      |> Enum.intersperse(Kati.Screens.Film.star_gap())
+
     ~MOB"""
     <Row align="center">
-      {1..5 |> Enum.map(fn i -> Kati.Screens.Film.star(i <= filled) end) |> Enum.intersperse(Kati.Screens.Film.star_gap())}
+      {cells}
     </Row>
     """
   end
@@ -1018,9 +1142,29 @@ defmodule Kati.Screens.Film do
   @doc false
   def star_gap, do: ~MOB"<Box width={2} height={1} />"
 
-  @doc false
-  def star(true), do: Kati.UI.symbol("star", size: 22, color: Palette.accent(), fill: true)
-  def star(false), do: Kati.UI.symbol("star", size: 22, color: Palette.accent())
+  @doc """
+  One star of the row: `:full`, `:empty`, or `:half`.
+
+  The half is `Kati.Screens.Rating.star/1`'s construction at this row's size
+  and in this row's pair of glyphs: the empty (outlined) star, with the filled
+  one over it clipped to its leading half by `clip_width` (fence `K-16`), which
+  clips the draw and leaves measurement alone, so the pair sits in one star's
+  line box beside its neighbours.
+  """
+  @spec star(:full | :empty | :half) :: map()
+  def star(:full), do: Kati.UI.symbol("star", size: 22, color: Palette.accent(), fill: true)
+  def star(:empty), do: Kati.UI.symbol("star", size: 22, color: Palette.accent())
+
+  def star(:half) do
+    ~MOB"""
+    <Box width={22} height={22}>
+      {Kati.UI.symbol("star", size: 22, color: Palette.accent())}
+      <Box width={22} height={22} clip_width={0.5}>
+        {Kati.UI.symbol("star", size: 22, color: Palette.accent(), fill: true)}
+      </Box>
+    </Box>
+    """
+  end
 
   @doc """
   The cream note card, or nothing.
@@ -1550,9 +1694,12 @@ defmodule Kati.Screens.Film do
   # This screen is hand-rolled rather than `Kati.Screens.Pushed`, so nothing
   # routes `{:kati, …}` to a `handle_kati/3` for it; the clause is the routing.
   # The id is re-read off the film on screen so the refresh describes the same
-  # title the arrival did.
+  # title the arrival did — or, when the page is already the one that says the
+  # title has gone, off the push, since that page carries no id of its own and
+  # a `nil` here would open the top of the shelf in its place.
   def handle_info({:kati, :resumed, _payload}, socket) do
-    {:noreply, Mob.Socket.assign(socket, :film, film(Map.get(socket.assigns.film, :tracked_id)))}
+    id = Map.get(socket.assigns.film, :tracked_id) || Map.get(socket.assigns, :id)
+    {:noreply, Mob.Socket.assign(socket, :film, film(id))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
