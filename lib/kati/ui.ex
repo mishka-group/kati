@@ -80,6 +80,28 @@ defmodule Kati.UI do
   end
 
   @doc """
+  A title's original name, under the title on the film and series pages — or
+  nothing.
+
+  The line screen 54's *Title language* switch promises. `nil` comes from
+  `Kati.Locale.original_title/2`, which says no when the switch is off or the
+  original is the same name; the sigil flattens the empty list away.
+  """
+  @spec original_title(String.t() | nil) :: [map()]
+  def original_title(nil), do: []
+
+  def original_title(original) when is_binary(original) do
+    assigns = %{original: original}
+
+    [
+      ~MOB"<Spacer size={5} />",
+      ~MOB"""
+      <Text text={@original} text_size={14} text_color={Palette.meta()} max_lines={1} />
+      """
+    ]
+  end
+
+  @doc """
   A fade from paper up to nothing.
 
   The design uses this twice over: a 120pt band under the dock so content

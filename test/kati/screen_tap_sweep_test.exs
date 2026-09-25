@@ -437,6 +437,12 @@ defmodule Kati.ScreenTapSweepTest do
     # both navigate and the other three chips all move the filter.
     {Kati.Screens.LanguagePick, :choose_en},
     {Kati.Screens.LanguagePick, :choose_fa},
+    # Screen 54's *Title language* switch writes `Kati.Locale.put_original_titles/1`
+    # to `Mob.State`, and the control mount re-reads the value the real tap just
+    # wrote — the blind spot the two entries above are here for. Covered by
+    # `Kati.OriginalTitlesTest`, which asserts the stored choice moves and the
+    # film and series headers follow it.
+    {Kati.Screens.Language, :toggle_original_titles},
     # ── Drawn, reachable, and pushing nothing because the design draws no
     # destination. Screen 66's series row ends in `Next: Low Water` and its
     # ownership row in `Due 27 Aug`; both carry a chevron, and neither a

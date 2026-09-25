@@ -65,6 +65,60 @@ defmodule Kati.Locale do
     activate()
   end
 
+  @doc """
+  Whether a film or series page shows the title's original name under it.
+
+  Screen 54's *Title language* row. It was a switch drawn on with nothing behind
+  it, and no page showed an original title at all (A6). On by default, which is
+  what the drawing shows.
+  """
+  @spec original_titles?() :: boolean()
+  def original_titles? do
+    Mob.State.get(:kati_original_titles) != false
+  end
+
+  @doc "Store the *Title language* choice."
+  @spec put_original_titles(boolean()) :: :ok
+  def put_original_titles(on?) when is_boolean(on?) do
+    Mob.State.put(:kati_original_titles, on?)
+    :ok
+  end
+
+  @doc """
+  The original name to show under a title, or `nil`.
+
+  Only when the reader wants it and it says something the title does not: a
+  name identical to the title, ignoring case and spacing, is the same name.
+
+      iex> Kati.Locale.original_title(%{title: "Spirited Away", title_original: "千と千尋の神隠し"}, true)
+      "千と千尋の神隠し"
+
+      iex> Kati.Locale.original_title(%{title: "Dark", title_original: "dark"}, true)
+      nil
+
+      iex> Kati.Locale.original_title(%{title: "Spirited Away", title_original: "千と千尋の神隠し"}, false)
+      nil
+
+      iex> Kati.Locale.original_title(nil, true)
+      nil
+  """
+  @spec original_title(map() | nil, boolean()) :: String.t() | nil
+  def original_title(cached, on? \\ original_titles?())
+
+  def original_title(%{title: title, title_original: original}, true)
+      when is_binary(original) and original != "" do
+    if same_name?(title, original), do: nil, else: original
+  end
+
+  def original_title(_cached, _on?), do: nil
+
+  defp same_name?(a, b) when is_binary(a) do
+    normal = fn s -> s |> String.downcase() |> String.replace(~r/\s+/u, "") end
+    normal.(a) == normal.(b)
+  end
+
+  defp same_name?(_a, _b), do: false
+
   @doc "Writing direction for a locale."
   @spec direction(atom()) :: :ltr | :rtl
   def direction(:fa), do: :rtl

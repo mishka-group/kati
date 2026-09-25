@@ -371,6 +371,7 @@ defmodule Kati.Screens.Film do
       # `:log_watch` is the tap that has to know which.
       tracked_id: tracked.id,
       title: title_of(cached),
+      original: Kati.Locale.original_title(cached),
       seed: seed_of(tracked, cached),
       meta: meta_line(cached),
       watched: watched_label(tracked, dated, zone),
@@ -667,6 +668,7 @@ defmodule Kati.Screens.Film do
             line_height={1.05}
             text_color={:on_surface}
           />
+          {Kati.UI.original_title(Map.get(f, :original))}
           <Spacer size={9} />
           <Text
             text={f.meta}

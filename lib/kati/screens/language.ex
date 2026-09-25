@@ -122,7 +122,11 @@ defmodule Kati.Screens.Language do
 
   @impl true
   def load(socket) do
-    Mob.Socket.assign(socket, heading: Sample.heading(), locale: Kati.Locale.current())
+    Mob.Socket.assign(socket,
+      heading: Sample.heading(),
+      locale: Kati.Locale.current(),
+      original_titles?: Kati.Locale.original_titles?()
+    )
   end
 
   @doc false
@@ -156,7 +160,10 @@ defmodule Kati.Screens.Language do
         {UI.eyebrow(follows_label)}
         {Kati.Screens.Language.group(Kati.Language.Sample.follows(), 24)}
         {SettingsList.eyebrow_muted(content_label)}
-        {Kati.Screens.Language.group(Kati.Language.Sample.content(), 24)}
+        {Kati.Screens.Language.group(
+          Kati.Screens.Language.settled_content(Map.get(assigns, :original_titles?, true)),
+          24
+        )}
         {Kati.Screens.Language.note()}
       </Column>
     </Scroll>
@@ -508,13 +515,15 @@ defmodule Kati.Screens.Language do
   # `on_tap`, for the reason given above.
   @doc false
   def row(row, rule?) do
+    tap = Kati.Screens.Language.tap(row)
+
     SettingsList.row(
       SettingsList.icon_tile(row.icon),
       Kati.Screens.Language.body(row),
-      Kati.Screens.Language.control(row.control),
+      Kati.Screens.Language.control(row.control, tap),
       padding: 13,
       rule: rule?,
-      on_tap: Kati.Screens.Language.tap(row)
+      on_tap: tap
     )
   end
 
@@ -530,7 +539,23 @@ defmodule Kati.Screens.Language do
   # never translated, so it cannot go the same way.
   @doc false
   def tap(%{icon: "payments"}), do: {self(), :open_currency}
+  def tap(%{icon: "subtitles"}), do: {self(), :toggle_original_titles}
   def tap(_row), do: nil
+
+  @doc """
+  The Content rows, with the *Title language* switch reading the store.
+
+  It was drawn on with nothing behind it, and no page showed an original
+  title (A6). `Kati.Locale.original_titles?/0` is what the film and series
+  headers read now.
+  """
+  @spec settled_content(boolean()) :: [map()]
+  def settled_content(on?) do
+    Enum.map(Kati.Language.Sample.content(), fn
+      %{icon: "subtitles"} = row -> %{row | control: {:switch, on?}}
+      row -> row
+    end)
+  end
 
   # Vazirmatn for the two rows whose second line carries Persian — see the
   # moduledoc. The title stays in the body face; only the line with the glyphs
@@ -556,6 +581,15 @@ defmodule Kati.Screens.Language do
   end
 
   def body(row), do: SettingsList.body(copy(row.title), copy(row.sub))
+
+  # A chevron says *this opens something*. Five of these rows open nothing —
+  # the moduledoc's audit — so they draw no chevron rather than a promise.
+  @doc false
+  def control(:chevron, nil), do: Kati.Screens.Language.control_none()
+  def control(control, _tap), do: Kati.Screens.Language.control(control)
+
+  @doc false
+  def control_none, do: ~MOB"<Spacer size={0} />"
 
   @doc false
   def control(:chevron), do: SettingsList.chevron()
@@ -621,6 +655,11 @@ defmodule Kati.Screens.Language do
 
       "open_currency" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Currency)}
+
+      "toggle_original_titles" ->
+        on? = not Kati.Locale.original_titles?()
+        :ok = Kati.Locale.put_original_titles(on?)
+        {:noreply, Mob.Socket.assign(socket, :original_titles?, on?)}
 
       # `:add_language` lands here. 53.html and 54.html between them draw two
       # installed languages and `Kati.Locale.supported/0` returns two; there is

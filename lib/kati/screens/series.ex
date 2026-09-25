@@ -411,6 +411,7 @@ defmodule Kati.Screens.Series do
   defp no_episodes(tracked, cached) do
     %{
       title: cached && cached.title,
+      original: Kati.Locale.original_title(cached),
       seed: seed_of(tracked, cached),
       tracked_id: tracked.id,
       # Whether Kati tells you about new episodes of this show — the column
@@ -446,6 +447,7 @@ defmodule Kati.Screens.Series do
 
     %{
       title: cached && cached.title,
+      original: Kati.Locale.original_title(cached),
       seed: seed_of(tracked, cached),
       # The row a tick belongs to. Carried on the assembled map rather than
       # re-read in the handler, so the page cannot write a tick against a
@@ -639,6 +641,7 @@ defmodule Kati.Screens.Series do
       # more fact this map used to forget.
       status: Map.get(facts, :status),
       title: facts.title || gettext("Untitled"),
+      original: Map.get(facts, :original),
       seed: facts.seed,
       meta: meta_line(facts),
       season: view.season,
@@ -949,6 +952,7 @@ defmodule Kati.Screens.Series do
             line_height={1.05}
             text_color={:on_surface}
           />
+          {Kati.UI.original_title(Map.get(s, :original))}
           <Spacer size={9} />
           <Text
             text={s.meta}
