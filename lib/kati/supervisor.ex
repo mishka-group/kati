@@ -18,6 +18,12 @@ defmodule Kati.Supervisor do
       it dies on every root switch — so anything holding a subscription, a timer
       or a socket must outlive it. See `Kati.Screens.Root` for the rule and
       `Kati.SupervisionRuleTest` for its enforcement.
+
+  The order of the children after the root screen is not arbitrary:
+  `Kati.Native.TapRelay` starts after it, because a cold launch's
+  notification or widget tap is taken by `Mob.Router`'s own init and the
+  relay must not claim taps until that has happened. `Kati.Widgets.Refresher`
+  keeps the home-screen widget's snapshot current.
   """
   use Supervisor
 
@@ -43,7 +49,9 @@ defmodule Kati.Supervisor do
             restart: :permanent,
             shutdown: 5_000,
             type: :worker
-          }
+          },
+          Kati.Widgets.Refresher,
+          Kati.Native.TapRelay
 
           # Arriving with their own tickets, each of which must live here rather
           # than in a screen because it outlives any single screen:

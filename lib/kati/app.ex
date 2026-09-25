@@ -148,13 +148,6 @@ defmodule Kati.App do
     {:ok, _} = Kati.Supervisor.start_link()
     trace("supervisor")
 
-    # The home-screen widget's own read, off the boot path for the same
-    # reason the artwork backfill below is: first paint must not wait on it.
-    _widget_snapshot =
-      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
-        Kati.Widgets.Snapshot.refresh()
-      end)
-
     # The pictures of titles that have not got one yet — see
     # `Kati.Media.Artwork.backfill/0`. Off the boot path entirely: it is a
     # network round trip per missing poster and the first frame must not wait

@@ -201,6 +201,30 @@ defmodule Kati.Nifs.KatiBridge do
   @spec drain_sessions() :: binary()
   def drain_sessions, do: :erlang.nif_error(:nif_not_loaded)
 
+  # ── K-51: the home-screen widget ────────────────────────────────────────
+
+  @doc """
+  `"ok"` once every placed "continue watching" widget has been asked to redraw
+  from the snapshot, or `"error:<reason>"`.
+
+  Asked, not drawn: Glance's update is a coroutine, so the reply says the
+  request was queued. `Kati.Widgets.Refresher` calls this after each write.
+  """
+  @spec widget_redraw() :: binary()
+  def widget_redraw, do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  Make the calling process the one a tap on a running Kati is delivered to.
+
+  Synchronous, and the only call here that hands Kotlin a pid: `"ok"` means
+  `MobNotifyHub.notifyPid` now names the caller, which then receives
+  `{:mob_launch_notification, json}` for every notification or widget tap
+  that brings Kati to the front. `name` is only logged. See
+  `Kati.Native.TapRelay`.
+  """
+  @spec route_taps(binary()) :: binary()
+  def route_taps(_name), do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """

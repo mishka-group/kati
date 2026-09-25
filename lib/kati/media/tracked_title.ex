@@ -53,7 +53,10 @@ defmodule Kati.Media.TrackedTitle do
   a field that some write paths remember to set is a shelf that reorders at
   random.
   """
-  use Ash.Resource, domain: Kati.Media, data_layer: AshSqlite.DataLayer
+  use Ash.Resource,
+    domain: Kati.Media,
+    data_layer: AshSqlite.DataLayer,
+    simple_notifiers: [Kati.Widgets.Notifier]
 
   sqlite do
     table "tracked_titles"

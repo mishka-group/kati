@@ -1977,6 +1977,47 @@ object MobBridge {
     }
     // KATI-END(K-46 media-session-bridge)
 
+    // KATI-BEGIN(K-51 widget-bridge) mob_new=0.4.33
+    /**
+     * Redraw every placed "continue watching" widget from kati_widget.json.
+     *
+     * `Kati.Widgets.Refresher` calls this after each snapshot it writes. A
+     * Glance widget does not watch the file; without this the home screen
+     * kept the hero it drew at the last cold launch until the next one. The
+     * work is a coroutine in [KatiContinueWidget.redrawAll], so `ok` means
+     * the redraw was queued, not that it has finished.
+     */
+    @JvmStatic
+    fun katiWidgetRedraw(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        return try {
+            KatiContinueWidget.redrawAll(ctx)
+            "ok"
+        } catch (e: Exception) {
+            Log.w("MobBridge", "katiWidgetRedraw failed: ${e.javaClass.simpleName}")
+            "error:redraw_failed"
+        }
+    }
+
+    /**
+     * Route a tap that brings a RUNNING Kati to the front to process [pid].
+     *
+     * `MainActivity.onNewIntent` delivers a tap's `mob_notification_json` to
+     * `MobNotifyHub.notifyPid`, which only the mob_notify plugin ever set —
+     * and Kati does not carry that plugin (`K-30 drop-push`). With the pid at
+     * 0 the payload was stored for a router init that never came, so a
+     * notification or widget tap on a running app went nowhere. The caller is
+     * `Kati.Native.TapRelay`, which forwards what it receives to Mob's router.
+     * [name] is only for the log.
+     */
+    @JvmStatic
+    fun katiRouteTaps(pid: Long, name: String) {
+        io.mob.plugin.MobNotifyHub.notifyPid = pid
+        Log.i("MobBridge", "taps on a running app now go to $name")
+    }
+    // KATI-END(K-51 widget-bridge)
+
     // KATI-BEGIN(K-43 open-url) mob_new=0.4.20
     /**
      * Hand a URL to whatever the phone opens URLs with.

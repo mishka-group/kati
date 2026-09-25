@@ -184,6 +184,7 @@ defmodule Kati.Backup.Restore do
 
     case result do
       {:ok, counts} ->
+        Kati.Widgets.Notifier.poke()
         {:ok, report(counts, manifest, mode, safety)}
 
       {:error, %Error{} = error} ->

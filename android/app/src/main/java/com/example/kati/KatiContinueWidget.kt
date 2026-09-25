@@ -3,85 +3,340 @@
 // Reads kati_widget.json — written by Kati.Widgets.Snapshot on the Elixir
 // side — and never touches kati.db or the BEAM. See KatiRefreshWorker.kt for
 // why a widget (like the periodic worker) cannot boot a headless BEAM.
+//
+// What the file can hold (all keys optional; the BEAM drops a key rather than
+// writing JSON null):
+//
+//   hero.title / hero.meta   the two lines Up next's hero card draws
+//   hero.poster              absolute path of a poster ALREADY on the device,
+//                            under filesDir/artwork. Absent means no picture;
+//                            nothing here ever draws a stand-in.
+//   hero.id / hero.kind      which title a tap opens (Kati.Widgets.Launch)
+//   empty.title / .action    the empty state's words, in the reader's Kati
+//                            language, which the launcher cannot know
+//
+// Redrawn when the BEAM asks (MobBridge.katiWidgetRedraw -> redrawAll), which
+// Kati.Widgets.Refresher does after every snapshot it writes.
 package com.example.kati
 
 import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
+import androidx.glance.LocalSize
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
+import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-/** What Kati.Widgets.Snapshot.put/2 last wrote, or null if unreadable. */
-private data class ContinueHero(val title: String, val meta: String)
+private const val TAG = "KatiContinueWidget"
+private const val SNAPSHOT_FILE = "kati_widget.json"
+private const val ARTWORK_DIR = "artwork"
 
-private fun readHero(context: Context): ContinueHero? =
+// Mob's own extra: MainActivity hands it to Mob.Router exactly as it does a
+// notification tap's payload, so the widget needs no Activity code of its own.
+private const val TAP_EXTRA = "mob_notification_json"
+
+// Posters are downloaded at TMDB's w342; nothing here draws one wider.
+private const val POSTER_MAX_WIDTH_PX = 342
+
+// Bumped by redrawAll. A running Glance session does NOT re-run provideGlance
+// on update() — it only re-reads its state — so the snapshot is read inside
+// the composition, keyed on this, and a new stamp is what makes it re-read.
+private val SNAPSHOT_STAMP = longPreferencesKey("kati_snapshot_stamp")
+
+// The three sizes the widget lays out for (SizeMode.Responsive picks the
+// largest that fits). Below ROW there is no room for a poster beside the text.
+private val COMPACT = DpSize(110.dp, 40.dp)
+private val ROW = DpSize(180.dp, 60.dp)
+private val TALL = DpSize(180.dp, 110.dp)
+
+private data class ContinueHero(
+    val title: String,
+    val meta: String,
+    val poster: String?,
+    val id: String?,
+    val kind: String?
+)
+
+private data class EmptyCopy(val title: String, val action: String)
+
+/** What Kati.Widgets.Snapshot.put/2 last wrote. Both null if unreadable. */
+private data class WidgetSnapshot(val hero: ContinueHero?, val empty: EmptyCopy?)
+
+private fun JSONObject.text(key: String): String? =
+    if (has(key) && !isNull(key)) optString(key).takeIf { it.isNotEmpty() } else null
+
+private fun readSnapshot(context: Context): WidgetSnapshot =
     try {
-        val file = File(context.filesDir, "kati_widget.json")
+        val file = File(context.filesDir, SNAPSHOT_FILE)
         if (!file.isFile) {
-            null
+            WidgetSnapshot(null, null)
         } else {
-            val hero = JSONObject(file.readText()).optJSONObject("hero")
-            hero?.let { ContinueHero(it.getString("title"), it.getString("meta")) }
-        }
-    } catch (e: Exception) {
-        Log.w("KatiContinueWidget", "unreadable snapshot: ${e.javaClass.simpleName}")
-        null
-    }
-
-class KatiContinueWidget : GlanceAppWidget() {
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val hero = readHero(context)
-
-        provideContent {
-            GlanceTheme {
-                Column(
-                    modifier =
-                        GlanceModifier.fillMaxSize()
-                            .background(GlanceTheme.colors.background)
-                            .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    if (hero == null) {
-                        Text(
-                            text = "Nothing queued",
-                            style =
-                                TextStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    color = GlanceTheme.colors.onBackground
-                                )
-                        )
-                    } else {
-                        Text(
-                            text = hero.title,
-                            style =
-                                TextStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    color = GlanceTheme.colors.onBackground
-                                )
-                        )
-                        Text(
-                            text = hero.meta,
-                            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant)
+            val root = JSONObject(file.readText())
+            val hero =
+                root.optJSONObject("hero")?.let { h ->
+                    h.text("title")?.let { title ->
+                        ContinueHero(
+                            title = title,
+                            meta = h.text("meta") ?: "",
+                            poster = h.text("poster"),
+                            id = h.text("id"),
+                            kind = h.text("kind")
                         )
                     }
                 }
+            val empty =
+                root.optJSONObject("empty")?.let { e ->
+                    val title = e.text("title")
+                    val action = e.text("action")
+                    if (title != null && action != null) EmptyCopy(title, action) else null
+                }
+            WidgetSnapshot(hero, empty)
+        }
+    } catch (e: Exception) {
+        Log.w(TAG, "unreadable snapshot: ${e.javaClass.simpleName}")
+        WidgetSnapshot(null, null)
+    }
+
+/**
+ * The downloaded poster at [path], or null.
+ *
+ * Only a file directly inside filesDir/artwork — where Kati.Media.Artwork
+ * writes — is read, so a snapshot can never point this at anything else on
+ * the device. Decoded at most POSTER_MAX_WIDTH_PX wide: RemoteViews carry
+ * their bitmaps across processes and the launcher caps the total.
+ */
+private fun loadPoster(context: Context, path: String?): Bitmap? {
+    if (path == null) return null
+
+    return try {
+        val artwork = File(context.filesDir, ARTWORK_DIR).canonicalFile
+        val file = File(path).canonicalFile
+
+        if (file.parentFile != artwork || !file.isFile) {
+            null
+        } else {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, bounds)
+
+            var sample = 1
+            while (bounds.outWidth / (sample * 2) >= POSTER_MAX_WIDTH_PX) sample *= 2
+
+            BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+        }
+    } catch (e: Exception) {
+        Log.w(TAG, "poster not drawn: ${e.javaClass.simpleName}")
+        null
+    }
+}
+
+/**
+ * What a tap starts: MainActivity, carrying a payload Mob.Router delivers to
+ * the current screen as {:notification, %{data: ...}} (Kati.Widgets.Launch).
+ *
+ * The hero opens its own page; the empty state opens the add sheet. A hero
+ * written by an older build has no id, and then the tap only opens the app.
+ */
+private fun tapIntent(context: Context, hero: ContinueHero?): Intent {
+    val data = JSONObject()
+
+    if (hero == null) {
+        data.put("kati_open", "add")
+    } else {
+        hero.id?.let { id ->
+            data.put("kati_open", "title").put("id", id)
+            hero.kind?.let { data.put("kind", it) }
+        }
+    }
+
+    val payload =
+        JSONObject().put("id", "kati_widget").put("source", "local").put("data", data)
+
+    return Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        putExtra(TAP_EXTRA, payload.toString())
+    }
+}
+
+class KatiContinueWidget : GlanceAppWidget() {
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(COMPACT, ROW, TALL))
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            val stamp = currentState(SNAPSHOT_STAMP) ?: 0L
+            val snapshot = remember(stamp) { readSnapshot(context) }
+            val poster = remember(stamp, snapshot.hero?.poster) {
+                loadPoster(context, snapshot.hero?.poster)
+            }
+
+            GlanceTheme { WidgetBody(snapshot, poster) }
+        }
+    }
+
+    companion object {
+        private val redrawScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        /**
+         * Re-read the snapshot into every placed widget. Called from
+         * MobBridge.katiWidgetRedraw on a BEAM thread, so it only queues the
+         * work: Glance's update API is suspending.
+         */
+        @JvmStatic
+        fun redrawAll(context: Context) {
+            val app = context.applicationContext
+
+            redrawScope.launch {
+                try {
+                    val ids = GlanceAppWidgetManager(app).getGlanceIds(KatiContinueWidget::class.java)
+                    val stamp = System.currentTimeMillis()
+                    val widget = KatiContinueWidget()
+
+                    for (glanceId in ids) {
+                        updateAppWidgetState(app, glanceId) { prefs -> prefs[SNAPSHOT_STAMP] = stamp }
+                        widget.update(app, glanceId)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "redraw failed: ${e.javaClass.simpleName}")
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun WidgetBody(snapshot: WidgetSnapshot, poster: Bitmap?) {
+    val context = LocalContext.current
+    val size = LocalSize.current
+    val compact = size.width < ROW.width || size.height < ROW.height
+    val tall = size.height >= TALL.height
+    val pad = if (compact) 8.dp else 12.dp
+    val hero = snapshot.hero
+
+    Row(
+        modifier =
+            GlanceModifier.fillMaxSize()
+                .background(GlanceTheme.colors.background)
+                .padding(pad)
+                .clickable(actionStartActivity(tapIntent(context, hero))),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (hero != null && poster != null && !compact) {
+            Image(
+                provider = ImageProvider(poster),
+                contentDescription = null,
+                modifier =
+                    GlanceModifier.width((size.height - pad * 2) * (2f / 3f))
+                        .fillMaxHeight()
+                        .cornerRadius(8.dp),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = GlanceModifier.width(12.dp))
+        }
+
+        Column(
+            modifier = GlanceModifier.defaultWeight(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.Start
+        ) {
+            val twoLines = !compact || size.height >= 56.dp
+
+            if (hero == null) {
+                EmptyLines(snapshot.empty, compact, showAction = twoLines)
+            } else {
+                HeroLines(hero, compact, tall, showMeta = twoLines)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroLines(hero: ContinueHero, compact: Boolean, tall: Boolean, showMeta: Boolean) {
+    Text(
+        text = hero.title,
+        style =
+            TextStyle(
+                fontWeight = FontWeight.Bold,
+                fontSize = if (compact) 14.sp else 16.sp,
+                color = GlanceTheme.colors.onBackground
+            ),
+        maxLines = if (tall) 2 else 1
+    )
+
+    if (showMeta && hero.meta.isNotEmpty()) {
+        Text(
+            text = hero.meta,
+            style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onSurfaceVariant),
+            maxLines = 1
+        )
+    }
+}
+
+/**
+ * The honest empty state, and an offer: the whole widget opens the add sheet,
+ * and says so on its second line wherever there is height for one.
+ * The words come from the snapshot, in Kati's language; the string resources
+ * only cover a widget placed before Kati has written one.
+ */
+@Composable
+private fun EmptyLines(copy: EmptyCopy?, compact: Boolean, showAction: Boolean) {
+    val context = LocalContext.current
+
+    Text(
+        text = copy?.title ?: context.getString(R.string.kati_continue_widget_empty_title),
+        style =
+            TextStyle(
+                fontWeight = FontWeight.Bold,
+                fontSize = if (compact) 14.sp else 16.sp,
+                color = GlanceTheme.colors.onBackground
+            ),
+        maxLines = 1
+    )
+
+    if (showAction) {
+        Text(
+            text = copy?.action ?: context.getString(R.string.kati_continue_widget_empty_action),
+            style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.primary),
+            maxLines = 1
+        )
     }
 }
 
