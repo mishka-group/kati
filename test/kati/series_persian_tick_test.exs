@@ -109,7 +109,7 @@ defmodule Kati.SeriesPersianTickTest do
       # zero-width non-joiner that keeps قسمت‌ها one word, and `inspect`
       # escapes it to `\\u200C` — so a literal in the source never matches a
       # literal in an inspected tree, however right the screen is.
-      drawn = text(Series.episodes(%{episodes: [], tracked_id: "x"}))
+      drawn = text(Series.episodes(%{episodes: [], tracked_id: "x", by_hand?: true}))
 
       assert drawn =~ "هنوز فهرست قسمت‌ها نیست."
       assert drawn =~ "این را دستی اضافه کرده‌اید"
@@ -119,7 +119,16 @@ defmodule Kati.SeriesPersianTickTest do
         assert drawn =~ row, "board 249's #{row} row is missing"
       end
 
-      assert drawn =~ "اینجا دکمهٔ اصلی نیست."
+      refute drawn =~ "اینجا دکمهٔ اصلی نیست.",
+             "board 249's footnote is a note to the designer, not to a reader"
+    end
+
+    test "and a series from a provider says the list is on its way, in Persian" do
+      drawn = text(Series.episodes(%{episodes: [], tracked_id: "x", by_hand?: false}))
+
+      refute drawn =~ "این را دستی اضافه کرده‌اید"
+      refute drawn =~ "Its source has not listed"
+      assert drawn =~ Series.pending_note()
     end
 
     test "and its chevrons point the way a Persian reader travels" do
@@ -135,7 +144,7 @@ defmodule Kati.SeriesPersianTickTest do
     test "and the three rows act rather than being a picture of three rows" do
       drawn = inspect(Series.episodes(%{episodes: [], tracked_id: "x"}), limit: :infinity)
 
-      for tag <- [":rate_title", ":open_drop_sheet", ":remove_title"] do
+      for tag <- [":rate_title", ":open_drop_sheet", ":confirm_remove"] do
         assert drawn =~ tag, "board 249's row for #{tag} carries no tap"
       end
     end

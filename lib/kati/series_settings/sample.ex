@@ -1,6 +1,7 @@
 defmodule Kati.SeriesSettings.Sample do
   @moduledoc """
-  Stand-in per-show settings, until the Screen domain exists.
+  Board 35's own per-show settings — the design fallback screen 35 draws when
+  no show is named, and the source of the three status tiles' labels.
 
   Screen 35's caption states the decision this data encodes: *"explicit
   per-show state — watching, paused or dropped as a first-class choice rather
@@ -24,14 +25,13 @@ defmodule Kati.SeriesSettings.Sample do
   every other word on the page: the show's name, the three status labels, and
   the title and sub-line of all eleven rows.
 
-  Four of those rows are not a picture. `Kati.Screens.SeriesSettings.season_pass/1`
-  and `status_tiles/1` keep reading this file over a REAL show as well, because
-  what a switch does does not change with whose show it is — so these msgids
-  are most of what a reader with a library sees here too, not just what the
-  gallery draws. They are wrapped where they are declared and not a second time
-  in the screen: one msgid per string, wherever the string lives, and a screen
-  that made its own copy of a fixture's copy would be two strings to keep in
-  step.
+  Only the three status tiles are read over a REAL show:
+  `Kati.Screens.SeriesSettings.status_tiles/1` lights them from the row and
+  keeps their labels, because the words for a status do not change with whose
+  show it is, and `change_for/2` matches a tap against their `:status` atoms.
+  Every other row here is the board's alone — a real show draws its own
+  season-pass and region rows, with the same msgids wherever it says the same
+  thing, so the catalogue holds one entry each.
 
   Every group is a FUNCTION and none of them is an attribute, which matters now
   that they hold `gettext/1`: a module attribute is evaluated at COMPILE time
@@ -128,8 +128,6 @@ defmodule Kati.SeriesSettings.Sample do
         # app writes one — `Kati.Screens.ClearHistory`'s bookmark is
         # `S%{s} · E%{e}` — so a translation can put فصل in front of a numeral
         # in the reader's own digits instead of carrying a Latin `S4` across.
-        # The sub-line survives over a real show (see the screen's moduledoc):
-        # it says what the switch DOES rather than where this show is.
         sub: gettext("S%{n} will appear when announced", n: Kati.Locale.number(4)),
         control: {:switch, true}
       },

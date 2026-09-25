@@ -775,7 +775,14 @@ defmodule Kati.ScreenParamsSweepTest do
   # renders agree again, so this list may only shrink.
   @gone_pages [
     {Kati.Screens.Film, :id},
-    {Kati.Screens.Series, :id}
+    {Kati.Screens.Series, :id},
+    # Screen 14 reads `:id` and says the show has gone for one that has; with
+    # no id and no series on the shelf it says there is none.
+    {Kati.Screens.SeriesMeta, :id},
+    # Screen 35 reads `:tracked_id` and says the show has gone rather than
+    # drawing board 35 — whose switches would sit over a row that is not
+    # there. A push naming nothing is the design fallback, the board whole.
+    {Kati.Screens.SeriesSettings, :tracked_id}
   ]
 
   # Readers named by hand, so a scan that stops matching fails loudly instead of
@@ -859,19 +866,7 @@ defmodule Kati.ScreenParamsSweepTest do
   # names `params` in code is a reader the scan finds. A row here is a claim
   # that a screen names it and means something else, and it needs a sentence
   # saying what.
-  @not_readers [
-    # Screen 14 says `params` once, and it is the back pill's word rather than
-    # its subject: `Kati.Screens.Pushed.back_label(params, "Series")`, so a
-    # page opened from the series says `Series` where it used to say `Library`
-    # on every arrival. What it DRAWS is `Kati.Screens.SeriesMeta.Sample` on
-    # every arrival, and its moduledoc spends a screenful on why — the cast,
-    # two of the three ratings, the offers, the tags and the trailer are the
-    # third thing a provider says about a title, and `Kati.Media` has nowhere
-    # to put any of it. So there is no id for a push to name and nothing this
-    # screen could do with one; counting it a reader would arm the fallback
-    # lock over a key it will never read.
-    Kati.Screens.SeriesMeta
-  ]
+  @not_readers []
 
   # What the app's own screens reach, with the board index left out. Counted
   # WITHOUT `Kati.Screens.Gallery` for the reason the guard itself gives: the

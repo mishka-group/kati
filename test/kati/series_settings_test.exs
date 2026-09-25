@@ -1,25 +1,21 @@
 defmodule Kati.SeriesSettingsTest do
   @moduledoc """
-  Screen 35, the settings page that saved nothing.
+  Screen 35 over a real show: every row a reader sees is that show's own
+  column or the reader's own device setting, and every row writes or opens
+  something.
 
-  Eleven rows, three tiles and four switches, every one
-  of them without an `on_tap`. Four of the switches sat directly over columns
-  `Kati.Media.TrackedTitle` had carried since it was written — with the
-  drawing's own four positions as their defaults — and the three Status tiles
-  over `TrackedTitle.status`, which takes exactly those three values.
+  Three faces are pinned — a real show, a show that has gone, and no show at
+  all — because the second used to fall to the third: a push whose show had
+  been removed drew board 35 whole, *Long Hollow*'s status and all eleven of
+  its rows, in front of the reader who had just removed their own show.
 
-  What kept them frozen was a rule, not a missing schema: half of the screen
-  would have become the reader's own and half would have stayed a picture,
-  which is the arrangement `Kati.Screens.Series` rejects. The rule holds and it
-  named the wrong unit — the half with no schema is two whole GROUPS, and a
-  group with nothing behind it is dropped. So the assertions here come in
-  pairs: what the tiles and switches now write, and what the page stops drawing
-  the moment it has a real show to draw it for.
+  The writes are pressed through `handle_tap/2`, the control a reader presses,
+  and read back out of `Kati.Media.TrackedTitle` rather than off the socket,
+  because a socket assign is exactly what a control that moves first and
+  writes nothing would also produce.
 
-  `Kati.ScreenTapSweepTest` can see none of this. It renders against an empty
-  store, where `show/1` answers the board and every tile and switch answers
-  `nil` — the sweep's own blind spot, a screen whose controls exist only over
-  data. Hence the real row below, and the taps pressed against it.
+  `Kati.ScreenTapSweepTest` can see none of this: it renders against an empty
+  store, where there is no show and every tile and switch is a picture.
   """
 
   use Mob.ScreenCase, async: false
@@ -27,6 +23,10 @@ defmodule Kati.SeriesSettingsTest do
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Screens.SeriesSettings
+  alias Kati.Services.Service
+
+  doctest SeriesSettings,
+    only: [params_for: 1, change_for: 2, notify_line: 1, region_line: 1, services_line: 1]
 
   @prefix "series-settings-"
 
@@ -34,6 +34,7 @@ defmodule Kati.SeriesSettingsTest do
     on_exit(fn ->
       Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
+      Kati.Repo.query!("DELETE FROM services WHERE name LIKE ?1", [@prefix <> "%"])
     end)
 
     %{tracked: tracked!()}
@@ -47,20 +48,54 @@ defmodule Kati.SeriesSettingsTest do
       assert show.tracked.id == tracked.id
     end
 
-    test "and is its own empty page when the push named nobody" do
+    test "is the board, with no taps, when the push named nobody" do
       show = SeriesSettings.show(%{})
 
+      assert show == SeriesSettings.empty_show()
       assert show.tracked == nil
+      refute Map.get(show, :gone?, false)
 
-      assert show == SeriesSettings.empty_show(),
-             "a page reached without a show named the board's own Long Hollow — on a " <>
-               "screen whose switches write to a title"
-
-      refute show.title == Kati.SeriesSettings.Sample.show().title
+      page = drawn(show)
+      assert page =~ "Auto-add new seasons"
+      assert page =~ "Preferred quality"
+      refute page =~ ":pass_"
+      refute page =~ ":status_"
+      refute page =~ ":open_region"
     end
 
-    test "and is the drawing's when the push named a show that has gone" do
-      assert SeriesSettings.show(%{tracked_id: Ecto.UUID.generate()}).tracked == nil
+    test "says the show has gone when the push named one that is not there" do
+      show = SeriesSettings.show(%{tracked_id: Ecto.UUID.generate()})
+
+      assert show.gone?
+      assert show.tracked == nil
+
+      page = drawn(show)
+
+      assert page =~ "This title is no longer in your library"
+
+      for board_word <- [
+            "Auto-add new seasons",
+            "Preferred quality",
+            "Remove from library",
+            "Watching",
+            "United Kingdom"
+          ] do
+        refute page =~ board_word,
+               "a push whose show has gone drew the board's #{inspect(board_word)}"
+      end
+
+      refute page =~ "on_tap"
+    end
+
+    test "and a show removed while the page sat under a sheet is gone on the way back", %{
+      tracked: tracked
+    } do
+      socket = socket_over(tracked)
+      Ash.destroy!(tracked)
+
+      {:noreply, back} = SeriesSettings.handle_kati(:resumed, nil, socket)
+
+      assert back.assigns.show.gone?
     end
   end
 
@@ -79,22 +114,10 @@ defmodule Kati.SeriesSettingsTest do
 
       assert id == tracked.id
     end
-
-    test "and a drawn series hands it nothing, so it draws the board" do
-      socket =
-        Kati.Screens.Series
-        |> Mob.Socket.new()
-        |> Mob.Socket.assign(:series, Kati.Screens.Series.drawn_series())
-        |> Mob.Socket.assign(:menu?, true)
-
-      {:noreply, pushed} = Kati.Screens.Series.handle_info({:tap, :open_settings}, socket)
-
-      assert {:push, SeriesSettings, %{}} = Map.get(pushed.__mob__, :nav_action)
-    end
   end
 
   describe "the three Status tiles" do
-    test "light from the row rather than from the fixture", %{tracked: tracked} do
+    test "light from the row", %{tracked: tracked} do
       lit = fn show ->
         show |> SeriesSettings.status_tiles() |> Enum.find(& &1.on) |> Map.get(:label)
       end
@@ -106,30 +129,15 @@ defmodule Kati.SeriesSettingsTest do
       assert lit.(SeriesSettings.show(%{tracked_id: tracked.id})) == "Dropped"
     end
 
-    test "write the status they name", %{tracked: tracked} do
+    test "write the status they name, and it reads back from the store", %{tracked: tracked} do
       {:noreply, socket} = press(tracked, :status_paused)
 
       assert socket.assigns.show.tracked.status == :paused
       assert Ash.get!(TrackedTitle, tracked.id).status == :paused
+      assert lit_label(tracked) == "Paused"
     end
 
-    test "and the one already lit writes the same value rather than going dead", %{
-      tracked: tracked
-    } do
-      {:noreply, socket} = press(tracked, :status_watching)
-
-      assert socket.assigns.show.tracked.status == :watching
-      assert Ash.get!(TrackedTitle, tracked.id).status == :watching
-    end
-
-    test "all three carry a tap over a real show, not only the one already lit", %{
-      tracked: tracked
-    } do
-      # The whole finding restated for one clause: `status/1` has an on-state
-      # arm and an off-state arm, and the off-state arm computed the tap and
-      # then drew a `Box` without it. Two of the three tiles were dead, which
-      # is the two you press to CHANGE anything. Asserted on the drawn tree
-      # rather than on `status_tap/1`, because `status_tap/1` was right.
+    test "all three carry a tap over a real show", %{tracked: tracked} do
       taps =
         %{tracked_id: tracked.id}
         |> SeriesSettings.show()
@@ -138,84 +146,123 @@ defmodule Kati.SeriesSettingsTest do
 
       assert [{_a, :status_watching}, {_b, :status_paused}, {_c, :status_dropped}] = taps
     end
-
-    test "are drawn without taps over the board, so nothing can be written onto it" do
-      Enum.each(SeriesSettings.status_tiles(SeriesSettings.show(%{})), fn tile ->
-        assert SeriesSettings.status_tap(tile) == nil
-        assert Map.get(SeriesSettings.status(tile).props, :on_tap) == nil
-      end)
-    end
   end
 
-  describe "the four season-pass switches" do
-    test "read the columns that had no reader", %{tracked: tracked} do
+  describe "the season pass over a real show" do
+    test "is the two switches something reads, lit from their columns", %{tracked: tracked} do
       tracked
       |> Ash.Changeset.for_update(:update, %{
-        auto_add_new_seasons: false,
+        notify_new_episodes: false,
         hide_unwatched_titles: true
       })
       |> Ash.update!()
 
-      assert [false, true, true, true] =
-               %{tracked_id: tracked.id}
-               |> SeriesSettings.show()
-               |> SeriesSettings.season_pass()
-               |> Enum.map(fn %{control: {:switch, on?}} -> on? end)
+      rows = SeriesSettings.season_pass(SeriesSettings.show(%{tracked_id: tracked.id}))
+
+      assert Enum.map(rows, & &1.title) == ["Tell me about episodes", "Hide unwatched titles"]
+      assert Enum.map(rows, & &1.control) == [{:switch, false}, {:switch, true}]
     end
 
-    test "flip the column they sit over, and only that one", %{tracked: tracked} do
+    test "draws no switch over a column nothing in the app reads", %{tracked: tracked} do
+      page = drawn(SeriesSettings.show(%{tracked_id: tracked.id}))
+
+      refute page =~ "Auto-add new seasons"
+      refute page =~ "Put air dates on calendar"
+      refute page =~ "S4 will appear when announced"
+    end
+
+    test "each switch flips its own column, and only that one", %{tracked: tracked} do
       {:noreply, _socket} = press(tracked, :pass_notify_new_episodes)
 
       fresh = Ash.get!(TrackedTitle, tracked.id)
 
       refute fresh.notify_new_episodes
+      refute fresh.hide_unwatched_titles
       assert fresh.auto_add_new_seasons
       assert fresh.add_air_dates_to_calendar
-      refute fresh.hide_unwatched_titles
-    end
 
-    test "and the flip survives leaving the screen and coming back", %{tracked: tracked} do
       {:noreply, _socket} = press(tracked, :pass_hide_unwatched_titles)
 
-      assert %{control: {:switch, true}, tap: {_pid, :pass_hide_unwatched_titles}} =
+      assert Ash.get!(TrackedTitle, tracked.id).hide_unwatched_titles
+
+      assert [{:switch, false}, {:switch, true}] =
                %{tracked_id: tracked.id}
                |> SeriesSettings.show()
                |> SeriesSettings.season_pass()
-               |> List.last()
+               |> Enum.map(& &1.control)
     end
 
-    test "carry no tags at all over the board", %{tracked: _tracked} do
-      Enum.each(SeriesSettings.season_pass(SeriesSettings.show(%{})), fn row ->
-        refute Map.has_key?(row, :tap)
-      end)
+    test "a tag for a column the page does not draw writes nothing", %{tracked: tracked} do
+      {:noreply, _socket} = press(tracked, :pass_auto_add_new_seasons)
+
+      assert Ash.get!(TrackedTitle, tracked.id).auto_add_new_seasons
+    end
+
+    test "the reminder row says when the Release watcher has turned every show off", %{
+      tracked: tracked
+    } do
+      Kati.Settings.Watcher.put_new_episodes(false)
+
+      [notify, _hide] = SeriesSettings.season_pass(SeriesSettings.show(%{tracked_id: tracked.id}))
+
+      assert notify.sub == "New episodes is off in Release watcher"
+
+      Kati.Settings.Watcher.put_new_episodes(true)
+
+      [notify, _hide] = SeriesSettings.season_pass(SeriesSettings.show(%{tracked_id: tracked.id}))
+
+      assert notify.sub == "Inbox only, no push"
     end
   end
 
-  describe "the two groups with nothing behind them" do
-    test "are drawn whole over the board", %{tracked: _tracked} do
-      board = drawn(SeriesSettings.show(%{}))
-
-      assert board =~ "REGION & AVAILABILITY"
-      assert board =~ "THIS SHOW"
-      assert board =~ "Preferred quality"
-    end
-
-    test "and are dropped over a real show rather than left as a picture", %{tracked: tracked} do
+  describe "region and services over a real show" do
+    test "are the reader's own, not the board's", %{tracked: tracked} do
       page = drawn(SeriesSettings.show(%{tracked_id: tracked.id}))
 
-      refute page =~ "REGION & AVAILABILITY"
-      refute page =~ "THIS SHOW"
+      assert page =~ "REGION & AVAILABILITY"
+      assert page =~ "Pick your country"
+      assert page =~ SeriesSettings.services_line(Kati.Services.subscribed_names())
+      refute page =~ "United Kingdom"
+      refute page =~ "Lumen+"
+      refute page =~ "Watch for price drops"
       refute page =~ "Preferred quality"
-      refute page =~ "Remove from library"
     end
 
-    test "so what is left on a real show is the two the reader owns", %{tracked: tracked} do
+    test "follow what the reader set, re-read on the way back", %{tracked: tracked} do
+      socket = socket_over(tracked)
+
+      Kati.Services.put_region("DE")
+      Ash.create!(Service, %{name: @prefix <> "Orbit", tier: :subscribed})
+
+      {:noreply, back} = SeriesSettings.handle_kati(:resumed, nil, socket)
+
+      [region, services] = SeriesSettings.region_rows(back.assigns.show)
+
+      assert region.sub == "Germany"
+      assert services.sub =~ @prefix <> "Orbit"
+    end
+
+    test "open the pages that set them", %{tracked: tracked} do
+      {:noreply, region} = press(tracked, :open_region)
+
+      assert {:push, Kati.Screens.CountryPicker, _} = Map.get(region.__mob__, :nav_action)
+
+      {:noreply, services} = press(tracked, :open_services)
+
+      assert {:push, Kati.Screens.MyServices, %{back: "Show settings"}} =
+               Map.get(services.__mob__, :nav_action)
+    end
+  end
+
+  describe "This show" do
+    test "is the board's alone", %{tracked: tracked} do
+      assert drawn(SeriesSettings.show(%{})) =~ "THIS SHOW"
+
       page = drawn(SeriesSettings.show(%{tracked_id: tracked.id}))
 
-      assert page =~ "STATUS"
-      assert page =~ "SEASON PASS"
-      assert page =~ "Auto-add new seasons"
-      assert page =~ "Severance"
+      refute page =~ "THIS SHOW"
+      refute page =~ "Remove from library"
+      refute page =~ "Reset progress"
     end
   end
 
@@ -237,12 +284,24 @@ defmodule Kati.SeriesSettingsTest do
     end
   end
 
+  defp lit_label(tracked) do
+    %{tracked_id: tracked.id}
+    |> SeriesSettings.show()
+    |> SeriesSettings.status_tiles()
+    |> Enum.find(& &1.on)
+    |> Map.get(:label)
+  end
+
   defp press(tracked, tag), do: SeriesSettings.handle_tap(tag, socket_over(tracked))
 
   defp socket_over(tracked) do
+    params = %{tracked_id: tracked.id}
+
     SeriesSettings
     |> Mob.Socket.new()
-    |> Mob.Socket.assign(:show, SeriesSettings.show(%{tracked_id: tracked.id}))
+    |> Mob.Socket.assign(:params, params)
+    |> Mob.Socket.assign(:menu?, false)
+    |> Mob.Socket.assign(:show, SeriesSettings.show(params))
   end
 
   defp drawn(show) do

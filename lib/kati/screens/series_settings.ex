@@ -2,121 +2,84 @@ defmodule Kati.Screens.SeriesSettings do
   @moduledoc """
   Screen 35 — per-show settings, pushed under Series.
 
-  Built to `test/design/screens/35.html`. Three grouped lists in the usual
-  card rhythm, over one thing that is not a list: the **Status** row, where
+  Built to `test/design/screens/35.html`. Grouped lists in the usual card
+  rhythm, over one thing that is not a list: the **Status** row, where
   watching / paused / dropped are three tiles of equal weight with one filled
   ink. The design's caption is explicit that this is the point — state as "a
   first-class choice rather than a swipe action" — so it is drawn as a choice
   and not as a switch with a hidden third value.
 
-  The last eyebrow's dash is grey rather than accent. Orange means new or now,
-  and **This show** is a set of things you do *to* the show — reset, archive,
-  remove — rather than a peer of the two groups above it, so it takes
-  `Kati.UI.SettingsList.eyebrow_muted/1`.
-
-  The final row is the only one in the Settings subtree drawn in `#B4553C`:
-  a red tile, a red label and no second line. It gets its own leading and body
-  here rather than a `danger:` flag threaded through the shared helper, which
-  would put a colour decision inside a component that has no opinion about
-  meaning.
-
   No dock — this is a pushed screen — so the frame closes at 40, not 132.
 
-  ## Components, and the Status row that is not one
+  ## Three faces, decided by the push
 
-  `danger_tile/1` is `Kati.Components.MishkaThemeIcon` — the same component
-  `Kati.UI.SettingsList.icon_tile/1` gives every other row here, differing only
-  in the colour it is handed, which is the point: the red is a decision this
-  file makes, and the container has no opinion about meaning.
+  `show/1` reads `:tracked_id` off the push and answers one of three maps:
 
-  **The three Status tiles stay hand-rolled**, and no vendored component is
-  close. They are not segments of a strip: each is a `Column` with a 21pt glyph
-  *above* a label, each carries its own shadow (the chosen one a heavier, tighter
-  `0 12px 24px -14px` than its two neighbours), and each takes `weight: 1.0` so
-  the three split the row. `MishkaSegmentedControl` lays a single `Text` per
-  segment with no icon slot and no vertical stack; `MishkaChip` and `MishkaPill`
-  both put their content in a `Row`, which would set the glyph *beside* the
-  label rather than over it, and neither takes a per-item layout weight. What
-  they would need is a content slot that is a `Column` — which is a different
-  component, not a prop.
+    * **A real show.** Every row is that show's own column or the reader's own
+      device setting, and every row writes or opens something. See below.
+    * **A show that has gone.** The id named a row that is no longer there —
+      removed on screen 04 while this page sat under it, or a stale push. The
+      page says so, in `Kati.Screens.Film.gone/2`'s sentence, and draws nothing
+      that could write onto a row that is not there. It used to fall to the
+      board, which put *Long Hollow*'s eleven rows in front of a reader who had
+      just removed their own show.
+    * **No show named at all.** The design fallback: board 35 whole, from
+      `Kati.SeriesSettings.Sample`, with no tap on any tile or switch. Nothing
+      in the app pushes this page bare — screen 04's ⋯ and
+      `Kati.Screens.ShowPages` always name the show — so only the gallery, the
+      sweeps and `Kati.ScreenDesignLiteralTest` see it.
 
-  ## What this screen reads, and the two groups it drops
+  ## What a real show draws, and where each value comes from
 
-  Every control here was inert, including four switches
-  whose columns already existed on `Kati.Media.TrackedTitle` with matching
-  defaults and no other reader or writer anywhere in the app, and three Status
-  tiles that map onto `Kati.Media.TrackedTitle.status` exactly.
+    * **Status** — three tiles lit from `Kati.Media.TrackedTitle.status`, each
+      writing its own value (`write/2`).
+    * **Season pass** — two switches, `notify_new_episodes` and
+      `hide_unwatched_titles`, each flipping its own column. Both have readers:
+      the first is `Kati.Media.Release.alarm_at/3`'s per-show gate behind the
+      bell's inbox, the second is screen 04's spoiler-safe episode names and
+      screen 144's headline. The first one's sub-line says so when the global
+      *New episodes* switch in the Release watcher has turned every show off.
+    * **Region & availability** — the reader's country
+      (`Kati.Services.chosen_region/0`) and the services they pay for
+      (`Kati.Services.subscribed_names/0`), which are what decide what screen
+      14's *Where to watch* says about this show. Each row opens the page that
+      sets it — screen 94 and screen 92 — and `handle_kati/3` re-reads both
+      when the reader comes back.
 
-  The moduledoc that stood here argued they had to stay that way, and its
-  reason was a good one: *half of this screen would become the user's own and
-  half would stay a picture*, which is the arrangement `Kati.Screens.Series`
-  rejects because half real reads as fully real. It named the wrong unit. The
-  half with no schema is not scattered rows — it is two whole GROUPS:
+  ## What a real show does not draw, and why
 
-    * **Region & availability** — `Region · United Kingdom`, `My services ·
-      Lumen+, Orbit, Kino · 3 of 12`, `Watch for price drops` and `Preferred
-      quality · 4K HDR where offered`. App-level preferences and a subscription
-      list, none of them per-show and none of them stored.
-    * **This show** — reset, archive, remove. Things you do *to* a show, and
-      the three of them want writers this screen is not the place to add.
+  Board 35 draws four more rows and a whole group that have nothing behind
+  them, and a row that shows a setting nothing stores or nothing reads is a
+  picture of a setting:
 
-  A group with nothing behind it is dropped rather than drawn dead, which is
-  the rule screen 14's `band/4` settled when its cast, offers and tags bands
-  started falling away one at a time, and the one screen 92's `free_band/1`
-  keeps. So over a real show this page is the Status tiles and the Season pass,
-  both of them entirely the reader's, and nothing else — see `show/1` and
-  `region_band/1`. Over no show — the gallery, every sweep, a push that named
-  nothing — it is board 35 whole, groups included.
+    * *Auto-add new seasons* and *Put air dates on calendar* sit over
+      `auto_add_new_seasons` and `add_air_dates_to_calendar`, which the store
+      keeps and nothing in the app reads — seasons arrive with every cache
+      refresh whatever the switch says, and no calendar feed draws air dates.
+      A switch that flips a column nothing consults is a control that does
+      nothing, so both rows are left off until something reads them.
+    * *Watch for price drops* and *Preferred quality* have no column and no
+      reader anywhere.
+    * **This show** — reset, archive, remove. Removing is on screen 04's own ⋯
+      behind a confirmation; reset has no writer; and archiving would take the
+      show off `:shelf`, which every page under it reads through, so the page
+      the reader came from would answer that the show had gone.
 
-  One sub-line the board draws is still the board's on **both** branches: `S4
-  will appear when announced`, under *Auto-add new seasons*. It belongs to a
-  row whose switch now writes, and it says what the switch DOES rather than
-  where this show is, so it is copy rather than a frozen claim.
+  The write rule is screen 34's: the control follows the store, so a switch
+  moves only after `write/2`'s update answers.
 
-  `Currently 5 of 7 in S2` is not its twin and this paragraph used to pair
-  them. It sits under *Reset progress*, in the group that goes: it is a claim
-  about where the reader is in a season, it has nothing behind it, and over a
-  real show it is not drawn at all. The distinction is the finding's own —
-  copy survives the fold, a figure does not — and pairing the two read as
-  though a frozen `5 of 7` were being shown to somebody whose show it is.
+  ## Words
 
-  A switch that flips and forgets would still be worse than one that visibly
-  does nothing — that part of the old argument holds, and it is why `write/2`
-  moves the control only after the store answers.
+  Chrome and the real rows' copy are this file's `gettext/1` calls. The board
+  fallback's words are `Kati.SeriesSettings.Sample`'s, wrapped where they are
+  declared; the two share msgids wherever they say the same thing, so a real
+  show and the board cannot say different things in Persian. The show's own
+  title is read out of the release cache and is not a msgid.
 
-  ## Which of board 35's words this file owns, and which it only draws
-
-  mishka-group/kati#103, and the line does **not** fall where `show/1`'s two
-  branches do:
-
-    * **This file** writes five strings, all of them chrome: the subtitle, the
-      *Status* and *Season pass* eyebrows, the *Region & availability* and
-      *This show* ones, and `Untitled`. Those are wrapped here.
-    * **`Kati.SeriesSettings.Sample`** writes every other word on the page —
-      the show's name, the three status labels, and the title and sub-line of
-      all eleven rows. `season_pass/1` and `status_tiles/1` keep reading them
-      over a REAL show as well, because what a switch does does not change
-      with whose show it is, so the Sample's strings are not the drawing's
-      alone: they are most of what a reader with a library sees here too.
-      They are wrapped where they are declared and not a second time here —
-      one msgid per string, wherever the string lives, and a screen that made
-      its own copy of a fixture's copy would be two strings to keep in step.
-
-  The show's own title is neither: `title_of/1` reads it out of the release
-  cache, and a name somebody's library holds is not a msgid.
+  `back: "Series"` stays the English label: `Kati.Screens.Pushed` translates a
+  back-pill label at runtime through `Kati.Screens.Pushed.back_vocabulary/0`,
+  which carries `Series` and `Show settings` both.
   """
-  # `back: "Series"` stays the English label, and so does the `"Show settings"`
-  # handed to `Kati.Screens.ShowPages.handle/4` in `handle_tap/2`.
-  # `Kati.Screens.Pushed` translates a back-pill label at RUNTIME — its
-  # `translated/1` looks the ENGLISH up in the catalogue — and the label lands
-  # in a module attribute on the way, where `gettext/1` would be evaluated at
-  # COMPILE time and frozen in whichever locale the compiler was in.
-  #
-  # Something else has to keep the two msgids alive for the extractor, which
-  # reads literal call sites and nothing else: `Series` is in
-  # `Kati.Screens.Pushed.back_vocabulary/0`, and `Show settings` is not — it
-  # survives on screen 04's own menu row (`Kati.Screens.Series`) and nowhere
-  # else, which is thinner than the vocabulary list it belongs in.
   use Kati.Screens.Pushed, back: "Series"
   use Gettext, backend: Kati.Gettext
 
@@ -126,6 +89,8 @@ defmodule Kati.Screens.SeriesSettings do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  @pass_columns [:notify_new_episodes, :hide_unwatched_titles]
+
   @impl true
   def load(socket) do
     socket
@@ -134,12 +99,21 @@ defmodule Kati.Screens.SeriesSettings do
   end
 
   @doc """
-  The push screen 04's ⋯ sends: which show its *Show settings* row was over.
+  Coming back from the country picker, My services or a sibling page: read the
+  show and the reader's region and services again, and close the ⋯.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:show, Kati.Screens.SeriesSettings.show(socket.assigns.params))
+     |> Mob.Socket.assign(:menu?, false)}
+  end
 
-  The same shape `Kati.Screens.DropSheet.params_for/1` takes and for the same
-  reason — this page WRITES, so a bare push is a settings page that saves onto
-  whichever row `show/1` happened to find rather than the one the user opened
-  the menu on.
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+
+  @doc """
+  The push screen 04's ⋯ sends: which show its *Show settings* row was over.
 
       iex> Kati.Screens.SeriesSettings.params_for(%{tracked_id: "abc"})
       %{tracked_id: "abc", back: "Series"}
@@ -152,40 +126,30 @@ defmodule Kati.Screens.SeriesSettings do
   def params_for(_row), do: %{}
 
   @doc """
-  The show this page is about: the reader's, or the drawing's.
+  The show this page is about: the reader's, one that has gone, or none.
 
-  The moduledoc below argued that every control here had
-  to stay inert because *half of this screen would become the user's own and
-  half would stay a picture*. That is the right rule and it named the wrong
-  unit: the half that has no schema is two whole GROUPS — *Region &
-  availability* and *This show* — and a group with nothing behind it is
-  dropped rather than drawn dead. Screen 14 settled that shape when its bands
-  started falling away one at a time, and screen 92 kept it for its own *Free
-  with ads* band.
-
-  So over a real show this page is the Status tiles and the Season pass, both
-  of them entirely the reader's, and nothing else. Over no show it is board 35
-  whole, which is what the gallery and every sweep render.
+  See the moduledoc for the three faces. An id that names no row answers the
+  empty page marked `gone?: true`, never the board.
   """
   @spec show(map() | nil) :: map()
   def show(params) do
-    case Kati.Screens.SeriesSettings.tracked(Map.get(params || %{}, :tracked_id)) do
-      nil -> Kati.Screens.SeriesSettings.empty_show()
-      tracked -> Kati.Screens.SeriesSettings.shaped(tracked)
+    case Map.get(params || %{}, :tracked_id) do
+      id when is_binary(id) ->
+        case Kati.Screens.SeriesSettings.tracked(id) do
+          nil -> Map.put(Kati.Screens.SeriesSettings.empty_show(), :gone?, true)
+          tracked -> Kati.Screens.SeriesSettings.shaped(tracked)
+        end
+
+      _none ->
+        Kati.Screens.SeriesSettings.empty_show()
     end
   end
 
   @doc """
-  The page with no show on it.
+  The page with no show on it: `shaped/1`'s keys, carrying nothing.
 
-  `shaped/1`'s keys with the title emptied. It was `Kati.SeriesSettings.Sample.
-  show/0` — the board's own *Long Hollow* — so a page reached without a show
-  named one, on a screen whose switches WRITE to a title.
-
-  `region_label` and `this_show_label` stay nil, which is what
-  `region_band/1` and `this_show_band/1` already read to decide whether to draw
-  their groups at all: both bands are the drawing's, both are dropped over a
-  real show, and an empty page is not a reason to bring them back.
+  `tracked: nil` is what sends every group to the board's own rows, which is
+  the design fallback — see the moduledoc.
   """
   @spec empty_show() :: map()
   def empty_show do
@@ -196,6 +160,8 @@ defmodule Kati.Screens.SeriesSettings do
       season_pass_label: gettext("Season pass"),
       region_label: nil,
       this_show_label: nil,
+      region: nil,
+      services: [],
       tracked: nil
     }
   end
@@ -213,90 +179,99 @@ defmodule Kati.Screens.SeriesSettings do
 
   def tracked(_none), do: nil
 
-  @doc false
+  @doc """
+  A real show, shaped for the page.
+
+  The title is the release cache's, through `title_of/1`. `region` and
+  `services` are the reader's own device settings, read here once rather than
+  on every render, and read again by `handle_kati/3` on the way back from the
+  pages that set them.
+  """
+  @spec shaped(struct()) :: map()
   def shaped(tracked) do
     %{
       title: Kati.Screens.SeriesSettings.title_of(tracked),
-      # The board's own three words, written here rather than read off the
-      # Sample, because this is the branch the Sample never reaches — a real
-      # show draws its own name above them. Same msgids as
-      # `Kati.SeriesSettings.Sample.show/0`'s, so the catalogue holds one
-      # entry each and the two branches cannot say different things in
-      # Persian.
       subtitle: gettext("show settings"),
       status_label: gettext("Status"),
       season_pass_label: gettext("Season pass"),
       region_label: nil,
       this_show_label: nil,
+      region: Kati.Services.chosen_region(),
+      services: Kati.Services.subscribed_names(),
       tracked: tracked
     }
   end
 
-  @doc false
+  @doc """
+  The show's name, out of the release cache through
+  `Kati.Media.Release.cached_for/1` — the one place that stands in for the
+  value-pair join between a tracked row and its cache row.
+
+  A tracked row whose cache entry has been evicted still has settings worth
+  changing, so it opens as *Untitled* rather than refusing to open. That word
+  is Kati saying it does not know a name, so it is a msgid; a name out of
+  somebody's library is not.
+  """
+  @spec title_of(struct()) :: String.t()
   def title_of(tracked) do
-    # `Kati.Media.Release.cached_for/1` rather than a second copy of the query.
-    # The durable half references the cache by a VALUE PAIR and not a foreign
-    # key — see `Kati.Media.TrackedTitle` — and that function is the one place
-    # that stands in for the join, so it is also the one place that has to be
-    # right about it.
     case Kati.Media.Release.cached_for(tracked) do
       %{title: title} when is_binary(title) and title != "" -> title
-      # A tracked row whose cache entry has been evicted still has settings
-      # worth changing, so the page opens with a name it can stand behind
-      # rather than refusing to open at all.
-      #
-      # The one word on this line that IS a msgid. Everything else `title_of/1`
-      # can answer is a name out of somebody's library, and a name is not
-      # translated — but *Untitled* is Kati saying it does not know one, which
-      # is the app's own sentence and reads as English on a Persian page.
-      # Five other screens already say بی‌عنوان for exactly this.
       _evicted -> gettext("Untitled")
     end
   rescue
     _error -> gettext("Untitled")
   end
 
-  # The four columns of the season pass, in the order the drawing lists their
-  # rows. One list rather than two: `season_pass/1` reads it to light the
-  # switches and `change_for/2` reads it to decide whether a tag names a column
-  # at all, so the two cannot drift into flipping different things.
-  @pass_columns [
-    :auto_add_new_seasons,
-    :notify_new_episodes,
-    :add_air_dates_to_calendar,
-    :hide_unwatched_titles
-  ]
-
   @doc """
-  The four switches of the season pass, live over a real show.
+  The season pass: the board's four switches as pictures, or a real show's
+  two live ones.
 
-  Every one of them is a column `Kati.Media.TrackedTitle` has carried since it
-  was written, with a matching default and — until this — no reader and no
-  writer anywhere in the app. The board's own sub-lines are kept: they say what
-  each one DOES, which does not change with whose show it is.
+  Each live row's tap is on the whole 44pt row, the shape screen 25 settled,
+  and is built from the column's own name so `change_for/2` can read it back.
   """
   @spec season_pass(map()) :: [map()]
   def season_pass(%{tracked: nil}), do: Sample.season_pass()
 
   def season_pass(%{tracked: t}) do
-    Sample.season_pass()
-    |> Enum.zip(Enum.map(@pass_columns, &{&1, Map.fetch!(t, &1)}))
-    |> Enum.map(fn {row, {field, on?}} ->
-      # The tap goes on the ROW and the control stays a picture, which is the
-      # shape screen 25 settled: `Kati.UI.SettingsList.row/4` takes the
-      # `on_tap`, so the whole 44pt line is the target rather than a 46x28
-      # switch somebody has to hit.
-      row
-      |> Map.put(:control, {:switch, on?})
-      |> Map.put(:tap, {self(), String.to_atom("pass_" <> Atom.to_string(field))})
-    end)
+    [
+      %{
+        icon: "notifications",
+        title: gettext("Tell me about episodes"),
+        sub: Kati.Screens.SeriesSettings.notify_line(Kati.Settings.Watcher.new_episodes?()),
+        control: {:switch, t.notify_new_episodes},
+        tap: {self(), :pass_notify_new_episodes}
+      },
+      %{
+        icon: "visibility_off",
+        title: gettext("Hide unwatched titles"),
+        sub: gettext("Spoiler-safe episode names"),
+        control: {:switch, t.hide_unwatched_titles},
+        tap: {self(), :pass_hide_unwatched_titles}
+      }
+    ]
   end
 
   @doc """
-  The three status tiles, lit from the row rather than from the fixture.
+  What *Tell me about episodes* does, given the Release watcher's global
+  *New episodes* switch.
 
-  `Kati.Media.TrackedTitle.status` maps onto them exactly, which is what made
-  this the easiest half of the screen to believe was hard.
+      iex> Kati.Screens.SeriesSettings.notify_line(true)
+      "Inbox only, no push"
+
+      iex> Kati.Screens.SeriesSettings.notify_line(false)
+      "New episodes is off in Release watcher"
+
+  With the global switch off, `Kati.Notifications.Sources.Media.followed/0`
+  arms nothing for any show, so this row's own switch has no effect until it is
+  on again — and the sub-line says so rather than describing a reminder that
+  will not come.
+  """
+  @spec notify_line(boolean()) :: String.t()
+  def notify_line(true), do: gettext("Inbox only, no push")
+  def notify_line(false), do: gettext("New episodes is off in Release watcher")
+
+  @doc """
+  The three status tiles, lit from the row rather than from the fixture.
   """
   @spec status_tiles(map()) :: [map()]
   def status_tiles(%{tracked: nil}), do: Sample.statuses()
@@ -309,7 +284,11 @@ defmodule Kati.Screens.SeriesSettings do
     end)
   end
 
-  @doc false
+  @doc """
+  The page: the gone sentence, or the groups.
+  """
+  def content(%{show: %{gone?: true}}), do: Kati.Screens.SeriesSettings.gone_body()
+
   def content(assigns) do
     show = assigns.show
 
@@ -340,19 +319,34 @@ defmodule Kati.Screens.SeriesSettings do
   end
 
   @doc """
+  The page for a push whose show has gone: one sentence under the back pill,
+  and nothing that could write onto a row that is not there. The sentence is
+  `Kati.Screens.Film.gone/2`'s, so the three pages that can find their show
+  gone say it the same way.
+  """
+  @spec gone_body() :: map()
+  def gone_body do
+    ~MOB"""
+    <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
+      {Kati.UI.symbol("info", size: 28, color: Palette.sub())}
+      <Spacer size={14} />
+      <Text
+        text={gettext("This title is no longer in your library")}
+        text_size={22}
+        font_weight="bold"
+        line_height={1.25}
+        text_color={:on_surface}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
   The tap on a status tile, or `nil` on the drawing.
 
   The already-lit tile keeps its tap: pressing *Watching* on a show that is
-  already watching writes the same value, which is the ordinary way somebody
-  checks a state rather than changes it, and a tile that went dead once chosen
-  would be a control that stops answering exactly when you press it to be sure.
-
-  `Kati.ScreenTapSweepTest` never sees any of these, and not because they are
-  exempt: it renders against an empty store, where there is no tracked row, so
-  every tile answers `nil` and the sweep has no tag to sweep. That is the blind
-  spot the sweep's own moduledoc names — a screen whose controls only exist
-  over data draws none of them for it — and it is why `Kati.SeriesSettingsTest`
-  writes a real row and presses the tiles itself.
+  already watching writes the same value, which is how somebody checks a state
+  rather than changes it.
   """
   @spec status_tap(map()) :: {pid(), atom()} | nil
   def status_tap(%{tracked: %{}, status: status}),
@@ -361,16 +355,12 @@ defmodule Kati.Screens.SeriesSettings do
   def status_tap(_drawn), do: nil
 
   @doc """
-  Flip one season-pass switch, or set the status — the whole of what this
-  screen can write, and it could write none of it.
+  Flip one season-pass switch, or set the status.
 
-  Every column named here is one `Kati.Media.TrackedTitle` has carried since it
-  was written, with no other reader or writer in the app: four switches and
-  three tiles sat over columns matching them by name and did nothing.
-
-  The screen follows the store — the switch moves after the write answers —
-  which is the rule screen 34's ticks keep for the same reason: a control that
-  moves first is showing a state the database does not hold.
+  The screen follows the store — the control moves after the update answers —
+  which is the rule screen 34's ticks keep: a control that moves first is
+  showing a state the database does not hold. A row that has gone, or a tag
+  this screen does not own, leaves the socket as it was.
   """
   @spec write(Mob.Socket.t(), atom()) :: Mob.Socket.t()
   def write(socket, tag) do
@@ -392,33 +382,32 @@ defmodule Kati.Screens.SeriesSettings do
       iex> Kati.Screens.SeriesSettings.change_for(:status_paused, %{})
       {:ok, %{status: :paused}}
 
+      iex> Kati.Screens.SeriesSettings.change_for(:pass_hide_unwatched_titles, %{hide_unwatched_titles: false})
+      {:ok, %{hide_unwatched_titles: true}}
+
+      iex> Kati.Screens.SeriesSettings.change_for(:pass_auto_add_new_seasons, %{})
+      :error
+
       iex> Kati.Screens.SeriesSettings.change_for(:something_else, %{})
       :error
 
-  The tag is `:status_paused` and not `:status_Paused`, which is what this
-  example used to claim: `status_tap/1` builds it out of the tile's `:status`
-  ATOM through `Kati.Screens.AddByHand.tag/2`, and the match below is against
-  `Atom.to_string(&1.status)` — so a capitalised tag answers `:error` and
-  writes nothing. The old example was the shape from before the tag stopped
-  being built out of the tile's LABEL, which is the same defect #157 records
-  for the Kind chips: a control that renames itself when the language changes.
-  Nothing doctests this module, so the example said so undisturbed.
+  The column is looked up in the live list rather than made with
+  `String.to_existing_atom/1`, so a tag naming a column this page does not draw
+  answers `:error` instead of flipping it. The status is matched against the
+  tile's `:status` atom, never its label, so the tag does not change with the
+  language.
   """
   @spec change_for(atom(), map()) :: {:ok, map()} | :error
   def change_for(tag, tracked) do
     case Atom.to_string(tag) do
       "pass_" <> field ->
-        # `@pass_columns` rather than `String.to_existing_atom/1`: every atom
-        # in the app already exists, so that call would happily turn a typo
-        # into a key and `Map.fetch!/2` would raise inside a tap handler —
-        # which on a pushed screen is a dead process and a bounce to Home.
         case Enum.find(@pass_columns, &(Atom.to_string(&1) == field)) do
           nil -> :error
           key -> {:ok, %{key => not Map.fetch!(tracked, key)}}
         end
 
       "status_" <> key ->
-        case Enum.find(Kati.SeriesSettings.Sample.statuses(), &(Atom.to_string(&1.status) == key)) do
+        case Enum.find(Sample.statuses(), &(Atom.to_string(&1.status) == key)) do
           nil -> :error
           tile -> {:ok, %{status: tile.status}}
         end
@@ -429,6 +418,14 @@ defmodule Kati.Screens.SeriesSettings do
   end
 
   @impl true
+  def handle_tap(:open_region, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.CountryPicker)}
+
+  def handle_tap(:open_services, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.MyServices, %{back: "Show settings"})}
+
   def handle_tap(tag, socket) do
     case Kati.Screens.ShowPages.handle(
            socket,
@@ -456,21 +453,13 @@ defmodule Kati.Screens.SeriesSettings do
   end
 
   @doc """
-  *Region & availability* and *This show*, or nothing at all.
+  *Region & availability*: the board's four rows, or a real show's two.
 
-  Nothing at all over a real show, and that is the finding's own argument
-  turned into a rule rather than a reason to stop: a group with no schema
-  behind it is dropped, the way screen 14 drops a band and screen 92 drops its
-  *Free with ads*. What is left is two groups that are entirely the reader's.
+  Over a real show, `region_rows/1` — the reader's country and services, each
+  opening the page that sets it.
   """
   @spec region_band(map()) :: map()
   def region_band(%{tracked: nil}) do
-    # A literal at the call site and not `show.region_label`, which carries the
-    # same words: `gettext/1`'s argument has to be a literal for
-    # `mix gettext.extract` to see a msgid at all, and the Sample's copy of the
-    # string is the one the drawing's *rows* are read from rather than one this
-    # band can reach. Same msgid either way, so one catalogue entry answers
-    # both.
     assigns = %{
       eyebrow: UI.eyebrow(gettext("Region & availability")),
       group: Kati.Screens.SeriesSettings.group(Sample.region())
@@ -484,16 +473,82 @@ defmodule Kati.Screens.SeriesSettings do
     """
   end
 
-  def region_band(_show), do: ~MOB"<Spacer size={0} />"
+  def region_band(show) do
+    assigns = %{
+      eyebrow: UI.eyebrow(gettext("Region & availability")),
+      group: Kati.Screens.SeriesSettings.last_group(Kati.Screens.SeriesSettings.region_rows(show))
+    }
 
-  @doc false
+    ~MOB"""
+    <Column fill_width={true}>
+      {@eyebrow}
+      {@group}
+    </Column>
+    """
+  end
+
+  @doc """
+  The two rows a real show draws under *Region & availability*.
+
+  `region` is `Kati.Services.chosen_region/0` — `nil` when nobody has picked a
+  country, which is drawn as screen 93's own *Pick your country* rather than as
+  the `GB` `Kati.Services.region/0` assumes. `services` is the names of the
+  services the reader pays for, in the order screen 92 keeps them, or screen
+  96's *No subscriptions yet*.
+  """
+  @spec region_rows(map()) :: [map()]
+  def region_rows(show) do
+    [
+      %{
+        icon: "public",
+        title: gettext("Region"),
+        sub: Kati.Screens.SeriesSettings.region_line(Map.get(show, :region)),
+        control: :chevron,
+        tap: {self(), :open_region}
+      },
+      %{
+        icon: "subscriptions",
+        title: gettext("My services"),
+        sub: Kati.Screens.SeriesSettings.services_line(Map.get(show, :services, [])),
+        control: :chevron,
+        tap: {self(), :open_services}
+      }
+    ]
+  end
+
+  @doc """
+  The region row's second line.
+
+      iex> Kati.Screens.SeriesSettings.region_line(nil)
+      "Pick your country"
+
+      iex> Kati.Screens.SeriesSettings.region_line("DE")
+      "Germany"
+  """
+  @spec region_line(String.t() | nil) :: String.t()
+  def region_line(code) when is_binary(code) and code != "", do: Kati.Services.region_name(code)
+  def region_line(_unset), do: gettext("Pick your country")
+
+  @doc """
+  The services row's second line: the names, as the reader typed them, or
+  screen 96's empty-ledger sentence.
+
+      iex> Kati.Screens.SeriesSettings.services_line([])
+      "No subscriptions yet"
+
+  The names are isolated left-to-right with `Kati.Locale.ltr/1`, because a
+  name ending in `+` beside a comma is all bidi-neutral punctuation that an
+  RTL page would otherwise move to the wrong end.
+  """
+  @spec services_line([String.t()]) :: String.t()
+  def services_line([]), do: gettext("No subscriptions yet")
+  def services_line(names), do: Kati.Locale.ltr(Enum.join(names, ", "))
+
+  @doc """
+  *This show* — reset, archive, remove — on the board, and nothing over a real
+  show. See the moduledoc for why none of the three is drawn there.
+  """
   def this_show_band(%{tracked: nil}) do
-    # `Kati.UI.SettingsList.eyebrow_muted/1` still upcases what it is handed
-    # and still tracks it at .16em, which are both Latin small-caps effects and
-    # both no-ops or worse in Arabic script — `Kati.UI.eyebrow/2` above has
-    # already moved to `Kati.UI.eyebrow_label/1` and `Kati.Locale.tracking/1`
-    # for that reason. The fix belongs in that file rather than in a copy of
-    # the eyebrow made here; what this line owes the reader is the msgid.
     assigns = %{
       eyebrow: SettingsList.eyebrow_muted(gettext("This show")),
       group: Kati.Screens.SeriesSettings.last_group(Sample.this_show())
@@ -529,17 +584,19 @@ defmodule Kati.Screens.SeriesSettings do
   @doc false
   def status_gap, do: ~MOB"<Spacer size={8} />"
 
-  # The chosen tile carries a heavier, tighter shadow than the card recipe —
-  # `0 12px 24px -14px rgba(26,25,23,.9)` — so it reads as pressed into the
-  # paper rather than floating over it like its two neighbours.
-  #
-  # It is an ink-filled control, so it takes the pair the design draws for one:
-  # `Palette.ink_fill/0` under `Palette.on_ink/0`. Screen 28 draws that pair —
-  # `#1A1917` + `#FBFAF8` becomes `#F7EFE4` + `#1A1917`, the fill inverting
-  # rather than following the ground. `Kati.Theme.ink/0` was the fill before and
-  # takes no mode, so in dark the tile, its glyph and its label would all three
-  # have been near-black.
-  @doc false
+  @doc """
+  One status tile.
+
+  The chosen tile carries a heavier, tighter shadow than the card recipe —
+  `0 12px 24px -14px rgba(26,25,23,.9)` — so it reads as pressed into the
+  paper. It is an ink-filled control, so it takes `Palette.ink_fill/0` under
+  `Palette.on_ink/0`, the pair that inverts in dark rather than following the
+  ground.
+
+  The three tiles stay hand-rolled: each is a `Column` with a 21pt glyph above
+  its label and its own layout weight, which no vendored segment, chip or pill
+  can lay out.
+  """
   def status(%{on: true} = s) do
     assigns = %{tap: Kati.Screens.SeriesSettings.status_tap(s)}
 
@@ -625,8 +682,7 @@ defmodule Kati.Screens.SeriesSettings do
     """
   end
 
-  # The last group closes the frame, so it carries no trailing gap.
-  @doc false
+  @doc "The group that closes the frame, which carries no trailing gap."
   def last_group(rows) do
     last = length(rows) - 1
 
@@ -638,7 +694,10 @@ defmodule Kati.Screens.SeriesSettings do
     SettingsList.card(body)
   end
 
-  @doc false
+  @doc """
+  One row. A board row carries no `:tap`, and `nil` is the answer
+  `Kati.UI.SettingsList.row/4` already takes for "not tappable".
+  """
   def row(%{danger: true} = row, rule?) do
     SettingsList.row(
       Kati.Screens.SeriesSettings.danger_tile(row.icon),
@@ -656,9 +715,6 @@ defmodule Kati.Screens.SeriesSettings do
       Kati.Screens.SeriesSettings.control(row.control),
       padding: 13,
       rule: rule?,
-      # `Map.get`, not `row.tap`: the board's own rows carry no tap and must
-      # not gain one. `nil` is the answer `Kati.UI.SettingsList.row/4` already
-      # takes for "not tappable".
       on_tap: Map.get(row, :tap)
     )
   end
@@ -668,25 +724,13 @@ defmodule Kati.Screens.SeriesSettings do
   def control({:switch, on?}), do: SettingsList.switch(on?)
 
   @doc """
-  The 30x30 tile at 10% red — the one destructive affordance on the screen.
+  The 30x30 tile at 10% red — the one destructive affordance on the board.
 
   `Kati.Components.MishkaThemeIcon`, the same component `Kati.UI.SettingsList`
-  gives every other row on this screen, differing only in the colour it is
-  handed. `variant: :filled` with an explicit ARGB, not `variant: :light`: the
-  light variant computes its own 19% tint from an opaque colour, and the design
-  says 10%, so the alpha is stated rather than derived.
-
-  The glyph is a child rather than the `icon:` shorthand, whose `Text` carries
-  no `font_family` — a Material Symbols ligature would be typeset as the word,
-  and `Kati.UI.symbol/2` also keeps `Kati.Icons.glyph!/1`'s raise for a name
-  outside the shipped subset.
-
-  With children and no `id` the component returns
-  `%{type: :box, props: %{width: 30, height: 30, align: :center,
-  corner_radius: 9, background: Palette.red_wash()}, children: [glyph]}` — node
-  for node what this wrote by hand. `red_wash/0` is that stated 10%, and red is a
-  hue: `Kati.Theme.dark/0` keeps `error: @red`, so neither the tint nor the glyph
-  moves with the mode.
+  gives every other row, differing only in the colour it is handed.
+  `variant: :filled` with an explicit ARGB, because the design says 10% and the
+  light variant derives its own 19%. The glyph is a child rather than the
+  `icon:` shorthand, whose `Text` carries no `font_family`.
   """
   def danger_tile(name) do
     MishkaThemeIcon.theme_icon(

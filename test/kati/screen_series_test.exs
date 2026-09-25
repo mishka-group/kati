@@ -276,19 +276,14 @@ defmodule Kati.ScreenSeriesTest do
 
       drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
 
-      # The card said "Kati has this show but not its episode list" over a
-      # centred tile — which reads as a fault to be repaired and tells the
-      # reader nothing they can do. Board 248 says whose doing it is, promises
-      # what happens if a source finds it later, and then lists the three
-      # things that still work.
+      # A TMDB-sourced row whose episodes are not cached yet: the gap is the
+      # provider's, so the card says the list is on its way, not that the
+      # reader typed the show in.
       assert drawn =~ "No episode list yet."
-      assert drawn =~ "You added this by hand"
-      assert drawn =~ "nothing you typed changes"
+      assert drawn =~ Series.pending_note()
+      refute drawn =~ "You added this by hand"
       refute drawn =~ "No episodes yet"
 
-      # `Kati.UI.SettingsList.eyebrow_muted/1` upcases, as every eyebrow does;
-      # the drawing writes it in sentence case and `Kati.DesignLiterals` compares
-      # case-insensitively for exactly this reason.
       assert drawn =~ "WHAT STILL WORKS"
 
       for row <- ["Log a watch", "Drop this show", "Remove from library"] do
@@ -297,7 +292,20 @@ defmodule Kati.ScreenSeriesTest do
 
       assert drawn =~ "Works without an episode list"
       assert drawn =~ "Keeps where you stopped"
-      assert drawn =~ "No primary button here."
+
+      # Board 248's dashed footnote is a note to the designer about 04's
+      # primary slot, not a sentence for a reader.
+      refute drawn =~ "No primary button here."
+    end
+
+    test "and a series typed in by hand says so, and promises nothing it cannot keep" do
+      tracked!(%{source: :manual})
+
+      drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
+
+      assert drawn =~ "You added this by hand"
+      refute drawn =~ Series.pending_note()
+      refute drawn =~ "If a source finds it later"
     end
 
     test "and the three rows act, rather than being a picture of three rows" do
@@ -305,9 +313,29 @@ defmodule Kati.ScreenSeriesTest do
 
       drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
 
-      for tag <- [":rate_title", ":open_drop_sheet", ":remove_title"] do
+      for tag <- [":rate_title", ":open_drop_sheet", ":confirm_remove"] do
         assert drawn =~ tag, "board 248's row for #{tag} carries no tap"
       end
+
+      refute drawn =~ ":remove_title",
+             "the row removed the show on one tap, where the ⋯ row asks first"
+    end
+
+    test "and its Remove row asks before anything is written" do
+      tracked = tracked!()
+
+      socket =
+        Series
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:series, Series.series(tracked.id))
+        |> Mob.Socket.assign(:menu?, false)
+        |> Mob.Socket.assign(:confirm_remove?, false)
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:noreply, asked} = Series.handle_info({:tap, :confirm_remove}, socket)
+
+      assert asked.assigns.confirm_remove?
+      assert Ash.get!(TrackedTitle, tracked.id)
     end
 
     test "and a drawn series carries no taps, because there is nothing to act on" do
@@ -367,9 +395,11 @@ defmodule Kati.ScreenSeriesTest do
         refute drawn?(tree, ep.sub)
       end
 
-      # The page itself still renders: the frame is a state of 04, not a blank
-      # process. Board 248 draws the same shape with an empty primary.
-      assert drawn?(tree, "EPISODES")
+      # The page says there is nothing, rather than drawing an empty frame
+      # whose card explains an episode list for a show that does not exist.
+      assert drawn?(tree, "No series in your library yet")
+      refute drawn?(tree, "EPISODES")
+      refute drawn?(tree, "WHAT STILL WORKS")
     end
 
     test "no string the drawing carries reaches board 58's tree either" do

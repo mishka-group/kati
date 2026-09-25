@@ -30,6 +30,8 @@ defmodule Kati.OverflowMenuTest do
   alias Kati.Screens
   alias Kati.UI.Menu
 
+  @series_id "overflow-menu-series"
+
   # {screen, the tag that opens it, [{item tag, destination}]}
   @menus [
     {Screens.Series, :toggle_menu,
@@ -48,6 +50,26 @@ defmodule Kati.OverflowMenuTest do
     {Screens.Library, :toggle_menu, [{:open_what_fits, Screens.WhatFits}]},
     {Screens.MealsToday, :toggle_menu, [{:open_reminders, Screens.MealReminders}]}
   ]
+
+  # Screen 04's menu is drawn over a series and not over its empty page — a
+  # bare push onto a shelf with no series says so and has nothing to open
+  # pages about — so one series is kept on the shelf for the whole file.
+  setup do
+    Kati.Media.TrackedTitle
+    |> Ash.Changeset.for_create(:create, %{
+      source: :manual,
+      source_id: @series_id,
+      kind: :tv,
+      status: :watching
+    })
+    |> Ash.create!()
+
+    on_exit(fn ->
+      Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id = ?1", [@series_id])
+    end)
+
+    :ok
+  end
 
   describe "the panel exists only when open" do
     for {module, open_tag, _items} <- @menus do
@@ -146,6 +168,15 @@ defmodule Kati.OverflowMenuTest do
   defp expected_params(Screens.Calendar, tag, socket)
        when tag in [:open_meals_day, :open_money_day],
        do: %{date: socket.assigns.date}
+
+  defp expected_params(Screens.Series, :show_details, socket),
+    do: Screens.SeriesMeta.params_for(socket.assigns.series)
+
+  defp expected_params(Screens.Series, :episode_order, socket),
+    do: Screens.Season.params_for(socket.assigns.series)
+
+  defp expected_params(Screens.Series, :open_settings, socket),
+    do: Screens.SeriesSettings.params_for(socket.assigns.series)
 
   defp expected_params(_module, _tag, _socket), do: %{}
 

@@ -205,6 +205,8 @@ defmodule Kati.Screens.Pushed do
       gettext("Search"),
       gettext("Series"),
       gettext("Settings"),
+      gettext("Show details"),
+      gettext("Show settings"),
       gettext("Stats"),
       gettext("Up next"),
       gettext("What fits?"),

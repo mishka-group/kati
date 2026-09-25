@@ -11,9 +11,8 @@ defmodule Kati.Screens.Series do
   inline, where the standard pushed chrome sits on paper. Matching the drawing
   matters more than sharing a helper.
 
-  Three episode states are drawn and all three are exercised by the sample:
-  watched (muted title, filled check), unwatched (ink title, hollow check),
-  and not yet aired (muted, no check).
+  Three episode states are drawn: watched (muted title, filled check),
+  unwatched (ink title, hollow check), and not yet aired (muted, no check).
 
   ## Where the data comes from
 
@@ -68,40 +67,32 @@ defmodule Kati.Screens.Series do
       row is unaired, so the third episode state is an entailment rather than a
       date comparison written out a second time here.
 
-  ### The gate is the whole screen
+  ### Three faces, decided by the push
 
-  Either every value on the page is this user's or every value is the drawing's
-  — a page whose title is a real series and whose episode list is somebody
-  else's season reads as entirely real. `tracked_series/0` therefore answers
-  `nil` for a shelf with no series *and* for a series with no numbered season
-  cached anywhere: this page is an inventory and a list, and with neither there
-  is nothing on it that is the user's. A tick names an episode id and cannot
-  name an episode.
+  An id that names a shelf row draws that series, every value on the page its
+  own. An id that names nothing — removed under the list that showed it, or
+  removed above this page while it sat under a sheet — draws
+  `Kati.Screens.Film.gone/2`'s sentence. No id at all draws the top of the
+  series shelf, and over a shelf with no series `none/2`'s sentence.
 
-  With nothing to draw, `Kati.Library.Sample` is drawn instead — the values
-  `test/design/screens/04.html` was captured from. FIDELITY's rule:
-  *missing data is not a reason for a blank screen*. The Sample module stays
-  exactly where it is; it is the fallback and the fixture, not a stage this
-  screen has passed through.
+  `Kati.Library.Sample` is never drawn to a reader. `drawn_series/0` builds
+  board 04 out of it for `Kati.ScreenDesignLiteralTest`, and that is its only
+  caller.
 
-  ## What no resource can express, and is therefore not drawn
+  A tracked series with nothing cached under it — typed in by hand, or one a
+  provider has not listed episodes for yet — is still that reader's series: its
+  own title, an empty strip, and board 248's card in place of the list, which
+  says whose doing the gap is (`by_hand_note/0` or `pending_note/0`, by the
+  row's `source`) and lists what still works.
 
-  Both live in the meta line, and both are drawn in full on the fallback,
-  because there they are the drawing rather than a claim about a title.
+  ## What the meta line leaves out
 
-    * **`LUMEN+`** — availability. `Kati.Media.Watch.service` is where the
-      *user* watched something, which is a different fact, is per-watch, and
-      says nothing about where a series can be watched now. Screen 08 wants the
-      same thing for its `Where to watch` card and gets the same answer: what
-      this needs is an offers resource per `{title, service, region}`.
-    * **`2024`** — the first-air year. `Kati.Media.CachedTitle` holds
-      `next_release_at`, which is the NEXT release; reading it as the first
-      would print next Tuesday's date as a series' debut year. A `first_air_at`
-      column is the direct answer and belongs to whoever owns that resource.
-
-  The line degrades to `DRAMA · 3 SEASONS`, which is `genres` and the season
-  inventory and nothing else — the same shape `Kati.Screens.Film.meta_line/1`
-  degrades to for the same reason.
+  Board 04 draws `2024 · DRAMA · LUMEN+ · 3 SEASONS`. The line here is the
+  genres and the season inventory: availability for this title is screen 14's
+  *Where to watch* band, read from `Kati.Media.Availability` for the reader's
+  region, and the first-air year is on screen 14's meta line beside it. A
+  series whose provider gave neither a genre nor an inventory draws an empty
+  line rather than punctuation holding nothing apart.
 
   `Kati.Media.TrackedTitle.hide_unwatched_titles` is annotated *"spoiler-safe
   episode names on screen 04"* and this screen is what finally reads it —
@@ -165,17 +156,18 @@ defmodule Kati.Screens.Series do
   end
 
   @doc """
-  The series this screen draws: the user's, or the drawing's.
+  The series this screen draws: the reader's, one that has gone, or none.
 
-  The English page. `tracked_series/1` is the half that reads the store and it
-  answers in no language at all; everything below this line is presentation,
-  which is what lets board 58 share the reads without sharing
-  the wording.
+  `tracked_series/1` is the half that reads the store and it answers in no
+  language at all; everything below this line is presentation, which is what
+  lets board 58 share the reads without sharing the wording.
 
   `id` is the tracked row a poster carried here. Without one the referent is
-  the top of the shelf, which is what every arrival used to get. An id the
-  shelf no longer holds answers `empty_series/0` marked `gone?: true`, which
-  `render/1` draws as `Kati.Screens.Film.gone/2`'s sentence and back pill.
+  the top of the shelf. An id the shelf no longer holds answers
+  `empty_series/0` marked `gone?: true`, which `render/1` draws as
+  `Kati.Screens.Film.gone/2`'s sentence and back pill; no id and no series on
+  the shelf answers `empty_series/0` itself, which `render/1` draws as
+  `none/2`'s.
   """
   @spec series(String.t() | nil) :: map()
   def series(id \\ nil) do
@@ -221,63 +213,20 @@ defmodule Kati.Screens.Series do
   end
 
   @doc """
-  Board 248's series: one Kati has, whose episode list it does not.
-
-  A second drawing of screen 04 rather than a screen of its own — 248's own
-  footnote argues that the empty primary slot is what makes it a *state* of 04.
-  `Kati.ScreenDesignLiteralTest`'s `drawn_state/0` installs this so the board is
-  compared against the page in the state it draws, the same way boards 12, 154
-  and 157 are.
-
-  Everything on it is what a hand-added series actually has: a title, a year,
-  a status off the shelf, and nothing else. No seed, so `hero_art/1` draws the
-  `No poster` placeholder; no seasons, so the season bar and the primary are
-  both absent; `episodes: []`, which is the whole subject.
-  """
-  @spec drawn_without_episodes() :: map()
-  def drawn_without_episodes do
-    %{
-      tracked_id: nil,
-      followed?: false,
-      hide_unwatched?: false,
-      private?: false,
-      anime?: false,
-      media_kind: :tv,
-      status: :not_started,
-      title: "The Northern Gardens",
-      seed: nil,
-      meta: "2023",
-      season: nil,
-      seasons: [],
-      current_season: nil,
-      total: 0,
-      watched: 0,
-      next_air: nil,
-      episodes: [],
-      by_season: %{}
-    }
-  end
-
-  @doc """
   The page with no series on it.
 
-  Board 248's shape with its title and year emptied too: the same seventeen keys
-  `shaped/1` answers, all of them carrying nothing. 248 already proves the
-  render survives `seasons: []`, `episodes: []`, `by_season: %{}` and a nil
-  seed, so an empty page is a state screen 04 can already draw rather than a
-  second implementation of it.
-
-  This is what a reader gets when nothing names a series and the store has
-  none to offer. It replaced `drawn_series/0` on that path: a shelf with
-  nothing on it is not a reason to draw somebody else's show. For a NAMED id that matches no row, `series/1` marks it `gone?: true` and the
-  page is `Kati.Screens.Film.gone/2`'s sentence instead, because an empty frame
-  read as a page that failed to load rather than as a show that has left the
-  shelf.
+  `shaped/1`'s keys, all of them carrying nothing, marked `none?: true` so
+  `render/1` draws `none/2`'s sentence rather than an empty frame whose card
+  would explain an episode list for a show that does not exist. Marked
+  `gone?: true` on top, by `series/1`, when the push named a row that has
+  gone.
   """
   @spec empty_series() :: map()
   def empty_series do
     %{
       tracked_id: nil,
+      none?: true,
+      by_hand?: false,
       followed?: false,
       hide_unwatched?: false,
       private?: false,
@@ -429,6 +378,7 @@ defmodule Kati.Screens.Series do
       original: Kati.Locale.original_title(cached),
       seed: seed_of(tracked, cached),
       tracked_id: tracked.id,
+      by_hand?: by_hand?(tracked),
       # Whether Kati tells you about new episodes of this show — the column
       # screen 25 is a page about, which nothing anywhere could set for one
       # title until the bookmark disc could.
@@ -468,6 +418,7 @@ defmodule Kati.Screens.Series do
       # re-read in the handler, so the page cannot write a tick against a
       # different title from the one it is drawing.
       tracked_id: tracked.id,
+      by_hand?: by_hand?(tracked),
       followed?: tracked.notify_new_episodes,
       # Screen 35 writes this and, until now, nothing read it — the column's own
       # annotation says *"spoiler-safe episode names on screen 04"* and screen
@@ -496,6 +447,8 @@ defmodule Kati.Screens.Series do
       next_air: next_airing(episodes, now)
     }
   end
+
+  defp by_hand?(%TrackedTitle{source: source}), do: source in [:manual, :import]
 
   # The strip's own list. The inventory first, because it knows about a season
   # before a single episode of it is cached; the episodes' own numbers only
@@ -632,6 +585,7 @@ defmodule Kati.Screens.Series do
       # series the page is drawing. `Map.get/2` rather than `facts.tracked_id`
       # so a facts map built without the key raises nothing.
       tracked_id: Map.get(facts, :tracked_id),
+      by_hand?: Map.get(facts, :by_hand?, false),
       # The same class of key, dropped the same way: `assembled/5` puts it on
       # the facts and this map is where a fact goes to be forgotten. The
       # bookmark disc reads it, and a disc that cannot tell whether it is on
@@ -865,10 +819,55 @@ defmodule Kati.Screens.Series do
 
   def render(assigns) do
     s = assigns.series
+    back = Map.get(assigns, :back, gettext("Library"))
 
-    if Kati.Screens.Film.gone?(s),
-      do: Kati.Screens.Film.gone(__MODULE__, Map.get(assigns, :back, gettext("Library"))),
-      else: Kati.Screens.Series.page(s, assigns)
+    cond do
+      Kati.Screens.Film.gone?(s) -> Kati.Screens.Film.gone(__MODULE__, back)
+      Map.get(s, :none?, false) -> Kati.Screens.Series.none(__MODULE__, back)
+      true -> Kati.Screens.Series.page(s, assigns)
+    end
+  end
+
+  @doc """
+  The page for a push that named no series over a shelf that has none: one
+  sentence and the back pill, in `Kati.Screens.Film.gone/2`'s layout.
+
+  It drew the series frame with nothing in it — an empty title over a card
+  saying *You added this by hand* and three rows that could not be pressed,
+  about a show that did not exist. Screen 14 draws this too, for the same
+  push, so `module` names the screen whose identity the root carries.
+  """
+  @spec none(module(), String.t()) :: map()
+  def none(module, back) do
+    assigns = %{identity: Kati.Screens.Identity.of(module), back: back}
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={@identity}
+    >
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
+        {Kati.UI.symbol("live_tv", size: 28, color: Palette.sub())}
+        <Spacer size={14} />
+        <Text
+          text={gettext("No series in your library yet")}
+          text_size={22}
+          font_weight="bold"
+          line_height={1.25}
+          text_color={:on_surface}
+        />
+      </Column>
+      <Box fill_width={true} fill_height={true} align="top">
+        <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
+          {Kati.Screens.Film.back_control(@back)}
+        </Row>
+      </Box>
+    </Box>
+    """
   end
 
   @doc false
@@ -1732,9 +1731,15 @@ defmodule Kati.Screens.Series do
   The three rows are real and are the three the board names. *Log a watch*
   opens screen 33 over the title, which needs no episode; *Drop this show*
   opens the drop sheet, which keeps where you stopped; *Remove from library*
-  is `remove/1`, the same removal screen 06's `untrack/1` and board 146's pill
-  perform — the cached title stays, and the title's logged watches go with the
-  tracked row, which is `remove/1`'s cascade.
+  asks first, with the ⋯ row's own question (`Kati.Screens.Film.remove_confirm/3`
+  at the top of the page), and its *Remove it* is `remove/1` — the cached
+  title stays, and the title's logged watches go with the tracked row.
+
+  The card's sentence depends on whose doing the gap is: `by_hand_note/0` for
+  a series typed in by hand or imported, and `pending_note/0` for one a
+  provider has not listed episodes for yet. Board 248's dashed footnote about
+  04's primary slot is a note to the designer, not to a reader, and is not
+  drawn.
 
   A drawn series carries no `tracked_id`, so on the board itself the three rows
   have nothing to act on and draw no tap — the rule this repository keeps
@@ -1746,7 +1751,7 @@ defmodule Kati.Screens.Series do
     tracked = Map.get(s, :tracked_id)
 
     assigns = %{
-      card: Kati.Screens.Series.no_episodes_card(),
+      card: Kati.Screens.Series.no_episodes_card(Map.get(s, :by_hand?, false)),
       group: Kati.Screens.Series.still_works(tracked)
     }
 
@@ -1756,8 +1761,6 @@ defmodule Kati.Screens.Series do
       <Spacer size={16} />
       {Kati.UI.SettingsList.eyebrow_muted(gettext("What still works"))}
       {@group}
-      <Spacer size={14} />
-      {Kati.UI.SettingsList.note("info", Kati.Screens.Series.no_primary_note())}
     </Column>
     """
   end
@@ -1775,7 +1778,15 @@ defmodule Kati.Screens.Series do
   end
 
   @doc false
-  def no_episodes_card do
+  def no_episodes_card(by_hand?) do
+    assigns = %{
+      note:
+        if(by_hand?,
+          do: Kati.Screens.Series.by_hand_note(),
+          else: Kati.Screens.Series.pending_note()
+        )
+    }
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -1798,12 +1809,7 @@ defmodule Kati.Screens.Series do
         />
       </Row>
       <Spacer size={11} />
-      <Text
-        text={Kati.Screens.Series.by_hand_note()}
-        text_size={12}
-        line_height={1.55}
-        text_color={Palette.sub()}
-      />
+      <Text text={@note} text_size={12} line_height={1.55} text_color={Palette.sub()} />
     </Column>
     """
   end
@@ -1840,35 +1846,36 @@ defmodule Kati.Screens.Series do
         Kati.UI.SettingsList.body(gettext("Remove from library")),
         Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
         rule: false,
-        on_tap: tap.(:remove_title)
+        on_tap: tap.(:confirm_remove)
       )
     ])
   end
 
   @doc """
-  Board 249's explanation of why this series has no episode list.
+  Board 249's explanation of why a series typed in by hand has no episode list.
 
-  Whose doing it is, and what happens if a source turns up later — the two
-  things a reader typing a title by hand needs to know, and neither of them is
-  an apology.
+  Whose doing it is, and not an apology. Board 249 went on to promise that a
+  source finding the title later would fill the list in; nothing in the app
+  matches a hand-typed row to a provider, so that half is not said.
   """
   @spec by_hand_note() :: String.t()
   def by_hand_note,
+    do: gettext("You added this by hand, so Kati has no seasons or episodes for it.")
+
+  @doc """
+  Why a series from a provider has no episode list yet, and what happens next.
+
+  `Kati.Media.Cache.refresh/0` re-reads every TMDB-sourced title, its seasons
+  and its episodes, so a list the provider has not published yet arrives here
+  on a later refresh without the reader doing anything.
+  """
+  @spec pending_note() :: String.t()
+  def pending_note,
     do:
       gettext(
-        "You added this by hand, so Kati has no seasons or episodes for it. " <>
-          "If a source finds it later, they arrive here and nothing you typed changes."
+        "Its source has not listed seasons or episodes for this show yet. " <>
+          "When it does, they arrive here on their own."
       )
-
-  @doc "Board 248's dashed footnote, one `Text` so every bold run is findable."
-  @spec no_primary_note() :: String.t()
-  def no_primary_note do
-    gettext(
-      "No primary button here. There is no next episode to mark, and a primary " <>
-        "that refuses is worse than none. 04’s one primary slot stays empty " <>
-        "— which is what makes this a state of 04 rather than a page of its own."
-    )
-  end
 
   @doc false
   def episode(ep) do
@@ -2150,12 +2157,9 @@ defmodule Kati.Screens.Series do
          Kati.Screens.Season.params_for(socket.assigns.series)
        )}
 
-  # Named, for the reason the two rows below it are. Screen 35 writes now —
-  # four season-pass switches and the three Status tiles, over columns that had
-  # no reader before that — so a bare push here is a settings
-  # page that saves onto whichever show `show/1` happened to find. It saves
-  # onto this one, and its back pill says Series because that is where it came
-  # from.
+  # Named: screen 35 writes the status and two season-pass switches onto the
+  # show it was pushed over, so it is told which one, and its back pill says
+  # Series because that is where it came from.
   def handle_info({:tap, :open_settings}, socket),
     do:
       {:noreply,

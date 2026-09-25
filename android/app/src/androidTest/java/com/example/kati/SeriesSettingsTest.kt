@@ -14,22 +14,22 @@ import org.junit.runner.RunWith
 /**
  * MOVIES-AND-TV.md #99 — screen 35 writes, and what it writes survives.
  *
- * The three Status tiles and the four Season-pass switches sit over columns
- * `Kati.Media.TrackedTitle` has carried since it was written and that had no
- * reader and no writer anywhere in the app. `Kati.Screens.Gallery`'s `@routed`
- * list carries the claim this file exists to stop being a claim: *"Walked on
- * the device: all three Status tiles and all four season-pass switches write,
- * and the values survive a back-and-return."* A walk somebody did once is not
- * a thing that keeps being true.
+ * The three Status tiles and the two Season-pass switches sit over columns
+ * `Kati.Media.TrackedTitle` has carried since it was written. Board 35 draws
+ * four switches; over a real show the page draws only the two something in
+ * the app reads — `notify_new_episodes` and `hide_unwatched_titles` — and
+ * leaves `auto_add_new_seasons` and `add_air_dates_to_calendar` off, because
+ * a switch over a column nothing consults is a control that does nothing.
+ *
+ * `Kati.Screens.Gallery`'s `@routed` list carries the claim this file exists
+ * to stop being a claim: the Status tiles and both season-pass switches write,
+ * and the values survive a back-and-return. A walk somebody did once is not a
+ * thing that keeps being true.
  *
  * ## Every assertion here is a row, and it has to be
  *
- * Screen 35 has two faces. Over a show it does not have, it draws
- * `Kati.Screens.SeriesSettings.Sample` — the same tiles, the same four
- * switches, the same words — and `status_tap/1` answers `nil` so nothing is
- * even tappable. Over a real show it draws the reader's own row. The two are
- * pixel-identical apart from which tile is lit, so a tile that lights on tap
- * and writes nothing looks exactly like one that works. `KatiRule.scalar`
+ * Screen 35 over a real show draws the reader's own row, and a tile that
+ * lights on tap and writes nothing looks exactly like one that works. `KatiRule.scalar`
  * reads `kati.db` directly, which is the only place the difference shows.
  *
  * ## The route is the one a person walks
@@ -226,15 +226,13 @@ class SeriesSettingsTest {
         addSeriesByHand()
         openShowSettings()
 
-        // All four, because the tap tag is BUILT from the column name
+        // Both, because the tap tag is BUILT from the column name
         // (`"pass_" <> Atom.to_string(field)`) and `change_for/2` looks it up
-        // in `@pass_columns`. A typo in one of the four is a tag that matches
-        // no column, `change_for/2` answers `:error`, and `write/2` returns the
+        // in `@pass_columns`. A typo in either is a tag that matches no
+        // column, `change_for/2` answers `:error`, and `write/2` returns the
         // socket unchanged — silently. Only a per-column read finds that.
         val columns = listOf(
-            "auto_add_new_seasons",
             "notify_new_episodes",
-            "add_air_dates_to_calendar",
             "hide_unwatched_titles"
         )
 
@@ -258,9 +256,9 @@ class SeriesSettingsTest {
             )
         }
 
-        // Leave and come back: four values written into one row, all of which
-        // must still be there. A `for_update` that dropped the other three
-        // would pass every assertion above and fail here.
+        // Leave and come back: both values written into one row must still
+        // be there. A `for_update` that dropped the other would pass every
+        // assertion above and fail here.
         val after = columns.map { passInDb(it) }
 
         kati.device.pressBack()
@@ -269,7 +267,7 @@ class SeriesSettingsTest {
         openShowSettings()
 
         assertEquals(
-            "one of the four switches did not survive leaving the page and coming back",
+            "one of the switches did not survive leaving the page and coming back",
             after,
             columns.map { passInDb(it) }
         )

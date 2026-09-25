@@ -709,7 +709,14 @@ defmodule Kati.ScreenWriteTargetTest do
   # and with them the three taps they carried — ListenBrainz's and TheTVDB's
   # connect rows and Hardcover's retired row — in both locales. The measured
   # drop is six. `Kati.DeviceRoundN34N42Test` asserts none of them is drawn.
-  @drawn_taps 1843
+  #
+  # 1841 when screen 04 stopped drawing its frame over no series. The seed
+  # holds no `:tv` or `:anime` row, so a bare mount of 04 is the page that
+  # says the shelf has no series, and the ⋯ disc that frame carried — whose
+  # rows pushed Show details, Episode order and Show settings over nothing —
+  # goes with it. The measured drop is two, one a side in both locales.
+  # `Kati.OverflowMenuTest` keeps a series on the shelf and presses the menu.
+  @drawn_taps 1841
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

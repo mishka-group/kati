@@ -279,18 +279,4 @@ defmodule Kati.Screens.SeriesMeta.Sample do
       pgettext("series tag", "rewatchable")
     ]
   end
-
-  @doc """
-  The header still, at the 900x620 crop the drawing asks for.
-
-  `Kati.Design.Images.hero/1` answers with 900x740 first, which is the crop
-  screen 04 uses at 330pt. This header is 270pt, so it takes the shallower
-  photograph the export actually names.
-  """
-  @spec hero_art() :: String.t() | nil
-  def hero_art, do: Kati.Design.Images.path("hollow71", {900, 620})
-
-  @doc "A cast portrait, or `nil` when that seed was never drawn."
-  @spec face(String.t()) :: String.t() | nil
-  def face(seed), do: Kati.Design.Images.poster(seed)
 end
