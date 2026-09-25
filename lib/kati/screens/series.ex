@@ -2214,11 +2214,21 @@ defmodule Kati.Screens.Series do
   @doc """
   Take the show off the shelf, for real.
 
-  `Ash.destroy/1` on the tracked row and nothing else — the same removal
-  `Kati.Screens.AddTitle.untrack/1` and board 146's pill perform, and
-  deliberately not a cascade. The cached title, its episodes and every logged
-  watch stay, so this is a decision about the shelf rather than a deletion of
-  history, and a title re-added later finds its own past waiting.
+  `Ash.destroy/1` on the tracked row — the same removal
+  `Kati.Screens.AddTitle.untrack/1` and board 146's pill perform — and the
+  database takes the title's watches, events, content warnings, aliases and
+  list memberships with it. The cached title and its episodes stay: they are
+  what a provider said about the title, not what the reader did with it.
+
+  This doc used to promise the opposite — *"deliberately not a cascade… every
+  logged watch stays… a title re-added later finds its own past waiting"* —
+  and the schema could never keep it. `Kati.Media.Watch` links by
+  `tracked_title_id` alone, so a destroyed row leaves nothing a re-added one
+  could find; and the reference had no `ON DELETE` action, so SQLite refused
+  the delete outright for any title that had been watched. The reader saw
+  *"Referenced something that does not exist"* and the title stayed.
+  `20260925090000_cascade_watches_and_warnings.exs` settles it the way the
+  owner chose: removing a title removes its history.
   """
   @spec remove(map()) :: :ok | {:error, term()}
   def remove(series) do

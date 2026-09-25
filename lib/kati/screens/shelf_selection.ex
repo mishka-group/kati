@@ -1391,10 +1391,18 @@ defmodule Kati.Screens.ShelfSelection do
   @doc """
   Take the selected titles off the shelf, for real.
 
-  `Ash.destroy/1` on the tracked row and nothing else — the same removal
-  screen 06's `untrack/1` performs, and deliberately not a cascade: the
-  cached title, its episodes and every logged watch stay, so an Undo a second
-  later puts the row back over history that was never lost.
+  `Ash.destroy/1` on the tracked row — the same removal screen 06's
+  `untrack/1` and screen 04's ⋯ *Remove* perform — and the database takes the
+  title's watches, events, warnings, aliases and list memberships with it. The
+  cached title and its episodes stay; they are a provider's record, not the
+  reader's.
+
+  This used to say *"deliberately not a cascade… an Undo a second later puts
+  the row back over history that was never lost."* Neither half held. The
+  reference had no `ON DELETE` action, so the delete was refused outright for
+  any title that had been watched — which meant this path only ever ran on
+  titles with no history to lose. `20260925090000_cascade_watches_and_warnings`
+  settles it the way the owner chose: removing a title removes its history.
 
   `:ok` on a drawn row, for `write_status/1`'s reason.
   """
@@ -1426,7 +1434,15 @@ defmodule Kati.Screens.ShelfSelection do
   A create rather than an undelete, because a destroyed row is gone: the
   `{source, source_id, kind}` triple `tracked_shelf/0` carried off the tracked
   row is exactly what is needed to key a new one to the same cached title, so
-  the poster, the episodes and the ticks are all still there to be found.
+  the poster and the episodes are still there to be found.
+
+  **The ticks are not.** They were children of the destroyed row and went with
+  it, so Undo puts the title back on the shelf with no watches, ratings or
+  events. The pill only ever says *Undo*, so the page claims nothing it does
+  not do — but a reader who removes a watched film by mistake gets it back
+  unwatched. Keeping history across an Undo would mean deferring the destroy
+  until the pill is gone, which is a product decision recorded as N11's
+  remainder rather than taken here.
 
   The new row is `:watching` unless it was finished, and its `last_touched_at`
   is now — an undo is a thing you just did.

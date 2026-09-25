@@ -49,6 +49,13 @@ defmodule Kati.Media.ContentWarning do
       # Screens 11 and 19: does this title carry a category the user avoids.
       index [:tracked_title_id, :category]
     end
+
+    # Removing a title removes its history with it — the owner's decision, and
+    # what `20260925090000_cascade_watches_and_warnings.exs` puts in the schema.
+    # Without it SQLite refused to delete any title that had been watched.
+    references do
+      reference :tracked_title, on_delete: :delete
+    end
   end
 
   attributes do

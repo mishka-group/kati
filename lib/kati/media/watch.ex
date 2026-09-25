@@ -57,6 +57,13 @@ defmodule Kati.Media.Watch do
       # Screen 15's activity log across every title.
       index [:watched_at]
     end
+
+    # Removing a title removes its history with it — the owner's decision, and
+    # what `20260925090000_cascade_watches_and_warnings.exs` puts in the schema.
+    # Without it SQLite refused to delete any title that had been watched.
+    references do
+      reference :tracked_title, on_delete: :delete
+    end
   end
 
   attributes do
