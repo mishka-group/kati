@@ -1,40 +1,22 @@
 defmodule Kati.Accessibility.Sample do
   @moduledoc """
-  The accessibility spec screen 41 draws, as data.
-
-  The drawing is the spec: the app's densest card rendered at 235% Dynamic
-  Type, the six guarantees as a switch list, and the sentence VoiceOver
-  actually speaks on an episode row. Copy is the design's own, from
-  `test/design/screens/41.html`.
-
-  `up_next` is the same episode `Kati.Library.Sample.series/0` carries — the
-  point of the card is that the *ordinary* screen survives the largest type,
-  so it must be the ordinary screen's content.
+  The copy screen 41 draws: its subtitle, the note, and the five things Kati
+  guarantees about every screen. Copy is the design's own, from
+  `test/design/screens/41.html`, except where the design claimed what the app
+  does not do (A5): 235% Dynamic Type, and *Increase contrast*, which only ever
+  restyled this one page. The Up next card and the VoiceOver sentence are the
+  reader's own now — see `Kati.Screens.Accessibility.load/1`.
   """
 
   @doc "Everything screen 41 shows, in the order it shows it."
   @spec spec() :: map()
   def spec do
     %{
-      subtitle: "Dynamic Type at 235%",
-      up_next: up_next(),
+      subtitle: "Follows your system text size",
       note:
         "At the largest sizes, rows become stacks and icon-only buttons grow " <>
           "labels. Nothing truncates — cards get taller instead.",
-      built_in: built_in(),
-      voiceover: voiceover()
-    }
-  end
-
-  @doc "The Up next card, at the size the drawing renders it."
-  @spec up_next() :: map()
-  def up_next do
-    %{
-      label: "Up next",
-      title: "The Long Hollow",
-      lines: "Season 2, episode 6\n18 minutes left",
-      resume: "Resume",
-      mark: "Mark watched"
+      built_in: built_in()
     }
   end
 
@@ -57,7 +39,7 @@ defmodule Kati.Accessibility.Sample do
       %{
         icon: "format_size",
         title: "Dynamic Type",
-        sub: "Up to 235% · no truncation",
+        sub: "Follows your system text size · no truncation",
         toggle: true
       },
       %{
@@ -65,12 +47,6 @@ defmodule Kati.Accessibility.Sample do
         title: "Reduce motion",
         sub: "Cross-fades instead of slides",
         toggle: true
-      },
-      %{
-        icon: "contrast",
-        title: "Increase contrast",
-        sub: "Hairlines darken, shadows drop",
-        toggle: false
       },
       %{
         icon: "touch_app",
@@ -85,16 +61,5 @@ defmodule Kati.Accessibility.Sample do
         toggle: true
       }
     ]
-  end
-
-  @doc "What VoiceOver says on one episode row, written out rather than described."
-  @spec voiceover() :: map()
-  def voiceover do
-    %{
-      label: "EPISODE ROW",
-      reads:
-        "“Episode 6, The Undertow. 55 minutes. Airs 20 August. Not watched. " <>
-          "Double-tap to mark watched.”"
-    }
   end
 end

@@ -72,7 +72,7 @@ defmodule Kati.Settings.Sample do
         id: "text_size",
         icon: "format_size",
         title: gettext("Text size"),
-        sub: gettext("Follows system · up to %{n}%", n: Kati.Locale.number(235)),
+        sub: gettext("Follows system"),
         control: :chevron
       },
       %{

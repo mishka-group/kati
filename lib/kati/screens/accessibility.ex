@@ -3,13 +3,9 @@ defmodule Kati.Screens.Accessibility do
   Screen 41 — Accessibility, pushed under Settings.
 
   Built to `test/design/screens/41.html`. The design's caption calls it
-  "the spec drawn rather than described", and that is exactly what it is: the
-  Up next card rendered at 235% Dynamic Type so the claim "nothing truncates"
-  can be checked by looking, the six guarantees as a switch list, and the
-  sentence VoiceOver speaks on an episode row printed on ink.
-
-  At that size the buttons are 60pt tall and carry both a glyph and a word —
-  the drawing's own demonstration of "icon-only buttons grow labels".
+  "the spec drawn rather than described": the reader's Up next card at large
+  type, the guarantees every screen keeps, and the sentence a screen reader
+  speaks on that card.
 
   The **VoiceOver reads** eyebrow takes the muted `#C4BDB3` dash rather than
   the accent one, because it is a quotation rather than a section you act on;
@@ -18,52 +14,20 @@ defmodule Kati.Screens.Accessibility do
 
   No dock, so the frame's bottom inset is 40 rather than 132.
 
-  ## The switches are live
+  ## What is real here (A5)
 
-  Six guarantees, six real switches: a tap on a row flips that row's state in
-  `:spec`, so the thumb moves and the track swaps between ink and `#DCD7CF`.
-  It **snaps** rather than slides — a node tree is a still frame and Mob has no
-  animation primitive, so the thumb is at one offset in this render and the
-  other in the next. That was true of the hand-drawn switch this screen used to
-  carry and it is true of `Kati.Components.MishkaSwitch`'s drawn mode; only the
-  native Material `Switch` tweens, and it does so at metrics this drawing does
-  not use. The resting state is the sample's own, so the resting screen is
-  unchanged — five on, **Increase contrast** off.
+  The Up next card and the VoiceOver sentence are the reader's own: screen
+  10's hero (`hero/0`) and a sentence built from the same title and line
+  (`voiceover_line/1`). With nothing on the go neither is drawn. They used to
+  be *The Long Hollow* and *The Undertow* on every phone.
 
-  **Increase contrast** is the one that does more than flip itself, because it
-  is the only row whose subtitle names a visible effect: *"Hairlines darken,
-  shadows drop"*. Turning it on darkens this screen's rules and takes the lift
-  off its cards, which is the row keeping its own promise. Nothing else here
-  claims a consequence this screen can show — **Dynamic Type** in particular
-  is deliberately inert, see `toggle/1`.
-
-  ## Audited: drawn copy, with no stored state anywhere behind it
-
-  **Every string on this screen is `Kati.Accessibility.Sample`, and no resource
-  in the app holds any of it.** The design's caption is the reason and not an
-  excuse — this is *the spec drawn rather than described*, so the six rows are
-  claims Kati makes about itself, not settings a user keeps:
-
-    * The **Up next card** is a specimen, deliberately frozen even though
-      `Kati.Screens.UpNext` reads a real one from `Kati.Media`. Its whole job is
-      to render one known card at 235% so `.scratch/design/audit/41.png` can be
-      compared, and the **VoiceOver reads** quotation below it spells that same
-      episode out — *"Episode 6, The Undertow. 55 minutes. Airs 20 August."* — as
-      fixed prose. Swapping the card for the user's own title would leave the
-      quotation naming a different episode, and a screen that contradicts itself
-      is a worse accessibility spec than a frozen one.
-    * The **six switches** are guarantees, not preferences. *Touch targets ·
-      Nothing under 44×44* and *Colour is never alone* are properties of every
-      other screen in the app; there is nothing for a stored boolean to change.
-      **Reduce motion** is the one that reads like a setting and still is not:
-      Mob has no animation primitive — a node tree is a still frame, as the
-      section above says — so there are no cross-fades to ask for. The device's
-      own accessibility settings own these, and reading them needs a platform
-      bridge (`Mob.Device`) rather than a resource.
-
-  So a flip here is honestly local: it moves a thumb, and **Increase contrast**
-  additionally darkens this screen's own rules. Nothing is stored because
-  nothing would read it, and there is no resource to name.
+  The five guarantees are a legend, not switches. They are claims about every
+  other screen — labelled controls, text that follows the system size, no
+  motion, targets of 44 or more, colour never alone — and there is nothing for
+  a stored boolean to change, so each draws a tick rather than a switch that
+  moved and stored nothing. *Increase contrast* is gone: it only ever restyled
+  this one page. *235%* is gone: titles cap their scale and body text follows
+  the system, so the page says that instead.
 
   ## Under `:fa` the sample is a set of KEYS, and `spec_text/1` is the seam
 
@@ -88,24 +52,9 @@ defmodule Kati.Screens.Accessibility do
 
   alias Kati.Accessibility.Sample
   alias Kati.Components.MishkaSeparator
-  alias Kati.Components.MishkaSwitch
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme.Palette
   alias Kati.UI
-
-  # The air date the VoiceOver quotation names, as a DATE rather than as the
-  # two words `20 August`. It is `Kati.Library.Sample`'s own episode 6 —
-  # `aired_episode(6, gettext("The Undertow"), 55, ~D[2026-08-20])` — which is
-  # the episode this screen's specimen card is drawing, so the two cannot
-  # disagree about which day it is. A Persian reader keeps a different
-  # calendar, and `20 August` is a Gregorian instruction: `voiceover_line/0`
-  # asks `Kati.Locale` for the day and the month instead, so the same instant
-  # reads `20 August` in Latin and ۲۹ مرداد in Persian.
-  #
-  # A module attribute is safe here where one holding `gettext/1` would not
-  # be: a `Date` is not a translation and freezes nothing in the compiler's
-  # locale.
-  @airs ~D[2026-08-20]
 
   # The two strings from `Kati.Accessibility.Sample` too long to read inside a
   # function head, written out here so `spec_text/1` has a literal to match on.
@@ -116,16 +65,36 @@ defmodule Kati.Screens.Accessibility do
   @note "At the largest sizes, rows become stacks and icon-only buttons grow " <>
           "labels. Nothing truncates — cards get taller instead."
 
-  @reads "“Episode 6, The Undertow. 55 minutes. Airs 20 August. Not watched. " <>
-           "Double-tap to mark watched.”"
-
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :spec, Sample.spec())
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:spec, Sample.spec())
+    |> Mob.Socket.assign(:hero, Kati.Screens.Accessibility.hero())
+  end
+
+  @doc """
+  The reader's own Up next card, or `nil` when nothing is on the go.
+
+  It was *The Long Hollow · Season 2, episode 6 · 18 minutes left* on every
+  phone, and the VoiceOver sentence under it named *The Undertow* — a show
+  and an episode nobody had (A5). The card is screen 10's own hero now, and
+  the sentence is built from the same title and line.
+  """
+  @spec hero() :: map() | nil
+  def hero do
+    case Kati.Screens.UpNext.queue() do
+      %{hero: %{title: title, meta: meta}} -> %{title: title, meta: meta}
+      _nothing -> nil
+    end
+  rescue
+    _error -> nil
+  end
 
   @doc false
   def content(assigns) do
     spec = assigns.spec
-    contrast? = Kati.Screens.Accessibility.contrast?(spec)
+    hero = Map.get(assigns, :hero)
+    contrast? = false
 
     ~MOB"""
     <Scroll>
@@ -138,44 +107,14 @@ defmodule Kati.Screens.Accessibility do
       >
         {Kati.Screens.Accessibility.header(contrast?)}
         {Kati.Screens.Accessibility.title(spec)}
-        {Kati.Screens.Accessibility.up_next(spec, contrast?)}
+        {Kati.Screens.Accessibility.up_next(hero, contrast?)}
         {Kati.Screens.Accessibility.note(spec)}
         {UI.eyebrow(gettext("Built in"))}
         {Kati.Screens.Accessibility.built_in(spec, contrast?)}
-        {Kati.Screens.Accessibility.quiet_eyebrow(gettext("VoiceOver reads"))}
-        {Kati.Screens.Accessibility.voiceover(spec)}
+        {Kati.Screens.Accessibility.voiceover(hero)}
       </Column>
     </Scroll>
     """
-  end
-
-  @doc """
-  Whether **Increase contrast** is currently switched on.
-
-  Read off the row rather than kept in a second assign: the switch list is the
-  state, and a copy of it would be one more thing to keep in step. The title
-  is the design's own label, matched here rather than an index so reordering
-  the guarantees cannot silently move the effect to another row.
-
-  ## The title compared here is a KEY, and stays English
-
-  `Kati.Accessibility.Sample` is the BOARD written out, in the board's own
-  English, and it stays that way: `spec_text/1` is the only place a guarantee
-  becomes a word the reader can read, and it runs at the leaf. So this
-  comparison is against `"Increase contrast"` in both scripts, which is what
-  keeps the contrast row's consequence attached to the contrast row under
-  `:fa`.
-
-  `Kati.Screens.Library.chip_counts/1` carries the long version of the
-  argument, because the shelf already paid for it: its four filters were one
-  string doing both jobs, so the Persian shelf's filter was «همه» and every
-  clause of `matching/2` fell through. Translating the sample would break this
-  function the same way, and just as quietly — the switch would still flip,
-  and only the hairlines would stop following it.
-  """
-  @spec contrast?(map()) :: boolean()
-  def contrast?(spec) do
-    Enum.any?(spec.built_in, fn row -> row.title == "Increase contrast" and row.toggle end)
   end
 
   @doc """
@@ -211,8 +150,6 @@ defmodule Kati.Screens.Accessibility do
   reads literal call sites and could not have a msgid for it either way.
   """
   @spec spec_text(String.t()) :: String.t()
-  def spec_text("Dynamic Type at 235%"),
-    do: gettext("Dynamic Type at %{n}%", n: Kati.Locale.number(235))
 
   # The eyebrow on the specimen card is the shelf's own word for the same
   # section, so it takes the shelf's own msgid rather than a second one:
@@ -221,12 +158,12 @@ defmodule Kati.Screens.Accessibility do
   # which `Kati.Library.Sample` has carried in Persian since it was folded —
   # the specimen must be the same title the rest of the app spells.
   def spec_text("Up next"), do: gettext("Up next")
-  def spec_text("The Long Hollow"), do: gettext("The Long Hollow")
 
-  def spec_text("Season 2, episode 6\n18 minutes left") do
-    gettext("Season %{s}, episode %{e}", s: Kati.Locale.number(2), e: Kati.Locale.number(6)) <>
-      "\n" <> gettext("%{n} minutes left", n: Kati.Locale.number(18))
-  end
+  def spec_text("Follows your system text size"),
+    do: gettext("Follows your system text size")
+
+  def spec_text("Follows your system text size · no truncation"),
+    do: gettext("Follows your system text size · no truncation")
 
   # `pgettext/2` for the two buttons, and both times because of a near
   # neighbour rather than an ambiguity in the word itself. `mix gettext.merge`
@@ -235,10 +172,6 @@ defmodule Kati.Screens.Accessibility do
   # `Mark next watched`, `Mark all` and `Mark eaten` — so it would arrive here
   # carrying «قسمت بعدی را دیده‌ام», marked fuzzy, on the button that marks
   # this one.
-  def spec_text("Resume"), do: pgettext("the Up next card’s primary button", "Resume")
-
-  def spec_text("Mark watched"),
-    do: pgettext("the Up next card’s secondary button", "Mark watched")
 
   def spec_text(@note),
     do:
@@ -259,16 +192,9 @@ defmodule Kati.Screens.Accessibility do
 
   def spec_text("Dynamic Type"), do: gettext("Dynamic Type")
 
-  def spec_text("Up to 235% · no truncation"),
-    do: gettext("Up to %{n}% · no truncation", n: Kati.Locale.number(235))
-
   def spec_text("Reduce motion"), do: gettext("Reduce motion")
 
   def spec_text("Cross-fades instead of slides"), do: gettext("Cross-fades instead of slides")
-
-  def spec_text("Increase contrast"), do: gettext("Increase contrast")
-
-  def spec_text("Hairlines darken, shadows drop"), do: gettext("Hairlines darken, shadows drop")
 
   def spec_text("Touch targets"), do: gettext("Touch targets")
 
@@ -287,49 +213,20 @@ defmodule Kati.Screens.Accessibility do
   #
   # `pgettext/2` because `Episode row` is one edit from `Episode order`, which
   # is already in the catalogue as a back-pill label.
-  def spec_text("EPISODE ROW"), do: pgettext("the VoiceOver quotation’s label", "Episode row")
-
-  def spec_text(@reads), do: Kati.Screens.Accessibility.voiceover_line()
 
   def spec_text(other), do: other
 
   @doc """
-  The sentence VoiceOver speaks, with its numbers and its date rebuilt.
+  The sentence a screen reader speaks on the Up next card: its title and its
+  line, as the card itself says them.
 
-  The sample writes it as fixed prose and the moduledoc says why: the card
-  above quotes one known episode, and a quotation naming a different one is a
-  worse accessibility spec than a frozen one. Frozen is not the same as Latin,
-  though — every figure in it is read aloud to a person, so every figure is
-  the reader's own. `Episode 6` and `55 minutes` take `Kati.Locale.number/1`,
-  the episode's name takes `Kati.Library.Sample`'s own msgid, and `20 August`
-  is asked for as a day and a month rather than written, so a Persian reader
-  gets ۲۹ مرداد — the same day, counted in the calendar they keep.
-
-  `Kati.Locale.quoted/1` rather than the sample's own `“…”`: Persian meets the
-  Latin marks as foreign, and writes a quotation in guillemets. The whole
-  sentence is a quotation, which is exactly what that function is for.
-
-  ## One msgid, not five
-
-  The parts are interpolated into a single sentence rather than concatenated,
-  because the order of them is not the same in the two scripts and a
-  translator needs to be able to move the date inside the sentence. `%{day}`
-  and `%{month}` are separate for the same reason — `Kati.Locale.date/2` has
-  no style that gives a full month name and no weekday, which is the shape
-  this sentence wants, so `Kati.Screens.LogWeight.taken_line/0`'s composition
-  is the one followed here.
+      iex> Kati.Screens.Accessibility.voiceover_line(%{title: "Dark", meta: "S1 · E3"})
+      "“Dark. S1 · E3. Double-tap to open.”"
   """
-  @spec voiceover_line() :: String.t()
-  def voiceover_line do
+  @spec voiceover_line(map()) :: String.t()
+  def voiceover_line(%{title: title, meta: meta}) do
     Kati.Locale.quoted(
-      gettext(
-        "Episode %{n}, %{title}. %{minutes} minutes. Airs %{day} %{month}. Not watched. Double-tap to mark watched.",
-        n: Kati.Locale.number(6),
-        title: gettext("The Undertow"),
-        minutes: Kati.Locale.number(55),
-        day: Kati.Locale.day_of_month(@airs),
-        month: Kati.Locale.month_name(@airs)
-      )
+      gettext("%{title}. %{line}. Double-tap to open.", title: title, line: meta || "")
     )
   end
 
@@ -515,12 +412,12 @@ defmodule Kati.Screens.Accessibility do
   # consequence on the one card whose promise is that it grows instead of
   # cutting.
   @doc false
-  def up_next(spec, contrast?) do
-    u = spec.up_next
-    shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_card_soft(), contrast?)
+  def up_next(nil, _contrast?), do: []
 
-    label = Kati.UI.eyebrow_label(Kati.Screens.Accessibility.spec_text(u.label))
-    lines = Kati.Screens.Accessibility.spec_text(u.lines)
+  def up_next(hero, contrast?) do
+    shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_card_soft(), contrast?)
+    label = Kati.UI.eyebrow_label(gettext("Up next"))
+    assigns = %{hero: hero, shadow: shadow, label: label}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -528,19 +425,19 @@ defmodule Kati.Screens.Accessibility do
         fill_width={true}
         background={Palette.card()}
         corner_radius={22}
-        shadow={shadow}
+        shadow={@shadow}
         padding={18}
       >
         <Text
-          text={label}
-          font_family={Kati.Locale.mono_face(label)}
+          text={@label}
+          font_family={Kati.Locale.mono_face(@label)}
           text_size={12}
           letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={Palette.eyebrow()}
         />
         <Spacer size={12} />
         <Text
-          text={Kati.Screens.Accessibility.spec_text(u.title)}
+          text={@hero.title}
           text_size={30}
           font_weight="bold"
           letter_spacing={Kati.Locale.tracking(-0.02)}
@@ -549,49 +446,11 @@ defmodule Kati.Screens.Accessibility do
         />
         <Spacer size={10} />
         <Text
-          text={lines}
+          text={@hero.meta}
           text_size={22}
           line_height={Kati.Locale.leading(1.35)}
           text_color={Palette.ink_soft()}
         />
-        <Spacer size={18} />
-        <Box
-          fill_width={true}
-          height={60}
-          corner_radius={30}
-          background={Palette.ink_fill()}
-          align="center"
-        >
-          <Row align="center">
-            {Kati.UI.symbol("play_arrow", size: 26, color: Palette.on_ink(), fill: true)}
-            <Spacer size={10} />
-            <Text
-              text={Kati.Screens.Accessibility.spec_text(u.resume)}
-              text_size={19}
-              font_weight="bold"
-              text_color={Palette.on_ink()}
-            />
-          </Row>
-        </Box>
-        <Spacer size={10} />
-        <Box
-          fill_width={true}
-          height={60}
-          corner_radius={30}
-          background={Palette.paper()}
-          align="center"
-        >
-          <Row align="center">
-            {Kati.UI.symbol("check", size: 24)}
-            <Spacer size={10} />
-            <Text
-              text={Kati.Screens.Accessibility.spec_text(u.mark)}
-              text_size={19}
-              font_weight="bold"
-              text_color={:on_surface}
-            />
-          </Row>
-        </Box>
       </Column>
       <Spacer size={20} />
     </Column>
@@ -654,11 +513,9 @@ defmodule Kati.Screens.Accessibility do
   # has to survive a round trip through `String.to_atom/1`, and an index is the
   # one form that always does.
   @doc false
-  def row(row, i, rule?, contrast?) do
-    tap = {self(), String.to_atom("switch_" <> Integer.to_string(i))}
-
+  def row(row, _i, rule?, contrast?) do
     ~MOB"""
-    <Column fill_width={true} on_tap={tap}>
+    <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         {Kati.Screens.Accessibility.icon_tile(row.icon)}
         <Spacer size={13} />
@@ -679,7 +536,7 @@ defmodule Kati.Screens.Accessibility do
           />
         </Column>
         <Spacer size={13} />
-        {Kati.Screens.Accessibility.toggle(row.toggle)}
+        {Kati.UI.symbol("check", size: 18, color: Palette.green_text())}
       </Row>
       {Kati.Screens.Accessibility.hairline(rule?, contrast?)}
     </Column>
@@ -715,64 +572,6 @@ defmodule Kati.Screens.Accessibility do
   end
 
   @doc """
-  The design's own switch, as `Kati.Components.MishkaSwitch` in `render: :box`.
-
-  46x28 with a 22pt thumb and a 3pt inset — the drawing's numbers, passed
-  rather than rebuilt. `thumb_offset/4` owns the placement and resolves to
-  -9 off and +9 on, which is the 3..25 / 21..43 span the 40pt inner Row and
-  its weighted Spacers used to produce.
-
-  This doc used to say the component "cannot be used", because it wrapped
-  Mob's `Toggle` — Compose's Material `Switch`, fixed at 52x32 with a handle
-  that grows from 16 to 24. That is still true of `render: :toggle`, and it is
-  why the default stays there; it stopped being true of this screen when
-  `render: :box` landed, and the claim is retracted rather than left standing.
-
-  ### The one thing the drawn mode costs, on the screen that can least afford it
-
-  A native `Switch` carries a role, an on/off state and a toggle action into
-  TalkBack. A pair of boxes carries none of it, and this is the accessibility
-  screen. The trade is taken anyway, and narrowly: the row — not the switch —
-  is what `row/4` makes tappable, and the row is a `Column` holding the
-  guarantee's title and subtitle as real `Text` nodes, so what a screen reader
-  lands on and announces is unchanged either way. What is lost is the *state*
-  announcement, which the drawn track cannot carry and which the native switch
-  could only have carried at 52x32 — a different drawing.
-
-  The switch draws state; `row/4` carries the tap. Flipping one moves the
-  thumb and swaps the track — every row's guaranteed consequence — and for
-  **Increase contrast** the screen's hairlines and shadows follow as well.
-
-  **Dynamic Type** is the one guarantee that stays a switch and nothing more.
-  Its honest consequence would be re-rendering the Up next card at ordinary
-  size, but the drawing gives no ordinary size to fall back to: 235% of a 30pt
-  title is not the 17pt title the rest of the app uses, so any scale factor
-  here would be invented rather than drawn. A switch that flips is honest; a
-  card rendered at a made-up size is not.
-  """
-  def toggle(on?) do
-    MishkaSwitch.switch(
-      render: :box,
-      checked: on?,
-      track_width: 46,
-      track_height: 28,
-      track_radius: 14,
-      thumb_size: 22,
-      thumb_radius: 11,
-      thumb_inset: 3,
-      # The whole control inverts rather than following the ground — `ink_fill`
-      # under `on_ink`, the pair screen 28 draws for the hero's CTA pill. Both
-      # thumb colours stay ONE token, because the drawing's thumb does not
-      # change colour, only the track does, and that stays true in dark.
-      track_on_color: Palette.ink_fill(),
-      track_off_color: Palette.track_off(),
-      thumb_on_color: Palette.on_ink(),
-      thumb_off_color: Palette.on_ink(),
-      thumb_shadow: "0 1 3 0 #4D1A1917"
-    )
-  end
-
-  @doc """
   The sentence VoiceOver speaks, printed on ink.
 
   This card is the screen's one inverted surface, and in dark it inverts back:
@@ -783,41 +582,37 @@ defmodule Kati.Screens.Accessibility do
 
   `0xFF6A6560` is **left as a literal**; see the comment on it below.
   """
-  def voiceover(spec) do
-    v = spec.voiceover
+  def voiceover(nil), do: []
 
-    # `0xFF6A6560` LEFT AS A LITERAL. It is in `Kati.Theme.Palette` three times
-    # and every one of them is a DARK value — `muted`, `segment_idle` and
-    # `tertiary` all land on it — so no token resolves to it in light, and any
-    # token that names this meaning (`on_ink_meta` is the closest, "the mono
-    # meta step on an ink fill") carries a different light value and would move
-    # the baseline. This screen draws a dark card inside a light drawing and
-    # reaches for a dark-mode neutral to label it; the table has no light row to
-    # answer with. Left as it is, and reported. On the inverted `#F7EFE4` card
-    # this still reads at about 4.8:1, so the unchanged value is not a hole.
+  def voiceover(hero) do
+    # See the note that stood here: a dark-mode neutral with no light token.
     meta = 0xFF6A6560
+    label = Kati.UI.eyebrow_label(pgettext("the VoiceOver quotation’s label", "Up next card"))
+    reads = Kati.Screens.Accessibility.voiceover_line(hero)
+    assigns = %{meta: meta, label: label, reads: reads}
 
-    label = Kati.UI.eyebrow_label(Kati.Screens.Accessibility.spec_text(v.label))
-
-    ~MOB"""
-    <Column fill_width={true} background={Palette.ink_fill()} corner_radius={20} padding={17}>
-      <Text
-        text={label}
-        font_family={Kati.Locale.mono_face(label)}
-        text_size={10}
-        letter_spacing={Kati.Locale.tracking(0.14)}
-        text_color={meta}
-        max_lines={1}
-      />
-      <Spacer size={10} />
-      <Text
-        text={Kati.Screens.Accessibility.spec_text(v.reads)}
-        text_size={13.5}
-        line_height={Kati.Locale.leading(1.6)}
-        text_color={Palette.on_ink_glyph()}
-      />
-    </Column>
-    """
+    [
+      Kati.Screens.Accessibility.quiet_eyebrow(gettext("VoiceOver reads")),
+      ~MOB"""
+      <Column fill_width={true} background={Palette.ink_fill()} corner_radius={20} padding={17}>
+        <Text
+          text={@label}
+          font_family={Kati.Locale.mono_face(@label)}
+          text_size={10}
+          letter_spacing={Kati.Locale.tracking(0.14)}
+          text_color={@meta}
+          max_lines={1}
+        />
+        <Spacer size={10} />
+        <Text
+          text={@reads}
+          text_size={13.5}
+          line_height={Kati.Locale.leading(1.6)}
+          text_color={Palette.on_ink_glyph()}
+        />
+      </Column>
+      """
+    ]
   end
 
   @doc """
@@ -870,29 +665,5 @@ defmodule Kati.Screens.Accessibility do
     color = if contrast?, do: Palette.track_ink(), else: Palette.hairline()
 
     MishkaSeparator.separator(color: color, thickness: 1, render: :box)
-  end
-
-  @doc """
-  One clause for all six switches: the tag carries the row's index.
-
-  A seventh guarantee would be a line in `Kati.Accessibility.Sample` and
-  nothing here — the same rule `Kati.Screens.Library`'s chips follow.
-  """
-  @impl true
-  def handle_tap(tag, socket) do
-    spec = socket.assigns.spec
-
-    case Atom.to_string(tag) do
-      "switch_" <> i ->
-        rows =
-          List.update_at(spec.built_in, String.to_integer(i), fn row ->
-            %{row | toggle: not row.toggle}
-          end)
-
-        {:noreply, Mob.Socket.assign(socket, :spec, %{spec | built_in: rows})}
-
-      _ ->
-        {:noreply, socket}
-    end
   end
 end

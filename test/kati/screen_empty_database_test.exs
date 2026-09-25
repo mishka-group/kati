@@ -249,6 +249,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # A4: *Storage used* reads the database file and the shelf, and *Last
     # backup* reads the ledger, where both were the drawing's figures.
     {"40", Kati.Screens.Account},
+    # A5: the specimen Up next card is screen 10's own hero now.
+    {"41", Kati.Screens.Accessibility},
     # 145 joined when the sort disc's sheet stopped being a picture. It reads
     # the shelf twice — once as it stands and once with nothing selected — so
     # `showing N of M` is two numbers about this reader rather than board
@@ -1585,6 +1587,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # Board 176's annotation aside, retired with its seven runs —
     # `DesignLiterals.retired_lines/0` carries the argument.
     {"176", "info"},
+    # Board 41's specimen card's Resume button and its Increase contrast row
+    # (A5); `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is the twin.
+    {"41", "play_arrow"},
+    {"41", "contrast"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"}
@@ -2548,6 +2554,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 40's *Storage used* counts the shelf. It said 1,206 titles on every
       # phone (A4); over an empty store it counts none.
       {"40", Kati.Screens.Account, &Kati.Account.Sample.titles_kept/0, 0, fn -> 1206 end},
+      # 41's Up next card was *The Long Hollow* on every phone (A5); over an
+      # empty store there is no card at all.
+      {"41", Kati.Screens.Accessibility, &Kati.Screens.Accessibility.hero/0, nil,
+       fn -> %{title: "The Long Hollow", meta: "Season 2, episode 6"} end},
       {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
       {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,

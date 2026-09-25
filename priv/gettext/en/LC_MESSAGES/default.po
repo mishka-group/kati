@@ -1150,7 +1150,6 @@ msgstr ""
 #: lib/kati/library/sample.ex:208
 #: lib/kati/library/sample.ex:277
 #: lib/kati/library/sample.ex:331
-#: lib/kati/screens/accessibility.ex:224
 #: lib/kati/screens/calendar.ex:237
 #: lib/kati/screens/discover/sample.ex:73
 #: lib/kati/screens/episode_ratings.ex:305
@@ -1590,7 +1589,8 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:223
+#: lib/kati/screens/accessibility.ex:160
+#: lib/kati/screens/accessibility.ex:419
 #: lib/kati/screens/library.ex:1052
 #: lib/kati/screens/pushed.ex:203
 #: lib/kati/screens/up_next.ex:987
@@ -3385,11 +3385,6 @@ msgstr ""
 msgid "Export everything"
 msgstr ""
 
-#: lib/kati/settings/sample.ex:75
-#, elixir-autogen, elixir-format
-msgid "Follows system · up to %{n}%"
-msgstr ""
-
 #: lib/kati/settings/sample.ex:96
 #, elixir-autogen, elixir-format
 msgid "Home and lock screen"
@@ -3452,7 +3447,7 @@ msgstr ""
 msgid "Privacy"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:265
+#: lib/kati/screens/accessibility.ex:195
 #: lib/kati/settings/sample.ex:81
 #, elixir-autogen, elixir-format
 msgid "Reduce motion"
@@ -4662,7 +4657,6 @@ msgstr ""
 
 #: lib/kati/library/sample.ex:252
 #: lib/kati/library/sample.ex:333
-#: lib/kati/screens/accessibility.ex:328
 #: lib/kati/screens/episode_ratings.ex:200
 #: lib/kati/season/sample.ex:205
 #, elixir-autogen, elixir-format
@@ -9903,11 +9897,6 @@ msgstr ""
 msgid "%{n} hidden by filters"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:228
-#, elixir-autogen, elixir-format, fuzzy
-msgid "%{n} minutes left"
-msgstr ""
-
 #: lib/kati/calendar/sample_meal_day.ex:79
 #: lib/kati/money/day_sample.ex:87
 #: lib/kati/screens/meals_day.ex:176
@@ -9950,7 +9939,7 @@ msgstr ""
 msgid "A reminder inside them moves to the morning. It is never dropped."
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:434
+#: lib/kati/screens/accessibility.ex:331
 #, elixir-autogen, elixir-format
 msgid "Accessibility"
 msgstr ""
@@ -9991,12 +9980,12 @@ msgstr ""
 msgid "Arabic, Turkish, German…"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:245
+#: lib/kati/screens/accessibility.ex:178
 #, elixir-autogen, elixir-format
 msgid "At the largest sizes, rows become stacks and icon-only buttons grow labels. Nothing truncates — cards get taller instead."
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:130
+#: lib/kati/screens/accessibility.ex:99
 #, elixir-autogen, elixir-format
 msgid "Built in"
 msgstr ""
@@ -10016,12 +10005,12 @@ msgstr ""
 msgid "Collapse meals"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:278
+#: lib/kati/screens/accessibility.ex:204
 #, elixir-autogen, elixir-format
 msgid "Colour is never alone"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:267
+#: lib/kati/screens/accessibility.ex:197
 #, elixir-autogen, elixir-format
 msgid "Cross-fades instead of slides"
 msgstr ""
@@ -10042,14 +10031,9 @@ msgstr ""
 msgid "Denied, Kati still arms the alarm and the phone never displays it. Nothing reports the failure."
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:260
+#: lib/kati/screens/accessibility.ex:193
 #, elixir-autogen, elixir-format
 msgid "Dynamic Type"
-msgstr ""
-
-#: lib/kati/screens/accessibility.ex:215
-#, elixir-autogen, elixir-format
-msgid "Dynamic Type at %{n}%"
 msgstr ""
 
 #: lib/kati/screens/medication_empty.ex:273
@@ -10062,17 +10046,12 @@ msgstr ""
 msgid "Empty cells keep their hairline so the year reads as "
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:325
-#, elixir-autogen, elixir-format
-msgid "Episode %{n}, %{title}. %{minutes} minutes. Airs %{day} %{month}. Not watched. Double-tap to mark watched."
-msgstr ""
-
-#: lib/kati/screens/accessibility.ex:258
+#: lib/kati/screens/accessibility.ex:191
 #, elixir-autogen, elixir-format
 msgid "Every control labelled · posters described"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:280
+#: lib/kati/screens/accessibility.ex:206
 #, elixir-autogen, elixir-format
 msgid "Every dot has a label or icon"
 msgstr ""
@@ -10107,11 +10086,6 @@ msgstr ""
 msgid "Gregorian · Shamsi available"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:271
-#, elixir-autogen, elixir-format
-msgid "Hairlines darken, shadows drop"
-msgstr ""
-
 #: lib/kati/screens/medication_empty.ex:257
 #, elixir-autogen, elixir-format
 msgid "Header add disc"
@@ -10120,11 +10094,6 @@ msgstr ""
 #: lib/kati/screens/notifications_help.ex:188
 #, elixir-autogen, elixir-format
 msgid "Held back right now"
-msgstr ""
-
-#: lib/kati/screens/accessibility.ex:269
-#, elixir-autogen, elixir-format
-msgid "Increase contrast"
 msgstr ""
 
 #: lib/kati/screens/year_cards_states.ex:624
@@ -10258,7 +10227,7 @@ msgstr ""
 msgid "Nothing selected"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:276
+#: lib/kati/screens/accessibility.ex:202
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Nothing under %{w}×%{h}"
 msgstr ""
@@ -10395,11 +10364,6 @@ msgstr ""
 msgid "Saving images does not work here yet."
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:227
-#, elixir-autogen, elixir-format
-msgid "Season %{s}, episode %{e}"
-msgstr ""
-
 #: lib/kati/screens/shelf_selection.ex:1196
 #, elixir-autogen, elixir-format
 msgid "Selection survives a filter change."
@@ -10520,7 +10484,7 @@ msgstr ""
 msgid "This phone allows %{cap} across the whole app, divided between the six sections so a busy calendar cannot quietly starve your meal reminders. When a section is full, the furthest-away reminder is the one dropped — never the soonest."
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:273
+#: lib/kati/screens/accessibility.ex:199
 #, elixir-autogen, elixir-format
 msgid "Touch targets"
 msgstr ""
@@ -10537,17 +10501,12 @@ msgstr ""
 msgid "Units"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:263
-#, elixir-autogen, elixir-format
-msgid "Up to %{n}% · no truncation"
-msgstr ""
-
-#: lib/kati/screens/accessibility.ex:255
+#: lib/kati/screens/accessibility.ex:188
 #, elixir-autogen, elixir-format
 msgid "VoiceOver"
 msgstr ""
 
-#: lib/kati/screens/accessibility.ex:130
+#: lib/kati/screens/accessibility.ex:595
 #, elixir-autogen, elixir-format
 msgid "VoiceOver reads"
 msgstr ""
@@ -11133,24 +11092,6 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "sort direction"
 msgid "DESC"
-msgstr ""
-
-#: lib/kati/screens/accessibility.ex:238
-#, elixir-autogen, elixir-format
-msgctxt "the Up next card’s primary button"
-msgid "Resume"
-msgstr ""
-
-#: lib/kati/screens/accessibility.ex:241
-#, elixir-autogen, elixir-format, fuzzy
-msgctxt "the Up next card’s secondary button"
-msgid "Mark watched"
-msgstr ""
-
-#: lib/kati/screens/accessibility.ex:290
-#, elixir-autogen, elixir-format, fuzzy
-msgctxt "the VoiceOver quotation’s label"
-msgid "Episode row"
 msgstr ""
 
 #: lib/kati/screens/shelf_large.ex:262
@@ -17658,4 +17599,30 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "answer to a sync question"
 msgid "Choose"
+msgstr ""
+
+#: lib/kati/screens/accessibility.ex:229
+#, elixir-autogen, elixir-format
+msgid "%{title}. %{line}. Double-tap to open."
+msgstr ""
+
+#: lib/kati/settings/sample.ex:75
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Follows system"
+msgstr ""
+
+#: lib/kati/screens/accessibility.ex:163
+#, elixir-autogen, elixir-format
+msgid "Follows your system text size"
+msgstr ""
+
+#: lib/kati/screens/accessibility.ex:166
+#, elixir-autogen, elixir-format
+msgid "Follows your system text size · no truncation"
+msgstr ""
+
+#: lib/kati/screens/accessibility.ex:590
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "the VoiceOver quotation’s label"
+msgid "Up next card"
 msgstr ""

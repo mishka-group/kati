@@ -479,6 +479,28 @@ defmodule Kati.DesignLiterals do
       # Board 40's *Storage used* figure is the drawing's; the row reads the
       # database file and the shelf now (A4).
       {"40", "214 mb · 1,206 titles"},
+      # Board 41 drew a specimen Up next card (*The Long Hollow · Season 2,
+      # episode 6 · 18 minutes left*, Resume / Mark watched), a VoiceOver
+      # sentence about *The Undertow*, 235% Dynamic Type, and an Increase
+      # contrast switch that only restyled that page. The card and sentence are
+      # the reader's own now and absent when nothing is on the go; the rest were
+      # claims the app does not keep (A5). Settings' Text size row made the same
+      # 235% claim.
+      {"41", "dynamic type at 235%"},
+      {"41", "up next"},
+      {"41", "the long hollow"},
+      {"41", "season 2, episode 6"},
+      {"41", "18 minutes left"},
+      {"41", "resume"},
+      {"41", "mark watched"},
+      {"41", "up to 235% · no truncation"},
+      {"41", "increase contrast"},
+      {"41", "hairlines darken, shadows drop"},
+      {"41", "voiceover reads"},
+      {"41", "episode row"},
+      {"41",
+       "“episode 6, the undertow. 55 minutes. airs 20 august. not watched. double-tap to mark watched.”"},
+      {"24", "follows system · up to 235%"},
       {"24", "synced 2 min ago"},
       {"24", "1,204 entries · 4 sections"},
       {"24", "synced"},

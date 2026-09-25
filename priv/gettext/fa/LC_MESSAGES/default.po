@@ -1155,7 +1155,6 @@ msgstr "آن فهرست هنگام ساخت از THIRD_PARTY_NOTICES.md تولی
 #: lib/kati/library/sample.ex:208
 #: lib/kati/library/sample.ex:277
 #: lib/kati/library/sample.ex:331
-#: lib/kati/screens/accessibility.ex:224
 #: lib/kati/screens/calendar.ex:237
 #: lib/kati/screens/discover/sample.ex:73
 #: lib/kati/screens/episode_ratings.ex:305
@@ -1595,7 +1594,8 @@ msgstr "جست‌وجو"
 msgid "Settings"
 msgstr "تنظیمات"
 
-#: lib/kati/screens/accessibility.ex:223
+#: lib/kati/screens/accessibility.ex:160
+#: lib/kati/screens/accessibility.ex:419
 #: lib/kati/screens/library.ex:1052
 #: lib/kati/screens/pushed.ex:203
 #: lib/kati/screens/up_next.ex:987
@@ -3390,11 +3390,6 @@ msgstr "برای تغییر ترتیب خانه بکشید"
 msgid "Export everything"
 msgstr "برون‌ریزی همه‌چیز"
 
-#: lib/kati/settings/sample.ex:75
-#, elixir-autogen, elixir-format
-msgid "Follows system · up to %{n}%"
-msgstr "پیروی از سیستم · تا %{n}٪"
-
 #: lib/kati/settings/sample.ex:96
 #, elixir-autogen, elixir-format
 msgid "Home and lock screen"
@@ -3457,7 +3452,7 @@ msgstr "آغاز پخش، قسمت تازه، افت قیمت"
 msgid "Privacy"
 msgstr "حریم خصوصی"
 
-#: lib/kati/screens/accessibility.ex:265
+#: lib/kati/screens/accessibility.ex:195
 #: lib/kati/settings/sample.ex:81
 #, elixir-autogen, elixir-format
 msgid "Reduce motion"
@@ -4667,7 +4662,6 @@ msgstr "جاده گدار"
 
 #: lib/kati/library/sample.ex:252
 #: lib/kati/library/sample.ex:333
-#: lib/kati/screens/accessibility.ex:328
 #: lib/kati/screens/episode_ratings.ex:200
 #: lib/kati/season/sample.ex:205
 #, elixir-autogen, elixir-format
@@ -9908,11 +9902,6 @@ msgstr "%{n} مورد نگه داشته شده — %{reasons}"
 msgid "%{n} hidden by filters"
 msgstr "%{n} مورد با فیلتر پنهان شده"
 
-#: lib/kati/screens/accessibility.ex:228
-#, elixir-autogen, elixir-format
-msgid "%{n} minutes left"
-msgstr "%{n} دقیقه مانده"
-
 #: lib/kati/calendar/sample_meal_day.ex:79
 #: lib/kati/money/day_sample.ex:87
 #: lib/kati/screens/meals_day.ex:176
@@ -9955,7 +9944,7 @@ msgstr "یک عنوان خصوصی"
 msgid "A reminder inside them moves to the morning. It is never dropped."
 msgstr "یادآوری که داخل این بازه بیفتد به صبح منتقل می‌شود. هرگز حذف نمی‌شود."
 
-#: lib/kati/screens/accessibility.ex:434
+#: lib/kati/screens/accessibility.ex:331
 #, elixir-autogen, elixir-format
 msgid "Accessibility"
 msgstr "دسترس‌پذیری"
@@ -9996,12 +9985,12 @@ msgstr "هر CSV — نگاشت ستون‌ها با خودتان"
 msgid "Arabic, Turkish, German…"
 msgstr "عربی، ترکی، آلمانی…"
 
-#: lib/kati/screens/accessibility.ex:245
+#: lib/kati/screens/accessibility.ex:178
 #, elixir-autogen, elixir-format
 msgid "At the largest sizes, rows become stacks and icon-only buttons grow labels. Nothing truncates — cards get taller instead."
 msgstr "در بزرگ‌ترین اندازه‌ها، ردیف‌ها ستونی می‌شوند و دکمه‌های فقط‌نماد برچسب می‌گیرند. هیچ متنی بریده نمی‌شود — به‌جایش کارت‌ها بلندتر می‌شوند."
 
-#: lib/kati/screens/accessibility.ex:130
+#: lib/kati/screens/accessibility.ex:99
 #, elixir-autogen, elixir-format
 msgid "Built in"
 msgstr "توکار"
@@ -10021,12 +10010,12 @@ msgstr "تغییر واحد پول"
 msgid "Collapse meals"
 msgstr "جمع‌کردن وعده‌ها"
 
-#: lib/kati/screens/accessibility.ex:278
+#: lib/kati/screens/accessibility.ex:204
 #, elixir-autogen, elixir-format
 msgid "Colour is never alone"
 msgstr "رنگ هرگز تنها نیست"
 
-#: lib/kati/screens/accessibility.ex:267
+#: lib/kati/screens/accessibility.ex:197
 #, elixir-autogen, elixir-format
 msgid "Cross-fades instead of slides"
 msgstr "محو تدریجی به‌جای لغزش"
@@ -10047,15 +10036,10 @@ msgstr "دلخواه"
 msgid "Denied, Kati still arms the alarm and the phone never displays it. Nothing reports the failure."
 msgstr "اگر اجازه ندهید، کاتی باز هم زنگ هشدار را تنظیم می‌کند و گوشی هرگز نشانش نمی‌دهد. هیچ‌چیز این شکست را گزارش نمی‌کند."
 
-#: lib/kati/screens/accessibility.ex:260
+#: lib/kati/screens/accessibility.ex:193
 #, elixir-autogen, elixir-format
 msgid "Dynamic Type"
 msgstr "متن پویا"
-
-#: lib/kati/screens/accessibility.ex:215
-#, elixir-autogen, elixir-format
-msgid "Dynamic Type at %{n}%"
-msgstr "متن پویا روی %{n}٪"
 
 #: lib/kati/screens/medication_empty.ex:273
 #, elixir-autogen, elixir-format
@@ -10067,17 +10051,12 @@ msgstr "هر ردیف برنامه‌ها"
 msgid "Empty cells keep their hairline so the year reads as "
 msgstr "سلول‌های خالی خط مویی خود را نگه می‌دارند تا سال "
 
-#: lib/kati/screens/accessibility.ex:325
-#, elixir-autogen, elixir-format
-msgid "Episode %{n}, %{title}. %{minutes} minutes. Airs %{day} %{month}. Not watched. Double-tap to mark watched."
-msgstr "قسمت %{n}، %{title}. %{minutes} دقیقه. پخش %{day} %{month}. دیده‌نشده. برای علامت‌زدن دوبار ضربه بزنید."
-
-#: lib/kati/screens/accessibility.ex:258
+#: lib/kati/screens/accessibility.ex:191
 #, elixir-autogen, elixir-format
 msgid "Every control labelled · posters described"
 msgstr "هر کنترل برچسب‌دار · پوسترها توصیف‌شده"
 
-#: lib/kati/screens/accessibility.ex:280
+#: lib/kati/screens/accessibility.ex:206
 #, elixir-autogen, elixir-format
 msgid "Every dot has a label or icon"
 msgstr "هر نقطه برچسب یا نماد دارد"
@@ -10112,11 +10091,6 @@ msgstr "قاعدهٔ اشاره: فشار طولانی روی"
 msgid "Gregorian · Shamsi available"
 msgstr "شمسی · میلادی هم در دسترس است"
 
-#: lib/kati/screens/accessibility.ex:271
-#, elixir-autogen, elixir-format
-msgid "Hairlines darken, shadows drop"
-msgstr "خط‌ها تیره‌تر، سایه‌ها حذف"
-
 #: lib/kati/screens/medication_empty.ex:257
 #, elixir-autogen, elixir-format
 msgid "Header add disc"
@@ -10126,11 +10100,6 @@ msgstr "دکمهٔ گرد افزودن در سربرگ"
 #, elixir-autogen, elixir-format
 msgid "Held back right now"
 msgstr "همین حالا نگه داشته شده"
-
-#: lib/kati/screens/accessibility.ex:269
-#, elixir-autogen, elixir-format
-msgid "Increase contrast"
-msgstr "افزایش کنتراست"
 
 #: lib/kati/screens/year_cards_states.ex:624
 #, elixir-autogen, elixir-format
@@ -10263,7 +10232,7 @@ msgstr "چیزی در این روز نیست"
 msgid "Nothing selected"
 msgstr "چیزی انتخاب نشده"
 
-#: lib/kati/screens/accessibility.ex:276
+#: lib/kati/screens/accessibility.ex:202
 #, elixir-autogen, elixir-format
 msgid "Nothing under %{w}×%{h}"
 msgstr "هیچ‌کدام زیر %{w}×%{h}"
@@ -10400,11 +10369,6 @@ msgstr "ذخیرهٔ فایل به قابلیتی از سیستم نیاز دا�
 msgid "Saving images does not work here yet."
 msgstr "ذخیرهٔ تصویر هنوز اینجا کار نمی‌کند."
 
-#: lib/kati/screens/accessibility.ex:227
-#, elixir-autogen, elixir-format
-msgid "Season %{s}, episode %{e}"
-msgstr "فصل %{s}، قسمت %{e}"
-
 #: lib/kati/screens/shelf_selection.ex:1196
 #, elixir-autogen, elixir-format
 msgid "Selection survives a filter change."
@@ -10525,7 +10489,7 @@ msgstr "ردیف در وعده این‌طور دیده می‌شود. عددی 
 msgid "This phone allows %{cap} across the whole app, divided between the six sections so a busy calendar cannot quietly starve your meal reminders. When a section is full, the furthest-away reminder is the one dropped — never the soonest."
 msgstr "این گوشی در کل برنامه %{cap} تا اجازه می‌دهد، تقسیم‌شده بین شش بخش تا تقویم شلوغ بی‌سروصدا یادآورهای وعده‌هایتان را از بین نبرد. وقتی بخشی پر شود، دورترین یادآور است که حذف می‌شود — هرگز نزدیک‌ترین."
 
-#: lib/kati/screens/accessibility.ex:273
+#: lib/kati/screens/accessibility.ex:199
 #, elixir-autogen, elixir-format
 msgid "Touch targets"
 msgstr "هدف‌های لمس"
@@ -10542,17 +10506,12 @@ msgstr "برگرداندن — پس از هر کنش مخرب"
 msgid "Units"
 msgstr "واحدها"
 
-#: lib/kati/screens/accessibility.ex:263
-#, elixir-autogen, elixir-format
-msgid "Up to %{n}% · no truncation"
-msgstr "تا %{n}٪ · بدون بریدگی"
-
-#: lib/kati/screens/accessibility.ex:255
+#: lib/kati/screens/accessibility.ex:188
 #, elixir-autogen, elixir-format
 msgid "VoiceOver"
 msgstr "صفحه‌خوان"
 
-#: lib/kati/screens/accessibility.ex:130
+#: lib/kati/screens/accessibility.ex:595
 #, elixir-autogen, elixir-format
 msgid "VoiceOver reads"
 msgstr "صفحه‌خوان می‌خواند"
@@ -11139,24 +11098,6 @@ msgstr "صعودی"
 msgctxt "sort direction"
 msgid "DESC"
 msgstr "نزولی"
-
-#: lib/kati/screens/accessibility.ex:238
-#, elixir-autogen, elixir-format
-msgctxt "the Up next card’s primary button"
-msgid "Resume"
-msgstr "ادامه"
-
-#: lib/kati/screens/accessibility.ex:241
-#, elixir-autogen, elixir-format
-msgctxt "the Up next card’s secondary button"
-msgid "Mark watched"
-msgstr "دیده‌ام"
-
-#: lib/kati/screens/accessibility.ex:290
-#, elixir-autogen, elixir-format
-msgctxt "the VoiceOver quotation’s label"
-msgid "Episode row"
-msgstr "ردیف قسمت"
 
 #: lib/kati/screens/shelf_large.ex:262
 #: lib/kati/screens/shelf_selection.ex:730
@@ -17664,3 +17605,29 @@ msgstr "کاتی هنوز نمی‌تواند وارد حساب تقویمی ش�
 msgctxt "answer to a sync question"
 msgid "Choose"
 msgstr "انتخاب"
+
+#: lib/kati/screens/accessibility.ex:229
+#, elixir-autogen, elixir-format
+msgid "%{title}. %{line}. Double-tap to open."
+msgstr "%{title}. %{line}. برای باز کردن دو بار بزنید."
+
+#: lib/kati/settings/sample.ex:75
+#, elixir-autogen, elixir-format
+msgid "Follows system"
+msgstr "پیروی از سیستم"
+
+#: lib/kati/screens/accessibility.ex:163
+#, elixir-autogen, elixir-format
+msgid "Follows your system text size"
+msgstr "پیروی از اندازهٔ متن سیستم"
+
+#: lib/kati/screens/accessibility.ex:166
+#, elixir-autogen, elixir-format
+msgid "Follows your system text size · no truncation"
+msgstr "پیروی از اندازهٔ متن سیستم · بدون بریدگی"
+
+#: lib/kati/screens/accessibility.ex:590
+#, elixir-autogen, elixir-format
+msgctxt "the VoiceOver quotation’s label"
+msgid "Up next card"
+msgstr "کارت بعدی"

@@ -260,6 +260,10 @@ defmodule Kati.ScreenDesignLiteralTest do
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
     {"49", "auto_mode"},
+    # Board 41's specimen card's Resume button and the Increase contrast row —
+    # see `retired_lines/0`'s board-41 entry (A5).
+    {"41", "play_arrow"},
+    {"41", "contrast"},
     # Board 39's deleted tiles and shortcut rows — see `retired_lines/0`.
     {"39", "add"},
     {"39", "bolt"},
@@ -510,9 +514,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # Named rather than counted. A budget that reports only its own arithmetic
       # tells whoever trips it to go and find the offender by hand, and the
       # offender is one literal out of some sixteen hundred.
+      # Retired lines are out of the count: each is an absence the list above
+      # explains, and counting it as "not found inside one Text" made every
+      # honest retirement erode this ratio.
       located =
         for screen <- render_all(),
             literal <- screen.design.text,
+            {screen.number, literal} not in DesignLiterals.retired_lines(),
             do: {DesignLiterals.locate(literal, screen.haystacks), screen, literal}
 
       tiers = Enum.map(located, &elem(&1, 0))
