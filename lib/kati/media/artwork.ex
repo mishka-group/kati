@@ -98,6 +98,32 @@ defmodule Kati.Media.Artwork do
   def local(_other, _size), do: nil
 
   @doc """
+  TMDB's own small thumbnail for `path`, for a row that is only being looked at.
+
+  Screen 06's results are titles nobody has added, so `cache/1` has not run for
+  them and `local/2` answers `nil` — which drew seventeen grey rectangles for
+  *arrival*. Downloading each one to disk would keep files for titles the
+  reader was only browsing. The bridge loads an `https` `src` itself (Coil), so
+  the row points at the CDN and nothing is written.
+
+  `w154`: the row draws 44x62, which is 132x186 at 3x, and `w154` is the first
+  rung of TMDB's ladder above that.
+
+      iex> Kati.Media.Artwork.thumbnail("/kBf3g9crrADGMc2AMAMlLBgSm2h.jpg")
+      "https://image.tmdb.org/t/p/w154/kBf3g9crrADGMc2AMAMlLBgSm2h.jpg"
+
+      iex> Kati.Media.Artwork.thumbnail("hollow71")
+      nil
+
+      iex> Kati.Media.Artwork.thumbnail(nil)
+      nil
+  """
+  @spec thumbnail(term()) :: String.t() | nil
+  def thumbnail(path) do
+    if remote?(path), do: @host <> "/w154" <> path
+  end
+
+  @doc """
   Fetch and store the poster for `path`, unless this device already has it.
 
   Called once, when a title is added — see `Kati.Screens.AddTitle.track/2`.

@@ -483,9 +483,9 @@ defmodule Kati.Screens.AddTitle do
   `seed` carries the CDN path. It was `nil` with the note *the honest answer
   until posters are fetched* — they are fetched now, by `Kati.Media.Artwork`,
   and `Kati.Design.Images` resolves a path like `/kBf3g9....jpg` to the file
-  on this device. A row already added therefore shows its own poster, and a
-  row not yet added shows `thumb/1`'s paper placeholder, because nothing is
-  downloaded until somebody asks for the title.
+  on this device. A row already added shows that file; a row not yet added
+  shows TMDB's own thumbnail by URL (`Kati.Media.Artwork.thumbnail/1`), so
+  browsing downloads nothing to disk.
 
   `source_id` and `kind` ride along because `track/2` needs them: a row added
   from TMDB is tracked under its TMDB id, not under its title.
@@ -1259,7 +1259,7 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   def thumb(r) do
-    case Kati.Library.Sample.poster(r[:seed]) do
+    case Kati.Library.Sample.poster(r[:seed]) || Kati.Media.Artwork.thumbnail(r[:seed]) do
       nil ->
         ~MOB"<Box width={44} height={62} corner_radius={9} background={Palette.placeholder()} />"
 

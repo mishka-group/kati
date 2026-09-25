@@ -23,7 +23,7 @@ defmodule Kati.MediaArtworkTest do
   alias Kati.Design.Images
   alias Kati.Media.Artwork
 
-  doctest Kati.Media.Artwork, only: [remote?: 1]
+  doctest Kati.Media.Artwork, only: [remote?: 1, thumbnail: 1]
 
   describe "which namespace a value belongs to" do
     test "a CDN path is remote and a design seed is not" do
@@ -153,6 +153,19 @@ defmodule Kati.MediaArtworkTest do
       assert Kati.Screens.AddTitle.poster_of(%{title: %{poster_path: nil}}) == nil
       assert Kati.Screens.AddTitle.poster_of(%{seasons: 2, episodes: 16}) == nil
       assert Kati.Screens.AddTitle.poster_of(nil) == nil
+    end
+  end
+
+  describe "a search row nobody has added yet" do
+    test "draws TMDB's thumbnail by URL rather than a grey box" do
+      row = %{seed: "/kBf3g9crrADGMc2AMAMlLBgSm2h.jpg"}
+
+      assert inspect(Kati.Screens.AddTitle.thumb(row), limit: :infinity) =~
+               "https://image.tmdb.org/t/p/w154/kBf3g9crrADGMc2AMAMlLBgSm2h.jpg"
+    end
+
+    test "and a row with no poster keeps the placeholder" do
+      refute inspect(Kati.Screens.AddTitle.thumb(%{seed: nil}), limit: :infinity) =~ "https://"
     end
   end
 end
