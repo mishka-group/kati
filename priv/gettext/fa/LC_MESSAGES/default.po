@@ -39,18 +39,18 @@ msgstr "%{count} عنوان"
 msgid "%{day} · %{count} meals"
 msgstr "%{day} · %{count} وعده"
 
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #, elixir-autogen, elixir-format
 msgid ". If Kati finds it later both arrive, and nothing you typed is overwritten."
 msgstr ". اگر کاتی بعداً آن را پیدا کند، هر دو می‌آیند و چیزی که نوشته‌اید دست‌نخورده می‌ماند."
 
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #: lib/kati/screens/add_by_hand_book.ex:208
 #, elixir-autogen, elixir-format
 msgid "2024"
 msgstr "۱۴۰۳"
 
-#: lib/kati/screens/add_by_hand.ex:418
+#: lib/kati/screens/add_by_hand.ex:464
 #, elixir-autogen, elixir-format
 msgid "7"
 msgstr "۷"
@@ -67,7 +67,7 @@ msgstr "یک کارت در خانه. هیچ صدایی بلند نمی‌شود.
 msgid "A film you log a watch of, or a series whose last episode you tick, lands here."
 msgstr "فیلمی که تماشایش را ثبت کنید، یا سریالی که آخرین قسمتش را تیک بزنید، اینجا می‌آید."
 
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #, elixir-autogen, elixir-format
 msgid "A hand-typed title carries"
 msgstr "عنوان دست‌نویس"
@@ -94,7 +94,7 @@ msgstr "آلبوم"
 msgid "Abandoned"
 msgstr "رهاشده"
 
-#: lib/kati/screens/add_title.ex:548
+#: lib/kati/screens/add_title.ex:553
 #: lib/kati/screens/add_title_music.ex:330
 #: lib/kati/screens/inbox.ex:979
 #: lib/kati/screens/library.ex:713
@@ -103,7 +103,7 @@ msgstr "رهاشده"
 msgid "Add a title"
 msgstr "افزودن عنوان"
 
-#: lib/kati/screens/add_by_hand.ex:122
+#: lib/kati/screens/add_by_hand.ex:168
 #: lib/kati/screens/add_by_hand_book.ex:260
 #: lib/kati/screens/add_by_hand_record.ex:206
 #: lib/kati/screens/add_by_hand_states.ex:46
@@ -122,7 +122,7 @@ msgstr "یک چیز که تماشا می‌کنید اضافه کنید تا ت�
 msgid "Add to a list"
 msgstr "افزودن به فهرست"
 
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/add_by_hand_book.ex:569
 #: lib/kati/screens/add_by_hand_record.ex:159
@@ -440,13 +440,13 @@ msgstr "همه‌چیز اینجا شروع شده"
 #: lib/kati/library/sample.ex:449
 #: lib/kati/library/sample.ex:466
 #: lib/kati/lists/shelf.ex:596
-#: lib/kati/screens/add_title.ex:486
+#: lib/kati/screens/add_title.ex:491
 #, elixir-autogen, elixir-format
 msgid "FILM"
 msgstr "فیلم"
 
 #: lib/kati/discover/filters.ex:336
-#: lib/kati/screens/add_by_hand.ex:307
+#: lib/kati/screens/add_by_hand.ex:353
 #: lib/kati/screens/add_by_hand_states.ex:261
 #: lib/kati/screens/stats.ex:1764
 #, elixir-autogen, elixir-format
@@ -476,7 +476,7 @@ msgid "Finish setup"
 msgstr "پایان راه‌اندازی"
 
 #: lib/kati/library/sample.ex:196
-#: lib/kati/screens/add_by_hand.ex:316
+#: lib/kati/screens/add_by_hand.ex:362
 #: lib/kati/screens/add_by_hand_states.ex:291
 #: lib/kati/screens/anime_filter.ex:296
 #: lib/kati/screens/drop_states.ex:200
@@ -485,7 +485,7 @@ msgstr "پایان راه‌اندازی"
 msgid "Finished"
 msgstr "تمام‌شده"
 
-#: lib/kati/screens/add_by_hand.ex:122
+#: lib/kati/screens/add_by_hand.ex:168
 #: lib/kati/screens/add_by_hand_book.ex:260
 #: lib/kati/screens/add_by_hand_record.ex:206
 #, elixir-autogen, elixir-format
@@ -536,7 +536,7 @@ msgstr "عنوان‌های خصوصی پنهان شوند"
 #: lib/kati/screens/pushed.ex:184
 #: lib/kati/screens/search.ex:157
 #: lib/kati/screens/search.ex:335
-#: lib/kati/screens/search.ex:536
+#: lib/kati/screens/search.ex:565
 #: lib/kati/shell.ex:80
 #, elixir-autogen, elixir-format
 msgid "Home"
@@ -634,7 +634,7 @@ msgid "Kept by Kati — not addable"
 msgstr "کاتی پرش می‌کند — افزودنی نیست"
 
 #: lib/kati/import/sample.ex:203
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/add_by_hand_record.ex:159
 #: lib/kati/screens/add_by_hand_states.ex:89
@@ -834,7 +834,7 @@ msgid "No titles yet"
 msgstr "هنوز عنوانی نیست"
 
 #: lib/kati/library/sample.ex:195
-#: lib/kati/screens/add_by_hand.ex:317
+#: lib/kati/screens/add_by_hand.ex:363
 #: lib/kati/screens/add_by_hand_states.ex:89
 #: lib/kati/screens/add_by_hand_states.ex:289
 #: lib/kati/screens/library.ex:1205
@@ -996,7 +996,7 @@ msgstr "بازتماشا"
 #: lib/kati/library/sample.ex:441
 #: lib/kati/library/sample.ex:476
 #: lib/kati/lists/shelf.ex:595
-#: lib/kati/screens/add_title.ex:486
+#: lib/kati/screens/add_title.ex:491
 #, elixir-autogen, elixir-format
 msgid "SERIES"
 msgstr "سریال"
@@ -1029,7 +1029,7 @@ msgid "Search %{count} countries"
 msgstr "جست‌وجو در %{count} کشور"
 
 #: lib/kati/discover/filters.ex:335
-#: lib/kati/screens/add_by_hand.ex:303
+#: lib/kati/screens/add_by_hand.ex:349
 #: lib/kati/screens/add_by_hand_states.ex:261
 #: lib/kati/screens/pushed.ex:199
 #: lib/kati/screens/series_meta.ex:422
@@ -1103,7 +1103,7 @@ msgid "Stats"
 msgstr "آمار"
 
 #: lib/kati/import/sample.ex:383
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/book_detail.ex:513
 #: lib/kati/screens/book_detail_dark.ex:115
@@ -1204,7 +1204,7 @@ msgstr "زمان تماشا"
 
 #: lib/kati/import/sample.ex:179
 #: lib/kati/import/sample.ex:355
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/add_by_hand_states.ex:89
 #: lib/kati/screens/shelf_filters.ex:235
@@ -1233,13 +1233,13 @@ msgstr "امروز"
 msgid "Top titles"
 msgstr "عنوان‌های برتر"
 
-#: lib/kati/screens/add_by_hand.ex:418
+#: lib/kati/screens/add_by_hand.ex:464
 #, elixir-autogen, elixir-format
 msgid "Total episodes"
 msgstr "تعداد قسمت‌ها"
 
 #: lib/kati/library/sample.ex:193
-#: lib/kati/screens/add_by_hand.ex:315
+#: lib/kati/screens/add_by_hand.ex:361
 #: lib/kati/screens/add_by_hand_states.ex:290
 #: lib/kati/screens/anime_filter.ex:295
 #: lib/kati/screens/health.ex:102
@@ -1295,12 +1295,12 @@ msgstr "این‌ها از کجا می‌آیند"
 msgid "Which services a title is on, and when it’s leaving."
 msgstr "اینکه هر عنوان روی کدام سرویس است و کِی از آن می‌رود."
 
-#: lib/kati/screens/add_by_hand.ex:418
+#: lib/kati/screens/add_by_hand.ex:464
 #, elixir-autogen, elixir-format
 msgid "Without it a series still tracks, but its progress bar has"
 msgstr "بدون این عدد سریال ردیابی می‌شود اما نوار پیشرفتش"
 
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/add_by_hand_states.ex:89
 #: lib/kati/screens/new_goal.ex:116
@@ -1335,7 +1335,7 @@ msgstr "سال شما"
 msgid "Your year, shared"
 msgstr "سال شما، هم‌رسان"
 
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #: lib/kati/screens/add_by_hand_states.ex:89
 #, elixir-autogen, elixir-format
 msgid "e.g. The Long Hollow"
@@ -1348,18 +1348,18 @@ msgstr "گودال بلند"
 msgid "for notification permission. Everything arrives in your inbox."
 msgstr ". همه‌چیز در صندوق شما می‌آید."
 
-#: lib/kati/screens/add_by_hand.ex:418
+#: lib/kati/screens/add_by_hand.ex:464
 #, elixir-autogen, elixir-format
 msgid "no denominator"
 msgstr "مخرج ندارد"
 
-#: lib/kati/screens/add_by_hand.ex:88
+#: lib/kati/screens/add_by_hand.ex:134
 #, elixir-autogen, elixir-format
 msgid "no poster and no episode list"
 msgstr "پوستر و فهرست قسمت ندارد"
 
-#: lib/kati/screens/add_by_hand.ex:88
-#: lib/kati/screens/add_by_hand.ex:418
+#: lib/kati/screens/add_by_hand.ex:134
+#: lib/kati/screens/add_by_hand.ex:464
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/add_by_hand_book.ex:208
@@ -1423,7 +1423,7 @@ msgstr "هر چه نگه می‌دارید"
 msgid "won’t ask"
 msgstr "اجازه نمی‌خواهد"
 
-#: lib/kati/screens/add_by_hand.ex:418
+#: lib/kati/screens/add_by_hand.ex:464
 #, elixir-autogen, elixir-format
 msgid "— which the app already draws honestly."
 msgstr "— کاتی همین را صادقانه نشان می‌دهد."
@@ -1439,7 +1439,7 @@ msgstr "فعالیت"
 msgid "Add title"
 msgstr "افزودن عنوان"
 
-#: lib/kati/screens/add_by_hand.ex:305
+#: lib/kati/screens/add_by_hand.ex:351
 #: lib/kati/screens/add_by_hand_record.ex:232
 #: lib/kati/screens/pushed.ex:174
 #: lib/kati/screens/stats.ex:1767
@@ -1448,7 +1448,7 @@ msgstr "افزودن عنوان"
 msgid "Album"
 msgstr "آلبوم"
 
-#: lib/kati/screens/add_by_hand.ex:306
+#: lib/kati/screens/add_by_hand.ex:352
 #: lib/kati/screens/add_by_hand_record.ex:367
 #: lib/kati/screens/pushed.ex:175
 #, elixir-autogen, elixir-format
@@ -4106,7 +4106,7 @@ msgctxt "book status"
 msgid "Paused"
 msgstr "متوقف"
 
-#: lib/kati/screens/add_by_hand.ex:863
+#: lib/kati/screens/add_by_hand.ex:909
 #, elixir-autogen, elixir-format
 msgid "%{title} is already in your library."
 msgstr "%{title} همین حالا در کتابخانهٔ شماست."
@@ -4713,7 +4713,7 @@ msgstr "پس‌کشند"
 msgid "Mark episode %{n} watched"
 msgstr "قسمت %{n} را دیده‌ام"
 
-#: lib/kati/screens/search.ex:960
+#: lib/kati/screens/search.ex:989
 #: lib/kati/screens/search_result_states.ex:738
 #, elixir-autogen, elixir-format
 msgid "%{n} match in %{scope}"
@@ -4743,7 +4743,7 @@ msgstr "قسمت %{e} فصل %{s} · %{date} دیده شد"
 msgid "Note · %{date} · %{title}"
 msgstr "یادداشت · %{date} · %{title}"
 
-#: lib/kati/screens/search.ex:958
+#: lib/kati/screens/search.ex:987
 #: lib/kati/screens/search_result_states.ex:736
 #, elixir-autogen, elixir-format
 msgid "Nothing in %{scope}. "
@@ -5040,7 +5040,7 @@ msgstr "%{what} · %{when}"
 msgid "Avg ★"
 msgstr "میانگین ★"
 
-#: lib/kati/screens/add_by_hand.ex:304
+#: lib/kati/screens/add_by_hand.ex:350
 #: lib/kati/screens/stats.ex:1766
 #: lib/kati/settings/drop_states_sample.ex:94
 #, elixir-autogen, elixir-format
@@ -5735,7 +5735,7 @@ msgid_plural "Across %{n} books"
 msgstr[0] "در %{n} کتاب"
 msgstr[1] "در %{n} کتاب"
 
-#: lib/kati/screens/add_title.ex:1400
+#: lib/kati/screens/add_title.ex:1448
 #, elixir-autogen, elixir-format
 msgid "Add “%{query}” by hand"
 msgstr "افزودن دستی «%{query}»"
@@ -5791,7 +5791,7 @@ msgstr "طراحی شده است، و طراحی خوبی است. ساخته ن�
 msgid "It was designed, and the design is good. It is not built because sleep data worth having comes from a device Kati cannot read yet, and typing a bedtime by hand every night is a habit, not a health record — 22 already does that better."
 msgstr "طراحی شده است، و طراحی خوبی است. ساخته نشده چون داده‌های خوابی که ارزش نگه‌داشتن داشته باشند از دستگاهی می‌آیند که کاتی هنوز نمی‌تواند آن را بخواند، و وارد کردن دستی ساعت خواب در هر شب یک عادت است، نه یک سابقهٔ سلامت — ۲۲ همین حالا این کار را بهتر انجام می‌دهد."
 
-#: lib/kati/screens/add_title.ex:1254
+#: lib/kati/screens/add_title.ex:1302
 #, elixir-autogen, elixir-format
 msgid "Keep typing"
 msgstr "به نوشتن ادامه دهید"
@@ -5851,7 +5851,7 @@ msgstr "سرویسی نام برده نشد"
 msgid "Nothing followed yet"
 msgstr "هنوز چیزی دنبال نشده"
 
-#: lib/kati/screens/add_title.ex:1284
+#: lib/kati/screens/add_title.ex:1332
 #: lib/kati/screens/add_title_music.ex:696
 #: lib/kati/screens/search_result_states.ex:626
 #, elixir-autogen, elixir-format
@@ -5938,7 +5938,7 @@ msgstr "تمدید روز %{day}"
 msgid "Save reading"
 msgstr "ذخیره وزن"
 
-#: lib/kati/screens/add_title.ex:1240
+#: lib/kati/screens/add_title.ex:1288
 #, elixir-autogen, elixir-format
 msgid "Search for something to add"
 msgstr "چیزی برای افزودن جست‌وجو کنید"
@@ -6019,12 +6019,12 @@ msgstr "پیگیری ساعت خواب به‌عنوان عادت"
 msgid "Try lines are built from what you keep. Add a title and they appear."
 msgstr "پیشنهادها از چیزی ساخته می‌شوند که نگه می‌دارید. یک عنوان اضافه کنید تا ظاهر شوند."
 
-#: lib/kati/screens/add_title.ex:1255
+#: lib/kati/screens/add_title.ex:1303
 #, elixir-autogen, elixir-format
 msgid "Two characters to start — one in فارسی, العربية, 中文, 日本語, where one is a word."
 msgstr "برای شروع دو نویسه — و در فارسی، العربية، 中文، 日本語 فقط یکی، چون در آن‌ها یک نویسه یک واژه است."
 
-#: lib/kati/screens/add_title.ex:1241
+#: lib/kati/screens/add_title.ex:1289
 #, elixir-autogen, elixir-format
 msgid "Type a film or a show and Kati looks it up."
 msgstr "نام یک فیلم یا سریال را بنویسید تا کاتی پیدایش کند."
@@ -6096,21 +6096,21 @@ msgstr "یا قفسه را باز کنید"
 msgid "— there is nothing to compare it with yet."
 msgstr "— هنوز چیزی برای مقایسه نیست."
 
-#: lib/kati/screens/add_title.ex:995
+#: lib/kati/screens/add_title.ex:1043
 #: lib/kati/screens/add_title_music.ex:255
 #, elixir-autogen, elixir-format
 msgctxt "add-title filter"
 msgid "Everything"
 msgstr "همه"
 
-#: lib/kati/screens/add_title.ex:996
+#: lib/kati/screens/add_title.ex:1044
 #: lib/kati/screens/add_title_music.ex:256
 #, elixir-autogen, elixir-format
 msgctxt "add-title filter"
 msgid "Films"
 msgstr "فیلم"
 
-#: lib/kati/screens/add_title.ex:997
+#: lib/kati/screens/add_title.ex:1045
 #: lib/kati/screens/add_title_music.ex:257
 #, elixir-autogen, elixir-format
 msgctxt "add-title filter"
@@ -6187,7 +6187,7 @@ msgctxt "out now row"
 msgid "aired %{time}"
 msgstr "%{time} پخش شد"
 
-#: lib/kati/screens/add_title.ex:618
+#: lib/kati/screens/add_title.ex:623
 #, elixir-autogen, elixir-format
 msgctxt "search field placeholder"
 msgid "quiet"
@@ -17486,32 +17486,32 @@ msgctxt "your shelf badge"
 msgid "D"
 msgstr "د"
 
-#: lib/kati/media/tmdb.ex:619
+#: lib/kati/media/tmdb.ex:673
 #, elixir-autogen, elixir-format
 msgid "Could not reach TMDB. Hand-typed titles still work."
 msgstr "دسترسی به TMDB ممکن نشد. عنوان‌های واردشده به‌دست همچنان کار می‌کنند."
 
-#: lib/kati/media/tmdb.ex:605
+#: lib/kati/media/tmdb.ex:659
 #, elixir-autogen, elixir-format
 msgid "No TMDB key yet. Add one in Settings → Data sources."
 msgstr "هنوز کلید TMDB ثبت نشده. یکی را در تنظیمات ← منابع داده اضافه کنید."
 
-#: lib/kati/media/tmdb.ex:616
+#: lib/kati/media/tmdb.ex:670
 #, elixir-autogen, elixir-format
 msgid "TMDB answered %{status}. Nothing was saved."
 msgstr "TMDB با %{status} پاسخ داد. چیزی ذخیره نشد."
 
-#: lib/kati/media/tmdb.ex:613
+#: lib/kati/media/tmdb.ex:667
 #, elixir-autogen, elixir-format
 msgid "TMDB has nothing under that id."
 msgstr "TMDB چیزی زیر آن شناسه ندارد."
 
-#: lib/kati/media/tmdb.ex:611
+#: lib/kati/media/tmdb.ex:665
 #, elixir-autogen, elixir-format
 msgid "TMDB is rate-limiting Kati. Try again in a minute."
 msgstr "TMDB سرعت درخواست‌های کاتی را محدود کرده. یک دقیقه دیگر دوباره امتحان کنید."
 
-#: lib/kati/media/tmdb.ex:608
+#: lib/kati/media/tmdb.ex:662
 #, elixir-autogen, elixir-format
 msgid "TMDB refused that key. Check it in Settings → Data sources."
 msgstr "TMDB آن کلید را نپذیرفت. آن را در تنظیمات ← منابع داده بررسی کنید."
@@ -17648,3 +17648,8 @@ msgstr "چیز تازه‌ای نیست"
 #, elixir-autogen, elixir-format
 msgid "%{matched} matched · %{skipped} skipped"
 msgstr "%{matched} تطبیق‌یافته · %{skipped} ردشده"
+
+#: lib/kati/media/tmdb.ex:677
+#, elixir-autogen, elixir-format
+msgid "This network is blocking TMDB. Try another Wi-Fi or mobile data. Hand-typed titles still work."
+msgstr "این شبکه TMDB را مسدود کرده است. وای‌فای دیگری یا اینترنت همراه را امتحان کنید. عنوان‌هایی که دستی وارد می‌کنید همچنان کار می‌کنند."

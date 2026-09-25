@@ -587,11 +587,65 @@ defmodule Kati.Media.Tmdb do
       {:ok, %Req.Response{status: 429}} -> {:error, :rate_limited}
       {:ok, %Req.Response{status: 404}} -> {:error, :not_found}
       {:ok, %Req.Response{status: status}} -> {:error, {:http, status}}
-      {:error, reason} -> {:error, {:network, reason}}
+      {:error, reason} -> {:error, Kati.Media.Tmdb.transport_failure(reason)}
     end
   rescue
-    error -> {:error, {:network, error}}
+    error -> {:error, Kati.Media.Tmdb.transport_failure(error)}
   end
+
+  @doc """
+  What a transport failure actually was: the network refusing TMDB, or TMDB
+  simply not answering.
+
+  A network that filters TMDB does it in DNS: its resolver answers
+  `api.themoviedb.org` with a private sinkhole address instead of TMDB's, and
+  the TLS handshake to that address is closed. Found on the owner's home Wi-Fi,
+  25 Sep — the router at `192.168.70.1` answers `10.10.34.36` where `8.8.8.8`
+  answers TMDB's real `198.20.2.61`. The phone on that Wi-Fi reported *"Could
+  not reach TMDB"*, which reads like a flaky connection or a missing key, and
+  was neither: the same build on the same key returned 17 results the moment
+  the emulator was given a resolver that does not filter.
+
+  So on a failure, and only then, the name is looked up once more. A private,
+  loopback or unspecified answer for a public API host is a network that has
+  decided TMDB is not reachable — `:blocked` — and the reader is told that, in
+  words they can act on. Anything else stays `{:network, reason}`.
+
+  Only on the failure path, so a working search pays nothing for it.
+  """
+  @spec transport_failure(term()) :: :blocked | {:network, term()}
+  def transport_failure(reason) do
+    case :inet.gethostbyname(String.to_charlist(@dns_host)) do
+      {:ok, {:hostent, _name, _aliases, :inet, 4, [address | _rest]}} ->
+        if Kati.Media.Tmdb.sinkhole?(address), do: :blocked, else: {:network, reason}
+
+      _unresolved ->
+        {:network, reason}
+    end
+  rescue
+    _error -> {:network, reason}
+  end
+
+  @doc """
+  Whether an IPv4 address is one no public API is ever served from.
+
+      iex> Kati.Media.Tmdb.sinkhole?({10, 10, 34, 36})
+      true
+
+      iex> Kati.Media.Tmdb.sinkhole?({198, 20, 2, 61})
+      false
+
+      iex> Kati.Media.Tmdb.sinkhole?({192, 168, 70, 1})
+      true
+  """
+  @spec sinkhole?(:inet.ip4_address()) :: boolean()
+  def sinkhole?({10, _, _, _}), do: true
+  def sinkhole?({172, b, _, _}) when b in 16..31, do: true
+  def sinkhole?({192, 168, _, _}), do: true
+  def sinkhole?({127, _, _, _}), do: true
+  def sinkhole?({0, _, _, _}), do: true
+  def sinkhole?({169, 254, _, _}), do: true
+  def sinkhole?(_public), do: false
 
   @doc """
   The sentence a screen shows for a failure. One per reason, and no `_` clause.
@@ -617,6 +671,12 @@ defmodule Kati.Media.Tmdb do
 
   def message({:network, _reason}),
     do: gettext("Could not reach TMDB. Hand-typed titles still work.")
+
+  def message(:blocked),
+    do:
+      gettext(
+        "This network is blocking TMDB. Try another Wi-Fi or mobile data. Hand-typed titles still work."
+      )
 
   defp year_of(nil), do: nil
   defp year_of(""), do: nil
