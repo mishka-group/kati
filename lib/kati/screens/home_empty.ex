@@ -135,7 +135,7 @@ defmodule Kati.Screens.HomeEmpty do
 
   @doc false
   @spec content(map()) :: map()
-  def content(_assigns) do
+  def content(assigns) do
     ~MOB"""
     <Scroll>
       <Column
@@ -147,6 +147,7 @@ defmodule Kati.Screens.HomeEmpty do
       >
         {Kati.Screens.HomeEmpty.header()}
         {Kati.Screens.HomeEmpty.search()}
+        {Kati.UI.TmdbPrompt.block(assigns[:tmdb_ready])}
         {Kati.Screens.HomeEmpty.invitation()}
         {SettingsList.eyebrow_muted(gettext("The calendar still works"))}
         {Kati.Screens.HomeEmpty.today_card()}
@@ -430,8 +431,16 @@ defmodule Kati.Screens.HomeEmpty do
     """
   end
 
+  # This screen's own mount, for when it is pushed on its own rather than drawn
+  # by Home: the one read it needs is whether a TMDB search could run. See
+  # `Kati.UI.TmdbPrompt`.
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, :tmdb_ready, Kati.Media.Tmdb.usable?())
+
   @impl true
   @spec handle_tap(atom(), term()) :: {:noreply, term()}
+  def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket)}
+
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
 

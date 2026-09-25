@@ -176,6 +176,7 @@ defmodule Kati.Screens.HomeDark do
     |> Mob.Socket.assign(:timeline, timeline)
     # Board 315 is the dark 139 this file's moduledoc said did not exist.
     |> Mob.Socket.assign(:nothing_kept, Kati.Screens.Home.nothing_kept?(timeline))
+    |> Mob.Socket.assign(:tmdb_ready, Kati.Media.Tmdb.usable?())
     |> then(&{:ok, &1})
   end
 
@@ -346,6 +347,11 @@ defmodule Kati.Screens.HomeDark do
 
   def handle_info({:tap, :open_search}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
+
+  # Screen 139's first-run page, drawn here in the dark colourway, carries the
+  # TMDB prompt too — see `Kati.UI.TmdbPrompt`.
+  def handle_info({:tap, :add_tmdb_token}, socket),
+    do: {:noreply, Kati.UI.TmdbPrompt.open(socket)}
 
   # 139's header draws a settings disc where 28's draws the inbox bell, so this
   # tag only ever arrives on the empty branch.

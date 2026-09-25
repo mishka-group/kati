@@ -503,8 +503,31 @@ defmodule Kati.Media.Tmdb do
   defp which_key do
     Kati.Sources.tmdb_key()
   rescue
-    _error -> :kati
+    _error -> :own
   end
+
+  @doc """
+  Whether this build carries Kati's own key.
+
+  A development convenience — `~/.config/kati/tmdb.env` or `TMDB_READ_TOKEN` at
+  build time — and never present in a public build or under test. Screen 80
+  offers *Use Kati's key* only when this is true, because offering a key that
+  is not there would switch search off with one tap.
+  """
+  @spec bundled?() :: boolean()
+  # `to_string/1` because the key's type differs by build: a string in dev,
+  # `nil` under test. Any branch on `nil` reads as dead code to the type checker
+  # in whichever build it is compiled for, and `nil` becomes `""` here either way.
+  def bundled?, do: bundled_key() |> to_string() |> byte_size() > 0
+
+  @doc """
+  Whether a search could be made right now: a key is in force and present.
+
+  What Home and screen 06 ask before sending a reader to search, so a missing
+  key is a door to screen 80 rather than a search that returns nothing.
+  """
+  @spec usable?() :: boolean()
+  def usable?, do: match?({:ok, _key}, key())
 
   defp own_key do
     case Kati.SecureStore.get("tmdb") do

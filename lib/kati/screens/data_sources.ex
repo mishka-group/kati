@@ -59,6 +59,9 @@ defmodule Kati.Screens.DataSources do
     # exists to be told how to connect something, and the first row that can be
     # is already explaining itself.
     |> Mob.Socket.assign(:expanded, :listenbrainz)
+    # Whether this build carries Kati's own key, read once here with the rest
+    # of the page's reads — see `key_chips/2`.
+    |> Mob.Socket.assign(:bundled?, Kati.Media.Tmdb.bundled?())
     |> Mob.Socket.assign(:confirm_wipe?, false)
     |> Mob.Socket.assign(:wipe_notice, nil)
   end
@@ -79,7 +82,7 @@ defmodule Kati.Screens.DataSources do
         {UI.eyebrow(gettext("Working out of the box"))}
         {Kati.Screens.DataSources.tier0()}
         {UI.eyebrow(gettext("Better artwork and metadata"))}
-        {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0))}
+        {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0), Map.get(assigns, :bundled?, false))}
         {UI.eyebrow(gettext("Connect an account"))}
         {Kati.Screens.DataSources.tier2(assigns.expanded)}
         {UI.eyebrow(gettext("Where your tokens live"))}
@@ -251,7 +254,7 @@ defmodule Kati.Screens.DataSources do
   # already spells the last one `non_neg_integer()`; this is the same value one
   # frame up.
   @spec tmdb(atom(), String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
-  def tmdb(choice, token \\ "", saved? \\ false, error \\ nil, epoch \\ 0) do
+  def tmdb(choice, token \\ "", saved? \\ false, error \\ nil, epoch \\ 0, bundled? \\ false) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
@@ -262,18 +265,48 @@ defmodule Kati.Screens.DataSources do
         )
       ])}
       <Spacer size={12} />
-      <Row fill_width={true}>
-        {Kati.Screens.DataSources.key_chip(gettext("Use Kati’s key"), :key_kati, choice == :kati)}
-        <Spacer size={7} />
-        {Kati.Screens.DataSources.key_chip(gettext("Use my own key"), :key_own, choice == :own)}
-        <Spacer weight={1.0} />
-      </Row>
-      <Spacer size={12} />
+      {Kati.Screens.DataSources.key_chips(choice, bundled?)}
       {Kati.Screens.DataSources.own_key(choice, token, saved?, error, epoch)}
-      {Kati.UI.SettingsList.note("info", gettext("Kati’s key is public, because Kati is open source. That costs you nothing — TMDB counts requests per IP address, not per key. Paste your own only if you want your own limits."))}
+      {Kati.UI.SettingsList.note("info", gettext("Kati uses your own TMDB token, so searches are yours and nobody else’s. It is free: sign in at themoviedb.org, open Settings → API, and paste the API Read Access Token — the long one starting eyJ."))}
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc """
+  The two key chips — or none, on a build with no key of Kati's own.
+
+  *Use Kati's key* is offered only when `Kati.Media.Tmdb.bundled?/0` says the
+  build carries one: a development and testing convenience, never present in a
+  public build. Offering it where there is none would switch search off with
+  one tap, since choosing it routes to a key that is not there. With nothing to
+  choose between there are no chips at all — the reader's own token is simply
+  what this card is for.
+
+  The paragraph under the card used to argue the other way — *"Kati's key is
+  public… That costs you nothing… Paste your own only if you want your own
+  limits."* — which is the opposite of the owner's decision that the reader
+  brings their own, so it now says how to get one.
+  """
+  @spec key_chips(:kati | :own, boolean()) :: map()
+  def key_chips(choice, bundled?) do
+    if bundled? do
+      assigns = %{choice: choice}
+
+      ~MOB"""
+      <Column fill_width={true}>
+        <Row fill_width={true}>
+          {Kati.Screens.DataSources.key_chip(gettext("Use Kati’s key"), :key_kati, @choice == :kati)}
+          <Spacer size={7} />
+          {Kati.Screens.DataSources.key_chip(gettext("Use my own key"), :key_own, @choice == :own)}
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
   end
 
   @doc """

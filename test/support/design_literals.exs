@@ -447,6 +447,23 @@ defmodule Kati.DesignLiterals do
   @spec retired_lines() :: [{String.t(), String.t()}]
   def retired_lines do
     [
+      # Screen 80's two key chips are drawn only on a build that carries Kati's
+      # own key (`Kati.Media.Tmdb.bundled?/0`) — a development and testing
+      # convenience, never present in a public build and never under test. The
+      # reader's own token is the default now, so where there is nothing to
+      # choose between there are no chips. `Kati.DataSourcesKeyTest` draws them
+      # both ways.
+      {"80", "use kati’s key"},
+      {"80", "use my own key"},
+      {"82", "کلید کاتی"},
+      {"82", "کلید خودم"},
+      # And the paragraph under them argued against the owner's decision —
+      # *paste your own only if you want your own limits* — where the reader
+      # now brings their own token. It says how to get one instead.
+      {"80",
+       "kati’s key is public, because kati is open source. that costs you nothing — tmdb counts requests per ip address, not per key. paste your own only if you want your own limits."},
+      {"82",
+       "کلید کاتی عمومی است، چون کاتی متن‌باز است. این برای شما هزینه‌ای ندارد — tmdb درخواست‌ها را بر اساس نشانی ip می‌شمارد، نه بر اساس کلید."},
       # Board 141's summary ends *still editable* and nothing on 141 or 37 edits
       # anything: the rows describe a match, they do not offer one. The screen
       # drops the two words rather than keep a promise the app does not meet —

@@ -200,7 +200,7 @@ defmodule Kati.Screens.AddTitle do
           {Kati.Screens.AddTitle.header()}
           {Kati.Screens.AddTitle.field(assigns.query, assigns[:query_epoch] || 0)}
           {Kati.Screens.AddTitle.chips(filter)}
-          {Kati.Screens.AddTitle.search_notice(assigns[:search_error])}
+          {Kati.Screens.AddTitle.search_notice(assigns[:search_error], assigns[:search_reason])}
           {Kati.Screens.AddTitle.save_notice(assigns[:save_error])}
           {UI.eyebrow(count)}
           {Kati.Screens.AddTitle.body(shown, assigns)}
@@ -232,10 +232,40 @@ defmodule Kati.Screens.AddTitle do
   argument — a failure reported into a tree with nowhere to render it is a
   silence — and this borrows its type rather than restating it.
   """
-  @spec search_notice(String.t() | nil) :: map() | []
-  def search_notice(nil), do: []
+  @spec search_notice(String.t() | nil, term()) :: map() | [map()] | []
+  def search_notice(message, reason \\ nil)
 
-  def search_notice(message), do: Kati.UI.notice(message)
+  def search_notice(nil, _reason), do: []
+
+  # A missing key is the one failure the reader can fix from here, so it gets a
+  # door as well as a sentence. The sentence alone — *Add one in Settings → Data
+  # sources* — sent them hunting for a page two levels away from the one they
+  # were already on. With the reader's own key now the default (see
+  # `Kati.Sources.tmdb_key/0`), this is what a fresh install meets on its first
+  # search, so the door is the first thing it needs.
+  def search_notice(message, :no_api_key),
+    do: [Kati.UI.notice(message), Kati.Screens.AddTitle.key_door()]
+
+  def search_notice(message, _reason), do: Kati.UI.notice(message)
+
+  @doc "The row that opens screen 80, where the reader's own TMDB token goes."
+  @spec key_door() :: map()
+  def key_door do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.card([
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("movie"),
+          Kati.UI.SettingsList.body(gettext("Add your TMDB token"), gettext("Free, and takes a minute")),
+          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+          rule: false,
+          on_tap: {self(), :open_data_sources}
+        )
+      ])}
+      <Spacer size={14} />
+    </Column>
+    """
+  end
 
   @doc """
   Why the add — or the remove — did not happen.
@@ -257,6 +287,9 @@ defmodule Kati.Screens.AddTitle do
   def save_notice(message), do: Kati.UI.notice(message)
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, :open_data_sources}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.DataSources)}
 
   # The escape hatch, finally wired. This row has been drawn on artboard 89
   # since the screen was written and rendered with no `on_tap` at all, because
@@ -442,6 +475,7 @@ defmodule Kati.Screens.AddTitle do
         socket
         |> Mob.Socket.assign(:results, [])
         |> Mob.Socket.assign(:search_error, Kati.Media.Tmdb.message(reason))
+        |> Mob.Socket.assign(:search_reason, reason)
         |> Mob.Socket.assign(:save_error, nil)
     end
   end

@@ -201,6 +201,10 @@ defmodule Kati.Screens.Home do
     |> Mob.Socket.assign(:services, services())
     |> Mob.Socket.assign(:tiles, tile_rows())
     |> Mob.Socket.assign(:nothing_kept, nothing_kept?(timeline))
+    # Whether a film or series search could run right now. See
+    # `Kati.UI.TmdbPrompt`: with the reader's own key the default, a fresh
+    # install has none, and Home says so rather than letting a search fail.
+    |> Mob.Socket.assign(:tmdb_ready, Kati.Media.Tmdb.usable?())
   end
 
   @doc """
@@ -303,6 +307,7 @@ defmodule Kati.Screens.Home do
       >
         {Kati.Screens.Home.header()}
         {Kati.Screens.Home.search()}
+        {Kati.UI.TmdbPrompt.block(assigns[:tmdb_ready])}
         {Kati.Screens.Home.new_this_week(assigns.hero)}
         {Kati.Screens.Home.continue_watching(assigns.continue)}
         {UI.eyebrow(gettext("Watching"))}
@@ -1572,6 +1577,8 @@ defmodule Kati.Screens.Home do
   # where a page that describes the app belongs.
   def handle_tap(:notifications, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)}
+
+  def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket)}
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}

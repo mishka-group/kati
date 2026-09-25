@@ -30,7 +30,14 @@ defmodule Kati.MediaTmdbTest do
     :ok
   end
 
+  # Every test here reaches TMDB through `TMDB_READ_TOKEN`, which is the BUNDLED
+  # key's route, and the bundled key is only used when it is chosen: the
+  # reader's own key is the default now (`Kati.Sources.tmdb_key/0`). So each
+  # test chooses Kati's key explicitly rather than inheriting whatever an
+  # earlier file left in `Mob.State`.
   setup do
+    Kati.Sources.put_tmdb_key(:kati)
+
     real = :persistent_term.get({__MODULE__, :real_token}, nil)
     System.put_env("TMDB_READ_TOKEN", "test-token")
 

@@ -801,11 +801,11 @@ defmodule Kati.ScreenTapSweepTest do
     # and the line that named it went with the mirror.
     # Screen 126's opening filter.
     {Kati.Screens.MoneyDay, :filter_All},
-    # Screen 80's other key choice, and screen 93's two fields. `key_own` writes
-    # through `Kati.Sources.put_tmdb_key/1` to `Mob.State`, which this heuristic
-    # cannot see — the LanguagePick blind spot again, and covered by
-    # `Kati.ServicesTest`. The two on 93 open no keyboard (#45).
-    {Kati.Screens.DataSources, :key_own},
+    # Screen 93's two fields, which open no keyboard (#45). (Screen 80's
+    # `key_own` was here too. The key chips are drawn only on a build carrying
+    # Kati's own key, which is never the case under test, so the tag is no
+    # longer drawn at all — the reader's own key is simply the default.
+    # `Kati.DataSourcesKeyTest` draws the chips both ways.)
     {Kati.Screens.MyServicesEmpty, :search},
     # Two, not five: 93 draws only the free card — having no subscriptions is
     # the whole subject of the board. Same `service_tag/1`, same reason.

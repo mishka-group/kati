@@ -158,7 +158,15 @@ defmodule Kati.Sources do
   end
 
   @doc """
-  The TMDB key in force: `:kati` or `:own`.
+  The TMDB key in force: `:own` unless the reader chose `:kati`.
+
+  **The reader's own is the default.** The owner's decision, 19 Sep: *"user
+  must put its token, not my code."* It defaulted to `:kati`, so a fresh
+  install silently used whatever key was compiled into the build and nothing
+  ever asked — and a public build has none, so search simply returned nothing.
+  Kati's bundled key is a development and testing convenience from
+  `~/.config/kati/tmdb.env`, offered on screen 80 only on a build that carries
+  one (`Kati.Media.Tmdb.bundled?/0`).
 
   Stored in `Mob.State` and not in the secure store, because *which* key is not
   a secret — only the key itself is, and a user-supplied one goes to
@@ -167,8 +175,8 @@ defmodule Kati.Sources do
   @spec tmdb_key() :: :kati | :own
   def tmdb_key do
     case Mob.State.get(:kati_tmdb_key) do
-      :own -> :own
-      _other -> :kati
+      :kati -> :kati
+      _other -> :own
     end
   end
 
