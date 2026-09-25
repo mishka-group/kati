@@ -17,7 +17,14 @@ defmodule Kati.AnimeKindTest do
   require Ash.Query
 
   doctest Kati.Media.Anime,
-    only: [kind_for: 3, provider_says?: 1, source_says?: 1, screen_kind: 1, film?: 2]
+    only: [
+      kind_for: 3,
+      provider_says?: 1,
+      source_says?: 1,
+      screen_kind: 1,
+      film?: 2,
+      promote_threshold: 0
+    ]
 
   doctest Kati.Screens.Library, only: [anime_chip: 1]
 
@@ -177,7 +184,7 @@ defmodule Kati.AnimeKindTest do
     end
 
     test "the Anime chip appears at the threshold board 152 names, and not before" do
-      threshold = Kati.Media.AnimeSample.promote_threshold()
+      threshold = Kati.Media.Anime.promote_threshold()
 
       few = for _ <- 1..(threshold - 1), do: %{status: :watching, media_kind: :anime}
       enough = for _ <- 1..threshold, do: %{status: :watching, media_kind: :anime}

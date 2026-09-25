@@ -11,6 +11,16 @@ defmodule Kati.Screens.AutoDetectMusic do
   built to make the merge cheap later rather than to pretend it already
   happened. See `## Two boards, one switch` below for what that costs today.
 
+  ## Reachable from the development gallery only
+
+  Every value on this page is `Kati.Settings.DetectMusicSample`'s: the
+  `3 SOURCES · 41 EPISODES, 128 TRACKS` line, the now-playing cards, the four
+  app switches. Kati has no music detection — `Kati.Media.Detect` ticks films
+  and episodes — and music is outside the film and series scope, so screen 36
+  does not draw the TV & film / Music control that led here and no reader can
+  arrive. `Kati.AppReachabilityTest`'s `@no_route` records it. The page stays
+  as the drawing of board 150 for the day music detection is built.
+
   ## Two now-playing cards, and the order is the argument
 
   A media-session notification carries artwork only when the source app
@@ -46,7 +56,7 @@ defmodule Kati.Screens.AutoDetectMusic do
   mode assign, is switch in place. Tapping `TV & film` here pushes
   `Kati.Screens.AutoDetect` — a real screen change, not a fake one, but a
   push rather than a swap, so the back stack grows by one frame the merged
-  version would not have. Tapping `Music` while already on `Music` does
+  version would not have. Screen 36 no longer draws the control's other half. Tapping `Music` while already on `Music` does
   nothing to the picture; `handle_tap/2` still answers it, the same way
   `Kati.Screens.LogWeight` answers its own already-selected unit segment,
   because a control the board drew keeps a handler whether or not that
@@ -211,9 +221,9 @@ defmodule Kati.Screens.AutoDetectMusic do
   whichever language the compiler happened to be in. This is already a function
   rather than an attribute, so the fold costs nothing here.
 
-  `Kati.Screens.AutoDetect` draws the same pair on board 36 with `:tv`
-  selected, so both segments fold on this one line rather than on two that can
-  disagree about what the other board is called.
+  Only this page draws the pair. `Kati.Screens.AutoDetect` used to draw it
+  too, with `:tv` selected, and stopped when music detection was taken out of
+  scope — see the moduledoc.
   """
   @spec modes() :: [{String.t(), atom()}]
   def modes, do: [{gettext("TV & film"), :tv}, {gettext("Music"), :music}]

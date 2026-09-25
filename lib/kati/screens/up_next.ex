@@ -63,8 +63,11 @@ defmodule Kati.Screens.UpNext do
       not counted rather than being counted as if it were the first of January.
 
   The poster is `Kati.Media.CachedTitle.poster_path`, and `thumb/1` and
-  `cold_thumb/1` are handed it from the cache row instead of from the sample
-  module.
+  `cold_thumb/1` resolve it through `Kati.Design.Images.poster/1`, which
+  answers a TMDB path with the file `Kati.Media.Artwork` downloaded and `nil`
+  (a placeholder tile) for a poster this device has not fetched. They used to
+  go through `Kati.Screens.UpNext.Sample.poster/1`, a one-line delegate to
+  the same function, which is gone.
 
   A cache row can be evicted, and then there is no title to draw — the durable
   row holds the status, the position and the rating, and deliberately not the
@@ -113,7 +116,6 @@ defmodule Kati.Screens.UpNext do
   alias Kati.Media.CachedTitle
   alias Kati.Media.Release
   alias Kati.Media.TrackedTitle
-  alias Kati.Screens.UpNext.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -1361,7 +1363,7 @@ defmodule Kati.Screens.UpNext do
 
   @doc false
   def thumb(row) do
-    case Sample.poster(row.seed) do
+    case Kati.Design.Images.poster(row.seed) do
       nil ->
         ~MOB"<Box width={40} height={56} corner_radius={8} background={Palette.placeholder()} />"
 
@@ -1484,7 +1486,7 @@ defmodule Kati.Screens.UpNext do
   # be a 0x66161514 the palette does not name.
   @doc false
   def cold_thumb(row) do
-    case Sample.poster(row.seed) do
+    case Kati.Design.Images.poster(row.seed) do
       nil ->
         ~MOB"<Box width={40} height={56} corner_radius={8} background={Palette.placeholder()} />"
 

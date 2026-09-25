@@ -41,6 +41,20 @@ defmodule Kati.Media.Anime do
 
   @animation "Animation"
   @japanese ~w(ja)
+  @promote_threshold 10
+
+  @doc """
+  How many anime titles a shelf holds before the Library draws an Anime chip.
+
+  A fixed rule, not a setting: board 152 states it as *the tab-row chip
+  appears at 10 or more anime titles*. Below it the chip is dropped rather than
+  drawn with a small count — see `Kati.Screens.Library.anime_chip/1`.
+
+      iex> Kati.Media.Anime.promote_threshold()
+      10
+  """
+  @spec promote_threshold() :: pos_integer()
+  def promote_threshold, do: @promote_threshold
 
   @doc """
   The kind to file a title under, given what is known about it.

@@ -41,7 +41,7 @@ defmodule Kati.MediaDetectTest do
       app_name: 1,
       clock: 1,
       access_line: 1,
-      sources_line: 1,
+      sources_line: 2,
       live?: 1,
       answer_tag: 1
     ]
@@ -443,8 +443,10 @@ defmodule Kati.MediaDetectTest do
     test "and its master switch is a picture there" do
       drawn = AutoDetect.drawn_detect()
 
-      refute inspect(AutoDetect.banner(drawn.banner, false), limit: :infinity) =~ "toggle_detect"
-      assert inspect(AutoDetect.banner(drawn.banner, true), limit: :infinity) =~ "toggle_detect"
+      refute inspect(AutoDetect.banner(drawn.banner, nil), limit: :infinity) =~ "toggle_detect"
+
+      assert inspect(AutoDetect.banner(drawn.banner, :toggle_detect), limit: :infinity) =~
+               "toggle_detect"
     end
 
     test "the Now playing card and the decision are dropped when there are none" do

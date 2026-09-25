@@ -613,9 +613,6 @@ defmodule Kati.Screens.Gallery do
     # Library → Music → a row in the releases band (music.ex:1071); also Album
     #   detail's artist row.
     "77",
-    # Settings → Auto-detect → the Music half of the segmented control, or its
-    #   Music tile (auto_detect.ex:889,987).
-    "150",
     # Library → Music → + → Can't find it? Add it by hand
     #   (add_title_music.ex:435,614); also the Album/Artist chip on 177.
     "178",

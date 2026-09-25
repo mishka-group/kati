@@ -17,34 +17,45 @@ defmodule Kati.Screens.AutoDetect do
 
   No dock — pushed screen — so the frame closes at 40, not 132.
 
-  ## What this screen reads, and what `Kati.Settings.DetectSample` is now
+  ## What this screen reads
 
-  This section used to be headed *why this screen is still on
-  `Kati.Settings.DetectSample`* and to end *detection is a feature that has not
-  been built, not a screen that has not been wired*.
-  It is built: `Kati.Media.Detect` holds the master switch and the threshold,
-  reads what the phone is playing through `KatiMediaListener`, matches it
-  against the reader's own shelf by name, ticks what it is sure of and turns
-  what it is not into the question the queue card draws. `Kati.Media.Watch`
-  carries `detected`, so `41 EPISODES TICKED FOR YOU` counts the ticks Kati
-  made rather than every tick ever — the first of the two near misses below,
-  and it is no longer one.
+  Every value a reader sees is read, and nothing falls back to the drawing:
 
-  The Sample is what a device with detection off or unavailable falls back to,
-  which is the arrangement every other screen here keeps.
+    * **the subtitle** — `sources_line/2`, from `Kati.Media.Detect.access/0`
+      and the master switch: *watching this phone*, *allowed, switched off*,
+      or *not allowed to look yet*.
+    * **the access notice** — `access_notice/1`, drawn whenever access is not
+      granted. Detection reads media sessions through Android's
+      notification-listener grant, and Play Protect blocks that grant for an
+      app installed outside the Play Store, which is how most copies of Kati
+      are installed. The feature is kept because it works where the grant is
+      given; the page says plainly when it is not, with a door to screen 151
+      (how to allow it) and a door to logging by hand (`Kati.Screens.Search`,
+      scoped to the Screen shelf — see `Kati.Screens.NotificationAccess`).
+    * **the banner** — the master switch is `Kati.Media.Detect.on?/0`, stored
+      in `Mob.State` and read by `Kati.Media.Detect.sweep/0` and `drain/0`,
+      which do nothing while it is off. Its meta line is
+      `Kati.Media.Detect.detected_count/0`, the `Kati.Media.Watch` rows marked
+      `detected`.
+    * **Now playing** — the first live media session, or no card at all.
+    * **Sources** — *This phone*, whose sub-line is the grant and whose tap
+      opens screen 151, then one row per app Kati has actually heard play.
+    * **Rules** — one row, *Tick at*: `Kati.Media.Detect.threshold/0`, the
+      percentage `Kati.Media.Detect.verdict/1` compares a session against.
+      Board 36's *Ask before ticking* and *Ignore trailers* rows are not
+      drawn: nothing stores either and no code reads one.
+    * **Needs a decision** — the oldest name `Kati.Media.Detect.unsure/0`
+      holds, or no card at all.
 
-  The second near miss, kept because the next pass should not re-derive it:
+  Board 36 also draws a TV & film / Music segmented control that leads to
+  board 150 (`Kati.Screens.AutoDetectMusic`). It is not drawn: Kati has no
+  music detection and music is outside the film and series scope, so 150 is
+  reachable from the development gallery only.
 
-    * **`S2E6 · LUMEN+ · APPLE TV`.** `Watch` has `service`, and the episode
-      half can now be named — `Kati.Media.CachedEpisode` carries
-      `season_number`, `episode_number` and `title` since
-      `20260821231241_media_seasons_and_episodes`, which is what let
-      `Kati.Screens.Series` and `Kati.Screens.Inbox` come off their Sample
-      modules. **That is no longer the blocker here, and this bullet used to say
-      it was.** What is missing is the other half: *Now playing* is a session in
-      flight, and nothing anywhere holds one. `Watch` records a tick after the
-      fact, so a screen reading it would be drawing something already finished
-      under a heading that says it is happening.
+  `drawn_detect/0` is board 36 exactly as drawn, built from
+  `Kati.Settings.DetectSample`. It is the fixture
+  `Kati.ScreenDesignLiteralTest` compares the board against and no code path
+  on a device reaches it: `load/1` always assigns `detect/0`.
 
   ## Which half of the copy this file owns, after the fold
 
@@ -94,44 +105,38 @@ defmodule Kati.Screens.AutoDetect do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  @doc """
+  Acts on whatever is playing right now, then reads the page.
+
+  Opening this page is the one moment a reader is asking Kati about
+  detection, so `Kati.Media.Detect.sweep/0` runs first: a page that showed a
+  session at 97% and did not tick it would be wrong about itself. The sweep
+  does nothing while the switch is off or access is not granted. `Kati.App`
+  drains what the listener recorded while the BEAM was not running; this is
+  the live half.
+  """
   @impl true
   def load(socket) do
-    # Act on whatever is playing right now, before drawing. Opening this page
-    # is the one moment a reader is asking Kati about detection, and a page
-    # that showed a session at 97% and did not tick it would be the picture it
-    # used to be. `Kati.App` drains what was recorded while the BEAM was dead;
-    # this is the live half.
     _ = Kati.Media.Detect.sweep()
 
     Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())
   end
 
   @doc """
-  What this screen draws: the reader's own detection, or the drawing's.
+  What this screen draws, read from the device and the store.
 
-  The audit said ten of twelve controls were inert and the
-  moduledoc above agreed with it and explained why — *detection is a feature
-  that has not been built*. It is built now: `Kati.Media.Detect` reads what the
-  phone is playing through `KatiMediaListener`, matches it against the shelf by
-  name, and ticks past a threshold. So every one of these values is a real one.
-
-  The board is what a device with no bridge draws — a host test, the gallery —
-  because `Kati.Media.Detect.access/0` answers `:unavailable` there, and that
-  is not the same as *denied*: nobody has refused anything.
+  There is no branch on `:unavailable`, the answer on a build with no bridge
+  (a host test, the gallery on a host). Every function below takes `access`
+  and says what it means, so a phone that has not granted access sees its own
+  state rather than board 36.
   """
   @spec detect() :: map()
   def detect do
     access = Kati.Media.Detect.access()
-
-    # No branch on `:unavailable`. It used to answer `drawn_detect/0` there, and
-    # `:unavailable` is the answer on EVERY sideloaded build — Play Protect
-    # blocks the notification listener this reads (see P4) — so the one state a
-    # real reader of this APK is always in was the one that drew the fixture.
-    # Every function below already takes `access` and can say so.
     sessions = Kati.Media.Detect.sessions()
 
     %{
-      sources_line: Kati.Screens.AutoDetect.sources_line(access),
+      sources_line: Kati.Screens.AutoDetect.sources_line(access, Kati.Media.Detect.on?()),
       banner: Kati.Screens.AutoDetect.real_banner(),
       now_playing: Kati.Screens.AutoDetect.real_now_playing(sessions),
       sources: Kati.Screens.AutoDetect.real_sources(access, sessions),
@@ -141,7 +146,10 @@ defmodule Kati.Screens.AutoDetect do
     }
   end
 
-  @doc "Screen 36 exactly as it is drawn."
+  @doc """
+  Board 36 exactly as drawn: the fixture `Kati.ScreenDesignLiteralTest`
+  compares the board against. Nothing on a device reaches it.
+  """
   @spec drawn_detect() :: map()
   def drawn_detect do
     %{
@@ -156,14 +164,21 @@ defmodule Kati.Screens.AutoDetect do
   end
 
   @doc """
-  The mono line under the title: what Kati may look at.
+  The mono line under the title: what Kati may look at, and whether it is.
 
-      iex> Kati.Screens.AutoDetect.sources_line(:denied)
+      iex> Kati.Screens.AutoDetect.sources_line(:denied, true)
       "not allowed to look yet"
+
+      iex> Kati.Screens.AutoDetect.sources_line(:granted, false)
+      "allowed, switched off"
+
+      iex> Kati.Screens.AutoDetect.sources_line(:granted, true)
+      "watching this phone"
   """
-  @spec sources_line(atom()) :: String.t()
-  def sources_line(:granted), do: gettext("watching this phone")
-  def sources_line(_denied), do: gettext("not allowed to look yet")
+  @spec sources_line(atom(), boolean()) :: String.t()
+  def sources_line(:granted, true), do: gettext("watching this phone")
+  def sources_line(:granted, _off), do: gettext("allowed, switched off")
+  def sources_line(_not_granted, _on?), do: gettext("not allowed to look yet")
 
   @doc """
   The cream banner: the master switch, and the count it earned.
@@ -340,6 +355,12 @@ defmodule Kati.Screens.AutoDetect do
   notification listener — and inventing three more would be the same claim the
   count above them was. So the card says what Kati may look at and names the
   apps it has actually heard from.
+
+  *This phone* carries a chevron in every state, because its tap opens screen
+  151 in every state. It used to draw a switch once access was granted, which
+  was a second picture of the banner's switch that opened a page instead of
+  switching anything. The row names its own `:tap` rather than leaving
+  `row_tap/1` to recognise its translated title.
   """
   @spec real_sources(atom(), [map()]) :: [map()]
   def real_sources(access, sessions) do
@@ -381,10 +402,7 @@ defmodule Kati.Screens.AutoDetect do
         icon: "phone_iphone",
         title: pgettext("detection source", "This phone"),
         sub: Kati.Screens.AutoDetect.access_line(access),
-        control: if(access == :granted, do: {:switch, Kati.Media.Detect.on?()}, else: :chevron),
-        # The row NAMES its tap rather than leaving `row/1` to recognise its
-        # title. See `row_tap/1`: a title is a drawn string now, and a drawn
-        # string is translated.
+        control: :chevron,
         tap: :open_media_access
       }
     ] ++ heard
@@ -511,9 +529,9 @@ defmodule Kati.Screens.AutoDetect do
       >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title(gettext("Auto-detect"), d.sources_line, nil, :meta_tight)}
-        {Kati.UI.Segmented.plain(Kati.Screens.AutoDetectMusic.modes(), :tv)}
         <Spacer size={20} />
-        {Kati.Screens.AutoDetect.banner(d.banner, Kati.Screens.AutoDetect.live?(d))}
+        {Kati.Screens.AutoDetect.access_notice(Map.get(d, :access, :unavailable))}
+        {Kati.Screens.AutoDetect.banner(d.banner, Kati.Screens.AutoDetect.banner_tap(d))}
         {Kati.Screens.AutoDetect.playing_band(d)}
         {UI.eyebrow(gettext("Sources"))}
         {Kati.Screens.AutoDetect.group(d.sources)}
@@ -526,31 +544,94 @@ defmodule Kati.Screens.AutoDetect do
   end
 
   @doc """
-  The master switch, live over a device that can answer.
+  What a device that cannot look is told, or nothing when it can.
 
-  The audit called this *the master control of the feature*, drawn
-  as a picture of an on switch. It is the whole of what `Kati.Media.Detect.on?/0`
-  reads, and it is drawn OFF on a first run because nothing is detecting
-  anything until somebody says so.
+  Detection needs Android's notification-listener grant, and Play Protect
+  blocks that grant for an app installed outside the Play Store. So on most
+  phones this is the state the page opens in, and it says so in words rather
+  than leaving a reader to wonder why nothing ticks. Two doors: screen 151,
+  which explains the grant and opens the system page that gives it, and
+  logging by hand, which is `Kati.Screens.NotificationAccess.log_by_hand/2`.
 
-  Not tappable over the board, which is what a build with no bridge draws: a
-  preference set on a device that cannot look is a preference about nothing.
+  Nothing when access is granted.
   """
-  @spec banner(map(), boolean()) :: map()
-  def banner(b, live? \\ false) do
-    # The meta line asks the STRING which face it needs rather than naming
-    # `mono`: `kati_mono.ttf` carries no Persian glyph and none of U+06F0–U+06F9
-    # either, so `۴۱ قسمت برایتان تیک خورد` set in it is handed to Android's own
-    # substitute face beside sentences that are in Kati's. The board's own
-    # `41 EPISODES TICKED FOR YOU` is pure ASCII and keeps DM Mono in both
-    # scripts, which is what `test/design/screens/36.html` draws.
-    #
-    # Computed here rather than inside the sigil because `@b` there is an
-    # ASSIGN, and an assign is what the whole map is for.
+  @spec access_notice(atom()) :: map()
+  def access_notice(:granted), do: ~MOB"<Spacer size={0} />"
+
+  def access_notice(_not_granted) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+      >
+        <Row fill_width={true} align="top">
+          {Kati.UI.symbol("notifications_off", size: 19, color: Palette.gold_icon())}
+          <Spacer size={11} />
+          <Column weight={1.0}>
+            <Text
+              text={gettext("Kati cannot see what you play yet")}
+              text_size={13.5}
+              font_weight="bold"
+              text_color={:on_surface}
+            />
+            <Spacer size={6} />
+            <Text
+              text={gettext("Detection needs notification access, which only you can allow, in Android’s settings. Some phones block it for apps installed outside the Play Store — if yours does, log what you watch by hand.")}
+              text_size={12.5}
+              line_height={Kati.Locale.leading(1.65)}
+              text_color={Palette.ink_soft()}
+            />
+          </Column>
+        </Row>
+        <Spacer size={14} />
+        <Row align="center">
+          {SettingsList.action_pill(gettext("How to allow it"), {self(), :how_to_allow})}
+          <Spacer size={8} />
+          {SettingsList.action_pill(gettext("Log by hand instead"), {self(), :log_by_hand})}
+        </Row>
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  What tapping the banner does, from the grant.
+
+  Granted: flips the master switch. Not granted: opens screen 151, because a
+  switch Kati cannot act on is a preference about nothing, and the page that
+  explains the grant is what the reader needs. No bridge at all (a host test):
+  nothing.
+
+      iex> Kati.Screens.AutoDetect.banner_tap(%{access: :unavailable})
+      nil
+  """
+  @spec banner_tap(map()) :: atom() | nil
+  def banner_tap(%{access: :granted}), do: :toggle_detect
+  def banner_tap(%{access: :denied}), do: :allow_to_detect
+  def banner_tap(_no_bridge), do: nil
+
+  @doc """
+  The master switch and the count of ticks it earned.
+
+  The switch is `Kati.Media.Detect.on?/0`, drawn off on a first run because
+  nothing detects anything until somebody says so. `tap` is `banner_tap/1`'s
+  answer.
+
+  The meta line asks the string which face it needs rather than naming
+  `mono`: `kati_mono.ttf` carries no Persian glyph, so a Persian count set in
+  it would fall back to Android's substitute face.
+  """
+  @spec banner(map(), atom() | nil) :: map()
+  def banner(b, tap \\ nil) do
     assigns = %{
       b: b,
       meta_face: Kati.Locale.mono_face(b.meta),
-      tap: if(live?, do: {self(), :toggle_detect})
+      tap: if(tap, do: {self(), tap})
     }
 
     ~MOB"""
@@ -1144,34 +1225,30 @@ defmodule Kati.Screens.AutoDetect do
   def chosen?({label, _tag}, chosen), do: label == chosen
   def chosen?(label, chosen), do: label == chosen
 
-  # `handle_tap/2` rather than a `handle_info/2` clause: `Kati.Screens.Pushed`
-  # owns `handle_info/2` and its `:back` clause, and overriding it here would
-  # take the back pill with it.
-  # #20 draws the music half of this screen as a MODE of it rather than as a
-  # second screen — the sources, rules and disambiguation card are shared, and
-  # two boards would drift within a release. The switch itself is drawn on 150.
-  @impl true
   @doc """
-  The music mode, which this screen had a handler for and no control.
+  Every control on the page.
 
-  `Kati.Screens.AutoDetectMusic` is board 150, and its own caption calls the
-  entry a *"segmented control under the title"* — TV & film against Music. 150
-  draws that control; 36 did not, so `:open_music` sat here answering a tag
-  nothing emitted and `Kati.ScreenTapSweepTest` never saw it, because a handler
-  with no control is not a control the sweep can tap.
+  `handle_tap/2` rather than a `handle_info/2` clause: `Kati.Screens.Pushed`
+  owns `handle_info/2` and its `:back` clause.
 
-  The pair is now drawn on both sides, which is what the design says: one
-  segmented control, two modes, either of which can be the one you are on.
+    * `:toggle_detect` — the banner, once access is granted. Writes
+      `Kati.Media.Detect.put/1` and re-reads the page.
+    * `:open_media_access` (*This phone*), `:how_to_allow` (the notice's
+      pill) and `:allow_to_detect` (the banner while access is not granted)
+      — three doors, three tags so each node keeps its own accessibility id,
+      and all three push screen 151.
+    * `:log_by_hand` — the notice's second pill. Opens the search over the
+      reader's own shelf, as screen 151's does; see
+      `Kati.Screens.NotificationAccess.log_by_hand/2`.
+    * `:cycle_threshold` — *Tick at*, stepping 80 → 90 → 95.
+    * `:answer_add_it`, `:answer_not_mine`, `:connect_N` — the decision card.
+    * `:open_retired` — the drawing's *Browser extension* row, which only
+      `drawn_detect/0` carries.
+
+  Board 36's TV & film / Music control is not drawn, so there is no `:tv` or
+  `:music` here; see the moduledoc.
   """
-  def handle_tap(:music, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
-
-  # The already-selected segment. `Kati.Screens.AutoDetectMusic` answers its own
-  # the same way and says why: there is no second state for a screen to move to
-  # when you tap the mode you are already in, and a segment that did nothing at
-  # all would read as a broken control rather than as a settled one.
-  def handle_tap(:tv, socket), do: {:noreply, socket}
-
+  @impl true
   # Turn detection on, or off. The screen's master switch.
   #
   # Re-reads the whole screen rather than flipping the assign: the banner's
@@ -1194,7 +1271,7 @@ defmodule Kati.Screens.AutoDetect do
   # drawn, and its own `Open system settings` button is the same intent — so
   # the row is a door to the page that asks, and the page is the door to the
   # system screen that grants.
-  def handle_tap(:open_media_access, socket) do
+  def handle_tap(tag, socket) when tag in [:open_media_access, :how_to_allow, :allow_to_detect] do
     {:noreply,
      Mob.Socket.push_screen(socket, Kati.Screens.NotificationAccess, %{back: "Auto-detect"})}
   end
@@ -1235,8 +1312,9 @@ defmodule Kati.Screens.AutoDetect do
     {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
   end
 
-  def handle_tap(:open_music, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
+  def handle_tap(:log_by_hand, socket) do
+    {:noreply, Kati.Screens.NotificationAccess.log_by_hand(socket, gettext("Auto-detect"))}
+  end
 
   # `"Browser extension"` here is a KEY and not copy. `Kati.Screens.RetiredTile`
   # matches this exact English string in its `offsite/1` and then draws
