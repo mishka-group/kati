@@ -5448,6 +5448,16 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
         else     -> ImeAction.Done
     }
 
+    // KATI-BEGIN(K-50 text-field-multiline) mob_new=0.4.33
+    // The stock field is `singleLine = true` and reads no prop that could
+    // change it, so screen 33's review scrolled sideways on one line instead
+    // of wrapping into the paragraph the board draws. `multiline` wraps the
+    // text, pins the placeholder to the top, and hands the return key back to
+    // the newline it types: a `Done` action would swallow every Enter.
+    val multiline = boolProp(node.props, "multiline") ?: false
+    val fieldIme = if (multiline) ImeAction.Default else imeAction
+    // KATI-END(K-50 text-field-multiline)
+
     // KATI-BEGIN(K-42 text-field-echo) mob_new=0.4.20
     // The stock line is `remember(node.props["value"]) { mutableStateOf(...) }`,
     // which resets what the user has typed every time the host re-renders with
@@ -5631,9 +5641,10 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
         textStyle       = style,
         cursorBrush     = SolidColor(style.color),
         decorationBox   = { field ->
-            Box(contentAlignment = Alignment.CenterStart) {
+            Box(contentAlignment = if (multiline) Alignment.TopStart else Alignment.CenterStart) {
                 if (localValue.isEmpty() && placeholder.isNotEmpty()) {
-                    Text(placeholder, style = style, color = hintColor, maxLines = 1)
+                    Text(placeholder, style = style, color = hintColor,
+                         maxLines = if (multiline) Int.MAX_VALUE else 1)
                 }
                 field()
             }
@@ -5644,14 +5655,17 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
                 if (state.isFocused) focusHandle?.let { MobBridge.nativeSendFocus(it) }
                 else                 blurHandle?.let  { MobBridge.nativeSendBlur(it)  }
             },
-        singleLine      = true,
+        // KATI-BEGIN(K-50 text-field-multiline-apply) mob_new=0.4.33
+        singleLine      = !multiline,
+        minLines        = if (multiline) 3 else 1,
+        // KATI-END(K-50 text-field-multiline-apply)
         visualTransformation =
             if (isSecure) PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = fieldIme),
         keyboardActions = KeyboardActions(onAny = {
             submitHandle?.let { MobBridge.nativeSendSubmit(it) }
             // dismiss for terminal actions; Next intentionally keeps keyboard open
-            if (imeAction != ImeAction.Next) keyboardController?.hide()
+            if (fieldIme != ImeAction.Next) keyboardController?.hide()
         }),
     )
 }

@@ -103,14 +103,11 @@ defmodule Kati.Screens.Rating do
   Two carets would have been one too many, and the drawn one is the one that
   cannot move.
 
-  **What the field costs, stated:** `MobTextField` is `singleLine = true`
-  (`MobBridge.kt:3543`) and takes no multiline prop, and it paints Material's
-  own container rather than the cream this card is — the same two facts
-  `Kati.Screens.Backup.passphrase_field/1` records. So a long review scrolls
-  inside one line instead of wrapping into the paragraph the drawing shows.
-  That is a real loss of fidelity and it is taken deliberately: a review nobody
-  can type is not a review, and the alternative on offer was another picture.
-  Both are one prop on the bridge away and belong there, not here.
+  The field passes `multiline`, which the bridge's `K-50 text-field-multiline`
+  fence reads: `MobTextField` was `singleLine = true` with no prop to change it,
+  so a long review scrolled sideways on one line instead of wrapping into the
+  paragraph the drawing shows. Return types a newline there rather than
+  submitting, which is why the field no longer sets `return_key`.
 
   ## Which half of a write path this is: it reads a watch, and writes it back
 
@@ -1684,7 +1681,7 @@ defmodule Kati.Screens.Rating do
     <TextField
       value={review}
       placeholder={gettext("What did you make of it?")}
-      return_key="done"
+      multiline={true}
       fill_width={true}
       text_size={14}
       accessibility_id="review"
