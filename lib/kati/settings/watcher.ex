@@ -2,82 +2,67 @@ defmodule Kati.Settings.Watcher do
   use Gettext, backend: Kati.Gettext
 
   @moduledoc """
-  The two controls on screen 25 that something actually reads.
+  Screen 25's preferences — every control on the release watcher's settings
+  page, stored in `Mob.State` and read back by what it governs.
 
-  See `design-briefs/D-64`. Screen 25 draws fifteen
-  controls — a master switch, six *Tell me about* switches, a four-way cadence
-  and four *How loudly* switches — and every one of them edited a socket assign
-  and was forgotten on the pop. The brief's own table is what this module is
-  built from: it asks which consumer each control would need and answers
-  **yes** for exactly two.
+  `Mob.State` is where every app-level preference in Kati lives — the locale,
+  the theme, the rating scale, the detect settings — and these are the same
+  kind of thing: one device's answer to *how should this app behave*, not a row
+  about a title.
 
-  ## Why the other thirteen are not here
+  ## What each one governs
 
-  The brief states it plainly, and it is the reason a `Mob.State` key per switch
-  would have been the wrong patch:
+    * **the master switch** (`watching?/0`) — `Kati.Background.Periodic`, the
+      watcher's background check. Off cancels the worker; on enqueues it at the
+      cadence. `Kati.App` reads both on every boot.
+    * **the cadence** (`cadence/0`) — the interval that worker is asked for.
+    * **Tell me about** (`kind?/1`, one switch per `kinds/0`) — which releases
+      the watcher reports at all. `Kati.Screens.Inbox` filters both of its lists
+      by them, so screen 05, Home's *New this week* and every release alert are
+      the same filtered set. Which switch a release answers to is
+      `release_kind/1`.
+    * **Push notifications** (`loud?(:push)`) — whether
+      `Kati.Notifications.Releases.sync/1` arms the coming-up releases on the
+      platform. Off by default: the app is designed to be checked, and the
+      bell's inbox holds the same list either way.
+    * **Inbox badge** (`loud?(:badge)`) — the unread dot on Home's bell,
+      `Kati.Screens.Home.unread?/0`.
+    * **Quiet hours** (`quiet_hours/0`) — the window
+      `Kati.Notifications.Scheduler.plan/2` shifts reminders out of, for the
+      plan the bell's inbox draws and for the alerts push arms.
 
-  > Persisting them turns *forgotten on the pop* into *remembered, and still
-  > inert*, which is a worse lie: the reader has evidence the setting took, and
-  > nothing behind it ever did.
-
-  So the thirteen are drawn with the `not yet` mark screen 88 already uses for
-  a scope nothing searches (#74) — visible, honest, and not offering a choice
-  the app cannot keep. `Kati.Settings.Watcher.live?/1` is that seam, and each
-  one becomes live the day its resource does, without the board being redrawn.
-
-  ## The two, and what reads them
-
-    * **the cadence** — `Kati.Background.Periodic.ensure/1` takes
-      `:interval_minutes` and its own doc names this exact use: *"a future
-      'check less often' setting"*. `Kati.App` calls it on every boot, so a
-      cadence stored here is the interval WorkManager is asked for next start.
-    * **New episodes** — the global gate over the per-title
-      `Kati.Media.TrackedTitle.notify_new_episodes`, read by
-      `Kati.Notifications.Sources.Media`. Off means Kati does not tell you
-      about an episode however many shows you have followed.
-
-  Both live in `Mob.State`, which is where every app-level preference in Kati
-  lives — the locale, the theme, the rating scale, the detect settings.
+  Every reader answers its default when `Mob.State` cannot be reached, and the
+  defaults lean the safe way: the release kinds and the badge default on, so an
+  unreadable store never silently stops telling somebody about the shows they
+  followed; push defaults off, so an unreadable store never starts interrupting
+  somebody who did not ask.
   """
 
-  @cadence_key :watcher_cadence
-  @episodes_key :watcher_new_episodes
-  @watching_key :watcher_watching
+  alias Kati.Media.CachedEpisode
+  alias Kati.Media.CachedSeason
+  alias Kati.Notifications.QuietHours
 
-  # The four the board draws, and the interval each asks WorkManager for.
-  # `Manual` is `nil`: it is not a long interval, it is no periodic work, and
-  # asking for one every thousand years would be a different promise.
-  #
-  # WorkManager's floor is 15 minutes and the Kotlin side clamps to it, so
-  # `Hourly` is honoured and nothing here can ask for less than the platform
-  # allows — see `Kati.Background.Periodic.ensure/1`.
-  # THREE, since board 314. `Manual` was a fourth and it meant NEVER: nothing
-  # schedules a manual run, so choosing it silently switched the watcher off —
-  # *"a segment that silently switches the watcher off is worse than no
-  # segment."* 314 turns it into what it always was, a button: **Check now**,
-  # which runs once and stamps the line above it.
+  @cadence_key :watcher_cadence
+  @watching_key :watcher_watching
+  @checked_key :watcher_last_checked
+
   @cadences [
     {"Hourly", 60},
     {"Every 6h", 6 * 60},
     {"Daily", 24 * 60}
   ]
 
-  @checked_key :watcher_last_checked
+  @kinds [
+    new_episodes: :watcher_new_episodes,
+    premieres: :watcher_premieres,
+    film_releases: :watcher_film_releases
+  ]
 
-  # The one *Tell me about* switch with a consumer. Named rather than indexed,
-  # because the board's order is the board's and an index would silently move
-  # with it.
-  @live_kinds ["New episodes"]
-
-  # The *How loudly* rows with a consumer. Empty, and the list is the point:
-  # nothing in Kati sends a notification for a release — the only
-  # `Kati.Notifications.Delivery.backend/0` calls in `lib/` are auto-detect's,
-  # a different feature with its own page — so push has no sender, quiet hours
-  # has nothing to quiet, and no weekly job exists.
-  #
-  # `Enum.member?/2` rather than `in`, because `title in []` folds to a literal
-  # `false` and warns.
-  @live_loudness []
+  @loudness [
+    push: {:watcher_push, false},
+    badge: {:watcher_badge, true},
+    quiet_hours: {:watcher_quiet_hours, true}
+  ]
 
   @doc """
   The cadence the reader chose, or the board's own.
@@ -127,8 +112,6 @@ defmodule Kati.Settings.Watcher do
         Kati.Background.Periodic.cancel()
 
       {:ensure, minutes} ->
-        # Both answers are truthy — `{:error, :no_bridge}` is the normal one off
-        # Android — so this is a sequence, not a choice.
         Kati.Background.Periodic.ensure(interval_minutes: minutes)
 
       :ignore ->
@@ -272,7 +255,7 @@ defmodule Kati.Settings.Watcher do
     Enum.find_value(@cadences, fn {name, minutes} -> if name == label, do: minutes end)
   end
 
-  @doc "The four the board draws, in its order."
+  @doc "The three cadences screen 25 offers, in its order."
   @spec cadences() :: [String.t()]
   def cadences, do: Enum.map(@cadences, &elem(&1, 0))
 
@@ -285,34 +268,64 @@ defmodule Kati.Settings.Watcher do
   end
 
   @doc """
-  Whether Kati may tell you about a new episode at all.
+  The *Tell me about* switches, in the order screen 25 draws them.
 
-  The global gate over every title's own `notify_new_episodes`. On by default,
-  which is the state the board draws and the one a reader who has never opened
-  this page expects — following a show is asking to be told.
+      iex> Kati.Settings.Watcher.kinds()
+      [:new_episodes, :premieres, :film_releases]
   """
-  @spec new_episodes?() :: boolean()
-  def new_episodes? do
-    case Mob.State.get(@episodes_key) do
-      value when is_boolean(value) -> value
-      _unset -> true
-    end
-  rescue
-    # A store this cannot reach answers `true`, which is the direction that
-    # matters: a preference Kati cannot read must not silently stop telling
-    # somebody about the shows they followed. `Mob.State` is DETS and is not
-    # started in every test process.
-    _error -> true
-  end
+  @spec kinds() :: [atom()]
+  def kinds, do: Keyword.keys(@kinds)
 
-  @doc "Set it."
-  @spec put_new_episodes(boolean()) :: :ok
-  def put_new_episodes(on?) do
-    Mob.State.put(@episodes_key, on?)
+  @doc """
+  Whether the watcher reports releases of this kind. On unless switched off.
+  """
+  @spec kind?(atom()) :: boolean()
+  def kind?(kind), do: @kinds |> Keyword.fetch!(kind) |> flag(true)
+
+  @doc "Set one *Tell me about* switch."
+  @spec put_kind(atom(), boolean()) :: :ok
+  def put_kind(kind, on?) when is_boolean(on?) do
+    Mob.State.put(Keyword.fetch!(@kinds, kind), on?)
     :ok
   rescue
     _error -> :ok
   end
+
+  @doc """
+  The kinds switched on right now, read once so a list of releases can be
+  filtered without a store read per row.
+  """
+  @spec wanted_kinds() :: MapSet.t(atom())
+  def wanted_kinds, do: kinds() |> Enum.filter(&kind?/1) |> MapSet.new()
+
+  @doc """
+  Which *Tell me about* switch a release answers to.
+
+  A season drop and the first episode of any season are premieres; every other
+  episode is a new episode; a film's own release date is a film release.
+
+      iex> Kati.Settings.Watcher.release_kind(%Kati.Media.CachedEpisode{episode_number: 1})
+      :premieres
+
+      iex> Kati.Settings.Watcher.release_kind(%Kati.Media.CachedEpisode{episode_number: 6})
+      :new_episodes
+
+      iex> Kati.Settings.Watcher.release_kind(:film)
+      :film_releases
+  """
+  @spec release_kind(CachedEpisode.t() | CachedSeason.t() | :film) :: atom()
+  def release_kind(%CachedSeason{}), do: :premieres
+  def release_kind(%CachedEpisode{episode_number: 1}), do: :premieres
+  def release_kind(%CachedEpisode{}), do: :new_episodes
+  def release_kind(:film), do: :film_releases
+
+  @doc "Whether new episodes are reported — the *New episodes* switch."
+  @spec new_episodes?() :: boolean()
+  def new_episodes?, do: kind?(:new_episodes)
+
+  @doc "Set the *New episodes* switch."
+  @spec put_new_episodes(boolean()) :: :ok
+  def put_new_episodes(on?), do: put_kind(:new_episodes, on?)
 
   @doc """
   Whether the watcher may check on its own — the banner's master switch.
@@ -349,23 +362,49 @@ defmodule Kati.Settings.Watcher do
   end
 
   @doc """
-  Whether a *How loudly* switch has anything behind it.
+  The *How loudly* switches, in the order screen 25 draws them.
 
-      iex> Kati.Settings.Watcher.loud?("Push notifications")
-      false
+      iex> Kati.Settings.Watcher.loudness()
+      [:push, :badge, :quiet_hours]
   """
-  @spec loud?(String.t()) :: boolean()
-  def loud?(title), do: Enum.member?(@live_loudness, title)
+  @spec loudness() :: [atom()]
+  def loudness, do: Keyword.keys(@loudness)
 
   @doc """
-  Whether a *Tell me about* switch has anything behind it.
-
-      iex> Kati.Settings.Watcher.live?("New episodes")
-      true
-
-      iex> Kati.Settings.Watcher.live?("Price drops")
-      false
+  Whether a *How loudly* switch is on. Push defaults off; the badge and quiet
+  hours default on.
   """
-  @spec live?(String.t()) :: boolean()
-  def live?(title), do: title in @live_kinds
+  @spec loud?(atom()) :: boolean()
+  def loud?(key) do
+    {store, default} = Keyword.fetch!(@loudness, key)
+    flag(store, default)
+  end
+
+  @doc "Set one *How loudly* switch."
+  @spec put_loud(atom(), boolean()) :: :ok
+  def put_loud(key, on?) when is_boolean(on?) do
+    {store, _default} = Keyword.fetch!(@loudness, key)
+    Mob.State.put(store, on?)
+    :ok
+  rescue
+    _error -> :ok
+  end
+
+  @doc """
+  The quiet-hours rule for `Kati.Notifications.Scheduler.plan/2`: the window
+  when the switch is on, `false` — the scheduler's *rule off* — when it is not.
+  """
+  @spec quiet_hours() :: QuietHours.t() | false
+  def quiet_hours do
+    if loud?(:quiet_hours), do: QuietHours.default(), else: false
+  end
+
+  defp flag(store, default) do
+    case Mob.State.get(store) do
+      value when is_boolean(value) -> value
+      _unset -> default
+    end
+  rescue
+    _error -> default
+  end
 end

@@ -78,23 +78,29 @@ defmodule Kati.Notifications.Sources.Media do
   than duplicated here. The cache row is fetched by `{source, source_id}`, the
   value pair that stands in for the join Kati deliberately does not have, and a
   miss is `nil`: an evicted title with a hand-typed override still resolves.
+
+  Screen 25's *Tell me about* switches narrow it by kind: a film is kept while
+  *Film releases* is on, a series or an anime while *New episodes* or
+  *Premieres* is — a title-level release cannot tell the two apart. Books and
+  records answer to no switch on that page and are always kept.
   """
   @spec followed() :: [pair()]
   def followed do
-    # `design-briefs/D-64`'s own table: the global
-    # gate over every title's `notify_new_episodes`, which is one of the two
-    # controls on screen 25 the brief marks **yes** — a consumer exists, and
-    # this is it. Off means Kati does not tell you about an episode however
-    # many shows you have followed, which is what the switch says.
-    if Kati.Settings.Watcher.new_episodes?() do
-      TrackedTitle
-      |> Ash.Query.for_read(:followed)
-      |> Ash.read!()
-      |> Enum.map(fn tracked -> {tracked, Release.cached_for(tracked)} end)
-    else
-      []
-    end
+    wanted = Kati.Settings.Watcher.wanted_kinds()
+
+    TrackedTitle
+    |> Ash.Query.for_read(:followed)
+    |> Ash.read!()
+    |> Enum.filter(&wanted?(&1, wanted))
+    |> Enum.map(fn tracked -> {tracked, Release.cached_for(tracked)} end)
   end
+
+  defp wanted?(%TrackedTitle{kind: :movie}, wanted), do: MapSet.member?(wanted, :film_releases)
+
+  defp wanted?(%TrackedTitle{kind: kind}, wanted) when kind in [:tv, :anime],
+    do: MapSet.member?(wanted, :new_episodes) or MapSet.member?(wanted, :premieres)
+
+  defp wanted?(%TrackedTitle{}, _wanted), do: true
 
   @doc "The stable id for a title's next release."
   @spec id(TrackedTitle.t()) :: String.t()

@@ -71,41 +71,23 @@ defmodule Kati.NothingSetUpBandsTest do
   end
 
   describe "band 11 — Discover, Leaving soon" do
-    test "replaces the rail when nothing is subscribed" do
+    test "is not on screen 11, which has no leaving-soon section to replace" do
       Kati.Repo.query!("DELETE FROM services", [])
 
-      unset =
+      drawn =
         inspect(
-          Kati.Screens.Discover.leaving_section(%{leaving: []}, "For you", []),
+          Kati.Screens.Discover.content(%{
+            feed: Kati.Screens.Discover.empty_feed(),
+            add_error: nil
+          }),
           limit: :infinity
         )
 
-      assert unset =~ "Nothing to leave yet"
-      assert unset =~ "nothing to count down from"
-      assert unset =~ "my_services_leaving_soon"
+      refute drawn =~ "Nothing to leave yet",
+             "nothing stores when a title leaves a service, so a subscribed service " <>
+               "would not make the section appear either"
 
-      Ash.create!(Service, %{name: @prefix <> "Mubi", tier: :subscribed})
-
-      set =
-        inspect(
-          Kati.Screens.Discover.leaving_section(%{leaving: []}, "For you", []),
-          limit: :infinity
-        )
-
-      refute set =~ "Nothing to leave yet"
-    end
-
-    test "and stays behind the chip, like the section it replaces" do
-      Kati.Repo.query!("DELETE FROM services", [])
-
-      narrowed =
-        inspect(
-          Kati.Screens.Discover.leaving_section(%{leaving: []}, "Because you watched", []),
-          limit: :infinity
-        )
-
-      refute narrowed =~ "Nothing to leave yet",
-             "a reader who narrowed to another chip is not asking about leaving-soon"
+      refute drawn =~ "my_services_leaving_soon"
     end
   end
 
@@ -167,7 +149,6 @@ defmodule Kati.NothingSetUpBandsTest do
     test "lead to one place, which is the sheet's own line" do
       for {module, tag, assigns} <- [
             {Kati.Screens.Film, :my_services_where_to_watch, %{film: %{}, menu?: false}},
-            {Kati.Screens.Discover, :my_services_leaving_soon, %{}},
             {Kati.Screens.WhatFits, :my_services_what_fits, %{}},
             {Kati.Screens.Subscriptions, :my_services_ledger, %{}}
           ] do
@@ -184,8 +165,8 @@ defmodule Kati.NothingSetUpBandsTest do
     end
 
     test "and the sheet's OWN four taps lead there too" do
-      # The block above presses Film, Discover, WhatFits and Subscriptions —
-      # the four screens a real band lives on. It never presses
+      # The block above presses Film, WhatFits and Subscriptions — the three
+      # screens a real band lives on. It never presses
       # `Kati.Screens.NothingSetUpKnockOn` itself, which is the one module
       # that actually owns `handle_tap/2`'s shared clause for all four tags
       # (screen 96, reached from the gallery board index rather than from any

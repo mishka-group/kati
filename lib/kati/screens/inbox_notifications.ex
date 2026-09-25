@@ -88,13 +88,18 @@ defmodule Kati.Screens.InboxNotifications do
   The plan this screen shows.
 
   Built from every domain's candidates through the one scheduler, on this
-  device's platform and clock. All six domains have a collector now — see
-  `candidates/0` — so a row that says `Nothing today` means the domain was
-  asked and had nothing, rather than that nobody asked.
+  device's platform and clock, under the quiet-hours rule screen 25's *Quiet
+  hours* switch sets (`Kati.Settings.Watcher.quiet_hours/0`). All six domains
+  have a collector — see `candidates/0` — so a row that says `Nothing today`
+  means the domain was asked and had nothing, rather than that nobody asked.
   """
   @spec plan() :: Kati.Notifications.Plan.t()
   def plan do
-    Scheduler.plan(candidates(), platform: platform(), now: Kati.Time.now())
+    Scheduler.plan(candidates(),
+      platform: platform(),
+      now: Kati.Time.now(),
+      quiet_hours: Kati.Settings.Watcher.quiet_hours()
+    )
   rescue
     _error ->
       %Kati.Notifications.Plan{platform: platform(), now: Kati.Time.now(), zone: "Etc/UTC"}
@@ -117,6 +122,11 @@ defmodule Kati.Screens.InboxNotifications do
   Each source is told the day rather than reading the clock itself, so the six
   answers are about one day and `Kati.Notifications.Scheduler` is comparing
   like with like.
+
+  The `:tv` domain is `Kati.Screens.Inbox.alerts/0` — screen 05's Coming up
+  rows, one per episode, season drop and film date, filtered by screen 25's
+  *Tell me about* switches. It is the same list push arms
+  (`Kati.Notifications.Releases`), so this page and the platform agree.
   """
   @spec candidates() :: [Candidate.t()]
   def candidates do
@@ -126,7 +136,7 @@ defmodule Kati.Screens.InboxNotifications do
     zone = Kati.Time.device_zone()
 
     Enum.concat([
-      safely(fn -> Sources.Media.candidates(media_pairs()) end),
+      safely(&Kati.Screens.Inbox.alerts/0),
       safely(fn -> Sources.Calendar.candidates(Sources.Calendar.events(day, zone), opts) end),
       safely(fn -> Sources.Habits.candidates(Sources.Habits.events(day, zone), day, opts) end),
       safely(fn -> meals(day, opts) end),
@@ -148,18 +158,6 @@ defmodule Kati.Screens.InboxNotifications do
   # One collector's failure is not the page's. See `candidates/0`.
   defp safely(fun) do
     fun.()
-  rescue
-    _error -> []
-  end
-
-  defp media_pairs do
-    Kati.Media.TrackedTitle
-    |> Ash.Query.for_read(:shelf, %{kind: :series})
-    |> Ash.read()
-    |> case do
-      {:ok, tracked} -> Enum.map(tracked, &{&1, nil})
-      _other -> []
-    end
   rescue
     _error -> []
   end

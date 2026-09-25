@@ -718,16 +718,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 36 → no board: an unavailable device has no sessions, no now-playing card
     # and no decision, so board 36's own content has nothing left to compare.
     "36" => [],
-    # 25 → the banner's own two lines only. Every other band on board 25 is
-    # `Kati.Settings.WatcherSample`'s and stays — 13 of its 15 controls have no
-    # preferences domain to read (see P2), which is a schema gap rather than a
-    # fallback.
+    # 25 → the banner's own two lines only. Every other band on board 25 is a
+    # control that reads `Kati.Settings.Watcher`, the store, and draws the same
+    # on an empty database as on a full one.
     "25" => [],
     # 14 → no board either: no title, no synopsis, no cast, no ratings and no
     # where-to-watch rows, so board 14's own series has nothing left to compare.
     "14" => [],
-    # 11 → no board either: no seed means no picks, no people, no leaving-soon
-    # rail and no subtitle, so board 11's own feed has nothing left to compare.
+    # 11 → no board either: no seed means no picks and no heading, so board
+    # 11's own feed has nothing left to compare.
     "11" => [],
     # 33 → no board: the sheet's own frame survives — the ten-point scale, the
     # review placeholder, the three context titles and the tag row are the
@@ -1305,6 +1304,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # and where-to-watch rows that padded it past the floor are exactly what a
     # page about no series has not got.
     "14" => 10,
+    # 11 with nothing on the shelf to seed from is the back pill, the heading,
+    # its two discs and one card saying where picks come from — eight strings.
+    # The match lines, the people card, the leaving rail and the chips that
+    # padded it past the floor have no store behind them and are gone on every
+    # device, not only an empty one.
+    "11" => 8,
     # 15 with nothing logged is the heading, its count sentence, the four chips
     # and one empty line — the seven rows and the rewatch card that used to pad
     # it past the generic floor are the whole of what an empty log has not got.
@@ -2236,9 +2241,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # which is the state all three boards were captured in. 99 is 98 with the
       # Books chip lit and 101 is the five states of 100's cards; both draw 98's
       # own card and reach the read through it.
-      # 25 gates on the banner, which is the only part of it that reads
-      # anything: the ten switches and the cadence are still
-      # `Kati.Settings.WatcherSample`'s — they edit one socket assign and nothing consumes them.
+      # 25 gates on the banner, which is the only part of it that reads the
+      # database: the switches and the cadence read `Kati.Settings.Watcher`.
       # 23 gates on the whole ledger: the count, the total, every row and the
       # advice card arrive together or the board's do.
       # 18 gates on the whole draft: the sentence, the title, the chips, the
@@ -2672,7 +2676,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # watched X*, and `Recommendations.seed/0` answers nil when there is no X.
       # It drew the WHOLE page from the fixture, subtitle included.
       {"11", Kati.Screens.Discover, &Kati.Screens.Discover.feed/0,
-       Kati.Screens.Discover.empty_feed(), &Kati.Screens.Discover.Sample.feed/0},
+       Kati.Screens.Discover.empty_feed(), &Kati.DesignLiterals.discover_board_feed/0},
       # 14 answers an empty page. `tracked_meta/1` answers nil for three
       # different reasons and only one is "this reader owns nothing" — an id
       # naming no row and a read that raised both landed on the drawing too.
@@ -2684,7 +2688,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # nothing." A page about nothing is a true thing for this page to say to a
       # reader who follows nothing, and the switches under it still work.
       {"25", Kati.Screens.ReleaseWatcher, &Kati.Screens.ReleaseWatcher.banner/0,
-       Kati.Screens.ReleaseWatcher.banner(), &Kati.Settings.WatcherSample.banner/0},
+       Kati.Screens.ReleaseWatcher.banner(), &Kati.DesignLiterals.watcher_board_banner/0},
       # 36 reads its own unavailable state now. It answered `drawn_detect/0`
       # whenever access was `:unavailable`, which is EVERY sideloaded build —
       # Play Protect blocks the listener it reads — so the one state a real

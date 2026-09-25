@@ -377,7 +377,7 @@ defmodule Kati.Settings.Sample do
         id: "release_watcher",
         icon: "notifications_active",
         title: gettext("Release watcher"),
-        sub: gettext("Premieres, new episodes, price drops"),
+        sub: gettext("Premieres, new episodes, film releases"),
         control: :chevron
       },
       %{

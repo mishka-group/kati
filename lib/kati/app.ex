@@ -216,6 +216,20 @@ defmodule Kati.App do
       runs -> :mob_nif.log("Kati: drained #{length(runs)} background refresh runs")
     end
 
+    _synced =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        case Kati.Notifications.Releases.sync() do
+          {:error, :no_delivery} ->
+            :ok
+
+          {:error, reason} ->
+            :mob_nif.log("Kati: release alerts not synced: #{inspect(reason)}")
+
+          %{armed: a, cancelled: c} ->
+            :mob_nif.log("Kati: release alerts +#{length(a)} -#{length(c)}")
+        end
+      end)
+
     # ...and make sure the worker exists. Idempotent by construction — the
     # enqueue is `ExistingPeriodicWorkPolicy.KEEP`, so calling it on every boot
     # does NOT restart the interval clock. `{:error, :no_bridge}` is the normal

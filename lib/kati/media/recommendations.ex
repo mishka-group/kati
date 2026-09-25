@@ -6,7 +6,7 @@ defmodule Kati.Media.Recommendations do
 
   ## The defect this exists for
 
-  Screen 11 — Discover — was `Kati.Screens.Discover.Sample.feed()` end to end.
+  Screen 11 — Discover — was a fixture feed end to end.
   Every string on it was frozen, and six of them were specific claims about the
   reader: *Tuned to 128 titles* on a shelf of six, *Because you watched The
   Long Hollow* for somebody who never had, three films with `94% match`,
@@ -82,8 +82,8 @@ defmodule Kati.Media.Recommendations do
   — and `nil` for every other state: an empty store, a shelf of archived rows,
   a title whose cache was evicted.
 
-  `nil` is what puts screen 11 back on its board, which is the answer an empty
-  device should get.
+  `nil` is what draws screen 11's empty-shelf card
+  (`Kati.Screens.Discover.empty_feed/0`).
   """
   @spec seed() :: {TrackedTitle.t(), CachedTitle.t()} | nil
   def seed(source_id \\ nil)
@@ -151,7 +151,7 @@ defmodule Kati.Media.Recommendations do
   something on the shelf. This answers *what is there*, narrowed by board 169's
   sheet, and needs nothing — so screen 11 has something real to draw for a
   reader who has tracked nothing at all, which is the state it used to fill
-  with `Kati.Screens.Discover.Sample`.
+  with a fixture.
 
   The message carries the CHOICE back, for `ask/2`'s own reason: the reader can
   have changed a chip while a request was in flight, and a rail drawn under the

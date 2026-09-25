@@ -97,7 +97,7 @@ defmodule Kati.Media.Tmdb do
   @doc """
   What TMDB suggests for one title: `/movie/{id}/recommendations`.
 
-  Screen 11 was `Kati.Discover.Sample.feed()` end to end — *Tuned to 128
+  Screen 11 was a fixture feed end to end — *Tuned to 128
   titles* on a shelf of six, *Because you watched The Long Hollow* for a
   reader who never had, and three invented films with invented match
   percentages. Its first band is the one that can be real, and this is the
