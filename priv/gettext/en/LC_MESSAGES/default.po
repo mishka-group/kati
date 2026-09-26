@@ -2941,11 +2941,6 @@ msgstr ""
 msgid "Paste a token first."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:147
-#, elixir-autogen, elixir-format
-msgid "Paste your TMDB read token"
-msgstr ""
-
 #: lib/kati/screens/data_sources.ex:203
 #, elixir-autogen, elixir-format
 msgid "Posters, backdrops, cast"
@@ -16820,4 +16815,9 @@ msgstr ""
 #: lib/kati/calendars/airings.ex:219
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Film release"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:147
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Paste token"
 msgstr ""

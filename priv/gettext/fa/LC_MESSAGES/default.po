@@ -2946,11 +2946,6 @@ msgstr "این را از همان چیزی که دربارهٔ آن می‌پر�
 msgid "Paste a token first."
 msgstr "اول یک توکن وارد کنید."
 
-#: lib/kati/screens/data_sources.ex:147
-#, elixir-autogen, elixir-format
-msgid "Paste your TMDB read token"
-msgstr "توکن خواندن TMDB"
-
 #: lib/kati/screens/data_sources.ex:203
 #, elixir-autogen, elixir-format
 msgid "Posters, backdrops, cast"
@@ -16826,3 +16821,8 @@ msgstr "اینکه هر عنوان روی کدام سرویس است از JustWa
 #, elixir-autogen, elixir-format
 msgid "Film release"
 msgstr "انتشار فیلم"
+
+#: lib/kati/screens/data_sources.ex:147
+#, elixir-autogen, elixir-format
+msgid "Paste token"
+msgstr "توکن را بچسبانید"

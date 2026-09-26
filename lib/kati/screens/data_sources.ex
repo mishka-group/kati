@@ -144,7 +144,7 @@ defmodule Kati.Screens.DataSources do
 
   @doc false
   @spec token_placeholder() :: String.t()
-  def token_placeholder, do: gettext("Paste your TMDB read token")
+  def token_placeholder, do: gettext("Paste token")
 
   @doc """
   When a source last answered, as `18:02`, or an em dash.
