@@ -627,7 +627,7 @@ defmodule Kati.Media.Tmdb do
     # the NIF is absent and it answers `{:error, :nif_not_loaded}` — ignored,
     # because ordinary DNS already works there, which is exactly why this was
     # invisible until the emulator.
-    _resolved = Mob.DNS.resolve(@dns_host)
+    _resolved = Kati.Net.Dns.resolve(@dns_host)
 
     [
       url: @host <> path,

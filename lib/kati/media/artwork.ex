@@ -198,7 +198,7 @@ defmodule Kati.Media.Artwork do
   # optional on a device and both are no-ops on the host.
   defp get(url) do
     Kati.Net.Tls.ensure!()
-    _resolved = Mob.DNS.resolve(@dns_host)
+    _resolved = Kati.Net.Dns.resolve(@dns_host)
 
     case Req.get(url: url, receive_timeout: @timeout, max_redirects: 3) do
       {:ok, %{status: 200, body: body}} when is_binary(body) and byte_size(body) > 0 ->
