@@ -300,6 +300,8 @@ defmodule Kati.UI.SettingsList do
 
   @doc "The grouped card: `#FBFAF8` at radius 20, 4pt top and bottom, 15pt sides."
   def card(rows) do
+    rows = Kati.UI.SettingsList.last_unruled(rows)
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -315,6 +317,35 @@ defmodule Kati.UI.SettingsList do
     </Column>
     """
   end
+
+  @doc """
+  The card's last row without its hairline, whatever the caller passed.
+
+  A card whose only row kept `rule: true` drew a line under itself with
+  nothing below it — screen 80's TMDB card, the Try card on 19 (the owner,
+  26 Sep). The last row of a card is never followed by another, so the card
+  decides rather than every caller.
+  """
+  @spec last_unruled(term()) :: term()
+  def last_unruled(rows) when is_list(rows) and rows != [] do
+    List.update_at(rows, -1, &Kati.UI.SettingsList.unrule/1)
+  end
+
+  def last_unruled(rows), do: rows
+
+  @doc false
+  def unrule(%{type: :column, children: children} = row)
+      when is_list(children) and children != [] do
+    case List.last(children) do
+      %{props: %{height: 1, fill_width: true, background: _}} ->
+        %{row | children: List.replace_at(children, -1, hairline(false))}
+
+      _other ->
+        row
+    end
+  end
+
+  def unrule(row), do: row
 
   @doc """
   One row: leading · body · trailing, with the hairline unless it is the last.

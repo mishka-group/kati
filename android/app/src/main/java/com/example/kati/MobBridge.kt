@@ -51,6 +51,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+// KATI-BEGIN(K-60 press-dim) mob_new=0.4.33
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.alpha
+// KATI-END(K-60 press-dim)
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -4522,6 +4527,13 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // cancelled by any mid-gesture re-render.
     val pressHandles by rememberUpdatedState(MobPressHandles(longPressHandle, doubleTapHandle))
 
+    // KATI-BEGIN(K-60 press-dim) mob_new=0.4.33
+    // The default ripple painted a grey rectangle behind a pressed control,
+    // ignoring its rounded shape. A press dims the control instead.
+    val pressSource = remember { MutableInteractionSource() }
+    val pressed by pressSource.collectIsPressedAsState()
+    // KATI-END(K-60 press-dim)
+
     val tapModifier = when {
         // Only when a long-press or double-tap is actually declared.
         // combinedClickable installs a detector that delays the click to wait
@@ -4534,6 +4546,8 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         tapHandle != null && (longPressHandle != null || doubleTapHandle != null) &&
             gesturableType ->
             modifier.combinedClickable(
+                interactionSource = pressSource,
+                indication = null,
                 enabled = !isDisabled,
                 role = if (isButton) Role.Button else null,
                 onLongClick = longPressHandle?.let { h -> { MobBridge.nativeSendLongPress(h) } },
@@ -4574,7 +4588,12 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         // fall through to the semantics-only path below, which still sets the
         // button role.
         isButton && tapHandle != null ->
-            modifier.clickable(enabled = !isDisabled, role = Role.Button) {
+            modifier.clickable(
+                interactionSource = pressSource,
+                indication = null,
+                enabled = !isDisabled,
+                role = Role.Button
+            ) {
                 MobBridge.nativeSendTap(tapHandle)
             }
 
@@ -4600,11 +4619,15 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         // gates them on `gesturableType`, and `anchored` is not in that set.
         // was: tapHandle != null && node.type != "button" ->
         tapHandle != null && node.type != "button" && node.type != "anchored" ->
-            modifier.clickable(enabled = !isDisabled) { MobBridge.nativeSendTap(tapHandle) }
+            modifier.clickable(
+                interactionSource = pressSource,
+                indication = null,
+                enabled = !isDisabled
+            ) { MobBridge.nativeSendTap(tapHandle) }
         // KATI-END(K-18 anchored-node)
 
         else -> modifier
-    }
+    }.let { if (pressed && tapHandle != null) it.alpha(0.6f) else it }
     // ── Swipe (MOB-138) ─────────────────────────────────────────────────────
     // Attached only when a swipe handler is actually declared. detectDragGestures
     // consumes the drag, so an unconditional pointerInput here would swallow
