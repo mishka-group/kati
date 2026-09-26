@@ -265,6 +265,9 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
+    # N51: the Agenda's filter disc had no tap and there is nothing on the
+    # agenda to filter; its search disc now opens Search.
+    {"30", "tune"},
     # N49 — see `DesignLiterals.retired_lines/0`: the notes' `info` glyphs,
     # the Weekly digest's `mail`, and board 136's redrawn question.
     {"136", "check"},

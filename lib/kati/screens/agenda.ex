@@ -37,7 +37,6 @@ defmodule Kati.Screens.Agenda do
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Screens.Calendar, as: Schedule
@@ -171,31 +170,11 @@ defmodule Kati.Screens.Agenda do
           max_lines={1}
         />
         <Spacer weight={1.0} />
-        {Kati.Screens.Agenda.disc("search")}
-        <Spacer size={9} />
-        {Kati.Screens.Agenda.disc("tune")}
+        {Kati.Screens.Calendar.disc("search", :open_search)}
       </Row>
       <Spacer size={16} />
     </Column>
     """
-  end
-
-  @doc """
-  A header disc: `Kati.Components.MishkaActionIcon`, filled and circular, with
-  the `shadow` that makes it float rather than sit flat. The glyph goes in as
-  a child so it resolves through the Material Symbols ligature.
-  """
-  def disc(icon) do
-    MishkaActionIcon.action_icon(
-      %{
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Kati.Theme.shadow_button()
-      },
-      [Kati.UI.symbol(icon, size: 21)]
-    )
   end
 
   @doc false
@@ -392,6 +371,10 @@ defmodule Kati.Screens.Agenda do
       "row_" <> _rest ->
         date = day_of(socket.assigns.agenda, tag)
         {:noreply, Schedule.open_timeline_row(socket, tag, date)}
+
+      "open_search" ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Calendar"})}
 
       _other ->
         Kati.Screens.ViewSwitcher.handle_tap(tag, socket)
