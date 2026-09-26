@@ -52,6 +52,8 @@ defmodule Kati.Media.Cache do
 
   @kinds [:movie, :tv, :anime]
 
+  require Ash.Query
+
   @doc """
   Empty the metadata cache: the three tables, and the posters they named.
 
@@ -90,7 +92,10 @@ defmodule Kati.Media.Cache do
         {:ok,
          Kati.Media.Cache.tracked()
          |> Enum.reduce(%{refreshed: 0, failed: 0}, fn tracked, tally ->
-           case Tmdb.fetch(tracked.source_id, Kati.Media.Cache.tmdb_kind(tracked.kind)) do
+           case Tmdb.fetch(
+                  tracked.source_id,
+                  Kati.Media.Cache.tmdb_kind(tracked, cached(tracked))
+                ) do
              {:ok, _written} -> Map.update!(tally, :refreshed, &(&1 + 1))
              {:error, _reason} -> Map.update!(tally, :failed, &(&1 + 1))
            end
@@ -133,17 +138,38 @@ defmodule Kati.Media.Cache do
   end
 
   @doc """
-  What TMDB calls a kind. Anime is a television series there.
+  Which TMDB endpoint a tracked title lives under.
 
-      iex> Kati.Media.Cache.tmdb_kind(:anime)
+  Not the tracked kind alone. `:anime` is Kati's word, and an anime can be a
+  film — TMDB keeps films and series in separate id spaces, so asking the TV
+  endpoint for film 129 (*Spirited Away*) answers TV 129 (*Soccer Aid*) and
+  the refresh wrote that over the film. The cached row knows which it is;
+  `Kati.Media.Anime.film?/2` is the one rule for reading it.
+
+      iex> Kati.Media.Cache.tmdb_kind(%{kind: :anime}, %{kind: :movie})
+      :movie
+
+      iex> Kati.Media.Cache.tmdb_kind(%{kind: :anime}, %{kind: :tv, episode_count: 26})
       :tv
 
-      iex> Kati.Media.Cache.tmdb_kind(:movie)
+      iex> Kati.Media.Cache.tmdb_kind(%{kind: :movie}, nil)
       :movie
+
+      iex> Kati.Media.Cache.tmdb_kind(%{kind: :tv}, nil)
+      :tv
   """
-  @spec tmdb_kind(atom()) :: :movie | :tv
-  def tmdb_kind(:movie), do: :movie
-  def tmdb_kind(_series), do: :tv
+  @spec tmdb_kind(map(), map() | nil) :: :movie | :tv
+  def tmdb_kind(%{kind: kind}, cached) do
+    if Kati.Media.Anime.film?(kind, cached), do: :movie, else: :tv
+  end
+
+  defp cached(%{source: source, source_id: source_id}) do
+    Kati.Media.CachedTitle
+    |> Ash.Query.filter(source == ^source and source_id == ^source_id)
+    |> Ash.read_one!()
+  rescue
+    _error -> nil
+  end
 
   defp destroy_all(resource) do
     rows = Ash.read!(resource)
