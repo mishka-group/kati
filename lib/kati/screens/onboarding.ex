@@ -60,9 +60,7 @@ defmodule Kati.Screens.Onboarding do
   LoudnessPrompt` reads the same `Sample.telling/0` and draws it through
   `option/1` below. `gettext/1` will not take a variable, so the words cannot be
   translated where they are used — they are keyed on their English spelling by
-  `translated/1`, one clause each, which is the shape
-  `Kati.Screens.OnboardingFirstTitle.label_for/1` already uses for the four
-  poster titles it is handed.
+  `translated/1`, one clause each.
 
   **No msgid on this page is new.** Screens 161, 162 and 163 are this drawing's
   three panels renumbered by `D-33`, and they have carried these sentences
@@ -140,18 +138,16 @@ defmodule Kati.Screens.Onboarding do
   The moduledoc's *"The copy arrives in English and is spelled here"* is the
   why. In short: the words are literals in a module this screen does not own and
   `gettext/1` will not take a variable, so each is a clause keyed on its English
-  spelling — `Kati.Screens.OnboardingFirstTitle.label_for/1`'s shape, for the
-  same reason it has that shape.
+  spelling.
 
   Every msgid below already exists. 161, 162 and 163 are this drawing's three
   panels renumbered by `D-33` and they have carried these sentences since
   mishka-group/kati#103; asking for the same msgids is what keeps one sentence
   from reaching the catalogue twice under two spellings.
 
-  An unknown string comes back unchanged rather than raising. That is the trade
-  `label_for/1` makes too: copy added to `Sample` and not added here ships in
-  Latin, which is wrong on a page rather than a crash in the middle of a first
-  run — a `FunctionClauseError` here would be a blank device on the one screen a
+  An unknown string comes back unchanged rather than raising: copy added to
+  `Sample` and not added here ships in Latin, which is wrong on a page rather
+  than a crash in the middle of a first run — a `FunctionClauseError` here would be a blank device on the one screen a
   new install cannot get past.
   """
   # Step 1. The drawing breaks the title inside one `Text`, and 161 — the same
@@ -214,10 +210,9 @@ defmodule Kati.Screens.Onboarding do
   def translated("Skip — I’ll add things later"), do: gettext("Skip — I’ll add things later")
 
   # The four starter posters are invented films, not a provider's name, so they
-  # translate: `Kati.Screens.OnboardingFirstTitle.label_for/1` already shelves
-  # them under these four Persian titles, and its `@seeds` keys the artwork off
-  # both spellings so the photograph follows the name into either script. The
-  # same four msgids here, so 38 and 163 cannot spell one film two ways.
+  # translate. Only this drawing still draws them: screen 163, the same panel
+  # renumbered, searches TMDB instead, because a first run that shelved one of
+  # these put a film nobody can look up in the library (N46).
   def translated("The Long Hollow"), do: gettext("The Long Hollow")
   def translated("Ashfall"), do: gettext("Ashfall")
   def translated("Marram"), do: gettext("Marram")

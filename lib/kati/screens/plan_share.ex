@@ -96,8 +96,7 @@ defmodule Kati.Screens.PlanShare do
   # Two things make that safe rather than clever. Every function below ends in
   # a clause that answers whatever it was handed, so copy someone rewords draws
   # its new English instead of raising inside a render — the contract
-  # `Kati.Screens.MealEdit.slot_label/1` and
-  # `Kati.Screens.OnboardingFirstTitle.label_for/1` already keep — and if
+  # `Kati.Screens.MealEdit.slot_label/1` already keeps — and if
   # `Kati.Meals.SampleShare` is ever folded itself, the Persian it starts
   # returning falls through that same clause untouched rather than being looked
   # up a second time.

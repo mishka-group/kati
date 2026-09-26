@@ -47,6 +47,20 @@ defmodule Kati.FilmWatchTest do
     })
   end
 
+  defp rewatch_sheet(film) do
+    page =
+      Kati.Screens.Film
+      |> Mob.Socket.new()
+      |> Mob.Socket.assign(:film, Kati.Screens.Film.film(film.id))
+
+    assert %{tag: :log_watch} = Kati.Screens.Film.log_item(page.assigns.film)
+
+    {:noreply, pushed} = Kati.Screens.Film.handle_info({:tap, :log_watch}, page)
+    {:push, Rating, params} = Map.get(pushed.__mob__, :nav_action)
+    {:ok, sheet} = Rating.mount(params, %{}, Mob.Socket.new(Rating))
+    sheet
+  end
+
   defp watches_for(id) do
     Watch |> Ash.read!() |> Enum.filter(&(&1.tracked_title_id == id))
   end
@@ -223,7 +237,9 @@ defmodule Kati.FilmWatchTest do
       assert sheet.assigns.watch_id == nil, "a rewatch edited the first watch"
       assert sheet.assigns.watch.rating == nil
       assert sheet.assigns.watch.review == ""
-      assert sheet.assigns.watch.rewatch == "2nd rewatch"
+
+      assert sheet.assigns.watch.rewatch == "1st rewatch",
+             "the second viewing is the first rewatch"
 
       {:noreply, starred} = Rating.handle_info({:tap, :star_7}, sheet)
       {:noreply, _saved} = Rating.handle_info({:tap, :save}, starred)
@@ -235,6 +251,35 @@ defmodule Kati.FilmWatchTest do
       assert second.rewatch_number == 2
       assert Ash.get!(Watch, rated.id).rating == 8, "the first viewing was rewritten"
       assert Kati.Screens.Film.film(film.id).seen == "2 times"
+    end
+
+    test "the badge counts rewatches, one behind the viewings the store keeps" do
+      film = a_film!()
+      Ash.create!(Watch, %{tracked_title_id: film.id, rating: 8})
+      assert rewatch_sheet(film).assigns.watch.rewatch == "1st rewatch"
+
+      Ash.create!(Watch, %{tracked_title_id: film.id, rating: 6, rewatch_number: 2})
+      sheet = rewatch_sheet(film)
+      assert sheet.assigns.watch.rewatch == "2nd rewatch"
+
+      {:noreply, starred} = Rating.handle_info({:tap, :star_7}, sheet)
+      {:noreply, _saved} = Rating.handle_info({:tap, :save}, starred)
+
+      assert film.id |> watches_for() |> Enum.map(& &1.rewatch_number) |> Enum.sort() ==
+               [2, 3, nil],
+             "the column counts viewings, so the 2nd rewatch is stored as 3"
+
+      assert Kati.Screens.Film.film(film.id).seen == "3 times"
+    end
+
+    test "the Persian badge names the rewatch, not the viewing" do
+      film = a_film!()
+      Ash.create!(Watch, %{tracked_title_id: film.id, rating: 8})
+
+      Kati.Locale.as(:fa, fn ->
+        assert rewatch_sheet(film).assigns.watch.rewatch == "بازتماشای اول",
+               "board 297 spells the ordinal after the noun"
+      end)
     end
 
     test "reads Log a watch on a film nobody has seen" do

@@ -595,11 +595,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # holds it to.
     {"46", Kati.Screens.MealSwap},
     {"154", Kati.Screens.AddByHand},
-    # 163 and 166 are the last step of the first run, and they are here for
-    # exactly 154's reason: they WRITE on Finish and read nothing. Until
-    # 5 September they wrote nothing either — the picked title was drawn with a
-    # tick and dropped — so a first run ended on a Home with an empty library,
-    # which is the one thing screen 163 exists to prevent.
+    # 163 and 166 are the last step of the first run: screen 06's search in
+    # place, so they read the shelf to tick a result already added and WRITE
+    # when one is added — through `Kati.Screens.AddTitle.add_at/2`, the same
+    # path screen 06 takes (N46).
     {"163", Kati.Screens.OnboardingFirstTitle},
     {"166", Kati.Screens.OnboardingFirstTitle},
     {"155", Kati.Screens.AddByHandStates},
@@ -1566,16 +1565,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     still checked for by the test above, and found; this is the count, and
   #     the count is 2 short of what no implementation can reach.
   #
-  #   * 166 draws a moment too, and it is one tile's tick. Board 163 and its
-  #     Persian mirror draw `گودال بلند` already selected, and the app opened
-  #     that way until 8 September — which meant a reader who pressed **Finish
-  #     setup** without choosing was handed one of the board's four INVENTED
-  #     titles, and screen 139 was unreachable by the path most people walk.
-  #     `Kati.Screens.OnboardingFirstTitle.load/1` carries the argument. The
-  #     glyph is a `Text` node like any other, so a page with no tile ticked
-  #     renders exactly one string fewer than the board it is held to. 163 is
-  #     not here: its own board holds enough copy to clear the floor without it.
-  #
   #   * 129 lost its conflict card — thirteen of the board's literals, the
   #     film, its two ratings, three answer pills, the progress line, the
   #     eyebrow and the dry run's labels — because the restore engine has no
@@ -1598,7 +1587,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   @floor_allowance %{
     "144" => 5,
     "190" => 2,
-    "166" => 1,
     "129" => 7,
     "151" => 27,
     "80" => 15,
@@ -1624,11 +1612,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # entry's twin and carries the argument.
     {"12", "bookmark"},
     {"12", "inventory_2"},
-    # Boards 163 and 166's ticked tile, in both scripts, and the twin of
-    # `@floor_allowance`'s 166 entry above.
+    # Boards 163 and 166's `check`, in both scripts.
     # `Kati.ScreenDesignLiteralTest`'s `@unreachable_symbols` carries the same
-    # pair with the whole argument: nothing is picked on a bare mount, and
-    # `Kati.FirstRunTest` taps a tile and asserts what follows.
+    # pair with the whole argument: the poster wall is a TMDB search now, and
+    # the glyph is a result's add disc once that title is added, which a bare
+    # mount never has. `Kati.OnboardingFirstTitleTest` adds one.
     {"163", "check"},
     {"166", "check"},
     # Board 62's four rows that screen 53 owns, and its Meals section, folded
@@ -2444,11 +2432,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.Books.Book`. Gated the way 154 is, for 154's reason — a form that
       # put a book on the shelf of a Kati whose service list disagreed with the
       # page that opened it would be the defect worth catching.
-      # 163 and 166 draw four posters and a tick and read nothing; they are on
-      # the migrated list because Finish writes the picked title. Gated the way
-      # 154 is, for 154's reason — a first run that shelved a title into a Kati
-      # whose service list disagreed with the page that sent it there would be
-      # the defect worth catching.
+      # 163 and 166 are screen 06's search in the first run, and are on the
+      # migrated list because a result's add disc writes the title. Gated the
+      # way 06 and 154 are, for 154's reason — a first run that shelved a title
+      # into a Kati whose service list disagreed with the page that sent it
+      # there would be the defect worth catching.
       # 155 reads nothing at all — it is a picture of 154's two states, and it
       # is on the migrated list only because it calls 154's own helpers and the
       # list is derived from the compiled import table. Gated the same way 154

@@ -146,17 +146,26 @@ defmodule Kati.Screens.Calendar do
   @doc """
   The day's rows, each carrying the shape the drawing gives it.
 
-  `Kati.Calendars.Today` answers with the device's own events, and on a device
-  with nothing mirrored it answers with nothing. Nothing is what this returns,
-  for every date including today — see the moduledoc for why the today
-  exception was removed rather than narrowed.
+  `Kati.Calendars.Today` answers with the device's own events and
+  `Kati.Calendars.Airings` with the episodes of followed shows that air that
+  day, each carrying its show's title, poster and `S# · E#` line. On a device
+  with nothing mirrored and nothing followed both answer nothing, and nothing is
+  what this returns, for every date including today — see the moduledoc for
+  why the today exception was removed rather than narrowed.
+
+  All-day airings lead, as an all-day band does; everything else is ordered by
+  the instant it happens.
   """
   @spec day_rows(Date.t()) :: [map()]
   def day_rows(date) do
-    date
-    |> Kati.Calendars.Today.rows()
+    (Kati.Calendars.Today.rows(date) ++ Kati.Calendars.Airings.rows(date))
+    |> Enum.sort_by(&Kati.Screens.Calendar.when_key/1)
     |> Enum.map(&Kati.Screens.Calendar.shaped/1)
   end
+
+  @doc false
+  def when_key(%{at: %DateTime{} = at}), do: {1, DateTime.to_unix(at, :microsecond)}
+  def when_key(_all_day), do: {0, 0}
 
   @doc """
   The five rows of `test/design/screens/02.html`, in its own order.
@@ -289,7 +298,7 @@ defmodule Kati.Screens.Calendar do
     shape =
       case kind do
         "money" -> :money
-        "screen" -> :airing
+        "screen" -> if Map.has_key?(row, :tracked_id), do: :show, else: :airing
         _ -> if row.now?, do: :event, else: :done
       end
 
@@ -1028,6 +1037,7 @@ defmodule Kati.Screens.Calendar do
   def card(%{shape: :done} = row), do: Kati.Screens.Calendar.ruled(row, Palette.green(), :done)
   def card(%{shape: :event} = row), do: Kati.Screens.Calendar.ruled(row, Palette.ink(), :event)
   def card(%{shape: :airing} = row), do: Kati.Screens.Calendar.airing(row)
+  def card(%{shape: :show} = row), do: Kati.Screens.Calendar.show(row)
 
   def card(%{shape: :reminder} = row) do
     tap = Kati.Screens.Calendar.tap(row)
@@ -1257,6 +1267,58 @@ defmodule Kati.Screens.Calendar do
     |> then(fn card -> Kati.Screens.Calendar.with_members(card, row, open?) end)
   end
 
+  @doc """
+  One followed show airing on the day, from `Kati.Calendars.Airings`.
+
+  The air-date group's own card with one member in it: the accent rule, the
+  show's poster where the group stacks three, its title, and the episode line
+  in mono. It opens the show's series page rather than a group, so the trailing
+  tile is a chevron pointing onward, not one that folds.
+  """
+  @spec show(map()) :: map()
+  def show(row) do
+    tap = Kati.Screens.Calendar.tap(row)
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      on_tap={tap}
+      background={Palette.card()}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card()}
+      padding={15}
+      align="center"
+    >
+      <Box width={3} height={48} corner_radius={2} background={Palette.accent()} />
+      <Spacer size={12} />
+      <Box width={34} height={48} corner_radius={7} background={Palette.placeholder()}>
+        {Kati.Screens.Calendar.mini_image(Kati.Design.Images.poster(row.seed))}
+      </Box>
+      <Spacer size={14} />
+      <Column weight={1.0}>
+        <Text
+          text={row.title}
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.015}
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer size={4} />
+        <Text
+          text={row.meta}
+          font_family={Kati.Locale.mono_face(row.meta)}
+          text_size={11}
+          text_color={Palette.sub()}
+          max_lines={1}
+        />
+      </Column>
+      <Spacer size={12} />
+      {Kati.UI.SettingsList.chevron()}
+    </Row>
+    """
+  end
+
   # The same Theme Icon as `payments_tile/0`, and the same reasoning: the disc
   # is not the tap target — the whole air-date card is, so a button component
   # would be claiming an affordance that is not there. The chevron inside it
@@ -1438,8 +1500,18 @@ defmodule Kati.Screens.Calendar do
   and screen 31 answers a push with no id with its own sample, which is what
   the empty-database sweep renders. Splitting on the first `_` after the kind is
   unambiguous in both directions: no kind contains one and a UUID contains none.
+
+  ## An airing names its show
+
+  A row from `Kati.Calendars.Airings` has no event behind it, so it carries
+  `row_series_<tracked id>`: the followed `Kati.Media.TrackedTitle` whose
+  episode airs, which `open_timeline_row/3` pushes screen 04 with as
+  `%{id: tracked_id}`.
   """
   @spec tag(map()) :: atom()
+  def tag(%{tracked_id: tracked_id}) when is_binary(tracked_id),
+    do: String.to_atom("row_series_" <> tracked_id)
+
   def tag(row) do
     case Map.get(row, :id) do
       nil -> String.to_atom("row_" <> Kati.Screens.Calendar.kind(row))
@@ -1504,6 +1576,9 @@ defmodule Kati.Screens.Calendar do
   @row_screens %{
     "meals" => Kati.Screens.MealsDay,
     "screen" => Kati.Screens.Film,
+    # An airing from `Kati.Calendars.Airings`, whose id is the followed show's
+    # `Kati.Media.TrackedTitle` rather than an event's — see `tag/1`.
+    "series" => Kati.Screens.Series,
     # Screen 126 rather than 23. A money row on a calendar day is a renewal or
     # an expense on THAT DAY, and the page that answers "what does this day
     # cost" is the day — 23 is the account, one tap further in.

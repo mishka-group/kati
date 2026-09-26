@@ -395,8 +395,8 @@ defmodule Kati.ScreenTapSweepTest do
     # than as the drawing showing what a chosen tile looks like. A reader who
     # pressed Finish setup without choosing was therefore handed one of the
     # board's four invented films.
-    # `Kati.Screens.OnboardingFirstTitle.load/1` carries the argument. Nothing
-    # is picked now, so both taps are live.
+    # The tiles are gone too since (N46): step 5 is screen 06's TMDB search, so
+    # there is no pick tag left to list.
     # 157 and 156 are 154 in another colourway and another script, and each is
     # drawn in the state its own board shows — Series chosen so the episode
     # field is visible. The resting member of a family again, three times.

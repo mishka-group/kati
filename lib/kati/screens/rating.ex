@@ -434,8 +434,10 @@ defmodule Kati.Screens.Rating do
 
   The rewatch badge is the one thing it states, and it is counted rather than
   assumed: `viewing_number/1` over the title's own watches. A film nobody has
-  logged is a first watch and has no badge; one seen twice opens *3rd
-  rewatch*, and `rewatch_number` carries the 3 to Save.
+  logged is a first watch and has no badge; one seen once opens *1st rewatch*,
+  one seen twice opens *2nd rewatch*, and `rewatch_number` carries the viewing
+  number — 2, then 3 — to Save. The badge counts rewatches and the column
+  counts viewings, so the badge is always one behind the column.
 
   `nil` when the id names no row, which sends `draft_and_id/2` back to
   `empty_watch/0` — the same rule `Kati.Screens.BookDetail.shelved_book/1`
@@ -627,10 +629,12 @@ defmodule Kati.Screens.Rating do
       `stars/1` draws as five empty stars and `rating_label/1` prints as a dash:
       that is what *you have not rated this* looks like, and it is a real state
       of a review the user wrote without scoring.
-    * `rewatch` is `nil` below `2`. `rewatch_number` is the user's own count and
-      `1` means a first watch, which is not a rewatch — `Kati.Media.Watch` keeps
-      the column precisely because counting rows would say "1st" to someone who
-      saw the film twice before Kati existed.
+    * `rewatch` is `nil` below `2`. `rewatch_number` is the user's own count of
+      VIEWINGS and `1` means a first watch, which is not a rewatch — so viewing
+      `n` is the `(n - 1)`th rewatch: `2` reads *1st rewatch*, `3` reads *2nd
+      rewatch*. `Kati.Media.Watch` keeps the column precisely because counting
+      rows would get it wrong for someone who saw the film twice before Kati
+      existed.
     * `spoilers` is `nil` when the review does not carry them, and the toggle
       draws nothing rather than an inverted claim: `contains_spoilers` says a
       review has spoilers to hide, and its `false` says nothing is hidden.
@@ -768,7 +772,9 @@ defmodule Kati.Screens.Rating do
 
   defp runtime_label(_cached), do: ""
 
-  # `2nd rewatch`, and `بازتماشای ۲ام`. One msgid rather than `ordinal(n) <>
+  # `2nd rewatch`, and `بازتماشای دوم`, for the third viewing: `n` is the
+  # viewing `rewatch_number` stores and the badge counts the rewatches, which
+  # start at the second viewing. One msgid rather than `ordinal(n) <>
   # " rewatch"`, because the two halves are not in that order in Persian — the
   # noun comes first — and a phrase assembled from two translated fragments can
   # only ever be assembled in English's order. `Kati.Screens.Activity.nth_time/1`
@@ -778,17 +784,32 @@ defmodule Kati.Screens.Rating do
   # fuzzy-matches something this short onto any neighbour that half-resembles
   # it, and the catalogue already holds `Nothing rewatched`.
   defp rewatch_label(n) when is_integer(n) and n > 1,
-    do: pgettext("the badge counting a repeat viewing", "%{ordinal} rewatch", ordinal: ordinal(n))
+    do:
+      pgettext("the badge counting a repeat viewing", "%{ordinal} rewatch",
+        ordinal: ordinal(n - 1)
+      )
 
   defp rewatch_label(_n), do: nil
 
-  # `3rd`, and `۳ام` — `Kati.Screens.Activity.ordinal/1`'s own split, taken for
-  # the reason it states: English's four suffixes are an English rule, and
-  # Persian forms an ordinal by suffixing ـُم to the numeral with no exception
-  # for 11 to 13 and none for the units. Two whole answers, rather than a shared
-  # skeleton with a translated suffix — which would be the English rule with
-  # Persian letters in it.
-  defp ordinal(n), do: Kati.Locale.pick(latin_ordinal(n), Kati.Locale.number(n) <> "ام")
+  # `3rd`, and `سوم` — two whole answers rather than a shared skeleton with a
+  # translated suffix, which would be the English rule with Persian letters in
+  # it. Board 297 draws the badge as `بازتماشای دوم`: after the noun Persian
+  # says the ordinal as the adjective, spelled out, and a badge counting
+  # rewatches of one film is a small number. Past ten the word outgrows the
+  # pill and the numeral takes ـُم, `۱۱ام`, as `Kati.Screens.Activity` prints.
+  defp ordinal(n), do: Kati.Locale.pick(latin_ordinal(n), persian_ordinal(n))
+
+  defp persian_ordinal(1), do: "اول"
+  defp persian_ordinal(2), do: "دوم"
+  defp persian_ordinal(3), do: "سوم"
+  defp persian_ordinal(4), do: "چهارم"
+  defp persian_ordinal(5), do: "پنجم"
+  defp persian_ordinal(6), do: "ششم"
+  defp persian_ordinal(7), do: "هفتم"
+  defp persian_ordinal(8), do: "هشتم"
+  defp persian_ordinal(9), do: "نهم"
+  defp persian_ordinal(10), do: "دهم"
+  defp persian_ordinal(n), do: Kati.Locale.number(n) <> "ام"
 
   defp latin_ordinal(n) do
     suffix =
