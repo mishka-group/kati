@@ -70,9 +70,20 @@ defmodule Kati.Calendars.Today do
 
   # One query, shared by the timeline rows and the lane layout, so the two
   # can never disagree about what is on a day.
-  defp events(day, zone) do
-    with {:ok, from} <- Kati.Time.to_utc(NaiveDateTime.new!(day, ~T[00:00:00]), zone),
-         {:ok, to} <- Kati.Time.to_utc(NaiveDateTime.new!(day, ~T[23:59:59]), zone) do
+  defp events(day, zone), do: events_between(day, day, zone)
+
+  @doc """
+  The live events that start between the first moment of `from` and the last
+  of `to`, in `zone`, oldest first.
+
+  The same query a single day's rows are read with, over a run of days, so the
+  month, week and agenda views cannot disagree with screen 02 about what is on
+  any one of them. `[]` for a store that cannot be read.
+  """
+  @spec events_between(Date.t(), Date.t(), String.t()) :: [Event.t()]
+  def events_between(%Date{} = from, %Date{} = to, zone) do
+    with {:ok, from} <- Kati.Time.to_utc(NaiveDateTime.new!(from, ~T[00:00:00]), zone),
+         {:ok, to} <- Kati.Time.to_utc(NaiveDateTime.new!(to, ~T[23:59:59]), zone) do
       Event
       |> Ash.Query.filter(is_nil(deleted_at) and dtstart_utc >= ^from and dtstart_utc <= ^to)
       |> Ash.Query.sort(dtstart_utc: :asc)
@@ -222,10 +233,7 @@ defmodule Kati.Calendars.Today do
 
   **The English words are exactly what this module has always written.** Screens
   01, 02 and 28 draw this line and are compared pixel-by-pixel with captured
-  frames, so these five strings are fixed until a capture says otherwise. (09 is
-  compared the same way and is not on this path at all — `Kati.Screens.Day` is
-  still on `Kati.Calendar.SampleDay` and writes its own sub-lines, for the five
-  reasons its moduledoc lists.)
+  frames, so these five strings are fixed until a capture says otherwise.
 
   The Persian words are the ones screens 55–62 already use for the same things,
   rather than a second translation of the same concept: عادت and مالی were
