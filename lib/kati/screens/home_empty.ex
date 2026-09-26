@@ -439,7 +439,7 @@ defmodule Kati.Screens.HomeEmpty do
 
   @impl true
   @spec handle_tap(atom(), term()) :: {:noreply, term()}
-  def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket)}
+  def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Home")}
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}

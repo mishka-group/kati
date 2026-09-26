@@ -66,6 +66,20 @@ defmodule Kati.OnboardingResumeTest do
       assert Onboarding.first_screen() == Kati.Screens.OnboardingFirstTitle
     end
 
+    test "the launch-time redirect from Home reopens the step, not step one" do
+      # `Kati.Screens.Root` sends `:kati_first_run` when the root mounts at
+      # launch with the run unfinished. It reset to screen 53 unconditionally,
+      # so a relaunch mid-run — the phone reclaiming the app — asked the
+      # language question again over every answer already given. Found on the
+      # emulator, 26 Sep, after a relaunch on the first-title step.
+      Onboarding.reached!(:loudness)
+
+      {:noreply, moved} =
+        Kati.Screens.Home.handle_info(:kati_first_run, Mob.Socket.new(Kati.Screens.Home))
+
+      assert {:reset, Kati.Screens.OnboardingLoudness, _params, _how} = moved.__mob__.nav_action
+    end
+
     test "a completed run opens the app, not the run" do
       Onboarding.reached!(:first_title)
       Onboarding.complete!()

@@ -235,7 +235,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   def handle_tap(:step_back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_tap(tag, socket) when tag in [:add_tmdb_token, :open_data_sources],
-    do: {:noreply, Kati.UI.TmdbPrompt.open(socket)}
+    do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Back")}
 
   def handle_tap(tag, socket) when tag in [:clear_query, :add_by_hand],
     do: AddTitle.handle_info({:tap, tag}, socket)

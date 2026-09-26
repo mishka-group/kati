@@ -1650,7 +1650,7 @@ defmodule Kati.Screens.Home do
   def handle_tap(:notifications, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)}
 
-  def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket)}
+  def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Home")}
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}

@@ -203,7 +203,7 @@ msgstr "کتاب"
 msgid "Back to language"
 msgstr "بازگشت به زبان"
 
-#: lib/kati/screens/loudness_prompt.ex:48
+#: lib/kati/screens/loudness_prompt.ex:49
 #: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Back to loudness"
@@ -286,7 +286,7 @@ msgid "Comedy"
 msgstr "کمدی"
 
 #: lib/kati/screens/language_pick.ex:587
-#: lib/kati/screens/loudness_prompt.ex:48
+#: lib/kati/screens/loudness_prompt.ex:49
 #: lib/kati/screens/onboarding_large.ex:608
 #: lib/kati/screens/onboarding_loudness.ex:71
 #, elixir-autogen, elixir-format
@@ -5537,7 +5537,7 @@ msgid_plural "Across %{n} books"
 msgstr[0] "در %{n} کتاب"
 msgstr[1] "در %{n} کتاب"
 
-#: lib/kati/screens/add_title.ex:1486
+#: lib/kati/screens/add_title.ex:1480
 #, elixir-autogen, elixir-format
 msgid "Add “%{query}” by hand"
 msgstr "افزودن دستی «%{query}»"
@@ -5593,7 +5593,7 @@ msgstr "طراحی شده است، و طراحی خوبی است. ساخته ن�
 msgid "It was designed, and the design is good. It is not built because sleep data worth having comes from a device Kati cannot read yet, and typing a bedtime by hand every night is a habit, not a health record — 22 already does that better."
 msgstr "طراحی شده است، و طراحی خوبی است. ساخته نشده چون داده‌های خوابی که ارزش نگه‌داشتن داشته باشند از دستگاهی می‌آیند که کاتی هنوز نمی‌تواند آن را بخواند، و وارد کردن دستی ساعت خواب در هر شب یک عادت است، نه یک سابقهٔ سلامت — ۲۲ همین حالا این کار را بهتر انجام می‌دهد."
 
-#: lib/kati/screens/add_title.ex:1340
+#: lib/kati/screens/add_title.ex:1334
 #, elixir-autogen, elixir-format
 msgid "Keep typing"
 msgstr "به نوشتن ادامه دهید"
@@ -5653,7 +5653,7 @@ msgstr "سرویسی نام برده نشد"
 msgid "Nothing followed yet"
 msgstr "هنوز چیزی دنبال نشده"
 
-#: lib/kati/screens/add_title.ex:1370
+#: lib/kati/screens/add_title.ex:1364
 #: lib/kati/screens/add_title_music.ex:696
 #: lib/kati/screens/search_result_states.ex:626
 #, elixir-autogen, elixir-format
@@ -5740,7 +5740,7 @@ msgstr "تمدید روز %{day}"
 msgid "Save reading"
 msgstr "ذخیره وزن"
 
-#: lib/kati/screens/add_title.ex:1326
+#: lib/kati/screens/add_title.ex:1320
 #, elixir-autogen, elixir-format
 msgid "Search for something to add"
 msgstr "چیزی برای افزودن جست‌وجو کنید"
@@ -5821,12 +5821,12 @@ msgstr "پیگیری ساعت خواب به‌عنوان عادت"
 msgid "Try lines are built from what you keep. Add a title and they appear."
 msgstr "پیشنهادها از چیزی ساخته می‌شوند که نگه می‌دارید. یک عنوان اضافه کنید تا ظاهر شوند."
 
-#: lib/kati/screens/add_title.ex:1341
+#: lib/kati/screens/add_title.ex:1335
 #, elixir-autogen, elixir-format
 msgid "Two characters to start — one in فارسی, العربية, 中文, 日本語, where one is a word."
 msgstr "برای شروع دو نویسه — و در فارسی، العربية، 中文، 日本語 فقط یکی، چون در آن‌ها یک نویسه یک واژه است."
 
-#: lib/kati/screens/add_title.ex:1327
+#: lib/kati/screens/add_title.ex:1321
 #, elixir-autogen, elixir-format
 msgid "Type a film or a show and Kati looks it up."
 msgstr "نام یک فیلم یا سریال را بنویسید تا کاتی پیدایش کند."
@@ -5898,21 +5898,21 @@ msgstr "یا قفسه را باز کنید"
 msgid "— there is nothing to compare it with yet."
 msgstr "— هنوز چیزی برای مقایسه نیست."
 
-#: lib/kati/screens/add_title.ex:1082
+#: lib/kati/screens/add_title.ex:1076
 #: lib/kati/screens/add_title_music.ex:255
 #, elixir-autogen, elixir-format
 msgctxt "add-title filter"
 msgid "Everything"
 msgstr "همه"
 
-#: lib/kati/screens/add_title.ex:1083
+#: lib/kati/screens/add_title.ex:1077
 #: lib/kati/screens/add_title_music.ex:256
 #, elixir-autogen, elixir-format
 msgctxt "add-title filter"
 msgid "Films"
 msgstr "فیلم"
 
-#: lib/kati/screens/add_title.ex:1084
+#: lib/kati/screens/add_title.ex:1078
 #: lib/kati/screens/add_title_music.ex:257
 #, elixir-autogen, elixir-format
 msgctxt "add-title filter"
@@ -5989,12 +5989,6 @@ msgstr "%{date} پخش شد"
 msgctxt "out now row"
 msgid "aired %{time}"
 msgstr "%{time} پخش شد"
-
-#: lib/kati/screens/add_title.ex:630
-#, elixir-autogen, elixir-format
-msgctxt "search field placeholder"
-msgid "quiet"
-msgstr "آرام"
 
 #: lib/kati/screens/service.ex:310
 #, elixir-autogen, elixir-format
@@ -13671,7 +13665,7 @@ msgstr "اولین شنیدن %{date}"
 msgid "Hold a row to rate it"
 msgstr "برای امتیاز دادن، ردیفی را نگه دارید"
 
-#: lib/kati/screens/loudness_prompt.ex:96
+#: lib/kati/screens/loudness_prompt.ex:97
 #, elixir-autogen, elixir-format
 msgid "If you say no, Kati falls back to the inbox badge and"
 msgstr "اگر نه بگویید، کاتی به نشان صندوق برمی‌گردد و"
@@ -13733,7 +13727,7 @@ msgstr "چیزی نوشته نشد."
 msgid "Offline — identical, from bundled assets"
 msgstr "آفلاین — دقیقاً همان، از فایل‌های داخل برنامه"
 
-#: lib/kati/screens/loudness_prompt.ex:48
+#: lib/kati/screens/loudness_prompt.ex:49
 #, elixir-autogen, elixir-format
 msgid "One prompt, then never again"
 msgstr "یک بار می‌پرسد، دیگر هرگز"
@@ -13905,7 +13899,7 @@ msgstr "ستاره، در %{face}، تا ستون هم‌تراز بماند —
 msgid "three states"
 msgstr "سه حالت"
 
-#: lib/kati/screens/loudness_prompt.ex:97
+#: lib/kati/screens/loudness_prompt.ex:98
 #, elixir-autogen, elixir-format
 msgid "will not ask again"
 msgstr "دیگر نمی‌پرسد"
@@ -17438,17 +17432,23 @@ msgstr "هنوز سریالی در کتابخانهٔ شما نیست"
 msgid "You added this by hand, so Kati has no seasons or episodes for it."
 msgstr "این را دستی اضافه کرده‌اید، پس کاتی فصل یا قسمتی برایش ندارد."
 
-#: lib/kati/screens/loudness_prompt.ex:99
+#: lib/kati/screens/loudness_prompt.ex:100
 #, elixir-autogen, elixir-format
 msgid "Android does not allow a second prompt — the only way back is its own settings app."
 msgstr "اندروید بار دوم اجازه نمی‌پرسد — تنها راه بازگشت، برنامهٔ تنظیمات خود گوشی است."
 
-#: lib/kati/screens/loudness_prompt.ex:48
+#: lib/kati/screens/loudness_prompt.ex:49
 #, elixir-autogen, elixir-format
 msgid "Continue raises Android’s permission dialog once. Kati uses it for new episodes and releases you follow, and the meal reminders you switch on — nothing else."
 msgstr "«ادامه» پنجرهٔ اجازهٔ اندروید را یک بار باز می‌کند. کاتی از آن برای قسمت‌های تازه و انتشار عنوان‌هایی که دنبال می‌کنید، و یادآورهای وعده‌ای که خودتان روشن می‌کنید استفاده می‌کند — نه چیز دیگری."
 
-#: lib/kati/screens/onboarding_loudness.ex:237
+#: lib/kati/screens/onboarding_loudness.ex:239
 #, elixir-autogen, elixir-format
 msgid "Kati won’t ask for notification permission. Everything arrives in your inbox."
 msgstr "کاتی برای اعلان اجازه نمی‌خواهد. همه‌چیز در صندوق شما می‌آید."
+
+#: lib/kati/screens/add_title.ex:624
+#, elixir-autogen, elixir-format
+msgctxt "search field placeholder"
+msgid "Film or series title"
+msgstr "نام فیلم یا سریال"

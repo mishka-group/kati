@@ -56,10 +56,10 @@ defmodule Kati.DataSourcesKeyTest do
       refute inspect(TmdbPrompt.block(true), limit: :infinity) =~ "add_tmdb_token"
     end
 
-    test "and it opens screen 80" do
-      socket = TmdbPrompt.open(Mob.Socket.new(Kati.Screens.Home))
+    test "and it opens screen 80, whose pill names the page it returns to" do
+      socket = TmdbPrompt.open(Mob.Socket.new(Kati.Screens.Home), "Home")
 
-      assert {:push, DataSources, _params} = socket.__mob__.nav_action
+      assert {:push, DataSources, %{back: "Home"}} = socket.__mob__.nav_action
     end
 
     test "and Home answers the tap" do

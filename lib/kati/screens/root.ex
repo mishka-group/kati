@@ -166,9 +166,11 @@ defmodule Kati.Screens.Root do
       end
 
       # Placed before every tap clause so no screen's own catch-all can swallow
-      # it. Screens 53, 26 and 38 run before the app proper on a fresh install.
+      # it. The first run resumes at the step it reached, not at step one — a
+      # relaunch mid-run (the phone reclaiming the app, `mix mob.connect`)
+      # landed on the language question with every answer already given.
       def handle_info(:kati_first_run, socket) do
-        {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.LanguagePick)}
+        {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.first_screen())}
       end
 
       @doc """

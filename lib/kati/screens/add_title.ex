@@ -254,7 +254,7 @@ defmodule Kati.Screens.AddTitle do
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :open_data_sources}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.DataSources)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.DataSources, %{back: "Back"})}
 
   # The escape hatch, finally wired. This row has been drawn on artboard 89
   # since the screen was written and rendered with no `on_tap` at all, because
@@ -618,16 +618,10 @@ defmodule Kati.Screens.AddTitle do
   """
   @spec field(String.t()) :: map()
   def field(query, epoch \\ 0) do
-    # The placeholder is a SPECIMEN QUERY — board 06 is drawn mid-query on
-    # "quiet" and the resting field shows the same word greyed — so it is copy
-    # and it translates. `pgettext/2` and not `gettext/1` because a bare
-    # five-letter msgid is exactly what `mix gettext.merge`'s fuzzy matcher
-    # takes for a near-miss of some other short string; the context says which
-    # slot it belongs to and cannot be matched against an entry that has none.
     assigns = %{
       query: query,
       epoch: epoch,
-      placeholder: pgettext("search field placeholder", "quiet"),
+      placeholder: pgettext("search field placeholder", "Film or series title"),
       on_change: {self(), :title_query}
     }
 

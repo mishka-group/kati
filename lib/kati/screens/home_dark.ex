@@ -350,7 +350,7 @@ defmodule Kati.Screens.HomeDark do
   # Screen 139's first-run page, drawn here in the dark colourway, carries the
   # TMDB prompt too — see `Kati.UI.TmdbPrompt`.
   def handle_info({:tap, :add_tmdb_token}, socket),
-    do: {:noreply, Kati.UI.TmdbPrompt.open(socket)}
+    do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Home")}
 
   # 139's header draws a settings disc where 28's draws the inbox bell, so this
   # tag only ever arrives on the empty branch.

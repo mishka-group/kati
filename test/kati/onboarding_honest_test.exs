@@ -174,6 +174,14 @@ defmodule Kati.OnboardingHonestTest do
   end
 
   describe "the first-title step" do
+    test "its empty field says what to type, not a specimen query" do
+      page = drawn(OnboardingFirstTitle)
+
+      refute page =~ ~s("quiet")
+      assert page =~ "Film or series title"
+      restore()
+    end
+
     test "re-reads the TMDB key when the reader comes back from screen 80" do
       Kati.Sources.put_tmdb_key(:own)
       System.delete_env("TMDB_READ_TOKEN")

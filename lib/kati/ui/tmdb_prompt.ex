@@ -43,7 +43,14 @@ defmodule Kati.UI.TmdbPrompt do
     """
   end
 
-  @doc "Where the block leads: screen 80, where the token field is."
-  @spec open(Mob.Socket.t()) :: Mob.Socket.t()
-  def open(socket), do: Mob.Socket.push_screen(socket, Kati.Screens.DataSources)
+  @doc """
+  Where the block leads: screen 80, where the token field is.
+
+  `back` is the word the pill on screen 80 says — the page it returns to.
+  Without it the pill fell back to screen 80's own *Settings*, which is not
+  where a reader who came from Home or the first run goes back to.
+  """
+  @spec open(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def open(socket, back),
+    do: Mob.Socket.push_screen(socket, Kati.Screens.DataSources, %{back: back})
 end
