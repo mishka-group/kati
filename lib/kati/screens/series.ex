@@ -208,6 +208,7 @@ defmodule Kati.Screens.Series do
       status: nil,
       media_kind: :tv,
       genres: cached.genres,
+      overview: cached.overview,
       year: cached.first_release_year,
       episode_count: cached.episode_count,
       season_count: CachedSeason.count(seasons),
@@ -229,10 +230,7 @@ defmodule Kati.Screens.Series do
     }
     |> shaped()
     |> read_only()
-    |> Map.merge(%{
-      overview: cached.overview,
-      where: Kati.Screens.SeriesMeta.where_rows(cached)
-    })
+    |> Map.put(:where, Kati.Screens.SeriesMeta.where_rows(cached))
   end
 
   defp read_only(s) do
@@ -443,6 +441,7 @@ defmodule Kati.Screens.Series do
       anime?: tracked.kind == :anime,
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       genres: cached && cached.genres,
+      overview: cached && cached.overview,
       season_count: nil,
       seasons: [%{number: tracked.progress_season || 1, name: nil, total: 0, episodes: []}],
       current: tracked.progress_season || 1,
@@ -481,6 +480,7 @@ defmodule Kati.Screens.Series do
       anime?: tracked.kind == :anime,
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       genres: cached && cached.genres,
+      overview: cached && cached.overview,
       # The inventory's count, never `length(numbers)` — see the moduledoc.
       season_count: CachedSeason.count(seasons),
       seasons:
@@ -674,6 +674,7 @@ defmodule Kati.Screens.Series do
       status: Map.get(facts, :status),
       title: facts.title || gettext("Untitled"),
       original: Map.get(facts, :original),
+      overview: Map.get(facts, :overview),
       seed: facts.seed,
       meta: meta_line(facts),
       season: view.season,
@@ -1044,6 +1045,7 @@ defmodule Kati.Screens.Series do
             {Kati.Screens.Series.season_card(s, pct)}
             {Kati.Screens.Series.refusal(Map.get(assigns, :save_error))}
             {Kati.Screens.Series.actions(s)}
+            {Kati.Screens.TitlePreview.overview(Map.get(s, :overview))}
             {Kati.Screens.Series.episodes_header(s)}
             {Kati.Screens.Series.episodes(s)}
           </Column>

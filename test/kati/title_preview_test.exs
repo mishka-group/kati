@@ -140,6 +140,34 @@ defmodule Kati.TitlePreviewTest do
       assert Kati.UI.eyebrow_label("Your rating") in texts(added)
       assert :toggle_menu in tap_tags(added)
       refute :add_to_library in tap_tags(added)
+
+      assert "A linguist is recruited to talk to visitors." in texts(added),
+             "the overview vanished once the film was added"
+
+      assert Kati.UI.eyebrow_label("Overview") in texts(added)
+    end
+
+    test "a tracked film whose cache has no overview draws no Overview heading" do
+      Ash.create!(CachedTitle, %{
+        source: :tmdb,
+        source_id: "n55-bare",
+        kind: :movie,
+        title: "Bare",
+        fetched_at: Kati.Time.now()
+      })
+
+      tracked =
+        Ash.create!(TrackedTitle, %{
+          source: :tmdb,
+          source_id: "n55-bare",
+          kind: :movie,
+          status: :watching
+        })
+
+      view = mount_screen(Film, %{id: tracked.id})
+
+      assert "Bare" in texts(view)
+      refute Kati.UI.eyebrow_label("Overview") in texts(view)
     end
 
     test "the search row reads as added when the reader comes back" do
@@ -251,6 +279,11 @@ defmodule Kati.TitlePreviewTest do
       assert assigns(added).preview == nil
       assert :episode_0 in tap_tags(added)
       assert :mark_next in tap_tags(added)
+
+      assert "A harbour town keeps a secret." in texts(added),
+             "the overview vanished once the series was added"
+
+      assert Kati.UI.eyebrow_label("Overview") in texts(added)
     end
   end
 

@@ -298,6 +298,7 @@ defmodule Kati.Screens.Film do
       note: nil,
       where: [],
       where_line: "",
+      overview: nil,
       private?: false,
       anime?: false,
       media_kind: :movie,
@@ -449,6 +450,7 @@ defmodule Kati.Screens.Film do
       # says where and never how much, and the row draws it as nothing.
       where: where_rows,
       where_line: Kati.Screens.Film.where_line(where_rows),
+      overview: cached && cached.overview,
       # Kept off a shared card, and off nothing else — see the migration for
       # `Kati.Media.TrackedTitle.private`.
       private?: tracked.private,
@@ -856,6 +858,7 @@ defmodule Kati.Screens.Film do
               Map.get(assigns, :remove_error)
             )}
             {Kati.Screens.Film.rating_card(f)}
+            {Kati.Screens.TitlePreview.overview(Map.get(f, :overview))}
             {Kati.Screens.Film.note(f)}
             {Kati.Screens.Film.where_section(f)}
             {Kati.Screens.Film.actions(f)}
