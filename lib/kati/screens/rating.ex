@@ -357,7 +357,7 @@ defmodule Kati.Screens.Rating do
       iex> Kati.Screens.Rating.params_for(%{tracked_id: "abc"})
       %{tracked_title_id: "abc"}
 
-      iex> Kati.Screens.Rating.params_for(Kati.Screens.Film.drawn_film())
+      iex> Kati.Screens.Rating.params_for(Kati.Screens.Film.empty_film())
       %{}
   """
   @spec params_for(map() | nil) :: map()

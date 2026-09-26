@@ -1,3 +1,4 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
 Code.require_file("../support/screen_sweep.exs", __DIR__)
 Code.require_file("../support/design_literals.exs", __DIR__)
 Code.require_file("../support/heavy_day.exs", __DIR__)
@@ -138,8 +139,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # unit: the half with no schema is two whole GROUPS — *Region & availability*
   # and *This show* — and a group with nothing behind it is dropped rather than
   # drawn dead, which is the shape 14's own bands settled. So over a real show
-  # 35 is the Status tiles and the Season pass and nothing else, and over no
-  # show it is board 35 whole. See `Kati.Screens.SeriesSettings.show/1`.
+  # 35 is the Status tiles, the Season pass and the region rows, and over no
+  # show it is one sentence (N52-A). See `Kati.Screens.SeriesSettings.show/1`.
   #
   # **04 and 58 have moved, and this comment used to explain why they had not.**
   # The reason given was that `Kati.Media` cannot enumerate a season or name an
@@ -314,6 +315,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # because the two groups it drops over a real show are keys in that map —
     # a gate that compared only the status would pass while the page went bare.
     {"35", Kati.Screens.SeriesSettings},
+    # N52-A: 143 reads the reader's season through 34's read, where it drew a
+    # specimen sheet about *The Long Hollow*.
+    {"143", Kati.Screens.EpisodeRatings},
     # 13 joined when its window started filtering something. Its own moduledoc
     # had already recorded that three of the four things blocking it stopped
     # being blocked when `Kati.Media.CachedEpisode` was built; the fourth is a
@@ -710,6 +714,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "58" => [],
     # 08 → no board either, and for the same reason as 04.
     "08" => [],
+    # 143 → no board either (N52-A): no season means no rows, so board 143's
+    # own six episodes have nothing left on this screen to be held to.
+    "143" => [],
     # 35 → no board either: an empty page carries no title, and the two bands
     # the board draws are both dropped the moment a real show names itself.
     "35" => [],
@@ -1359,7 +1366,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # is the argument against padding it: *"a page that draws them anyway is
     # lying in nine places to apologise in one"*.
     "141" => 5,
-    "34" => 11,
+    # N52-A: 34, 35 and 08 with nothing stored are one sentence under the back
+    # pill — a glyph, the sentence, and the pill's glyph and label: four
+    # strings. 34 drew three order tiles nobody could press over *Episodes · 0
+    # in this order*; 35 drew board 35 whole; 08 drew the film frame with five
+    # hollow stars about no film.
+    "34" => 4,
+    "35" => 4,
+    "08" => 4,
+    "143" => 4,
     # 153 with no show is the back pill, the heading, an empty subtitle and
     # one note — six strings. Everything else on the board is one show's.
     "153" => 6,
@@ -2626,13 +2641,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with nothing in the slots. `drawn_series/0` stays on the right of the
       # pair: it is what `Kati.ScreenDesignLiteralTest` installs to compare the
       # page against .scratch/design/audit/04.png, and nothing else reads it.
-      # 35 answers its own empty page now. The map still carries both the values
-      # and the two flags that decide whether *Region & availability* and *This
-      # show* are drawn, and those flags stay nil — both bands are the drawing's
-      # and both are already dropped over a real show.
+      # 35 answers its own empty page now — one sentence, no tile or switch
+      # (N52-A). The board is a test fixture, installed only to compare it.
       {"35", Kati.Screens.SeriesSettings, fn -> Kati.Screens.SeriesSettings.show(%{}) end,
-       Kati.Screens.SeriesSettings.empty_show(),
-       fn -> Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil) end},
+       Kati.Screens.SeriesSettings.empty_show(), &Kati.Test.ShowBoards.series_settings/0},
       # 98 and 99 answer a year with nothing counted. This matters more here
       # than on most screens: a share card is built to be saved and sent, so an
       # invented one does not merely mislead the person holding the phone — it
@@ -2718,7 +2730,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # different reasons and only one is "this reader owns nothing" — an id
       # naming no row and a read that raised both landed on the drawing too.
       {"14", Kati.Screens.SeriesMeta, &Kati.Screens.SeriesMeta.series/0,
-       Kati.Screens.SeriesMeta.empty_series(), &Kati.Screens.SeriesMeta.Sample.series/0},
+       Kati.Screens.SeriesMeta.empty_series(), &Kati.Test.ShowBoards.series_meta/0},
       # 25's banner counts zero on a device that follows nothing. It answered
       # `Watching 24 titles` and `3 found this week`, with the reason written
       # beside it — "Watching 0 titles over a page of switches is a page about
@@ -2743,7 +2755,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # params described somebody else's running order. The order strip keeps
       # its three labels — that is the app's vocabulary, not a claim.
       {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
-       Kati.Screens.Season.empty_season(), &Kati.Screens.Season.drawn_season/0},
+       Kati.Screens.Season.empty_season(), &Kati.Test.ShowBoards.season/0},
+      # 143 reads the same season through the same read (N52-A), and answers
+      # the same empty page rather than its specimen sheet.
+      {"143", Kati.Screens.EpisodeRatings,
+       fn -> Kati.Screens.Season.season(%{title_id: nil, season: nil}) end,
+       Kati.Screens.Season.empty_season(), &Kati.Test.ShowBoards.episode_ratings/0},
       # 153 answers `nil` for a push that names no show, and draws a note
       # rather than the board's anime inheriting Absolute.
       {"153", Kati.Screens.NumberingScheme, fn -> Kati.Screens.NumberingScheme.numbering(%{}) end,
@@ -2800,19 +2817,19 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # offered to select, two of them already ticked.
       {"146", Kati.Screens.ShelfSelection, &Kati.Screens.ShelfSelection.shelf/0, [],
        &Kati.Library.Sample.selection_shelf/0},
-      # 08 makes the same move as 04: `empty_film/0` is `shaped/3`'s sixteen
-      # keys carrying nothing, so a reader who owns no films is shown an empty
-      # frame rather than the board's own *Blue Hour* and its viewing history.
+      # 08 makes the same move as 04: `empty_film/0` is `none/1`'s sentence,
+      # so a reader who owns no films is told so rather than shown the board's
+      # own *Blue Hour* and its viewing history.
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, Kati.Screens.Film.empty_film(),
-       &Kati.Screens.Film.drawn_film/0},
+       &Kati.Test.ShowBoards.film/0},
       {"04", Kati.Screens.Series, &Kati.Screens.Series.series/0,
-       Kati.Screens.Series.empty_series(), &Kati.Screens.Series.drawn_series/0},
+       Kati.Screens.Series.empty_series(), &Kati.Test.ShowBoards.series/0},
       # 58 is 04's gate reached through 04's read, so it moves with it: the
       # mirror cannot keep drawing its drawing once `series/0` answers the empty
       # page on an empty store. One pair still covers both defects, a Persian
       # fallback and an English one, because both sides read the same function.
       {"58", Kati.Screens.Series, &Kati.Screens.Series.series/0,
-       Kati.Screens.Series.empty_series(), &Kati.Screens.Series.drawn_series/0},
+       Kati.Screens.Series.empty_series(), &Kati.Test.ShowBoards.series/0},
       # 01 and 139: `nothing_kept?/1` is the branch between the two boards. It
       # counts `Kati.Media.TrackedTitle`, reads the timeline and asks
       # `Kati.Sections.answered?/0`, and it decides which of the two pages a

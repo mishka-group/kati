@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.RateEpisodeTest do
   @moduledoc """
   Screen 144, the sheet that could not rate an episode.
@@ -173,7 +175,7 @@ defmodule Kati.RateEpisodeTest do
       socket =
         Kati.Screens.Series
         |> Mob.Socket.new()
-        |> Mob.Socket.assign(:series, Kati.Screens.Series.drawn_series())
+        |> Mob.Socket.assign(:series, Kati.Test.ShowBoards.series())
 
       assert pushed_params(Kati.Screens.Series.rate(socket, "0")) == nil
     end

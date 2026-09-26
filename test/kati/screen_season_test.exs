@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.ScreenSeasonTest do
   @moduledoc """
   Screen 34's running order, read from `Kati.Media` instead of frozen.
@@ -65,7 +67,9 @@ defmodule Kati.ScreenSeasonTest do
       # screen inventing the user's place in a show.
       track!(%{title: "Tidewrack", season: nil})
 
-      assert Season.season() == Season.empty_season()
+      season = Season.season()
+      assert is_binary(season.tracked_id)
+      assert Map.delete(season, :tracked_id) == Season.empty_season()
     end
 
     test "a bookmarked season with nothing cached answers empty" do
@@ -73,18 +77,21 @@ defmodule Kati.ScreenSeasonTest do
       # says less than the drawing does.
       track!(%{title: "Tidewrack", season: 2})
 
-      assert Season.season() == Season.empty_season()
+      season = Season.season()
+      assert is_binary(season.tracked_id)
+      assert Map.delete(season, :tracked_id) == Season.empty_season()
+      assert text(tree(mount_screen(Season))) =~ "No episode list yet."
     end
 
-    test "renders the frame, and none of the drawing's own season in it" do
+    test "renders one sentence, and none of the drawing's own season in it" do
       words = text(tree(mount_screen(Season)))
-      drawn = Season.drawn_season()
+      drawn = Kati.Test.ShowBoards.season()
 
-      # The frame is still a frame: the subtitle and the three order labels are
-      # the app's own vocabulary for how a season can be counted, and they do
-      # not claim anything about a season.
-      assert words =~ Season.empty_season().subtitle
-      for order <- drawn.orders, do: assert(words =~ order)
+      # N52-A: no order strip, no switch, no count over nothing — the page
+      # says there is no season to draw.
+      assert words =~ "No series in your library yet"
+      for order <- drawn.orders, do: refute(words =~ order)
+      refute words =~ "in this order"
 
       # Everything that was a claim about somebody's season is gone.
       refute words =~ drawn.title
@@ -177,7 +184,7 @@ defmodule Kati.ScreenSeasonTest do
     test "and leaves the subtitle exactly as drawn" do
       # This one has no column — see `Kati.Screens.Season`'s moduledoc — and a
       # round that wired it up would have invented one.
-      assert Season.season().subtitle == Season.drawn_season().subtitle
+      assert Season.season().subtitle == Kati.Test.ShowBoards.season().subtitle
     end
 
     test "and offers only the switch it can honour" do
@@ -187,7 +194,7 @@ defmodule Kati.ScreenSeasonTest do
       # switch that cannot be honoured is not offered.
       assert Enum.map(Season.season().options, & &1.title) == ["Include specials"]
 
-      assert Enum.map(Season.drawn_season().options, & &1.title) == [
+      assert Enum.map(Kati.Test.ShowBoards.season().options, & &1.title) == [
                "Include specials",
                "Merge multi-part"
              ]
@@ -252,7 +259,7 @@ defmodule Kati.ScreenSeasonTest do
       # picture rather than a dead control. Both halves pinned, so the drawn
       # tile and the missing order cannot drift apart without one failing.
       refute "DVD" in Season.season().orders
-      assert "DVD" in Season.drawn_season().orders
+      assert "DVD" in Kati.Test.ShowBoards.season().orders
       assert Season.order_tap("DVD", :aired) == nil
       assert CachedEpisode.orders() == [:aired, :absolute]
     end

@@ -23,11 +23,12 @@ defmodule Kati.Screens.SeriesSettings do
       that could write onto a row that is not there. It used to fall to the
       board, which put *Long Hollow*'s eleven rows in front of a reader who had
       just removed their own show.
-    * **No show named at all.** The design fallback: board 35 whole, from
-      `Kati.SeriesSettings.Sample`, with no tap on any tile or switch. Nothing
-      in the app pushes this page bare — screen 04's ⋯ and
-      `Kati.Screens.ShowPages` always name the show — so only the gallery, the
-      sweeps and `Kati.ScreenDesignLiteralTest` see it.
+    * **No show named at all.** The shelf's newest series, the way screens 04,
+      14 and 34 answer the same bare push, and over a shelf with no series one
+      sentence saying so — no tile, no switch and no row, because there is no
+      show for any of them to write onto. Nothing in the app pushes this page
+      bare — screen 04's ⋯ and `Kati.Screens.ShowPages` always name the show —
+      so only the gallery and the sweeps see it.
 
   ## What a real show draws, and where each value comes from
 
@@ -50,7 +51,7 @@ defmodule Kati.Screens.SeriesSettings do
 
   Board 35 draws four more rows and a whole group that have nothing behind
   them, and a row that shows a setting nothing stores or nothing reads is a
-  picture of a setting:
+  picture of a setting. None of them is drawn on any face of this page:
 
     * *Auto-add new seasons* and *Put air dates on calendar* sit over
       `auto_add_new_seasons` and `add_air_dates_to_calendar`, which the store
@@ -70,10 +71,7 @@ defmodule Kati.Screens.SeriesSettings do
 
   ## Words
 
-  Chrome and the real rows' copy are this file's `gettext/1` calls. The board
-  fallback's words are `Kati.SeriesSettings.Sample`'s, wrapped where they are
-  declared; the two share msgids wherever they say the same thing, so a real
-  show and the board cannot say different things in Persian. The show's own
+  Every word is this file's `gettext/1` or `pgettext/2` calls. The show's own
   title is read out of the release cache and is not a msgid.
 
   `back: "Series"` stays the English label: `Kati.Screens.Pushed` translates a
@@ -83,8 +81,7 @@ defmodule Kati.Screens.SeriesSettings do
   use Kati.Screens.Pushed, back: "Series"
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaThemeIcon
-  alias Kati.SeriesSettings.Sample
+  alias Kati.Media.TrackedTitle
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -129,7 +126,8 @@ defmodule Kati.Screens.SeriesSettings do
   The show this page is about: the reader's, one that has gone, or none.
 
   See the moduledoc for the three faces. An id that names no row answers the
-  empty page marked `gone?: true`, never the board.
+  empty page marked `gone?: true`; no id answers the shelf's newest series, or
+  the empty page when there is none.
   """
   @spec show(map() | nil) :: map()
   def show(params) do
@@ -141,25 +139,41 @@ defmodule Kati.Screens.SeriesSettings do
         end
 
       _none ->
-        Kati.Screens.SeriesSettings.empty_show()
+        case newest_series() do
+          nil -> Kati.Screens.SeriesSettings.empty_show()
+          tracked -> Kati.Screens.SeriesSettings.shaped(tracked)
+        end
     end
   end
 
-  @doc """
-  The page with no show on it: `shaped/1`'s keys, carrying nothing.
+  # The top of the series shelf, newest touch first across both kinds — the
+  # answer `Kati.Screens.Series` gives a bare push.
+  defp newest_series do
+    [:tv, :anime]
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.Query.limit(1)
+      |> Ash.read!()
+    end)
+    |> Enum.max_by(& &1.last_touched_at, DateTime, fn -> nil end)
+  rescue
+    _error -> nil
+  end
 
-  `tracked: nil` is what sends every group to the board's own rows, which is
-  the design fallback — see the moduledoc.
+  @doc """
+  The page with no show on it: `shaped/1`'s keys, carrying nothing, marked
+  `none?: true` so `content/1` draws one sentence rather than a single tile or
+  switch.
   """
   @spec empty_show() :: map()
   def empty_show do
     %{
+      none?: true,
       title: "",
       subtitle: gettext("show settings"),
       status_label: gettext("Status"),
       season_pass_label: gettext("Season pass"),
-      region_label: nil,
-      this_show_label: nil,
       region: nil,
       services: [],
       tracked: nil
@@ -194,8 +208,6 @@ defmodule Kati.Screens.SeriesSettings do
       subtitle: gettext("show settings"),
       status_label: gettext("Status"),
       season_pass_label: gettext("Season pass"),
-      region_label: nil,
-      this_show_label: nil,
       region: Kati.Services.chosen_region(),
       services: Kati.Services.subscribed_names(),
       tracked: tracked
@@ -223,15 +235,12 @@ defmodule Kati.Screens.SeriesSettings do
   end
 
   @doc """
-  The season pass: the board's four switches as pictures, or a real show's
-  two live ones.
+  The season pass: a real show's two live switches.
 
-  Each live row's tap is on the whole 44pt row, the shape screen 25 settled,
-  and is built from the column's own name so `change_for/2` can read it back.
+  Each row's tap is on the whole 44pt row, the shape screen 25 settled, and is
+  built from the column's own name so `change_for/2` can read it back.
   """
   @spec season_pass(map()) :: [map()]
-  def season_pass(%{tracked: nil}), do: Sample.season_pass()
-
   def season_pass(%{tracked: t}) do
     [
       %{
@@ -271,13 +280,35 @@ defmodule Kati.Screens.SeriesSettings do
   def notify_line(false), do: gettext("New episodes is off in Release watcher")
 
   @doc """
-  The three status tiles, lit from the row rather than from the fixture.
+  Watching, paused or dropped — three peers, one chosen.
+
+  Board 35's caption is the decision this encodes: *"explicit per-show state —
+  watching, paused or dropped as a first-class choice rather than a swipe
+  action"*. `status` is the field a tap is built from and `label` is only ever
+  drawn, so a tag never renames itself with the language. `pgettext("shelf
+  status", …)` because these are the shelf's own words for
+  `Kati.Media.TrackedTitle.status` — the same three
+  `Kati.Screens.Series.status_label/1` writes onto screen 04's chip.
+  """
+  @spec statuses() :: [map()]
+  def statuses do
+    [
+      %{icon: "play_circle", label: pgettext("shelf status", "Watching"), status: :watching},
+      %{icon: "pause_circle", label: pgettext("shelf status", "Paused"), status: :paused},
+      %{
+        icon: "do_not_disturb_on",
+        label: pgettext("shelf status", "Dropped"),
+        status: :dropped
+      }
+    ]
+  end
+
+  @doc """
+  The three status tiles, lit from the row.
   """
   @spec status_tiles(map()) :: [map()]
-  def status_tiles(%{tracked: nil}), do: Sample.statuses()
-
   def status_tiles(%{tracked: t}) do
-    Enum.map(Sample.statuses(), fn tile ->
+    Enum.map(Kati.Screens.SeriesSettings.statuses(), fn tile ->
       tile
       |> Map.put(:on, tile.status == t.status)
       |> Map.put(:tracked, t)
@@ -288,6 +319,8 @@ defmodule Kati.Screens.SeriesSettings do
   The page: the gone sentence, or the groups.
   """
   def content(%{show: %{gone?: true}}), do: Kati.Screens.SeriesSettings.gone_body()
+
+  def content(%{show: %{none?: true}}), do: Kati.Screens.SeriesSettings.none_body()
 
   def content(assigns) do
     show = assigns.show
@@ -308,11 +341,10 @@ defmodule Kati.Screens.SeriesSettings do
         )}
         {SettingsList.title(show.title, show.subtitle, nil, :meta_tight)}
         {UI.eyebrow(show.status_label)}
-        {Kati.Screens.SeriesSettings.statuses(Kati.Screens.SeriesSettings.status_tiles(show))}
+        {Kati.Screens.SeriesSettings.status_row(Kati.Screens.SeriesSettings.status_tiles(show))}
         {UI.eyebrow(show.season_pass_label)}
         {Kati.Screens.SeriesSettings.group(Kati.Screens.SeriesSettings.season_pass(show))}
         {Kati.Screens.SeriesSettings.region_band(show)}
-        {Kati.Screens.SeriesSettings.this_show_band(show)}
       </Column>
     </Scroll>
     """
@@ -327,22 +359,49 @@ defmodule Kati.Screens.SeriesSettings do
   @spec gone_body() :: map()
   def gone_body do
     ~MOB"""
-    <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
-      {Kati.UI.symbol("info", size: 28, color: Palette.sub())}
-      <Spacer size={14} />
-      <Text
-        text={gettext("This title is no longer in your library")}
-        text_size={22}
-        font_weight="bold"
-        line_height={1.25}
-        text_color={:on_surface}
-      />
-    </Column>
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={110}>
+        <Spacer size={30} />
+        {Kati.UI.symbol("info", size: 28, color: Palette.sub())}
+        <Spacer size={14} />
+        <Text
+          text={gettext("This title is no longer in your library")}
+          text_size={22}
+          font_weight="bold"
+          line_height={1.25}
+          text_color={:on_surface}
+        />
+      </Column>
+    </Scroll>
     """
   end
 
   @doc """
-  The tap on a status tile, or `nil` on the drawing.
+  The page for a bare push over a shelf with no series: one sentence under the
+  back pill, and no tile or switch, because there is no show to write onto.
+  """
+  @spec none_body() :: map()
+  def none_body do
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={110}>
+        <Spacer size={30} />
+        {Kati.UI.symbol("live_tv", size: 28, color: Palette.sub())}
+        <Spacer size={14} />
+        <Text
+          text={gettext("No series in your library yet")}
+          text_size={22}
+          font_weight="bold"
+          line_height={1.25}
+          text_color={:on_surface}
+        />
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc """
+  The tap on a status tile, or `nil` for a tile with no show behind it.
 
   The already-lit tile keeps its tap: pressing *Watching* on a show that is
   already watching writes the same value, which is how somebody checks a state
@@ -407,7 +466,10 @@ defmodule Kati.Screens.SeriesSettings do
         end
 
       "status_" <> key ->
-        case Enum.find(Sample.statuses(), &(Atom.to_string(&1.status) == key)) do
+        case Enum.find(
+               Kati.Screens.SeriesSettings.statuses(),
+               &(Atom.to_string(&1.status) == key)
+             ) do
           nil -> :error
           tile -> {:ok, %{status: tile.status}}
         end
@@ -453,26 +515,10 @@ defmodule Kati.Screens.SeriesSettings do
   end
 
   @doc """
-  *Region & availability*: the board's four rows, or a real show's two.
-
-  Over a real show, `region_rows/1` — the reader's country and services, each
-  opening the page that sets it.
+  *Region & availability*: the reader's country and services, each opening the
+  page that sets it.
   """
   @spec region_band(map()) :: map()
-  def region_band(%{tracked: nil}) do
-    assigns = %{
-      eyebrow: UI.eyebrow(gettext("Region & availability")),
-      group: Kati.Screens.SeriesSettings.group(Sample.region())
-    }
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {@eyebrow}
-      {@group}
-    </Column>
-    """
-  end
-
   def region_band(show) do
     assigns = %{
       eyebrow: UI.eyebrow(gettext("Region & availability")),
@@ -544,28 +590,8 @@ defmodule Kati.Screens.SeriesSettings do
   def services_line([]), do: gettext("No subscriptions yet")
   def services_line(names), do: Kati.Locale.ltr(Enum.join(names, ", "))
 
-  @doc """
-  *This show* — reset, archive, remove — on the board, and nothing over a real
-  show. See the moduledoc for why none of the three is drawn there.
-  """
-  def this_show_band(%{tracked: nil}) do
-    assigns = %{
-      eyebrow: SettingsList.eyebrow_muted(gettext("This show")),
-      group: Kati.Screens.SeriesSettings.last_group(Sample.this_show())
-    }
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {@eyebrow}
-      {@group}
-    </Column>
-    """
-  end
-
-  def this_show_band(_show), do: ~MOB"<Spacer size={0} />"
-
   @doc false
-  def statuses(tiles_source) when is_list(tiles_source) do
+  def status_row(tiles_source) when is_list(tiles_source) do
     tiles =
       tiles_source
       |> Enum.map(&Kati.Screens.SeriesSettings.status/1)
@@ -694,20 +720,7 @@ defmodule Kati.Screens.SeriesSettings do
     SettingsList.card(body)
   end
 
-  @doc """
-  One row. A board row carries no `:tap`, and `nil` is the answer
-  `Kati.UI.SettingsList.row/4` already takes for "not tappable".
-  """
-  def row(%{danger: true} = row, rule?) do
-    SettingsList.row(
-      Kati.Screens.SeriesSettings.danger_tile(row.icon),
-      Kati.Screens.SeriesSettings.danger_body(row.title),
-      SettingsList.chevron(),
-      padding: 13,
-      rule: rule?
-    )
-  end
-
+  @doc false
   def row(row, rule?) do
     SettingsList.row(
       SettingsList.icon_tile(row.icon),
@@ -722,33 +735,4 @@ defmodule Kati.Screens.SeriesSettings do
   @doc false
   def control(:chevron), do: SettingsList.chevron()
   def control({:switch, on?}), do: SettingsList.switch(on?)
-
-  @doc """
-  The 30x30 tile at 10% red — the one destructive affordance on the board.
-
-  `Kati.Components.MishkaThemeIcon`, the same component `Kati.UI.SettingsList`
-  gives every other row, differing only in the colour it is handed.
-  `variant: :filled` with an explicit ARGB, because the design says 10% and the
-  light variant derives its own 19%. The glyph is a child rather than the
-  `icon:` shorthand, whose `Text` carries no `font_family`.
-  """
-  def danger_tile(name) do
-    MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Palette.red_wash(), size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: Palette.red())]
-    )
-  end
-
-  @doc false
-  def danger_body(title) do
-    ~MOB"""
-    <Text
-      text={title}
-      text_size={13.5}
-      font_weight="semibold"
-      text_color={Palette.red()}
-      max_lines={1}
-    />
-    """
-  end
 end

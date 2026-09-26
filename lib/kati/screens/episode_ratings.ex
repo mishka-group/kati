@@ -1,163 +1,39 @@
 defmodule Kati.Screens.EpisodeRatings do
   @moduledoc """
-  Screen 04, Edit 1 — the episode row gains a trailing rating column.
+  Screen 143 — one season's episodes and the rating you gave each.
 
-  Built to `test/design/reference/143.html`. Not a change to
-  `Kati.Screens.Series` — the board draws three specimen bands under one back
-  pill labelled `Library`, in the manner of `Kati.Screens.SearchResultStates`:
-  a sheet you go and look at to settle what an edit looks like in every state
-  it has, rather than something the app puts in front of you on its own. So
-  this is its own module, pushed the same way, rather than a patch to the
-  screen it is an edit of.
+  Built to `test/design/reference/143.html`, the board that settled what the
+  trailing rating column on an episode row looks like. That column has
+  shipped: `Kati.Screens.Series` and `Kati.Screens.Season` draw it beside
+  every aired episode and open screen 144 over the one you tapped. This page
+  is the same column read on its own — the season, how many of its episodes
+  you have rated, and each row with its verdict.
+
+  ## Where the data comes from
+
+  `Kati.Screens.Season.season/1`, the read screen 34 makes: the push names the
+  show and the season (`:title_id`, `:season`), and a bare push is the newest
+  series at its own bookmark. Every row, tick and rating is the reader's —
+  `Kati.Media.CachedEpisode` for the running order and `Kati.Media.Watch` for
+  the ticks and the ratings. A shelf with no series, a show with no episode
+  list and an id that names nothing each draw one sentence and nothing to
+  press.
+
+  It used to draw the board itself: *The Long Hollow*, six invented episodes
+  with invented ratings, a hint card about a long press Mob cannot perform and
+  a memo about a gesture no screen has (N52-A).
 
   ## The column is a numeral and ONE star, never five
 
   The board's own caption: *"A numeral plus one star, in DM Mono, so the
-  column aligns — nobody reads five small stars, they read a shape."* Five
-  glyphs at this size (E1's row is 12px DM Mono) would not read as a rating;
-  they would read as a smear of dots, and the column would stop aligning
-  because a half-lit fifth star is a different width than a lit one. One
-  filled `star` glyph beside the number is the whole of it —
-  `Kati.UI.symbol("star", size: 11, color: Palette.accent(), fill: true)` —
-  and the numeral carries the precision the glyph cannot: `4.5`, `5`, `3.5`.
-  `rating_label/1` is the one place that turns a half-integer into that
-  numeral, dropping the trailing `.0` a whole rating would otherwise carry
-  (`5.0` reads as a typo; `5` reads as five).
+  column aligns — nobody reads five small stars, they read a shape."*
+  `rating_node/1` is that column, and `rating_label/1` the one place a rating
+  becomes its numeral — `4.5`, `5`, never `5.0`. Both are what screens 04 and
+  34 call, so the three pages cannot disagree about what a rating looks like.
 
-  ## An unrated watched episode draws nothing, not five hollow stars
-
-  The board's other half of the same caption: *"An unrated watched episode
-  shows nothing at all, not five hollow stars, which is what lets the ratings
-  stand out."* `rating_node/1` answers `[]` for `nil`, the same
-  list-flattening move `Kati.Screens.Series.next_air/1` makes for a series
-  with nothing announced — the sigil flattens an interpolated list into its
-  parent, so an unrated row gets the same two nodes (title column, check) in
-  the same 13pt gap the rated rows put a rating between, rather than a hollow
-  placeholder holding a gap open. E2 and E5 in the first band exercise this
-  inside a band that is mostly rated, which is the harder case: the column
-  has to stay aligned on the rows that DO carry a numeral while contributing
-  nothing on the rows that do not, and a `Row`'s children space themselves by
-  what is actually there, not by a reserved slot.
-
-  ## `None rated` has no column at all, band-wide
-
-  The second band is not the first band with every rating blanked — it is
-  the case where NOTHING in the season has been rated yet, stated as its own
-  eyebrow: *"no column at all."* Both of its rows call `rating_node(nil)`,
-  the identical function the first band's blank rows call; the distinction
-  the board is making is about the season, not the row, and one function
-  answering `[]` twice is what keeps that true rather than asserted.
-
-  ## Where a rating actually lives, and why this sheet does not read it
-
-  `Kati.Media.Watch.rating` is the resource this column will eventually
-  read — a ten-point integer, the same scale screen 33 already halves for its
-  own stars (*"Ten-point scale, as on TrackedTitle: screen 33's 4.5 stars is
-  9"*) and per-episode via `episode_source_id`. But this board, like
-  `Kati.Screens.SearchResultStates` before it, is a picture of a state rather
-  than a report that the app is in one: every number on it is the specimen
-  the design was captured with, not a query. Wiring the column to
-  `Watch.for_episode/2` belongs to `Kati.Screens.Series` itself, on the day
-  the rating column ships there — this sheet exists to settle what it looks
-  like first.
-
-  ## Where this disagrees with `Kati.Screens.Series.check/2` and `episode/1`,
-  and why the board wins
-
-  `Kati.Screens.Series` already draws three episode states, and this board's
-  up-next row (E6, not watched, not yet aired) does not match either of the
-  two it would fall into there:
-
-    * **The title.** `Series.episode/1` mutes a not-yet-aired title to
-      `Palette.sub/0`, same as a watched one. This board's E6 is full ink
-      (`#1A1917`) — the row that is coming up next reads as the loudest title
-      in the list, not a quiet one, and its five watched siblings take a
-      different mute, `Palette.settled_ink/0` (`#9C958B`), a token
-      `Series.episode/1` does not use at all. Two greys where the canon has
-      one; the board's own colours win here rather than the canon's, because
-      the whole reason this board exists is to be looked at pixel for pixel.
-    * **The check.** `Series.check/2`'s not-yet-aired state is `check(false,
-      false)` — a bare `Spacer`, no ring drawn. The board draws a ring:
-      `border: 1.5px solid rgba(26,25,23,.16)` around a `check` glyph painted
-      at alpha 0. `Palette.border/0` is that exact 16%-ink token (already the
-      dashed-note border below, and `add_title.ex`'s `by_hand/0` before it)
-      and `Palette.ink_invisible/0` is that exact "drawn, but at zero alpha"
-      token — both already named for precisely this, so nothing here is
-      invented to reach it. Visually the two states are close to
-      indistinguishable (a hairline ring and an invisible glyph read as
-      nothing, the same as nothing at all), which is likely why the drift
-      went unnoticed; this sheet reproduces the board's own construction
-      rather than silently reusing `Series.check/2`'s, and records the gap
-      here instead of resolving it — that fix, if the two are meant to
-      converge, belongs to `Kati.Screens.Series`.
-
-  Both of the states this board exercises are `check(true)` and
-  `check(false)` here — there is no third, `Series`'s aired-but-unwatched
-  ring, because nothing on this board is in that state to draw.
-
-  ## The dashed note, solid
-
-  `1.5px dashed rgba(26,25,23,.16)` in the design, same as `add_title.ex`'s
-  `by_hand/0`: the bridge draws only solid borders, so the dash is the one
-  thing here that is not the drawing — the colour, `Palette.border/0`, is.
-
-  Its body carries two bold spans — `one` and `nothing at all` — which is
-  the same shape `Kati.UI.rich_text/1` exists for and the same reason
-  `Kati.Screens.SearchResultStates.hit_title/1` reaches for it over a plain
-  `Text`: the runs record which two words the design means to land hardest,
-  even though `Kati.UI`'s own doc is explicit that the bridge has no
-  `AnnotatedString` and renders every run at one style today. The semantics
-  survive in the source; the emphasis does not yet survive on the device.
-
-  ## The long-press hint dismisses for the session, not for good
-
-  The board's own line: *"Shown once, then dismissed for good."* `Got it`
-  here sets `:hint_visible?` to `false` on this screen's assigns, which is
-  real — the card leaves the layout, its 14pt of trailing space with it,
-  exactly the way `Kati.Screens.Money`'s advice card and
-  `Kati.Screens.ArtistDetail`'s unheard-release card dismiss. It is not,
-  per board 127's own note on the same shape, *"a stored
-  preference"*: there is nowhere in `Kati.Media` yet for "has this user seen
-  the long-press hint" to live, so reopening this screen shows it again. That
-  is the honest half of "shown once" this sheet can do without inventing a
-  column nothing else reads.
-
-  Nothing else on the board is a tap. Mob has no long-press primitive at
-  all — a screen-wide grep for `long_press` finds nothing — so the gesture
-  the hint describes, and the gesture the closing note names on shelf tiles,
-  are both a documented intention rather than a wired affordance anywhere in
-  the app yet. Recording that here is better than a `Row` with an `on_tap`
-  standing in for a gesture it cannot perform.
-
-  ## The gesture rule, recorded verbatim
-
-  The closing cream card is the board's own memo to itself, not a control: a
-  long press means one thing on a shelf tile (screen 03's selection) and a
-  different thing on an episode row (this board's rating), and the two
-  surfaces are unmistakably different shapes — a grid of artwork against a
-  list of rows — which is the whole argument for why one gesture is safe to
-  overload twice. `Also on 146` is the board's own cross-reference and is
-  drawn as text, not as a link: there is nothing this screen can push to for
-  a board number, and a `Row` wrapping it in an `on_tap` that goes nowhere is
-  exactly the dead tap `Kati.Screens.Pushed`'s sweep exists to catch.
-
-  ## Under `:fa`
-
-  mishka-group/kati#103. The row sub-lines were never copy at all: every
-  `54m · 9 Jul` had a DATE glued into it, and a date is an arithmetic rather
-  than a word — 9 July 2026 is ۱۸ تیر ۱۴۰۵ and no catalogue entry produces
-  that. So the specimens carry the minutes and a `Date` now, and the line is
-  composed out of the two msgids `Kati.Screens.Season` composes board 34's out
-  of, one board over and drawing the same season. `Kati.Library.Sample` made the
-  identical move for screen 04's seven rows and its comment says what it bought:
-  *"It was two frozen strings apiece, which is why board 58's mirror kept a
-  second copy of all fifteen rows."*
-
-  The other trap is the closing cream card, which board 146 also draws — three
-  of its fragments are one word away from 146's own (`Gesture rule: long press
-  a` against `The gesture rule, recorded: long press on a`), close enough for
-  `mix gettext.merge` to fuzzy-match one onto the other. The comment over
-  `gesture_rule_note/0`'s runs says what that costs and what it does about it.
+  An aired episode you have not rated carries the hollow star screen 34 draws
+  there — the door onto screen 144 — and one that has not aired carries
+  nothing: there is no opinion to have yet.
   """
 
   use Kati.Screens.Pushed, back: "Library"
@@ -169,109 +45,123 @@ defmodule Kati.Screens.EpisodeRatings do
   alias Kati.UI.SettingsList
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :hint_visible?, true)
+  def load(socket), do: Mob.Socket.assign(socket, :season, season_for(socket))
 
   @doc """
-  The first band: six episodes, ratings on three of them, none on two, and
-  the up-next row carrying no rating and no watch at all.
-
-  Specimen values captured from the board — see the moduledoc on why this sheet
-  does not read `Kati.Media.Watch` for them. The runtime and the air date are a
-  number and a `Date` rather than the drawn string, so the sub-line can be
-  composed in the reader's own numerals and the reader's own calendar; the two
-  private builders below are where that happens.
-
-  The titles are the season's own, through the same msgids
-  `Kati.Library.Sample.series/0` puts them through — board 34, board 04 and this
-  sheet all draw *Low Water · The Cull · Blackthorn*, and one show cannot be
-  called two things one tap apart. A show's name is not a
-  service's:
-  `Lumen+` stays Latin on a Persian page because a real one comes off
-  `Kati.Services.Service` with no msgid between, and nothing on this board does.
+  Coming back from screen 144, where a rating may have changed: read the season
+  again.
   """
-  @spec rated_episodes() :: [map()]
-  def rated_episodes do
-    [
-      aired(1, gettext("Low Water"), 54, ~D[2026-07-09], 4.5),
-      aired(2, gettext("The Cull"), 49, ~D[2026-07-16], nil),
-      aired(3, gettext("Blackthorn"), 52, ~D[2026-07-23], 5.0),
-      aired(4, gettext("What the Tide Left"), 51, ~D[2026-07-30], 3.5),
-      aired(5, gettext("Hollow Season"), 47, ~D[2026-08-06], nil),
-      upcoming(6, gettext("The Undertow"), 55, ~D[2026-08-20])
-    ]
+  @impl true
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :season, season_for(socket))}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "rate_" <> index -> {:noreply, Kati.Screens.Season.rate(socket, index)}
+      _other -> {:noreply, socket}
+    end
   end
 
-  @doc "The second band: two watched episodes, neither one rated, no column drawn for either."
-  @spec unrated_episodes() :: [map()]
-  def unrated_episodes do
-    [
-      aired(1, gettext("Low Water"), 54, ~D[2026-07-09], nil),
-      aired(2, gettext("The Cull"), 49, ~D[2026-07-16], nil)
-    ]
+  defp season_for(socket) do
+    params = socket.assigns.params || %{}
+
+    season =
+      Kati.Screens.Season.season(%{
+        title_id: Map.get(params, :title_id),
+        season: Map.get(params, :season)
+      })
+
+    Map.put(season, :show, show_title(Map.get(season, :tracked_id)))
   end
 
-  # `54m · 9 Jul`, composed rather than frozen, and both halves are the ones
-  # `Kati.Screens.Season.sub_line/1` joins for the same season one board over —
-  # the same msgid, the same separator, the same `:short` date.
-  #
-  # The minute's abbreviation is a LATIN convention: `%{n}m` is `۵۴ دقیقه` in
-  # Persian, because there is no one-letter form of دقیقه to abbreviate to. And
-  # `Kati.Locale.date/2` is a CALENDAR rather than a format — 9 Jul 2026 is
-  # ۱۸ تیر ۱۴۰۵, and neither is a spelling of the other.
-  defp aired(n, title, minutes, on, rating) do
-    %{
-      n: n,
-      title: title,
-      sub: sub_line(minutes, Kati.Locale.date(on, :short)),
-      rating: rating,
-      watched: true
-    }
+  # The show's own name, out of the release cache — `Untitled` for a row whose
+  # cache entry has gone, and nothing for a page with no show.
+  defp show_title(id) when is_binary(id) do
+    case Kati.Screens.SeriesSettings.tracked(id) do
+      nil -> ""
+      tracked -> Kati.Screens.SeriesSettings.title_of(tracked)
+    end
   end
 
-  # E6, the up-next row: its date is ahead of the board rather than behind it,
-  # so it takes the `airs` prefix. `Kati.Screens.Season.air_phrase/2`'s msgid
-  # rather than a second entry saying the same thing — that one is already
-  # lowercase and already contexted `episode sub-line` precisely because it sits
-  # inside a `55m · airs 20 Aug` line rather than heading a card, which is the
-  # distinction the app's other `Airs %{date}` would lose.
-  defp upcoming(n, title, minutes, on) do
-    %{
-      n: n,
-      title: title,
-      sub:
-        sub_line(
-          minutes,
-          pgettext("episode sub-line", "airs %{date}", date: Kati.Locale.date(on, :short))
-        ),
-      rating: nil,
-      watched: false
-    }
+  defp show_title(_none), do: ""
+
+  @doc """
+  The params that open this page over one season of a show.
+
+      iex> Kati.Screens.EpisodeRatings.params_for(%{tracked_id: "abc", current_season: "S2"})
+      %{title_id: "abc", season: 2}
+
+      iex> Kati.Screens.EpisodeRatings.params_for(%{})
+      %{}
+  """
+  @spec params_for(map() | nil) :: map()
+  defdelegate params_for(series), to: Kati.Screens.Season
+
+  @doc """
+  `3 of 8 rated` — how many of the season's episodes carry your verdict.
+
+      iex> Kati.Screens.EpisodeRatings.rated_line([%{rating: 4.5}, %{rating: nil}])
+      "1 of 2 rated"
+  """
+  @spec rated_line([map()]) :: String.t()
+  def rated_line(episodes) do
+    gettext("%{rated} of %{total} rated",
+      rated: Kati.Locale.number(Enum.count(episodes, &is_number(Map.get(&1, :rating)))),
+      total: Kati.Locale.number(length(episodes))
+    )
   end
 
-  # Concatenated rather than put through a `%{runtime} · %{date}` msgid. There
-  # is one of those in the catalogue and its Persian is `%{runtime}` — the date
-  # is dropped — so every Persian episode sub-line that goes through it loses
-  # its air date silently. `Kati.Screens.Season` joins with a bare `" · "` for
-  # the same rows and does not, which is the behaviour this follows; the
-  # catalogue entry is `Kati.Library.Sample`'s to fix.
-  defp sub_line(minutes, date) do
-    gettext("%{n}m", n: Kati.Locale.number(minutes)) <> " · " <> date
-  end
+  @doc """
+  `SEASON 2 · 3 OF 6 RATED` — which season, and how much of it you have rated.
+
+      iex> Kati.Screens.EpisodeRatings.meta_line("Season 2", [%{rating: 4.5}, %{rating: nil}])
+      "SEASON 2 · 1 OF 2 RATED"
+  """
+  @spec meta_line(String.t(), [map()]) :: String.t()
+  def meta_line(season, episodes),
+    do: UI.eyebrow_label(season <> " · " <> Kati.Screens.EpisodeRatings.rated_line(episodes))
 
   @doc false
   @spec content(map()) :: map()
+  def content(%{season: %{gone?: true}}), do: Kati.Screens.SeriesSettings.gone_body()
+
+  def content(%{season: %{none?: true} = s}) do
+    assigns = %{
+      line:
+        if(Map.get(s, :tracked_id),
+          do: Kati.Screens.Series.no_list_label(),
+          else: gettext("No series in your library yet")
+        )
+    }
+
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={110}>
+        <Spacer size={30} />
+        {Kati.UI.symbol("star", size: 28, color: Palette.sub())}
+        <Spacer size={14} />
+        <Text
+          text={@line}
+          text_size={22}
+          font_weight="bold"
+          line_height={1.25}
+          text_color={:on_surface}
+        />
+      </Column>
+    </Scroll>
+    """
+  end
+
   def content(assigns) do
-    # The three band labels resolved above the sigil, the way
-    # `Kati.Screens.SearchResultStates.content/1` resolves its four and for the
-    # same reason: the eyebrows on a reference sheet are read against each
-    # other, and a ~MOB block is the wrong place to compare three labels.
-    #
-    # All three are whole clauses with an em dash in them, so none is short
-    # enough for `mix gettext.merge` to fuzzy-match onto somebody else's
-    # sentence and none needs a context to stay its own.
-    normal_band = gettext("Some rated — the normal case")
-    none_band = gettext("None rated — no column at all")
-    hint_band = gettext("The long-press hint — shown once")
+    s = assigns.season
+
+    rows =
+      s.episodes
+      |> Enum.with_index()
+      |> Enum.map(fn {ep, i} -> Map.put(ep, :index, i) end)
 
     ~MOB"""
     <Scroll>
@@ -283,59 +173,25 @@ defmodule Kati.Screens.EpisodeRatings do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {Kati.Screens.EpisodeRatings.header()}
-        {UI.eyebrow(normal_band)}
-        {Kati.Screens.EpisodeRatings.episode_list(Kati.Screens.EpisodeRatings.rated_episodes())}
-        <Spacer size={14} />
-        {Kati.Screens.EpisodeRatings.rating_note()}
-        <Spacer size={24} />
-        {SettingsList.eyebrow_muted(none_band)}
-        {Kati.Screens.EpisodeRatings.episode_list(Kati.Screens.EpisodeRatings.unrated_episodes())}
-        <Spacer size={24} />
-        {SettingsList.eyebrow_muted(hint_band)}
-        {Kati.Screens.EpisodeRatings.hint(assigns.hint_visible?)}
-        {Kati.Screens.EpisodeRatings.gesture_rule_note()}
+        {Kati.Screens.EpisodeRatings.header(
+          Map.get(s, :show, ""),
+          Kati.Screens.EpisodeRatings.meta_line(s.title, s.episodes)
+        )}
+        {UI.eyebrow(gettext("Episodes"))}
+        {Kati.Screens.EpisodeRatings.episode_list(rows)}
       </Column>
     </Scroll>
     """
   end
 
   @doc false
-  def header do
-    title = gettext("The Long Hollow")
+  def header(title, meta) do
+    assigns = %{title: title, meta: meta}
 
-    # `SEASON 2 · 5 OF 7 WATCHED` composed from the two msgids the app already
-    # owns for those halves — `Kati.Library.Sample.series/0` names the season
-    # and `Kati.Screens.Series` counts the watches — rather than a third frozen
-    # string saying what both already say. The three figures go through
-    # `Kati.Locale.number/1`, which the audit could not have caught: a bare
-    # numeral carries no Latin letters.
-    #
-    # `Kati.UI.eyebrow_label/1` does the raising, and it is the one thing on
-    # this line that must not be `String.upcase/1`. Upper-casing is a Latin
-    # operation; `فصل ۲ · ۵ از ۷ دیده شده` has no raised form, so the call is a
-    # no-op that reads as one.
-    meta =
-      UI.eyebrow_label(
-        gettext("Season %{n}", n: Kati.Locale.number(2)) <>
-          " · " <>
-          gettext("%{watched} of %{total} watched",
-            watched: Kati.Locale.number(5),
-            total: Kati.Locale.number(7)
-          )
-      )
-
-    # The 28pt title's tracking goes through `Kati.Locale.tracking/1`: the
-    # design tightens a Latin display line by a fraction of an em, and the
-    # Arabic script has no such tradition — worse, `letter_spacing` on Persian
-    # breaks the JOINS between letters, so گودال بلند would come apart into its
-    # glyphs. `max_lines={1}` is new and travels with it: a 28pt heading with no
-    # line cap wraps on whichever script is the longer, and this one has a mono
-    # line 6pt under it that a second line would sit on top of.
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={title}
+        text={@title}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
@@ -345,8 +201,8 @@ defmodule Kati.Screens.EpisodeRatings do
       />
       <Spacer size={6} />
       <Text
-        text={meta}
-        font_family={Kati.Locale.mono_face(meta)}
+        text={@meta}
+        font_family={Kati.Locale.mono_face(@meta)}
         text_size={11.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -370,35 +226,18 @@ defmodule Kati.Screens.EpisodeRatings do
   @doc false
   def episode_gap, do: ~MOB"<Spacer size={8} />"
 
-  # `E1`..`E6`, not `1`..`6` — this board's own leading numeral, unlike
-  # `Kati.Screens.Series.episode/1`'s bare number. `watched` alone decides
-  # background, shadow and title colour: the only row here that is not
-  # watched is E6, and it is also the only one not yet aired, so the board
-  # never asks this function to tell the two apart.
-  @doc false
+  @doc """
+  One episode: its number in the show's own order, its name and sub-line as
+  screen 34 builds them, the rating column, and the tick.
+
+  Both mono lines ask `Kati.Locale.mono_face/1` about their own string:
+  `kati_mono.ttf` carries no Persian glyph, so `ق۱` in DM Mono is an empty box.
+  """
   def episode_row(ep) do
     bg = if ep.watched, do: Palette.card_settled(), else: Palette.card()
     shadow = if ep.watched, do: nil, else: Theme.shadow_card_soft()
     title_color = if ep.watched, do: Palette.settled_ink(), else: :on_surface
 
-    # `E1` is `ق۱` in Persian: the prefix is an abbreviation of a WORD — قسمت —
-    # rather than a Latin initial, so it is translated the way
-    # `Kati.Screens.Season.numbered/2` translates the same label on board 34,
-    # through the very msgid that screen and `Kati.Screens.Inbox` already share.
-    # Two boards drawing one season must not call E1 two things.
-    number = pgettext("episode number", "E%{e}", e: Kati.Locale.number(ep.n))
-
-    # Both mono lines below ask `Kati.Locale.mono_face/1` about their OWN string
-    # rather than naming `"mono"`: `kati_mono.ttf` carries no Persian glyph, so
-    # `ق۱` and `۵۵ دقیقه · پخش ۲۹ مرداد` in DM Mono are a row of empty boxes.
-    # Asking the string and not the reader is what keeps a line that stayed
-    # Latin in the drawing's own face on a Persian page, and it is the question
-    # `Kati.Screens.Season.episode_body/3` answers the same way over the same
-    # two lines.
-    #
-    # The title's tracking goes through `Kati.Locale.tracking/1` for the reason
-    # `header/0` gives about its own: a fraction of a negative em breaks the
-    # joins between Arabic letters, and آب کم has joins.
     ~MOB"""
     <Row
       fill_width={true}
@@ -413,8 +252,8 @@ defmodule Kati.Screens.EpisodeRatings do
     >
       <Column width={22}>
         <Text
-          text={number}
-          font_family={Kati.Locale.mono_face(number)}
+          text={ep.number}
+          font_family={Kati.Locale.mono_face(ep.number)}
           text_size={12}
           text_color={Palette.tertiary()}
           max_lines={1}
@@ -439,7 +278,7 @@ defmodule Kati.Screens.EpisodeRatings do
           max_lines={1}
         />
       </Column>
-      {Kati.Screens.EpisodeRatings.rating_node(ep.rating)}
+      {Kati.Screens.Season.rating_column(ep)}
       <Spacer size={13} />
       {Kati.Screens.EpisodeRatings.check(ep.watched)}
     </Row>
@@ -449,26 +288,14 @@ defmodule Kati.Screens.EpisodeRatings do
   @doc """
   The rating column itself: a numeral and one star, or nothing at all.
 
-  A list, not a `Column`, for the same reason `Kati.Screens.Series.next_air/1`
-  is one — the sigil flattens an interpolated list into its parent, so a
-  `nil` rating contributes zero nodes and the row's own 13pt gap closes
-  straight from the title column to the check, rather than a spacer holding a
-  gap open for a numeral that never comes.
+  A list, not a `Column`: the sigil flattens an interpolated list into its
+  parent, so a `nil` rating contributes zero nodes and the row's own 13pt gap
+  closes straight from the title column to the check.
   """
   @spec rating_node(float() | nil) :: [map()]
   def rating_node(nil), do: []
 
   def rating_node(rating) do
-    # `Kati.Locale.mono_face/1` asks the STRING and not the reader, which is the
-    # right question at this one call site: `4.5` and `9` are pure ASCII, DM
-    # Mono has every glyph either needs, and the whole argument for this column
-    # is that it ALIGNS — so the numeral stays in the drawing's own even-width
-    # face on a Persian page rather than moving to Vazirmatn beside it. It is
-    # also not a decision to redo if `Kati.Rating.Scale.label/2` ever answers in
-    # Persian digits, because the string would say so.
-    #
-    # `Kati.Screens.Series.rating_face/1` is these same two nodes with a tap
-    # behind them and asks the same question the same way.
     label = rating_label(rating)
 
     [
@@ -490,22 +317,15 @@ defmodule Kati.Screens.EpisodeRatings do
   end
 
   @doc """
-  `4.5`, `5`, `3.5` — never `5.0`. Every rating on this board is a whole or a
-  half, so the only question is whether the fraction is worth printing.
-
-  Or `9`, `10`, `7` — the `5★` / `10pt` toggle on screen 33 is a real
-  preference, and a scale honoured on the screen that sets it
-  and nowhere else is worse than one that does nothing: the numeral beside an
-  episode on 04 would disagree with the numeral on the sheet that wrote it.
-  `Kati.Rating.Scale` is the one place a rating becomes text.
+  `4.5`, `5`, `3.5` — never `5.0` — or `9`, `10`, `7` on the ten-point scale
+  screen 33 lets a reader choose. `Kati.Rating.Scale` is the one place a
+  rating becomes text.
   """
   @spec rating_label(float()) :: String.t()
   defdelegate rating_label(rating), to: Kati.Rating.Scale, as: :label
 
   @doc """
-  The 27pt check: ink-filled when watched, or a hairline ring around an
-  invisible glyph otherwise. See the moduledoc for why the second state is
-  not `Kati.Screens.Series.check/2`'s.
+  The 27pt check: ink-filled when watched, or a hairline ring otherwise.
   """
   @spec check(boolean()) :: map()
   def check(true) do
@@ -529,203 +349,5 @@ defmodule Kati.Screens.EpisodeRatings do
       {Kati.UI.symbol("check", size: 16, color: Palette.ink_invisible())}
     </Box>
     """
-  end
-
-  @doc false
-  def rating_note do
-    # `Kati.Locale.leading/1` rather than the drawing's flat 1.65: Vazirmatn's
-    # metrics are not Plus Jakarta's and a wrapping paragraph measured against
-    # the Latin drawing crowds on its Persian twin. A no-op in Latin, so the
-    # board is unchanged where it was captured.
-    base = [
-      text_size: 12.5,
-      line_height: Kati.Locale.leading(1.65),
-      text_color: Palette.ink_soft(),
-      base: true
-    ]
-
-    emphasis = [font_weight: "semibold", text_color: :on_surface]
-
-    # The two emphasised runs take a context and the three base runs do not.
-    # `one` is a single word and `nothing at all` is three — exactly the length
-    # `mix gettext.merge` fuzzy-matches onto any longer sentence that happens to
-    # end in them — and neither is a label, so the context names the claim each
-    # belongs to rather than repeating the word. `A numeral plus` is three words
-    # as well and stays a plain msgid: `numeral` appears in one other entry in
-    # the whole catalogue, so there is nothing for it to be merged onto.
-    #
-    # `DM Mono` is interpolated rather than written into the msgid, for the
-    # reason a provider's name is: it is a typeface's name for itself, the
-    # catalogue already spells `Plus Jakarta Sans, DM Mono, Vazirmatn` in Latin
-    # on screen 83, and a msgid containing it invites a transliteration that
-    # would name the face two ways. `Kati.Locale.ltr/1` wraps it because the
-    # comma that follows is a NEUTRAL character: inside a right-to-left
-    # paragraph it resolves against the page and lands at the wrong edge of the
-    # run, which is what screen 83's five licence notices drew.
-    #
-    # The last run opens with the comma the emphasis runs into, so the comma is
-    # inside the translatable unit rather than concatenated outside it —
-    # Persian puts the verb at the end of the clause, so its own translation
-    # opens with نشان نمی‌دهد and there is nowhere for a Latin comma to go.
-    body =
-      UI.rich_text([
-        {gettext("A numeral plus") <> " ", base},
-        {pgettext("how many stars stand beside the numeral", "one"), emphasis},
-        {" " <>
-           gettext(
-             "star, in %{face}, so the column aligns — nobody reads five small stars, " <>
-               "they read a shape. An unrated watched episode shows",
-             face: Kati.Locale.ltr("DM Mono")
-           ) <> " ", base},
-        {pgettext("what an unrated watched episode draws", "nothing at all"), emphasis},
-        {gettext(", not five hollow stars, which is what lets the ratings stand out."), base}
-      ])
-
-    ~MOB"""
-    <Row
-      fill_width={true}
-      border_width={1.5}
-      border_color={Palette.border()}
-      corner_radius={18}
-      padding={15}
-      align="top"
-    >
-      {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
-      <Spacer size={11} />
-      <Column weight={1.0}>
-        {body}
-      </Column>
-    </Row>
-    """
-  end
-
-  @doc """
-  The hint card and its 14pt of trailing space, or neither once dismissed.
-
-  A list, the same move as `rating_node/1` and `Kati.Screens.Series.next_air/1`:
-  dismissing the hint has to close the 14pt gap along with the card, not leave
-  it standing open above the gesture-rule note.
-  """
-  @spec hint(boolean()) :: [map()]
-  def hint(false), do: []
-
-  def hint(true) do
-    tap = {self(), :dismiss_hint}
-
-    title = gettext("Hold a row to rate it")
-
-    # One msgid and not two halves. *Shown once, then dismissed for good* reads
-    # as a second sentence in English and as a clause in Persian, and a card's
-    # whole body is the unit a translator needs to see to put the verb in the
-    # right place. Its `line_height` goes through `Kati.Locale.leading/1` for
-    # the reason `rating_note/0` gives about its own paragraph.
-    hint_body =
-      gettext(
-        "The only long press in the app besides selecting on a shelf. " <>
-          "Shown once, then dismissed for good."
-      )
-
-    # `Kati.UI.SettingsList.action_pill/2` hands its label to
-    # `Kati.Components.MishkaPill`, which takes it as a STRING and so cannot be
-    # given a face at this call site — the root face `MainActivity` installs
-    # from `Kati.Locale.face_prop/0` is what catches it, which is exactly the
-    # case that helper's doc describes.
-    dismiss = gettext("Got it")
-
-    [
-      ~MOB"""
-      <Column
-        fill_width={true}
-        background={Palette.card()}
-        corner_radius={22}
-        shadow={Theme.shadow_card_soft()}
-        padding={17}
-      >
-        <Row fill_width={true} align="top">
-          {Kati.UI.symbol("touch_app", size: 19, color: Palette.accent())}
-          <Spacer size={12} />
-          <Column weight={1.0}>
-            <Text text={title} text_size={13.5} font_weight="bold" text_color={:on_surface} />
-            <Spacer size={6} />
-            <Text
-              text={hint_body}
-              text_size={12.5}
-              line_height={Kati.Locale.leading(1.65)}
-              text_color={Palette.ink_soft()}
-            />
-          </Column>
-          <Spacer size={12} />
-          <Row on_tap={tap} align="center">
-            {SettingsList.action_pill(dismiss)}
-          </Row>
-        </Row>
-      </Column>
-      """,
-      ~MOB"<Spacer size={14} />"
-    ]
-  end
-
-  @doc false
-  def gesture_rule_note do
-    # `Kati.Locale.leading/1` on the paragraph, as in `rating_note/0`.
-    base = [
-      text_size: 12.5,
-      line_height: Kati.Locale.leading(1.65),
-      text_color: Palette.cream_body(),
-      base: true
-    ]
-
-    emphasis = [font_weight: "semibold", text_color: :on_surface]
-
-    # Board 146 draws this same memo from the other side —
-    # `Kati.Screens.ShelfSelection.filter_note/0` — and three of its fragments
-    # are one word away from these three: `Gesture rule: long press a` against
-    # `The gesture rule, recorded: long press on a`, and `selects; long press an`
-    # against `selects; long press on an`. `mix gettext.merge` fuzzy-matches by
-    # similarity, so a bare `gettext/1` for either would be merged onto the
-    # other's entry and this card would come out reciting 146's sentence — a
-    # wrong word no test here would catch, because nothing on this sheet is
-    # asserted against a string. So the three connectives carry a context naming
-    # the board they belong to.
-    #
-    # The two emphasised NOUNS deliberately do not. They are the same two nouns
-    # 146 names, and naming one thing twice is the failure the whole card is
-    # about: `episode row` is 146's entry verbatim, and `shelf tile` takes 146's
-    # own context so the pair stays one vocabulary rather than two. The tail is
-    # a whole sentence and distinctive enough to stand as a plain msgid.
-    #
-    # `146` goes through `Kati.Locale.number/1`, the way 146 puts `143` through
-    # it in the mirror-image sentence. A board number is a number the reader
-    # reads, not a citation off a printed object — `Kati.Locale.year/1`'s rule
-    # does not reach it.
-    body =
-      UI.rich_text([
-        {pgettext("board 143's gesture rule", "The gesture rule, recorded:") <> " ", emphasis},
-        {pgettext("board 143's gesture rule", "long press on a") <> " ", base},
-        {pgettext("the thing a long press on a shelf selects", "shelf tile"), emphasis},
-        {" " <> pgettext("board 143's gesture rule", "selects; long press on an") <> " ", base},
-        {pgettext("the thing a long press in a season rates", "episode row"), emphasis},
-        {" " <>
-           gettext(
-             "rates. Two meanings, two unmistakably different surfaces — a grid of " <>
-               "artwork against a list of rows. Also on %{board}.",
-             board: Kati.Locale.number(146)
-           ), base}
-      ])
-
-    ~MOB"""
-    <Row fill_width={true} background={Palette.cream()} corner_radius={20} padding={16} align="top">
-      {Kati.UI.symbol("call_split", size: 18, color: Palette.gold_icon())}
-      <Spacer size={11} />
-      <Column weight={1.0}>
-        {body}
-      </Column>
-    </Row>
-    """
-  end
-
-  @impl true
-  def handle_tap(:dismiss_hint, socket) do
-    {:noreply, Mob.Socket.assign(socket, :hint_visible?, false)}
   end
 end

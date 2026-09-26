@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.ScreenSeriesTest do
   @moduledoc """
   Screens 04 and 58 against `Kati.Media`, and against an empty database.
@@ -237,7 +239,7 @@ defmodule Kati.ScreenSeriesTest do
              "04 answers its own empty page against an empty store. A shelf with nothing " <>
                "on it is not a reason to draw somebody else's show"
 
-      refute Series.series() == Series.drawn_series(),
+      refute Series.series() == Kati.Test.ShowBoards.series(),
              "the drawing is back on the live path — `drawn_series/0` belongs to the " <>
                "design-literal comparison now, not to a reader"
     end
@@ -263,7 +265,7 @@ defmodule Kati.ScreenSeriesTest do
 
       page = Series.series()
 
-      refute page == Series.drawn_series(),
+      refute page == Kati.Test.ShowBoards.series(),
              "a reader's own hand-typed series opened as somebody else's show"
 
       assert page.episodes == []
@@ -408,7 +410,7 @@ defmodule Kati.ScreenSeriesTest do
       # left on one side only would put the drawing in front of one reader.
       Kati.Locale.as(:fa, fn ->
         tree = tree(mount_screen(Series))
-        drawn = Series.drawn_series()
+        drawn = Kati.Test.ShowBoards.series()
 
         for string <- [drawn.title, drawn.meta, drawn.season] do
           refute drawn?(tree, string),
@@ -431,7 +433,7 @@ defmodule Kati.ScreenSeriesTest do
       # `by_season` rides on the drawn map too. A fallback that dropped it would
       # leave three pills that change nothing, which is the state the Sample's
       # extra seasons exist to prevent.
-      drawn = Series.drawn_series()
+      drawn = Kati.Test.ShowBoards.series()
 
       assert Map.keys(drawn.by_season) |> Enum.sort() == Enum.sort(drawn.seasons)
       assert drawn.by_season["S1"].season == "Season 1"
@@ -441,7 +443,7 @@ defmodule Kati.ScreenSeriesTest do
       # because the fixture's seasons carry Kati's own names rather than a
       # provider's.
       Kati.Locale.as(:fa, fn ->
-        fa = Series.drawn_series()
+        fa = Kati.Test.ShowBoards.series()
         assert map_size(fa.by_season) == length(fa.seasons)
       end)
     end

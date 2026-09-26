@@ -31,6 +31,7 @@ defmodule Kati.OverflowMenuTest do
   alias Kati.UI.Menu
 
   @series_id "overflow-menu-series"
+  @film_id "overflow-menu-film"
 
   # {screen, the tag that opens it, [{item tag, destination}]}
   @menus [
@@ -64,8 +65,22 @@ defmodule Kati.OverflowMenuTest do
     })
     |> Ash.create!()
 
+    # N52-A: screen 08 answers a shelf with no film the same way, so one film
+    # is kept on the shelf too.
+    Kati.Media.TrackedTitle
+    |> Ash.Changeset.for_create(:create, %{
+      source: :manual,
+      source_id: @film_id,
+      kind: :movie,
+      status: :finished
+    })
+    |> Ash.create!()
+
     on_exit(fn ->
-      Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id = ?1", [@series_id])
+      Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id IN (?1, ?2)", [
+        @series_id,
+        @film_id
+      ])
     end)
 
     :ok
@@ -177,6 +192,9 @@ defmodule Kati.OverflowMenuTest do
 
   defp expected_params(Screens.Series, :open_settings, socket),
     do: Screens.SeriesSettings.params_for(socket.assigns.series)
+
+  defp expected_params(Screens.Film, :log_watch, socket),
+    do: Screens.Rating.params_for(socket.assigns.film, :new)
 
   defp expected_params(_module, _tag, _socket), do: %{}
 

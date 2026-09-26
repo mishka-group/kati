@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.SheetRowIdentityTest do
   @moduledoc """
   Three sheets act on the row that opened them — screens 70, 73 and 118 — and,
@@ -1163,11 +1165,11 @@ defmodule Kati.SheetRowIdentityTest do
     end
 
     test "the two ⋯ rows name their subject, and the drawing's name nothing" do
-      assert Kati.Screens.Rating.params_for(Kati.Screens.Film.drawn_film()) == %{}
+      assert Kati.Screens.Rating.params_for(Kati.Test.ShowBoards.film()) == %{}
       assert Kati.Screens.Rating.params_for(nil) == %{}
       assert Kati.Screens.Rating.params_for(%{tracked_id: "t1"}) == %{tracked_title_id: "t1"}
 
-      assert Kati.Screens.Season.params_for(Kati.Screens.Series.drawn_series()) == %{}
+      assert Kati.Screens.Season.params_for(Kati.Test.ShowBoards.series()) == %{}
       assert Kati.Screens.Season.params_for(nil) == %{}
 
       assert Kati.Screens.Season.params_for(%{tracked_id: "t1", current_season: "S2"}) ==
@@ -1180,7 +1182,7 @@ defmodule Kati.SheetRowIdentityTest do
     end
 
     test "screen 08's Log a watch names the film that is on screen" do
-      drawn = Kati.Screens.Film.drawn_film()
+      drawn = Kati.Test.ShowBoards.film()
       socket = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.Film), :film, drawn)
 
       {:noreply, bare} = Kati.Screens.Film.handle_info({:tap, :log_watch}, socket)
@@ -1203,7 +1205,7 @@ defmodule Kati.SheetRowIdentityTest do
     end
 
     test "screen 04's Episode order names the series and the lit pill" do
-      drawn = Kati.Screens.Series.drawn_series()
+      drawn = Kati.Test.ShowBoards.series()
       socket = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.Series), :series, drawn)
 
       {:noreply, bare} = Kati.Screens.Series.handle_info({:tap, :episode_order}, socket)
@@ -1242,11 +1244,11 @@ defmodule Kati.SheetRowIdentityTest do
       assert Kati.Screens.Series.series(gone) ==
                Map.put(Kati.Screens.Series.empty_series(), :gone?, true)
 
-      refute Kati.Screens.Series.series(gone) == Kati.Screens.Series.drawn_series(),
+      refute Kati.Screens.Series.series(gone) == Kati.Test.ShowBoards.series(),
              "a named-but-missing series is drawing the board's own show again"
 
       assert Kati.Screens.Season.season(%{title_id: gone}) ==
-               Kati.Screens.Season.empty_season()
+               Map.put(Kati.Screens.Season.empty_season(), :gone?, true)
 
       # And the no-id question is unchanged, which is the half every sweep
       # mounts.

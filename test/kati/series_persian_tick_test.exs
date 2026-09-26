@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.SeriesPersianTickTest do
   @moduledoc """
   Marking an episode watched on the Persian series page writes it.
@@ -176,7 +178,7 @@ defmodule Kati.SeriesPersianTickTest do
       socket =
         Kati.Screens.Series
         |> Mob.Socket.new()
-        |> Mob.Socket.assign(:series, Series.drawn_series())
+        |> Mob.Socket.assign(:series, Kati.Test.ShowBoards.series())
         |> Mob.Socket.assign(:save_error, nil)
 
       refused = Series.tick(socket, "0")

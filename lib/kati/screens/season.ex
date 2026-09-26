@@ -75,10 +75,12 @@ defmodule Kati.Screens.Season do
   series. A tracked row with no `progress_season`, or a season with nothing
   cached in it, is not a season this screen can draw.
 
-  With no such season the page is `empty_season/1`: its own labels over no
-  episodes. `Kati.Season.Sample` — the values `test/design/screens/34.html` was
-  captured from — is reached only through `drawn_season/0`, which the design
-  tests install; no reader path draws it.
+  With no such season the page says so in one sentence — *No episode list
+  yet.* over a show the reader has, *No series in your library yet* over an
+  empty shelf — and draws no strip, no switch and no row. An id the shelf no
+  longer holds is `Kati.Screens.SeriesSettings.gone_body/0`'s sentence. Board
+  34's own season is a test fixture (`Kati.Test.ShowBoards.season/0`) and
+  never ships.
 
   ## The order strip is the show's numbering
 
@@ -115,10 +117,10 @@ defmodule Kati.Screens.Season do
     * The bronze number and the `SPECIAL` badge are one stored `special`, drawn
       as the two marks the design gives it.
 
-  ## What stays the drawing's, and why
+  ## What the board draws that a real season does not, and why
 
   The DVD tile, the second switch, the `PARTS 1–2` badge and the footnote's
-  first sentence are the board's and never reach a real season:
+  first sentence are the board's and never reach a reader:
 
     * **The `DVD` tile.** `Kati.Media.CachedEpisode.orders/0` answers
       `[:aired, :absolute]` and says why at length: no source Kati fetches from
@@ -136,9 +138,8 @@ defmodule Kati.Screens.Season do
     * **`Merge multi-part`.** Not honoured, and it cannot be yet: merging a
       two-part finale into one entry needs a column that marks an episode as
       merged and pairs it with its other half, and `Kati.Media.CachedEpisode`
-      is a cache — the one place a user's choice must never live. The switch is
-      drawn in its design state and changes nothing, which is written down
-      here rather than left to be discovered.
+      is a cache — the one place a user's choice must never live. A real
+      season does not draw the switch at all (`real_options/2`).
     * **The `PARTS 1–2` badge.** Merging a two-part finale into one entry is a
       transformation of the order with nothing to record that it happened — no
       column marks an episode as merged and none pairs it with its other half.
@@ -185,7 +186,6 @@ defmodule Kati.Screens.Season do
   alias Kati.Media.Release
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
-  alias Kati.Season.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -292,8 +292,8 @@ defmodule Kati.Screens.Season do
   Open the rating sheet over one episode of this season.
 
   `Kati.Screens.Series.rate/2`'s twin, and the same gate: the pair, never the
-  position, and a drawn season opens nothing because there is no episode
-  behind `Kati.Season.Sample` to rate.
+  position, and a row with no episode id or a page with no show opens
+  nothing.
   """
   @spec rate(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def rate(socket, index) do
@@ -325,10 +325,8 @@ defmodule Kati.Screens.Season do
   after the write answers `:ok`, so a refused write leaves the ring where it
   was instead of showing a state the database does not hold.
 
-  A season with no `:tracked_id` — the drawing's, which is what a fresh install
-  and every sweep renders — writes nothing and says so. That is the same
-  all-or-nothing gate `season/1` already applies to the list itself: there is no
-  episode row behind `Kati.Season.Sample`, so there is nothing to tick.
+  A page with no `:tracked_id` has no episode rows at all, and a row with no
+  episode id writes nothing and says so.
   """
   @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def tick(socket, index) do
@@ -483,45 +481,49 @@ defmodule Kati.Screens.Season do
   """
   @spec season(map() | nil, atom() | nil, boolean()) :: map()
   def season(params \\ %{}, order \\ nil, specials? \\ true),
-    do: tracked_season(params, order, specials?) || empty_season(order || :aired)
+    do: tracked_season(params, order, specials?) || empty_for(params, order || :aired)
+
+  # Which of the three empty pages: a show the reader has with no season to
+  # draw, a show that has gone, or no show at all.
+  defp empty_for(params, order) do
+    asked = Map.get(params || %{}, :title_id)
+
+    case safe_record(asked) do
+      %TrackedTitle{id: id} -> Map.put(empty_season(order), :tracked_id, id)
+      nil when is_binary(asked) -> Map.put(empty_season(order), :gone?, true)
+      nil -> empty_season(order)
+    end
+  end
+
+  defp safe_record(id) do
+    series_record(id)
+  rescue
+    _error -> nil
+  end
 
   @doc """
-  The season with no episodes in it.
+  The page with no season on it, marked `none?: true`.
 
-  `Kati.Season.Sample.season/0`'s eight keys carrying nothing. It was that
-  fixture — *Season 2*, nine episodes over eight rows, a note about specials —
-  and `tracked_season/2` answers nil for a season nobody named as readily as for
-  an empty shelf, so a push that lost its params described somebody else's
-  running order.
-
-  The order strip keeps its three labels and the chosen one: those are the
-  app's own vocabulary for how a season can be counted, not a claim about any
-  season. The switches go with the episodes, because both act on rows.
+  `content/1` draws it as one sentence and nothing that acts on a row: no
+  order strip (there is nothing to renumber), no switch (there is nothing to
+  include or hide) and no footnote. It drew three order tiles that could not be
+  pressed — one of them the board's *DVD*, which no season can be counted in —
+  over *Episodes · 0 in this order* and an empty dashed note.
   """
   @spec empty_season(atom()) :: map()
   def empty_season(order \\ :aired) do
     %{
+      none?: true,
       title: "",
       subtitle: gettext("order & specials"),
-      orders: ["Aired", "Absolute", "DVD"],
+      orders: [],
       current_order: order_label(order),
       options: [],
-      eyebrow: gettext("Episodes · %{n} in this order", n: Kati.Locale.number(0)),
+      eyebrow: "",
       episodes: [],
       note: ""
     }
   end
-
-  @doc """
-  Screen 34 exactly as it is drawn, from `Kati.Season.Sample`.
-
-  Kept in the fixture rather than inlined here, for the reason
-  `Kati.Screens.Film.drawn_film/0` gives: it is the frame's specification and
-  the value a test compares a real render against, and two copies of the
-  drawing's copy is exactly how the two drift apart.
-  """
-  @spec drawn_season() :: map()
-  def drawn_season, do: Sample.season()
 
   @doc """
   The params that name a season — the series, and which of its seasons.
@@ -538,8 +540,8 @@ defmodule Kati.Screens.Season do
   `:meal_id`, `:book_id` and `:album_id` already do everywhere an id is not the
   destination's own subject.
 
-  A series with no tracked row — the drawing's — yields `%{}`, and a label that
-  is not `S<integer>` yields the title alone, which falls back to the bookmark.
+  A series with no tracked row yields `%{}`, and a label that is not
+  `S<integer>` yields the title alone, which falls back to the bookmark.
 
       iex> Kati.Screens.Season.params_for(%{tracked_id: "abc", current_season: "S2"})
       %{title_id: "abc", season: 2}
@@ -722,7 +724,8 @@ defmodule Kati.Screens.Season do
         options: real_options(any_specials?, specials?),
         orders: Enum.map(offered, &Kati.Screens.Season.order_label/1),
         current_order: Kati.Screens.Season.order_label(order),
-        note: general_note()
+        note: general_note(),
+        none?: false
     }
     |> Map.put(:tracked_id, tracked.id)
     |> Map.put(:order, order)
@@ -1063,6 +1066,42 @@ defmodule Kati.Screens.Season do
   end
 
   @doc false
+  def content(%{season: %{gone?: true}}), do: Kati.Screens.SeriesSettings.gone_body()
+
+  def content(%{season: %{none?: true} = s} = assigns) do
+    assigns = %{
+      chrome:
+        Kati.Screens.ShowPages.chrome(
+          Kati.Screens.Season,
+          Map.get(s, :tracked_id),
+          Map.get(assigns, :menu?, false)
+        ),
+      line:
+        if(Map.get(s, :tracked_id),
+          do: Kati.Screens.Series.no_list_label(),
+          else: gettext("No series in your library yet")
+        )
+    }
+
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64}>
+        {@chrome}
+        <Spacer size={60} />
+        {Kati.UI.symbol("checklist", size: 28, color: Palette.sub())}
+        <Spacer size={14} />
+        <Text
+          text={@line}
+          text_size={22}
+          font_weight="bold"
+          line_height={1.25}
+          text_color={:on_surface}
+        />
+      </Column>
+    </Scroll>
+    """
+  end
+
   def content(assigns) do
     s = assigns.season
 
@@ -1100,6 +1139,7 @@ defmodule Kati.Screens.Season do
   strip at all. See `offered_orders/1`.
   """
   @spec orders(map()) :: map()
+  def orders(%{orders: []}), do: ~MOB"<Spacer size={0} />"
   def orders(%{orders: [_only_one]}), do: ~MOB"<Spacer size={0} />"
 
   def orders(s) do
@@ -1171,13 +1211,9 @@ defmodule Kati.Screens.Season do
     * **DVD**, which only the board draws. No source Kati fetches from carries
       per-episode DVD numbering — `Kati.Media.CachedEpisode`'s moduledoc gives
       the whole reason — so the tile cannot renumber anything on any season.
-    * **Every tile with no season behind it.** `empty_season/1` and the
-      board's `drawn_season/0` have no show to store an order on and no list
-      to renumber. A real season carries `:order`; neither of those does,
-      which is what `current` distinguishes.
-
-  The second is the rule screen 35's status tiles keep, one screen over: a
-  control that exists only over data is not drawn over the picture of it.
+    * **Every tile with no season behind it** — the board's, which a test
+      installs. A real season carries `:order` and the board does not, which
+      is what `current` distinguishes.
 
       iex> Kati.Screens.Season.order_tap("DVD", :aired)
       nil

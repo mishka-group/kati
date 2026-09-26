@@ -49,13 +49,14 @@ defmodule Kati.Screens.ShowPages do
   @doc """
   The header for a per-show sub-page: the ⋯ disc, and its menu when open.
 
-  `tracked_id` is the show all the rows push over, and `nil` — the board —
-  draws the disc as `Kati.UI.SettingsList.chrome/2` always did.
+  `tracked_id` is the show all the rows push over. With `nil` there is no
+  show to open a menu about, so the header keeps its 44pt and draws no disc —
+  a ⋯ that opens nothing is a dead control (N52-A).
   """
   @spec chrome(module(), String.t() | nil, boolean()) :: map()
   def chrome(screen, tracked_id, open?)
 
-  def chrome(_screen, nil, _open?), do: SettingsList.chrome("more_horiz", 44)
+  def chrome(_screen, nil, _open?), do: SettingsList.chrome(nil, 44)
 
   def chrome(screen, tracked_id, open?) when is_binary(tracked_id) do
     import Mob.Sigil
