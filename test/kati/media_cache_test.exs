@@ -16,7 +16,7 @@ defmodule Kati.MediaCacheTest do
 
   use Mob.ScreenCase, async: false
 
-  doctest Kati.Media.Cache, only: [tmdb_kind: 1]
+  doctest Kati.Media.Cache, only: [tmdb_kind: 2]
 
   doctest Kati.Screens.DataSources, only: [refresh_line: 1]
 
