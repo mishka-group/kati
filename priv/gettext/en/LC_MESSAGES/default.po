@@ -47,7 +47,7 @@ msgstr ""
 
 #: lib/kati/screens/onboarding.ex:191
 #: lib/kati/screens/onboarding_large.ex:373
-#: lib/kati/screens/onboarding_loudness.ex:102
+#: lib/kati/screens/onboarding_loudness.ex:115
 #, elixir-autogen, elixir-format
 msgid "A card on home. Nothing buzzes."
 msgstr ""
@@ -59,7 +59,7 @@ msgstr ""
 
 #: lib/kati/screens/onboarding.ex:193
 #: lib/kati/screens/onboarding_large.ex:379
-#: lib/kati/screens/onboarding_loudness.ex:100
+#: lib/kati/screens/onboarding_loudness.ex:114
 #, elixir-autogen, elixir-format
 msgid "A push when something lands."
 msgstr ""
@@ -117,7 +117,7 @@ msgid "Add to library"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:203
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Add your first title"
 msgstr ""
@@ -141,7 +141,7 @@ msgstr ""
 msgid "All"
 msgstr ""
 
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Already have a Kati backup? Restore it"
 msgstr ""
@@ -193,19 +193,19 @@ msgstr ""
 msgid "BOOK"
 msgstr ""
 
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Back to language"
 msgstr ""
 
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/loudness_prompt.ex:48
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Back to loudness"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:524
 #: lib/kati/screens/onboarding_large.ex:654
-#: lib/kati/screens/onboarding_loudness.ex:50
+#: lib/kati/screens/onboarding_loudness.ex:71
 #, elixir-autogen, elixir-format
 msgid "Back to sections"
 msgstr ""
@@ -272,11 +272,6 @@ msgstr ""
 msgid "Changes will not carry forward"
 msgstr ""
 
-#: lib/kati/screens/onboarding_loudness.ex:50
-#, elixir-autogen, elixir-format
-msgid "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136"
-msgstr ""
-
 #: lib/kati/screens/shelf_filters.ex:401
 #: lib/kati/screens/shelf_large.ex:275
 #: lib/kati/stats/sample.ex:37
@@ -286,9 +281,9 @@ msgid "Comedy"
 msgstr ""
 
 #: lib/kati/screens/language_pick.ex:587
-#: lib/kati/screens/loudness_prompt.ex:432
+#: lib/kati/screens/loudness_prompt.ex:48
 #: lib/kati/screens/onboarding_large.ex:608
-#: lib/kati/screens/onboarding_loudness.ex:50
+#: lib/kati/screens/onboarding_loudness.ex:71
 #, elixir-autogen, elixir-format
 msgid "Continue"
 msgstr ""
@@ -451,13 +446,13 @@ msgid "Films & TV"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:164
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:209
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Finish setup"
 msgstr ""
@@ -490,7 +485,7 @@ msgid "Full notice list"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:169
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Get started"
 msgstr ""
@@ -532,7 +527,7 @@ msgstr ""
 
 #: lib/kati/screens/onboarding.ex:178
 #: lib/kati/screens/onboarding_large.ex:354
-#: lib/kati/screens/onboarding_loudness.ex:115
+#: lib/kati/screens/onboarding_loudness.ex:128
 #, elixir-autogen, elixir-format
 msgid "How should we\ntell you?"
 msgstr ""
@@ -562,15 +557,13 @@ msgstr ""
 msgid "Journal"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:355
 #: lib/kati/screens/onboarding_large.ex:539
-#: lib/kati/screens/onboarding_loudness.ex:222
 #, elixir-autogen, elixir-format
 msgid "Kati"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:183
-#: lib/kati/screens/onboarding_loudness.ex:50
+#: lib/kati/screens/onboarding_loudness.ex:71
 #, elixir-autogen, elixir-format
 msgid "Kati checks for new episodes on its own. You choose how loudly it mentions them."
 msgstr ""
@@ -869,19 +862,18 @@ msgstr ""
 
 #: lib/kati/screens/onboarding.ex:187
 #: lib/kati/screens/onboarding_large.ex:378
-#: lib/kati/screens/onboarding_loudness.ex:94
+#: lib/kati/screens/onboarding_loudness.ex:109
 #, elixir-autogen, elixir-format
 msgid "Notify me"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:159
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "One place for"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:200
-#: lib/kati/screens/onboarding_loudness.ex:101
 #, elixir-autogen, elixir-format
 msgid "One summary, Sundays at 18:00."
 msgstr ""
@@ -902,7 +894,7 @@ msgid "Pick a list"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:206
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Pick something you are watching now — the calendar fills itself from there."
 msgstr ""
@@ -929,7 +921,7 @@ msgstr ""
 
 #: lib/kati/screens/onboarding.ex:186
 #: lib/kati/screens/onboarding_large.ex:372
-#: lib/kati/screens/onboarding_loudness.ex:96
+#: lib/kati/screens/onboarding_loudness.ex:110
 #, elixir-autogen, elixir-format
 msgid "Quietly"
 msgstr ""
@@ -968,11 +960,6 @@ msgstr ""
 #: lib/kati/screens/pick_sections.ex:462
 #, elixir-autogen, elixir-format
 msgid "Restore from a backup instead"
-msgstr ""
-
-#: lib/kati/screens/onboarding_welcome.ex:37
-#, elixir-autogen, elixir-format
-msgid "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below."
 msgstr ""
 
 #: lib/kati/lists/shelf.ex:171
@@ -1054,7 +1041,7 @@ msgid "Shop"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:210
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Skip — I’ll add things later"
 msgstr ""
@@ -1247,7 +1234,6 @@ msgid "Week %{week} · %{date}"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:188
-#: lib/kati/screens/onboarding_loudness.ex:95
 #, elixir-autogen, elixir-format
 msgid "Weekly digest"
 msgstr ""
@@ -1316,9 +1302,7 @@ msgstr ""
 msgid "e.g. The Long Hollow"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:358
 #: lib/kati/screens/onboarding_large.ex:542
-#: lib/kati/screens/onboarding_loudness.ex:222
 #, elixir-autogen, elixir-format
 msgid "for notification permission. Everything arrives in your inbox."
 msgstr ""
@@ -1376,14 +1360,12 @@ msgid "the titles themselves — they stay on their shelves, with their ratings 
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:159
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "what you keep"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:356
 #: lib/kati/screens/onboarding_large.ex:540
-#: lib/kati/screens/onboarding_loudness.ex:222
 #, elixir-autogen, elixir-format
 msgid "won’t ask"
 msgstr ""
@@ -1533,7 +1515,7 @@ msgid "Recognised"
 msgstr ""
 
 #: lib/kati/screens/add_title.ex:145
-#: lib/kati/screens/onboarding_first_title.ex:156
+#: lib/kati/screens/onboarding_first_title.ex:154
 #: lib/kati/screens/pushed.ex:205
 #, elixir-autogen, elixir-format
 msgid "Search"
@@ -5497,7 +5479,7 @@ msgstr ""
 
 #: lib/kati/screens/add_title.ex:137
 #: lib/kati/screens/add_title_music.ex:271
-#: lib/kati/screens/onboarding_first_title.ex:154
+#: lib/kati/screens/onboarding_first_title.ex:152
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} result"
 msgid_plural "%{n} results"
@@ -13639,11 +13621,6 @@ msgstr ""
 msgid "Album detail"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:492
-#, elixir-autogen, elixir-format
-msgid "Android does not allow a second prompt — the only route back is the system settings app, which is where this screen would send you."
-msgstr ""
-
 #: lib/kati/screens/attribution_states.ex:448
 #, elixir-autogen, elixir-format
 msgid "At %{n}% the mark-beside-text row becomes a stack and the link row splits into two lines, per %{board}’s rule. The verbatim notice wraps in full — a legal sentence is the one thing that may never be ellipsised."
@@ -13689,19 +13666,9 @@ msgstr ""
 msgid "Hold a row to rate it"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:233
-#, elixir-autogen, elixir-format
-msgid "If Notify me or Weekly digest is chosen"
-msgstr ""
-
-#: lib/kati/screens/loudness_prompt.ex:489
+#: lib/kati/screens/loudness_prompt.ex:96
 #, elixir-autogen, elixir-format
 msgid "If you say no, Kati falls back to the inbox badge and"
-msgstr ""
-
-#: lib/kati/screens/loudness_prompt.ex:382
-#, elixir-autogen, elixir-format
-msgid "Kati asks the system for permission on the next screen. It is used for new episodes and the meal reminders you switch on — nothing else."
 msgstr ""
 
 #: lib/kati/screens/inbox_notifications.ex:392
@@ -13761,7 +13728,7 @@ msgstr ""
 msgid "Offline — identical, from bundled assets"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:382
+#: lib/kati/screens/loudness_prompt.ex:48
 #, elixir-autogen, elixir-format
 msgid "One prompt, then never again"
 msgstr ""
@@ -13933,7 +13900,7 @@ msgstr ""
 msgid "three states"
 msgstr ""
 
-#: lib/kati/screens/loudness_prompt.ex:490
+#: lib/kati/screens/loudness_prompt.ex:97
 #, elixir-autogen, elixir-format
 msgid "will not ask again"
 msgstr ""
@@ -17466,7 +17433,17 @@ msgstr ""
 msgid "You added this by hand, so Kati has no seasons or episodes for it."
 msgstr ""
 
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/loudness_prompt.ex:99
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Android does not allow a second prompt — the only way back is its own settings app."
+msgstr ""
+
+#: lib/kati/screens/loudness_prompt.ex:48
 #, elixir-autogen, elixir-format
-msgid "Skipping lands on empty Home — 139."
+msgid "Continue raises Android’s permission dialog once. Kati uses it for new episodes and releases you follow, and the meal reminders you switch on — nothing else."
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex:237
+#, elixir-autogen, elixir-format
+msgid "Kati won’t ask for notification permission. Everything arrives in your inbox."
 msgstr ""

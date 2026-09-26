@@ -16,8 +16,18 @@ defmodule Kati.Screens.OnboardingLoudness do
   is a real decision and not a default: a permission dialog on a choice that
   needs no permission is how an app teaches people to refuse them.
 
-  Choosing *Notify me* or *Weekly digest* raises the prompt on the **next**
-  step, which is the band drawn on screen 136.
+  **Notify me** raises the prompt on the **next** step,
+  `Kati.Screens.LoudnessPrompt`.
+
+  ## What the choice is stored as
+
+  The release watcher's own *Push notifications* switch —
+  `Kati.Settings.Watcher.loud?(:push)`, the one screen 25 draws and
+  `Kati.Notifications.Releases.sync/1` reads. The step used to hold the answer
+  in an assign and drop it on Continue, so a reader who asked to be notified
+  had push off exactly as if they had not been asked. There is no *Weekly
+  digest* card: nothing in Kati sends one, and screen 25 took its switch away
+  for that reason, so offering it here promised something the app does not do.
   """
   use Kati.Screens.Pushed, back: nil
   use Gettext, backend: Kati.Gettext
@@ -30,20 +40,31 @@ defmodule Kati.Screens.OnboardingLoudness do
   alias Kati.Screens.OnboardingWelcome
   alias Kati.Theme.Palette
   alias Kati.UI
-  alias Kati.UI.SettingsList
 
   # `{key, glyph}`. The KEY is the state and the words are asked for at draw
   # time — mishka-group/kati#158's rule, and #103's fold is what made it matter
   # here: `:choice` held the label, `after_choice/1` matched on `"Quietly"`, and
   # the Persian mirror's own label was آرام. Every clause would have fallen
   # through on a Persian run and sent a quiet reader to the OS prompt.
-  @choices [{:quiet, "inbox"}, {:notify, "notifications"}, {:digest, "mail"}]
+  @choices [{:quiet, "inbox"}, {:notify, "notifications"}]
 
   @impl true
   def load(socket) do
     Kati.Onboarding.reached!(:loudness)
-    Mob.Socket.assign(socket, :choice, :quiet)
+    Mob.Socket.assign(socket, :choice, Kati.Screens.OnboardingLoudness.stored())
   end
+
+  @doc """
+  The choice the watcher's push switch already holds — `:quiet` on a fresh
+  install, where push defaults off.
+  """
+  @spec stored() :: :quiet | :notify
+  def stored, do: if(Kati.Settings.Watcher.loud?(:push), do: :notify, else: :quiet)
+
+  @doc "Write a choice through to the watcher's push switch."
+  @spec store(:quiet | :notify) :: :ok
+  def store(:notify), do: Kati.Settings.Watcher.put_loud(:push, true)
+  def store(_quiet), do: Kati.Settings.Watcher.put_loud(:push, false)
 
   @doc false
   def content(assigns) do
@@ -64,22 +85,16 @@ defmodule Kati.Screens.OnboardingLoudness do
       <Spacer size={18} />
       {OnboardingWelcome.forward(gettext("Continue"), :next)}
       <Spacer size={14} />
-      {SettingsList.note("info", gettext("Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136"))}
       {OnboardingWelcome.back_row(gettext("Back to sections"))}
     </Column>
     """)
   end
 
   @doc """
-  The three choices, in the reader's own language.
+  The two choices, in the reader's own language.
 
       iex> Kati.Screens.OnboardingLoudness.choice_list() |> Enum.map(&elem(&1, 0))
-      [:quiet, :notify, :digest]
-
-  The digest day is one the translation moves rather than copies: the English
-  board reads *Sundays at 18:00* and the Persian *جمعه‌ها* — the quiet end of
-  the week, which in Iran is Friday. A catalogue can carry that and a mirror
-  had to be written to.
+      [:quiet, :notify]
   """
   @spec choice_list() :: [{atom(), String.t(), String.t(), String.t()}]
   def choice_list do
@@ -92,13 +107,11 @@ defmodule Kati.Screens.OnboardingLoudness do
   @doc false
   @spec label(atom()) :: String.t()
   def label(:notify), do: gettext("Notify me")
-  def label(:digest), do: gettext("Weekly digest")
   def label(_quiet), do: gettext("Quietly")
 
   @doc false
   @spec line(atom()) :: String.t()
   def line(:notify), do: gettext("A push when something lands.")
-  def line(:digest), do: gettext("One summary, Sundays at 18:00.")
   def line(_quiet), do: gettext("A card on home. Nothing buzzes.")
 
   @doc """
@@ -134,12 +147,16 @@ defmodule Kati.Screens.OnboardingLoudness do
     """
   end
 
-  @doc "Take a choice's tap, if it names one of the three."
+  @doc "Take a choice's tap, if it names one of the two, and store it."
   @spec pick_choice(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def pick_choice(socket, key) do
     case Enum.find(@choices, fn {choice, _icon} -> Atom.to_string(choice) == key end) do
-      {choice, _icon} -> Mob.Socket.assign(socket, :choice, choice)
-      nil -> socket
+      {choice, _icon} ->
+        Kati.Screens.OnboardingLoudness.store(choice)
+        Mob.Socket.assign(socket, :choice, choice)
+
+      nil ->
+        socket
     end
   end
 
@@ -232,20 +249,7 @@ defmodule Kati.Screens.OnboardingLoudness do
       <Spacer size={9} />
       <Column weight={1.0}>
         <Text
-          text={gettext("Kati")}
-          text_size={12.5}
-          line_height={1.5}
-          text_color={Kati.Theme.Palette.ink_soft()}
-        />
-        <Text
-          text={gettext("won’t ask")}
-          text_size={12.5}
-          line_height={1.5}
-          font_weight="semibold"
-          text_color={Kati.Theme.Palette.ink()}
-        />
-        <Text
-          text={gettext("for notification permission. Everything arrives in your inbox.")}
+          text={gettext("Kati won’t ask for notification permission. Everything arrives in your inbox.")}
           text_size={12.5}
           line_height={1.5}
           text_color={Kati.Theme.Palette.ink_soft()}
@@ -260,12 +264,9 @@ defmodule Kati.Screens.OnboardingLoudness do
   @doc """
   Where Continue goes, which is the whole of what this step decides.
 
-  A loud choice takes the OS prompt on the way — board 136, which this screen's
-  own dashed note names: *"Choosing Notify me or Weekly digest raises the OS
-  prompt on the next step."* `Kati.Screens.LoudnessPrompt` is that band, and
-  its entry has been *"38·3 itself routing forward, which needs 38 renumbered
-  to five steps"* since `Kati.AppReachabilityTest`'s inventory was written.
-  This is that step, and this is it routing forward.
+  *Notify me* takes the OS prompt on the way — `Kati.Screens.LoudnessPrompt`.
+  The choice is stored before either route, so the answer survives whatever
+  the reader does at the system dialog.
 
   Quietly goes straight on, and that is the decision the board makes rather
   than a shortcut: Kati raises no notification prompt at all for a reader who
@@ -274,6 +275,8 @@ defmodule Kati.Screens.OnboardingLoudness do
   """
   @impl true
   def handle_tap(:next, socket) do
+    Kati.Screens.OnboardingLoudness.store(socket.assigns[:choice])
+
     {:noreply,
      Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudness.after_choice(socket))}
   end
@@ -291,8 +294,8 @@ defmodule Kati.Screens.OnboardingLoudness do
   @spec after_choice(Mob.Socket.t()) :: module()
   def after_choice(socket) do
     case socket.assigns[:choice] do
-      :quiet -> Kati.Screens.OnboardingFirstTitle
-      _loud -> Kati.Screens.LoudnessPrompt
+      :notify -> Kati.Screens.LoudnessPrompt
+      _quiet -> Kati.Screens.OnboardingFirstTitle
     end
   end
 end

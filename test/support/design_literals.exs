@@ -1325,7 +1325,50 @@ defmodule Kati.DesignLiterals do
       {"166", "بارش خاکستر"},
       {"166", "مرام"},
       {"166", "پرندگان شب"},
-      {"166", "در انگلیسی. پوسترها هرگز آینه نمی‌شوند؛ فقط تیک به گوشه پیشرو می‌رود."}
+      {"166", "در انگلیسی. پوسترها هرگز آینه نمی‌شوند؛ فقط تیک به گوشه پیشرو می‌رود."},
+      # N49: the first run read its designers' notes aloud — board 161's
+      # restore note, 162's "band drawn on 136", 163's "Skipping lands on
+      # empty Home — 139" and their Persian twins — and offered a Weekly
+      # digest nothing sends. Board 136 redrew step 4's question with
+      # Quietly ticked over the permission it asked for; the screen now
+      # draws only the permission. `Kati.OnboardingHonestTest` asserts it.
+      {"136", "how should we"},
+      {"136", "tell you?"},
+      {"136", "kati checks for new episodes on its own. you choose how loudly it mentions them."},
+      {"136", "quietly"},
+      {"136", "a card on home. nothing buzzes."},
+      {"136", "notify me"},
+      {"136", "a push when something lands."},
+      {"136", "weekly digest"},
+      {"136", "one summary, sundays at 18:00."},
+      {"136", "won’t ask"},
+      {"136", "for notification permission. everything arrives in your inbox."},
+      {"136", "if notify me or weekly digest is chosen"},
+      {"136",
+       "kati asks the system for permission on the next screen. it is used for new episodes and the meal reminders you switch on — nothing else."},
+      {"136",
+       ". android does not allow a second prompt — the only route back is the system settings app, which is where this screen would send you."},
+      {"136", "back to sections"},
+      {"161", "restore stays beneath the button"},
+      {"161",
+       "in both scripts. rtl mirrors the grid, not the vertical order — primary above, quiet alternative below."},
+      {"162", "weekly digest"},
+      {"162", "one summary, sundays at 18:00."},
+      {"162",
+       "choosing notify me or weekly digest raises the os prompt on the next step — the band drawn on"},
+      {"163", "skipping lands on"},
+      {"163", "empty home"},
+      {"164", "بازگردانی زیر دکمه می‌ماند"},
+      {"164",
+       "— جایش عوض نمی‌شود. در rtl همه‌چیز آینه می‌شود جز ترتیب عمودی: عمل اصلی بالا، جایگزین آرام پایین، در هر دو زبان."},
+      {"165", "خلاصه هفتگی"},
+      {"165", "یک خلاصه، جمعه‌ها ساعت ۱۸:۰۰."},
+      {"165", "اگر «خبرم کن» را انتخاب کنید، گام بعد اجازه سیستم را می‌گیرد — همان بندی که در"},
+      {"165", "کشیده شده."},
+      {"166", "رد کردن این گام به"},
+      {"166", "خانه خالی"},
+      {"166", "می‌رسد —"},
+      {"166", "در فارسی،"}
     ]
   end
 

@@ -52,7 +52,7 @@ msgstr "۷"
 
 #: lib/kati/screens/onboarding.ex:191
 #: lib/kati/screens/onboarding_large.ex:373
-#: lib/kati/screens/onboarding_loudness.ex:102
+#: lib/kati/screens/onboarding_loudness.ex:115
 #, elixir-autogen, elixir-format
 msgid "A card on home. Nothing buzzes."
 msgstr "یک کارت در خانه. هیچ صدایی بلند نمی‌شود."
@@ -64,7 +64,7 @@ msgstr "فیلمی که تماشایش را ثبت کنید، یا سریالی 
 
 #: lib/kati/screens/onboarding.ex:193
 #: lib/kati/screens/onboarding_large.ex:379
-#: lib/kati/screens/onboarding_loudness.ex:100
+#: lib/kati/screens/onboarding_loudness.ex:114
 #, elixir-autogen, elixir-format
 msgid "A push when something lands."
 msgstr "یک اعلان وقتی چیزی می‌رسد."
@@ -122,7 +122,7 @@ msgid "Add to library"
 msgstr "افزودن به کتابخانه"
 
 #: lib/kati/screens/onboarding.ex:203
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Add your first title"
 msgstr "اولین عنوان را اضافه کنید"
@@ -146,7 +146,7 @@ msgstr "اطلاعات آلبوم و هنرمند، و تصویر جلد جای�
 msgid "All"
 msgstr "همه"
 
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Already have a Kati backup? Restore it"
 msgstr "پشتیبان دارید؟ بازگردانی کنید"
@@ -198,19 +198,19 @@ msgstr "دسترسی به محتوا کشور به کشور فرق می‌کند
 msgid "BOOK"
 msgstr "کتاب"
 
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Back to language"
 msgstr "بازگشت به زبان"
 
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/loudness_prompt.ex:48
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Back to loudness"
 msgstr "بازگشت به اعلان‌ها"
 
-#: lib/kati/screens/loudness_prompt.ex:524
 #: lib/kati/screens/onboarding_large.ex:654
-#: lib/kati/screens/onboarding_loudness.ex:50
+#: lib/kati/screens/onboarding_loudness.ex:71
 #, elixir-autogen, elixir-format
 msgid "Back to sections"
 msgstr "بازگشت به بخش‌ها"
@@ -277,11 +277,6 @@ msgstr "انصراف"
 msgid "Changes will not carry forward"
 msgstr "تغییرها به هفته‌های بعد نمی‌روند"
 
-#: lib/kati/screens/onboarding_loudness.ex:50
-#, elixir-autogen, elixir-format
-msgid "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136"
-msgstr "اگر «خبرم کن» را انتخاب کنید، گام بعد اجازه سیستم را می‌گیرد — همان بندی که در ۱۳۶ کشیده شده."
-
 #: lib/kati/screens/shelf_filters.ex:401
 #: lib/kati/screens/shelf_large.ex:275
 #: lib/kati/stats/sample.ex:37
@@ -291,9 +286,9 @@ msgid "Comedy"
 msgstr "کمدی"
 
 #: lib/kati/screens/language_pick.ex:587
-#: lib/kati/screens/loudness_prompt.ex:432
+#: lib/kati/screens/loudness_prompt.ex:48
 #: lib/kati/screens/onboarding_large.ex:608
-#: lib/kati/screens/onboarding_loudness.ex:50
+#: lib/kati/screens/onboarding_loudness.ex:71
 #, elixir-autogen, elixir-format
 msgid "Continue"
 msgstr "ادامه"
@@ -456,13 +451,13 @@ msgid "Films & TV"
 msgstr "فیلم و سریال"
 
 #: lib/kati/screens/onboarding.ex:164
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
 msgstr "فیلم، سریال، کتاب، عادت — هر کدام یک قفسه‌اند و همه به یک تقویم می‌ریزند. با یکی شروع کنید و بقیه را هر وقت خواستید اضافه کنید."
 
 #: lib/kati/screens/onboarding.ex:209
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Finish setup"
 msgstr "پایان راه‌اندازی"
@@ -495,7 +490,7 @@ msgid "Full notice list"
 msgstr "فهرست کامل اعلان‌ها"
 
 #: lib/kati/screens/onboarding.ex:169
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "Get started"
 msgstr "شروع کنیم"
@@ -537,7 +532,7 @@ msgstr "خانه"
 
 #: lib/kati/screens/onboarding.ex:178
 #: lib/kati/screens/onboarding_large.ex:354
-#: lib/kati/screens/onboarding_loudness.ex:115
+#: lib/kati/screens/onboarding_loudness.ex:128
 #, elixir-autogen, elixir-format
 msgid "How should we\ntell you?"
 msgstr "چطور به شما خبر بدهیم؟"
@@ -567,15 +562,13 @@ msgstr "فروردین تا مرداد ۱۴۰۵"
 msgid "Journal"
 msgstr "دفترچه"
 
-#: lib/kati/screens/loudness_prompt.ex:355
 #: lib/kati/screens/onboarding_large.ex:539
-#: lib/kati/screens/onboarding_loudness.ex:222
 #, elixir-autogen, elixir-format
 msgid "Kati"
 msgstr "کاتی برای اعلان"
 
 #: lib/kati/screens/onboarding.ex:183
-#: lib/kati/screens/onboarding_loudness.ex:50
+#: lib/kati/screens/onboarding_loudness.ex:71
 #, elixir-autogen, elixir-format
 msgid "Kati checks for new episodes on its own. You choose how loudly it mentions them."
 msgstr "کاتی خودش قسمت‌های تازه را می‌بیند. شما انتخاب می‌کنید چقدر بلند بگوید."
@@ -874,19 +867,18 @@ msgstr "چیزی بازتماشا نشده"
 
 #: lib/kati/screens/onboarding.ex:187
 #: lib/kati/screens/onboarding_large.ex:378
-#: lib/kati/screens/onboarding_loudness.ex:94
+#: lib/kati/screens/onboarding_loudness.ex:109
 #, elixir-autogen, elixir-format
 msgid "Notify me"
 msgstr "خبرم کن"
 
 #: lib/kati/screens/onboarding.ex:159
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "One place for"
 msgstr "یک جا برای"
 
 #: lib/kati/screens/onboarding.ex:200
-#: lib/kati/screens/onboarding_loudness.ex:101
 #, elixir-autogen, elixir-format
 msgid "One summary, Sundays at 18:00."
 msgstr "یک خلاصه، جمعه‌ها ساعت ۱۸:۰۰."
@@ -907,7 +899,7 @@ msgid "Pick a list"
 msgstr "انتخابگر فهرست"
 
 #: lib/kati/screens/onboarding.ex:206
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Pick something you are watching now — the calendar fills itself from there."
 msgstr "چیزی را انتخاب کنید که همین حالا تماشا می‌کنید — تقویم از همان‌جا خودش پر می‌شود."
@@ -934,7 +926,7 @@ msgstr "پوستر، جلد، تاریخ پخش و اطلاعات"
 
 #: lib/kati/screens/onboarding.ex:186
 #: lib/kati/screens/onboarding_large.ex:372
-#: lib/kati/screens/onboarding_loudness.ex:96
+#: lib/kati/screens/onboarding_loudness.ex:110
 #, elixir-autogen, elixir-format
 msgid "Quietly"
 msgstr "آرام"
@@ -974,11 +966,6 @@ msgstr "تکرار"
 #, elixir-autogen, elixir-format
 msgid "Restore from a backup instead"
 msgstr "بازگردانی از پشتیبان"
-
-#: lib/kati/screens/onboarding_welcome.ex:37
-#, elixir-autogen, elixir-format
-msgid "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below."
-msgstr "بازگردانی زیر دکمه می‌ماند — جایش عوض نمی‌شود. در RTL همه‌چیز آینه می‌شود جز ترتیب عمودی: عمل اصلی بالا، جایگزین آرام پایین، در هر دو زبان."
 
 #: lib/kati/lists/shelf.ex:171
 #, elixir-autogen, elixir-format
@@ -1059,7 +1046,7 @@ msgid "Shop"
 msgstr "خرید"
 
 #: lib/kati/screens/onboarding.ex:210
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/onboarding_first_title.ex:89
 #, elixir-autogen, elixir-format
 msgid "Skip — I’ll add things later"
 msgstr "رد کن — بعداً اضافه می‌کنم"
@@ -1252,7 +1239,6 @@ msgid "Week %{week} · %{date}"
 msgstr "هفته %{week} · %{date}"
 
 #: lib/kati/screens/onboarding.ex:188
-#: lib/kati/screens/onboarding_loudness.ex:95
 #, elixir-autogen, elixir-format
 msgid "Weekly digest"
 msgstr "خلاصه هفتگی"
@@ -1321,9 +1307,7 @@ msgstr "سال شما، هم‌رسان"
 msgid "e.g. The Long Hollow"
 msgstr "گودال بلند"
 
-#: lib/kati/screens/loudness_prompt.ex:358
 #: lib/kati/screens/onboarding_large.ex:542
-#: lib/kati/screens/onboarding_loudness.ex:222
 #, elixir-autogen, elixir-format
 msgid "for notification permission. Everything arrives in your inbox."
 msgstr ". همه‌چیز در صندوق شما می‌آید."
@@ -1381,14 +1365,12 @@ msgid "the titles themselves — they stay on their shelves, with their ratings 
 msgstr "خود عنوان‌ها — با امتیاز و تاریخچه‌شان در قفسه می‌مانند."
 
 #: lib/kati/screens/onboarding.ex:159
-#: lib/kati/screens/onboarding_welcome.ex:37
+#: lib/kati/screens/onboarding_welcome.ex:36
 #, elixir-autogen, elixir-format
 msgid "what you keep"
 msgstr "هر چه نگه می‌دارید"
 
-#: lib/kati/screens/loudness_prompt.ex:356
 #: lib/kati/screens/onboarding_large.ex:540
-#: lib/kati/screens/onboarding_loudness.ex:222
 #, elixir-autogen, elixir-format
 msgid "won’t ask"
 msgstr "اجازه نمی‌خواهد"
@@ -1538,7 +1520,7 @@ msgid "Recognised"
 msgstr "شناسایی‌شده"
 
 #: lib/kati/screens/add_title.ex:145
-#: lib/kati/screens/onboarding_first_title.ex:156
+#: lib/kati/screens/onboarding_first_title.ex:154
 #: lib/kati/screens/pushed.ex:205
 #, elixir-autogen, elixir-format
 msgid "Search"
@@ -5502,7 +5484,7 @@ msgstr "%{name} در این نسخه نیست"
 
 #: lib/kati/screens/add_title.ex:137
 #: lib/kati/screens/add_title_music.ex:271
-#: lib/kati/screens/onboarding_first_title.ex:154
+#: lib/kati/screens/onboarding_first_title.ex:152
 #, elixir-autogen, elixir-format
 msgid "%{n} result"
 msgid_plural "%{n} results"
@@ -13644,11 +13626,6 @@ msgstr "«به‌زودی پخش» یک تاریخ است، نه یک بازهٔ
 msgid "Album detail"
 msgstr "جزئیات آلبوم"
 
-#: lib/kati/screens/loudness_prompt.ex:492
-#, elixir-autogen, elixir-format
-msgid "Android does not allow a second prompt — the only route back is the system settings app, which is where this screen would send you."
-msgstr "اندروید بار دوم اجازه نمی‌پرسد — تنها راه بازگشت، برنامهٔ تنظیمات گوشی است؛ همان جایی که این صفحه شما را می‌فرستاد."
-
 #: lib/kati/screens/attribution_states.ex:448
 #, elixir-autogen, elixir-format
 msgid "At %{n}% the mark-beside-text row becomes a stack and the link row splits into two lines, per %{board}’s rule. The verbatim notice wraps in full — a legal sentence is the one thing that may never be ellipsised."
@@ -13694,20 +13671,10 @@ msgstr "اولین شنیدن %{date}"
 msgid "Hold a row to rate it"
 msgstr "برای امتیاز دادن، ردیفی را نگه دارید"
 
-#: lib/kati/screens/loudness_prompt.ex:233
-#, elixir-autogen, elixir-format
-msgid "If Notify me or Weekly digest is chosen"
-msgstr "اگر «خبرم کن» یا «خلاصه هفتگی» انتخاب شود"
-
-#: lib/kati/screens/loudness_prompt.ex:489
+#: lib/kati/screens/loudness_prompt.ex:96
 #, elixir-autogen, elixir-format
 msgid "If you say no, Kati falls back to the inbox badge and"
 msgstr "اگر نه بگویید، کاتی به نشان صندوق برمی‌گردد و"
-
-#: lib/kati/screens/loudness_prompt.ex:382
-#, elixir-autogen, elixir-format
-msgid "Kati asks the system for permission on the next screen. It is used for new episodes and the meal reminders you switch on — nothing else."
-msgstr "کاتی در صفحهٔ بعد از سیستم اجازه می‌گیرد. برای قسمت‌های تازه و یادآورهای وعده‌ای که خودتان روشن می‌کنید به کار می‌رود — نه چیز دیگری."
 
 #: lib/kati/screens/inbox_notifications.ex:392
 #, elixir-autogen, elixir-format
@@ -13766,7 +13733,7 @@ msgstr "چیزی نوشته نشد."
 msgid "Offline — identical, from bundled assets"
 msgstr "آفلاین — دقیقاً همان، از فایل‌های داخل برنامه"
 
-#: lib/kati/screens/loudness_prompt.ex:382
+#: lib/kati/screens/loudness_prompt.ex:48
 #, elixir-autogen, elixir-format
 msgid "One prompt, then never again"
 msgstr "یک بار می‌پرسد، دیگر هرگز"
@@ -13938,7 +13905,7 @@ msgstr "ستاره، در %{face}، تا ستون هم‌تراز بماند —
 msgid "three states"
 msgstr "سه حالت"
 
-#: lib/kati/screens/loudness_prompt.ex:490
+#: lib/kati/screens/loudness_prompt.ex:97
 #, elixir-autogen, elixir-format
 msgid "will not ask again"
 msgstr "دیگر نمی‌پرسد"
@@ -17471,7 +17438,17 @@ msgstr "هنوز سریالی در کتابخانهٔ شما نیست"
 msgid "You added this by hand, so Kati has no seasons or episodes for it."
 msgstr "این را دستی اضافه کرده‌اید، پس کاتی فصل یا قسمتی برایش ندارد."
 
-#: lib/kati/screens/onboarding_first_title.ex:90
+#: lib/kati/screens/loudness_prompt.ex:99
 #, elixir-autogen, elixir-format
-msgid "Skipping lands on empty Home — 139."
-msgstr "رد کردن این گام به خانه خالی می‌رسد — ۱۵۸ در فارسی، ۱۳۹ در انگلیسی."
+msgid "Android does not allow a second prompt — the only way back is its own settings app."
+msgstr "اندروید بار دوم اجازه نمی‌پرسد — تنها راه بازگشت، برنامهٔ تنظیمات خود گوشی است."
+
+#: lib/kati/screens/loudness_prompt.ex:48
+#, elixir-autogen, elixir-format
+msgid "Continue raises Android’s permission dialog once. Kati uses it for new episodes and releases you follow, and the meal reminders you switch on — nothing else."
+msgstr "«ادامه» پنجرهٔ اجازهٔ اندروید را یک بار باز می‌کند. کاتی از آن برای قسمت‌های تازه و انتشار عنوان‌هایی که دنبال می‌کنید، و یادآورهای وعده‌ای که خودتان روشن می‌کنید استفاده می‌کند — نه چیز دیگری."
+
+#: lib/kati/screens/onboarding_loudness.ex:237
+#, elixir-autogen, elixir-format
+msgid "Kati won’t ask for notification permission. Everything arrives in your inbox."
+msgstr "کاتی برای اعلان اجازه نمی‌خواهد. همه‌چیز در صندوق شما می‌آید."

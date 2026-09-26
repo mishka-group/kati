@@ -264,6 +264,21 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
+    # N49 — see `DesignLiterals.retired_lines/0`: the notes' `info` glyphs,
+    # the Weekly digest's `mail`, and board 136's redrawn question.
+    {"136", "check"},
+    {"136", "check_circle"},
+    {"136", "inbox"},
+    {"136", "mail"},
+    {"136", "notifications"},
+    {"161", "info"},
+    {"162", "info"},
+    {"162", "mail"},
+    {"163", "info"},
+    {"164", "info"},
+    {"165", "info"},
+    {"165", "mail"},
+    {"166", "info"},
     # Board 141's expanded mapping frame, which the screen no longer draws —
     # see `DesignLiterals.retired_lines/0`'s N43 entry. The arrow and the
     # `block` glyph are its rows' own; screen 37 draws the same rows.

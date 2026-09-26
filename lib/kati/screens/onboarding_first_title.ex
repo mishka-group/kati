@@ -53,7 +53,6 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   alias Kati.Screens.AddTitle
   alias Kati.Screens.OnboardingWelcome
   alias Kati.Theme.Palette
-  alias Kati.UI.SettingsList
 
   @doc """
   An empty search, and whether there is a TMDB token to search with.
@@ -126,7 +125,6 @@ defmodule Kati.Screens.OnboardingFirstTitle do
         />
       </Box>
       <Spacer size={18} />
-      {SettingsList.note("info", gettext("Skipping lands on empty Home — 139."))}
       {OnboardingWelcome.back_row(gettext("Back to loudness"))}
     </Column>
     """)
@@ -179,6 +177,19 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   """
   @spec empty_home() :: module()
   def empty_home, do: Kati.Screens.HomeEmpty
+
+  @doc """
+  Coming back from screen 80: re-read whether a TMDB key is usable now.
+
+  The token block is the door to that page, so the page it opens is the one
+  place the answer can change — a reader who pasted a token or chose Kati's key
+  there came back to a block still asking for one.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :tmdb_ready, Kati.Media.Tmdb.usable?())}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @doc """
   The field and the debounce, answered by screen 06's own handlers.

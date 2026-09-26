@@ -1594,6 +1594,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   }
 
   @moment_symbols [
+    # N49: the design note that carried this glyph is gone from the first run.
+    {"163", "info"},
+    {"166", "info"},
     {"128", "cloud_done"},
     # 128's status card in the dark colourway and at 235%, reading the same
     # ledger — `Kati.ScreenDesignLiteralTest`'s `@unreachable_symbols` carries

@@ -24,7 +24,6 @@ defmodule Kati.Screens.OnboardingWelcome do
 
   alias Kati.Screens.Onboarding
   alias Kati.Theme.Palette
-  alias Kati.UI.SettingsList
 
   @impl true
   def load(socket) do
@@ -74,7 +73,6 @@ defmodule Kati.Screens.OnboardingWelcome do
         />
       </Box>
       <Spacer size={18} />
-      {SettingsList.note("info", gettext("Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below."))}
       {Kati.Screens.OnboardingWelcome.back_row(gettext("Back to language"))}
     </Column>
     """)
