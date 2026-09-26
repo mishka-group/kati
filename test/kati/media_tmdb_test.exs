@@ -313,6 +313,20 @@ defmodule Kati.MediaTmdbTest do
     end
 
     test "the network being gone is a reason, not a raise" do
+      # `transport_failure/1` asks real DNS whether TMDB is being sinkholed, so
+      # this answer depended on the network the suite ran on — a VPN or a
+      # filtering Wi-Fi made it `:blocked`. TMDB's public address is pinned in
+      # the host table for the test and taken out again.
+      host = ~c"api.themoviedb.org"
+      lookup = :inet_db.res_option(:lookup)
+      :inet_db.add_host({198, 20, 2, 61}, [host])
+      :inet_db.set_lookup([:file | List.delete(lookup, :file)])
+
+      on_exit(fn ->
+        :inet_db.del_host({198, 20, 2, 61})
+        :inet_db.set_lookup(lookup)
+      end)
+
       stub(fn _req -> raise "no route to host" end)
 
       assert {:error, {:network, _reason}} = Tmdb.search("anything")

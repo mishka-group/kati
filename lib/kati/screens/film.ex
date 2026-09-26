@@ -872,7 +872,7 @@ defmodule Kati.Screens.Film do
   def watched_pill(label) do
     MishkaPill.pill(
       [
-        background: Palette.green_wash(),
+        background: Palette.card(),
         corner_radius: 13,
         height: 26,
         padding: 0,
@@ -928,7 +928,7 @@ defmodule Kati.Screens.Film do
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
         {Kati.Screens.Film.back_control(label)}
         <Spacer weight={1.0} />
-        {Kati.Screens.Film.more_disc(Palette.chrome_disc(), Kati.Screens.Film.lift(), menu?, f)}
+        {Kati.Screens.Film.more_disc(Palette.card(), Kati.Screens.Film.lift(), menu?, f)}
       </Row>
     </Box>
     """
@@ -937,7 +937,7 @@ defmodule Kati.Screens.Film do
   @doc "The floating back pill as the chrome draws it: this page's fill, lift and tap."
   @spec back_control(String.t()) :: map()
   def back_control(label) do
-    Kati.Screens.Film.back_pill({self(), :back}, Palette.chrome_disc(), lift(), label)
+    Kati.Screens.Film.back_pill({self(), :back}, Palette.card(), lift(), label)
   end
 
   # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
@@ -1338,6 +1338,7 @@ defmodule Kati.Screens.Film do
       # that module's to translate; these two strings are arguments this screen
       # passes, so they are this screen's.
       [
+        Kati.Screens.Film.section_gap(),
         UI.eyebrow(gettext("Where to watch")),
         Kati.Screens.NothingSetUpKnockOn.prompt(
           gettext("Set up your services to see where this is streaming"),
@@ -1351,7 +1352,14 @@ defmodule Kati.Screens.Film do
   end
 
   def where_section(f, _set_up?),
-    do: [UI.eyebrow(gettext("Where to watch")), Kati.Screens.Film.where(f)]
+    do: [
+      Kati.Screens.Film.section_gap(),
+      UI.eyebrow(gettext("Where to watch")),
+      Kati.Screens.Film.where(f)
+    ]
+
+  @doc "The gap above a section's eyebrow, so it never sits on the card before it."
+  def section_gap, do: ~MOB"<Spacer size={22} />"
 
   @doc false
   def where(f) do

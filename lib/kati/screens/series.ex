@@ -1152,7 +1152,7 @@ defmodule Kati.Screens.Series do
   @doc false
   def chrome(menu?, label \\ gettext("Library"), s \\ %{}) do
     back = {self(), :back}
-    fill = Palette.chrome_disc()
+    fill = Palette.card()
     lift = "0 6 16 -8 #991A1917"
     assigns = %{back: label}
 

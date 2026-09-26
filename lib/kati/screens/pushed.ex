@@ -279,10 +279,15 @@ defmodule Kati.Screens.Pushed do
       accessibility_id={@screen}
     >
       {@content}
+      {Kati.Screens.Pushed.pill_fade(@back_label)}
       {Kati.Screens.Pushed.back_pill(@back_label)}
     </Box>
     """
   end
+
+  @doc "The page-coloured fade behind the floating pill — none where there is no pill."
+  def pill_fade(nil), do: %{type: :spacer, props: %{size: 0}, children: []}
+  def pill_fade(_label), do: Kati.UI.top_fade(118)
 
   @doc """
   The scrolling body of a pushed screen: 21pt sides, 40 below, `top` above.

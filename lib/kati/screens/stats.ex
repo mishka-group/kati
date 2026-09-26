@@ -1286,6 +1286,7 @@ defmodule Kati.Screens.Stats do
            at: DateTime.t() | nil,
            minutes: pos_integer() | nil,
            kind: atom(),
+           film?: boolean(),
            title: String.t() | nil,
            seed: String.t() | nil,
            season: integer() | nil,
@@ -1330,6 +1331,7 @@ defmodule Kati.Screens.Stats do
       # episodes somebody ticked.
       minutes: Map.get(runtimes, watch.episode_source_id) || (cached && cached.runtime_minutes),
       kind: tracked.kind,
+      film?: Kati.Media.Anime.film?(tracked.kind, cached),
       # For `breakdown/1`. The title's, because a genre is a property of the
       # show rather than of one night of it.
       genres: cached && cached.genres,
@@ -1569,8 +1571,8 @@ defmodule Kati.Screens.Stats do
   # series, and the drawing's `19 Series` beside `1,204 entries` on the row
   # below is only coherent if these two count different things.
   defp count_cards(entries) do
-    films = distinct(entries, &(&1.kind == :movie))
-    series = distinct(entries, &(&1.kind in [:tv, :anime]))
+    films = distinct(entries, &Map.get(&1, :film?, &1.kind == :movie))
+    series = distinct(entries, &(&1.kind in [:tv, :anime] and not Map.get(&1, :film?, false)))
 
     [
       {Kati.Locale.number(films), gettext("Films")},
@@ -1589,8 +1591,8 @@ defmodule Kati.Screens.Stats do
   defp average_rating(entries) do
     ratings =
       entries
-      |> Enum.uniq_by(& &1.tracked_id)
-      |> Enum.map(& &1.title_rating)
+      |> Enum.group_by(& &1.tracked_id)
+      |> Enum.map(fn {_id, watches} -> Kati.Screens.Stats.standing_rating(watches) end)
       |> Enum.reject(&is_nil/1)
 
     case ratings do
@@ -1603,6 +1605,31 @@ defmodule Kati.Screens.Stats do
         |> Kernel./(length(list) * 2)
         |> :erlang.float_to_binary(decimals: 1)
         |> Kati.Locale.number()
+    end
+  end
+
+  @doc """
+  The rating that stands for one title: the title's own when it has one, and
+  otherwise the newest night's. Screen 33 writes a rating on the WATCH, so a
+  reader who rated every film they logged had no title rating at all and the
+  average read *—* (found on the emulator, 26 Sep).
+
+      iex> Kati.Screens.Stats.standing_rating([%{title_rating: nil, rating: 8, at: ~U[2026-01-01 00:00:00Z]}, %{title_rating: nil, rating: 10, at: ~U[2026-02-01 00:00:00Z]}])
+      10
+
+      iex> Kati.Screens.Stats.standing_rating([%{title_rating: 6, rating: 10, at: nil}])
+      6
+  """
+  @spec standing_rating([map()]) :: 1..10 | nil
+  def standing_rating([%{title_rating: rating} | _]) when is_integer(rating), do: rating
+
+  def standing_rating(watches) do
+    watches
+    |> Enum.filter(&is_integer(&1.rating))
+    |> Enum.max_by(&(&1.at && DateTime.to_unix(&1.at)), fn -> nil end)
+    |> case do
+      nil -> nil
+      newest -> newest.rating
     end
   end
 

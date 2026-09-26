@@ -324,6 +324,25 @@ defmodule Kati.ScreenStatsTest do
     end
   end
 
+  doctest Kati.Screens.Stats, only: [standing_rating: 1]
+
+  describe "an anime film" do
+    setup do
+      title = title!("Spirited Away", :movie, nil, 125, 10)
+      tracked = Ash.get!(TrackedTitle, title.id)
+      tracked |> Ash.Changeset.for_update(:update, %{kind: :anime}) |> Ash.update!()
+      watch!(title, %{watched_on: Kati.Time.today(), watched_at: minutes_ago(30)})
+      :ok
+    end
+
+    test "is counted as a film, not as a series" do
+      # Tracked as `:anime`, cached as a film: `Kati.Media.Anime.film?/2`
+      # is the rule every other screen reads it by. Found on the emulator,
+      # 26 Sep: *0 films · 2 series* with Spirited Away finished.
+      assert [{"1", "Films"}, {"0", "Series"} | _] = Stats.figures()[:year].counts
+    end
+  end
+
   describe "ago/1" do
     test "names the distance in the words the drawing uses" do
       assert Stats.ago(minutes_ago(0)) == "just now"

@@ -306,11 +306,17 @@ defmodule Kati.ScreenSweep do
   sweep that starts writing to a new table is covered the day it does.
   `Kati.ScreenEmptyDatabaseTest.in_empty_database/1` uses the same shape for the
   mirror-image job.
+
+  Five minutes rather than the pool's 15 seconds: a sweep mounts every screen
+  inside the one transaction, and screens that read the whole calendar or the
+  whole watch history made it cross 15 on a loaded machine (26 Sep).
   """
   @spec rolled_back((-> result)) :: result when result: term()
   def rolled_back(fun) when is_function(fun, 0) do
     {:error, {:rolled_back, result}} =
-      Kati.Repo.transaction(fn -> Kati.Repo.rollback({:rolled_back, fun.()}) end)
+      Kati.Repo.transaction(fn -> Kati.Repo.rollback({:rolled_back, fun.()}) end,
+        timeout: :timer.minutes(5)
+      )
 
     result
   end

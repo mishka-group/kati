@@ -60,6 +60,12 @@ defmodule Kati.AppReachabilityTest do
   """
   use Mob.ScreenCase, async: false
 
+  # The walk mounts every screen and taps every control inside one rolled-back
+  # transaction (`Kati.ScreenSweep.rolled_back/1`), and screens reading the
+  # whole calendar and watch history made it outgrow ExUnit's 60 seconds on a
+  # loaded machine.
+  @moduletag timeout: :timer.minutes(10)
+
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Screens

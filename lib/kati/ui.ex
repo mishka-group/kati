@@ -156,6 +156,27 @@ defmodule Kati.UI do
   end
 
   @doc """
+  `paper_fade/3` the other way up: solid page at the top, nothing below.
+
+  Behind the floating back pill of a pushed page, so rows scrolled up pass
+  under the page's own colour instead of showing round the pill.
+  """
+  @spec top_fade(pos_integer(), number(), :light | :dark) :: term()
+  def top_fade(height, stop \\ 55, mode \\ Palette.mode()) do
+    rgb =
+      Palette.paper(mode)
+      |> rem(0x1000000)
+      |> Integer.to_string(16)
+      |> String.pad_leading(6, "0")
+
+    gradient = "to_bottom #FF#{rgb} #{stop}% #00#{rgb}"
+
+    ~MOB"""
+    <Box fill_width={true} height={height} gradient={gradient} />
+    """
+  end
+
+  @doc """
   A section label: a 13x2 accent dash, then mono caps.
 
   The design uses it eleven times on Home alone, always

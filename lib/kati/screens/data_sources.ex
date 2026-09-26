@@ -65,7 +65,27 @@ defmodule Kati.Screens.DataSources do
     |> Mob.Socket.assign(:token_error, nil)
     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
     |> Mob.Socket.assign(:confirm_wipe?, false)
+    |> Mob.Socket.assign(:editing?, false)
+    |> Mob.Socket.assign(:confirm_clear?, false)
     |> Mob.Socket.assign(:wipe_notice, nil)
+    |> Kati.Screens.DataSources.settle_store()
+  end
+
+  @doc """
+  Read the token again once the first frame is out, when the secure store had
+  not answered yet.
+
+  Its native half binds a moment after the app starts, and a page opened in
+  that moment — a relaunch that restores it, a deploy — read nothing once and
+  kept it. The same one-message settle `Kati.Screens.Account.settle/2` makes
+  for permissions: not a timer and not a loop; `:resumed` covers a longer gap.
+  """
+  @spec settle_store(Mob.Socket.t()) :: Mob.Socket.t()
+  def settle_store(socket) do
+    if Kati.Permissions.platform_answers?() and not Kati.SecureStore.available?(),
+      do: send(self(), {:kati, :store_settle, nil})
+
+    socket
   end
 
   @doc false
@@ -82,7 +102,7 @@ defmodule Kati.Screens.DataSources do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("Data sources"), gettext("Where Kati’s posters, covers and facts come from."), nil, :name)}
         {UI.eyebrow(gettext("Better artwork and metadata"))}
-        {Kati.Screens.DataSources.tmdb(Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0))}
+        {Kati.Screens.DataSources.tmdb(Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0), %{editing?: Map.get(assigns, :editing?, false), confirm_clear?: Map.get(assigns, :confirm_clear?, false)})}
         {UI.eyebrow(gettext("Where your tokens live"))}
         {Kati.Screens.DataSources.tokens(assigns)}
         {UI.eyebrow(gettext("Cached metadata"))}
@@ -196,7 +216,7 @@ defmodule Kati.Screens.DataSources do
   key*.
   """
   @spec tmdb(String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
-  def tmdb(token \\ "", saved? \\ false, error \\ nil, epoch \\ 0) do
+  def tmdb(token \\ "", saved? \\ false, error \\ nil, epoch \\ 0, state \\ %{}) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
@@ -207,7 +227,7 @@ defmodule Kati.Screens.DataSources do
         )
       ])}
       <Spacer size={12} />
-      {Kati.Screens.DataSources.own_key(token, saved?, error, epoch)}
+      {Kati.Screens.DataSources.own_key(token, saved?, error, epoch, state)}
       <Spacer size={12} />
       {Kati.UI.SettingsList.note("info", gettext("Kati uses your own TMDB token, so searches are yours and nobody else’s. It is free: sign in at themoviedb.org, open Settings → API, and paste the API Read Access Token — the long one starting eyJ."))}
       <Spacer size={24} />
@@ -229,18 +249,40 @@ defmodule Kati.Screens.DataSources do
   connect an account, so the user is told the truth instead of discovering it
   when the first save fails.*
   """
-  @spec own_key(String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
-  def own_key(token, saved?, error, epoch) do
+  @spec own_key(String.t(), boolean(), String.t() | nil, non_neg_integer(), map()) :: map()
+  def own_key(token, saved?, error, epoch, state \\ %{}) do
+    editing? = Map.get(state, :editing?, false)
+
     cond do
-      not Kati.SecureStore.available?() ->
+      not Kati.SecureStore.available?() and not Kati.Permissions.platform_answers?() ->
         Kati.Screens.DataSources.no_keystore()
 
-      saved? and error == nil ->
+      saved? and Map.get(state, :confirm_clear?, false) ->
+        Kati.Screens.DataSources.clear_confirm()
+
+      saved? and not editing? and error == nil ->
         Kati.Screens.DataSources.key_in_use()
 
       true ->
-        Kati.Screens.DataSources.key_field(token, error, epoch)
+        Kati.Screens.DataSources.key_field(token, error, epoch, saved? and editing?)
     end
+  end
+
+  @doc """
+  What *Clear* asks before it takes the token off the phone — the app's own
+  destructive confirmation (`Kati.UI.Destructive.confirm/1`), which board 269
+  scoped to this screen among others.
+  """
+  @spec clear_confirm() :: map()
+  def clear_confirm do
+    Kati.UI.Destructive.confirm(
+      eyebrow: gettext("Clear token"),
+      title: gettext("Clear your TMDB token?"),
+      changes: gettext("Kati stops searching TMDB on this phone until you add a token again."),
+      keeps: gettext("Your library, ratings and the posters already saved stay as they are."),
+      confirm: {gettext("Clear"), :clear_token_confirm},
+      keep: {gettext("Cancel"), :clear_token_cancel}
+    )
   end
 
   @doc """
@@ -284,16 +326,25 @@ defmodule Kati.Screens.DataSources do
           Kati.Screens.DataSources.masked_text(@masked),
           Kati.UI.SettingsList.trailing(nil),
           padding: 13,
-          rule: false
+          rule: true
+        ),
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("edit"),
+          Kati.UI.SettingsList.body(gettext("Edit token")),
+          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+          padding: 13,
+          rule: true,
+          on_tap: {self(), :edit_token}
+        ),
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("delete"),
+          Kati.Screens.DataSources.clear_label(),
+          Kati.UI.SettingsList.trailing(nil),
+          padding: 13,
+          rule: false,
+          on_tap: {self(), :clear_token}
         )
       ])}
-      <Spacer size={10} />
-      <Row fill_width={true} align="center">
-        {Kati.UI.SettingsList.action_pill(gettext("Replace"), {self(), :replace_token})}
-        <Spacer size={10} />
-        {Kati.Screens.DataSources.remove_pill()}
-        <Spacer weight={1.0} />
-      </Row>
     </Column>
     """
   end
@@ -397,22 +448,17 @@ defmodule Kati.Screens.DataSources do
     """
   end
 
-  @doc false
-  def remove_pill do
-    Kati.Components.MishkaPill.pill(
-      label: gettext("Remove"),
-      on_tap: {self(), :remove_token},
-      background: Palette.red_wash(),
-      text_color: Palette.red(),
-      height: 34,
-      corner_radius: 17,
-      padding: 0,
-      padding_left: 14,
-      padding_right: 14,
-      text_size: 12.5,
-      font_weight: :semibold,
-      max_lines: 1
-    )
+  @doc "The *Clear token* row's title, in the page's destructive red."
+  def clear_label do
+    ~MOB"""
+    <Text
+      text={gettext("Clear token")}
+      text_size={13.5}
+      font_weight="semibold"
+      text_color={Palette.red()}
+      max_lines={1}
+    />
+    """
   end
 
   @doc """
@@ -424,11 +470,12 @@ defmodule Kati.Screens.DataSources do
   fails. A trailing space is the second.
   """
   @spec key_field(String.t(), String.t() | nil, non_neg_integer()) :: map()
-  def key_field(token, error, epoch) do
+  def key_field(token, error, epoch, cancel? \\ false) do
     assigns = %{
       token: token,
       error: error,
       epoch: epoch,
+      cancel?: cancel?,
       on_change: {self(), :tmdb_token},
       save: {self(), :save_token}
     }
@@ -439,13 +486,50 @@ defmodule Kati.Screens.DataSources do
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("lock"),
           Kati.Screens.DataSources.token_field(@token, @on_change, @epoch),
-          Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.save_pill(@save)),
+          Kati.UI.SettingsList.trailing(if(@cancel?, do: nil, else: Kati.Screens.DataSources.save_pill(@save))),
           padding: 13,
           rule: false
         )
       ])}
       {Kati.Screens.DataSources.token_state(false, @error)}
+      {Kati.Screens.DataSources.edit_actions(@cancel?, @save)}
     </Column>
+    """
+  end
+
+  @doc """
+  Editing a saved token: Cancel and Save side by side under the field, the
+  secondary pill beside the primary one, so the way back is as plain as the
+  way forward.
+  """
+  def edit_actions(false, _save), do: ~MOB"<Spacer size={0} />"
+
+  def edit_actions(true, save) do
+    ~MOB"""
+    <Row fill_width={true} padding_top={12} align="center">
+      <Spacer weight={1.0} />
+      <Row
+        height={32}
+        corner_radius={16}
+        background={Palette.card()}
+        border_width={1}
+        border_color={Palette.border()}
+        padding_left={14}
+        padding_right={14}
+        align="center"
+        on_tap={{self(), :edit_cancel}}
+      >
+        <Text
+          text={gettext("Cancel")}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+      </Row>
+      <Spacer size={8} />
+      {Kati.Screens.DataSources.save_pill(save)}
+    </Row>
     """
   end
 
@@ -976,37 +1060,45 @@ defmodule Kati.Screens.DataSources do
   def handle_tap(:wipe_cancel, socket),
     do: {:noreply, Mob.Socket.assign(socket, :confirm_wipe?, false)}
 
-  # Board 318's two controls on the saved card. `Replace` puts the field back
-  # WITHOUT clearing the store: a reader who opens it and changes their mind
-  # still has a working key, which is the difference between replacing and
-  # removing.
+  # Edit opens the field WITHOUT clearing the store: a reader who changes their
+  # mind still has a working key. Clear asks first (`clear_confirm/0`).
   @impl true
-  def handle_tap(:replace_token, socket) do
+  def handle_tap(:edit_token, socket) do
     {:noreply,
      socket
-     |> Mob.Socket.assign(:token_saved?, false)
-     |> Mob.Socket.assign(:token, "")
-     |> Mob.Socket.assign(:token_epoch, Map.get(socket.assigns, :token_epoch, 0) + 1)
-     |> Mob.Socket.assign(:token_error, nil)}
+     |> Mob.Socket.assign(:editing?, true)
+     |> Kati.Screens.DataSources.fresh_field()}
   end
 
-  def handle_tap(:remove_token, socket) do
-    Kati.SecureStore.delete("tmdb")
-
+  def handle_tap(:edit_cancel, socket) do
     {:noreply,
      socket
-     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
-     |> Mob.Socket.assign(:token, "")
-     |> Mob.Socket.assign(:token_epoch, Map.get(socket.assigns, :token_epoch, 0) + 1)
-     |> Mob.Socket.assign(:token_error, nil)}
-  rescue
-    _error ->
-      {:noreply,
-       Mob.Socket.assign(
-         socket,
-         :token_error,
-         gettext("Couldn’t remove it. Nothing changed.")
-       )}
+     |> Mob.Socket.assign(:editing?, false)
+     |> Kati.Screens.DataSources.fresh_field()}
+  end
+
+  def handle_tap(:clear_token, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :confirm_clear?, true)}
+
+  def handle_tap(:clear_token_cancel, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :confirm_clear?, false)}
+
+  def handle_tap(:clear_token_confirm, socket) do
+    case Kati.SecureStore.delete("tmdb") do
+      :ok ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:confirm_clear?, false)
+         |> Mob.Socket.assign(:editing?, false)
+         |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
+         |> Kati.Screens.DataSources.fresh_field()}
+
+      {:error, _reason} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:confirm_clear?, false)
+         |> Mob.Socket.assign(:token_error, gettext("Couldn’t remove it. Nothing changed."))}
+    end
   end
 
   def handle_tap(:save_token, socket) do
@@ -1033,6 +1125,18 @@ defmodule Kati.Screens.DataSources do
   end
 
   def handle_info(message, socket), do: super(message, socket)
+
+  @impl true
+  def handle_kati(topic, _payload, socket) when topic in [:store_settle, :resumed],
+    do:
+      {:noreply,
+       Mob.Socket.assign(
+         socket,
+         :token_saved?,
+         Kati.Screens.DataSources.own_key_stored?()
+       )}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @doc """
   What a finished refresh says.
@@ -1067,6 +1171,15 @@ defmodule Kati.Screens.DataSources do
   # can actually do something about, two cards up this same page.
   def refresh_line({:error, reason}), do: Kati.Media.Tmdb.message(reason)
 
+  @doc "An empty token field, redrawn, with no error under it."
+  @spec fresh_field(Mob.Socket.t()) :: Mob.Socket.t()
+  def fresh_field(socket) do
+    socket
+    |> Mob.Socket.assign(:token, "")
+    |> Mob.Socket.assign(:token_epoch, Map.get(socket.assigns, :token_epoch, 0) + 1)
+    |> Mob.Socket.assign(:token_error, nil)
+  end
+
   @doc """
   Store the token, or say why it could not be.
 
@@ -1090,6 +1203,7 @@ defmodule Kati.Screens.DataSources do
         # after it has been stored — the one string on this page that must not.
         |> Mob.Socket.assign(:token_epoch, Map.get(socket.assigns, :token_epoch, 0) + 1)
         |> Mob.Socket.assign(:token_saved?, true)
+        |> Mob.Socket.assign(:editing?, false)
         |> Mob.Socket.assign(:token_error, nil)
 
       {:error, _reason} ->
