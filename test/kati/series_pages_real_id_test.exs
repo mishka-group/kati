@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.SeriesPagesRealIdTest do
   @moduledoc """
   The three series pages — 04 *Series*, 14 *Show details* and 35 *Show
@@ -6,9 +8,8 @@ defmodule Kati.SeriesPagesRealIdTest do
 
   `Kati.ScreenParamsSweepTest` holds the id that names nothing against a bare
   push. This holds the other direction for these three pages: an id that names
-  a real row never draws a word of the board's own show. Each page has a
-  Sample module that is its design fallback — `Kati.Library.Sample`,
-  `Kati.Screens.SeriesMeta.Sample` and `Kati.SeriesSettings.Sample` — and the
+  a real row never draws a word of the board's own show. The boards are test
+  fixtures now — `Kati.Library.Sample` and `Kati.Test.ShowBoards` — and the
   strings taken from them below are the ones that are claims about a show
   (its name, its synopsis, its cast, its region, its prices), not the app's
   own vocabulary that a real show shares with the board.
@@ -87,27 +88,41 @@ defmodule Kati.SeriesPagesRealIdTest do
 
   defp board_claims do
     series = Kati.Library.Sample.series()
-    meta = Kati.Screens.SeriesMeta.Sample.series()
-    [auto_add, _notify, calendar, _hide] = Kati.SeriesSettings.Sample.season_pass()
+    meta = Kati.Test.ShowBoards.series_meta()
 
     [
       series.title,
-      Kati.SeriesSettings.Sample.show().title,
+      Kati.Test.ShowBoards.series_settings().title,
       meta.title,
-      meta.synopsis,
-      auto_add.title,
-      auto_add.sub,
-      calendar.title,
-      calendar.sub
+      meta.synopsis
     ]
     |> Kernel.++(Enum.map(series.episodes, & &1.title))
     |> Kernel.++(Enum.flat_map(meta.cast, &[&1.name, &1.role]))
     |> Kernel.++(Enum.map(meta.where, & &1.name))
     |> Kernel.++(meta.tags)
-    |> Kernel.++(Enum.flat_map(Kati.SeriesSettings.Sample.region(), &[&1.sub]))
-    |> Kernel.++(Enum.map(Kati.SeriesSettings.Sample.this_show(), & &1.title))
+    |> Kernel.++(board_35_rows())
     |> Enum.filter(&is_binary/1)
     |> Enum.uniq()
+  end
+
+  # Board 35's rows with nothing behind them, which no face of screen 35 draws.
+  defp board_35_rows do
+    [
+      "Auto-add new seasons",
+      "S4 will appear when announced",
+      "Put air dates on calendar",
+      "Personal · orange",
+      "United Kingdom",
+      "Lumen+, Orbit, Kino · 3 of 12",
+      "Watch for price drops",
+      "Wishlist titles under £8",
+      "Preferred quality",
+      "4K HDR where offered",
+      "Reset progress",
+      "Currently 5 of 7 in S2",
+      "Archive",
+      "Keeps history, hides from shelf"
+    ]
   end
 
   defp series! do

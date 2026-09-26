@@ -765,7 +765,12 @@ defmodule Kati.ScreenParamsSweepTest do
     # Screen 35 reads `:tracked_id` and says the show has gone rather than
     # drawing board 35 — whose switches would sit over a row that is not
     # there. A push naming nothing is the design fallback, the board whole.
-    {Kati.Screens.SeriesSettings, :tracked_id}
+    {Kati.Screens.SeriesSettings, :tracked_id},
+    # N52-A: screens 34 and 143 read `:title_id` and say the show has gone for
+    # one that has; with no id they draw the shelf's newest series, or one
+    # sentence over an empty shelf.
+    {Kati.Screens.Season, :title_id},
+    {Kati.Screens.EpisodeRatings, :title_id}
   ]
 
   # Readers named by hand, so a scan that stops matching fails loudly instead of

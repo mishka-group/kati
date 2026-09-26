@@ -173,10 +173,10 @@ defmodule Kati.ScreenFilmTest do
       end
 
       # Every action acts on a film, and there is none, so none of them are
-      # drawn — four controls that cannot do anything would be worse than a
-      # band without them. The frame's own eyebrow stays.
+      # drawn. N52-A: nor is the frame — the page says there is no film.
       for {_icon, label} <- film.actions, do: refute(drawn?(tree, label))
-      assert drawn?(tree, "WHERE TO WATCH")
+      refute drawn?(tree, "WHERE TO WATCH")
+      assert drawn?(tree, "No films in your library yet")
     end
 
     test "the rating card draws no stars at all, filled or empty" do

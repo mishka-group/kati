@@ -1,8 +1,10 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.SeriesMetaSubjectTest do
   @moduledoc """
   *Show details* describes the show you opened it over.
 
-  Screen 14 read `Kati.Screens.SeriesMeta.Sample.series()` unconditionally, and
+  Screen 14 read its board's own sample unconditionally, and
   `Kati.Screens.Series`'s menu row pushed it naming nothing — so *Show details*
   on Severance opened a full page about *The Long Hollow*: a synopsis about a
   tidal surveyor, three ratings, four cast members with character names, three
@@ -17,8 +19,8 @@ defmodule Kati.SeriesMetaSubjectTest do
   defect with better artwork.
 
   Three faces are pinned: a real series, a push whose series has gone, and no
-  series at all. None of them reaches `Kati.Screens.SeriesMeta.Sample`, which
-  is the board `Kati.ScreenDesignLiteralTest` installs.
+  series at all. None of them reaches board 14's own show, which is a test
+  fixture now — `Kati.Test.ShowBoards.series_meta/0`.
   """
 
   use Mob.ScreenCase, async: false
@@ -97,8 +99,8 @@ defmodule Kati.SeriesMetaSubjectTest do
       assert page.cast == []
       assert page.where == []
       assert page.tags == []
-      assert page.trailer == nil
-      assert page.more == nil
+      refute Map.has_key?(page, :trailer)
+      refute Map.has_key?(page, :more)
     end
 
     test "and the rating trio is the reader's own, not the fixture's", %{page: page} do
@@ -201,7 +203,11 @@ defmodule Kati.SeriesMetaSubjectTest do
     test "is a picture over the board, which has no show to open pages about" do
       drawn =
         inspect(
-          SeriesMeta.render(%{series: SeriesMeta.Sample.series(), back: "Series", menu?: false}),
+          SeriesMeta.render(%{
+            series: Kati.Test.ShowBoards.series_meta(),
+            back: "Series",
+            menu?: false
+          }),
           limit: :infinity
         )
 
@@ -214,7 +220,7 @@ defmodule Kati.SeriesMetaSubjectTest do
       assert SeriesMeta.series() == SeriesMeta.empty_series(),
              "a reader who owns no series was shown the board's synopsis, cast and ratings"
 
-      refute SeriesMeta.series() == SeriesMeta.Sample.series()
+      refute SeriesMeta.series() == Kati.Test.ShowBoards.series_meta()
     end
 
     test "and none of the board's own content is on the page" do

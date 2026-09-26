@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.ShowPagesTest do
   @moduledoc """
   The ⋯ disc on the two per-show sub-pages.
@@ -131,13 +133,16 @@ defmodule Kati.ShowPagesTest do
     end
   end
 
-  describe "over the drawing" do
-    test "the disc is a picture on both screens, because there is nothing to open" do
+  describe "with no show behind the page" do
+    test "no disc is drawn on either screen, because there is nothing to open" do
       for {screen, drawn} <- [
             {Season, drawn_season_tree()},
             {SeriesSettings, drawn_settings_tree()}
           ] do
-        refute drawn =~ "toggle_menu", "#{inspect(screen)} draws a live ⋯ over the board"
+        refute drawn =~ "toggle_menu", "#{inspect(screen)} draws a live ⋯ over no show"
+
+        refute drawn =~ inspect(Kati.Icons.glyph!("more_horiz")) |> String.trim("\""),
+               "#{inspect(screen)} draws a dead ⋯ over no show"
       end
     end
 
@@ -145,7 +150,7 @@ defmodule Kati.ShowPagesTest do
       socket =
         SeriesSettings
         |> Mob.Socket.new()
-        |> Mob.Socket.assign(:show, SeriesSettings.show(%{}))
+        |> Mob.Socket.assign(:show, SeriesSettings.empty_show())
         |> Mob.Socket.assign(:menu?, false)
 
       {:noreply, after_tap} = SeriesSettings.handle_tap(:go_episode_order, socket)
@@ -178,14 +183,14 @@ defmodule Kati.ShowPagesTest do
   end
 
   defp drawn_season_tree do
-    inspect(Season.content(%{season: Season.drawn_season(), menu?: false}),
+    inspect(Season.content(%{season: Season.empty_season(), menu?: false}),
       limit: :infinity,
       printable_limit: :infinity
     )
   end
 
   defp drawn_settings_tree do
-    inspect(SeriesSettings.content(%{show: SeriesSettings.show(%{}), menu?: false}),
+    inspect(SeriesSettings.content(%{show: SeriesSettings.empty_show(), menu?: false}),
       limit: :infinity,
       printable_limit: :infinity
     )

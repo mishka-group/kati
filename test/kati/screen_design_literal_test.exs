@@ -1,3 +1,4 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
 Code.require_file("../support/screen_sweep.exs", __DIR__)
 Code.require_file("../support/design_literals.exs", __DIR__)
 Code.require_file("../support/heavy_day.exs", __DIR__)
@@ -265,6 +266,22 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
+    # N52-A — see `DesignLiterals.retired_lines/0`: board 14's Trailer button
+    # and its two discs, board 35's rows with nothing behind them, and board
+    # 143's specimen notes and hint card.
+    {"14", "bookmark"},
+    {"14", "label"},
+    {"14", "play_arrow"},
+    {"35", "archive"},
+    {"35", "delete"},
+    {"35", "event"},
+    {"35", "featured_seasonal_and_gifts"},
+    {"35", "hd"},
+    {"35", "replay"},
+    {"35", "sell"},
+    {"143", "call_split"},
+    {"143", "info"},
+    {"143", "touch_app"},
     # N51: the Agenda's filter disc had no tap and there is nothing on the
     # agenda to filter; its search disc now opens Search.
     {"30", "tune"},
@@ -1582,14 +1599,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 04 draws its own empty page now, so the board's own series has to be
       # installed to compare the frame against .scratch/design/audit/04.png.
       # `drawn_series/0` exists for this and for nothing else.
-      {"04", Kati.Screens.Series, &Map.put(&1, :series, Kati.Screens.Series.drawn_series())},
+      {"04", Kati.Screens.Series, &Map.put(&1, :series, Kati.Test.ShowBoards.series())},
       # 58 is the same screen under `:fa`, and it registers separately, so it
       # needs the same install. `drawn_series/0` builds its season headings
       # through `gettext/1`, so calling it here answers in whichever locale the
       # comparison is running.
-      {"58", Kati.Screens.Series, &Map.put(&1, :series, Kati.Screens.Series.drawn_series())},
+      {"58", Kati.Screens.Series, &Map.put(&1, :series, Kati.Test.ShowBoards.series())},
       # 08, same as 04: the board still gets compared against its capture.
-      {"08", Kati.Screens.Film, &Map.put(&1, :film, Kati.Screens.Film.drawn_film())},
+      {"08", Kati.Screens.Film, &Map.put(&1, :film, Kati.Test.ShowBoards.film())},
       # 149, same as 04 and 08: the sheet answers `empty_sheet/0` over no row
       # now, so the board's own show has to be installed to compare the frame
       # against its capture.
@@ -1613,7 +1630,12 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"11", Kati.Screens.Discover,
        &Map.put(&1, :feed, Kati.DesignLiterals.discover_board_feed())},
       # 34 answers an empty season now, so the board's own goes in here.
-      {"34", Kati.Screens.Season, &Map.put(&1, :season, Kati.Screens.Season.drawn_season())},
+      {"34", Kati.Screens.Season, &Map.put(&1, :season, Kati.Test.ShowBoards.season())},
+      # N52-A: 143 reads the reader's own season now, so the board's six rows
+      # go in here. Its specimen bands, hint card and gesture memo are retired
+      # in design_literals.exs.
+      {"143", Kati.Screens.EpisodeRatings,
+       &Map.put(&1, :season, Kati.Test.ShowBoards.episode_ratings())},
       # 153 is one show's numbering and a bare mount names no show, so the
       # board's own state — an anime inheriting Absolute, compared at E32 —
       # is installed as the facts `NumberingScheme.facts/1` would read.
@@ -1650,7 +1672,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # to be installed to compare the frame. The two flags stay as the empty
       # page has them — both bands are the drawing's and this keeps them drawn.
       {"35", Kati.Screens.SeriesSettings,
-       &Map.put(&1, :show, Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil))},
+       &Map.put(&1, :show, Kati.Test.ShowBoards.series_settings())},
       # 09 draws an empty day on an empty store now, so the board's own timed
       # items have to be installed to compare the frame. N51: the drawn-only
       # furniture (the all-day band, the merged renewals row, the 14-item
@@ -1757,7 +1779,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"14", Kati.Screens.SeriesMeta,
        &(&1
          |> Map.put(:back, "Library")
-         |> Map.put(:series, Kati.Screens.SeriesMeta.Sample.series()))},
+         |> Map.put(:series, Kati.Test.ShowBoards.series_meta()))},
       # 23's pill reads `Stats` on its board and the only route into the page
       # is screen 92's Money row, so the word and the gesture disagreed.
       # The screen says `My services` now and takes a

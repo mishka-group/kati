@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.SeriesDiscsTest do
   @moduledoc """
   Screen 04's two discs beside *Mark next watched*.
@@ -51,7 +53,7 @@ defmodule Kati.SeriesDiscsTest do
 
     test "is a control over a real show and a picture over the drawing", %{tracked: t} do
       live = Series.follow_disc(Series.series(t.id)) |> inspect(limit: :infinity)
-      drawn = Series.follow_disc(Series.drawn_series()) |> inspect(limit: :infinity)
+      drawn = Series.follow_disc(Kati.Test.ShowBoards.series()) |> inspect(limit: :infinity)
 
       assert live =~ ":toggle_follow"
       refute drawn =~ ":toggle_follow"
@@ -70,7 +72,7 @@ defmodule Kati.SeriesDiscsTest do
     end
 
     test "and stays a picture over the drawing" do
-      drawn = Series.rate_disc(Series.drawn_series()) |> inspect(limit: :infinity)
+      drawn = Series.rate_disc(Kati.Test.ShowBoards.series()) |> inspect(limit: :infinity)
 
       refute drawn =~ ":rate_title"
     end

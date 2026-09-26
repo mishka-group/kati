@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.DrawnSeasonAgreementTest do
   @moduledoc """
   Screen 04's Season 2 and screen 34's Season 2 are the same season.
@@ -22,7 +24,7 @@ defmodule Kati.DrawnSeasonAgreementTest do
   use ExUnit.Case, async: true
 
   alias Kati.Library.Sample
-  alias Kati.Season.Sample, as: SeasonSample
+  alias Kati.Test.ShowBoards, as: SeasonSample
 
   test "every episode screen 04 draws for S2 is one screen 34 draws" do
     on_04 = Enum.map(Sample.series().episodes, & &1.title)

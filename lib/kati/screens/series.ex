@@ -75,9 +75,8 @@ defmodule Kati.Screens.Series do
   `Kati.Screens.Film.gone/2`'s sentence. No id at all draws the top of the
   series shelf, and over a shelf with no series `none/2`'s sentence.
 
-  `Kati.Library.Sample` is never drawn to a reader. `drawn_series/0` builds
-  board 04 out of it for `Kati.ScreenDesignLiteralTest`, and that is its only
-  caller.
+  No reader path draws a value the reader did not make: board 04's own show is
+  a test fixture (`Kati.Test.ShowBoards.series/0`) and never ships.
 
   A tracked series with nothing cached under it — typed in by hand, or one a
   provider has not listed episodes for yet — is still that reader's series: its
@@ -112,7 +111,6 @@ defmodule Kati.Screens.Series do
   # which is where that value-pair lookup already lives.
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaProgress
-  alias Kati.Library.Sample
   alias Kati.Media.CachedEpisode
   alias Kati.Media.CachedSeason
   alias Kati.Media.CachedTitle
@@ -176,40 +174,6 @@ defmodule Kati.Screens.Series do
       nil -> empty_series()
       facts -> shaped(facts)
     end
-  end
-
-  @doc """
-  Screen 04 exactly as it is drawn, from `Kati.Library.Sample`.
-
-  Kept in the fixture rather than inlined here: it is the frame's specification
-  and the fixture the tests compare a real render against, and two copies of the
-  drawing's copy is exactly how the two drift apart.
-
-  `by_season/0`'s three entries are added on the way out, because the S1/S2/S3
-  pills are a real control and a control that changes nothing is a lie told in
-  pixels. The drawn season is unchanged — `Sample.season_episodes/1` answers
-  `series/0`'s own list for S2 — so the captured frame is untouched.
-  """
-  @spec drawn_series() :: map()
-  def drawn_series do
-    drawn = Sample.series()
-
-    by_season =
-      Map.new(drawn.seasons, fn label ->
-        episodes = Sample.season_episodes(label)
-
-        {label,
-         %{
-           season:
-             gettext("Season %{n}",
-               n: Kati.Locale.number(String.trim_leading(label, "S"))
-             ),
-           total: length(episodes),
-           episodes: episodes
-         }}
-      end)
-
-    Map.put(drawn, :by_season, by_season)
   end
 
   @doc """
@@ -300,9 +264,9 @@ defmodule Kati.Screens.Series do
   Here rather than at each caller so the key is spelled once. The argument is a
   shelf row — `Kati.Screens.Library.shaped/3`'s, or `Kati.Screens.LibraryFa`'s
   copy of it — and the only field on it that is an identity rather than a
-  caption is `:id`. A row without one is `Kati.Library.Sample`'s, and it yields
-  `%{}`: the drawing has no tracked row to name, and a title carried as a name
-  would be a caption pretending to be an identity.
+  caption is `:id`. A row without one yields `%{}`: there is no tracked row to
+  name, and a title carried as a name would be a caption pretending to be an
+  identity.
 
       iex> Kati.Screens.Series.params_for(%{id: "abc", title: "The Long Hollow"})
       %{id: "abc"}
@@ -353,15 +317,7 @@ defmodule Kati.Screens.Series do
     episodes = CachedEpisode.for_title(tracked.source, tracked.source_id)
 
     case season_numbers(seasons, episodes) do
-      # A tracked series with no cached episodes. `nil` here sent the page to
-      # `drawn_series/0`, so **every hand-typed series opened as The Long
-      # Hollow** — hollow71 artwork, three seasons and seven named episodes,
-      # none of which the reader had ever heard of.
-      #
-      # There IS a row, so the page draws it. The gate this screen keeps —
-      # *either every value is this user's or every value is the drawing's* —
-      # is about whether a row exists, not about whether a provider has filled
-      # it in; a title with no episodes yet is an ordinary state and
+      # A tracked series with no cached episodes is still the reader's row, and
       # `no_episodes/2` is what it looks like.
       [] -> no_episodes(tracked, cached)
       numbers -> assembled(tracked, cached, seasons, episodes, numbers)
@@ -676,10 +632,7 @@ defmodule Kati.Screens.Series do
       # without the key, so **Mark next watched killed the screen**: a
       # `FunctionClauseError` out of `handle_info/2`, the screen process gone,
       # and `Kati.Supervisor` restarting the root — so the app jumped to Home
-      # and the episode stayed unticked. Invisible until a real series existed
-      # to press it on, because `Kati.Library.Sample`'s episodes carry no
-      # `source_id` either and its ticks were refused politely by the
-      # `%{source_id: nil}` clause.
+      # and the episode stayed unticked.
       #
       # `Map.get/2` rather than a dot: the drawing's episodes have no such key
       # and must keep reaching that refusing clause rather than raising here.
@@ -1007,11 +960,8 @@ defmodule Kati.Screens.Series do
     """
   end
 
-  # `Kati.Design.Images.hero/1` rather than `Kati.Library.Sample.art/1` — the
-  # Sample function is a one-line delegation to it, and a real series' seed now
-  # arrives on `Kati.Media.CachedTitle.poster_path` (see `seed_of/2`), so
-  # routing it through the fixture module would be a lie about where the value
-  # came from. Screens 03 and 08 made the same move for the same reason.
+  # `Kati.Design.Images.hero/1` over `Kati.Media.CachedTitle.poster_path`
+  # (see `seed_of/2`); a series with no poster draws `no_poster/0`.
   @doc false
   def hero_art(seed) do
     case Kati.Design.Images.hero(seed) do
@@ -1067,7 +1017,7 @@ defmodule Kati.Screens.Series do
 
   Board 248 draws it above the title, and its caption settles what it says: the
   chip is the shelf's, so a hand-added show you are part-way through reads
-  `Watching`. `Kati.SeriesSettings.Sample.statuses/0` carries the same three
+  `Watching`. `Kati.Screens.SeriesSettings.statuses/0` carries the same three
   the other way round — a `status` beside each label, so screen 35's tiles are
   named for the value and not for the word.
   """
@@ -1187,8 +1137,7 @@ defmodule Kati.Screens.Series do
 
   `pgettext/2` and not `gettext/1`: these five are the SHELF's words. Board 69's
   book pill says تمام شد where board 04's series chip says تمام‌شده, and one
-  msgid cannot answer both — `Kati.Books.Sample.statuses/0` records the same
-  split for books.
+  msgid cannot answer both.
   """
   @spec status_label(atom()) :: String.t()
   def status_label(:not_started), do: pgettext("shelf status", "Not started")
@@ -2149,10 +2098,7 @@ defmodule Kati.Screens.Series do
   def handle_info({:tap, :close_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
 
-  # Screen 14 describes a show, so it is told which. Bare, *Show details* on
-  # any series drew `Kati.Screens.SeriesMeta.Sample` — Severance's overflow
-  # menu opened a full page about The Long Hollow, and every fact on it was
-  # confident, specific and about something else.
+  # Screen 14 describes a show, so it is told which.
   def handle_info({:tap, :show_details}, socket),
     do:
       {:noreply,
@@ -2347,10 +2293,9 @@ defmodule Kati.Screens.Series do
   names an episode by — so what it is handed is what it writes, and the index
   never leaves this function.
 
-  A drawn episode has no `source_id` and no tracked row behind it, so it opens
-  nothing. That is the same all-or-nothing gate `tick/2` applies for the same
-  reason: there is no episode behind `Kati.Library.Sample`, so there is
-  nothing to rate.
+  An episode with no `source_id`, or a page with no tracked row, opens
+  nothing: there is no episode to rate. That is the same gate `tick/2`
+  applies.
   """
   @spec rate(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def rate(socket, index) do
@@ -2369,11 +2314,9 @@ defmodule Kati.Screens.Series do
     end
   end
 
-  # The season the pill names, out of the map both paths built — the drawing's
-  # three from `Kati.Library.Sample.season_episodes/1`, a real title's from
-  # `Kati.Media.CachedEpisode`. A label with no entry cannot happen from a drawn
-  # pill and is answered by leaving the screen alone rather than by raising in a
-  # tap handler.
+  # The season the pill names, out of `by_season`. A label with no entry is
+  # answered by leaving the screen alone rather than by raising in a tap
+  # handler.
   defp switch(s, label) do
     case Map.fetch(s.by_season, label) do
       {:ok, view} ->

@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.FilmActionsTest do
   @moduledoc """
   Screen 08's three action buttons, and its two painted cards.
@@ -171,7 +173,7 @@ defmodule Kati.FilmActionsTest do
     end
 
     test "and stay pictures on a film that is only a drawing" do
-      drawn = Film.drawn_film()
+      drawn = Kati.Test.ShowBoards.film()
 
       refute Film.rating_card(drawn) |> inspect(limit: :infinity) =~ ":rate"
       refute Film.note_pencil(drawn) |> inspect(limit: :infinity) =~ ":edit_note"

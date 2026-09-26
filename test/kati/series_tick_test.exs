@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.SeriesTickTest do
   @moduledoc """
   Marking an episode watched, on a series that came from TMDB.
@@ -104,7 +106,7 @@ defmodule Kati.SeriesTickTest do
       # in `restored_for_test/2`, and it needs a map with episodes on it. An
       # empty store now answers the empty page, so the drawing is asked for
       # directly — as a test fixture, which is the only thing it is now.
-      series = Series.drawn_series()
+      series = Kati.Test.ShowBoards.series()
       label = series.current_season
 
       before = Enum.at(series.episodes, 2).watched
@@ -125,7 +127,7 @@ defmodule Kati.SeriesTickTest do
       # in `restored_for_test/2`, and it needs a map with episodes on it. An
       # empty store now answers the empty page, so the drawing is asked for
       # directly — as a test fixture, which is the only thing it is now.
-      series = Series.drawn_series()
+      series = Kati.Test.ShowBoards.series()
       label = series.current_season
       other = Enum.find(Map.keys(series.by_season), &(&1 != label))
 

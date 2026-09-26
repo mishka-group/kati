@@ -48,19 +48,28 @@ defmodule Kati.SeriesSettingsTest do
       assert show.tracked.id == tracked.id
     end
 
-    test "is the board, with no taps, when the push named nobody" do
+    test "is the shelf's newest series when the push named nobody, never the board" do
       show = SeriesSettings.show(%{})
 
-      assert show == SeriesSettings.empty_show()
-      assert show.tracked == nil
+      assert %TrackedTitle{} = show.tracked
       refute Map.get(show, :gone?, false)
 
       page = drawn(show)
-      assert page =~ "Auto-add new seasons"
-      assert page =~ "Preferred quality"
+      refute page =~ "Auto-add new seasons"
+      refute page =~ "Preferred quality"
+      refute page =~ "The Long Hollow"
+    end
+
+    test "over a shelf with no series is one sentence and nothing to press" do
+      page = drawn(SeriesSettings.empty_show())
+
+      assert page =~ "No series in your library yet"
+      refute page =~ "Auto-add new seasons"
+      refute page =~ "Preferred quality"
       refute page =~ ":pass_"
       refute page =~ ":status_"
       refute page =~ ":open_region"
+      refute page =~ ":toggle_menu"
     end
 
     test "says the show has gone when the push named one that is not there" do
@@ -255,8 +264,8 @@ defmodule Kati.SeriesSettingsTest do
   end
 
   describe "This show" do
-    test "is the board's alone", %{tracked: tracked} do
-      assert drawn(SeriesSettings.show(%{})) =~ "THIS SHOW"
+    test "is drawn on no face of the page", %{tracked: tracked} do
+      refute drawn(SeriesSettings.empty_show()) =~ "THIS SHOW"
 
       page = drawn(SeriesSettings.show(%{tracked_id: tracked.id}))
 

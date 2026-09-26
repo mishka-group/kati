@@ -55,18 +55,22 @@ defmodule Kati.Screens.SeriesMeta do
     * **the trio** — board 311's *Yours*, *Episodes* and *Hours*: the reader's
       own episode ratings, ticks and ticked runtime. The board's *Audience* and
       *Critics* are other people's scores, which nothing caches.
-    * **the synopsis** — `overview`, whole, with no *more* under it.
+    * **the synopsis** — `overview`, whole.
     * **Where to watch** — `Kati.Media.Availability` over the providers TMDB
       folded into the detail fetch, for the reader's own region. No prices.
 
   ## What a real show does not draw
 
-  **Cast**, **Your tags** and the **Trailer** row. TMDB's credits are not
-  fetched and there is no person resource to keep them in; tags in this app
-  are on one night's watch, not on a title; and there is no trailer link. A
-  band with nothing behind it is dropped by `band/4` rather than drawn as an
-  eyebrow over nothing, and no card on the page apologises for the gap — a
-  page is allowed to be short.
+  **Cast** and **Your tags**. TMDB's credits are not fetched and there is no
+  person resource to keep them in; tags in this app are on one night's watch,
+  not on a title. A band with nothing behind it is dropped by `band/4` rather
+  than drawn as an eyebrow over nothing, and no card on the page apologises for
+  the gap — a page is allowed to be short.
+
+  The board's **Trailer** button, its two discs and the **more** under the
+  synopsis are not drawn on any face of this page: there is no trailer link and
+  no expander, and a button that plays nothing beside two discs that do nothing
+  is three dead controls (N52-A).
 
   ## Three faces, decided by the push
 
@@ -74,15 +78,15 @@ defmodule Kati.Screens.SeriesMeta do
   this page sat under a sheet, or a stale push — draws
   `Kati.Screens.Film.gone/2`'s sentence. No id at all draws the shelf's newest
   series, and over an empty shelf `Kati.Screens.Series.none/2`'s sentence.
-  `Kati.Screens.SeriesMeta.Sample` is the design fallback and the fixture
-  `Kati.ScreenDesignLiteralTest` installs; no reader path reaches it.
+  Board 14's own show is a test fixture (`Kati.Test.ShowBoards.series_meta/0`)
+  and never ships.
 
   ## The ⋯ disc
 
   Over a real show it opens `Kati.Screens.ShowPages`'s menu — *Episode order*
   and *Show settings*, each pushed over the same show. Over the board there is
-  no show to push them over, so the disc is a picture, which is the rule
-  `Kati.Screens.ShowPages` states for every per-show page.
+  no show to push them over, so the disc is a picture — which no reader sees,
+  because every face a reader reaches either names a show or draws no disc.
   """
   use Mob.Screen
   use Gettext, backend: Kati.Gettext
@@ -155,8 +159,6 @@ defmodule Kati.Screens.SeriesMeta do
       meta: "",
       ratings: [],
       synopsis: "",
-      more: nil,
-      trailer: nil,
       cast: [],
       where: [],
       tags: [],
@@ -169,8 +171,7 @@ defmodule Kati.Screens.SeriesMeta do
 
   The argument is screen 04's assembled view, whose one identity field is
   `:tracked_id` — `Kati.Screens.Series.assembled/5` carries it for exactly this
-  kind of question. A map without one is `Kati.Library.Sample`'s and yields
-  `%{}`: the drawing has no row to name.
+  kind of question. A map without one yields `%{}`: there is no row to name.
 
       iex> Kati.Screens.SeriesMeta.params_for(%{tracked_id: "abc", title: "X"})
       %{id: "abc"}
@@ -212,10 +213,10 @@ defmodule Kati.Screens.SeriesMeta do
   @doc """
   One tracked series in the shape the markup reads — and nothing it cannot know.
 
-  `tracked_id` is what the ⋯ menu pushes the sibling pages over. `cast`,
-  `tags` and `trailer` are always empty over a real show — see the moduledoc —
-  and `render/1` drops their bands. `more` is `nil` because the synopsis is
-  drawn whole. A title whose cache row has been evicted is `Untitled`,
+  `tracked_id` is what the ⋯ menu pushes the sibling pages over. `cast` and
+  `tags` are always empty over a real show — see the moduledoc — and
+  `render/1` drops their bands. A title whose cache row has been evicted is
+  `Untitled`,
   `Kati.Screens.Film.shaped/3`'s answer.
 
   Reads go through `:shelf`, like every other door onto a title, so an id for
@@ -232,8 +233,6 @@ defmodule Kati.Screens.SeriesMeta do
       meta: meta_line(cached),
       ratings: Kati.Screens.SeriesMeta.yours(tracked, cached),
       synopsis: (cached && cached.overview) || "",
-      more: nil,
-      trailer: nil,
       cast: [],
       where: Kati.Screens.SeriesMeta.where_rows(cached),
       tags: [],
@@ -423,7 +422,6 @@ defmodule Kati.Screens.SeriesMeta do
           >
             {Kati.Screens.SeriesMeta.ratings(s)}
             {Kati.Screens.SeriesMeta.synopsis(s)}
-            {Kati.Screens.SeriesMeta.actions(s)}
             {Kati.Screens.SeriesMeta.band(s.cast, gettext("Cast"), &Kati.Screens.SeriesMeta.cast/1, s)}
             {Kati.Screens.SeriesMeta.band(s.where, gettext("Where to watch"), &Kati.Screens.SeriesMeta.where/1, s)}
             {Kati.Screens.SeriesMeta.band(s.tags, gettext("Your tags"), &Kati.Screens.SeriesMeta.tags/1, s)}
@@ -767,9 +765,9 @@ defmodule Kati.Screens.SeriesMeta do
     _error -> 0
   end
 
-  # `18h` and `45m` are the catalogue's own two msgids — `Kati.Stats.Sample`
-  # and `Kati.Screens.Library` already ask for them and Persian already answers
-  # `%{n} ساعت` and `%{n} دقیقه`. A suffix concatenated onto a number cannot be
+  # `18h` and `45m` are the catalogue's own two msgids — `Kati.Screens.Library`
+  # already asks for them and Persian already answers `%{n} ساعت` and
+  # `%{n} دقیقه`. A suffix concatenated onto a number cannot be
   # translated at all (the unit goes in front in some scripts and takes a space
   # in this one), so the unit moves inside the msgid and the number becomes a
   # binding.
@@ -810,14 +808,10 @@ defmodule Kati.Screens.SeriesMeta do
   # text_align makes a Text fill its row in this bridge and the card is a
   # weighted column — the two together distort the row (screen 08's defect 2).
   #
-  # The VALUE is put into the reader's digits here, at the draw, rather than
-  # where it is computed. The trio arrives from two owners: `yours/2` above,
-  # which already localises what it builds, and `Kati.Screens.SeriesMeta.Sample`
-  # for the board, whose `4.5`, `8.1` and `96%` are frozen Latin strings in a
-  # module this screen does not own. One call at the one place both arrive
-  # covers both, and `Kati.Locale.number/1` is idempotent — it converts digits
-  # and the decimal point and leaves everything else, so running it over a
-  # figure that is already `۴٫۵` changes nothing.
+  # The VALUE is put into the reader's digits here, at the draw.
+  # `Kati.Locale.number/1` is idempotent — it converts digits and the decimal
+  # point and leaves everything else, so running it over a figure `yours/2`
+  # already localised changes nothing.
   @doc false
   def rating_card(r) do
     ~MOB"""
@@ -871,10 +865,6 @@ defmodule Kati.Screens.SeriesMeta do
     """
   end
 
-  # The drawing sets `more` inline at the end of the paragraph. Mob has no
-  # inline span, so it follows on its own line in the design's own muted grey.
-  # Recorded rather than hidden: it is the one place this screen is not the
-  # drawing.
   @doc false
   def synopsis(s) do
     ~MOB"""
@@ -885,120 +875,7 @@ defmodule Kati.Screens.SeriesMeta do
         line_height={Kati.Locale.leading(1.6)}
         text_color={Palette.cream_body()}
       />
-      {Kati.Screens.SeriesMeta.more_link(s.more)}
     </Column>
-    """
-  end
-
-  @doc """
-  The drawing's `more` under the synopsis, when there is more.
-
-  It expands nothing — there is no expander on this screen and never was — so
-  on the board it is a word under three clamped lines and on a real title,
-  whose `overview` is drawn whole, it would be a control promising a rest of a
-  text that is already all there. `nil` is the real title's answer.
-
-  The argument is the PRESENCE of the word and no longer the word itself.
-  mishka-group/kati#103: `more` arrives as `Kati.Screens.SeriesMeta.Sample`'s
-  string `"more"`, and a msgid has to be a literal at the call site — so
-  `gettext(label)` does not compile and the board's own word would have come
-  out Latin on a Persian page no matter what the catalogue held. The one thing
-  this value has ever been used for is *is there more*, which is a boolean
-  question, so the copy is now this screen's and the fixture keeps the flag.
-  """
-  @spec more_link(String.t() | nil) :: map()
-  def more_link(nil), do: ~MOB"<Spacer size={0} />"
-
-  def more_link(_present) do
-    # `pgettext/2`: *more* is four letters and `mix gettext.merge` fuzzy-matches
-    # a msgid that short against any sentence containing it.
-    assigns = %{label: pgettext("synopsis expander", "more")}
-
-    ~MOB"""
-    <Row align="center">
-      <Text
-        text={@label}
-        text_size={14}
-        line_height={Kati.Locale.leading(1.6)}
-        text_color={Palette.eyebrow()}
-        max_lines={1}
-      />
-    </Row>
-    """
-  end
-
-  @doc """
-  The Trailer button and its two discs, when there is a trailer.
-
-  No video, no link, no column — the moduledoc's fourth bullet — so on a real
-  title `trailer` is `nil` and the row goes with it. The bookmark and label
-  discs go too: neither has an `on_tap`, so what would be left is a play
-  button that plays nothing beside two shapes that do nothing.
-
-  `trailer` is read as the PRESENCE of one and no longer as the button's word,
-  for `more_link/1`'s reason: it arrives as `Kati.Screens.SeriesMeta.Sample`'s
-  string `"Trailer"`, and `gettext(a_variable)` is not a msgid. The two uses
-  were always one value doing two jobs — the `nil` clause above has only ever
-  asked the first — so the label is the screen's copy now and the fixture keeps
-  the flag. Nothing moves in Latin: the word it held was this one.
-  """
-  def actions(%{trailer: nil}), do: ~MOB"<Spacer size={0} />"
-
-  def actions(_s) do
-    # `play_arrow` is NOT `Kati.Locale.forward_glyph()` and does not mirror. A
-    # forward arrow points where the READER is going and so follows the page;
-    # a transport control points at the direction the TAPE runs, which is the
-    # same direction in every script. Material's own mirroring guidance carves
-    # media playback out for exactly this reason, and every Persian player the
-    # reader already has draws it pointing right.
-    ~MOB"""
-    <Column fill_width={true}>
-      <Spacer size={16} />
-      <Row fill_width={true} align="center">
-        <Box weight={1.0}>
-          <Row
-            fill_width={true}
-            height={48}
-            corner_radius={20}
-            background={Palette.ink_fill()}
-            shadow="0 12 24 -12 #D91A1917"
-            align="center"
-          >
-            <Spacer weight={1.0} />
-            {Kati.UI.symbol("play_arrow", size: 20, color: Palette.on_ink(), fill: true)}
-            <Spacer size={8} />
-            <Text
-              text={gettext("Trailer")}
-              text_size={13.5}
-              font_weight="bold"
-              text_color={Palette.on_ink()}
-              max_lines={1}
-            />
-            <Spacer weight={1.0} />
-          </Row>
-        </Box>
-        <Spacer size={10} />
-        {Kati.Screens.SeriesMeta.action_disc("bookmark")}
-        <Spacer size={10} />
-        {Kati.Screens.SeriesMeta.action_disc("label")}
-      </Row>
-    </Column>
-    """
-  end
-
-  @doc false
-  def action_disc(icon) do
-    ~MOB"""
-    <Box
-      width={48}
-      height={48}
-      corner_radius={20}
-      background={Palette.card()}
-      shadow={Kati.Theme.shadow_card_soft()}
-      align="center"
-    >
-      {Kati.UI.symbol(icon, size: 20)}
-    </Box>
     """
   end
 

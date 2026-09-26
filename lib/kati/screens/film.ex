@@ -30,11 +30,10 @@ defmodule Kati.Screens.Film do
   next, Activity and a list all push `%{id: tracked_id}`. A bare push — the
   gallery's door — draws the top of the film shelf, which `:shelf` decides.
 
-  With nothing tracked the page is `empty_film/0`, the frame with nothing in
-  any slot and no control that acts on a title. An id the shelf no longer holds
-  is `gone/2`'s page. `Kati.Library.Sample.film/0` is board 08's own values and
-  is reached only through `drawn_film/0`, which the design-literal test installs
-  to compare the frame against its capture; no reader path draws it.
+  With no film on the shelf the page is `none/2`'s sentence and a way back,
+  and an id the shelf no longer holds is `gone/2`'s. No reader path draws a
+  value the reader did not make: board 08's own film is a test fixture
+  (`Kati.Test.ShowBoards.film/0`) and never ships.
 
   ## Where to watch, and the meta line
 
@@ -62,7 +61,6 @@ defmodule Kati.Screens.Film do
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
-  alias Kati.Library.Sample
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
@@ -137,9 +135,9 @@ defmodule Kati.Screens.Film do
 
   The third clause hands back the label it was given. That one is already in
   the reader's language when it came off `action_row/0`, and is the drawing's
-  own Latin when it came off `Kati.Library.Sample.film/0` — the fixture is
-  another module's copy, and a lookup table mapping its English back to a msgid
-  here would be this screen translating somebody else's literals.
+  own Latin when it came off board 08's test fixture — a lookup table mapping
+  its English back to a msgid here would be this screen translating a
+  drawing's literals.
   """
   @spec action_label(String.t(), atom() | nil, non_neg_integer()) :: String.t()
   def action_label(_drawn, :log_watch, seen) when is_integer(seen) and seen > 0,
@@ -211,11 +209,12 @@ defmodule Kati.Screens.Film do
   @doc """
   The page with no film on it.
 
-  `shaped/3`'s sixteen keys, all of them carrying nothing — the same move
-  `Kati.Screens.Series.empty_series/0` makes for screen 04. A reader who owns no
-  films is shown an empty frame rather than `Kati.Library.Sample`'s *Blue Hour*
-  and its invented viewing history. A push that named a row which has gone gets
-  this map marked `gone?: true` — see `film/1` — and `gone/2`'s page.
+  `shaped/3`'s keys, all of them carrying nothing, marked `none?: true` so
+  `render/1` draws `none/2`'s sentence — *No films in your library yet* —
+  rather than an empty frame with five hollow stars and a `SEEN` over nothing.
+  The same move `Kati.Screens.Series.empty_series/0` makes for screen 04. A
+  push that named a row which has gone gets this map marked `gone?: true` — see
+  `film/1` — and `gone/2`'s page.
 
   Empty strings and not `nil` wherever the value reaches a `Text`: the
   typesetting helpers take a run and ask what script it is in, so a missing one
@@ -234,6 +233,7 @@ defmodule Kati.Screens.Film do
   def empty_film do
     %{
       tracked_id: nil,
+      none?: true,
       title: "",
       seed: nil,
       meta: "",
@@ -252,16 +252,6 @@ defmodule Kati.Screens.Film do
       actions: []
     }
   end
-
-  @doc """
-  Screen 08 exactly as it is drawn, from `Kati.Library.Sample`.
-
-  Kept in the fixture rather than inlined here: it is the frame's specification
-  and the fixture the tests compare a real render against, and two copies of the
-  drawing's copy is exactly how the two drift apart.
-  """
-  @spec drawn_film() :: map()
-  def drawn_film, do: Sample.film()
 
   @doc """
   The user's own film, shaped for the markup, or `nil` when there is not one.
@@ -604,10 +594,55 @@ defmodule Kati.Screens.Film do
 
   def render(assigns) do
     f = assigns.film
+    back = Map.get(assigns, :back, gettext("Library"))
 
-    if Kati.Screens.Film.gone?(f),
-      do: Kati.Screens.Film.gone(__MODULE__, Map.get(assigns, :back, gettext("Library"))),
-      else: Kati.Screens.Film.page(f, assigns)
+    cond do
+      Kati.Screens.Film.gone?(f) -> Kati.Screens.Film.gone(__MODULE__, back)
+      Map.get(f, :none?, false) -> Kati.Screens.Film.none(back)
+      true -> Kati.Screens.Film.page(f, assigns)
+    end
+  end
+
+  @doc """
+  The page for a push that named no film over a shelf that has none: one
+  sentence and the back pill, in `gone/2`'s layout.
+
+  It drew the film frame with nothing in it — no title, five hollow stars that
+  could not be pressed, `SEEN` over an empty line — which is a page about a
+  film that does not exist. Screen 04 answers the same push with
+  `Kati.Screens.Series.none/2`.
+  """
+  @spec none(String.t()) :: map()
+  def none(back) do
+    assigns = %{identity: Kati.Screens.Identity.of(__MODULE__), back: back}
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={@identity}
+    >
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
+        {Kati.UI.symbol("movie", size: 28, color: Palette.sub())}
+        <Spacer size={14} />
+        <Text
+          text={gettext("No films in your library yet")}
+          text_size={22}
+          font_weight="bold"
+          line_height={1.25}
+          text_color={:on_surface}
+        />
+      </Column>
+      <Box fill_width={true} fill_height={true} align="top">
+        <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
+          {Kati.Screens.Film.back_control(@back)}
+        </Row>
+      </Box>
+    </Box>
+    """
   end
 
   @doc """
@@ -866,11 +901,8 @@ defmodule Kati.Screens.Film do
     ]
   end
 
-  # `Kati.Design.Images.poster/1` rather than `Kati.Library.Sample.poster/1` —
-  # the Sample function is a one-line delegation to it, and a real film's seed
-  # now arrives on `Kati.Media.CachedTitle.poster_path` (see `shaped/3`), so
-  # routing it through the fixture module would be a lie about where the value
-  # came from. Screen 03's `artwork/1` made the same move for the same reason.
+  # `Kati.Design.Images.poster/1` over `Kati.Media.CachedTitle.poster_path`
+  # (see `shaped/3`); a film with no poster draws the bare band.
   @doc false
   def hero_art(f) do
     case Kati.Design.Images.poster(f.seed) do

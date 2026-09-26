@@ -1,3 +1,5 @@
+Code.require_file("../support/show_boards.exs", __DIR__)
+
 defmodule Kati.TickRefusalTest do
   @moduledoc """
   A tick the store refused says so.
@@ -73,7 +75,13 @@ defmodule Kati.TickRefusalTest do
   describe "screen 34" do
     test "draws the refusal its own tick assigns" do
       {:ok, socket} = Season.mount(%{}, %{}, Mob.Socket.new(Season))
-      failed = Mob.Socket.assign(socket, :save_error, "That did not save.")
+
+      # N52-A: an empty store draws one sentence and no rows, so there is no
+      # tick to refuse; the board's season is the page a refusal lands on.
+      failed =
+        socket
+        |> Mob.Socket.assign(:season, Kati.Test.ShowBoards.season())
+        |> Mob.Socket.assign(:save_error, "That did not save.")
 
       assert inspect(Season.content(failed.assigns), limit: :infinity) =~ "That did not save."
     end

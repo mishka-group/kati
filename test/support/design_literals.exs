@@ -1433,7 +1433,56 @@ defmodule Kati.DesignLiterals do
       {"09", "vellum — in cinemas"},
       {"09", "release · wishlisted"},
       {"09", "2 renewals"},
-      {"09", "£22.98"}
+      {"09", "£22.98"},
+      # N52-A: board 14's Trailer button and the synopsis's *more* — there is
+      # no trailer link and no expander, so screen 14 draws neither on any face.
+      {"14", "more"},
+      {"14", "trailer"},
+      # N52-A: board 35's rows with nothing behind them — two switches nothing
+      # reads, two with no column, the board's own region and service figures,
+      # and the whole *This show* group. Screen 35 no longer falls back to the
+      # board, so no face of it draws them; a real show's status tiles, season
+      # pass and region rows are what the board is compared against.
+      {"35", "auto-add new seasons"},
+      {"35", "s4 will appear when announced"},
+      {"35", "put air dates on calendar"},
+      {"35", "personal · orange"},
+      {"35", "lumen+, orbit, kino · 3 of 12"},
+      {"35", "watch for price drops"},
+      {"35", "wishlist titles under £8"},
+      {"35", "preferred quality"},
+      {"35", "4k hdr where offered"},
+      {"35", "this show"},
+      {"35", "reset progress"},
+      {"35", "currently 5 of 7 in s2"},
+      {"35", "archive"},
+      {"35", "keeps history, hides from shelf"},
+      {"35", "remove from library"},
+      # N52-A: board 143 was a specimen sheet — three bands captioned for the
+      # designer, a hint about a long press Mob cannot perform and a memo about
+      # a gesture no screen has. Screen 143 reads the reader's season now, and
+      # its header counts ratings rather than restating 04's watched line.
+      {"143", "season 2 · 5 of 7 watched"},
+      {"143", "some rated — the normal case"},
+      {"143", "a numeral plus"},
+      {"143", "one"},
+      {"143",
+       "star, in dm mono, so the column aligns — nobody reads five small stars, they read a shape. an unrated watched episode shows"},
+      {"143", "nothing at all"},
+      {"143", ", not five hollow stars, which is what lets the ratings stand out."},
+      {"143", "none rated — no column at all"},
+      {"143", "the long-press hint — shown once"},
+      {"143", "hold a row to rate it"},
+      {"143",
+       "the only long press in the app besides selecting on a shelf. shown once, then dismissed for good."},
+      {"143", "got it"},
+      {"143", "the gesture rule, recorded:"},
+      {"143", "long press on a"},
+      {"143", "shelf tile"},
+      {"143", "selects; long press on an"},
+      {"143", "episode row"},
+      {"143",
+       "rates. two meanings, two unmistakably different surfaces — a grid of artwork against a list of rows. also on"}
     ]
   end
 
