@@ -123,7 +123,6 @@ defmodule Kati.Screens.Stats do
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Media.CachedTitle
   alias Kati.Media.Watch
-  alias Kati.Stats.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -596,7 +595,7 @@ defmodule Kati.Screens.Stats do
 
   @doc false
   def cell(level) do
-    color = Sample.intensity(level)
+    color = Kati.Stats.Ramp.intensity(level)
 
     ~MOB"""
     <Box width={8} height={8} corner_radius={2} background={color} />
@@ -1714,7 +1713,7 @@ defmodule Kati.Screens.Stats do
     Date.add(today, -back)
   end
 
-  # Five steps, because `Kati.Stats.Sample.intensity/1` paints five. Four or
+  # Five steps, because `Kati.Stats.Ramp.intensity/1` paints five. Four or
   # more in a day is the heaviest square there is; the ramp has nowhere further
   # to go and a busier day is not a different colour.
   defp level(0), do: 0

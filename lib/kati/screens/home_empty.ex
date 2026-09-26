@@ -98,28 +98,18 @@ defmodule Kati.Screens.HomeEmpty do
   `chevron/0` — the same recipe screen 105's own list uses, at one row
   instead of three, `rule: false` since a single row has no rule to drop.
 
-  ## The footnote is hand-built, for `Kati.Screens.BackupDark.no_server_note/0`'s reason
+  ## No footnote
 
-  `Kati.UI.SettingsList.note/2` draws this frame's family — solid where the
-  design dashes, for the reason its own moduledoc gives — but two numbers
-  here are one off that helper's: the icon sits at 17pt and the padding at
-  15, where `note/2` is pinned to 18 and 16. And the sentence carries one
-  semibold run in `Palette.ink/0` that `note/2`'s `label`-only path cannot
-  typeset at all. `Kati.UI.rich_text/1` builds the paragraph instead, three
-  runs long, the way `Kati.Screens.BackupDark.no_server_note/0` builds its
-  own for the identical reason.
-
-  `line_height: 1.65` is the drawing's own number for this paragraph, not
-  `note_text/1`'s pinned `1.55` — the same one `no_server_note/0` also carries
-  rather than the shared default, because both boards ask for a paragraph
-  half a point looser than the helper draws everywhere else.
+  Board 139 closes on a dashed note explaining why Home is empty. It was
+  design reasoning read aloud to the reader, and the eyebrow *The calendar still
+  works* over the Today row already says the one thing it told them, so it is
+  not drawn (N52-D).
 
   ## The one property of the drawing that does not survive
 
-  Both paragraphs in the card — the invitation's body and the footnote — are
-  `text-wrap: pretty` in the export, which asks the browser to avoid a short
-  last line. Compose has no balanced-wrap mode and the bridge exposes no prop
-  for one, so both wrap greedily here. Recorded rather than worked around,
+  The invitation's body is `text-wrap: pretty` in the export, which asks the
+  browser to avoid a short last line. Compose has no balanced-wrap mode and the
+  bridge exposes no prop for one, so it wraps greedily here. Recorded rather than worked around,
   for `Kati.Screens.GoalsEmpty`'s reason: the fix is a hard break typed into
   copy that is otherwise protected.
   """
@@ -151,7 +141,6 @@ defmodule Kati.Screens.HomeEmpty do
         {Kati.Screens.HomeEmpty.invitation()}
         {SettingsList.eyebrow_muted(gettext("The calendar still works"))}
         {Kati.Screens.HomeEmpty.today_card()}
-        {Kati.Screens.HomeEmpty.footnote()}
       </Column>
     </Scroll>
     """
@@ -391,43 +380,6 @@ defmodule Kati.Screens.HomeEmpty do
       {@card}
       <Spacer size={22} />
     </Column>
-    """
-  end
-
-  @doc """
-  The dashed-frame footnote, hand-built for
-  `Kati.Screens.BackupDark.no_server_note/0`'s reason — see the moduledoc.
-  """
-  @spec footnote() :: map()
-  def footnote do
-    body_style = [text_size: 12.5, line_height: 1.65, text_color: Palette.ink_soft()]
-
-    paragraph =
-      UI.rich_text([
-        {gettext(
-           "Home is a page of section cards, so with no sections there is nothing for it to " <>
-             "show. The calendar and quick-add are section-agnostic and stay live — "
-         ), body_style},
-        {gettext("the app is usable before it is configured"),
-         [font_weight: "semibold", text_color: Palette.ink()]},
-        {".", body_style}
-      ])
-
-    assigns = %{paragraph: %{paragraph | props: Map.put(paragraph.props, :weight, 1.0)}}
-
-    ~MOB"""
-    <Row
-      fill_width={true}
-      corner_radius={18}
-      border_color={Palette.border()}
-      border_width={1.5}
-      padding={15}
-      align="top"
-    >
-      {UI.symbol("info", size: 17, color: Palette.sub())}
-      <Spacer size={11} />
-      {@paragraph}
-    </Row>
     """
   end
 

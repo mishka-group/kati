@@ -1498,7 +1498,18 @@ defmodule Kati.DesignLiterals do
       {"143", "selects; long press on an"},
       {"143", "episode row"},
       {"143",
-       "rates. two meanings, two unmistakably different surfaces — a grid of artwork against a list of rows. also on"}
+       "rates. two meanings, two unmistakably different surfaces — a grid of artwork against a list of rows. also on"},
+      # N52-D: board 139's dashed footnote was the design's reasoning read to
+      # the reader. 158 and 159 are the same page in Persian and in dark.
+      {"139",
+       "home is a page of section cards, so with no sections there is nothing for it to show. the calendar and quick-add are section-agnostic and stay live —"},
+      {"139", "the app is usable before it is configured"},
+      {"158", "خانه صفحه‌ای از کارت‌های بخش‌هاست، پس بدون بخش چیزی برای نشان‌دادن ندارد."},
+      {"158", "تقویم و افزودن سریع به بخش وابسته نیستند"},
+      {"158", "و همیشه زنده می‌مانند — پیش از آنکه برنامه تنظیم شود هم می‌شود از آن استفاده کرد."},
+      {"159", "خانه صفحه‌ای از کارت‌های بخش‌هاست، پس بدون بخش چیزی برای نشان‌دادن ندارد."},
+      {"159", "تقویم و افزودن سریع به بخش وابسته نیستند"},
+      {"159", "و همیشه زنده می‌مانند — پیش از آنکه برنامه تنظیم شود هم می‌شود از آن استفاده کرد."}
     ]
   end
 

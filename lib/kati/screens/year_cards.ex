@@ -335,8 +335,8 @@ defmodule Kati.Screens.YearCards do
       # The three ranked titles are `Kati.Stats.ShareSample.top_titles/0`'s and
       # are set by `Kati.Screens.YearShare.rank_row/1`; neither the copy nor
       # the typesetting of them is this file's.
-      posters: Kati.Screens.YearShare.posters(),
-      ranks: Kati.Screens.YearShare.ranks()
+      posters: Kati.Screens.YearShare.posters(ShareSample.top_titles()),
+      ranks: Kati.Screens.YearShare.ranks(ShareSample.top_titles())
     }
 
     ~MOB"""

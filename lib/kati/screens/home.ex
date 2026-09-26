@@ -99,8 +99,7 @@ defmodule Kati.Screens.Home do
   board words would be typing copy the design never wrote — the trap
   `Kati.Screens.HomeEmpty` names for its own calendar row. **So both bands are
   omitted, eyebrow and all**, and the page that remains is the section cards
-  139's own footnote calls Home — *"Home is a page of section cards"* — over a
-  calendar that says what is on it.
+  over a calendar that says what is on it.
 
   Three lines the drawing carries have no column behind them anywhere and are
   drawn only from `drawn_hero/0`, never from a read:
@@ -122,13 +121,9 @@ defmodule Kati.Screens.Home do
       03's `62% watched` caption would be one board's copy in another board's
       slot.
 
-  The two section-tile metas go the same way. `Kati.Screens.Habits`'s moduledoc
-  states it outright — *"there is no resource anywhere in this app that records
-  a habit being kept"* — so `2 left today` cannot be counted, and `0 left
-  today` is the plausible-looking zero 96 forbids. `Dinner 19:30` belongs to
-  screen 43, which has its own active-plan gate and its own fallback debt;
-  reaching across it from Home would be a second opinion about the same day.
-  `tile_rows/0` draws the card and its tap, and no meta.
+  The section tiles follow the reader's chosen sections — see `tile_rows/0` —
+  and draw no meta: `2 left today` and `Dinner 19:30` have no resource behind
+  them.
 
   ### The two mirrors followed, and what is still owed
 
@@ -160,15 +155,8 @@ defmodule Kati.Screens.Home do
   English and so is 28, so its empty day takes 139's words verbatim, the way
   `rest_of_today/1` does here.
 
-  **Screen 24's own Watching row still reads a sample.**
-  `Kati.Settings.Sample.watching/0` builds its subtitle out of
-  `Kati.Screens.MyServices.subscribed/0`, which answers an empty table with
-  `Kati.Subscriptions.Sample`'s three rows — that is screen 92's fallback, and
-  five other screens are gated on it in `Kati.ScreenEmptyDatabaseTest`. Home
-  therefore stopped calling that function rather than changing it, and Settings
-  can now say *3 subscribed* where Home says *No subscriptions yet*. That is a
-  visible inconsistency and it is the smaller of the two lies: Home is the page
-  a fresh install opens on.
+  The *Watching* row counts services through `Kati.Services.subscribed_count/0`
+  — see `services/0`.
   """
   use Kati.Screens.Root, root: :home
   use Gettext, backend: Kati.Gettext
@@ -500,49 +488,52 @@ defmodule Kati.Screens.Home do
   end
 
   @doc """
-  The home cards, minus the sections you turned off.
+  The Sections row: one card per section the reader keeps, then Settings.
 
-  Only Habits is a section here — Meals and Settings are not things the first
-  run offers to keep, so they are always drawn. The rule this enforces is the
-  design's: a section turned off leaves the home screen, the calendar feed and
-  the shelf together, and a home card that outlived the choice would be the
-  first half of that rule failing quietly.
+  The row drew *Meals*, *Habits* and *Settings* whatever the reader had
+  chosen, so somebody who kept Screen and Books on the first run was offered
+  two sections they never picked and not the ones they did (N52-D). It follows
+  `Kati.Sections.chosen/0` now, in the order the first run lists them: a kept
+  section with a page gets a card that opens it, and an unchosen one gets
+  none. Notes has no page yet, so it has no card. Meals is not a section the
+  first run offers, so it has no card either.
+
+  Settings is not a section and is always drawn: this card is the one route
+  into it.
 
   **No meta and no dot.** The drawing's `Dinner 19:30` and `2 left today` have
-  nothing behind them — see the moduledoc — and a dot means *there is something
-  here*, which is a claim rather than decoration. `drawn_tiles/0` carries both
-  for the board.
+  nothing behind them, and a dot means *there is something here*, which is a
+  claim rather than decoration. `drawn_tiles/0` carries both for the board.
   """
   @spec tile_rows() :: [map()]
   def tile_rows do
-    [
-      %{
-        section: nil,
-        icon: "restaurant",
-        title: gettext("Meals"),
-        meta: nil,
-        dot: nil,
-        tag: :open_meals
-      },
-      %{
-        section: "habits",
-        icon: "bolt",
-        title: gettext("Habits"),
-        meta: nil,
-        dot: nil,
-        tag: :open_habits
-      },
-      %{
-        section: nil,
-        icon: "tune",
-        title: gettext("Settings"),
-        meta: nil,
-        dot: nil,
-        tag: :open_settings
-      }
-    ]
-    |> Enum.filter(&(is_nil(&1.section) or Kati.Sections.on?(&1.section)))
+    sections =
+      Kati.Sections.chosen()
+      |> Enum.map(&section_tile/1)
+      |> Enum.reject(&is_nil/1)
+
+    sections ++
+      [
+        %{
+          section: nil,
+          icon: "tune",
+          title: gettext("Settings"),
+          meta: nil,
+          dot: nil,
+          tag: :open_settings
+        }
+      ]
   end
+
+  defp section_tile("screen"), do: tile_for("screen", "movie", gettext("Screen"), :open_library)
+  defp section_tile("books"), do: tile_for("books", "menu_book", gettext("Books"), :open_books)
+  defp section_tile("music"), do: tile_for("music", "graphic_eq", gettext("Music"), :open_music)
+  defp section_tile("habits"), do: tile_for("habits", "bolt", gettext("Habits"), :open_habits)
+  defp section_tile("money"), do: tile_for("money", "payments", gettext("Money"), :open_money)
+  defp section_tile(_no_page), do: nil
+
+  defp tile_for(section, icon, title, tag),
+    do: %{section: section, icon: icon, title: title, meta: nil, dot: nil, tag: tag}
 
   # ── The drawing's own values, which nothing on a device reaches ─────────────
 
@@ -1210,12 +1201,8 @@ defmodule Kati.Screens.Home do
   downstream of it, and a user whose services are wrong gets a home page full
   of confident nonsense with no visible cause.
 
-  The row is built here rather than read from `Kati.Settings.Sample.watching/0`,
-  which is where it used to come from and is why the card said *United Kingdom ·
-  3 subscribed* on a device with no services: that function's subtitle counts
-  `Kati.Screens.MyServices.subscribed/0`, and that reader answers an empty table
-  with the drawing's three rows. `Kati.Services.subscribed_count/0` is the
-  number, and the moduledoc says why 92's own fallback is left alone.
+  The count is `Kati.Services.subscribed_count/0`, the services table itself,
+  so a device with no services never reads *3 subscribed*.
 
   **The card stays when the count is nought.** Screen 96 puts a *My services*
   action under all four of its empty bands — the rule is *offer the one thing
@@ -1265,22 +1252,49 @@ defmodule Kati.Screens.Home do
         n: Kati.Locale.number(count)
       )
 
+  # Three tiles to a row, because screen 01 draws three a third wide each and
+  # Mob has no wrap. A last row with fewer cards holds the rest of the width
+  # open rather than stretching one card across the page, which is
+  # `cards_in_row/1`'s rule one band up.
   @doc false
   def sections(tiles) do
+    rows =
+      tiles
+      |> Enum.chunk_every(3)
+      |> Enum.map(&Kati.Screens.Home.tile_row/1)
+      |> Enum.intersperse(Kati.Screens.Home.tile_row_gap())
+
+    assigns = %{rows: rows}
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        {Kati.Screens.Home.tiles(tiles)}
-      </Row>
+      {@rows}
       <Spacer size={26} />
     </Column>
     """
   end
 
   @doc false
+  def tile_row(tiles) do
+    assigns = %{tiles: Kati.Screens.Home.tiles(tiles)}
+
+    ~MOB"""
+    <Row fill_width={true} align="top">
+      {@tiles}
+    </Row>
+    """
+  end
+
+  @doc false
+  def tile_row_gap, do: ~MOB"<Spacer size={9} />"
+
+  @doc false
   def tiles(rows) do
+    empty = List.duplicate(Kati.Screens.Home.half(), max(3 - length(rows), 0))
+
     rows
     |> Enum.map(&Kati.Screens.Home.tile/1)
+    |> Kernel.++(empty)
     |> Enum.intersperse(Kati.Screens.Home.tile_gap())
   end
 
@@ -1676,6 +1690,22 @@ defmodule Kati.Screens.Home do
 
   def handle_tap(:open_services, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices, %{back: "Home"})}
+
+  # The Screen section tile. `reset_to/2` and not a push: the Library is a dock
+  # root, and this is the dock's own move — `Kati.Screens.Root`'s `root_*`
+  # dispatch — under a tag of its own, because the dock already draws
+  # `:root_library` and one tag on two nodes is one name for two controls.
+  def handle_tap(:open_library, socket),
+    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
+
+  def handle_tap(:open_books, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+
+  def handle_tap(:open_music, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+
+  def handle_tap(:open_money, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Money)}
 
   def handle_tap(:open_meals, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}

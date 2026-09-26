@@ -1651,6 +1651,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   }
 
   @moment_symbols [
+    # N52-D: board 139's footnote, and 158 and 159 which are the same page in
+    # Persian and in dark. `DesignLiterals.retired_lines/0` holds the words;
+    # `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this entry's twin.
+    {"139", "info"},
+    {"158", "info"},
+    {"159", "info"},
     # N49: the design note that carried this glyph is gone from the first run.
     {"163", "info"},
     {"166", "info"},
@@ -3031,8 +3037,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Sections`. The tiles themselves are navigation and are drawn either
       # way; it is the two metas under them that claimed a dinner and two
       # unfinished habits, and neither has a resource behind it anywhere.
-      {"01", Kati.Screens.Home, fn -> Enum.map(Kati.Screens.Home.tile_rows(), & &1.meta) end,
-       [nil, nil, nil], fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
+      {"01", Kati.Screens.Home,
+       fn -> Kati.Screens.Home.tile_rows() |> Enum.map(& &1.meta) |> Enum.uniq() end, [nil],
+       fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
       # `Rest of today`, asked of `Kati.Calendars.Today` rather than of the card
       # it fills. That read was never the problem — the `[]` clause underneath
       # it was, and the clause is gone, so what is left to assert is that the
@@ -3114,8 +3121,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # two metas under them that claimed a dinner and two unfinished habits,
       # and neither has a resource behind it anywhere. 01 carries the identical
       # pair one screen over.
-      {"55", Kati.Screens.Home, fn -> Enum.map(Kati.Screens.Home.tile_rows(), & &1.meta) end,
-       [nil, nil, nil], fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
+      {"55", Kati.Screens.Home,
+       fn -> Kati.Screens.Home.tile_rows() |> Enum.map(& &1.meta) |> Enum.uniq() end, [nil],
+       fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
       {"55", Kati.Screens.Home, fn -> timeline() end, [], &Kati.Screens.Home.drawn_rows/0}
     ]
   end

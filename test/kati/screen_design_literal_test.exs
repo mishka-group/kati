@@ -293,6 +293,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"143", "call_split"},
     {"143", "info"},
     {"143", "touch_app"},
+    # N52-D: board 139's footnote — see `DesignLiterals.retired_lines/0`.
+    {"139", "info"},
+    {"158", "info"},
+    {"159", "info"},
     # N51: the Agenda's filter disc had no tap and there is nothing on the
     # agenda to filter; its search disc now opens Search.
     {"30", "tune"},

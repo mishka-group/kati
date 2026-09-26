@@ -179,20 +179,16 @@ defmodule Kati.Screens.YearShare do
   built to be saved and sent, so an invented one does not merely mislead the
   person holding the phone — it travels.
 
-  `change: nil` for the reason `hours_face/1` already gives about a first year:
-  there is no last year to be up or down against, and `↑ 0%` is a claim.
+  `hours: nil`, and the card draws screen 07's own empty sentence in its place
+  (`nothing_counted/0`): `0` under *Time watched* is a measurement of a year
+  that has not started being recorded. The subtitle is the year so far, the
+  same range screen 07 heads its page with.
   """
   @spec empty_share() :: map()
   def empty_share,
     do: %{
-      subtitle: "",
-      hours: %{
-        label: gettext("Time watched"),
-        figure: Kati.Locale.number(0),
-        direction: :up,
-        change: nil,
-        year: Kati.Screens.YearShare.year()
-      },
+      subtitle: Kati.Screens.Stats.range(Kati.Time.today()),
+      hours: nil,
       top: [],
       grid: [],
       breakdown: []
@@ -344,9 +340,9 @@ defmodule Kati.Screens.YearShare do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title(gettext("Your year, shared"), Map.get(assigns, :share, Kati.Screens.YearShare.drawn_share()).subtitle)}
+        {SettingsList.title(gettext("Your year, shared"), Kati.Screens.YearShare.shown(assigns).subtitle)}
         {Kati.Screens.YearShare.scopes(assigns.scope)}
-        {Kati.Screens.YearShare.card(assigns.aspect, Map.get(assigns, :share, Kati.Screens.YearShare.drawn_share()))}
+        {Kati.Screens.YearShare.card(assigns.aspect, Kati.Screens.YearShare.shown(assigns))}
         {UI.eyebrow(gettext("Aspect"))}
         {Kati.UI.Segmented.plain(Kati.Screens.YearShare.aspects(), assigns.aspect)}
         <Spacer size={16} />
@@ -360,6 +356,15 @@ defmodule Kati.Screens.YearShare do
     </Scroll>
     """
   end
+
+  @doc """
+  The card this render draws: the one `load/1` read, or an empty year.
+
+  Never the drawing's. `drawn_share/0` is what the design test installs as
+  `:share`; a render that found no `:share` falls back to `empty_share/0`.
+  """
+  @spec shown(map()) :: map()
+  def shown(assigns), do: assigns[:share] || Kati.Screens.YearShare.empty_share()
 
   @doc "Take a scope chip's tap, if it names one of the six."
   @spec pick_scope(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
@@ -418,17 +423,9 @@ defmodule Kati.Screens.YearShare do
   end
 
   @doc """
-  The card preview: the hours face and the titles face, as they will be saved.
-
-  Drawn on paper rather than on card, because the image's own ground is paper —
-  a preview that sat on a different colour from the file would be a preview of
-  something else.
-  """
-  @spec card() :: map()
-  def card, do: card(:aspect_square)
-
-  @doc """
-  The preview at one of the two ratios — screen 100's `scale`, on this page.
+  The card preview, at one of the two ratios — screen 100's `scale`, on this
+  page: the hours face and the titles face, as they will be saved, or screen
+  07's empty sentence when nothing has been counted.
 
   The Aspect segments used to set `:aspect` and nothing read it, so the preview
   the caption calls *as they will be saved* was one ratio whichever segment was
@@ -470,8 +467,9 @@ defmodule Kati.Screens.YearShare do
       that never needed it.
   """
   @spec card(atom(), map()) :: map()
-  def card(aspect, share \\ nil) do
-    share = share || drawn_share()
+  def card(_aspect, %{hours: nil}), do: Kati.Screens.YearShare.nothing_counted()
+
+  def card(aspect, share) do
     scale = scale(aspect)
 
     assigns = %{
@@ -519,22 +517,75 @@ defmodule Kati.Screens.YearShare do
             text_color={Palette.muted()}
           />
         </Row>
-        <Spacer size={20} />
-        <Text
-          text={gettext("Top titles")}
-          font_family={Kati.Locale.mono_face()}
-          text_size={@titles_size}
-          letter_spacing={Kati.Locale.tracking(0.14)}
-          text_color={Palette.muted()}
-        />
-        <Spacer size={11} />
-        {Kati.Screens.YearShare.posters(@top)}
-        <Spacer size={13} />
-        {Kati.Screens.YearShare.ranks(@top)}
+        {Kati.Screens.YearShare.top_face(@top, @titles_size)}
         {Kati.Screens.YearShare.field_face(@grid, @label_size)}
         {Kati.Screens.YearShare.hours_face_bars(@breakdown, @label_size)}
       </Column>
       <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The card when this reader has watched nothing this year: screen 07's own
+  empty headline and sentence, on the card's own ground.
+  """
+  @spec nothing_counted() :: map()
+  def nothing_counted do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        padding={19}
+        shadow={Kati.Theme.shadow_card()}
+      >
+        <Text
+          text={gettext("Not much to show yet")}
+          text_size={17}
+          font_weight="bold"
+          letter_spacing={Kati.Locale.tracking(-0.02)}
+          text_color={:on_surface}
+        />
+        <Spacer size={9} />
+        <Text
+          text={gettext("Your year is counted from what you tick off. Mark one thing watched and this page starts filling itself.")}
+          text_size={13}
+          line_height={1.6}
+          text_color={Palette.sub()}
+        />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  *Top titles*: its label, the posters and the ranked names — or nothing when
+  the scope holds no title, because a label over an empty row is a heading for
+  nothing.
+  """
+  @spec top_face([map()], number()) :: map()
+  def top_face([], _titles_size), do: ~MOB"<Spacer size={0} />"
+
+  def top_face(top, titles_size) do
+    assigns = %{top: top, titles_size: titles_size}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={20} />
+      <Text
+        text={gettext("Top titles")}
+        font_family={Kati.Locale.mono_face()}
+        text_size={@titles_size}
+        letter_spacing={Kati.Locale.tracking(0.14)}
+        text_color={Palette.muted()}
+      />
+      <Spacer size={11} />
+      {Kati.Screens.YearShare.posters(@top)}
+      <Spacer size={13} />
+      {Kati.Screens.YearShare.ranks(@top)}
     </Column>
     """
   end
@@ -745,7 +796,7 @@ defmodule Kati.Screens.YearShare do
   defp sized(size, scale), do: size * scale
 
   @doc false
-  def posters(top \\ ShareSample.top_titles()) do
+  def posters(top) do
     tiles =
       top
       |> Enum.map(&Kati.Screens.YearShare.poster/1)
@@ -778,7 +829,7 @@ defmodule Kati.Screens.YearShare do
   end
 
   @doc false
-  def ranks(top \\ ShareSample.top_titles()) do
+  def ranks(top) do
     rows =
       top
       |> Enum.map(&Kati.Screens.YearShare.rank_row/1)
