@@ -1433,7 +1433,18 @@ defmodule Kati.DesignLiterals do
       {"09", "vellum — in cinemas"},
       {"09", "release · wishlisted"},
       {"09", "2 renewals"},
-      {"09", "£22.98"}
+      {"09", "£22.98"},
+      # N52-E: board 31's Invitees card. `Kati.Calendars.Event` has no attendee
+      # table, so the card was drawn empty over every real event and ended in
+      # an `Add someone` row that looked like a control and had no tap — there
+      # is nobody to add and nowhere to keep them. The heading, the two guests
+      # and their replies went with it.
+      {"31", "invitees"},
+      {"31", "jo mercer"},
+      {"31", "accepted"},
+      {"31", "tomas rhee"},
+      {"31", "no reply yet"},
+      {"31", "add someone"}
     ]
   end
 
@@ -1461,13 +1472,17 @@ defmodule Kati.DesignLiterals do
 
   @doc """
   Board 31's event, *Design review*, in the shape `Kati.Screens.EventDetail`
-  draws: its two section chips, its five field rows, its clash and its two
-  invitees.
+  draws: its two section chips, its five field rows and its clash.
 
   The screen keeps no copy of it (N51) — a push naming no stored event draws
   `Kati.Screens.EventDetail.missing/0` — so the board's state lives here, with
   the tests that install it. The id is a stand-in, so the page draws the Save
-  pill, the invitees and Delete the way it does over a stored event.
+  pill and Delete the way it does over a stored event.
+
+  N52-E: the three chevron rows draw no chevron and the invitees are not drawn
+  at all — no screen exists for a row to open, and there is no attendee table
+  for the card to read — so neither is in the shape any more; `retired_lines/0`
+  holds their words.
   """
   def event_board do
     %{
@@ -1487,14 +1502,14 @@ defmodule Kati.DesignLiterals do
           sub: "Europe/London · follows travel",
           trailing: {:switch, true}
         },
-        %{icon: "repeat", title: "Repeats", sub: "Every 2 weeks on Thursday", trailing: :chevron},
+        %{icon: "repeat", title: "Repeats", sub: "Every 2 weeks on Thursday", trailing: nil},
         %{
           icon: "notifications",
           title: "Alerts",
           sub: "1 hour before · at start",
-          trailing: :chevron
+          trailing: nil
         },
-        %{icon: "place", title: "Location", sub: "Studio B, or a link", trailing: :chevron}
+        %{icon: "place", title: "Location", sub: "Studio B, or a link", trailing: nil}
       ],
       clash: %{
         line: "Overlaps Standup by 15 min",
@@ -1503,11 +1518,7 @@ defmodule Kati.DesignLiterals do
           {"Shorten to 45m", :primary},
           {"Keep both", :quiet}
         ]
-      },
-      invitees: [
-        %{name: "Jo Mercer", sub: "accepted", seed: "face32", state: :accepted},
-        %{name: "Tomas Rhee", sub: "no reply yet", seed: "face14", state: :waiting}
-      ]
+      }
     }
   end
 

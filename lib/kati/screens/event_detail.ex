@@ -39,21 +39,19 @@ defmodule Kati.Screens.EventDetail do
 
   ## The shared components this screen uses
 
-  This paragraph used to record the opposite. The section chips, the `close`
-  disc and the "Add someone" ring were hand-rolled because the vendored
-  components took no `height`, no `font_weight`, no per-axis padding, no
-  `border_*` and no `shadow`. All five props landed upstream, so all three are
-  now the component that names them:
+  This paragraph used to record the opposite. The section chips and the
+  `close` disc were hand-rolled because the vendored components took no
+  `height`, no `font_weight`, no per-axis padding, no `border_*` and no
+  `shadow`. All five props landed upstream, so both are now the component that
+  names them:
 
     * `close_disc/1` — `Kati.Components.MishkaCloseButton`, filled, with the
       `shadow` that is what makes a disc float rather than sit flat.
     * `save_pill/1`, `action/2` — `Kati.Components.MishkaPill`.
     * `section_chip/2` — `Kati.Components.MishkaChip`, whose `checked` carries
       the one-of-two state exactly.
-    * `tile/1`, `add_ring/0` — `Kati.Components.MishkaThemeIcon`, filled and
-      `:subtle` respectively.
+    * `tile/1` — `Kati.Components.MishkaThemeIcon`, filled.
     * `hairline/1` — `Kati.Components.MishkaSeparator` at `render: :box`.
-    * `avatar/1` — `Kati.Components.MishkaAvatar`.
 
   What stays hand-rolled, and why:
 
@@ -95,8 +93,13 @@ defmodule Kati.Screens.EventDetail do
       computed here; drawing it uncomputed would put a number on the screen
       that is right about nothing.
     * **the invitees.** `Kati.Calendars.Event` models timing, identity, kind
-      and sync bookkeeping. There is no attendee table, so a real event's guest
-      list is empty and the card says so with its own `Add someone` row.
+      and sync bookkeeping, and there is no attendee table. The card used to
+      be drawn anyway, empty, ending in an `Add someone` row that looked like
+      a control and had no tap — there is nobody to add and nowhere to put
+      them — so the Invitees heading and card are not drawn at all.
+    * **the Location chevron.** A chevron says *this row opens*, and there is
+      no map or place screen for it to open, so the row keeps its place and
+      loses the chevron.
     * **Repeats and Alerts.** `rrule` is stored and there is no humaniser
       anywhere in `lib/` — `Kati.Recurrence` expands rules, it does not
       describe them — and printing `FREQ=WEEKLY;INTERVAL=2;BYDAY=TH` at a user
@@ -112,13 +115,11 @@ defmodule Kati.Screens.EventDetail do
   import Mob.Sigil
 
   alias Kati.Calendars.Event
-  alias Kati.Components.MishkaAvatar
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaCloseButton
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
-  alias Kati.Design.Images
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -155,7 +156,7 @@ defmodule Kati.Screens.EventDetail do
 
   @doc """
   The page for an event that is not stored: a title and a line saying so, and
-  no fields, clash, invitees, Save or Delete — there is no row to show or
+  no fields, clash, Save or Delete — there is no row to show or
   write.
   """
   @spec missing() :: map()
@@ -166,8 +167,7 @@ defmodule Kati.Screens.EventDetail do
       note: gettext("It was deleted, or it was never saved on this phone."),
       sections: [],
       fields: [],
-      clash: nil,
-      invitees: []
+      clash: nil
     }
   end
 
@@ -192,8 +192,7 @@ defmodule Kati.Screens.EventDetail do
       title: event.summary || gettext("Untitled"),
       sections: [],
       fields: stored_fields(event, zone),
-      clash: nil,
-      invitees: []
+      clash: nil
     }
   end
 
@@ -262,7 +261,7 @@ defmodule Kati.Screens.EventDetail do
   # user typed into, and translating what somebody wrote is the one thing a
   # catalogue must never do.
   defp place_field(%Event{location: place}) when is_binary(place) and place != "",
-    do: %{icon: "place", title: gettext("Location"), sub: place, trailing: :chevron}
+    do: %{icon: "place", title: gettext("Location"), sub: place, trailing: nil}
 
   defp place_field(_event), do: nil
 
@@ -349,7 +348,6 @@ defmodule Kati.Screens.EventDetail do
           {Kati.Screens.EventDetail.title_card(event)}
           {Kati.Screens.EventDetail.fields(event)}
           {Kati.Screens.EventDetail.clash(event)}
-          {Kati.Screens.EventDetail.people(event)}
           {Kati.Screens.EventDetail.delete(event)}
         </Column>
       </Scroll>
@@ -665,9 +663,9 @@ defmodule Kati.Screens.EventDetail do
   @doc """
   Which detail rows are tappable, and with what tag.
 
-  Only the switch row. The chevron rows name screens that do not exist yet, so
-  they get `nil` rather than a tap that lands nowhere, and the duration is a
-  reading of the two times above it rather than a control.
+  Only the switch row. The other rows are readings, not controls: no row here
+  names a screen that exists, so none of them draws a chevron or takes a tap,
+  and the duration is a reading of the two times above it.
 
   The tag carries the row's title, so the handler finds the row by name
   instead of by an index that a reordered `fields/0` would silently break.
@@ -720,20 +718,6 @@ defmodule Kati.Screens.EventDetail do
   # on the same Row inflated it to 52x34 and under-rounded the corners, because
   # the bridge applies padding before width.
   def trailing({:switch, on?}), do: Kati.UI.SettingsList.switch(on?)
-
-  # `rail_idle`, and it is right by value and wrong by name. The palette's
-  # `tertiary` is the token whose *meaning* is "a faint chevron" — but its light
-  # value is `0xFFB3ACA2`, and this chevron is `0xFFC4BDB3`; the design draws two
-  # chevron greys and only one of them is `tertiary`. Taking the better name
-  # would have moved light mode by seventeen units, so the value wins.
-  #
-  # `Kati.Locale.forward_chevron/0` and not the literal `chevron_right`: this
-  # chevron means "this row opens onto its own screen", so it points the way the
-  # reader READS — left under `:fa`. Material Symbols are text in a font and
-  # auto-mirror nothing, and `layout_direction` mirrors the row's boxes but not
-  # the picture inside one, so nothing happens here unless it is asked for.
-  def trailing(:chevron),
-    do: Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())
 
   @doc """
   The rule between two rows — `Kati.Components.MishkaSeparator`, and it must be
@@ -831,184 +815,6 @@ defmodule Kati.Screens.EventDetail do
       text_size: 11.5,
       font_weight: :semibold,
       align: :center
-    )
-  end
-
-  # Kati.UI.eyebrow's dash is always the accent; this one is #C4BDB3, which is
-  # how the design marks a section that lists rather than warns. That value is
-  # `rail_idle` — the only token carrying it — and a 13x2 rule is a rail in all
-  # but name; the label is `eyebrow`, which is what it is by both.
-  #
-  # The four locale calls are the recipe `Kati.UI.eyebrow/2` and
-  # `Kati.Screens.Meal.muted_eyebrow/1` already carry, and this node had none of
-  # them. `String.upcase/1` is a NO-OP on the Arabic script, which has no case
-  # at all, so under `:fa` it handed the label back unchanged while every other
-  # eyebrow on the page had visibly done something — `Kati.UI.eyebrow_label/1`
-  # is the function that knows an uppercase eyebrow is a Latin convention and
-  # not a rule. DM Mono carries no Persian glyph; `.16em` of tracking breaks the
-  # joins between Arabic letters; and Vazirmatn wants 11 semibold where DM Mono
-  # wants 10.5 normal to sit on the same line.
-  @doc false
-  def muted_eyebrow(label) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
-        <Spacer size={9} />
-        <Text
-          text={Kati.UI.eyebrow_label(label)}
-          font_family={Kati.Locale.mono_face()}
-          text_size={Kati.Locale.pick(10.5, 11)}
-          font_weight={Kati.Locale.pick("normal", "semibold")}
-          letter_spacing={Kati.Locale.tracking(0.16)}
-          text_color={Palette.eyebrow()}
-        />
-      </Row>
-      <Spacer size={11} />
-    </Column>
-    """
-  end
-
-  @doc """
-  The Invitees heading and card, for a stored event only: a page about an
-  event that is not here has nobody to invite to it.
-  """
-  def people(event) do
-    if writable?(event) do
-      ~MOB"""
-      <Column fill_width={true}>
-        {Kati.Screens.EventDetail.muted_eyebrow(gettext("Invitees"))}
-        {Kati.Screens.EventDetail.invitees(event)}
-      </Column>
-      """
-    else
-      ~MOB"<Spacer size={0} />"
-    end
-  end
-
-  @doc false
-  def invitees(event) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Column
-        fill_width={true}
-        background={Palette.card()}
-        corner_radius={20}
-        shadow={Theme.shadow_card_soft()}
-        padding_left={15}
-        padding_right={15}
-        padding_top={4}
-        padding_bottom={4}
-      >
-        {Enum.map(event.invitees, fn person -> Kati.Screens.EventDetail.invitee_row(person) end)}
-        {Kati.Screens.EventDetail.add_someone()}
-      </Column>
-      <Spacer size={20} />
-    </Column>
-    """
-  end
-
-  @doc false
-  def invitee_row(person) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
-        {Kati.Screens.EventDetail.avatar(person)}
-        <Spacer size={13} />
-        <Column weight={1.0}>
-          <Text
-            text={person.name}
-            text_size={13}
-            font_weight="semibold"
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          <Spacer size={2} />
-          <Text text={person.sub} text_size={11} text_color={Palette.sub()} max_lines={1} />
-        </Column>
-        <Spacer size={13} />
-        {Kati.Screens.EventDetail.reply(person.state)}
-      </Row>
-      {Kati.Screens.EventDetail.hairline(true)}
-    </Column>
-    """
-  end
-
-  @doc """
-  The invitee's face: `Kati.Components.MishkaAvatar` at the drawing's own numbers.
-
-  The two hand-rolled clauses this replaces were the component's two branches
-  spelled out — a 34pt circle of `#E4E0D9` when there is no picture, the picture
-  clipped to the same circle when there is — so the swap is the same nodes with
-  the case moved inside `avatar/2`.
-
-  `shape: :circle` resolves to an exact `size / 2`, which is the 17 that was
-  written here by hand. When a `src` is present the component stacks the
-  fallback *under* the image rather than choosing between them, so `background`
-  carries the same `#E4E0D9` in both branches: it is what shows for the instant
-  before Coil has the bitmap, and is covered by an opaque poster afterwards.
-  """
-  def avatar(person) do
-    MishkaAvatar.avatar(
-      src: Images.poster(person.seed),
-      size: 34,
-      shape: :circle,
-      background: Palette.placeholder()
-    )
-  end
-
-  # Green is a `:hue` and does not move with the ground. The waiting clock is
-  # `rail_idle` by value, for the reason `trailing(:chevron)` records.
-  @doc false
-  def reply(:accepted),
-    do: Kati.UI.symbol("check_circle", size: 18, color: Palette.green(), fill: true)
-
-  def reply(:waiting), do: Kati.UI.symbol("schedule", size: 18, color: Palette.rail_idle())
-
-  @doc """
-  The add affordance. Its ring is `Kati.Components.MishkaThemeIcon` at
-  `variant: :subtle` — the variant that paints **nothing** — with the border
-  overridden onto it.
-
-  `:subtle`'s skin carries `background: nil`, which the component leaves off the
-  node rather than sending as a null, so the container is the empty box the
-  drawing has. `border_color` is documented as replacing the variant's choice
-  "or drawing one where it has none", which is this case; `border_width` is read
-  with `floatProp`, so the design's 1.5 survives.
-
-  Solid, not dashed: the bridge's border is `Modifier.border`, which takes a
-  width and a colour and no `PathEffect`.
-  """
-  def add_someone do
-    ~MOB"""
-    <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
-      {Kati.Screens.EventDetail.add_ring()}
-      <Spacer size={13} />
-      <Text
-        text={gettext("Add someone")}
-        text_size={13}
-        font_weight="semibold"
-        text_color={Palette.sub()}
-        weight={1.0}
-        max_lines={1}
-      />
-    </Row>
-    """
-  end
-
-  @doc false
-  def add_ring do
-    MishkaThemeIcon.theme_icon(
-      %{
-        variant: :subtle,
-        size: 34,
-        radius: 17,
-        # 20% ink on a small subtle disc, which is `border_stronger` by both
-        # value and words. The tint keeps its alpha and swaps its base in dark.
-        border_color: Palette.border_stronger(),
-        border_width: 1.5
-      },
-      [Kati.UI.symbol("add", size: 16, color: Palette.sub())]
     )
   end
 

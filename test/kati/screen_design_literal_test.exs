@@ -265,6 +265,13 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
+    # N52-E — see `DesignLiterals.retired_lines/0`: board 31's Invitees card
+    # (its `add` ring and the accepted guest's `check_circle`) is not drawn,
+    # and its Repeats, Alerts and Location rows lost their `chevron_right`:
+    # no screen exists for any of them to open.
+    {"31", "add"},
+    {"31", "check_circle"},
+    {"31", "chevron_right"},
     # N51: the Agenda's filter disc had no tap and there is nothing on the
     # agenda to filter; its search disc now opens Search.
     {"30", "tune"},
