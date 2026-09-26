@@ -44,13 +44,22 @@ import java.io.File
  *
  * ## The catalogue is real
  *
- * Steps three to eight search TMDB. No token is ever typed: the only key used
- * is Kati's own, which a development build compiles in from
- * `~/.config/kati/tmdb.env` (`Kati.Media.Tmdb.bundled?/0`) and screen 80 offers
- * as *Use Kati's key*. On a build without one the chip is not drawn, and the
- * TMDB half of this journey is skipped with that assumption named rather than
- * failed — a missing developer key is a fact about the machine that staged the
- * build, not about the app.
+ * Steps two to eight need TMDB, and no build carries a key: the only one the
+ * app sends is the reader's own, saved on screen 80. So step two does what a
+ * reader does — pastes a read token into the Data sources field and taps
+ * Save. The token reaches this test as the `tmdbToken` instrumentation
+ * argument and from nowhere else; it is never written into the source, never
+ * logged, and scrubbed from any failure or screen dump:
+ *
+ * ```
+ * mix kati.e2e.stage && cd android && ./gradlew connectedE2eAndroidTest \
+ *   -Pandroid.testInstrumentationRunnerArguments.class=com.example.kati.FilmSeriesFlowTest \
+ *   -Pandroid.testInstrumentationRunnerArguments.tmdbToken="$(grep -o 'eyJ[^"]*' ~/.config/kati/tmdb.env)"
+ * ```
+ *
+ * Without the argument the TMDB half of this journey is skipped with that
+ * assumption named rather than failed — a missing token is a fact about the
+ * run, not about the app.
  *
  * The emulator must resolve `api.themoviedb.org` truthfully: the owner's home
  * router sinkholes it, and Kati then says *This network is blocking TMDB*,
@@ -75,6 +84,9 @@ class FilmSeriesFlowTest {
     private val series = "The Bear"
     private val seriesYear = "2022"
 
+    /** The token this run was given, held only so it can be scrubbed from output. */
+    private var secret: String? = null
+
     private val invented = listOf(
         "Standup", "Plumber", "The Long Hollow", "Ashfall", "Marram",
         "Nightbirds", "Design review", "hollow71", "14 items"
@@ -91,14 +103,18 @@ class FilmSeriesFlowTest {
 
         step(1, "first run to an empty Library") { firstRunToEmptyLibrary() }
 
-        val keyed = step(2, "Kati's key from Home's TMDB block") { useKatisKey() }
+        val token = tmdbToken()
         assumeTrue(
-            "ASSUMPTION: this e2e build carries no Kati key — screen 80 drew no " +
-                "`key_kati` chip, so Kati.Media.Tmdb.bundled?/0 was false when " +
-                "`mix kati.e2e.stage` compiled. Put a token in ~/.config/kati/tmdb.env " +
-                "and re-stage. Steps 3–8 need the catalogue and are skipped.",
-            keyed
+            "ASSUMPTION: no TMDB read token was passed to this run, and no build carries " +
+                "one. Pass it as the `tmdbToken` instrumentation argument — " +
+                "-Pandroid.testInstrumentationRunnerArguments.tmdbToken=\"<read token>\" " +
+                "(the class KDoc has the full command). Steps 2–8 need the catalogue " +
+                "and are skipped.",
+            token != null
         )
+        secret = token
+
+        step(2, "the reader's own token saved from Home's TMDB block") { saveOwnToken(token!!) }
 
         step(3, "add $film and $series from the + button") { addBoth() }
         step(4, "Library shows both, with posters") { libraryShowsBoth() }
@@ -147,8 +163,20 @@ class FilmSeriesFlowTest {
 
     // ── 2 ───────────────────────────────────────────────────────────────────
 
-    /** True when Kati's key is now in force; false when this build has none. */
-    private fun useKatisKey(): Boolean {
+    /**
+     * The `tmdbToken` instrumentation argument, or null when the run was given
+     * none. Read from the arguments only — never from a file on the device.
+     */
+    private fun tmdbToken(): String? =
+        InstrumentationRegistry.getArguments().getString("tmdbToken")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
+    /**
+     * Pastes [token] into screen 80's field and saves it, then waits for Home's
+     * TMDB block to go — the reader's own token being the only key there is.
+     */
+    private fun saveOwnToken(token: String) {
         kati.tap("root_home")
         kati.awaitScreen("home")
         kati.compose.waitUntil(20_000) { kati.present("add_tmdb_token") }
@@ -156,23 +184,40 @@ class FilmSeriesFlowTest {
         kati.tap("add_tmdb_token")
         kati.awaitScreen("data_sources")
         noInvented("Data sources")
+        assertTrue("screen 80 still offers a key of Kati's own", !kati.present("key_kati"))
 
-        val offered = waitFor(10_000) { kati.present("key_kati") }
-        if (!offered) {
-            Log.w(TAG, "screen 80 offers no Kati key on this build")
-            kati.tap("back")
-            return false
+        kati.compose.waitUntil(10_000) { kati.present("tmdb_token") }
+        withoutTheToken {
+            kati.compose.onNodeWithTag("tmdb_token", useUnmergedTree = true)
+                .performTextInput(token)
+            kati.device.waitForIdle()
+            kati.tap("save_token")
+            kati.compose.waitUntil(10_000) { kati.present("replace_token") }
         }
-
-        kati.tap("key_kati")
-        kati.compose.waitUntil(10_000) { !kati.present("key_kati") }
+        assertTrue("screen 80 still draws the token field after Save", !kati.present("tmdb_token"))
 
         kati.tap("back")
         kati.awaitScreen("home")
         kati.compose.waitUntil(20_000) { !kati.present("add_tmdb_token") }
         noInvented("Home with a key")
-        return true
     }
+
+    /**
+     * Runs [body] so that nothing it throws can carry the token: a Compose
+     * failure describes the node it acted on, and the field's node holds the
+     * token once it is typed. The message is scrubbed and the cause dropped.
+     */
+    private fun withoutTheToken(body: () -> Unit) {
+        try {
+            body()
+        } catch (failure: Throwable) {
+            throw AssertionError(scrub(failure.message ?: failure.javaClass.simpleName))
+        }
+    }
+
+    /** [text] with the token, if one is in play, replaced. */
+    private fun scrub(text: String): String =
+        secret?.let { text.replace(it, "<tmdbToken>") } ?: text
 
     // ── 3 ───────────────────────────────────────────────────────────────────
 
@@ -570,9 +615,10 @@ class FilmSeriesFlowTest {
             dump("the end of step $n", Log.DEBUG)
             return result
         } catch (failure: Throwable) {
-            Log.e(TAG, "STEP $n FAIL $name: ${failure.message}")
+            val message = scrub(failure.message ?: "")
+            Log.e(TAG, "STEP $n FAIL $name: $message")
             dump("step $n", Log.ERROR)
-            throw AssertionError("step $n ($name) failed: ${failure.message}", failure)
+            throw AssertionError("step $n ($name) failed: $message", failure)
         }
     }
 
@@ -581,7 +627,7 @@ class FilmSeriesFlowTest {
         Log.println(priority, TAG, "── screen at $label: ${nodes.size} nodes ──")
         for (node in nodes) {
             val tag = tagOf(node)
-            val texts = textsOf(node)
+            val texts = if (tag == "tmdb_token") listOf("(withheld)") else textsOf(node).map(::scrub)
             if (tag == null && texts.isEmpty()) continue
             val b: Rect = node.boundsInRoot
             Log.println(priority, TAG, "  [${tag ?: ""}] ${texts.joinToString(" | ")} @${b.top.toInt()}")
