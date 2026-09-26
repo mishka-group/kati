@@ -1,3 +1,5 @@
+Code.require_file("../support/design_literals.exs", __DIR__)
+
 defmodule Kati.ScreenRatingLogTest do
   @moduledoc """
   Screen 33 against `Kati.Media.Watch`, and against a database with nothing
@@ -50,7 +52,6 @@ defmodule Kati.ScreenRatingLogTest do
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
-  alias Kati.Rating.Sample
   alias Kati.Screens.Rating
 
   # Child first: a watch carries the foreign key.
@@ -156,8 +157,8 @@ defmodule Kati.ScreenRatingLogTest do
       # What this asserts is that every value board 33 carries still has a node
       # to be drawn in — a row deleted from the sheet fails here whichever
       # branch filled it.
-      tree = Rating.render(%{assigns(mount_rating()) | watch: Sample.watch()})
-      w = Sample.watch()
+      tree = Rating.render(%{assigns(mount_rating()) | watch: Kati.DesignLiterals.rating_board()})
+      w = Kati.DesignLiterals.rating_board()
 
       for string <- [w.title, w.meta, w.rewatch, w.spoilers, w.review, w.characters] ++ w.tags do
         assert drawn?(tree, string), "#{inspect(string)} is nowhere in the tree"
@@ -219,7 +220,7 @@ defmodule Kati.ScreenRatingLogTest do
         assert drawn?(tree, string), "#{inspect(string)} is nowhere in the tree"
       end
 
-      drawn = Sample.watch()
+      drawn = Kati.DesignLiterals.rating_board()
 
       for string <- [drawn.title, drawn.meta, drawn.rewatch, drawn.review, drawn.characters] do
         refute drawn?(tree, string),
@@ -339,7 +340,7 @@ defmodule Kati.ScreenRatingLogTest do
 
       # The note is copy about the star control, and the two tiles are the
       # app's own two scales — `Kati.Rating.Scale` keeps which one is lit.
-      assert drawn?(tree, String.upcase(Sample.watch().rating_note))
+      assert drawn?(tree, String.upcase(Kati.DesignLiterals.rating_board().rating_note))
 
       for %{label: label} <- Rating.scale_options(), do: assert(drawn?(tree, label))
     end

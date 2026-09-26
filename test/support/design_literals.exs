@@ -446,6 +446,22 @@ defmodule Kati.DesignLiterals do
   @spec retired_lines() :: [{String.t(), String.t()}]
   def retired_lines do
     [
+      # N52-B: board 13's `Tomorrow` pill deferred a film to a day nothing
+      # records, and board 36's Apple TV, Chromecast and browser-extension
+      # rows, and its *Ask before ticking* and *Ignore trailers* rules, are
+      # sources Kati cannot detect through and settings nothing stores. The
+      # screens draw none of them on any device.
+      {"13", "tomorrow"},
+      {"36", "connected · 28 ticks"},
+      {"36", "chromecast"},
+      {"36", "on this network · 13 ticks"},
+      {"36", "browser extension"},
+      {"36", "not installed"},
+      {"36", "get"},
+      {"36", "ask before ticking"},
+      {"36", "only when the match is unsure"},
+      {"36", "ignore"},
+      {"36", "trailers, anything under 5 min"},
       # Board 11: the match percentages, the corpus size, the people card, the
       # leaving-soon rail and the chip row that chose between them. Nothing
       # scores a title against a history, Kati has no person, nothing stores
@@ -1521,6 +1537,145 @@ defmodule Kati.DesignLiterals do
       title: Kati.Screens.ReleaseWatcher.watching_line(%{followed: 24}),
       meta: Kati.Screens.ReleaseWatcher.found_line(%{out_now: [%{}, %{}, %{}]}),
       on: true
+    }
+  end
+
+  @doc """
+  Board 33's watch, *Blue Hour*, in the shape `Kati.Screens.Rating` draws.
+
+  The screen keeps no copy of it (N52-B) — a push naming no title draws
+  `Kati.Screens.Rating.nothing_to_log/0` — so the board lives here, with the
+  test that installs it. No `live?`, so its controls stay pictures: nobody
+  owns the watch. `characters` is the drawing's own 184, which
+  disagrees with the body beside it; the drawing is what is being compared.
+  """
+  def rating_board do
+    %{
+      title: "Blue Hour",
+      seed: "bluehour58",
+      meta: "2025 · 1H 52M",
+      rewatch: "2nd rewatch",
+      rating: 4.5,
+      rating_note: "HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE",
+      spoilers: "Spoilers hidden",
+      review:
+        "Second time through and the estuary scenes land completely differently once you know what Mara is looking for. The score does most of the work in the last reel.",
+      characters: "184 characters",
+      context: [
+        %{icon: "event", title: "Watched on", sub: "Sun 16 Aug · 21:40"},
+        %{icon: "tv", title: "Where", sub: "Lumen+ · living room"},
+        %{icon: "group", title: "With", sub: "Jo"}
+      ],
+      tags: ["slow burn", "coastal", "rewatchable"]
+    }
+  end
+
+  @doc """
+  Board 144's live sheet, *S2 E6 · The Undertow* of *The Long Hollow*.
+
+  The screen keeps no copy of it (N52-B) — a push naming no episode, over a
+  store with none logged, draws `Kati.Screens.RateEpisode.empty_sheet/0`.
+  """
+  def rate_episode_board do
+    %{
+      headline: "S2 E6 · The Undertow",
+      masked_headline: "S2 E6 · Episode 6",
+      show_title: "The Long Hollow",
+      spoiler_safe?: false,
+      rewatch?: false,
+      rating: 4.5,
+      review: "",
+      context: [
+        %{
+          key: :watched_on,
+          icon: "event",
+          title: "Watched on",
+          sub: "Tonight · 21:40",
+          trailing: "now"
+        },
+        %{key: :where, icon: "tv", title: "Where", sub: "Lumen+ · living room", trailing: nil},
+        %{key: :with, icon: "group", title: "With", sub: "Jo", trailing: nil}
+      ],
+      previous: nil
+    }
+  end
+
+  @doc """
+  Board 149's show, *The Quiet Ones*, gone cold at S1 E3.
+
+  The screen keeps no copy of it (N52-B) — a push naming no row draws
+  `Kati.Screens.DropSheet.empty_sheet/0`. `tracked: nil` because nobody owns
+  it, so the sheet's writes refuse over it.
+  """
+  def drop_board do
+    %{
+      tracked: nil,
+      title: "The Quiet Ones",
+      seed: "quietones12",
+      cold_label: "GONE COLD · 4 MONTHS",
+      kind: :tv,
+      season: 1,
+      episode: 3
+    }
+  end
+
+  @doc """
+  Board 36 as far as the screen can draw it: `3 sources`, `41 EPISODES TICKED
+  FOR YOU`, *The Long Hollow* playing at 74%, the permission row, the
+  threshold row and the Marram question.
+
+  The screen keeps no copy of it (N52-B), and the board's rows no device can
+  have — Apple TV, Chromecast, the browser extension, *Ask before ticking*,
+  *Ignore* — are retired in `retired_lines/0` rather than installed.
+  `access: :unavailable`, so none of it answers a tap.
+  """
+  def detect_board do
+    %{
+      sources_line: "3 sources",
+      banner: %{
+        title: "Detect what you play",
+        meta: "41 EPISODES TICKED FOR YOU",
+        on: true
+      },
+      now_playing: %{
+        seed: "hollow71",
+        title: "The Long Hollow",
+        meta: "S2E6 · LUMEN+ · APPLE TV",
+        status: "Live",
+        progress: 0.74,
+        elapsed: "41:02 / 55:00",
+        rule: "ticks at 90%"
+      },
+      sources: [
+        %{
+          icon: "phone_iphone",
+          title: "This phone",
+          sub: "Detects audio from any app",
+          control: :chevron,
+          tap: :open_media_access
+        }
+      ],
+      rules: [
+        %{
+          icon: "percent",
+          title: "Tick at",
+          sub: "90% watched",
+          control: :chevron,
+          tap: :cycle_threshold
+        }
+      ],
+      decision: %{
+        seed: "marram15",
+        question: "“Marram E3” or “Marram Grass”?",
+        sub: "Played 43m on Orbit, 21:10",
+        options: [
+          {"The series", :answer_the_series},
+          {"The film", :answer_the_film},
+          {"Neither", :answer_neither}
+        ],
+        chosen: "The series"
+      },
+      access: :unavailable
     }
   end
 end

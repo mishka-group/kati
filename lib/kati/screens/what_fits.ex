@@ -41,10 +41,9 @@ defmodule Kati.Screens.WhatFits do
   fit, measured against the chosen window. The clock is `Kati.Time`. A shelf
   with nothing on it says so (`fits_label/2`) rather than *nothing fits*.
 
-  `Kati.Screens.WhatFits.Sample` is board 13's own evening and is reached only
-  through `drawn_tonight/0`, which the design-literal test installs, and by
-  screen 96, which borrows the window card as a reference drawing. No reader
-  path draws it.
+  Board 13's own evening is not in this module. Screen 96
+  (`Kati.Screens.NothingSetUpKnockOn`) borrows `window/1` as a reference
+  drawing over `Kati.Screens.WhatFits.Sample`; nothing this page draws reads it.
 
   ## What the board draws and this page does not
 
@@ -52,7 +51,7 @@ defmodule Kati.Screens.WhatFits do
       is a real column and nothing writes it, so a chip over it narrows nothing
       and is not drawn; the overflow disc goes with it, having nothing to hold.
     * **The `Tomorrow` pill** on the over-budget row. Nothing records a
-      deferral — see `defer_pill/1` — so the offer is not made.
+      deferral — no column, no resource — so the offer is not made.
 
   ## Board 310 — the third page screen 92's sentence names
 
@@ -69,13 +68,10 @@ defmodule Kati.Screens.WhatFits do
   use Kati.Screens.Pushed, back: "Library"
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
-  alias Kati.Components.MishkaPill
   alias Kati.Media.CachedEpisode
   alias Kati.Media.Release
   alias Kati.Media.TrackedTitle
-  alias Kati.Screens.WhatFits.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -154,7 +150,7 @@ defmodule Kati.Screens.WhatFits do
 
   `real_tonight/1` answers nil for two reasons and only one of them is "nothing
   fits": it is wrapped in a `rescue`, so a read that raised landed here too. It
-  was `drawn_tonight/0` — the board's own evening, at *Sunday, 21:40* — so a
+  was the board's own evening, at *Sunday, 21:40* — so a
   reader with nothing on their shelf was handed four films to pick between, and
   a database Kati could not read was handed the same four.
 
@@ -180,10 +176,6 @@ defmodule Kati.Screens.WhatFits do
       over: nil
     }
   end
-
-  @doc "Screen 13 exactly as it is drawn."
-  @spec drawn_tonight() :: map()
-  def drawn_tonight, do: Sample.tonight()
 
   @doc false
   @spec real_tonight(pos_integer()) :: map() | nil
@@ -528,9 +520,6 @@ defmodule Kati.Screens.WhatFits do
                 n: Kati.Locale.number(m - minutes)
               )
             ),
-          # No column records a deferral — see `defer_pill/1` — so the row has
-          # its film and not the board's offer.
-          action: nil,
           tracked_id: tracked.id
         }
     end
@@ -703,7 +692,7 @@ defmodule Kati.Screens.WhatFits do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.WhatFits.more_row(t.moods != [])}
+        {Kati.Screens.WhatFits.more_row()}
         {Kati.Screens.WhatFits.header(t)}
         {Kati.Screens.WhatFits.window(t, true)}
         {UI.eyebrow(t.fits_label)}
@@ -716,65 +705,21 @@ defmodule Kati.Screens.WhatFits do
     """
   end
 
-  # The back pill is Kati.Screens.Pushed's, floating at the left. This row
-  # reserves its height and carries the overflow disc opposite it.
   @doc """
-  The row the back pill sits in, and the overflow disc opposite it.
+  The row the back pill floats in, reserved so the title sits below it.
 
-  The disc is the board's. It was drawn without a tap — one of this
-  screen's eleven pictures — and there is nothing behind
-  it: everything this page can do is on it. The mood chips were the one thing
-  an overflow could have held and they have no VALUES either —
-  `Kati.Media.Watch.moods` exists and nothing writes it — so a disc here
-  would be a second promise of the same missing axis.
-
-  So it goes with them, and the row it sat in stays: `Kati.Screens.Pushed`
-  floats the back pill, and this is what reserves the space it occupies.
+  The board puts an overflow disc opposite the pill. It was drawn without a
+  tap and there is nothing behind it — everything this page can do is on it —
+  so it is not drawn.
   """
-  @spec more_row(boolean()) :: map()
-  def more_row(drawn? \\ true) do
-    assigns = %{
-      disc: if(drawn?, do: Kati.Screens.WhatFits.more_disc(), else: ~MOB"<Spacer size={0} />")
-    }
-
+  @spec more_row() :: map()
+  def more_row do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} height={44} align="center">
-        <Spacer weight={1.0} />
-        {@disc}
-      </Row>
+      <Box fill_width={true} height={44} />
       <Spacer size={16} />
     </Column>
     """
-  end
-
-  @doc """
-  The overflow disc — Mishka's Action Icon, now that it can float.
-
-  A floating disc is defined by its shadow. `action_icon/2` painted a fill and
-  stopped there, which reads as a flat patch of card colour rather than as a
-  control sitting above the paper, so this disc stayed hand-rolled; `shadow`
-  takes the design's `Kati.Theme.shadow_button()` string untouched and closes
-  that gap.
-
-  Same pixels. `shape: :circle` is an exact `size / 2`, so 44 rounds at 22 as
-  the literal did; the fill, the shadow and the centring pass straight
-  through; and the glyph is the same `Kati.UI.symbol/2` Text, now inside a Row
-  that hugs it — a hugging Row centred in a Box puts its one child where the
-  bare Text sat.
-  """
-  @spec more_disc() :: map()
-  def more_disc do
-    MishkaActionIcon.action_icon(
-      [
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Kati.Theme.shadow_button()
-      ],
-      [Kati.UI.symbol("more_horiz", size: 21)]
-    )
   end
 
   @doc false
@@ -784,9 +729,9 @@ defmodule Kati.Screens.WhatFits do
   # uncapped display heading had room to wrap where the drawing has one line.
   #
   # `t.now` is set in mono, and `kati_mono.ttf` carries no Persian glyph — so
-  # the face asks the STRING rather than the reader: `Sunday, 21:40` off
-  # `Kati.Screens.WhatFits.Sample` is pure ASCII and keeps DM Mono, and
-  # `یک‌شنبه، ۲۱:۴۰` off `clock/0` takes Vazirmatn at the mono size.
+  # the face asks the STRING rather than the reader: `Sunday, 21:40` is pure
+  # ASCII and keeps DM Mono, and `یک‌شنبه، ۲۱:۴۰` takes Vazirmatn at the mono
+  # size.
   def header(t) do
     ~MOB"""
     <Column fill_width={true}>
@@ -1043,8 +988,7 @@ defmodule Kati.Screens.WhatFits do
   @doc false
   # Both mono slots ask the STRING rather than the reader which face to take:
   # `ف۳ · ق۲` and `۴۱ دقیقه` have no glyph in `kati_mono.ttf` and would be
-  # handed to Android's own substitute face, while a row off
-  # `Kati.Screens.WhatFits.Sample` is still pure ASCII and keeps DM Mono.
+  # handed to Android's own substitute face, while a Latin row keeps DM Mono.
   def fit_row(row, index \\ nil) do
     assigns = %{tap: Kati.Screens.WhatFits.row_tap(row, index)}
 
@@ -1141,8 +1085,6 @@ defmodule Kati.Screens.WhatFits do
           max_lines={1}
         />
       </Column>
-      <Spacer size={12} />
-      {Kati.Screens.WhatFits.defer_pill(row.action)}
     </Row>
     """
   end
@@ -1177,54 +1119,13 @@ defmodule Kati.Screens.WhatFits do
     end
   end
 
-  @doc """
-  The `Tomorrow` affordance on the over-budget row — Mishka's Pill.
-
-  A pill, not a chip: it carries no selected state, it is the row's one offer.
-  It reads as a label on a tinted lozenge, which is what a pill is.
-
-  The pixels are the Row's. `padding: 0` with `padding_left`/`padding_right`
-  at 12 gives the bridge exactly the 12/0 edges it had, and since padding is
-  applied before height, `height: 30` measures 30 as it did. The pill is a
-  hugging `Box` (its root passes `fill_width={false}`) wrapping a `Row` that
-  holds the label and an empty `Row` where the ✕ would go; both hug, the empty
-  one is zero-wide, and `align: :center` puts the pair where the Row's own
-  `align="center"` put the Text. `max_lines: 1` is the pill's own default and
-  is what this Text already carried.
-  """
-  @spec defer_pill(String.t() | nil) :: map()
-  # `nil` over a real row, and it is the same rule as the mood chips one card
-  # up: nothing records that a film was deferred to tomorrow — no column, no
-  # resource, and `Kati.Calendars.Event` would be inventing an appointment
-  # nobody made. So the offer is the board's and is not made over a real film.
-  def defer_pill(nil), do: ~MOB"<Spacer size={0} />"
-
-  def defer_pill(label) do
-    MishkaPill.pill(
-      label: label,
-      background: Palette.placeholder(),
-      color: Palette.ink_soft(),
-      corner_radius: 15,
-      height: 30,
-      padding: 0,
-      padding_left: 12,
-      padding_right: 12,
-      align: :center,
-      text_size: 11.5,
-      font_weight: :semibold
-    )
-  end
-
   @doc false
   def over_eyebrow(nil), do: ~MOB"<Spacer size={0} />"
   def over_eyebrow(label), do: Kati.UI.Eyebrow.quiet(label)
 
   @doc false
-  # `Kati.Design.Images.poster/1` and not the fixture's own wrapper: it answers
-  # for a design seed AND for a provider path — `Kati.Media.Artwork.remote?/1`
-  # is what tells them apart — and routing a real `poster_path` through the
-  # Sample module would be a lie about where the value came from. Screens 03,
-  # 05 and 08 made the same move for the same reason.
+  # `Kati.Design.Images.poster/1`: it answers for a provider path, and
+  # `Kati.Media.Artwork.remote?/1` is what tells a path from a seed.
   def thumb(seed) do
     case Kati.Design.Images.poster(seed) do
       nil ->

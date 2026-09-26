@@ -1,3 +1,5 @@
+Code.require_file("../support/design_literals.exs", __DIR__)
+
 defmodule Kati.MediaDetectTest do
   @moduledoc """
   Auto-detect, which screen 36 was the argument for and nothing behind.
@@ -42,8 +44,7 @@ defmodule Kati.MediaDetectTest do
       clock: 1,
       access_line: 1,
       sources_line: 2,
-      live?: 1,
-      answer_tag: 1
+      live?: 1
     ]
 
   alias Kati.Media.CachedEpisode
@@ -289,7 +290,7 @@ defmodule Kati.MediaDetectTest do
         seed: nil,
         question: "“Some Film” — is that something you keep?",
         sub: "Kati heard it play and found nothing on your shelf",
-        options: ["Add it", "Not mine"],
+        options: [{"Add it", :answer_add_it}, {"Not mine", :answer_not_mine}],
         chosen: nil
       }
 
@@ -303,9 +304,7 @@ defmodule Kati.MediaDetectTest do
       {:noreply, after_tap} = AutoDetect.handle_tap(:answer_not_mine, screen())
 
       assert Detect.unsure() == []
-      # The screen redraws. On a host with no bridge it redraws board 36, whose
-      # decision is the drawing's — `real_decision/0` is what answers `nil`,
-      # and it is asserted where it can be reached.
+      # The screen redraws, with no question left to ask.
       assert AutoDetect.real_decision() == nil
       assert Map.has_key?(after_tap.assigns, :detect)
     end
@@ -430,7 +429,7 @@ defmodule Kati.MediaDetectTest do
     test "reads its own unavailable state rather than drawing board 36 whole" do
       assert Detect.access() == :unavailable
 
-      refute AutoDetect.detect() == AutoDetect.drawn_detect(),
+      refute AutoDetect.detect() == Kati.DesignLiterals.detect_board(),
              "`:unavailable` is the answer on EVERY sideloaded build — Play Protect blocks " <>
                "the listener this reads — so the one state a real reader of this APK is " <>
                "always in was the one that drew the fixture"
@@ -441,7 +440,7 @@ defmodule Kati.MediaDetectTest do
     end
 
     test "and its master switch is a picture there" do
-      drawn = AutoDetect.drawn_detect()
+      drawn = Kati.DesignLiterals.detect_board()
 
       refute inspect(AutoDetect.banner(drawn.banner, nil), limit: :infinity) =~ "toggle_detect"
 

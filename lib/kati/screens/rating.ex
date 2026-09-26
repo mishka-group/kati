@@ -156,9 +156,10 @@ defmodule Kati.Screens.Rating do
   and the one cache row that row names — by `{source, source_id}` as a **value
   pair**, so an evicted poster cannot take the user's own review down with it.
 
-  `Kati.Rating.Sample` is board 33's own values and is reached only through
-  `drawn_watch/0`, which the design-literal test installs to compare the frame
-  against its capture. No reader path draws it.
+  A push naming no title, or a title that has gone, draws `nothing_to_log/0`:
+  one sentence and a close disc, with no Save and no fields. Board 33's own
+  values live with the test that compares the frame against its capture
+  (`Kati.DesignLiterals.rating_board/0`); nothing in `lib/` holds them.
 
   ### What is not drawn
 
@@ -200,7 +201,6 @@ defmodule Kati.Screens.Rating do
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
-  alias Kati.Rating.Sample
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
   alias Kati.Write
@@ -302,16 +302,6 @@ defmodule Kati.Screens.Rating do
   """
   @spec watch(String.t() | nil) :: map()
   def watch(title_id \\ nil), do: shaped_or_empty(logged_record(title_id))
-
-  @doc """
-  Screen 33 exactly as it is drawn, from `Kati.Rating.Sample`.
-
-  Kept in the fixture rather than inlined here: it is the frame's specification
-  and the value a test compares a real render against, and two copies of the
-  drawing's copy is how the two drift apart.
-  """
-  @spec drawn_watch() :: map()
-  def drawn_watch, do: Sample.watch()
 
   @doc """
   The user's newest log, shaped for the markup, or `nil` when there is not one.
@@ -514,12 +504,14 @@ defmodule Kati.Screens.Rating do
   The sheet with no watch and no title behind it.
 
   `blank_for/1`'s shape with the title emptied — the same sheet a first watch
-  opens in, minus the thing being rated. It was `drawn_watch/0`, so a sheet
-  opened over nothing drew *Blue Hour*, four stars and somebody else's review,
-  on a screen whose Save WRITES.
+  opens in, minus the thing being rated. It used to be board 33's own watch,
+  so a sheet opened over nothing drew *Blue Hour*, four stars and somebody
+  else's review, on a screen whose Save WRITES.
 
   `live?: false` is the difference that matters: `blank_for/1` sets it true
   because there is a real title to write against, and there is not one here.
+  `render/1` draws `nothing_to_log/0` for it — no fields and no Save, because
+  a form over nothing is a form whose Save can only refuse.
   """
   @spec empty_watch() :: map()
   def empty_watch do
@@ -540,7 +532,8 @@ defmodule Kati.Screens.Rating do
       place: nil,
       context: [],
       tags: [],
-      live?: false
+      live?: false,
+      empty?: true
     }
   end
 
@@ -638,9 +631,7 @@ defmodule Kati.Screens.Rating do
     * `spoilers` is `nil` when the review does not carry them, and the toggle
       draws nothing rather than an inverted claim: `contains_spoilers` says a
       review has spoilers to hide, and its `false` says nothing is hidden.
-    * `characters` is counted off the review here, where the fixture stores it —
-      `Kati.Rating.Sample` says why the drawing's own 184 is stored rather than
-      derived, and that reason is about the drawing, not about a real review.
+    * `characters` is counted off the review.
     * the three context rows are always drawn and their `sub` may be `nil`,
       which `Kati.UI.SettingsList.body/2` renders as a title alone. An editor
       with a field not yet filled in is exactly what a log with no place is.
@@ -672,19 +663,16 @@ defmodule Kati.Screens.Rating do
       place: presence(logged.place),
       context: context_rows(logged, zone),
       tags: tag_list(logged.tags),
-      # This draft has somewhere to be committed, and the drawing's has not.
-      # The controls #96 wired read it rather than each deciding again: a
-      # spoiler flag or a tag set on `Kati.Rating.Sample` would be an edit to a
-      # picture, and pressing Save would refuse it with `nothing_to_save` after
-      # the reader had already typed.
+      # This draft has somewhere to be committed, and `empty_watch/0` has not.
+      # The controls #96 wired read it rather than each deciding again.
       live?: true
     }
   end
 
   @doc """
-  Whether this draft has a row behind it, or is the drawing.
+  Whether this draft has a title behind it to write against.
 
-      iex> Kati.Screens.Rating.writable?(Kati.Screens.Rating.drawn_watch())
+      iex> Kati.Screens.Rating.writable?(Kati.Screens.Rating.empty_watch())
       false
   """
   @spec writable?(map()) :: boolean()
@@ -693,20 +681,9 @@ defmodule Kati.Screens.Rating do
   @doc """
   The note under the star row, which is copy rather than a value.
 
-  `Kati.Rating.Sample` still holds the drawing's own English — the moduledoc's
-  rule that the note is *taken from the one place that copy lives rather than
-  written out a second time here* — and that place is now the **msgid**: it is
-  the fixture's sentence letter for letter, so the two cannot drift while the
-  English stands, and a Persian reader gets a Persian note on the drawing as
-  well as on a real log. A `gettext/1` call needs a literal at the call site
-  (`gettext(w.rating_note)` does not compile), so the sentence has to be
-  written where it is asked for, and `Kati.Rating.Sample` is another module's
-  file.
-
-  Both halves are still the drawing's and neither is a preference any resource
-  holds — see the moduledoc. The reason this is drawn from here rather than off
-  the draft is only that `drawn_watch/0` is `Kati.Rating.Sample.watch/0`
-  verbatim, and a map built in English cannot answer in Persian.
+  It describes the control `star_cell/3` draws — half stars, tapped either
+  side of centre — so it is the same sentence on every sheet, and it is written
+  once here so a Persian reader gets it in Persian.
   """
   @spec rating_note() :: String.t()
   def rating_note do
@@ -960,23 +937,90 @@ defmodule Kati.Screens.Rating do
           padding_top={64}
           padding_bottom={40}
         >
-          {Kati.Screens.Rating.header()}
-          {Kati.Screens.Rating.save_notice(save_error)}
-          {Kati.Screens.Rating.title_card(w)}
-          {Kati.Screens.Rating.rating_card(w)}
-          {Kati.Screens.Rating.review_card(w)}
-          {Kati.Screens.Rating.context_card(w)}
-          {Kati.Screens.Rating.tags(w)}
+          {Kati.Screens.Rating.header(not Kati.Screens.Rating.empty?(w))}
+          {Kati.Screens.Rating.body(w, save_error)}
         </Column>
       </Scroll>
     </Box>
     """
   end
 
-  @doc false
-  def header do
+  @doc """
+  The sheet under its header: the watch being logged, or `nothing_to_log/0`.
+
+  A draft with nothing behind it — no title named, or a title that has gone —
+  draws no fields. They would take a rating and a review that Save could only
+  refuse, which is a form pretending to be one.
+  """
+  @spec body(map(), String.t() | nil) :: [map()]
+  def body(w, save_error) do
+    if Kati.Screens.Rating.empty?(w) do
+      [Kati.Screens.Rating.nothing_to_log()]
+    else
+      [
+        Kati.Screens.Rating.save_notice(save_error),
+        Kati.Screens.Rating.title_card(w),
+        Kati.Screens.Rating.rating_card(w),
+        Kati.Screens.Rating.review_card(w),
+        Kati.Screens.Rating.context_card(w),
+        Kati.Screens.Rating.tags(w)
+      ]
+    end
+  end
+
+  @doc """
+  Whether the draft is `empty_watch/0`: no title behind it at all.
+
+      iex> Kati.Screens.Rating.empty?(Kati.Screens.Rating.empty_watch())
+      true
+  """
+  @spec empty?(map()) :: boolean()
+  def empty?(draft), do: Map.get(draft, :empty?, false) == true
+
+  @doc """
+  What the sheet says when it was opened over no title.
+
+  One sentence and the way back, which is the close disc above it: a watch is
+  logged from the film or series it is a watch of.
+  """
+  @spec nothing_to_log() :: map()
+  def nothing_to_log do
+    ~MOB"""
+    <Column fill_width={true} padding_top={8} padding_bottom={24}>
+      <Text
+        text={gettext("There is no title here to log a watch of.")}
+        text_size={14}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.ink_soft()}
+      />
+      <Spacer size={8} />
+      <Text
+        text={gettext("Open a film or a series and choose Log a watch from there.")}
+        text_size={13}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.sub()}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  The close disc, the title, and Save when there is something to save.
+
+  Without a title behind the sheet there is no Save: a pill whose only answer
+  is a refusal is a dead control. Its width is kept so the title stays centred.
+  """
+  @spec header(boolean()) :: map()
+  def header(live? \\ true) do
     close = {self(), :close}
-    save = {self(), :save}
+
+    assigns = %{
+      save:
+        if(live?,
+          do: Kati.Screens.Rating.save_pill({self(), :save}),
+          else: ~MOB"<Box width={44} height={38} />"
+        )
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -991,7 +1035,7 @@ defmodule Kati.Screens.Rating do
           max_lines={1}
         />
         <Spacer weight={1.0} />
-        {Kati.Screens.Rating.save_pill(save)}
+        {@save}
       </Row>
       <Spacer size={22} />
     </Column>
@@ -1731,9 +1775,7 @@ defmodule Kati.Screens.Rating do
   `remember` only when the string actually differs, so echoing back what was
   just typed is a no-op and the caret does not move.
 
-  The placeholder is what an empty review card should say and the drawing never
-  had to: every value in `Kati.Rating.Sample` is filled in, because the drawing
-  is a sheet that has been written on.
+  The placeholder is what an empty review card says.
   """
   @spec review_field(String.t()) :: map()
   def review_field(review) do
@@ -1903,18 +1945,14 @@ defmodule Kati.Screens.Rating do
     ]
   end
 
-  # The drawing's own sub-line for a row the draft has no value for, so board
-  # 33 keeps its `Lumen+ · living room` and `Jo` while a real sheet reads the
-  # watch. `nil` on a real sheet with nothing set, which is what an unanswered
-  # question looks like.
+  # The row's own sub-line off the draft's `context`, for a row the draft has
+  # no edited value for. `nil` when nothing is set, which is what an
+  # unanswered question looks like.
   #
-  # Keyed by the row's GLYPH NAME, where it used to be keyed by the row's
-  # title. The title is drawn copy now — `تاریخ تماشا` under `:fa` — and
-  # `Kati.Rating.Sample` writes the drawing's three rows in English, so a
-  # lookup by title would have found nothing the moment the reader's language
-  # was not the fixture's: board 33 in Persian would have lost the three
-  # sub-lines it is a drawing OF. `event`, `tv` and `group` are Material
-  # Symbols names, the same three in both maps and in neither script.
+  # Keyed by the row's GLYPH NAME rather than its title: the title is drawn
+  # copy — `تاریخ تماشا` under `:fa` — and a lookup by title would find nothing
+  # the moment the reader's language changed. `event`, `tv` and `group` are
+  # Material Symbols names, the same three in both scripts.
   defp sub_of(w, icon) do
     case Enum.find(Map.get(w, :context, []), &(&1.icon == icon)) do
       %{sub: sub} -> sub
@@ -2007,7 +2045,7 @@ defmodule Kati.Screens.Rating do
         <Box weight={1.0}>
           <TextField
             value={@draft}
-            placeholder={pgettext("two example names in the companions field", "Jo, Sam")}
+            placeholder={gettext("Who watched with you")}
             return_key="done"
             fill_width={true}
             text_size={13}
@@ -2153,9 +2191,6 @@ defmodule Kati.Screens.Rating do
   page of chrome around a text field, so the field opens **here**, under the
   chips, with the tags this reader has used before beside it — which is what
   people actually do with tags: reuse the ones they have.
-
-  Over the drawing the chips and `+ tag` stay pictures, because a tag typed
-  onto `Kati.Rating.Sample` would be refused by Save after it had been typed.
   """
   @spec tags(map()) :: map()
   def tags(w) do
@@ -2203,7 +2238,7 @@ defmodule Kati.Screens.Rating do
             <Box weight={1.0}>
               <TextField
                 value={@draft}
-                placeholder={gettext("rewatch, with Jo, rainy sunday…")}
+                placeholder={gettext("rewatch, rainy sunday…")}
                 return_key="done"
                 fill_width={true}
                 text_size={13}
@@ -2421,10 +2456,7 @@ defmodule Kati.Screens.Rating do
   # What was typed into the review, held as typed.
   #
   # `characters` moves with it, because the count under the field is a count of
-  # what is in the field. `Kati.Rating.Sample` stores the drawing's own 184
-  # against a body of a different length and says why — that is a fact about
-  # the drawing, and the moment a person types, the number is about them
-  # instead.
+  # what is in the field.
   def handle_info({:change, :review, typed}, socket) when is_binary(typed) do
     {:noreply,
      Mob.Socket.update(socket, :watch, fn w ->

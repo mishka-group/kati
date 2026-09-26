@@ -52,55 +52,28 @@ defmodule Kati.Screens.AutoDetect do
   music detection and music is outside the film and series scope, so 150 is
   reachable from the development gallery only.
 
-  `drawn_detect/0` is board 36 exactly as drawn, built from
-  `Kati.Settings.DetectSample`. It is the fixture
-  `Kati.ScreenDesignLiteralTest` compares the board against and no code path
-  on a device reaches it: `load/1` always assigns `detect/0`.
+  Board 36's own values — `3 sources`, `41 EPISODES TICKED FOR YOU`, *The Long
+  Hollow* playing, four sources with tick counts, three rules and the Marram
+  question — live with the test that compares the frame
+  (`Kati.DesignLiterals.detect_board/0`). Nothing in `lib/` holds them, and the
+  rows that only the drawing had — Apple TV, Chromecast, the browser extension
+  with its `Get` pill, *Ask before ticking*, *Ignore trailers* — are not drawn
+  on any device, because nothing detects through them or stores them.
 
-  ## Which half of the copy this file owns, after the fold
+  ## Two languages
 
-  mishka-group/kati#103 folded the 33 Persian mirrors away, so this module is
-  now board 36 in both languages and every word it writes has to come from
-  `Kati.Gettext`. Two modules hold the words on this page and only one of them
-  is this one — `Kati.Screens.AutoDetectMusic` says the same thing about board
-  150 and its Sample, for the same reason.
-
-  **This file owns the chrome and everything a device answers**: the 28pt
-  title and the mono line under it, the three eyebrows, the banner's headline
-  and its earned count, the *Now playing* pill and rule, the permission row and
-  the threshold row, and the question an unplaced name becomes with its two
-  answers. All of those are literals written here and all of them now go
-  through `gettext/1`.
-
-  **`Kati.Settings.DetectSample` owns the drawing**: `3 sources`, `41 EPISODES
-  TICKED FOR YOU`, *The Long Hollow* and its `S2E6 · LUMEN+ · APPLE TV`, the
-  four source rows with their tick counts, the three rule rows, and the Marram
-  question with its three answers. Those belong to that module the way
-  `Kati.Music.Sample`'s tracklist belongs to it; inlining them here would put
-  two copies of the drawing's copy in the repository, which is how a fixture
-  and a screen start disagreeing about what the board says.
-
-  **This paragraph used to end *and its words are still English literals*.**
-  They are not: the Sample went through the same fold this file did and every
-  word it writes is a msgid now, which its own moduledoc states along with the
-  two lookups that had to move with them — `row_tap/1` and `answer_tag/1`, both
-  documented below. What is still Latin there is what is still Latin here: a
-  service's name for itself. `Lumen+`, `Apple TV`, `Chromecast` and `Orbit` are
-  the drawing's four and `app_name/1` carries the argument for all of them.
-
-  What this file does for those strings is typeset them correctly whichever
-  language they arrive in: every mono slot asks `Kati.Locale.mono_face/1` about
-  the run it was handed rather than naming `mono` outright, every Latin name
-  that sits inside a line the rest of which can be Persian is isolated with
-  `Kati.Locale.ltr/1`, and the elapsed clock is isolated so an RTL page cannot
-  swap its two halves.
+  Every word this file writes goes through `Kati.Gettext`. What stays Latin is
+  a service's name for itself (`app_name/1` carries the argument), and every
+  Latin name inside a line that can be Persian is isolated with
+  `Kati.Locale.ltr/1`, so an RTL page cannot move its trailing mark. Every mono
+  slot asks `Kati.Locale.mono_face/1` about the run it was handed rather than
+  naming `mono` outright.
   """
   use Kati.Screens.Pushed, back: "Settings"
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaProgress
   alias Kati.Components.MishkaToggle
-  alias Kati.Settings.DetectSample, as: Sample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -143,23 +116,6 @@ defmodule Kati.Screens.AutoDetect do
       rules: Kati.Screens.AutoDetect.real_rules(),
       decision: Kati.Screens.AutoDetect.real_decision(),
       access: access
-    }
-  end
-
-  @doc """
-  Board 36 exactly as drawn: the fixture `Kati.ScreenDesignLiteralTest`
-  compares the board against. Nothing on a device reaches it.
-  """
-  @spec drawn_detect() :: map()
-  def drawn_detect do
-    %{
-      sources_line: Sample.sources_line(),
-      banner: Sample.banner(),
-      now_playing: Sample.now_playing(),
-      sources: Sample.sources(),
-      rules: Sample.rules(),
-      decision: Sample.decision(),
-      access: :unavailable
     }
   end
 
@@ -265,8 +221,7 @@ defmodule Kati.Screens.AutoDetect do
 
   @doc false
   def session_meta(session) do
-    # `Kati.Locale.ltr/1` around the app name, for the reason
-    # `Kati.Settings.DetectSample.playing_meta/0` gives about `Lumen+`: a name
+    # `Kati.Locale.ltr/1` around the app name: a name
     # that ends in a NEUTRAL has that character resolved against the PARAGRAPH
     # rather than against the run it belongs to, so under `:fa` the mark jumps
     # to the far side and the line reads `+Disney`. `Disney+` is the one of
@@ -373,10 +328,8 @@ defmodule Kati.Screens.AutoDetect do
         %{
           icon: "play_circle",
           # `Kati.Locale.ltr/1` even though a row title is the whole of its own
-          # `<Text>`. `Kati.Settings.DetectSample` argues that a lone title
-          # needs no isolate because it has no Persian run beside it for a
-          # neutral to resolve against — true of `Apple TV` and `Chromecast`,
-          # and not of a name that ends in one. A paragraph takes the PAGE's
+          # `<Text>`: a lone title has no Persian run beside it, but a name
+          # that ends in a neutral still resolves against the page. A paragraph takes the PAGE's
           # direction whatever is in it, so under `:fa` the trailing `+` of
           # `Disney+` resolves right-to-left and the row reads `+Disney`. The
           # package fallback is the other half: it is whatever the phone
@@ -491,9 +444,9 @@ defmodule Kati.Screens.AutoDetect do
             ),
           sub: Kati.Screens.AutoDetect.decision_sub(suggestions),
           suggestions: suggestions,
-          # `{label, tag}` and not a bare label. The tag used to be DERIVED
-          # from the label — see `answer_tag/1` — which is a lookup keyed on a
-          # drawn string, and a drawn string is translated.
+          # `{label, tag}` and not a bare label: a tag derived from the label
+          # would be a lookup keyed on a drawn string, and a drawn string is
+          # translated.
           options: [
             {gettext("Add it"), :answer_add_it},
             {gettext("Not mine"), :answer_not_mine}
@@ -527,7 +480,7 @@ defmodule Kati.Screens.AutoDetect do
         padding_top={64}
         padding_bottom={40}
       >
-        {SettingsList.chrome("more_horiz")}
+        {SettingsList.chrome(nil)}
         {SettingsList.title(gettext("Auto-detect"), d.sources_line, nil, :meta_tight)}
         <Spacer size={20} />
         {Kati.Screens.AutoDetect.access_notice(Map.get(d, :access, :unavailable))}
@@ -732,9 +685,8 @@ defmodule Kati.Screens.AutoDetect do
 
     # The meta's face is asked the same question, and the isolates have to come
     # out of the string before it is asked. Both producers wrap a service name
-    # in `Kati.Locale.ltr/1` — `session_meta/1` because `Disney+` ends in a
-    # mark, `Kati.Settings.DetectSample.playing_meta/0` because `Lumen+` does —
-    # so a finished meta can carry U+2066 around a run that is otherwise pure
+    # in `Kati.Locale.ltr/1` — `session_meta/1` does, because `Disney+` ends in
+    # a mark — so a finished meta can carry U+2066 around a run that is otherwise pure
     # ASCII. Handing that to `mono_face/1` would answer `fa` for
     # `S2E6 · NETFLIX` and push a Latin eyebrow out of DM Mono, which is the
     # one run boards 36 and 150 both keep there in both scripts. Stripping the
@@ -831,7 +783,7 @@ defmodule Kati.Screens.AutoDetect do
   @doc """
   Whether this screen is looking at a device that can answer.
 
-      iex> Kati.Screens.AutoDetect.live?(Kati.Screens.AutoDetect.drawn_detect())
+      iex> Kati.Screens.AutoDetect.live?(%{access: :unavailable})
       false
   """
   @spec live?(map()) :: boolean()
@@ -916,74 +868,20 @@ defmodule Kati.Screens.AutoDetect do
   end
 
   @doc """
-  The tap a row carries: the one it names, or the one its title implies.
+  The tap a row carries: the one it names, and `nil` names none.
 
-  `tap/1` recognised the row by its English TITLE, and mishka-group/kati#103 is
-  what turns that shortcut into a defect: a title is a drawn string now, a
-  drawn string goes through `gettext/1`, and under `:fa` *This phone* is
-  **این گوشی** and *Tick at* is **تیک زدن در**. Every clause would fall through
-  to `nil`, so the permission row and the threshold row lose their taps on
-  exactly the page a reader opened in order to grant the permission — silently,
-  because a row with no tap is indistinguishable from a row that never had one.
-  `Kati.Retired`'s moduledoc states the same rule about tile names, and
-  `Kati.Screens.RetiredTile.label/1` is the fix applied there.
-
-  So the rows `real_sources/2` and `real_rules/0` build carry `:tap`
-  themselves — **and so do the drawing's**. This paragraph used to say
-  `Kati.Settings.DetectSample`'s rows *do not and will not*, on the grounds
-  that the Sample's words were English literals by design; they are msgids now,
-  its own moduledoc names this lookup as one of the two things that had to move
-  with them, and all seven of its rows carry the key. Every row on this screen
-  therefore answers on the second clause.
-
-  Which leaves `tap/1` reached by nothing, and it is kept rather than deleted
-  for one reason: the Sample's moduledoc cites it by name as the lookup it
-  moved off, and this module cannot edit that file to say otherwise. Do not
-  route a new row through it. A row that grows a control grows a `:tap` in the
-  same map, because a title is a word on a screen and a tag is a name in the
-  program — see `answer_tag/1`, which is the identical mistake made twice.
+  Keyed on the row's own `:tap` and never on its title. A title is a drawn
+  string, and under `:fa` *This phone* is **این گوشی** — a lookup by title
+  would drop the permission row's tap on exactly the page a reader opened to
+  grant it.
   """
   @spec row_tap(map()) :: {pid(), atom()} | nil
-  # A row that carries the key at all has answered, and `nil` is an answer.
-  def row_tap(%{tap: nil}), do: nil
-  def row_tap(%{tap: tag}) when is_atom(tag), do: {self(), tag}
-  def row_tap(row), do: Kati.Screens.AutoDetect.tap(row.title)
-
-  @doc """
-  The three taps a row used to get from its own English title. **Dead.**
-
-  `row_tap/1` says why in full: every row on both sides of this screen names
-  its `:tap` now, so nothing reaches here, and the three literals below are
-  keys on a language rather than copy — under `:fa` a row's title is
-  **این گوشی**, which matches no clause, and the tap is lost without a sound.
-  It is left in place only because `Kati.Settings.DetectSample`'s moduledoc
-  points at it by name and that file belongs to another change.
-
-  The row it was written for is worth keeping written down. **Browser
-  extension** promises something that is not in this version — drawn
-  `Not installed` with a `Get` pill that led nowhere, the same dead control
-  screen 42's dashed tiles were — and it gets the same answer,
-  `Kati.Screens.RetiredTile`, the sheet that says *X isn't in this version* and
-  why. #22 asks for that treatment to be applied to exactly this row rather
-  than left as a Health one-off, and the Sample now carries
-  `tap: :open_retired` on the row itself, which is what actually opens it.
-  """
-  @spec tap(String.t()) :: {pid(), atom()} | nil
-  def tap("Browser extension"), do: {self(), :open_retired}
-  # #100's two, and both are the row's whole point. *This phone* is the
-  # permission — there is no runtime dialog for a notification listener, so the
-  # row opens screen 151, which explains the grant and opens the system page
-  # that makes it — and *Tick at* is the threshold
-  # `Kati.Media.Detect.threshold/0` reads.
-  def tap("This phone"), do: {self(), :open_media_access}
-  def tap("Tick at"), do: {self(), :cycle_threshold}
-  def tap(_title), do: nil
+  def row_tap(%{tap: tag}) when is_atom(tag) and not is_nil(tag), do: {self(), tag}
+  def row_tap(_row), do: nil
 
   @doc false
   def control(nil), do: ~MOB"<Spacer size={0} />"
   def control(:chevron), do: SettingsList.chevron()
-  def control({:switch, on?}), do: SettingsList.switch(on?)
-  def control({:pill, label}), do: SettingsList.action_pill(label)
 
   @doc false
   def decision(d, live? \\ false) do
@@ -1151,24 +1049,14 @@ defmodule Kati.Screens.AutoDetect do
   (`Palette.paper/0` / `Palette.ink_soft/0`, `#EFECE7` / `#5C574F`), and
   `pressed` picks between them exactly as the `if` did.
 
-  ## What an option is, since the labels stopped being English
+  ## An option is a label and a tag
 
-  Either a bare label or a `{label, tag}` pair. `real_decision/0` writes the
-  pair and `Kati.Settings.DetectSample` writes the bare label, and the bare
-  clause derives its tag through `answer_tag/1` exactly as this always did —
-  which is correct for the drawing and only for the drawing. `answer_tag/1`
-  says why.
+  `{label, tag}`: the tag is a name in the program and the label is a word on
+  a screen, and the two stop being the same string the moment the page has
+  two languages.
   """
-  @spec choice(String.t() | {String.t(), atom()}, boolean(), boolean()) :: map()
-  def choice(option, on?, live? \\ false)
-
-  def choice(label, on?, live?) when is_binary(label) do
-    tag = Kati.Screens.AutoDetect.answer_tag(label)
-
-    Kati.Screens.AutoDetect.choice({label, tag}, on?, live?)
-  end
-
-  def choice({label, tag}, on?, live?) do
+  @spec choice({String.t(), atom()}, boolean(), boolean()) :: map()
+  def choice({label, tag}, on?, live? \\ false) do
     button =
       MishkaToggle.toggle(
         label: label,
@@ -1184,9 +1072,8 @@ defmodule Kati.Screens.AutoDetect do
         # card the whole screen is arranged around — *a wrong tick pollutes a
         # watch history nobody audits* — could not be answered.
         #
-        # The tag comes from the OPTION now and not from the label. See
-        # `answer_tag/1`: a tag spelled out of a drawn string is a tag that
-        # changes with the language.
+        # The tag comes from the OPTION and not from the label: a tag spelled
+        # out of a drawn string is a tag that changes with the language.
         on_change: if(live?, do: {self(), tag}),
         color: Palette.ink_fill(),
         text_color: Palette.on_ink(),
@@ -1216,14 +1103,11 @@ defmodule Kati.Screens.AutoDetect do
       iex> Kati.Screens.AutoDetect.chosen?({"Not mine", :answer_not_mine}, "Not mine")
       true
 
-  Compares the LABEL half, because an option is either a bare label or a
-  `{label, tag}` pair and `chosen` is a label in both cases — it is what the
-  drawing records, and the drawing is the only thing that arrives with one
-  already chosen.
+  Compares the LABEL half: `chosen` is the label of the answer already given,
+  and `nil` on a question nobody has answered yet.
   """
-  @spec chosen?(String.t() | {String.t(), atom()}, String.t() | nil) :: boolean()
+  @spec chosen?({String.t(), atom()}, String.t() | nil) :: boolean()
   def chosen?({label, _tag}, chosen), do: label == chosen
-  def chosen?(label, chosen), do: label == chosen
 
   @doc """
   Every control on the page.
@@ -1242,8 +1126,6 @@ defmodule Kati.Screens.AutoDetect do
       `Kati.Screens.NotificationAccess.log_by_hand/2`.
     * `:cycle_threshold` — *Tick at*, stepping 80 → 90 → 95.
     * `:answer_add_it`, `:answer_not_mine`, `:connect_N` — the decision card.
-    * `:open_retired` — the drawing's *Browser extension* row, which only
-      `drawn_detect/0` carries.
 
   Board 36's TV & film / Music control is not drawn, so there is no `:tv` or
   `:music` here; see the moduledoc.
@@ -1316,18 +1198,6 @@ defmodule Kati.Screens.AutoDetect do
     {:noreply, Kati.Screens.NotificationAccess.log_by_hand(socket, gettext("Auto-detect"))}
   end
 
-  # `"Browser extension"` here is a KEY and not copy. `Kati.Screens.RetiredTile`
-  # matches this exact English string in its `offsite/1` and then draws
-  # `gettext("Browser extension")` in its own header — its comment there states
-  # the pair in full: *the same string in English and two different jobs, which
-  # is exactly why one of them is translated and the other cannot be*. Sending
-  # a Persian key at a Latin match would fall through to the drawn subject and
-  # open a sheet about Sleep.
-  def handle_tap(:open_retired, socket) do
-    {:noreply,
-     Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Browser extension"})}
-  end
-
   # Connect the heard name to the title the reader tapped.
   #
   # Writes the alias and the watch in one go — see `Kati.Media.Detect.connect/2`.
@@ -1343,29 +1213,6 @@ defmodule Kati.Screens.AutoDetect do
     else
       _not_a_connect -> {:noreply, socket}
     end
-  end
-
-  @doc """
-  The tag a DRAWN answer pill sends, built from its own label.
-
-      iex> Kati.Screens.AutoDetect.answer_tag("Not mine")
-      :answer_not_mine
-
-  This used to be how every answer got its tag, and mishka-group/kati#103 is
-  what makes that wrong twice over. Under `:fa` *Not mine* is
-  **مال من نیست**, so `String.to_atom("answer_" <> …)` mints an atom no
-  `handle_tap/2` clause matches and the pill answers nothing — and it MINTS
-  one, per label, per language, into a table that is never collected. A tag is
-  a name in the program; a label is a word on a screen; the two stopped being
-  the same string the day this screen had two languages.
-
-  So `real_decision/0` names `:answer_add_it` and `:answer_not_mine` itself and
-  this is what is left for `Kati.Settings.DetectSample`'s three English
-  answers, which are the drawing's and never move.
-  """
-  @spec answer_tag(String.t()) :: atom()
-  def answer_tag(label) do
-    String.to_atom("answer_" <> (label |> String.downcase() |> String.replace(" ", "_")))
   end
 
   @doc false

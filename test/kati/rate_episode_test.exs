@@ -71,8 +71,8 @@ defmodule Kati.RateEpisodeTest do
       assert RateEpisode.sheet().rating == nil
     end
 
-    test "and is the drawing's when nothing has been ticked at all" do
-      assert RateEpisode.sheet().headline == "S2 E6 · The Undertow"
+    test "and is the empty sheet when nothing has been ticked at all" do
+      assert RateEpisode.sheet() == RateEpisode.empty_sheet()
       refute RateEpisode.writable?(RateEpisode.sheet())
     end
   end
@@ -85,8 +85,13 @@ defmodule Kati.RateEpisodeTest do
       assert drawn(RateEpisode.sheet()) =~ "star_9"
     end
 
-    test "stay a picture over the drawing", %{tracked: _tracked} do
-      refute drawn(RateEpisode.sheet()) =~ "star_"
+    test "are not drawn at all over the empty sheet", %{tracked: _tracked} do
+      tree =
+        RateEpisode.body(RateEpisode.empty_sheet(), nil, false, nil)
+        |> inspect(limit: :infinity, printable_limit: :infinity)
+
+      refute tree =~ "star_"
+      refute inspect(RateEpisode.header(false), limit: :infinity) =~ ":save"
     end
   end
 
@@ -118,7 +123,7 @@ defmodule Kati.RateEpisodeTest do
       assert RateEpisode.sheet().rating == 3.0
     end
 
-    test "on the drawing writes nothing at all" do
+    test "on the empty sheet writes nothing at all" do
       assert RateEpisode.save_rating(RateEpisode.sheet()) == :nothing_to_save
       assert Ash.read!(Watch) == []
     end
@@ -266,7 +271,7 @@ defmodule Kati.RateEpisodeTest do
       # A picture's rows do not open, which is the rule this round keeps
       # everywhere: a control that exists only over data is not drawn live over
       # a drawing of it.
-      refute RateEpisode.editable?(Kati.Screens.RateEpisode.Sample.sheet())
+      refute RateEpisode.editable?(RateEpisode.empty_sheet())
 
       live = RateEpisode.sheet(%{tracked_id: tracked.id, episode_source_id: @prefix <> "ep"})
       assert RateEpisode.editable?(live)

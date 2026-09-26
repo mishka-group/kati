@@ -6,7 +6,7 @@ defmodule Kati.Screens.AnimeFilter do
   it is the argument for one. The board's own eyebrow says so: "FOUR EDITS,
   ONE SENTENCE". This screen draws the argument, in the board's own words, and
   wires the three controls it actually puts a finger on: the misclassified
-  Marram card, and the two selectable pairs in Onboarding.
+  title's card, and the two selectable pairs in Onboarding.
 
   ## What is read, and what is fixed behaviour
 
@@ -52,9 +52,10 @@ defmodule Kati.Screens.AnimeFilter do
   What the board draws as genuinely interactive — a choice with two visibly
   different states — gets a real handler:
 
-    * **The "Not anime" pill** on the Marram card. Rule 1 says a user's own tag
-      always wins; tapping the pill IS a user setting one, so it flips
-      `:marram_fixed?` and the card's own copy changes to say so.
+    * **The "Not anime" pill** on the guess card. Rule 1 says a user's own tag
+      always wins; tapping the pill IS a user setting one — it writes the
+      title's `anime_override` — so it flips `:guess_fixed?` and the card's own
+      copy changes to say so.
     * **Screen / Books**, the onboarding pair. Picking Books hides the sub-choice
       entirely — it is *"a sub-choice under Screen"*, the board's own words —
       rather than leaving it visible and wrong.
@@ -83,7 +84,7 @@ defmodule Kati.Screens.AnimeFilter do
   is the eyebrow-to-card gap `Kati.UI.eyebrow/2` and
   `Kati.UI.SettingsList.eyebrow_muted/1` already bake in, and `14` is the one
   place the board draws something tighter (its own numbered card). One gap is
-  NOT the board's: the Marram card carries no stated margin-bottom in the
+  NOT the board's: the guess card carries no stated margin-bottom in the
   source at all — an omission, not a zero — and this screen closes it at `20`
   to match the rhythm of every other section rather than let two blocks touch.
   """
@@ -111,7 +112,7 @@ defmodule Kati.Screens.AnimeFilter do
       threshold: Kati.Media.Anime.promote_threshold(),
       rules: Kati.Media.Anime.rules(),
       misclassified: misclassified_guess(tracked, cached),
-      marram_fixed?: false,
+      guess_fixed?: false,
       onboarding_pick: :screen,
       watches_anime?: Enum.any?(tracked, &(&1.kind == :anime))
     })
@@ -191,7 +192,7 @@ defmodule Kati.Screens.AnimeFilter do
         %{
           id: track.id,
           title: title.title,
-          seed: title.source_id,
+          seed: title.poster_path,
           note: guess_reason(track, title)
         }
     end
@@ -275,12 +276,6 @@ defmodule Kati.Screens.AnimeFilter do
   def sample_text("Watching"), do: gettext("Watching")
   def sample_text("Finished"), do: gettext("Finished")
 
-  # `Marram` is `Kati.Library.Sample`'s own ninth title, not a fixture this
-  # board invented, and the catalogue has carried its Persian since that sample
-  # was folded. Reusing the msgid is what keeps one show from being spelled two
-  # ways across two screens.
-  def sample_text("Marram"), do: gettext("Marram")
-
   def sample_text("Your own tag"), do: gettext("Your own tag")
   def sample_text("Always wins — you know"), do: gettext("Always wins — you know")
   def sample_text("The import source"), do: gettext("The import source")
@@ -295,9 +290,6 @@ defmodule Kati.Screens.AnimeFilter do
   # thing Kati means by it.
   def sample_text("TMDB’s Animation + Japanese origin"),
     do: gettext("TMDB’s Animation + Japanese origin")
-
-  def sample_text("Tagged anime from a MAL import — it is live action"),
-    do: gettext("Tagged anime from a MAL import — it is live action")
 
   def sample_text(other), do: other
 
@@ -356,7 +348,7 @@ defmodule Kati.Screens.AnimeFilter do
         {Kati.Screens.AnimeFilter.priority_card(a.rules)}
         <Spacer size={14} />
         {SettingsList.eyebrow_muted(gettext("The guess is wrong"))}
-        {Kati.Screens.AnimeFilter.guess_card(a.misclassified, a.marram_fixed?)}
+        {Kati.Screens.AnimeFilter.guess_card(a.misclassified, a.guess_fixed?)}
         <Spacer size={20} />
         {UI.eyebrow(onboarding)}
         {Kati.Screens.AnimeFilter.onboarding_card(a.onboarding_pick, a.watches_anime?)}
@@ -621,6 +613,9 @@ defmodule Kati.Screens.AnimeFilter do
   The one card the board draws as a worked mistake, and the one row on this
   screen where "your own tag always wins" (rule 1) is something you can
   actually do rather than just read about.
+
+  The title is the store's and is drawn as the store spells it; the note is
+  `guess_reason/2`'s, already in the reader's language.
   """
   def guess_card(nil, _fixed?), do: ~MOB"<Spacer size={0} />"
 
@@ -640,7 +635,7 @@ defmodule Kati.Screens.AnimeFilter do
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text={Kati.Screens.AnimeFilter.sample_text(item.title)}
+            text={item.title}
             text_size={13}
             font_weight="bold"
             text_color={:on_surface}
@@ -668,7 +663,7 @@ defmodule Kati.Screens.AnimeFilter do
   # the pill is about 180pt wide, which is where a faithful but longer sentence
   # would lose its tail to an ellipsis rather than wrap.
   @doc false
-  def guess_sub(item, false), do: Kati.Screens.AnimeFilter.sample_text(item.note)
+  def guess_sub(item, false), do: item.note
   def guess_sub(_item, true), do: gettext("Your tag: live action — overrides Kati's guess")
 
   # `pgettext/2` for both: two words and one, and `mix gettext.merge` fuzzy-
@@ -694,11 +689,9 @@ defmodule Kati.Screens.AnimeFilter do
   end
 
   # `pick` is an atom and the tile's label is a translation of it, which is the
-  # split `load/1`'s own comment gives the reason for.
-  # `Kati.Screens.PickSections.Sample.label/1` is the same shape on the screen
-  # these two tiles are quoting — `{"screen", "movie"}` is an id and an icon,
-  # and the word comes out of a lookup — so the msgids are that screen's rather
-  # than a second pair: one section, one word, wherever it is drawn.
+  # split `load/1`'s own comment gives the reason for. The two words are the
+  # first run's own section msgids rather than a second pair: one section, one
+  # word, wherever it is drawn.
   @doc false
   def onboarding_card(pick, watches?) do
     ~MOB"""
@@ -867,7 +860,7 @@ defmodule Kati.Screens.AnimeFilter do
 
   @impl true
   def handle_tap(:fix_misclassified, socket) do
-    fixed? = not socket.assigns.anime.marram_fixed?
+    fixed? = not socket.assigns.anime.guess_fixed?
     override = if fixed?, do: false, else: nil
 
     case socket.assigns.anime.misclassified do
@@ -884,7 +877,7 @@ defmodule Kati.Screens.AnimeFilter do
      Mob.Socket.assign(
        socket,
        :anime,
-       Map.put(socket.assigns.anime, :marram_fixed?, fixed?)
+       Map.put(socket.assigns.anime, :guess_fixed?, fixed?)
      )}
   end
 

@@ -1,3 +1,5 @@
+Code.require_file("../support/design_literals.exs", __DIR__)
+
 defmodule Kati.FilmWatchTest do
   @moduledoc """
   Marking a film watched — which nothing in the app could do.
@@ -162,7 +164,7 @@ defmodule Kati.FilmWatchTest do
       {:ok, socket} = Rating.mount(%{tracked_title_id: film.id}, %{}, Mob.Socket.new(Rating))
 
       draft = socket.assigns.watch
-      drawn = Rating.drawn_watch()
+      drawn = Kati.DesignLiterals.rating_board()
 
       refute draft.title == drawn.title, "the sheet opened on the drawing's film"
       refute draft.rewatch, "a first watch was called a rewatch"
@@ -176,7 +178,7 @@ defmodule Kati.FilmWatchTest do
 
     test "with nothing named at all it is an empty sheet" do
       # Pushed with no params there is no film to rate, so the sheet opens on
-      # its own empty state. It used to open on `Kati.Rating.Sample.watch/0` —
+      # its own empty state. It used to open on `Kati.DesignLiterals.rating_board/0` —
       # a sheet already carrying Blue Hour's rating, review and three context
       # rows over a reader who had named nothing.
       {:ok, socket} = Rating.mount(%{}, %{}, Mob.Socket.new(Rating))

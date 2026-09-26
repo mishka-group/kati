@@ -475,24 +475,12 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.Screens.LogListen`'s moduledoc for why that rather than `Whole
     # album` — so it is this one that sets the value it already has.
     {Kati.Screens.LogListen, :scope_selected},
-    # ── Screen 33's ninth point of ten, and only the ninth.
-    #
-    # The first category above, drawn as a row rather than a strip: the sheet's
-    # five stars carry ten half-star tap targets, `:star_1` to `:star_10`, and
-    # tapping one sets the rating it names. This sweep runs against a database
-    # with no logged watch in it — every test that writes one empties
-    # `media_watches` on the way out — so the sheet is `Kati.Rating.Sample`'s
-    # 4.5 stars, which is nine points, and `:star_9` is the point already set.
-    # The other nine all move the rating, which is what proves the family is
-    # wired rather than decorative.
-    #
-    # `:save` is deliberately NOT here. On the same empty database it answers
-    # `{:error, :nothing_to_save}` and puts that sentence on the sheet, which is
-    # a change this heuristic can see — and the reason it can is the whole of
-    # #85: a save that fails has to leave a mark.
-    {Kati.Screens.Rating, :star_9},
-    # ── Screen 180's ninth point, for exactly the reason above, one domain
-    # over. `Kati.Screens.RateAlbum` opens on the album screen 74 was about,
+    # (Screen 33's `:star_9` was here. The sweep mounts the sheet bare, which
+    # drew an editor over nothing whose ninth star was already set; a bare
+    # sheet is `nothing_to_log/0` now (N52-B) and draws no stars at all.
+    # `Kati.RatingWriteTest` taps all ten over a real title.)
+    # ── Screen 180's ninth point of ten: the rating it opens on is already
+    # set, so tapping it changes nothing, and the other nine move it. `Kati.Screens.RateAlbum` opens on the album screen 74 was about,
     # which on an empty shelf is `Kati.Music.Sample.album/0` — rating 9, which
     # is 4.5 stars. `:save` is deliberately not here either: it answers
     # `{:error, :nothing_to_save}` and draws the sentence.
@@ -922,7 +910,7 @@ defmodule Kati.ScreenTapSweepTest do
     # chips with the tags this reader has used before beside it. The tag is now
     # a phantom to this sweep for the reason screen 35's status tiles are —
     # the sweep renders against an empty store, where the sheet draws
-    # `Kati.Rating.Sample` and the chips carry no taps at all. `Kati.RatingTagsTest`
+    # `Kati.DesignLiterals.rating_board/0` and the chips carry no taps at all. `Kati.RatingTagsTest`
     # presses them over a real watch.)
     # (`{Kati.Screens.Subscriptions, :open_menu}` was here — the `more_horiz`
     # disc on screen 23, filed under Backlog because 23.html draws exactly one

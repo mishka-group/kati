@@ -21,10 +21,9 @@ defmodule Kati.Screens.RateEpisode do
     * `stars/1` and `rating_label/1` — the four filled glyphs, the one clipped
       to 50%, and the `4.5`/`—` numeral. See that module's moduledoc for why
       every star is `Kati.UI.symbol("star", …)` and never the character `★`.
-    * The caret. `w.review` ending in a `Box` on the line below rather than
-      beside the text — there is no inline node on this bridge, so a cursor at
-      the end of a line that fills its width draws on the next one. Recorded
-      there once; this screen's `caret/0` is the same two lines.
+    * `review_field/1` — the review is screen 33's own `<TextField>`, with
+      its `review` accessibility id, and Save writes what was typed onto the
+      episode's watch with the rating.
     * `Kati.UI.Sheet.close_disc/0` and `.scrim/0` — this board's close disc is
       **36pt** with a **19pt** glyph, not screen 33's hand-set 44/21, and that
       is exactly `Kati.UI.Sheet`'s own disc: seven sheet screens already draw
@@ -74,11 +73,11 @@ defmodule Kati.Screens.RateEpisode do
 
   ## The three states, and which two booleans they reduce to
 
-  Nothing hands this screen an episode, the same as screen 33: `Kati.Screens.
-  Gallery` pushes it with nothing attached, so the referent is chosen here —
-  **the newest episode-level watch that carries a rating or a review**, the
-  same rule `Kati.Screens.Rating.newest_log/0` applies at the title level,
-  narrowed by `not is_nil(episode_source_id)`. Every other logged watch of
+  Screens 04 and 34 hand this sheet the episode they were showing, as the
+  pair `{tracked_id, episode_source_id}` (`asked_sheet/1`). A push naming
+  nothing falls back to **the newest episode-level watch, a verdict before a
+  tick** (`logged_sheet/0`), and a push naming a pair that no longer resolves
+  draws `empty_sheet/0` rather than some other episode. Every other logged watch of
   that *same* episode — by `{tracked_title_id, episode_source_id}`, the pair
   `Kati.Media.Watch.for_episode` already reads by — is `history`, newest
   first. Two facts about `history` are the whole of the branching:
@@ -95,8 +94,7 @@ defmodule Kati.Screens.RateEpisode do
       the name would be protecting them from something they already know.
 
   That gives exactly the board's three states from two flags. The *live*
-  sheet is in exactly one of them at a time; the other two are drawn under it
-  as the board's own labelled swatches, which is the next section:
+  sheet is in exactly one of them at a time:
 
     * **first time** — `spoiler_safe?` and `rewatch?` both false: the real
       episode title, the `check_circle` note, no cream card above the input.
@@ -106,7 +104,7 @@ defmodule Kati.Screens.RateEpisode do
       review, and the note is gone, because *"ticks it watched"* has nothing
       left to tell someone who has already logged this episode once.
 
-  ## The two swatches under the sheet are drawn, not argued away
+  ## The swatch under the sheet
 
   Rows 20-29 of `144.html` hang two labelled panels below the info note, and
   each is a moment this sheet can be in and is not right now:
@@ -116,7 +114,8 @@ defmodule Kati.Screens.RateEpisode do
     * **Rewatch — your last verdict, above the input** — the cream card
       quoting the verdict before this one, under a `#C4BDB3` dash and grey
       uppercase mono, which is `Kati.UI.SettingsList.eyebrow_muted/1` pixel
-      for pixel.
+      for pixel. Only the first is drawn as a swatch; the second is drawn
+      only in its live place, below.
 
   An earlier reading of this module took the first panel for documentation
   *about* the drawing and declined to render it: the board's own summary calls
@@ -130,26 +129,21 @@ defmodule Kati.Screens.RateEpisode do
   `Kati.Screens.HealthEmptyStates` stack every moment their boards draw under
   `eyebrow_muted/1` labels rather than electing one and dropping the rest, and
   `Kati.ScreenDesignLiteralTest` refuses copy that is in a drawing and nowhere
-  in a tree. So both swatches render, in the board's own order, under the
-  board's own labels, below `info_note/1`.
+  in a tree. So the swatch renders under the board's own label, below
+  `info_note/1`.
 
-  What fills them is **not** frozen, and that is where this differs from a
+  What fills it is **not** frozen, and that is where this differs from a
   states board. `spoiler_swatch/1` draws `masked_headline` — `S2 E6 · ` and
   `spoiler_title(episode)` for *this* sheet's own episode — so it says what
   the headline above it would say with `hide_unwatched_titles` on, rather than
-  reciting the drawing's episode over somebody else's log. On the drawn sheet
-  that value is `S2 E6 · Episode 6`, the board's own, because the sheet above
-  it is the board's own too.
+  reciting the drawing's episode over somebody else's log.
 
   The rewatch swatch has no live twin to derive from: a sheet that is not a
   rewatch has no earlier verdict, and quoting the drawing's `3 Mar 2024` under
-  a real user's episode is exactly the mixing `sheet/0`'s all-or-nothing gate
-  exists to prevent. So the cream card draws in exactly one of two places and
-  never both — `rewatch_block/2` immediately above the input when the sheet
-  **is** a rewatch, which is where the label's own words say the card belongs,
-  and `rewatch_swatch/2` under the note quoting
-  `Kati.Screens.RateEpisode.Sample.reference_verdict/0` when it is not. One
-  card, one label, and `:toggle_verdict` live in either position.
+  a real user's episode would be somebody else's review in the reader's own
+  sheet. So the cream card draws only as `rewatch_block/2`, immediately above
+  the input, when the sheet **is** a rewatch — which is where the label's own
+  words say the card belongs.
 
   ## The collapse, and the glyph that stands in for one that is not shipped
 
@@ -177,19 +171,12 @@ defmodule Kati.Screens.RateEpisode do
   and short enough that the two-years-old review the caption warns about
   cannot push the input off screen the way an unbounded quote would.
 
-  ## Where the review card gets its placeholder, and why the caret still lands
+  ## The review is a field
 
-  There is no live text field on this bridge — `Kati.Screens.Rating`'s own
-  moduledoc settles that: every `Text` renders, none of them accept input, and
-  `Save` here pops the screen exactly as screen 33's does, without writing.
-  So this sheet's own review is never something a user just typed; it is
-  whatever the newest logged watch's `review` column already holds, which may
-  be blank — a rating set with no words to go with it yet is an ordinary
-  state, the same way `Kati.Screens.Rating.rating_label(nil)` treats an
-  unset rating as ordinary rather than broken. Blank draws the board's own
-  placeholder, `What did you make of it?`, at `Palette.tertiary()` — the
-  drawing's own `#B3ACA2` — with `caret/0` beneath it either way, because the
-  field is where the next word goes whether or not one exists yet.
+  It was a `Text` with a drawn caret under it — a picture of an input that
+  nothing could type into. It is `Kati.Screens.Rating.review_field/1` now:
+  the watch's own `review` opens in it, the reader types, and Save writes it
+  with the rating. Blank shows the placeholder, `What did you make of it?`.
 
   ## The info card is `Kati.UI.Sheet.insight/2`, one pixel narrower than drawn
 
@@ -259,7 +246,6 @@ defmodule Kati.Screens.RateEpisode do
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
-  alias Kati.Screens.RateEpisode.Sample
   alias Kati.Screens.Rating
   alias Kati.Theme.Palette
   alias Kati.UI.Sheet
@@ -282,21 +268,58 @@ defmodule Kati.Screens.RateEpisode do
   end
 
   @doc """
-  The live moment this sheet draws: the user's newest episode log, or the
-  drawing's.
+  The live moment this sheet draws: the episode the push named, the user's
+  newest episode log when it named none, or `empty_sheet/0`.
 
   The gate is the whole sheet, for the reason `Kati.Screens.Rating.watch/0`
   gives at the title level: a page whose review is the user's own and whose
   episode name is somebody else's reads as entirely real. Either every value
-  here is this log's, or every value is the drawing's.
+  here is one log's, or there are none.
+
+  A push that NAMED an episode and whose pair no longer resolves draws the
+  empty sheet, never the newest log: that would be a different episode under
+  a Save that writes.
   """
   @spec sheet(map() | nil) :: map()
   def sheet(params \\ %{})
 
-  def sheet(params) when is_map(params),
-    do: asked_sheet(params) || logged_sheet() || drawn_sheet()
+  def sheet(params) when is_map(params) do
+    if named?(params),
+      do: asked_sheet(params) || empty_sheet(),
+      else: logged_sheet() || empty_sheet()
+  end
 
-  def sheet(_params), do: logged_sheet() || drawn_sheet()
+  def sheet(_params), do: logged_sheet() || empty_sheet()
+
+  defp named?(params),
+    do: Map.has_key?(params, :tracked_id) or Map.has_key?(params, :episode_source_id)
+
+  @doc """
+  The sheet with no episode behind it.
+
+  One sentence and the close disc — no stars, no fields and no Save, because
+  there is nothing for any of them to be about. It used to be board 144's own
+  episode, *S2 E6 · The Undertow* of *The Long Hollow*, on every phone with no
+  episode logged.
+  """
+  @spec empty_sheet() :: map()
+  def empty_sheet do
+    %{
+      empty?: true,
+      watch_id: nil,
+      tracked_title_id: nil,
+      episode_source_id: nil,
+      headline: "",
+      masked_headline: "",
+      show_title: "",
+      spoiler_safe?: false,
+      rewatch?: false,
+      rating: nil,
+      review: "",
+      context: [],
+      previous: nil
+    }
+  end
 
   @doc """
   The episode the pushing screen named, shaped for this sheet.
@@ -308,7 +331,7 @@ defmodule Kati.Screens.RateEpisode do
   nothing (the gallery).
 
   `nil` when the pair names no tracked row: a sheet opened over a title that
-  has since been removed draws the drawing rather than half of somebody
+  has since been removed draws `empty_sheet/0` rather than half of somebody
   else's episode.
   """
   @spec asked_sheet(map()) :: map() | nil
@@ -342,23 +365,12 @@ defmodule Kati.Screens.RateEpisode do
   end
 
   @doc """
-  Screen 144 exactly as it is drawn, from `Kati.Screens.RateEpisode.Sample`.
-
-  Kept in the fixture rather than inlined here, for the reason
-  `Kati.Screens.Rating.drawn_watch/0` gives: it is the frame's specification,
-  and two copies of the drawing's own copy is how they drift apart.
-  """
-  @spec drawn_sheet() :: map()
-  def drawn_sheet, do: Sample.sheet()
-
-  @doc """
   The user's newest episode log, shaped for the markup, or `nil`.
 
   `nil` is the ordinary answer on a fresh install, and the one `sheet/0` reads
-  as "draw the drawing". `Ash.read!` mid-migration raises, and this sheet
-  showing its own drawn values is strictly better than this sheet not
-  rendering at all — see `Kati.Screens.Rating.logged_watch/0` for the same
-  rescue, for the same reason.
+  as "draw the empty sheet". `Ash.read!` mid-migration raises, and an empty
+  sheet is strictly better than this sheet not rendering at all — see
+  `Kati.Screens.Rating.logged_watch/0` for the same rescue.
   """
   @spec logged_sheet() :: map() | nil
   def logged_sheet do
@@ -400,7 +412,7 @@ defmodule Kati.Screens.RateEpisode do
   # or a review, and the app's only episode-level writer — `Kati.Screens.
   # Series.write_tick/2` — creates the row with neither, because a tick is not
   # a verdict. So on a phone with fifty ticked episodes the query answered
-  # `nil` and the sheet drew The Long Hollow, on a screen whose whole purpose
+  # `nil` and the sheet drew the board's episode, on a screen whose whole purpose
   # is to put the FIRST rating on an episode you have just watched. The tick
   # is the subject; the rating is what this sheet adds to it.
   defp newest_episode_log do
@@ -823,24 +835,71 @@ defmodule Kati.Screens.RateEpisode do
           padding_top={18}
           padding_bottom={34}
         >
-          {Kati.Screens.RateEpisode.header()}
-          {Kati.Screens.RateEpisode.title_block(s)}
-          {refusal}
-          {Kati.Screens.RateEpisode.rating_card(s)}
-          {Kati.Screens.RateEpisode.rewatch_block(s, expanded?)}
-          {Kati.Screens.RateEpisode.review_card(s)}
-          {Kati.Screens.RateEpisode.context_card(s, Map.get(assigns, :open_row))}
-          {Kati.Screens.RateEpisode.info_note(s)}
-          {Kati.Screens.RateEpisode.spoiler_swatch(s)}
+          {Kati.Screens.RateEpisode.header(not Map.get(s, :empty?, false))}
+          {Kati.Screens.RateEpisode.body(s, refusal, expanded?, Map.get(assigns, :open_row))}
         </Column>
       </Box>
     </Box>
     """
   end
 
-  @doc false
-  def header do
-    save = {self(), :save}
+  @doc """
+  Everything under the header: the episode being rated, or one sentence when
+  there is no episode.
+  """
+  @spec body(map(), map(), boolean(), atom() | nil) :: [map()]
+  def body(%{empty?: true}, _refusal, _expanded?, _open), do: [nothing_to_rate()]
+
+  def body(s, refusal, expanded?, open) do
+    [
+      Kati.Screens.RateEpisode.title_block(s),
+      refusal,
+      Kati.Screens.RateEpisode.rating_card(s),
+      Kati.Screens.RateEpisode.rewatch_block(s, expanded?),
+      Kati.Screens.RateEpisode.review_card(s),
+      Kati.Screens.RateEpisode.context_card(s, open),
+      Kati.Screens.RateEpisode.info_note(s),
+      Kati.Screens.RateEpisode.spoiler_swatch(s)
+    ]
+  end
+
+  @doc """
+  What `empty_sheet/0` says: there is no episode here, and where one is rated.
+  """
+  @spec nothing_to_rate() :: map()
+  def nothing_to_rate do
+    ~MOB"""
+    <Column fill_width={true} padding_top={4} padding_bottom={8}>
+      <Text
+        text={gettext("There is no episode here to rate.")}
+        text_size={14}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.ink_soft()}
+      />
+      <Spacer size={8} />
+      <Text
+        text={gettext("Open a series and tap the rating beside the episode you watched.")}
+        text_size={13}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.sub()}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  The close disc, the title, and Save when there is an episode to save onto.
+  The empty sheet keeps Save's width so the title stays centred.
+  """
+  @spec header(boolean()) :: map()
+  def header(live? \\ true) do
+    assigns = %{
+      save:
+        if(live?,
+          do: Kati.Screens.RateEpisode.save_pill({self(), :save}),
+          else: ~MOB"<Box width={36} height={34} />"
+        )
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -855,7 +914,7 @@ defmodule Kati.Screens.RateEpisode do
           max_lines={1}
         />
         <Spacer weight={1.0} />
-        {Kati.Screens.RateEpisode.save_pill(save)}
+        {@save}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -997,10 +1056,8 @@ defmodule Kati.Screens.RateEpisode do
   exactly what `Rewatch — your last verdict, above the input` is drawn as.
 
   This is the card in its **live** position, which is what the label's own
-  words describe. `rewatch_swatch/2` draws the same label and card under the
-  note when this sheet is not a rewatch, and the two are mutually exclusive —
-  see the moduledoc for why one card, in exactly one of the two places, is
-  the whole of that rule.
+  words describe, and the only one: a sheet that is not a rewatch has no
+  earlier verdict to quote.
   """
   def rewatch_block(%{rewatch?: false}, _expanded?), do: ~MOB"<Spacer size={0} />"
 
@@ -1015,12 +1072,7 @@ defmodule Kati.Screens.RateEpisode do
   end
 
   @doc """
-  The label over the cream card, drawn in exactly one of its two positions.
-
-  One function and therefore one msgid, because `rewatch_block/2` and
-  `rewatch_swatch/2` draw the same words over the same card and a catalogue
-  holding two entries for them is how the live card and the swatch come to be
-  captioned differently.
+  The label over the cream card.
 
   `SettingsList.eyebrow_muted/1` upcases and sets the face itself, so this
   hands it the sentence and nothing else.
@@ -1141,9 +1193,8 @@ defmodule Kati.Screens.RateEpisode do
   end
 
   @doc """
-  The review card: the drawing's placeholder when nothing is written yet, the
-  logged review otherwise — either way ending in `caret/0`, `Kati.Screens.
-  Rating`'s own construction for a cursor this bridge cannot draw inline.
+  The review card: `Kati.Screens.Rating.review_field/1` over the watch's own
+  review, typed into and written on Save.
   """
   def review_card(s) do
     eyebrow = Kati.UI.eyebrow_label(pgettext("the review card's own label", "Review"))
@@ -1166,57 +1217,10 @@ defmodule Kati.Screens.RateEpisode do
           max_lines={1}
         />
         <Spacer size={9} />
-        {Kati.Screens.RateEpisode.review_body(s.review)}
+        {Kati.Screens.Rating.review_field(s.review)}
       </Column>
       <Spacer size={12} />
     </Column>
-    """
-  end
-
-  # `Kati.Locale.leading/1` on both bodies: Vazirmatn's metrics are not Plus
-  # Jakarta's, and a Persian paragraph set at the Latin `1.6` sits its
-  # ascenders into the line above. The placeholder is the same sentence
-  # `Kati.Screens.Rating` and `Kati.Screens.RateAlbum` put over their own
-  # review fields, so it is one msgid for all three rather than three.
-  @doc false
-  def review_body(review) when review in [nil, ""] do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text
-        text={gettext("What did you make of it?")}
-        text_size={13.5}
-        line_height={Kati.Locale.leading(1.6)}
-        text_color={Palette.tertiary()}
-      />
-      {Kati.Screens.RateEpisode.caret()}
-    </Column>
-    """
-  end
-
-  def review_body(review) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text
-        text={review}
-        text_size={13.5}
-        line_height={Kati.Locale.leading(1.6)}
-        text_color={Palette.ink_soft()}
-      />
-      {Kati.Screens.RateEpisode.caret()}
-    </Column>
-    """
-  end
-
-  # There is no inline node on this bridge — a Box beside a wrapping Text is
-  # a sibling, not a run — so the caret draws at the start of the line below
-  # the body, which is where a cursor lands when the line above ends exactly
-  # at its own edge. `Kati.Screens.Rating`'s own recording of the same gap.
-  @doc false
-  def caret do
-    ~MOB"""
-    <Row fill_width={true}>
-      <Box width={2} height={16} background={Palette.accent()} />
-    </Row>
     """
   end
 
@@ -1367,11 +1371,8 @@ defmodule Kati.Screens.RateEpisode do
     """
   end
 
-  # The example name is transliterated rather than kept: `Jo` is not a brand or
-  # a provider, it is the app showing what a companion looks like, and
-  # `Kati.Books.Sample`'s own `Jo` is already `جو` in the catalogue. A Persian
-  # reader meets an example in their own script or reads it as somebody else's
-  # data.
+  # The placeholder is screen 33's own msgid: a prompt rather than an example
+  # name, which a reader could take for somebody else's data.
   def editor(:with, sheet, true) do
     assigns = %{
       change: {self(), :with_draft},
@@ -1384,7 +1385,7 @@ defmodule Kati.Screens.RateEpisode do
       <Row fill_width={true} align="center">
         <TextField
           value={@draft}
-          placeholder={gettext("Jo, and whoever else")}
+          placeholder={gettext("Who watched with you")}
           return_key="done"
           weight={1.0}
           accessibility_id="with_draft"
@@ -1400,9 +1401,8 @@ defmodule Kati.Screens.RateEpisode do
   # `Kati.Locale.mono_face/1` and not a hardcoded `mono`: this slot holds the
   # word `now` — `اکنون` under `:fa` — and `kati_mono.ttf` carries no Persian
   # glyph, so DM Mono would hand it to Android's own substitute face beside a
-  # row set in Vazirmatn. It asks the STRING rather than the reader, because
-  # `Kati.Screens.RateEpisode.Sample` still hands this the drawing's own Latin
-  # `now`, and a Latin word in a mono slot keeps DM Mono in both scripts.
+  # row set in Vazirmatn. It asks the STRING rather than the reader, so a Latin
+  # word in a mono slot keeps DM Mono in both scripts.
   @doc false
   def row_trailing(nil), do: nil
 
@@ -1549,35 +1549,6 @@ defmodule Kati.Screens.RateEpisode do
     """
   end
 
-  @doc """
-  The rewatch swatch, under the note — drawn only when the live sheet is not
-  itself a rewatch.
-
-  When it is, `rewatch_block/2` has already drawn the same label and the same
-  `verdict_card/2` above the input, which is where the label's own words put
-  it, and a second cream card down here would be the same control twice. When
-  it is not, there is no earlier verdict to quote and the board's own is what
-  the swatch is for: `Kati.Screens.RateEpisode.Sample.reference_verdict/0`,
-  the `You, 3 Mar 2024 · ★4` the drawing sets.
-
-  It is the live `verdict_card/2`, not a still of one — the board's caption
-  argues the card is **collapsible**, and a swatch that could not be opened
-  would be documenting the half of that claim anyone can already see.
-  """
-
-  # `rewatch_swatch/2` was here, and it was the one specimen on this sheet with
-  # no real source. It drew `Kati.Screens.RateEpisode.Sample.reference_verdict/0`
-  # — a date, a 4, and "The estuary scenes land completely differently once you
-  # know what Mara is looking for" — as *what you said last time*, and it drew it
-  # on the branch where `rewatch?` is FALSE. A first watch has no last time, so
-  # the card could only ever be somebody else's review sitting in the reader's
-  # own sheet.
-  #
-  # The real previous verdict has a home already: `rewatch_block/2` draws
-  # `previous`, which `shaped/5` reads off the reader's own second-newest
-  # `Kati.Media.Watch`. That is the whole feature; this was a picture of it,
-  # shown to the one reader it could never be true for.
-
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :save}, socket) do
@@ -1592,6 +1563,12 @@ defmodule Kati.Screens.RateEpisode do
         {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
     end
   end
+
+  # The review is typed, so it arrives as a change. The field is screen 33's
+  # own, `accessibility_id` and tag included, and the draft goes onto the row
+  # on Save with the rating.
+  def handle_info({:change, :review, typed}, socket) when is_binary(typed),
+    do: {:noreply, Kati.Screens.RateEpisode.put(socket, :review, typed)}
 
   # `with_draft` is typed rather than tapped, so it arrives as a change and not
   # as a tap. Screen 33 carries the same pair for the same field.
@@ -1633,16 +1610,12 @@ defmodule Kati.Screens.RateEpisode do
   @doc """
   Whether this sheet has a row to write a rating onto.
 
-  The drawing has none — `Kati.Screens.RateEpisode.Sample.sheet/0` is four
-  stars and a half over an episode of a series nobody is tracking — so its
-  stars stay a picture. Drawing ten tap targets over them would make Save on
-  a fresh install look like it did something, which is the exact defect this
-  screen was reported for.
+  `empty_sheet/0` has none, so it draws no stars and no Save at all.
 
       iex> Kati.Screens.RateEpisode.writable?(%{watch_id: "abc"})
       true
 
-      iex> Kati.Screens.RateEpisode.writable?(Kati.Screens.RateEpisode.Sample.sheet())
+      iex> Kati.Screens.RateEpisode.writable?(Kati.Screens.RateEpisode.empty_sheet())
       false
   """
   @spec writable?(map()) :: boolean()
@@ -1747,9 +1720,9 @@ defmodule Kati.Screens.RateEpisode do
   1..10 and the stars are five — the same conversion, called rather than
   repeated, for the reason the moduledoc gives about the half-star crop.
 
-  `:nothing_to_save` rather than an error when there is no row: Save on the
-  drawing closes the sheet, which is what a picture's button should do, and it
-  is not a failure worth putting a red line under.
+  `:nothing_to_save` rather than an error when there is no row. The empty
+  sheet draws no Save, so this is only reached by a caller that builds a sheet
+  by hand, and it closes the sheet rather than putting a red line under it.
   """
   @spec save_rating(map()) :: {:ok, struct()} | {:error, term()} | :nothing_to_save
   def save_rating(sheet) do
@@ -1768,7 +1741,8 @@ defmodule Kati.Screens.RateEpisode do
         record
         |> Ash.Changeset.for_update(
           :update,
-          Map.merge(%{rating: Rating.ten_point(sheet.rating)}, context_changes(sheet))
+          %{rating: Rating.ten_point(sheet.rating), review: stored_review(sheet)}
+          |> Map.merge(context_changes(sheet))
         )
         |> Ash.update()
         |> Kati.Write.note("rate an episode")
@@ -1806,6 +1780,16 @@ defmodule Kati.Screens.RateEpisode do
     end
   end
 
+  # Blank is `nil`, the rule `Kati.Screens.Rating.save_watch/1` keeps: a
+  # review of nothing but whitespace is not a review, and the queries that
+  # find a verdict test for exactly that.
+  defp stored_review(sheet) do
+    case Map.get(sheet, :review) do
+      review when is_binary(review) -> if String.trim(review) == "", do: nil, else: review
+      _none -> nil
+    end
+  end
+
   # Midday rather than midnight: `Kati.Time.zone/0` can shift a midnight stamp
   # across the date line in either direction, and a watch logged "yesterday"
   # that reads as the day before is the defect this is here to avoid.
@@ -1829,6 +1813,7 @@ defmodule Kati.Screens.RateEpisode do
       season_number: Map.get(sheet, :season_number),
       episode_number: Map.get(sheet, :episode_number),
       rating: Rating.ten_point(sheet.rating),
+      review: stored_review(sheet),
       watched_at: Kati.Time.now(),
       watched_on: Kati.Time.today()
     }
