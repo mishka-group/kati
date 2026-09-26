@@ -140,17 +140,112 @@ defmodule Kati.Screens.Series do
     Kati.Locale.activate()
 
     Kati.Screens.Resume.watch()
-    id = Map.get(params || %{}, :id)
+    {id, preview, series} = Kati.Screens.Series.opening(params)
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:series, series(id))
+     |> Mob.Socket.assign(:series, series)
      |> Mob.Socket.assign(:id, id)
+     |> Mob.Socket.assign(:preview, preview)
      |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
      |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.assign(:confirm_remove?, false)
      |> Mob.Socket.assign(:remove_error, nil)}
+  end
+
+  @doc """
+  What a push opens: `{id, preview, series}` — `Kati.Screens.Film.opening/1`
+  for a series.
+  """
+  @spec opening(map() | nil) :: {String.t() | nil, map() | nil, map()}
+  def opening(params) do
+    case Kati.Screens.TitlePreview.open(params) do
+      {:tracked, id} ->
+        {id, nil, series(id)}
+
+      {:preview, %{status: :ready} = state} ->
+        {nil, state, preview(Kati.Screens.TitlePreview.cached(state))}
+
+      {:preview, state} ->
+        {nil, state, empty_series()}
+
+      :none ->
+        id = Map.get(params || %{}, :id)
+        {id, nil, series(id)}
+    end
+  end
+
+  @doc """
+  A series nobody keeps, from the cache alone: its seasons and episodes read
+  the way a tracked one's are, with nothing ticked and nothing rated, every
+  episode marked `read_only` so a row draws no tick and no rating door, and the
+  year, the episode count, the overview and where to watch added for the
+  preview page. See `Kati.Screens.TitlePreview`.
+  """
+  @spec preview(CachedTitle.t() | nil) :: map()
+  def preview(nil), do: empty_series()
+
+  def preview(%CachedTitle{} = cached) do
+    seasons = CachedSeason.for_title(cached.source, cached.source_id)
+    episodes = CachedEpisode.for_title(cached.source, cached.source_id)
+    now = Kati.Time.now()
+    inventory = Map.new(seasons, &{&1.season_number, &1})
+    grouped = Enum.group_by(episodes, & &1.season_number)
+    ticked = CachedEpisode.ticked_ids([])
+
+    numbers =
+      case season_numbers(seasons, episodes) do
+        [] -> [1]
+        found -> found
+      end
+
+    %{
+      title: cached.title,
+      original: Kati.Locale.original_title(cached),
+      seed: seed_of(nil, cached),
+      tracked_id: nil,
+      status: nil,
+      media_kind: :tv,
+      genres: cached.genres,
+      year: cached.first_release_year,
+      episode_count: cached.episode_count,
+      season_count: CachedSeason.count(seasons),
+      seasons:
+        Enum.map(
+          numbers,
+          &season_facts(
+            &1,
+            Map.get(inventory, &1),
+            Map.get(grouped, &1, []),
+            ticked,
+            %{},
+            now,
+            %{}
+          )
+        ),
+      current: List.first(numbers),
+      next_air: next_airing(episodes, now)
+    }
+    |> shaped()
+    |> read_only()
+    |> Map.merge(%{
+      overview: cached.overview,
+      where: Kati.Screens.SeriesMeta.where_rows(cached)
+    })
+  end
+
+  defp read_only(s) do
+    mark = fn episodes -> Enum.map(episodes, &Map.put(&1, :read_only, true)) end
+
+    %{
+      s
+      | episodes: mark.(s.episodes),
+        by_season:
+          Map.new(s.by_season, fn {label, view} ->
+            {label, %{view | episodes: mark.(view.episodes)}}
+          end)
+    }
   end
 
   @doc """
@@ -706,10 +801,26 @@ defmodule Kati.Screens.Series do
   """
   @spec meta_line(map()) :: String.t()
   def meta_line(facts) do
-    [genre_label(facts.genres), seasons_label(facts.season_count)]
+    [
+      year_label(Map.get(facts, :year)),
+      genre_label(facts.genres),
+      seasons_label(facts.season_count),
+      episodes_label(Map.get(facts, :episode_count))
+    ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join(" · ")
   end
+
+  defp year_label(year) when is_integer(year), do: Kati.Locale.year(year)
+  defp year_label(_none), do: nil
+
+  defp episodes_label(n) when is_integer(n) and n > 0,
+    do:
+      Kati.UI.eyebrow_label(
+        ngettext("%{n} episode", "%{n} episodes", n, n: Kati.Locale.number(n))
+      )
+
+  defp episodes_label(_none), do: nil
 
   defp genre_label(genres) when is_binary(genres) and genres != "",
     do: Kati.UI.eyebrow_label(genres)
@@ -792,11 +903,73 @@ defmodule Kati.Screens.Series do
     back = Map.get(assigns, :back, gettext("Library"))
 
     cond do
-      Kati.Screens.Film.gone?(s) -> Kati.Screens.Film.gone(__MODULE__, back)
-      Map.get(s, :none?, false) -> Kati.Screens.Series.none(__MODULE__, back)
-      true -> Kati.Screens.Series.page(s, assigns)
+      Kati.Screens.TitlePreview.previewing?(assigns) ->
+        Kati.Screens.Series.preview_page(s, assigns.preview, back)
+
+      Kati.Screens.Film.gone?(s) ->
+        Kati.Screens.Film.gone(__MODULE__, back)
+
+      Map.get(s, :none?, false) ->
+        Kati.Screens.Series.none(__MODULE__, back)
+
+      true ->
+        Kati.Screens.Series.page(s, assigns)
     end
   end
+
+  @doc """
+  A series nobody keeps (`Kati.Screens.TitlePreview`): the artwork, the ink
+  *Add to library* pill where the season card sits, the overview, where to
+  watch, and the cached seasons and episodes read-only — or the waiting page
+  while it is fetched or when it could not be.
+
+  Where to watch is drawn only when TMDB listed somewhere: board 96's prompt
+  under it is worded for a film.
+  """
+  @spec preview_page(map(), map(), String.t()) :: map()
+  def preview_page(s, %{status: :ready} = state, back) do
+    assigns = %{s: s, save_error: state.save_error, back: back}
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
+      <Scroll>
+        <Column fill_width={true}>
+          {Kati.Screens.Series.artwork(@s)}
+          <Column
+            fill_width={true}
+            padding_left={21}
+            padding_right={21}
+            padding_top={16}
+            padding_bottom={40}
+          >
+            {Kati.Screens.TitlePreview.add_pill(@save_error)}
+            {Kati.Screens.TitlePreview.overview(Map.get(@s, :overview))}
+            {Kati.Screens.Film.where_section(%{where: Map.get(@s, :where, [])}, true)}
+            {Kati.Screens.Series.preview_episodes(@s)}
+          </Column>
+        </Column>
+      </Scroll>
+      {Kati.Screens.TitlePreview.chrome(@back)}
+    </Box>
+    """
+  end
+
+  def preview_page(_s, state, back),
+    do: Kati.Screens.TitlePreview.waiting(__MODULE__, state, back)
+
+  @doc "The season strip and the read-only episode list, or nothing when none is cached."
+  @spec preview_episodes(map()) :: [map()]
+  def preview_episodes(%{episodes: []}), do: []
+
+  def preview_episodes(s),
+    do: [Kati.Screens.Series.episodes_header(s), Kati.Screens.Series.episodes(s)]
 
   @doc """
   The page for a push that named no series over a shelf that has none: one
@@ -1850,7 +2023,8 @@ defmodule Kati.Screens.Series do
     title_color = if ep.watched or not aired?, do: Palette.sub(), else: Palette.ink()
     # An episode that has not aired cannot be marked watched, so it gets no tap
     # at all rather than a tap that silently does nothing.
-    tap = if aired?, do: {self(), String.to_atom("episode_#{ep.index}")}, else: nil
+    tickable? = aired? and not Map.get(ep, :read_only, false)
+    tap = if tickable?, do: {self(), String.to_atom("episode_#{ep.index}")}, else: nil
 
     ~MOB"""
     <Column fill_width={true}>
@@ -1895,7 +2069,7 @@ defmodule Kati.Screens.Series do
         </Column>
         {Kati.Screens.Series.rating_column(ep)}
         <Spacer size={13} />
-        {Kati.Screens.Series.check(ep.watched, aired?)}
+        {Kati.Screens.Series.check(ep.watched, tickable?)}
       </Row>
     </Column>
     """
@@ -1931,6 +2105,7 @@ defmodule Kati.Screens.Series do
   """
   @spec rating_column(map()) :: map() | []
   def rating_column(%{aired: false}), do: []
+  def rating_column(%{read_only: true}), do: []
 
   def rating_column(ep) do
     case Map.get(ep, :source_id) do
@@ -2005,6 +2180,20 @@ defmodule Kati.Screens.Series do
   def check(false, false), do: ~MOB"<Spacer size={27} />"
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, :add_to_library}, socket),
+    do: {:noreply, Kati.Screens.TitlePreview.add(socket, :series, &Kati.Screens.Series.series/1)}
+
+  def handle_info({:title_preview, source_id, result}, socket) do
+    {:noreply,
+     Kati.Screens.TitlePreview.answered(
+       socket,
+       :series,
+       source_id,
+       result,
+       &Kati.Screens.Series.preview/1
+     )}
+  end
 
   def handle_info({:tap, :toggle_follow}, socket),
     do: {:noreply, Kati.Screens.Series.follow(socket)}
@@ -2216,6 +2405,11 @@ defmodule Kati.Screens.Series do
   # rather than in a `handle_kati/3` and why the push's id stands in when the
   # page on screen is the one that says the show has gone — and, since N37,
   # why a show that has gone closes the ⋯ and the remove question with it.
+  def handle_info({:kati, :resumed, _payload}, %{assigns: %{preview: %{}}} = socket),
+    do:
+      {:noreply,
+       Kati.Screens.TitlePreview.resumed(socket, :series, &Kati.Screens.Series.series/1)}
+
   def handle_info({:kati, :resumed, _payload}, socket) do
     id = Map.get(socket.assigns.series, :tracked_id) || Map.get(socket.assigns, :id)
     {:noreply, Kati.Screens.Film.resumed(socket, :series, series(id))}

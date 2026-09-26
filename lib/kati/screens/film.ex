@@ -164,12 +164,13 @@ defmodule Kati.Screens.Film do
     Kati.Locale.activate()
 
     Kati.Screens.Resume.watch()
-    id = Map.get(params || %{}, :id)
+    {id, preview, film} = Kati.Screens.Film.opening(params)
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:film, film(id))
+     |> Mob.Socket.assign(:film, film)
      |> Mob.Socket.assign(:id, id)
+     |> Mob.Socket.assign(:preview, preview)
      # `"Library"` stays an English literal and is not wrapped in `gettext/1`:
      # it is the catalogue KEY, not the drawn word. `Kati.Screens.Pushed.
      # back_label/2` translates whatever it is handed at runtime — the pusher's
@@ -180,6 +181,57 @@ defmodule Kati.Screens.Film do
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.assign(:confirm_remove?, false)
      |> Mob.Socket.assign(:remove_error, nil)}
+  end
+
+  @doc """
+  What a push opens: `{id, preview, film}`.
+
+  A push naming `:preview` (`Kati.Screens.TitlePreview`) opens the tracked
+  film when the reader keeps that TMDB title, and the preview of it otherwise
+  — drawn from the cache when the title is there, `empty_film/0` while it is
+  fetched. Any other push is `:id`'s, as it always was.
+  """
+  @spec opening(map() | nil) :: {String.t() | nil, map() | nil, map()}
+  def opening(params) do
+    case Kati.Screens.TitlePreview.open(params) do
+      {:tracked, id} ->
+        {id, nil, film(id)}
+
+      {:preview, %{status: :ready} = state} ->
+        {nil, state, preview(Kati.Screens.TitlePreview.cached(state))}
+
+      {:preview, state} ->
+        {nil, state, empty_film()}
+
+      :none ->
+        id = Map.get(params || %{}, :id)
+        {id, nil, film(id)}
+    end
+  end
+
+  @doc """
+  A film nobody keeps, from its cached row alone: `empty_film/0`'s keys with
+  the provider's half filled in and the reader's half left empty, plus the
+  overview the preview draws. See `Kati.Screens.TitlePreview`.
+  """
+  @spec preview(CachedTitle.t() | nil) :: map()
+  def preview(nil), do: empty_film()
+
+  def preview(%CachedTitle{} = cached) do
+    where_rows = Kati.Screens.SeriesMeta.where_rows(cached)
+
+    Map.merge(empty_film(), %{
+      none?: false,
+      title: title_of(cached),
+      original: Kati.Locale.original_title(cached),
+      seed: seed_of(nil, cached),
+      meta: meta_line(cached),
+      year: cached.first_release_year,
+      watched: nil,
+      where: where_rows,
+      where_line: Kati.Screens.Film.where_line(where_rows),
+      overview: cached.overview
+    })
   end
 
   @doc """
@@ -597,11 +649,61 @@ defmodule Kati.Screens.Film do
     back = Map.get(assigns, :back, gettext("Library"))
 
     cond do
-      Kati.Screens.Film.gone?(f) -> Kati.Screens.Film.gone(__MODULE__, back)
-      Map.get(f, :none?, false) -> Kati.Screens.Film.none(back)
-      true -> Kati.Screens.Film.page(f, assigns)
+      Kati.Screens.TitlePreview.previewing?(assigns) ->
+        Kati.Screens.Film.preview_page(f, assigns.preview, back)
+
+      Kati.Screens.Film.gone?(f) ->
+        Kati.Screens.Film.gone(__MODULE__, back)
+
+      Map.get(f, :none?, false) ->
+        Kati.Screens.Film.none(back)
+
+      true ->
+        Kati.Screens.Film.page(f, assigns)
     end
   end
+
+  @doc """
+  A film nobody keeps (`Kati.Screens.TitlePreview`): the artwork, the ink
+  *Add to library* pill where the rating card sits, the overview and where to
+  watch — or the waiting page while it is fetched or when it could not be.
+  """
+  @spec preview_page(map(), map(), String.t()) :: map()
+  def preview_page(f, %{status: :ready} = state, back) do
+    assigns = %{f: f, save_error: state.save_error, back: back}
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
+      <Scroll>
+        <Column fill_width={true}>
+          {Kati.Screens.Film.artwork(@f)}
+          <Column
+            fill_width={true}
+            padding_left={21}
+            padding_right={21}
+            padding_top={16}
+            padding_bottom={40}
+          >
+            {Kati.Screens.TitlePreview.add_pill(@save_error)}
+            {Kati.Screens.TitlePreview.overview(Map.get(@f, :overview))}
+            {Kati.Screens.Film.where_section(@f)}
+          </Column>
+        </Column>
+      </Scroll>
+      {Kati.Screens.TitlePreview.chrome(@back)}
+    </Box>
+    """
+  end
+
+  def preview_page(_f, state, back),
+    do: Kati.Screens.TitlePreview.waiting(__MODULE__, state, back)
 
   @doc """
   The page for a push that named no film over a shelf that has none: one
@@ -1597,6 +1699,20 @@ defmodule Kati.Screens.Film do
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
+  def handle_info({:tap, :add_to_library}, socket),
+    do: {:noreply, Kati.Screens.TitlePreview.add(socket, :film, &Kati.Screens.Film.film/1)}
+
+  def handle_info({:title_preview, source_id, result}, socket) do
+    {:noreply,
+     Kati.Screens.TitlePreview.answered(
+       socket,
+       :film,
+       source_id,
+       result,
+       &Kati.Screens.Film.preview/1
+     )}
+  end
+
   def handle_info({:tap, :toggle_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
 
@@ -1827,6 +1943,9 @@ defmodule Kati.Screens.Film do
   # N37: `resumed/3` is the whole refresh, shared with screen 04, so a title
   # removed while this page sat under a sheet turns into `gone/2`'s page on the
   # way back, and its ⋯ and its remove question go with it.
+  def handle_info({:kati, :resumed, _payload}, %{assigns: %{preview: %{}}} = socket),
+    do: {:noreply, Kati.Screens.TitlePreview.resumed(socket, :film, &Kati.Screens.Film.film/1)}
+
   def handle_info({:kati, :resumed, _payload}, socket) do
     id = Map.get(socket.assigns.film, :tracked_id) || Map.get(socket.assigns, :id)
     {:noreply, Kati.Screens.Film.resumed(socket, :film, film(id))}

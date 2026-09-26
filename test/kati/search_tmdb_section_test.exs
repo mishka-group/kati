@@ -147,7 +147,10 @@ defmodule Kati.SearchTmdbSectionTest do
 
       view = search() |> typed("arrival") |> settle()
       assert :add_0 in tap_tags(view)
-      refute :tmdb_open_0 in tap_tags(view), "a title nobody keeps opened a page"
+
+      assert {:push, Kati.Screens.Film, %{preview: %{source_id: "n54-329865"}}} =
+               render_info(view, {:tap, :tmdb_open_0}).socket.__mob__.nav_action,
+             "a title nobody keeps did not open its preview (N55)"
 
       added = render_info(view, {:tap, :add_0})
 

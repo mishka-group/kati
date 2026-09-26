@@ -396,9 +396,23 @@ defmodule Kati.Screens.AddTitle do
       "add_" <> position ->
         {:noreply, Kati.Screens.AddTitle.add_at(socket, position)}
 
+      "preview_" <> position ->
+        {:noreply, Kati.Screens.AddTitle.preview_at(socket, position)}
+
       _ ->
         {:noreply, socket}
     end
+  end
+
+  # Back from a title page opened off a row — the preview's *Add to library*
+  # may have shelved it — so every row is asked of the shelf again.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply,
+     Mob.Socket.assign(
+       socket,
+       :results,
+       Kati.Screens.AddTitle.already_added(socket.assigns.results)
+     )}
   end
 
   # The debounce coming back. The query is searched only if it is still what
@@ -718,6 +732,22 @@ defmodule Kati.Screens.AddTitle do
     with {index, ""} when index >= 0 <- Integer.parse(position),
          %{} = row <- Enum.at(socket.assigns.results, index) do
       Kati.Screens.AddTitle.add(socket, Kati.Screens.AddTitle.row_key(row))
+    else
+      _unknown -> socket
+    end
+  end
+
+  @doc """
+  The title page for the row a tap names by its position: the tracked page
+  when the reader keeps it, and `Kati.Screens.TitlePreview` when they do not.
+  A row that is not TMDB's — board 06's fixtures — opens nothing.
+  """
+  @spec preview_at(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def preview_at(socket, position) do
+    with {index, ""} when index >= 0 <- Integer.parse(position),
+         %{source: :tmdb, source_id: id} = row when is_binary(id) <-
+           Enum.at(socket.assigns.results, index) do
+      Kati.Screens.TitlePreview.push(socket, row, "Add title")
     else
       _unknown -> socket
     end
@@ -1212,6 +1242,7 @@ defmodule Kati.Screens.AddTitle do
         padding_top={11}
         padding_bottom={11}
         align="center"
+        on_tap={Kati.Screens.AddTitle.preview_tap(r)}
       >
         {Kati.Screens.AddTitle.thumb(r)}
         <Spacer size={13} />
@@ -1241,6 +1272,19 @@ defmodule Kati.Screens.AddTitle do
     </Column>
     """
   end
+
+  @doc """
+  The row body's tap: `preview_<position>` for a TMDB row, and none for a row
+  with no provider behind it.
+
+      iex> Kati.Screens.AddTitle.preview_tap(%{title: "The Quiet Coast", position: 0})
+      nil
+  """
+  @spec preview_tap(map()) :: {pid(), atom()} | nil
+  def preview_tap(%{source: :tmdb, position: position}) when is_integer(position),
+    do: {self(), String.to_atom("preview_" <> Integer.to_string(position))}
+
+  def preview_tap(_row), do: nil
 
   @doc false
   def row_gap, do: ~MOB"<Spacer size={9} />"

@@ -70,7 +70,9 @@ defmodule Kati.Screens.Search do
   query, sent to `Kati.Media.Tmdb.search/1` once the typing stops
   (`Kati.Media.SearchDebounce`), in a task, with skeleton rows while it is out.
   A title already listed above is not listed again, a row the reader keeps
-  opens its own page, and the add disc adds the rest from where they are. The
+  opens its own page, a row they do not opens that page as a preview with
+  *Add to library* on it (`Kati.Screens.TitlePreview`), and the add disc adds
+  from where the row is. The
   chip counts stay counts of the library: TMDB's rows are not the reader's,
   and a chip saying 20 over a shelf of 2 would be the catalogue talking.
 
@@ -671,12 +673,24 @@ defmodule Kati.Screens.Search do
     end
   end
 
-  @doc "A TMDB row's body: its own page when the reader keeps it, and nothing otherwise."
+  @doc """
+  A TMDB row's body: its own page when the reader keeps it, and its preview
+  otherwise — `Kati.Screens.TitlePreview`, the same page with *Add to library*
+  where the reader's own history would be.
+  """
   @spec open_tmdb(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def open_tmdb(socket, position) do
     case OnTmdb.at(Map.get(socket.assigns, :tmdb, OnTmdb.idle()), position) do
-      %{id: id} = row when is_binary(id) -> Kati.Screens.Search.open_kept(socket, row)
-      _not_kept -> socket
+      %{id: id} = row when is_binary(id) ->
+        Kati.Screens.Search.open_kept(socket, row)
+
+      %{source: :tmdb} = row ->
+        socket
+        |> Kati.Screens.Search.commit()
+        |> Kati.Screens.TitlePreview.push(row, "Search")
+
+      nil ->
+        socket
     end
   end
 
@@ -1414,14 +1428,12 @@ defmodule Kati.Screens.Search do
   end
 
   @doc """
-  One TMDB row: screen 06's result row, with a body that opens the title when
-  the reader keeps it. A row they do not keep opens nothing — there is no page
-  for a title that is not on the shelf — and its disc is how it gets there.
+  One TMDB row: screen 06's result row, with a body that opens the title — its
+  own page when the reader keeps it, and its preview when they do not
+  (`open_tmdb/2`). The disc still adds from the row.
   """
   def tmdb_row(row) do
-    tap =
-      Map.get(row, :id) &&
-        {self(), String.to_atom("tmdb_open_" <> Integer.to_string(row.position))}
+    tap = {self(), String.to_atom("tmdb_open_" <> Integer.to_string(row.position))}
 
     ~MOB"""
     <Row
