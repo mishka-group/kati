@@ -71,7 +71,10 @@ class FirstRunTest {
     private fun providerSaidWhyNot(): Boolean =
         textPresent("Nothing here for") ||
             textPresent("Could not look") ||
-            textPresent("No TMDB token") ||
+            textPresent("Could not reach TMDB") ||
+            textPresent("No TMDB key") ||
+            textPresent("TMDB refused") ||
+            textPresent("blocking TMDB") ||
             textPresent("did not answer") ||
             textPresent("too many")
 
@@ -326,7 +329,7 @@ class FirstRunTest {
         // Back to step four and choose a loud one.
         kati.tap("step_back")
         kati.awaitScreen("onboarding_loudness")
-        kati.tap("choose_digest")
+        kati.tap("choose_notify")
         kati.device.waitForIdle()
 
         kati.tap("next")

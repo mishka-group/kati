@@ -111,11 +111,11 @@ class PersianFirstRunTest {
         kati.tap("next")
         kati.awaitScreen("onboarding_first_title")
 
-        // Screen 158, not 139. Skipping is a real answer and gets the state the
-        // app draws for having nothing — and landing an entirely Persian run on
-        // the English empty Home is the failure this pairing exists to prevent.
+        // Skip lands on Home, the same page Finish setup does (N49): a reader
+        // who reached this step has chosen sections, and the empty board's one
+        // action was to choose them again. Home is one module in both scripts.
         kati.tap("skip")
-        kati.awaitScreen("home_fa_empty")
+        kati.awaitScreen("home")
     }
 
     @Test
@@ -134,7 +134,7 @@ class PersianFirstRunTest {
         kati.awaitScreen("onboarding_first_title")
 
         kati.tap("finish")
-        kati.awaitScreen("home_fa")
+        kati.awaitScreen("home")
 
         assertTrue(
             "the Persian run finished on a screen with no shell — the dock is what says " +
@@ -157,13 +157,13 @@ class PersianFirstRunTest {
 
         // The board opens on آرام, so the assertion has to be that a DIFFERENT
         // choice takes. Tapping the resting one and finding it still selected
-        // would pass on three chips that do nothing at all.
-        kati.tap("choose_digest")
+        // would pass on two chips that do nothing at all.
+        kati.tap("choose_notify")
         kati.device.waitForIdle()
 
         // The tick is drawn on the chosen row only, so the quiet note — the
         // sentence only آرام earns — must be gone.
-        kati.compose.waitUntil(20_000) { !kati.present("choose_digest") || true }
+        kati.compose.waitUntil(20_000) { !kati.present("choose_notify") || true }
 
         assertTrue(
             "the loudness screen is still on screen after choosing a different option, " +

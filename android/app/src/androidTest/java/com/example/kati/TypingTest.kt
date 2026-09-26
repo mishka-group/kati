@@ -175,18 +175,17 @@ class TypingTest {
         kati.tap("root_library")
         kati.compose.waitUntil(20_000) { kati.present("screen:library") }
 
-        // `shelf_Books`, capitalised: the tag is built as `"shelf_" <> label`
-        // and the label is the word on the segment. A lowercase guess here
-        // would assert the absence of a tag that never existed — a test that
-        // passes for the wrong reason, which is the whole failure mode this
-        // work is correcting.
+        // `shelf_books`, lowercase: the tag is built from the segment's KEY
+        // since mishka-group/kati#103, not from the word drawn on it. The
+        // capitalised guess this used to make asserted the absence of a tag
+        // that no longer existed, and passed for the wrong reason.
         assertTrue(
             "the Books shelf was still offered after being turned off, and it can never hold anything",
-            !kati.present("shelf_Books")
+            !kati.present("shelf_books")
         )
         assertTrue(
             "the Screen shelf went missing, so this proved nothing about Books",
-            kati.present("shelf_Screen")
+            kati.present("shelf_screen")
         )
     }
 }
