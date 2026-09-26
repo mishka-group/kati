@@ -756,6 +756,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "37" => [],
     "141" => [],
     "33" => [],
+    # 144 → no board either (N52-B). A push naming no episode, over a store
+    # with none logged, draws `empty_sheet/0`: the close disc, the title and
+    # one sentence. Board 144's *S2 E6 · The Undertow* was drawn on every such
+    # phone; `Kati.ScreenDesignLiteralTest` installs it to compare the frame.
+    "144" => [],
     # 15 → no board either: nothing logged means no rows, no rewatch card and a
     # count of zero, so board 15's own seven rows have nothing left to compare.
     "15" => [],
@@ -1322,6 +1327,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # write to a row, and a sheet named nothing has no row: drawn, they were a
     # blank title over a Drop button that could only be refused.
     "149" => 3,
+    # 33 and 144 over no title (N52-B): the header's title, its close disc and
+    # the two sentences of `nothing_to_log/0` / `nothing_to_rate/0` — four
+    # strings each. The stars, the review field, the context rows and Save all
+    # write to a title, and a sheet named nothing has none: drawn, they were a
+    # form whose Save could only refuse.
+    "33" => 4,
+    "144" => 4,
     # 34 with no season is the subtitle, three order labels, the zero eyebrow
     # and the back pill's chrome — eleven strings. The nine episode rows and the
     # two switches that padded it past the floor act on rows it has not got,
@@ -1585,9 +1597,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # floor below subtracts this from the board's count, so it is a smaller
   # number rather than an absent check.
   #
-  #   * 144 draws a moment the live screen is not in. See the pairs in
-  #     `device_values/0` for which literals those are.
-  #
   #   * 190 is an annotation board, and its two long notes are prose with
   #     phrases emphasised INSIDE the sentence — `4 doses`, `clock times
   #     armed`, `one`, `dose · instruction`. `Kati.DesignLiterals` yields each
@@ -1619,7 +1628,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     carries the argument. The page is TMDB, the tokens and the cache now,
   #     twenty-six strings in either script.
   @floor_allowance %{
-    "144" => 5,
     "190" => 2,
     "129" => 7,
     "151" => 27,
@@ -1640,8 +1648,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # Board 129's conflict card, retired with its words — see
     # `DesignLiterals.retired_lines/0`.
     {"129", "star"},
-    {"144", "expand_more"},
-    {"144", "visibility_off"},
     {"149", "undo"},
     # Board 12's *Wishlist* and *Owned on disc* rows, retired with the two
     # lines they carried — both are assertions a reader makes and no column
@@ -2650,7 +2656,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"101", Kati.Screens.YearCardsStates, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
       # 33 and 144 answer their own empty sheet. The draft used to be
-      # `Kati.Rating.Sample.watch/0`, so opening the log sheet over a film with
+      # board 33's own watch, so opening the log sheet over a film with
       # nothing logged handed the reader Blue Hour's 8, its review body, its
       # spoiler flag and its three context rows — and `writable?/1` was the only
       # thing standing between that and Save filing it under their own row.
@@ -2660,11 +2666,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # calls below are microseconds apart over a field neither branch chose.
       {"33", Kati.Screens.Rating, fn -> Map.drop(Kati.Screens.Rating.watch(), [:watched_at]) end,
        Map.drop(Kati.Screens.Rating.empty_watch(), [:watched_at]),
-       &Kati.Screens.Rating.drawn_watch/0},
-      {"144", Kati.Screens.RateEpisode,
-       fn -> Map.drop(Kati.Screens.Rating.watch(), [:watched_at]) end,
-       Map.drop(Kati.Screens.Rating.empty_watch(), [:watched_at]),
-       &Kati.Screens.Rating.drawn_watch/0},
+       &Kati.DesignLiterals.rating_board/0},
+      # 144 drew board 144's own episode, The Undertow of The Long Hollow, on
+      # every phone with no episode logged (N52-B).
+      {"144", Kati.Screens.RateEpisode, fn -> Kati.Screens.RateEpisode.sheet(%{}) end,
+       Kati.Screens.RateEpisode.empty_sheet(), &Kati.DesignLiterals.rate_episode_board/0},
       # 86 and 87 gate on the same read, which is the only one either makes.
       # `for_reader/1` fell back to board 86's own two — *what leaves this
       # week*, *notes about the estuary* — under a caption promising they are
@@ -2720,12 +2726,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # reader who follows nothing, and the switches under it still work.
       {"25", Kati.Screens.ReleaseWatcher, &Kati.Screens.ReleaseWatcher.banner/0,
        Kati.Screens.ReleaseWatcher.banner(), &Kati.DesignLiterals.watcher_board_banner/0},
-      # 36 reads its own unavailable state now. It answered `drawn_detect/0`
+      # 36 reads its own unavailable state now. It answered board 36 whole
       # whenever access was `:unavailable`, which is EVERY sideloaded build —
       # Play Protect blocks the listener it reads — so the one state a real
       # reader of this APK is always in was the one drawing the fixture.
       {"36", Kati.Screens.AutoDetect, &Kati.Screens.AutoDetect.detect/0,
-       Kati.Screens.AutoDetect.detect(), &Kati.Screens.AutoDetect.drawn_detect/0},
+       Kati.Screens.AutoDetect.detect(), &Kati.DesignLiterals.detect_board/0},
       # 151 answers the state the phone is in, with the store's count of
       # detected ticks. It was board 151 whole — four states at once and a
       # revoked card that counted `128 tracks` on every phone (N22). Over an
@@ -2759,7 +2765,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # stay real, and the five length buckets stay because they are what can be
       # ASKED rather than an answer.
       {"13", Kati.Screens.WhatFits, &Kati.Screens.WhatFits.tonight/0,
-       Kati.Screens.WhatFits.empty_tonight(), &Kati.Screens.WhatFits.drawn_tonight/0},
+       Kati.Screens.WhatFits.empty_tonight(), &Kati.Screens.WhatFits.Sample.tonight/0},
       # 39 answers `nil` with nothing queued — the preview says so rather than
       # drawing the board's four tiles, three of which were widgets nobody can
       # add to a home screen.
@@ -3275,24 +3281,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"94", "search 190 countries", ~r/^search \d+ countries$/u},
       # 139's greeting line prints the device's own clock, as 01's does.
       {"139", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
-      # 144 and 149's boards each show SEVERAL MOMENTS in one frame, and a live
-      # screen can only be in one of them. Both modules argue the reading in
-      # their own moduledocs and both are worth reading before changing this:
-      #
-      #   * 144's "Spoiler-safe variant" panel is a swatch documenting a
-      #     SUBSTITUTION inside the one headline — `S2 E6 · The Undertow`
-      #     becomes `S2 E6 · Episode 6` — not a second headline drawn beside
-      #     the first. `headline/2` performs the substitution.
-      #   * 149's board draws the action row AND the dark undo pill together,
-      #     which are before and after the same tap. `dropped?` starts false,
-      #     so the sheet opens on the action row and the pill replaces it.
-      {"144", "spoiler-safe variant", ~r/^rate this episode$/},
-      {"144", "s2 e6 · episode 6", ~r/^s2 e6 · (the undertow|episode 6)$/},
-      {"144", "rewatch — your last verdict, above the input", ~r/^review$/},
-      {"144", "you, 3 mar 2024 · \uF09A4", ~r/^what did you make of it\?$/},
-      {"144",
-       "the estuary scenes land completely differently once you know what mara is looking for.",
-       ~r/^what did you make of it\?$/},
+      # (144's five entries were here (N52-B). They exempted the board's
+      # swatches because the sheet drew the board's own episode on an empty
+      # store; `empty_sheet/0` draws no episode now, so `@empty_boards` holds
+      # 144 to no board at all.)
       # (149's two entries were here. They exempted `drop at s1 e3` and
       # `still on it` because the sheet drew the board's own captured position;
       # `empty_sheet/0` carries no position at all now, so the lines are drawn

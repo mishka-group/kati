@@ -1,3 +1,5 @@
+Code.require_file("../support/design_literals.exs", __DIR__)
+
 defmodule Kati.RatingTagsTest do
   @moduledoc """
   Screen 33's three controls that were drawn and did nothing.
@@ -19,7 +21,7 @@ defmodule Kati.RatingTagsTest do
   screen opens.
 
   The sweep cannot see any of this. It renders against an empty store, where
-  the sheet draws `Kati.Rating.Sample` and every one of these controls is
+  the sheet draws `Kati.DesignLiterals.rating_board/0` and every one of these controls is
   deliberately a picture — a tag typed onto the drawing would be refused by
   Save after it had been typed. So they are pressed here, over a real watch.
   """
@@ -81,7 +83,7 @@ defmodule Kati.RatingTagsTest do
     end
 
     test "is a picture over the drawing" do
-      drawn = Rating.drawn_watch()
+      drawn = Kati.DesignLiterals.rating_board()
 
       refute Rating.writable?(drawn)
       refute inspect(Rating.spoiler_toggle(drawn.spoilers, false)) =~ "toggle_spoilers"
@@ -161,7 +163,7 @@ defmodule Kati.RatingTagsTest do
     end
 
     test "and the chips are pictures over the drawing" do
-      drawn = inspect(Rating.tags(Rating.drawn_watch()), limit: :infinity)
+      drawn = inspect(Rating.tags(Kati.DesignLiterals.rating_board()), limit: :infinity)
 
       refute drawn =~ "add_tag"
       refute drawn =~ "drop_tag_"
@@ -272,7 +274,7 @@ defmodule Kati.RatingTagsTest do
     end
 
     test "and are chevrons with no tap over the drawing" do
-      drawn = inspect(Rating.context_card(Rating.drawn_watch()), limit: :infinity)
+      drawn = inspect(Rating.context_card(Kati.DesignLiterals.rating_board()), limit: :infinity)
 
       refute drawn =~ "open_watched_on"
       refute drawn =~ "open_where"

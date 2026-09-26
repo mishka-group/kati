@@ -52,7 +52,7 @@ defmodule Kati.ScreenWhatFitsTest do
       assert WhatFits.tonight() == WhatFits.empty_tonight(),
              "a reader with nothing on their shelf was handed four films to pick between"
 
-      refute WhatFits.tonight() == WhatFits.drawn_tonight()
+      refute WhatFits.tonight() == WhatFits.Sample.tonight()
     end
 
     test "and it says the shelf is empty, not that nothing fits the window" do
@@ -60,17 +60,17 @@ defmodule Kati.ScreenWhatFitsTest do
     end
 
     test "and its five buttons are pictures on the card screen 93 borrows" do
-      card = inspect(WhatFits.window(WhatFits.drawn_tonight()), limit: :infinity)
+      card = inspect(WhatFits.window(WhatFits.Sample.tonight()), limit: :infinity)
 
       refute card =~ "window_45m"
 
-      assert inspect(WhatFits.window(WhatFits.drawn_tonight(), true), limit: :infinity) =~
+      assert inspect(WhatFits.window(WhatFits.Sample.tonight(), true), limit: :infinity) =~
                "window_45m"
     end
 
     test "and the board keeps its four moods" do
-      assert length(WhatFits.drawn_tonight().moods) == 4
-      assert inspect(WhatFits.mood_row(WhatFits.drawn_tonight().moods)) =~ "Light"
+      assert length(WhatFits.Sample.tonight().moods) == 4
+      assert inspect(WhatFits.mood_row(WhatFits.Sample.tonight().moods)) =~ "Light"
       assert WhatFits.mood_row([]) == %{type: :spacer, children: [], props: %{size: 0}}
     end
   end
@@ -154,8 +154,8 @@ defmodule Kati.ScreenWhatFitsTest do
     end
 
     test "and it carries no Tomorrow pill, because nothing records a deferral" do
-      assert WhatFits.tonight(45).over.action == nil
-      assert WhatFits.defer_pill(nil) == %{type: :spacer, children: [], props: %{size: 0}}
+      refute Map.has_key?(WhatFits.tonight(45).over, :action)
+      refute inspect(WhatFits.over(WhatFits.tonight(45)), limit: :infinity) =~ "Tomorrow"
     end
 
     test "the mood chips are dropped, and the row with them" do
@@ -166,8 +166,7 @@ defmodule Kati.ScreenWhatFitsTest do
     test "and the overflow disc goes with them, having nothing left to hold" do
       glyph = Kati.Icons.glyph!("more_horiz")
 
-      refute inspect(WhatFits.more_row(false), limit: :infinity) =~ glyph
-      assert inspect(WhatFits.more_row(true), limit: :infinity) =~ glyph
+      refute inspect(WhatFits.more_row(), limit: :infinity) =~ glyph
     end
   end
 
@@ -286,8 +285,8 @@ defmodule Kati.ScreenWhatFitsTest do
     end
 
     test "and a row on the board opens nothing, having no title behind it" do
-      assert Enum.all?(WhatFits.drawn_tonight().fits, &(WhatFits.row_tap(&1, 0) == nil))
-      assert WhatFits.row_tap(WhatFits.drawn_tonight().over, :over) == nil
+      assert Enum.all?(WhatFits.Sample.tonight().fits, &(WhatFits.row_tap(&1, 0) == nil))
+      assert WhatFits.row_tap(WhatFits.Sample.tonight().over, :over) == nil
 
       socket = mount_screen(WhatFits).socket
       {:noreply, after_tap} = WhatFits.handle_tap(:open_9, socket)

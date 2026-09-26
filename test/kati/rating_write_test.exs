@@ -114,7 +114,7 @@ defmodule Kati.RatingWriteTest do
       a_logged_watch!()
 
       drawn =
-        Rating |> mount_screen() |> tree() |> tap_tags() |> Enum.filter(&Rating.point_of/1)
+        mount_rating() |> tree() |> tap_tags() |> Enum.filter(&Rating.point_of/1)
 
       # Ten, not five. `Kati.Media.Watch.rating` is `min: 1, max: 10`, and a
       # target per STAR would leave every odd point — every half star this app
@@ -143,7 +143,7 @@ defmodule Kati.RatingWriteTest do
     #
     # The bug it is here for was found by making `shape/1` raise — which is what
     # its rescue is for — with a watch in the store: `logged_record/0` answered a
-    # row, `shape/1` answered `nil`, the sheet fell back to `Kati.Rating.Sample`
+    # row, `shape/1` answered `nil`, the sheet fell back to board 33's own watch
     # and kept the row's id. Save then reported success, popped, and replaced
     # the user's own rating and review with the fixture's. That branch cannot be
     # reached from a test without editing the module, so what is pinned here is
@@ -303,9 +303,9 @@ defmodule Kati.RatingWriteTest do
 
   describe "a failed write keeps the sheet open" do
     test "with nothing logged there is nothing to save, and the sheet says so" do
-      # The database is empty, so the sheet is drawing `Kati.Rating.Sample` —
-      # somebody else's film and a review nobody wrote. Committing that would
-      # file the drawing under the user's own log, so the write refuses.
+      # The database is empty, so the sheet is `empty_watch/0` and draws no
+      # Save at all. A save that arrives anyway refuses rather than filing a
+      # log of nothing.
       assert Rating.logged_record() == nil
 
       view = mount_rating()

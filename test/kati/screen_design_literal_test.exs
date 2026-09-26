@@ -265,6 +265,17 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
+    # N52-B: board 13's and board 36's overflow discs had no tap and nothing
+    # behind them. Board 36's `cast`, `computer`, `tv`, `help` and
+    # `do_not_disturb_on` are the Chromecast, browser-extension, Apple TV,
+    # *Ask before ticking* and *Ignore* rows — see `retired_lines/0`.
+    {"13", "more_horiz"},
+    {"36", "more_horiz"},
+    {"36", "cast"},
+    {"36", "computer"},
+    {"36", "tv"},
+    {"36", "help"},
+    {"36", "do_not_disturb_on"},
     # N51: the Agenda's filter disc had no tap and there is nothing on the
     # agenda to filter; its search disc now opens Search.
     {"30", "tune"},
@@ -1593,7 +1604,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 149, same as 04 and 08: the sheet answers `empty_sheet/0` over no row
       # now, so the board's own show has to be installed to compare the frame
       # against its capture.
-      {"149", Kati.Screens.DropSheet, &Map.put(&1, :sheet, Kati.Screens.DropSheet.drawn_sheet())},
+      {"149", Kati.Screens.DropSheet, &Map.put(&1, :sheet, Kati.DesignLiterals.drop_board())},
       # 98, 99, 101 and 103 all draw board 98's card and reach the same read.
       # A year with nothing counted is the honest answer now, so the board's own
       # card is installed to compare the four frames against their captures.
@@ -1604,7 +1615,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # board's own watch — Blue Hour's 8, its review, its spoiler flag, its
       # three context rows and its three tags — is installed here to compare
       # the frame against .scratch/design/audit/33.png.
-      {"33", Kati.Screens.Rating, &Map.put(&1, :watch, Kati.Screens.Rating.drawn_watch())},
+      {"33", Kati.Screens.Rating, &Map.put(&1, :watch, Kati.DesignLiterals.rating_board())},
+      # 144 answers `empty_sheet/0` over a store with no episode logged now
+      # (N52-B), so the board's own episode is installed to compare the frame.
+      {"144", Kati.Screens.RateEpisode,
+       &Map.put(&1, :sheet, Kati.DesignLiterals.rate_episode_board())},
       # 37 and 141 answer their own empty state over a push naming no file now,
       # so each board's own job is installed here to compare the frame.
       {"37", Kati.Screens.Import, &Map.put(&1, :job, Kati.Import.Sample.job(:trakt))},
@@ -1629,10 +1644,9 @@ defmodule Kati.ScreenDesignLiteralTest do
        })},
       # 13 answers an empty window now, so the board's own evening goes here.
       {"13", Kati.Screens.WhatFits,
-       &Map.put(&1, :tonight, Kati.Screens.WhatFits.drawn_tonight())},
+       &Map.put(&1, :tonight, Kati.Screens.WhatFits.Sample.tonight())},
       # 36 reads its own unavailable state now, so the board goes in here.
-      {"36", Kati.Screens.AutoDetect,
-       &Map.put(&1, :detect, Kati.Screens.AutoDetect.drawn_detect())},
+      {"36", Kati.Screens.AutoDetect, &Map.put(&1, :detect, Kati.DesignLiterals.detect_board())},
       # 25's banner counts zero now, so the board's own two lines are installed
       # to compare the frame. Only the banner — every other band on 25 reads
       # the store, and the store's defaults are the board's switch states.

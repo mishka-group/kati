@@ -192,9 +192,9 @@ defmodule Kati.Screens.DropSheet do
   unarchived shelf, or — named nothing — the newest cold or paused one. No such
   row is `empty_sheet/0`, which `body/2` draws as one sentence and no controls:
   a real position under somebody else's title would be the one value on the
-  sheet that is not what it claims to be. `Kati.Screens.DropSheet.Sample` is
-  board 149's own values and is reached only through `drawn_sheet/0`, which the
-  design-literal test installs; no reader path draws it.
+  sheet that is not what it claims to be. Board 149's own show lives with the
+  test that compares the frame (`Kati.DesignLiterals.drop_board/0`); nothing in
+  `lib/` holds it.
   """
 
   use Mob.Screen
@@ -204,7 +204,6 @@ defmodule Kati.Screens.DropSheet do
 
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
-  alias Kati.Screens.DropSheet.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.Eyebrow
@@ -301,8 +300,8 @@ defmodule Kati.Screens.DropSheet do
   defect Phase 1 is named for, and on a sheet that WRITES it is worse than a
   dead control: it drops a title the user did not point at.
 
-  An id that names no gone-cold row answers `nil` and falls back to the drawing
-  rather than to the head of the list, which is the rule the whole phase keeps:
+  An id that names no row answers `nil` and draws `empty_sheet/0` rather than
+  the head of the list, which is the rule the whole phase keeps:
   a row dropped, resumed or never paused under you is not the same fact as an
   empty queue, and answering with a different real title is the swap this
   argument exists to prevent.
@@ -319,9 +318,9 @@ defmodule Kati.Screens.DropSheet do
   The sheet with no thread on it.
 
   `from_tracked/1`'s seven keys carrying nothing. It is what a sheet opened
-  over no row answers now, in place of `Kati.Screens.DropSheet.Sample.sheet/0` —
-  *The Quiet Ones*, `GONE COLD · 4 MONTHS`, S1 E3, which is one person's shelf
-  and was never this reader's.
+  over no row answers now, in place of board 149's own show — *The Quiet Ones*,
+  `GONE COLD · 4 MONTHS`, S1 E3, which is one person's shelf and was never this
+  reader's.
 
   `tracked: nil` is the same sentinel it always was, and it is what
   `update_tracked/2` refuses on: a sheet with nothing to write to says so rather
@@ -345,16 +344,6 @@ defmodule Kati.Screens.DropSheet do
       empty?: true
     }
   end
-
-  @doc """
-  Board 149 exactly as it is drawn, from `Kati.Screens.DropSheet.Sample`.
-
-  A test fixture and nothing else, the way `Kati.Screens.Film.drawn_film/0` is:
-  `Kati.ScreenDesignLiteralTest` installs it so the sheet is still compared
-  against its capture. Nothing a reader can reach calls it.
-  """
-  @spec drawn_sheet() :: map()
-  def drawn_sheet, do: Sample.sheet()
 
   # One query either way — the filter is what this sheet is ABOUT (a thread
   # that has gone quiet and is still on the shelf), so a named id narrows that

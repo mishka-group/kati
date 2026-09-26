@@ -45,7 +45,7 @@ defmodule Kati.RatingPlaceTest do
     %{tracked: tracked}
   end
 
-  # A LIVE draft. `edit/2` refuses an edit to `Kati.Rating.Sample` — #96's rule
+  # A LIVE draft. `edit/2` refuses an edit to `Kati.DesignLiterals.rating_board/0` — #96's rule
   # that a control on a drawing is a picture — so every tap below needs a watch
   # that exists.
   defp sheet(tracked) do
@@ -71,7 +71,7 @@ defmodule Kati.RatingPlaceTest do
       # could only ever reach the first side of it. Read off the page rather
       # than out of the private function: what matters is that a reader sees it.
       # Mounted WITH the title, not bare. Bare, this passed on
-      # `Kati.Rating.Sample.watch/0`, whose own service and place happen to be
+      # `Kati.DesignLiterals.rating_board/0`, whose own service and place happen to be
       # `Lumen+` and `living room` — so the assertion was reading the fixture
       # while the test claimed to be reading a watch it had just logged.
       # `rating:` as well, because `newest_log/1` only reopens a watch that
