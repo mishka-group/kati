@@ -259,26 +259,11 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.AddTitleMusic, :filter_Everything, Kati.Screens.AddTitle},
     {Kati.Screens.AddTitleMusic, :filter_Films, Kati.Screens.AddTitle},
     {Kati.Screens.AddTitleMusic, :filter_Series, Kati.Screens.AddTitle},
-    # ── The Day/Week/Month/Agenda switcher's `Day` segment, drawn by all three
-    # of the other views. `Kati.Screens.Day` can receive a date — it is
-    # `use Kati.Screens.Pushed` and `day/1` reads `%{date: date}` — but none of
-    # the three sources holds one to send. `week.ex:39` assigns
-    # `SampleWeek.week()`, `month_grid.ex:39` `SampleMonth.month()`,
-    # `agenda.ex:47` `SampleAgenda.agenda()`, and the only day-shaped values in
-    # those fixtures are display labels: `Thu 13 · 9 items`, `August 2026`.
-    # Carrying a label is worse than carrying nothing.
-    #
-    # Attributed to the three screens that DRAW the segment rather than to
-    # `Kati.Screens.ViewSwitcher`, which is what pushes: the switcher is shared
-    # chrome, it is not a screen, `Kati.ScreenSweep.screens/0` does not return
-    # it, and `view_switcher.ex:150-155` is handed a tag and a socket and knows
-    # nothing about which screen drew it. That is also why it has no
-    # view-specific value to pass.
-    #
-    # `test/kati/screen_empty_database_test.exs:1329` pins the bare push into 09
-    # as the branch that must answer with the drawn day, so this is load-bearing
-    # in both directions. Unblocks when 16/17/30 move off their fixtures onto
-    # real dates.
+    # ── The agenda's `Day` segment. N51 moved 16, 17 and 30 onto the reader's
+    # calendar: the month and the week hold a selected date and the switcher
+    # carries it, so their two entries left this list. The agenda is a list
+    # from today onwards with no selected day, so its `Day` has no date to name
+    # and screen 09 opens on today, which is the day the list begins on.
     # ── Screen 140's six source tiles and 135's three doors into the importer.
     #
     # Screen 37 reads a `:source` since 6 September, because screen 141 was
@@ -318,8 +303,6 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.RestoreFirstRun, :restore_everything, Kati.Screens.Import},
     {Kati.Screens.RestoreFirstRun, :scan_qr, Kati.Screens.Import},
     {Kati.Screens.Agenda, :view_Day, Kati.Screens.Day},
-    {Kati.Screens.MonthGrid, :view_Day, Kati.Screens.Day},
-    {Kati.Screens.Week, :view_Day, Kati.Screens.Day},
 
     # ── Rate, from the two domains screen 33 does not rate.
     #

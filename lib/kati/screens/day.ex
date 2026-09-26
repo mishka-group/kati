@@ -24,17 +24,14 @@ defmodule Kati.Screens.Day do
   this central should not be the first thing to depend on a prop with no
   upstream contract.
 
-  ## The chips, and the state the drawing is actually in
+  ## The chips
 
-  `Screen 6 · Personal 6 · Money 2` narrow the timeline to one kind — band,
-  cards and the merged renewals row together, since a filter that leaves two
-  of the three behind is only pretending.
+  `Screen · Personal · Money`, each with the day's own count, narrow the
+  timeline to one kind.
 
   There is no `All` chip, unlike screen 02, and the drawing shows the first
-  chip in ink above a timeline holding **every** kind — a habit, a todo, five
-  meetings, two renewals, a release. So the drawn state is *the whole day with
-  the first chip lit*, and that is what `filter: nil` is: the counts sum to
-  the day's own 14, so no single chip can be the state that shows all 14.
+  chip in ink above a timeline holding **every** kind. So the resting state is
+  *the whole day with the first chip lit*, and that is what `filter: nil` is.
   `lit/2` lights the first chip for it, and tapping the kind already showing
   widens back to it — the screen would otherwise have three states and no way
   home.
@@ -61,26 +58,21 @@ defmodule Kati.Screens.Day do
   and the members. A `<Column fill_width>` with one `fill_width` `<Row>` in it
   measures what the `<Row>` measured alone.
 
-  ## Two days, and which one you get
+  ## Which day
 
-  A push carrying `%{date: date}` — which is what `Kati.Screens.Calendar`'s
-  open gesture sends — titles this screen with that date and draws that day's
-  own events out of `Kati.Calendars.Event`. A push carrying nothing draws
-  `Kati.Calendar.SampleDay`, the fourteen-item day every frame of
-  `test/design/screens/09.html` was captured from. `day/1` is the whole of
-  that decision and argues it at length.
+  A push carrying `%{date: date}` — what `Kati.Screens.Calendar`'s open
+  gesture, the month grid and the week lanes send — titles this screen with
+  that date and draws that day's own events out of `Kati.Calendars.Event`. A
+  push carrying nothing draws today. `day/1` is the whole of that decision.
 
   ## Why a real day is thinner than the drawing
 
-  This screen has had its domain for longer than it has read it: the day IS in
-  `Kati.Calendars.Event` — and
-  `Kati.Calendars.Today.occurrences/1` returns them in the shape
+  `Kati.Calendars.Today.occurrences/1` returns the day in the shape
   `Kati.Calendar.Layout` takes, ids included. What it does not return is the
-  rest of the drawing, and the five things below are why. A handed date
-  therefore draws its cards, its lanes, its clashes and its own count, and
-  **draws none of the furniture that would have to be invented** — the all-day
-  band, the merged `£22.98` renewals row, the chips' 6/6/2 and the `14 items ·
-  2 clashes` headline all belong to the day that can honestly hold them.
+  rest of the drawing, and the five things below are why. So the day draws its
+  cards, its lanes, its clashes and its own count, and **draws none of the
+  furniture that would have to be invented** — the all-day band, a merged
+  renewals total, and chip counts or a headline it cannot count.
 
     * **The episodes.** Not for want of an episode resource any more —
       `20260821231241_media_seasons_and_episodes` built
@@ -101,10 +93,10 @@ defmodule Kati.Screens.Day do
       `"todo_" <> id` clause would go on flipping a flag with nowhere to put
       it, which is a control that silently forgets rather than one that works.
 
-    * **`£22.98`.** `money_row/0` prints a total and an event has no amount.
-      A price could ride in `description`, but that is free iCalendar text on
-      any row a user or a sync wrote, so reading money out of it would be a
-      guess wearing the shape of a join.
+    * **A renewals total.** An event has no amount. A price could ride in
+      `description`, but that is free iCalendar text on any row a user or a
+      sync wrote, so reading money out of it would be a guess wearing the shape
+      of a join.
 
     * **The meta lines.** `09:30–09:45`, `S2 · E3` and `leaves Lumen+ at
       midnight` are not stored — the seeder writes `summary` and the timing and
@@ -115,19 +107,8 @@ defmodule Kati.Screens.Day do
       the settled paper under the 23:15 notice, are facts the drawing states
       and the schema does not carry.
 
-  An empty database was never the problem — a fallback covers that, and rule 2
-  would be satisfied. A database holding the user's own day is: all five would
-  come back blank or wrong on every real row, which is the case
-  `Kati.Screens.Library` answers with `nil` rather than a guess.
-
-  This paragraph used to end *"the whole screen waits for the columns instead
-  of shipping a half-real day"*, and that was one screen too far. The five
-  missing things are all **decoration on top of a row**; which rows the day has
-  is not one of them, and it is the only question the route was asking. So a
-  day the user opened shows the user's own day with those five absent, and the
-  drawing keeps every one of them on the branch it was drawn for. Waiting also
-  had a cost that was easy not to see: the date the drawing titles was whatever
-  the clock said, so tapping Thursday and tapping today drew the same page.
+  A day with nothing on it renders as a day with nothing on it — `Nothing
+  scheduled` — whichever day it is.
   """
   use Kati.Screens.Pushed, back: "Calendar"
   use Gettext, backend: Kati.Gettext
@@ -136,7 +117,7 @@ defmodule Kati.Screens.Day do
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
-  alias Kati.Components.MishkaThemeIcon
+  alias Kati.Design.Images
   alias Kati.Theme.Palette
 
   # The drawing's gap BETWEEN LANES — `display:flex;gap:7px` on the split row.
@@ -144,118 +125,50 @@ defmodule Kati.Screens.Day do
   # from the next; that one is vertical and lives in `cluster_block/1`.
   @lane_gap 7
 
-  # The minute the merged renewals row sits at. The drawing puts it at 18:00,
-  # between the 15:00 todo and the 20:00 group, so it has to be spliced into
-  # the cluster stream by time rather than appended after it.
-  @money_min 1080
+  # The chips' keys, in the drawing's order. A key is what `bucket/1` answers
+  # and what a chip's tag carries; `chip_label/1` turns it into a word.
+  @chips ["Screen", "Personal", "Money"]
 
-  # `nil` is the whole day, and it is the state the screen opens in: the
-  # drawing puts `Screen` in ink above a timeline that still holds a habit, a
-  # todo, two renewals and five meetings, so the lit chip there cannot mean
-  # "only Screen". It means the chip the row lights while nothing is narrowed
-  # — see `lit/2`.
+  # `nil` is the whole day, and it is the state the screen opens in — see
+  # `lit/2`. `open_groups` holds which collapsed groups are open, by the tag
+  # their card carries: a day can hold more than one group, and they open
+  # independently.
   @impl true
   def load(socket) do
-    {date, occurrences, drawn?} = Kati.Screens.Day.day(socket.assigns.params)
+    {date, occurrences} = Kati.Screens.Day.day(socket.assigns.params)
 
     Mob.Socket.assign(socket,
       date: date,
       filter: nil,
-      # Which collapsed groups are open, by the tag their card carries. A list
-      # rather than one `open?` flag: a day can hold more than one group — five
-      # meals at 12:30 and three episodes at 20:00 collapse independently — and
-      # a single flag would open both at once.
       open_groups: [],
-      occurrences: occurrences,
-      # Which of the two days is on screen, carried rather than re-derived. The
-      # chips' counts, the all-day band, the merged renewals row and the mono
-      # subtitle are all the DRAWING's numbers, and every one of them is a lie
-      # over a real day — see `day/1`.
-      drawn?: drawn?
+      occurrences: occurrences
     )
   end
 
   @doc """
-  Which day this is, and where its rows come from: `{date, occurrences, drawn?}`.
+  Which day this is, and its occurrences: `{date, occurrences}`.
 
-  ## The date is the route's, not the clock's
-
-  `%{date: date}` is what `Kati.Screens.Calendar`'s open gesture pushes — the
-  cell the user tapped — and this screen titles itself with it and draws that
-  day's own events. It used to assign `Kati.Time.today()` and never look at
-  `assigns.params`, so opening Thursday from a strip scrolled to Thursday gave
-  you today (#84), and the drawing's own title (`Thu 20 Aug`) was the one thing
-  on the screen that could never be wrong because it was never right.
-
-  ## No date still means the drawn day, and must
-
-  Screen 09 is reachable without one — `Kati.Screens.ViewSwitcher` pushes it
-  bare — and that is the state `test/design/screens/09.html` was captured in:
-  fourteen items, two clashes, a two-lane clash at 09:30, a three-way one
-  capped with `+1 MORE` at 13:00, three episodes collapsing at 20:00. The
-  empty-database sweep renders exactly this branch, so it is the one that has
-  to keep working when nothing is stored.
-
-  ## A real day is drawn as itself, gaps and all
-
-  `Kati.Calendars.Today.occurrences/1` answers the day's timed events in
-  `Kati.Calendar.Layout`'s own shape, ids included — the lane engine has always
-  needed them. What it cannot answer is the rest of the drawing, and the
-  screen's moduledoc lists why: the episode lines, the tick, the `£22.98`, the
-  meta lines and the two per-event colour overrides are joins and columns that
-  do not exist. So a handed date draws its cards and **drops the furniture that
-  would have to be invented** — the all-day band, the merged renewals row, the
-  chips' 6/6/2 and the `14 items · 2 clashes` headline. A day with nothing on
-  it renders as a day with nothing on it, which is the honest answer and the
-  one `Kati.Screens.Calendar` already gives for every date but today.
-
-  ## Today with nothing stored is the drawn day, on BOTH screens
-
-  "every date but today" is the whole of the exception, and it has to be made
-  here too. `Kati.Screens.Calendar.day_rows/1` falls TODAY back to
-  `drawn_rows/0` on an empty store — FIDELITY's *missing data is not a reason
-  for a blank screen* — and the only route into this screen is a second tap on
-  that screen's selected day cell. Nothing seeds the store, so a first launch
-  really is an empty `events` table:
-  without this clause screen 02 draws five cards for today and the cell under
-  them opens a page reading `Nothing scheduled`. Two screens, one date, two
-  answers, one tap apart.
-
-  It is deliberately the same test 02 makes and no wider. Any other handed date
-  with nothing on it still renders empty, because 02 draws that date empty as
-  well and the two agree there already.
+  `%{date: date}` is what the calendar's views push — the cell the user tapped
+  — and this screen titles itself with it and draws that day's own events. No
+  date is today, read like any other day. `Kati.Calendars.Today.occurrences/1`
+  answers the day's timed events in `Kati.Calendar.Layout`'s own shape, ids
+  included, and a day with none answers `[]`.
   """
-  @spec day(map()) :: {Date.t(), [map()], boolean()}
+  @spec day(map()) :: {Date.t(), [map()]}
   def day(params) do
-    case Map.get(params, :date) do
-      %Date{} = date -> handed(date)
-      # No date named is TODAY, read like any other. It was
-      # `Kati.Calendar.SampleDay.occurrences/0` — so the door that pushes this
-      # screen with no params (the view switcher's *Day*) could never show a
-      # real day, whatever was in the calendar.
-      _no_date -> handed(Kati.Time.today())
-    end
-  end
+    date =
+      case Map.get(params, :date) do
+        %Date{} = date -> date
+        _no_date -> Kati.Time.today()
+      end
 
-  defp handed(date) do
-    case Kati.Calendars.Today.occurrences(date) do
-      [] -> empty(date)
-      occurrences -> {date, occurrences, false}
-    end
+    {date, Kati.Calendars.Today.occurrences(date)}
   end
-
-  # A day with nothing on it is a day with nothing on it, whichever day it is.
-  # This used to answer `Kati.Calendar.SampleDay.occurrences/0` when the date
-  # was today — so a reader whose calendar was empty was shown the board's
-  # fourteen-item day, and only a reader browsing some OTHER empty day got the
-  # truth. Today is not a special case; it is just the date nobody named.
-  defp empty(date), do: {date, [], false}
 
   @doc false
   def content(assigns) do
     date = assigns.date
     filter = assigns.filter
-    drawn? = assigns.drawn?
 
     # Clustered from the FILTERED list, not filtered after clustering: a clash
     # between a meeting and a renewal is not a clash once the renewals are
@@ -266,87 +179,43 @@ defmodule Kati.Screens.Day do
     <Scroll>
       <Column fill_width={true} padding_top={64} padding_bottom={40}>
         <Column fill_width={true} padding_left={21} padding_right={21}>
-          {Kati.Screens.Day.header(date, clusters, filter, drawn?)}
+          {Kati.Screens.Day.header(date, clusters)}
           {Kati.Screens.Day.chips(filter, Kati.Screens.Day.counts(assigns))}
-          {Kati.Screens.Day.all_day(filter, drawn?)}
         </Column>
-        {Kati.Screens.Day.timeline(clusters, filter, drawn?)}
+        {Kati.Screens.Day.timeline(clusters)}
       </Column>
     </Scroll>
     """
   end
 
   @doc """
-  The three chips and their counts.
-
-  The drawn day's are `SampleDay.chips/0` — `6 + 6 + 2`, which count the
-  all-day release, both merged renewals and the members inside the collapsed
-  group, and so are not recoverable from the occurrence list alone. A real
-  day's are counted off its own rows through `bucket/1`, the same function that
-  decides which chip narrows to what, so a chip can never say `6` and then show
-  four.
+  The three chips and their counts, counted off the day's own rows through
+  `bucket/1` — the same function that decides which chip narrows to what, so a
+  chip can never say `6` and then show four.
   """
   @spec counts(map()) :: [{String.t(), non_neg_integer()}]
-  def counts(%{drawn?: true}), do: Kati.Calendar.SampleDay.chips()
-
   def counts(%{occurrences: occurrences}) do
     tally = Enum.frequencies_by(occurrences, &Kati.Screens.Day.bucket/1)
 
-    for {label, _drawn} <- Kati.Calendar.SampleDay.chips(), do: {label, Map.get(tally, label, 0)}
+    for label <- @chips, do: {label, Map.get(tally, label, 0)}
   end
 
-  @doc """
-  The lane rows and the merged renewals row, in clock order.
-
-  The renewals row is not a cluster — it is one line standing for two money
-  events the day view refuses to draw twice — but it still belongs at its own
-  minute. Appending it after the clusters put 18:00 below 23:15.
-
-  It is also the drawing's row and only the drawing's. `money_row/0` prints
-  `£22.98`, and no table in the app holds a price — the moduledoc has said so
-  since before this screen read anything — so a real day gets its money events
-  as ordinary cards through `bucket/1`'s `Money` and no merged total at all.
-  """
-  def timeline(clusters, filter, drawn?) do
-    money = @money_min
-
-    rows = Enum.map(clusters, fn c -> {c.start_min, Kati.Screens.Day.cluster_block(c)} end)
-
-    rows =
-      if drawn? and money?(filter),
-        do: [{money, Kati.Screens.Day.money_row()} | rows],
-        else: rows
-
-    rows |> Enum.sort_by(&elem(&1, 0)) |> Enum.map(&elem(&1, 1))
+  @doc "The lane rows, in clock order."
+  def timeline(clusters) do
+    clusters
+    |> Enum.sort_by(& &1.start_min)
+    |> Enum.map(&Kati.Screens.Day.cluster_block/1)
   end
 
+  # `Kati.Locale.date/2`'s `:long` — `Thu 20 Aug`, and Shamsi under `:fa`.
+  # The heading's tracking asks the reader (a negative letter-spacing breaks
+  # Arabic-script joins) and the sub-line's face asks the string, because
+  # `kati_mono.ttf` carries no Persian glyph.
   @doc false
-  def header(date, clusters, filter, drawn?) do
-    # `Kati.Locale.date/2`'s `:long` IS this string — `%a %-d %b`, the drawing's
-    # own `Thu 20 Aug` — so nothing moves in Latin. What it adds is the other
-    # calendar: under `:fa` the heading is Shamsi, ۲۹ مرداد, which is the same
-    # day and is not a formatting of `20 Aug`. Assembled by hand out of
-    # `Kati.Time.day_name/1` and `Kati.Time.month_name/1` it could only ever be
-    # the Gregorian date, in Latin digits, under an English weekday — the exact
-    # thing `Kati.Locale.date/2`'s own doc says seventeen mirrors reached past.
+  def header(date, clusters) do
     heading = Kati.Locale.date(date, :long)
+    subtitle = summary(clusters)
 
-    subtitle = subtitle(clusters, filter, drawn?)
-
-    # Three things about the two Texts below, all of them the same fold:
-    #
-    #   * `Kati.Locale.tracking/1` on the 28pt heading. The design tightens its
-    #     display type by a fraction of an em; Arabic script has no such
-    #     tradition and `letter_spacing` breaks the joins between letters, so
-    #     Persian takes 0.
-    #   * `max_lines={1}` on it as well, which it never had. `۲۹ شهریور` is a
-    #     longer word than `Thu 20 Aug` is a phrase, and a 28pt heading that
-    #     wraps pushes the whole timeline down a line.
-    #   * `Kati.Locale.mono_face/1` on the sub-line. `kati_mono.ttf` carries no
-    #     Persian glyph at all, so `چیزی برنامه‌ریزی نشده` asked for in DM Mono
-    #     comes back in Android's own substitute face. Asking the STRING rather
-    #     than the reader keeps the drawn day's Latin `14 items · 2 clashes` in
-    #     DM Mono exactly as it is.
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -446,7 +315,7 @@ defmodule Kati.Screens.Day do
       label: Kati.Screens.Day.chip_label(label),
       checked: on?,
       # The tag carries the label, so one handler serves every chip and a
-      # fourth kind is a change to `SampleDay.chips/0` alone. The KEY, always:
+      # fourth kind is a change to `@chips` alone. The KEY, always:
       # an atom built out of `نمایش` is a tag no clause in `handle_tap/2` can
       # read.
       on_toggle: String.to_atom("filter_" <> label),
@@ -521,135 +390,11 @@ defmodule Kati.Screens.Day do
     """
   end
 
-  # The all-day band sits above the gutter and is never laned — an all-day
-  # item has no start minute to collide on. It answers to the chips all the
-  # same: a cinema release is a Screen item, so narrowing to Personal or Money
-  # has to take the band with it or the filter is only half honest.
-  @doc false
-  def all_day(filter, drawn?) do
-    # An empty band draws nothing at all, not an empty Column — the 14dp that
-    # separates it from the first card belongs to the band, and a filter that
-    # removes the band has to take that gap with it.
-    case band(filter, drawn?) do
-      [] ->
-        ~MOB"<Spacer size={0} />"
-
-      rows ->
-        ~MOB"""
-        <Column fill_width={true}>
-          {Enum.map(rows, &Kati.Screens.Day.all_day_row/1)}
-          <Spacer size={14} />
-        </Column>
-        """
-    end
-  end
-
-  @doc """
-  The band's rows under a filter.
-
-  Everything the band holds is a release — the design's `release ·
-  wishlisted` — and a release is a Screen item, so the whole band belongs to
-  one chip.
-
-  A real day has no band, and the reason is a hole rather than a choice.
-  `Kati.Calendars.Today.occurrences/1` rejects all-day events by design — they
-  have no start minute and the lane engine has no concept of them — and nothing
-  else exposes them for a date. The row also wants a poster: `all_day_row/1`
-  draws a 26x37 thumb from a `seed`, and an `air_date` event still has no
-  `{source, source_id}` pair to reach `Kati.Media.CachedTitle` with, which is
-  the same missing join the moduledoc opens with. So the band waits for the
-  reader and the join together, and until then it belongs to the day that has
-  both: the drawn one.
-  """
-  @spec band(String.t() | nil, boolean()) :: [map()]
-  def band(_filter, false), do: []
-  def band(nil, true), do: Kati.Calendar.SampleDay.all_day()
-  def band("Screen", true), do: Kati.Calendar.SampleDay.all_day()
-  def band(_filter, true), do: []
-
-  # The gutter says ALL over DAY on two lines, which is one phrase broken to
-  # fit 44pt rather than two labels. It stays two lines in Persian — تمام روز
-  # is two words and breaks at the same seam — so the geometry is unchanged and
-  # each line is its own msgid. A CONTEXT on both: `ALL` and `DAY` are three
-  # letters each, and `mix gettext.merge` fuzzy-matches a string that short
-  # onto anything.
-  #
-  # `Kati.UI.eyebrow_label/1` would be the wrong tool here even though the
-  # drawing is upper case: these are not an eyebrow's sentence-cased copy, they
-  # are two capitals the design sets as capitals, and the Persian is a word
-  # rather than an upcasing of one.
-  @doc false
-  def all_day_row(item) do
-    # `|| ""` because `Kati.Locale.mono_face/1` is guarded on a binary and the
-    # node it feeds is not: a band row with no meta drew an empty line before
-    # and has to go on drawing one rather than raising on the way to it.
-    meta = item.meta || ""
-
-    ~MOB"""
-    <Row fill_width={true} align="top">
-      <Column min_width={44} padding_top={12}>
-        <Text
-          text={pgettext("all-day gutter, first line of ALL DAY", "ALL")}
-          font_family={Kati.Locale.mono_face()}
-          text_size={10}
-          letter_spacing={Kati.Locale.tracking(0.08)}
-          text_color={Palette.tertiary()}
-        />
-        <Text
-          text={pgettext("all-day gutter, second line of ALL DAY", "DAY")}
-          font_family={Kati.Locale.mono_face()}
-          text_size={10}
-          letter_spacing={Kati.Locale.tracking(0.08)}
-          text_color={Palette.tertiary()}
-        />
-      </Column>
-      <Spacer size={12} />
-      <Box weight={1.0}>
-        <Row
-          fill_width={true}
-          background={Palette.cream()}
-          corner_radius={16}
-          padding_left={13}
-          padding_right={13}
-          padding_top={11}
-          padding_bottom={11}
-          align="center"
-        >
-          {Kati.Screens.Day.thumb(item)}
-          <Spacer size={11} />
-          <Column weight={1.0}>
-            <Text
-              text={item.title}
-              text_size={13}
-              font_weight="bold"
-              text_color={:on_surface}
-              max_lines={1}
-            />
-            <Spacer size={3} />
-            <Text
-              text={meta}
-              font_family={Kati.Locale.mono_face(meta)}
-              text_size={10.5}
-              text_color={Palette.cream_meta()}
-              max_lines={1}
-            />
-          </Column>
-        </Row>
-      </Box>
-    </Row>
-    """
-  end
-
-  # The band's thumbnail and an open group's member poster are the same 26x37
-  # at radius 5 and differ only in what shows when the artwork is missing: the
-  # band's cream `#EADFC6` against the group row's `#E4E0D9`, which are the two
-  # colours the drawings give the two empty rectangles.
-  @doc false
-  def thumb(item), do: Kati.Screens.Day.thumb(item, Palette.poster_on_cream())
-
+  # An open group's member poster: 26x37 at radius 5, the placeholder showing
+  # where the artwork is missing.
   @doc false
   def thumb(item, placeholder) do
-    case Kati.Library.Sample.poster(item[:seed]) do
+    case Images.poster(item[:seed]) do
       nil ->
         ~MOB"<Box width={26} height={37} corner_radius={5} background={placeholder} />"
 
@@ -658,109 +403,6 @@ defmodule Kati.Screens.Day do
         <Image src={src} width={26} height={37} corner_radius={5} content_mode="fill" />
         """
     end
-  end
-
-  # Two renewals on one row rather than two rows — the design merges money
-  # events on a day, because "two subscriptions renewed" is one fact. Whether
-  # it is drawn at all is `timeline/2`'s question, not this one's.
-  @doc false
-  def money_row do
-    m = Kati.Calendar.SampleDay.money()
-
-    # The clock is `label_for/1` over `@money_min`, not `m.at`. The two were the
-    # same fact written twice — this module's own `1080` and the data module's
-    # string `"18:00"` — and only one of them can be put into the reader's
-    # digits from here. Every other clock on this page goes through
-    # `label_for/1`, so reading `m.at` left one row saying `18:00` in Latin
-    # under a gutter reading ۰۸:۰۰, ۰۹:۳۰, ۱۳:۰۰. English is unchanged: 1080
-    # minutes is 18:00.
-    at = label_for(@money_min)
-
-    # `2 renewals` counted rather than quoted, for the same reason. `m.count` is
-    # the number the row stands for and `kind_label/2` is the phrase every other
-    # collapsed row on this screen is titled with, so the merged row and the
-    # grouped card say "renewal" the same way in both scripts. English is again
-    # unchanged: `m.count` is 2 and the phrase is `2 renewals`.
-    label = kind_label(:money, m.count)
-
-    # The total is the one of the three this screen cannot reach: no table in
-    # the app holds a price and `Kati.Calendar.SampleDay` owns the figure. So
-    # the face is asked of the STRING — Latin `£22.98` stays in DM Mono, and if
-    # that module ever answers through `Kati.Services.Service.format/2` (board
-    # 97's `۲۲٫۹۸ £`) the same call returns Vazirmatn with nothing to change
-    # here.
-    total = m.total
-
-    ~MOB"""
-    <Column fill_width={true} padding_left={21} padding_right={21}>
-      <Row fill_width={true} align="top">
-        <Column min_width={44} padding_top={11}>
-          <Text
-            text={at}
-            font_family={Kati.Locale.mono_face(at)}
-            text_size={12}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
-        </Column>
-        <Spacer size={12} />
-        <Box weight={1.0}>
-          <Row
-            fill_width={true}
-            background={Palette.card_settled()}
-            corner_radius={16}
-            padding_left={13}
-            padding_right={13}
-            padding_top={10}
-            padding_bottom={10}
-            align="center"
-          >
-            {Kati.Screens.Day.money_badge()}
-            <Spacer size={11} />
-            <Text
-              text={label}
-              text_size={13}
-              font_weight="semibold"
-              text_color={:on_surface}
-              weight={1.0}
-              max_lines={1}
-            />
-            <Spacer size={11} />
-            <Text
-              text={total}
-              font_family={Kati.Locale.mono_face(total)}
-              text_size={11.5}
-              text_color={Palette.ink_soft()}
-              max_lines={1}
-            />
-            <Spacer size={11} />
-            {Kati.UI.symbol("expand_more", size: 17, color: Palette.tertiary())}
-          </Row>
-        </Box>
-      </Row>
-      <Spacer size={9} />
-    </Column>
-    """
-  end
-
-  @doc """
-  The merged renewals row's leading badge — Mishka's Theme Icon.
-
-  "A themed container around exactly one icon" is the whole of what this Box
-  was, so the component is a rename rather than a rewrite: with no `id` to tag
-  and the glyph supplied as a child, `theme_icon/2` emits a single Box whose
-  props map is the hand-rolled one key for key — `width: 24, height: 24,
-  align: :center, corner_radius: 7, background: #E4E0D9` — holding the same
-  `Kati.UI.symbol/2` Text. `variant: :filled` with a raw `color` is what makes
-  the fill the design's own value rather than a theme token, and the glyph
-  keeps the colour it was given because a caller-supplied icon always does.
-  """
-  @spec money_badge() :: map()
-  def money_badge do
-    MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: Palette.placeholder(), size: 24, radius: 7],
-      [Kati.UI.symbol("payments", size: 14, color: Palette.ink_soft())]
-    )
   end
 
   @doc """
@@ -795,73 +437,32 @@ defmodule Kati.Screens.Day do
     end
   end
 
-  @doc "Whether the merged renewals row survives a filter."
-  @spec money?(String.t() | nil) :: boolean()
-  def money?(nil), do: true
-  def money?("Money"), do: true
-  def money?(_filter), do: false
-
   @doc """
-  The mono line under the date.
+  The mono line under the date: how many items the timeline on screen holds
+  and how many of its rows clash, or `Nothing scheduled`.
 
-  The DRAWN day, unfiltered, is the design's own headline: `14 items · 2
-  clashes`, a number that counts the all-day release, both merged renewals and
-  the members inside the collapsed group, and so is not recoverable from the
-  cluster maths alone. Narrowed to one kind it is counted from what is
-  actually on screen, because a stale `14` over four rows is a worse lie than
-  an approximate count.
-
-  A real day is counted every time, including unfiltered — the drawing's
-  fourteen is a fact about the drawing, and printing it over the user's own
-  Tuesday would be the loudest possible version of the same lie. `Nothing
-  scheduled` is then a real answer rather than an unreachable branch.
+  Counted off the clusters actually drawn, so a chip that narrows the day
+  narrows the count with it. A collapsed card counts every member it stands
+  for — "3 episodes" is three things the day holds, not one.
   """
-  @spec subtitle([map()], String.t() | nil, boolean()) :: String.t()
-  def subtitle(_clusters, nil, true), do: Kati.Calendar.SampleDay.summary()
-
-  def subtitle(clusters, filter, drawn?) do
-    renewals = if drawn? and money?(filter), do: Kati.Calendar.SampleDay.money().count, else: 0
-    extra = length(band(filter, drawn?)) + renewals
-
+  @spec summary([map()]) :: String.t()
+  def summary(clusters) do
     items =
-      Enum.reduce(clusters, extra, fn c, acc ->
+      Enum.reduce(clusters, 0, fn c, acc ->
         acc + Enum.sum(Enum.map(c.placements, &member_count(&1.event))) + hidden_count(c.overflow)
       end)
 
     clashes = Enum.count(clusters, &(&1.n_cols > 1))
 
     case {items, clashes} do
-      {0, _} ->
-        gettext("Nothing scheduled")
-
-      {_, 0} ->
-        items_tally(items)
-
-      _ ->
-        joined(items_tally(items), clashes_tally(clashes))
+      {0, _} -> gettext("Nothing scheduled")
+      {_, 0} -> items_tally(items)
+      _ -> joined(items_tally(items), clashes_tally(clashes))
     end
   end
 
-  # A collapsed card is one card and several items — "3 episodes" is three
-  # things the day contains, not one.
   defp member_count(%{collapsed: members}), do: length(members)
   defp member_count(_event), do: 1
-
-  @doc false
-  def summary([]), do: gettext("Nothing scheduled")
-
-  def summary(clusters) do
-    items =
-      Enum.reduce(clusters, 0, fn c, acc ->
-        acc + length(c.placements) + hidden_count(c.overflow)
-      end)
-
-    clashes = Enum.count(clusters, &(&1.n_cols > 1))
-
-    if clashes > 0,
-      do: joined(items_tally(items), clashes_tally(clashes)),
-      else: items_tally(items)
-  end
 
   defp hidden_count(nil), do: 0
   defp hidden_count(tile), do: length(tile.event.overflow)
@@ -1234,7 +835,7 @@ defmodule Kati.Screens.Day do
   # than joining it — see `card/2`.
   @doc false
   def leading_poster(%{seed: seed}) when is_binary(seed) do
-    case Kati.Library.Sample.poster(seed) do
+    case Images.poster(seed) do
       nil ->
         ~MOB"""
         <Row align="center">
@@ -1340,7 +941,7 @@ defmodule Kati.Screens.Day do
   Screen 02's `<sc-if value="{{ groupOpen }}">` block, number for number:
   `margin-top:13px` above an 8%-ink hairline, `padding-top:4px` below it, then
   one row per member. Closed it draws a zero `<Spacer>` rather than an empty
-  `<Column>`, the same way `all_day/1` does — the 13 above the rule belongs to
+  `<Column>` — the 13 above the rule belongs to
   the block, and a closed group has to take it with it or the collapsed card
   is 13pt taller than the drawing.
   """
@@ -1535,7 +1136,7 @@ defmodule Kati.Screens.Day do
   # padded tile would be 38 wide and the fan would drift.
   @doc false
   def stack_tile(seed, offset) do
-    src = Kati.Library.Sample.poster(seed)
+    src = Images.poster(seed)
 
     ~MOB"""
     <Row padding_left={offset}>
@@ -1631,10 +1232,8 @@ defmodule Kati.Screens.Day do
 
   defp collapsed_title(_), do: gettext("Untitled")
 
-  # The member titles are the data module's — `Kati.Calendar.SampleDay` names
-  # them and `Kati.Media.CachedTitle` would, once the join the moduledoc opens
-  # with exists — so only the fallback is copy, and it is the same `Untitled`
-  # `member_row/1` falls back to a line further down the same card.
+  # The member titles are the events' own summaries, so only the fallback is
+  # copy, and it is the same `Untitled` `member_row/1` falls back to.
   #
   # The `·` is punctuation between two names rather than copy, exactly as it is
   # in `joined/2`: it separates two titles in both scripts.
@@ -1759,7 +1358,7 @@ defmodule Kati.Screens.Day do
   def card_tap(_event), do: nil
 
   # One clause for all three chips: the tag carries the label, so a fourth kind
-  # is a change to `SampleDay.chips/0` and to `bucket/1`, not to this.
+  # is a change to `@chips` and to `bucket/1`, not to this.
   #
   # Tapping the kind the timeline is already narrowed to widens it back to the
   # whole day. Without that the screen has three states and no way back to the
@@ -1767,23 +1366,6 @@ defmodule Kati.Screens.Day do
   @impl true
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      # The card opens the event it is about. `Kati.Calendars.Today.occurrences/1`
-      # has carried `:id` since it was written — `Kati.Calendar.Layout` cannot
-      # lane rows it cannot tell apart — so the handle was already on every row
-      # and only the wire was missing. Board 31 draws *Design review*,
-      # *Thu 20 Aug*, *09:30 – 10:30* and *Overlaps Standup by 15 min*, which is
-      # this day's 09:30 pair: 31 is drawn as the page one of these cards opens.
-      #
-      # The id is passed on EVERY branch, including the drawn day, whose
-      # occurrences `Kati.Calendar.SampleDay` numbers 1..11 for the layout
-      # engine's benefit. Those are not `Kati.Calendars.Event` keys and screen
-      # 31 will not find them — which is the branch its own `stored/1` is built
-      # around: *"an id that names nothing stored falls back to the drawing"*.
-      # Pushing bare instead would take the same branch by a different door and
-      # would make every card on the drawn day a push into a params reader
-      # carrying nothing, which is the shape `Kati.ScreenParamsSweepTest`'s
-      # `@bare_pushes` exists to hold and this is not an instance of: the tap
-      # genuinely knows which row it is.
       "event_" <> id ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
 

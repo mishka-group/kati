@@ -75,7 +75,7 @@ defmodule Kati.Screens.Calendar do
   `tag/1`: without the id, screen 31 could only re-query the day and take the
   first event back, which meant tapping the third row and editing the first.
   The drawn day's rows have no stored event to name and keep the bare tag,
-  which is what keeps screen 31's sample reachable. Nothing this screen renders
+  and screen 31 answers that with its not-here page. Nothing this screen renders
   takes that branch any more — every row it draws comes from a stored event and
   carries that event's id — which is what struck `row_event` off the tap
   sweep's `@known_collisions`.
@@ -162,6 +162,71 @@ defmodule Kati.Screens.Calendar do
     |> Enum.sort_by(&Kati.Screens.Calendar.when_key/1)
     |> Enum.map(&Kati.Screens.Calendar.shaped/1)
   end
+
+  @doc """
+  `day_rows/1` over a run of days: every day from `from` to `to` that has
+  anything on it, keyed by date, each list shaped and ordered as `day_rows/1`
+  orders one day.
+
+  The month, week and agenda views read the reader's calendar through this, so
+  a date drawn on any of them holds exactly what screen 02 draws for it. One
+  query for the events and one for the airings, whatever the length of the run.
+  An event row also carries `:minutes`, its length, which the week's blocks are
+  sized by; an airing's is `nil`.
+  """
+  @spec rows_between(Date.t(), Date.t()) :: %{Date.t() => [map()]}
+  def rows_between(%Date{} = from, %Date{} = to) do
+    zone = Kati.Time.device_zone()
+
+    stored =
+      from
+      |> Kati.Calendars.Today.events_between(to, zone)
+      |> Enum.group_by(
+        fn event -> event.dtstart_utc |> Kati.Time.in_zone(zone) |> DateTime.to_date() end,
+        fn event -> Map.put(Kati.Calendars.Today.row(event, zone), :minutes, minutes(event)) end
+      )
+
+    stored
+    |> Map.merge(Kati.Calendars.Airings.by_day(from, to), fn _day, mine, aired ->
+      mine ++ aired
+    end)
+    |> Map.new(fn {day, rows} ->
+      {day,
+       rows
+       |> Enum.sort_by(&Kati.Screens.Calendar.when_key/1)
+       |> Enum.map(&Kati.Screens.Calendar.shaped/1)}
+    end)
+  end
+
+  defp minutes(%{dtend_utc: %DateTime{} = ends, dtstart_utc: %DateTime{} = starts}),
+    do: max(DateTime.diff(ends, starts, :minute), 0)
+
+  defp minutes(_event), do: nil
+
+  @doc """
+  Which of the three sections a shaped row belongs to: `:screen`, `:money` or
+  `:personal`.
+
+  The chips' own split — `visible/2` files meals under Personal — so a dot on
+  the month and a block on the week are coloured by the same rule a chip here
+  filters by.
+  """
+  @spec section(map()) :: :screen | :money | :personal
+  def section(%{kind: "screen"}), do: :screen
+  def section(%{kind: "money"}), do: :money
+  def section(_row), do: :personal
+
+  @doc "The colour a section is marked in: accent, bronze or ink."
+  @spec section_color(:screen | :money | :personal) :: non_neg_integer()
+  def section_color(:screen), do: Palette.accent()
+  def section_color(:money), do: Palette.bronze()
+  def section_color(:personal), do: Palette.ink()
+
+  @doc "A section's name, in the words the chips above the timeline use."
+  @spec section_label(:screen | :money | :personal) :: String.t()
+  def section_label(:screen), do: gettext("Screen")
+  def section_label(:money), do: gettext("Money")
+  def section_label(:personal), do: gettext("Personal")
 
   @doc false
   def when_key(%{at: %DateTime{} = at}), do: {1, DateTime.to_unix(at, :microsecond)}
@@ -1497,7 +1562,7 @@ defmodule Kati.Screens.Calendar do
 
   `drawn_rows/0` is the day the drawing shows, and its rows are not stored
   anywhere — there is no event to name. Those keep the bare `row_<kind>` tag,
-  and screen 31 answers a push with no id with its own sample, which is what
+  and screen 31 answers a push with no id with its not-here page, which is what
   the empty-database sweep renders. Splitting on the first `_` after the kind is
   unambiguous in both directions: no kind contains one and a UUID contains none.
 
@@ -1651,7 +1716,7 @@ defmodule Kati.Screens.Calendar do
       # destination's own query happens to return first. A row with no id — the
       # drawn day — pushes with no params at all rather than with `%{id: nil}`:
       # a destination that pattern-matches on the key would then take a nil for
-      # an answer, and the sample fallback is the branch that has to survive.
+      # an answer, and the no-id branch is the one that has to survive.
       #
       # The routing itself is `open_timeline_row/3` and is public, because this
       # is not the only screen that draws these rows — see its own doc. The day
@@ -1770,7 +1835,7 @@ defmodule Kati.Screens.Calendar do
   The split between the two push shapes is `@day_screens`': 52 and 126 title
   themselves with a date and read no id, so they take the day; 08 and 31 are
   about the row and take its id. A row with no id — the drawn day — pushes with
-  no params at all, which is what keeps each destination's sample reachable.
+  no params at all, and each destination answers that with its own empty page.
   """
   @spec open_timeline_row(Mob.Socket.t(), atom(), Date.t()) :: Mob.Socket.t()
   def open_timeline_row(socket, tag, date) do

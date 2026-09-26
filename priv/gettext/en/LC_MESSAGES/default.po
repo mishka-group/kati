@@ -117,7 +117,7 @@ msgid "Add to library"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:203
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Add your first title"
 msgstr ""
@@ -129,7 +129,7 @@ msgstr ""
 
 #: lib/kati/library/sample.ex:192
 #: lib/kati/screens/anime_filter.ex:274
-#: lib/kati/screens/calendar.ex:654
+#: lib/kati/screens/calendar.ex:719
 #: lib/kati/screens/library.ex:1211
 #: lib/kati/screens/meal_library.ex:278
 #: lib/kati/screens/meals_day.ex:564
@@ -169,7 +169,6 @@ msgstr ""
 msgid "Apple, almond butter"
 msgstr ""
 
-#: lib/kati/calendar/sample_day.ex:183
 #: lib/kati/library/sample.ex:34
 #: lib/kati/library/sample.ex:114
 #: lib/kati/screens/onboarding.ex:217
@@ -199,7 +198,7 @@ msgid "Back to language"
 msgstr ""
 
 #: lib/kati/screens/loudness_prompt.ex:49
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Back to loudness"
 msgstr ""
@@ -252,7 +251,7 @@ msgstr ""
 msgid "Brunch"
 msgstr ""
 
-#: lib/kati/calendars/today.ex:249
+#: lib/kati/calendars/today.ex:257
 #: lib/kati/language/page.ex:145
 #: lib/kati/notifications/inbox.ex:112
 #: lib/kati/screens/pushed.ex:186
@@ -452,7 +451,7 @@ msgid "Films, shows, books, habits — each one is a shelf, and all of them feed
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:209
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Finish setup"
 msgstr ""
@@ -678,7 +677,6 @@ msgstr ""
 msgid "Make it and add"
 msgstr ""
 
-#: lib/kati/calendar/sample_day.ex:165
 #: lib/kati/library/sample.ex:35
 #: lib/kati/library/sample.ex:275
 #: lib/kati/screens/anime_filter.ex:282
@@ -688,7 +686,7 @@ msgstr ""
 msgid "Marram"
 msgstr ""
 
-#: lib/kati/calendars/today.ex:246
+#: lib/kati/calendars/today.ex:254
 #: lib/kati/notifications/inbox.ex:115
 #: lib/kati/screens/home.ex:522
 #: lib/kati/screens/home.ex:625
@@ -721,10 +719,11 @@ msgstr ""
 msgid "Miso salmon, greens, rice"
 msgstr ""
 
-#: lib/kati/calendars/today.ex:248
+#: lib/kati/calendars/today.ex:256
 #: lib/kati/notifications/inbox.ex:117
-#: lib/kati/screens/calendar.ex:657
-#: lib/kati/screens/day.ex:495
+#: lib/kati/screens/calendar.ex:228
+#: lib/kati/screens/calendar.ex:722
+#: lib/kati/screens/day.ex:364
 #: lib/kati/screens/money_day.ex:363
 #: lib/kati/screens/my_services.ex:474
 #: lib/kati/screens/my_services_empty.ex:134
@@ -894,7 +893,7 @@ msgid "Pick a list"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:206
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Pick something you are watching now — the calendar fills itself from there."
 msgstr ""
@@ -950,7 +949,6 @@ msgstr ""
 msgid "Repeat rule"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:140
 #: lib/kati/meals/sample_plan.ex:185
 #: lib/kati/screens/meal_plan.ex:213
 #, elixir-autogen, elixir-format
@@ -985,8 +983,9 @@ msgstr ""
 #: lib/kati/screens/anime_filter.ex:331
 #: lib/kati/screens/anime_filter.ex:706
 #: lib/kati/screens/books.ex:539
-#: lib/kati/screens/calendar.ex:655
-#: lib/kati/screens/day.ex:493
+#: lib/kati/screens/calendar.ex:227
+#: lib/kati/screens/calendar.ex:720
+#: lib/kati/screens/day.ex:362
 #: lib/kati/screens/library.ex:1013
 #: lib/kati/screens/meals_day.ex:566
 #: lib/kati/screens/money_day.ex:364
@@ -1041,7 +1040,7 @@ msgid "Shop"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:210
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Skip — I’ll add things later"
 msgstr ""
@@ -1117,14 +1116,13 @@ msgid "That list is generated from THIRD_PARTY_NOTICES.md at build time, never t
 msgstr ""
 
 #: lib/kati/activity/sample.ex:89
-#: lib/kati/calendar/sample_agenda.ex:122
 #: lib/kati/calendar/sample_meal_day.ex:210
 #: lib/kati/library/sample.ex:31
 #: lib/kati/library/sample.ex:83
 #: lib/kati/library/sample.ex:208
 #: lib/kati/library/sample.ex:277
 #: lib/kati/library/sample.ex:331
-#: lib/kati/screens/calendar.ex:246
+#: lib/kati/screens/calendar.ex:311
 #: lib/kati/screens/episode_ratings.ex:305
 #: lib/kati/screens/home.ex:574
 #: lib/kati/screens/home.ex:1392
@@ -1180,10 +1178,10 @@ msgstr ""
 msgid "Title"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:99
 #: lib/kati/meals/sample_plan.ex:113
 #: lib/kati/screens/activity.ex:128
-#: lib/kati/screens/calendar.ex:481
+#: lib/kati/screens/agenda.ex:100
+#: lib/kati/screens/calendar.ex:546
 #: lib/kati/screens/home_empty.ex:379
 #: lib/kati/screens/log_weight.ex:316
 #: lib/kati/screens/meals_today.ex:484
@@ -1515,7 +1513,7 @@ msgid "Recognised"
 msgstr ""
 
 #: lib/kati/screens/add_title.ex:145
-#: lib/kati/screens/onboarding_first_title.ex:154
+#: lib/kati/screens/onboarding_first_title.ex:155
 #: lib/kati/screens/pushed.ex:205
 #, elixir-autogen, elixir-format
 msgid "Search"
@@ -1725,7 +1723,6 @@ msgstr ""
 
 #: lib/kati/activity/sample.ex:95
 #: lib/kati/activity/sample.ex:196
-#: lib/kati/calendar/sample_day.ex:212
 #: lib/kati/import/sample.ex:271
 #: lib/kati/library/sample.ex:33
 #: lib/kati/library/sample.ex:343
@@ -1758,7 +1755,6 @@ msgstr ""
 msgid "Conflicts · keep which?"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:233
 #: lib/kati/import/job.ex:368
 #: lib/kati/import/sample.ex:281
 #: lib/kati/screens/plan_import.ex:414
@@ -2990,7 +2986,7 @@ msgstr ""
 #: lib/kati/screens/add_medication.ex:261
 #: lib/kati/screens/backup.ex:1056
 #: lib/kati/screens/data_sources.ex:147
-#: lib/kati/screens/event_detail.ex:466
+#: lib/kati/screens/event_detail.ex:444
 #: lib/kati/screens/meal_edit.ex:430
 #: lib/kati/screens/rate_album.ex:274
 #: lib/kati/screens/rate_episode.ex:877
@@ -3410,7 +3406,7 @@ msgstr ""
 
 #: lib/kati/books/sample.ex:160
 #: lib/kati/screens/book_detail.ex:388
-#: lib/kati/screens/gallery.ex:923
+#: lib/kati/screens/gallery.ex:920
 #: lib/kati/screens/log_progress.ex:636
 #: lib/kati/screens/log_progress_states.ex:297
 #, elixir-autogen, elixir-format, fuzzy
@@ -3598,7 +3594,7 @@ msgstr ""
 #: lib/kati/music/sample.ex:108
 #: lib/kati/screens/book_detail.ex:373
 #: lib/kati/screens/book_detail.ex:391
-#: lib/kati/screens/event_detail.ex:348
+#: lib/kati/screens/event_detail.ex:326
 #: lib/kati/screens/film.ex:466
 #: lib/kati/screens/goals_empty.ex:198
 #: lib/kati/screens/library.ex:512
@@ -3606,6 +3602,7 @@ msgstr ""
 #: lib/kati/screens/rating.ex:767
 #: lib/kati/screens/stats.ex:1553
 #: lib/kati/screens/up_next.ex:753
+#: lib/kati/screens/week.ex:420
 #: lib/kati/screens/what_fits.ex:564
 #: lib/kati/stats/sample.ex:45
 #, elixir-autogen, elixir-format
@@ -3629,16 +3626,15 @@ msgstr[1] ""
 
 #: lib/kati/books/reading_session.ex:142
 #: lib/kati/books/sample.ex:227
-#: lib/kati/calendar/sample_event.ex:202
-#: lib/kati/calendar/sample_event.ex:203
 #: lib/kati/screens/episode_ratings.ex:258
-#: lib/kati/screens/event_detail.ex:344
+#: lib/kati/screens/event_detail.ex:322
 #: lib/kati/screens/film.ex:459
 #: lib/kati/screens/library.ex:519
 #: lib/kati/screens/rating.ex:761
 #: lib/kati/screens/season.ex:1016
 #: lib/kati/screens/series_meta.ex:786
 #: lib/kati/screens/up_next.ex:747
+#: lib/kati/screens/week.ex:413
 #: lib/kati/screens/what_fits.ex:305
 #: lib/kati/screens/what_fits.ex:306
 #: lib/kati/screens/what_fits.ex:307
@@ -3962,10 +3958,9 @@ msgid_plural "%{n} tracks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/calendar/sample_event.ex:111
 #: lib/kati/music/sample.ex:40
 #: lib/kati/music/sample.ex:206
-#: lib/kati/screens/event_detail.ex:345
+#: lib/kati/screens/event_detail.ex:323
 #: lib/kati/screens/film.ex:462
 #: lib/kati/screens/goals_empty.ex:203
 #: lib/kati/screens/library.ex:509
@@ -3974,6 +3969,7 @@ msgstr[1] ""
 #: lib/kati/screens/series_meta.ex:783
 #: lib/kati/screens/stats.ex:1498
 #: lib/kati/screens/up_next.ex:750
+#: lib/kati/screens/week.ex:416
 #: lib/kati/screens/what_fits.ex:308
 #: lib/kati/screens/what_fits.ex:561
 #: lib/kati/stats/sample.ex:51
@@ -4228,7 +4224,8 @@ msgstr ""
 msgid "%{date}, %{time}"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:472
+#: lib/kati/screens/calendar.ex:537
+#: lib/kati/screens/month_grid.ex:100
 #: lib/kati/screens/series.ex:809
 #, elixir-autogen, elixir-format
 msgid "%{month} %{year}"
@@ -4341,16 +4338,16 @@ msgstr ""
 msgid "Show settings"
 msgstr ""
 
-#: lib/kati/calendars/airings.ex:181
-#: lib/kati/calendars/today.ex:180
+#: lib/kati/calendars/airings.ex:207
+#: lib/kati/calendars/today.ex:191
 #: lib/kati/screens/activity.ex:1293
 #: lib/kati/screens/activity.ex:1375
-#: lib/kati/screens/day.ex:1381
-#: lib/kati/screens/day.ex:1632
-#: lib/kati/screens/day.ex:1643
+#: lib/kati/screens/day.ex:982
+#: lib/kati/screens/day.ex:1233
+#: lib/kati/screens/day.ex:1242
 #: lib/kati/screens/drop_sheet.ex:493
 #: lib/kati/screens/drop_sheet.ex:494
-#: lib/kati/screens/event_detail.ex:214
+#: lib/kati/screens/event_detail.ex:192
 #: lib/kati/screens/film.ex:428
 #: lib/kati/screens/inbox.ex:839
 #: lib/kati/screens/library.ex:358
@@ -4442,7 +4439,6 @@ msgstr ""
 msgid "This series is not in your library yet."
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:218
 #: lib/kati/library/sample.ex:301
 #: lib/kati/library/sample.ex:336
 #: lib/kati/library/sample.ex:368
@@ -4919,143 +4915,149 @@ msgstr ""
 msgid "nothing logged yet"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:229
+#: lib/kati/screens/calendar.ex:294
 #, elixir-autogen, elixir-format
 msgid "%{a} · %{b} · %{at}"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:357
+#: lib/kati/screens/calendar.ex:422
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{date} · %{items}"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:96
 #: lib/kati/calendar/sample_meal_day.ex:169
-#: lib/kati/screens/calendar.ex:198
-#: lib/kati/screens/event_detail.ex:320
+#: lib/kati/screens/calendar.ex:263
+#: lib/kati/screens/event_detail.ex:298
 #: lib/kati/screens/quick_add.ex:242
 #: lib/kati/screens/quick_add/sample.ex:183
+#: lib/kati/screens/week.ex:86
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{from} – %{to}"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:217
-#: lib/kati/calendar/sample_day.ex:281
-#: lib/kati/screens/calendar.ex:359
-#: lib/kati/screens/day.ex:880
+#: lib/kati/screens/agenda.ex:87
+#: lib/kati/screens/calendar.ex:424
+#: lib/kati/screens/day.ex:481
+#: lib/kati/screens/month_grid.ex:131
 #: lib/kati/screens/shopping.ex:154
 #: lib/kati/screens/shopping.ex:351
+#: lib/kati/screens/week.ex:552
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} item"
 msgid_plural "%{n} items"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/calendar.ex:227
+#: lib/kati/screens/calendar.ex:292
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} title airing"
 msgid_plural "%{n} titles airing"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/calendar.ex:784
+#: lib/kati/screens/agenda.ex:140
+#: lib/kati/screens/calendar.ex:849
+#: lib/kati/screens/month_grid.ex:449
+#: lib/kati/screens/week.ex:368
 #, elixir-autogen, elixir-format
 msgid "Add anything with +"
 msgstr ""
 
-#: lib/kati/screens/agenda.ex:115
-#: lib/kati/screens/calendar.ex:426
+#: lib/kati/screens/agenda.ex:162
+#: lib/kati/screens/calendar.ex:491
 #, elixir-autogen, elixir-format
 msgid "Agenda"
 msgstr ""
 
-#: lib/kati/calendars/today.ex:245
+#: lib/kati/calendars/today.ex:253
 #, elixir-autogen, elixir-format
 msgid "Airs today"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:774
-#: lib/kati/screens/calendar.ex:990
+#: lib/kati/screens/calendar.ex:839
+#: lib/kati/screens/calendar.ex:1055
 #, elixir-autogen, elixir-format
 msgid "Allow Calendars in Settings, under This device."
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:902
+#: lib/kati/screens/calendar.ex:967
 #, elixir-autogen, elixir-format
 msgid "Android grants no second prompt"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:914
+#: lib/kati/screens/calendar.ex:979
 #, elixir-autogen, elixir-format
 msgid "Calendars already on this phone are not connected here — they arrive with the Android permission and land with no account row at all."
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:256
+#: lib/kati/screens/calendar.ex:321
 #, elixir-autogen, elixir-format
 msgid "Cartographers"
 msgstr ""
 
 #: lib/kati/calendar/sample_meal_day.ex:167
-#: lib/kati/screens/calendar.ex:196
+#: lib/kati/screens/calendar.ex:261
 #, elixir-autogen, elixir-format
 msgid "Dentist — Marlow Clinic"
 msgstr ""
 
-#: lib/kati/calendars/today.ex:247
+#: lib/kati/calendars/today.ex:255
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Habit"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:190
+#: lib/kati/screens/calendar.ex:255
 #, elixir-autogen, elixir-format
 msgid "Habit · %{n}-day streak"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:766
+#: lib/kati/screens/calendar.ex:831
 #, elixir-autogen, elixir-format
 msgid "Kati cannot see your calendar"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:964
+#: lib/kati/screens/calendar.ex:1029
 #, elixir-autogen, elixir-format
 msgid "Let Kati read my calendars"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:214
+#: lib/kati/screens/calendar.ex:279
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Lumen+ renews"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:429
+#: lib/kati/screens/calendar.ex:494
 #, elixir-autogen, elixir-format
 msgid "Meals on the calendar"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:430
+#: lib/kati/screens/calendar.ex:495
 #, elixir-autogen, elixir-format
 msgid "Money on the calendar"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:158
-#: lib/kati/calendar/sample_day.ex:118
 #: lib/kati/calendar/sample_meal_day.ex:145
-#: lib/kati/screens/calendar.ex:189
+#: lib/kati/screens/calendar.ex:254
 #: lib/kati/screens/habits.ex:631
 #, elixir-autogen, elixir-format
 msgid "Morning run"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:783
-#: lib/kati/screens/day.ex:835
-#: lib/kati/screens/day.ex:851
+#: lib/kati/screens/agenda.ex:139
+#: lib/kati/screens/calendar.ex:848
+#: lib/kati/screens/day.ex:458
+#: lib/kati/screens/month_grid.ex:125
+#: lib/kati/screens/month_grid.ex:448
+#: lib/kati/screens/week.ex:368
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Nothing scheduled"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:656
+#: lib/kati/screens/calendar.ex:229
+#: lib/kati/screens/calendar.ex:721
 #: lib/kati/screens/calendars.ex:573
 #: lib/kati/screens/calendars.ex:590
-#: lib/kati/screens/day.ex:494
+#: lib/kati/screens/day.ex:363
 #: lib/kati/screens/meals_day.ex:567
 #: lib/kati/screens/money_day.ex:365
 #: lib/kati/screens/quick_add/sample.ex:193
@@ -5063,54 +5065,52 @@ msgstr ""
 msgid "Personal"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:427
+#: lib/kati/screens/calendar.ex:492
 #: lib/kati/screens/quick_add.ex:586
 #, elixir-autogen, elixir-format
 msgid "Quick add"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:896
+#: lib/kati/screens/calendar.ex:961
 #, elixir-autogen, elixir-format
 msgid "Read only · you pick which on 32"
 msgstr ""
 
-#: lib/kati/calendar/sample_day.ex:174
-#: lib/kati/screens/calendar.ex:207
+#: lib/kati/screens/calendar.ex:272
 #, elixir-autogen, elixir-format
 msgid "Renew passport"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:276
+#: lib/kati/screens/calendar.ex:341
 #, elixir-autogen, elixir-format
 msgid "S%{s}E%{e} · %{service} · %{at}"
 msgstr ""
 
-#: lib/kati/calendar/sample_day.ex:192
 #: lib/kati/library/sample.ex:32
 #: lib/kati/library/sample.ex:91
-#: lib/kati/screens/calendar.ex:251
+#: lib/kati/screens/calendar.ex:316
 #: lib/kati/screens/home.ex:580
 #, elixir-autogen, elixir-format
 msgid "Salt & Iron"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:367
+#: lib/kati/screens/calendar.ex:432
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Schedule"
 msgstr ""
 
 #: lib/kati/account/sample.ex:182
-#: lib/kati/screens/calendar.ex:769
+#: lib/kati/screens/calendar.ex:834
 #, elixir-autogen, elixir-format
 msgid "To show your appointments beside your episodes. Kati only reads them."
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:914
+#: lib/kati/screens/calendar.ex:979
 #, elixir-autogen, elixir-format
 msgid "Your other calendars are not here"
 msgstr ""
 
-#: lib/kati/screens/calendar.ex:208
+#: lib/kati/screens/calendar.ex:273
 #, elixir-autogen, elixir-format, fuzzy
 msgid "reminder"
 msgstr ""
@@ -5156,8 +5156,7 @@ msgstr ""
 msgid "New releases"
 msgstr ""
 
-#: lib/kati/calendar/sample_day.ex:337
-#: lib/kati/calendars/airings.ex:108
+#: lib/kati/calendars/airings.ex:126
 #: lib/kati/screens/clear_history.ex:242
 #: lib/kati/screens/home.ex:436
 #: lib/kati/screens/library.ex:486
@@ -5175,7 +5174,6 @@ msgid "Select titles"
 msgstr ""
 
 #: lib/kati/activity/sample.ex:197
-#: lib/kati/calendar/sample_day.ex:201
 #: lib/kati/library/sample.ex:39
 #: lib/kati/library/sample.ex:365
 #, elixir-autogen, elixir-format, fuzzy
@@ -5183,8 +5181,6 @@ msgid "The Cartographer"
 msgstr ""
 
 #: lib/kati/activity/sample.ex:113
-#: lib/kati/calendar/sample_agenda.ex:285
-#: lib/kati/calendar/sample_day.ex:68
 #: lib/kati/library/sample.ex:38
 #: lib/kati/library/sample.ex:122
 #, elixir-autogen, elixir-format
@@ -5280,7 +5276,6 @@ msgstr ""
 msgid "Airs tonight · %{service}"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:138
 #: lib/kati/screens/home.ex:1422
 #: lib/kati/widgets/sample.ex:162
 #, elixir-autogen, elixir-format
@@ -5479,7 +5474,7 @@ msgstr ""
 
 #: lib/kati/screens/add_title.ex:137
 #: lib/kati/screens/add_title_music.ex:271
-#: lib/kati/screens/onboarding_first_title.ex:152
+#: lib/kati/screens/onboarding_first_title.ex:153
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} result"
 msgid_plural "%{n} results"
@@ -7522,7 +7517,7 @@ msgstr ""
 msgid "show settings"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:924
+#: lib/kati/screens/gallery.ex:921
 #, elixir-autogen, elixir-format
 msgid "tap to open"
 msgstr ""
@@ -7700,7 +7695,7 @@ msgctxt "emphasis in “what it can do”"
 msgid "can"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:870
+#: lib/kati/screens/gallery.ex:867
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "Every page"
@@ -7724,7 +7719,7 @@ msgctxt "eyebrow"
 msgid "How often"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:978
+#: lib/kati/screens/gallery.ex:975
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "eyebrow"
 msgid "Not yet drawn"
@@ -7913,7 +7908,7 @@ msgctxt "release watcher"
 msgid "Checking…"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:870
+#: lib/kati/screens/gallery.ex:867
 #, elixir-autogen, elixir-format
 msgctxt "screen title"
 msgid "All screens"
@@ -8124,7 +8119,7 @@ msgstr[1] ""
 #: lib/kati/calendar/sample_meal_day.ex:78
 #: lib/kati/calendar/sample_meal_day.ex:254
 #: lib/kati/meals/sample_library.ex:167
-#: lib/kati/screens/day.ex:1668
+#: lib/kati/screens/day.ex:1267
 #: lib/kati/screens/meal_library.ex:389
 #: lib/kati/screens/meals_day.ex:173
 #: lib/kati/screens/search_result_states.ex:254
@@ -8251,15 +8246,16 @@ msgstr ""
 msgid "Add it by hand"
 msgstr ""
 
-#: lib/kati/screens/event_detail.ex:981
+#: lib/kati/screens/event_detail.ex:983
 #, elixir-autogen, elixir-format
 msgid "Add someone"
 msgstr ""
 
-#: lib/kati/calendars/airings.ex:184
+#: lib/kati/calendars/airings.ex:210
 #: lib/kati/money/day_sample.ex:156
-#: lib/kati/screens/event_detail.ex:232
+#: lib/kati/screens/event_detail.ex:210
 #: lib/kati/screens/money_day.ex:442
+#: lib/kati/screens/week.ex:406
 #, elixir-autogen, elixir-format, fuzzy
 msgid "All day"
 msgstr ""
@@ -8340,7 +8336,7 @@ msgstr ""
 msgid "Eaten %{n} times"
 msgstr ""
 
-#: lib/kati/screens/event_detail.ex:387
+#: lib/kati/screens/event_detail.ex:364
 #, elixir-autogen, elixir-format
 msgid "Edit event"
 msgstr ""
@@ -8407,7 +8403,7 @@ msgstr ""
 msgid "Ingredients · 1 portion"
 msgstr ""
 
-#: lib/kati/screens/event_detail.ex:353
+#: lib/kati/screens/event_detail.ex:878
 #, elixir-autogen, elixir-format
 msgid "Invitees"
 msgstr ""
@@ -8448,8 +8444,7 @@ msgstr ""
 msgid "List what needs prep"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:185
-#: lib/kati/screens/event_detail.ex:287
+#: lib/kati/screens/event_detail.ex:265
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Location"
 msgstr ""
@@ -8702,7 +8697,7 @@ msgstr ""
 msgid "Ties break by recency."
 msgstr ""
 
-#: lib/kati/screens/event_detail.ex:254
+#: lib/kati/screens/event_detail.ex:232
 #, elixir-autogen, elixir-format
 msgid "Timezone"
 msgstr ""
@@ -9081,7 +9076,7 @@ msgctxt "board 179 specimen query"
 msgid "ostrand"
 msgstr ""
 
-#: lib/kati/screens/event_detail.ex:788
+#: lib/kati/screens/event_detail.ex:773
 #, elixir-autogen, elixir-format
 msgctxt "calendar clash"
 msgid "Clash"
@@ -9416,20 +9411,19 @@ msgctxt "the verdict slot while a pasted key is being checked"
 msgid "checking"
 msgstr ""
 
-#: lib/kati/screens/event_detail.ex:280
+#: lib/kati/screens/event_detail.ex:258
 #, elixir-autogen, elixir-format
 msgctxt "timezone behaviour"
 msgid "floats where you are"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:135
-#: lib/kati/screens/event_detail.ex:279
+#: lib/kati/screens/event_detail.ex:257
 #, elixir-autogen, elixir-format
 msgctxt "timezone behaviour"
 msgid "follows travel"
 msgstr ""
 
-#: lib/kati/screens/event_detail.ex:281
+#: lib/kati/screens/event_detail.ex:259
 #, elixir-autogen, elixir-format
 msgctxt "timezone behaviour"
 msgid "stays fixed"
@@ -11485,7 +11479,7 @@ msgstr ""
 msgid "%{n} albums"
 msgstr ""
 
-#: lib/kati/screens/day.ex:908
+#: lib/kati/screens/day.ex:509
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} at once"
 msgstr ""
@@ -11504,9 +11498,7 @@ msgid_plural "%{n} changes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/calendar/sample_agenda.ex:219
-#: lib/kati/calendar/sample_day.ex:282
-#: lib/kati/screens/day.ex:882
+#: lib/kati/screens/day.ex:483
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} clash"
 msgid_plural "%{n} clashes"
@@ -11520,8 +11512,8 @@ msgid_plural "%{n} edits"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/calendars/airings.ex:115
-#: lib/kati/screens/day.ex:1671
+#: lib/kati/calendars/airings.ex:133
+#: lib/kati/screens/day.ex:1270
 #: lib/kati/settings/detect_music_sample.ex:137
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} episode"
@@ -11529,14 +11521,14 @@ msgid_plural "%{n} episodes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/day.ex:1680
+#: lib/kati/screens/day.ex:1279
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} event"
 msgid_plural "%{n} events"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/day.ex:1674
+#: lib/kati/screens/day.ex:1273
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} habit"
 msgid_plural "%{n} habits"
@@ -11550,10 +11542,9 @@ msgid_plural "%{n} questions"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/calendar/sample_day.ex:257
 #: lib/kati/money/day_sample.ex:86
 #: lib/kati/money/day_sample.ex:180
-#: lib/kati/screens/day.ex:1677
+#: lib/kati/screens/day.ex:1276
 #: lib/kati/screens/money_day.ex:302
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} renewal"
@@ -12193,14 +12184,13 @@ msgctxt "account sync pill"
 msgid "Off"
 msgstr ""
 
-#: lib/kati/screens/day.ex:588
 #: lib/kati/screens/money_day.ex:643
+#: lib/kati/screens/week.ex:143
 #, elixir-autogen, elixir-format
 msgctxt "all-day gutter, first line of ALL DAY"
 msgid "ALL"
 msgstr ""
 
-#: lib/kati/screens/day.ex:588
 #: lib/kati/screens/money_day.ex:643
 #, elixir-autogen, elixir-format
 msgctxt "all-day gutter, second line of ALL DAY"
@@ -12385,7 +12375,7 @@ msgctxt "sync tally"
 msgid "WAITING"
 msgstr ""
 
-#: lib/kati/screens/day.ex:1051
+#: lib/kati/screens/day.ex:652
 #, elixir-autogen, elixir-format
 msgctxt "the +n MORE tile on a clash row"
 msgid "MORE"
@@ -14246,7 +14236,6 @@ msgstr ""
 msgid "%{noun}, and everything attached to them, will be restored. "
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:254
 #: lib/kati/widgets/sample.ex:157
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} episodes air"
@@ -14507,7 +14496,7 @@ msgstr ""
 msgid "Settings and plans only — a library needs the file."
 msgstr ""
 
-#: lib/kati/screens/week.ex:437
+#: lib/kati/screens/week.ex:480
 #, elixir-autogen, elixir-format
 msgid "Tap any lane to name its day here"
 msgstr ""
@@ -14600,7 +14589,7 @@ msgctxt "a habit's streak, lapsed"
 msgid "broken"
 msgstr ""
 
-#: lib/kati/screens/week.ex:90
+#: lib/kati/screens/week.ex:150
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "eyebrow"
 msgid "Load this week"
@@ -15037,13 +15026,6 @@ msgid_plural "%{n} handfuls"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/calendar/sample_event.ex:179
-#, elixir-autogen, elixir-format, fuzzy
-msgid "%{n} hour before"
-msgid_plural "%{n} hours before"
-msgstr[0] ""
-msgstr[1] ""
-
 #: lib/kati/settings/detect_music_sample.ex:310
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} second"
@@ -15109,11 +15091,6 @@ msgstr ""
 #: lib/kati/settings/drop_states_sample.ex:332
 #, elixir-autogen, elixir-format
 msgid "Album has no Finished state, on purpose: an album does not finish the way a series does. It goes %{active} → %{paused} → %{cold} → %{dropped} and back, and that is the whole of it."
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:162
-#, elixir-autogen, elixir-format, fuzzy
-msgid "Alerts"
 msgstr ""
 
 #: lib/kati/account/sample.ex:241
@@ -15188,9 +15165,6 @@ msgstr ""
 msgid "Delete everything"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:235
-#: lib/kati/calendar/sample_day.ex:135
-#: lib/kati/calendar/sample_event.ex:61
 #: lib/kati/screens/quick_add/sample.ex:85
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Design review"
@@ -15211,11 +15185,6 @@ msgstr[1] ""
 #: lib/kati/settings/detect_music_sample.ex:316
 #, elixir-autogen, elixir-format
 msgid "Each play counts"
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:154
-#, elixir-autogen, elixir-format
-msgid "Every %{n} weeks on %{day}"
 msgstr ""
 
 #: lib/kati/account/sample.ex:79
@@ -15250,11 +15219,6 @@ msgstr[1] ""
 #: lib/kati/series_settings/sample.ex:137
 #, elixir-autogen, elixir-format
 msgid "Inbox only, no push"
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:260
-#, elixir-autogen, elixir-format
-msgid "Jo Mercer"
 msgstr ""
 
 #: lib/kati/account/sample.ex:57
@@ -15474,13 +15438,6 @@ msgstr ""
 msgid "Spoiler-safe episode names"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:234
-#: lib/kati/calendar/sample_day.ex:127
-#: lib/kati/calendar/sample_event.ex:217
-#, elixir-autogen, elixir-format
-msgid "Standup"
-msgstr ""
-
 #: lib/kati/account/sample.ex:234
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Start at boot"
@@ -15489,11 +15446,6 @@ msgstr ""
 #: lib/kati/account/sample.ex:87
 #, elixir-autogen, elixir-format
 msgid "Storage used"
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:191
-#, elixir-autogen, elixir-format
-msgid "Studio B, or a link"
 msgstr ""
 
 #: lib/kati/meals/sample_library.ex:233
@@ -15522,7 +15474,6 @@ msgstr ""
 msgid "Three albums have %{title}"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:156
 #: lib/kati/meals/sample_recipe.ex:241
 #, elixir-autogen, elixir-format
 msgid "Thursday"
@@ -15538,7 +15489,6 @@ msgstr ""
 msgid "To look up what you are watching. Nothing about you is sent."
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:269
 #: lib/kati/screens/series_meta/sample.ex:191
 #, elixir-autogen, elixir-format
 msgid "Tomas Rhee"
@@ -15844,24 +15794,6 @@ msgctxt "board 36's unsure match, asked between two titles the reader has"
 msgid "%{one} or %{two}?"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:216
-#, elixir-autogen, elixir-format
-msgctxt "calendar clash"
-msgid "Overlaps %{event} by %{length}"
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:225
-#, elixir-autogen, elixir-format
-msgctxt "calendar clash"
-msgid "Shift %{length} later"
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:226
-#, elixir-autogen, elixir-format
-msgctxt "calendar clash"
-msgid "Shorten to %{length}"
-msgstr ""
-
 #: lib/kati/meals/sample_library.ex:230
 #, elixir-autogen, elixir-format
 msgctxt "cooking heat"
@@ -15896,12 +15828,6 @@ msgctxt "episode badge"
 msgid "PARTS %{a}–%{b}"
 msgstr ""
 
-#: lib/kati/calendar/sample_event.ex:180
-#, elixir-autogen, elixir-format, fuzzy
-msgctxt "event alert"
-msgid "at start"
-msgstr ""
-
 #: lib/kati/import/sample.ex:467
 #, elixir-autogen, elixir-format
 msgctxt "how a shelf in the file maps to a list in Kati"
@@ -15930,18 +15856,6 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "ingredient name"
 msgid "Spinach"
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:264
-#, elixir-autogen, elixir-format
-msgctxt "invitee reply"
-msgid "accepted"
-msgstr ""
-
-#: lib/kati/calendar/sample_event.ex:270
-#, elixir-autogen, elixir-format
-msgctxt "invitee reply"
-msgid "no reply yet"
 msgstr ""
 
 #: lib/kati/settings/detect_music_sample.ex:311
@@ -16111,27 +16025,12 @@ msgstr ""
 msgid "%{figure} kg · down %{change}"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:232
-#, elixir-autogen, elixir-format
-msgid "%{n} at once — %{first}, %{second}"
-msgstr ""
-
 #: lib/kati/health/sample.ex:282
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} dose today"
 msgid_plural "%{n} doses today"
 msgstr[0] ""
 msgstr[1] ""
-
-#: lib/kati/calendar/sample_agenda.ex:285
-#, elixir-autogen, elixir-format
-msgid "%{title} in cinemas"
-msgstr ""
-
-#: lib/kati/calendar/sample_day.ex:68
-#, elixir-autogen, elixir-format
-msgid "%{title} — in cinemas"
-msgstr ""
 
 #: lib/kati/health/weight_sample.ex:131
 #: lib/kati/health/weight_sample.ex:162
@@ -16217,11 +16116,6 @@ msgstr ""
 msgid "It keeps its place, dashed rather than filled, and says %{status}. It never says coming soon — a date is a promise this version cannot keep. Tapping it opens one sheet that names what it is, why it is not here, and what Kati can do instead today."
 msgstr ""
 
-#: lib/kati/calendar/sample_day.ex:149
-#, elixir-autogen, elixir-format, fuzzy
-msgid "Lunch — Jo"
-msgstr ""
-
 #: lib/kati/screens/series_meta/sample.ex:190
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Mara"
@@ -16232,11 +16126,6 @@ msgstr ""
 msgid "Mon, Wed, Fri"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:84
-#, elixir-autogen, elixir-format
-msgid "Nothing else until %{date}"
-msgstr ""
-
 #: lib/kati/screens/series_meta/sample.ex:193
 #, elixir-autogen, elixir-format
 msgid "Ola Beck"
@@ -16245,11 +16134,6 @@ msgstr ""
 #: lib/kati/library/sample.ex:363
 #, elixir-autogen, elixir-format
 msgid "Paper Cities"
-msgstr ""
-
-#: lib/kati/calendar/sample_day.ex:157
-#, elixir-autogen, elixir-format
-msgid "Plumber"
 msgstr ""
 
 #: lib/kati/library/sample.ex:446
@@ -16303,7 +16187,7 @@ msgstr ""
 msgid "Ticks are saved and will sync later"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:151
+#: lib/kati/screens/agenda.ex:101
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Tomorrow"
 msgstr ""
@@ -16336,21 +16220,6 @@ msgstr ""
 #: lib/kati/health/weight_sample.ex:164
 #, elixir-autogen, elixir-format, fuzzy
 msgid "every night, 21:00"
-msgstr ""
-
-#: lib/kati/calendar/sample_agenda.ex:165
-#, elixir-autogen, elixir-format, fuzzy
-msgid "habit · %{n}-day streak"
-msgstr ""
-
-#: lib/kati/calendar/sample_day.ex:220
-#, elixir-autogen, elixir-format
-msgid "leaves %{service} at midnight"
-msgstr ""
-
-#: lib/kati/calendar/sample_agenda.ex:146
-#, elixir-autogen, elixir-format, fuzzy
-msgid "repeats weekly"
 msgstr ""
 
 #: lib/kati/health/weight_sample.ex:138
@@ -16417,52 +16286,16 @@ msgctxt "a renewal row on board 126's spine"
 msgid "%{service} renews"
 msgstr ""
 
-#: lib/kati/calendar/sample_agenda.ex:180
-#, elixir-autogen, elixir-format
-msgctxt "a renewal row, with the service named"
-msgid "%{service} renews"
-msgstr ""
-
 #: lib/kati/library/sample.ex:144
 #, elixir-autogen, elixir-format
 msgctxt "a shelf tile's season and episode fraction"
 msgid "S%{s} · %{watched}/%{total}"
 msgstr ""
 
-#: lib/kati/calendar/sample_day.ex:319
-#, elixir-autogen, elixir-format, fuzzy
-msgctxt "a timed card's clock range"
-msgid "%{from}–%{to}"
-msgstr ""
-
 #: lib/kati/activity/sample.ex:112
 #, elixir-autogen, elixir-format
 msgctxt "an added-to-a-list row in the activity log"
 msgid "%{title} to Wishlist"
-msgstr ""
-
-#: lib/kati/calendar/sample_agenda.ex:286
-#, elixir-autogen, elixir-format
-msgctxt "an agenda row's sub-line"
-msgid "wishlisted"
-msgstr ""
-
-#: lib/kati/calendar/sample_agenda.ex:121
-#, elixir-autogen, elixir-format, fuzzy
-msgctxt "an agenda row's title"
-msgid "%{title} S%{s}E%{e}"
-msgstr ""
-
-#: lib/kati/calendar/sample_day.ex:81
-#, elixir-autogen, elixir-format, fuzzy
-msgctxt "an all-day band row's meta"
-msgid "release"
-msgstr ""
-
-#: lib/kati/calendar/sample_day.ex:82
-#, elixir-autogen, elixir-format
-msgctxt "an all-day band row's meta"
-msgid "wishlisted"
 msgstr ""
 
 #: lib/kati/money/day_sample.ex:162
@@ -16487,12 +16320,6 @@ msgstr ""
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "an out now row, for a film released today"
 msgid "out today"
-msgstr ""
-
-#: lib/kati/calendar/sample_agenda.ex:243
-#, elixir-autogen, elixir-format, fuzzy
-msgctxt "calendar clash"
-msgid "clash"
 msgstr ""
 
 #: lib/kati/screens/quick_add/sample.ex:265
@@ -17446,4 +17273,29 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "search field placeholder"
 msgid "Film or series title"
+msgstr ""
+
+#: lib/kati/screens/week.ex:550
+#, elixir-autogen, elixir-format
+msgid "%{day} is carrying %{items}."
+msgstr ""
+
+#: lib/kati/screens/event_detail.ex:166
+#, elixir-autogen, elixir-format
+msgid "It was deleted, or it was never saved on this phone."
+msgstr ""
+
+#: lib/kati/screens/agenda.ex:156
+#, elixir-autogen, elixir-format
+msgid "Nothing else through %{date}"
+msgstr ""
+
+#: lib/kati/screens/week.ex:547
+#, elixir-autogen, elixir-format
+msgid "Nothing scheduled this week."
+msgstr ""
+
+#: lib/kati/screens/event_detail.ex:165
+#, elixir-autogen, elixir-format
+msgid "This event is not here"
 msgstr ""

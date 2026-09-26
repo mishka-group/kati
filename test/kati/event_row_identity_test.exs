@@ -38,8 +38,6 @@ defmodule Kati.EventRowIdentityTest do
   """
   use Mob.ScreenCase, async: false
 
-  alias Kati.Calendar.SampleDay
-  alias Kati.Calendar.SampleEvent
   alias Kati.Calendars.Event
   alias Kati.Screens.Day
   alias Kati.Screens.EventDetail
@@ -124,7 +122,7 @@ defmodule Kati.EventRowIdentityTest do
 
         assert assigns(view).event.title == second.summary
         refute assigns(view).event.title == first.summary
-        refute assigns(view).event.title == SampleEvent.event().title
+        refute assigns(view).event.title == EventDetail.missing().title
 
         assert find(view, :text, text: second.summary),
                "screen 31 does not draw the title of the event it was opened with"
@@ -139,28 +137,25 @@ defmodule Kati.EventRowIdentityTest do
         assert when_row.sub == "11:00 – 11:45"
         assert when_row.trailing == {:value, "45m"}
         assert when_row.title == day_line(Kati.Time.today())
-
-        # The drawing's own row, which is what a screen that fell back would
-        # still be showing — same shape, same icon, a different Thursday.
-        [drawn | _rest] = SampleEvent.fields()
-        refute when_row.sub == drawn.sub
       end)
     end
 
-    test "an id that names nothing stored falls back to the drawn event" do
+    test "an id that names nothing stored says the event is not here" do
       in_a_day_of_three(fn _day ->
-        assert EventDetail.event(%{id: Ecto.UUID.generate()}) == SampleEvent.event()
+        assert EventDetail.event(%{id: Ecto.UUID.generate()}) == EventDetail.missing()
       end)
     end
 
-    test "no id at all is still the drawn event, to the term" do
-      in_a_day_of_three(fn _day ->
-        # The branch every frame of `test/design/screens/31.html` was captured
-        # in, and the one the empty-database sweep renders. A round that made
-        # the sample path query "the first event of today" would fail here and
-        # nowhere else — the tree would still hold a title, a clock and a clash.
-        assert EventDetail.event(%{}) == SampleEvent.event()
-        assert assigns(mount_screen(EventDetail)).event == SampleEvent.event()
+    test "no id at all says the event is not here, and draws nobody's event" do
+      in_a_day_of_three(fn %{events: events} ->
+        # N51: this was the board's own event, drawn for a push that named
+        # none. A page about no event now says so, and a round that made the
+        # no-id path query "the first event of today" would fail here.
+        assert EventDetail.event(%{}) == EventDetail.missing()
+        view = mount_screen(EventDetail)
+        assert assigns(view).event == EventDetail.missing()
+
+        for %{summary: summary} <- events, do: refute(text(view) =~ summary)
       end)
     end
   end
@@ -192,7 +187,7 @@ defmodule Kati.EventRowIdentityTest do
         assert text(view) =~ "#{length(tomorrow)} items",
                "the mono subtitle still holds the drawing's own headline over a real day"
 
-        refute text(view) =~ SampleDay.summary()
+        refute text(view) =~ "14 items · 2 clashes"
       end)
     end
 
@@ -220,14 +215,13 @@ defmodule Kati.EventRowIdentityTest do
 
         assert assigns(view).date == Kati.Time.today()
 
-        refute assigns(view).occurrences == SampleDay.occurrences(),
-               "a bare mount is drawing the fixture again"
+        assert length(assigns(view).occurrences) == length(events)
 
         for %{title: title} <- events do
           assert text(view) =~ title, "#{inspect(title)} is a real event today and is not drawn"
         end
 
-        refute text(view) =~ SampleDay.summary()
+        refute text(view) =~ "14 items · 2 clashes"
         refute text(view) =~ "Vellum — in cinemas"
       end)
     end

@@ -1368,7 +1368,67 @@ defmodule Kati.DesignLiterals do
       {"166", "رد کردن این گام به"},
       {"166", "خانه خالی"},
       {"166", "می‌رسد —"},
-      {"166", "در فارسی،"}
+      {"166", "در فارسی،"},
+      # N51: boards 16, 17 and 30 were drawn from `Kati.Calendar.SampleMonth`,
+      # `SampleWeek` and `SampleAgenda` — August 2026, a Thursday of fourteen
+      # items and two clashes, and titles nobody stored. The three views read
+      # the reader's calendar now and an empty store draws *Nothing
+      # scheduled*. The legend's section names and a real row's words appear
+      # over a month with items in it, which `Kati.CalendarViewsRealTest`
+      # asserts; *Habits* is no section the calendar has.
+      {"16", "august 2026"},
+      {"16", "screen"},
+      {"16", "personal"},
+      {"16", "habits"},
+      {"16", "thu 20 · 14 items · 2 clashes"},
+      {"16", "2 at once — standup, design review"},
+      {"16", "3 at once — lunch, plumber, +1"},
+      {"16", "6 episodes air"},
+      {"17", "10 – 16 aug"},
+      {"17", "thu 13 · 9 items"},
+      {"17", "standup"},
+      {"17", "15m"},
+      {"17", "design review"},
+      {"17", "1h"},
+      {"17", "lunch — jo"},
+      {"17", "6 episodes air"},
+      {"17", "to 23:00"},
+      {"17", "thursday is carrying"},
+      {"17", "9 items"},
+      {"17", ". two things could move to friday."},
+      {"30", "today"},
+      {"30", "sun 16 aug"},
+      {"30", "the long hollow s2e6"},
+      {"30", "lumen+"},
+      {"30", "call mum"},
+      {"30", "repeats weekly"},
+      {"30", "tomorrow"},
+      {"30", "mon 17 aug"},
+      {"30", "morning run"},
+      {"30", "habit · 12-day streak"},
+      {"30", "lumen+ renews"},
+      {"30", "£8.99"},
+      {"30", "thu"},
+      {"30", "20 aug · 14 items · 2 clashes"},
+      {"30", "2 at once — standup, design review"},
+      {"30", "clash"},
+      {"30", "6 episodes air"},
+      {"30", "lumen+, orbit, kino"},
+      {"30", "sep"},
+      {"30", "04 sep"},
+      {"30", "vellum in cinemas"},
+      {"30", "wishlisted"},
+      {"30", "nothing else until 12 sep"},
+      # N51: board 09's all-day band, its merged renewals row and its
+      # fourteen-item headline were `Kati.Calendar.SampleDay`'s, drawn for an
+      # empty calendar. None can be computed from a stored event — the day
+      # screen's moduledoc says why — so a real day draws its cards alone.
+      {"09", "14 items · 2 clashes"},
+      {"09", "day"},
+      {"09", "vellum — in cinemas"},
+      {"09", "release · wishlisted"},
+      {"09", "2 renewals"},
+      {"09", "£22.98"}
     ]
   end
 
@@ -1391,6 +1451,58 @@ defmodule Kati.DesignLiterals do
           %{title: "Quietus", seed: "quietus39"},
           %{title: "Quiet Harbour", seed: "harbour86"}
         ]
+    }
+  end
+
+  @doc """
+  Board 31's event, *Design review*, in the shape `Kati.Screens.EventDetail`
+  draws: its two section chips, its five field rows, its clash and its two
+  invitees.
+
+  The screen keeps no copy of it (N51) — a push naming no stored event draws
+  `Kati.Screens.EventDetail.missing/0` — so the board's state lives here, with
+  the tests that install it. The id is a stand-in, so the page draws the Save
+  pill, the invitees and Delete the way it does over a stored event.
+  """
+  def event_board do
+    %{
+      id: "board-31",
+      title: "Design review",
+      sections: [{"Personal", false}, {"Work", true}],
+      fields: [
+        %{
+          icon: "schedule",
+          title: "Thu 20 Aug",
+          sub: "09:30 – 10:30",
+          trailing: {:value, "1h"}
+        },
+        %{
+          icon: "public",
+          title: "Timezone",
+          sub: "Europe/London · follows travel",
+          trailing: {:switch, true}
+        },
+        %{icon: "repeat", title: "Repeats", sub: "Every 2 weeks on Thursday", trailing: :chevron},
+        %{
+          icon: "notifications",
+          title: "Alerts",
+          sub: "1 hour before · at start",
+          trailing: :chevron
+        },
+        %{icon: "place", title: "Location", sub: "Studio B, or a link", trailing: :chevron}
+      ],
+      clash: %{
+        line: "Overlaps Standup by 15 min",
+        actions: [
+          {"Shift 15m later", :primary},
+          {"Shorten to 45m", :primary},
+          {"Keep both", :quiet}
+        ]
+      },
+      invitees: [
+        %{name: "Jo Mercer", sub: "accepted", seed: "face32", state: :accepted},
+        %{name: "Tomas Rhee", sub: "no reply yet", seed: "face14", state: :waiting}
+      ]
     }
   end
 
