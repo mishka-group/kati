@@ -174,6 +174,26 @@ defmodule Kati.CalendarViewsRealTest do
     end
   end
 
+  describe "screen 09 on a day with an all-day airing" do
+    test "lists it under All day, counts it, and does not say Nothing scheduled" do
+      emptied(fn ->
+        day = Kati.Time.today()
+        show = follow!("The Bear")
+        episode!(show, 5, 1, day)
+
+        {:ok, socket} =
+          Kati.Screens.Day.mount(%{date: day}, %{}, Mob.Socket.new(Kati.Screens.Day))
+
+        page = inspect(Kati.Screens.Day.content(socket.assigns), limit: :infinity)
+
+        assert page =~ "All day"
+        assert page =~ "The Bear"
+        refute page =~ "Nothing scheduled"
+        assert {"Screen", 1} in Kati.Screens.Day.counts(socket.assigns)
+      end)
+    end
+  end
+
   defp mounted(module) do
     {:ok, socket} = module.mount(%{}, %{}, %Mob.Socket{})
     socket.assigns

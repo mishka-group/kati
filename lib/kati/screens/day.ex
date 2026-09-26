@@ -81,10 +81,12 @@ defmodule Kati.Screens.Day do
       comes from `Kati.Calendars.Airings`, which reads the air date off
       `Kati.Media.CachedEpisode` and joins it to its show, poster and `S · E`
       line (`Kati.Calendars.Airings.occurrences/1`). A followed film's release
-      comes the same way. Only the ones with an HOUR are laned here: a
-      day-only air date has no minute to sit at, and this screen draws no
-      all-day band, so those stay on 02 and the grid views. A tap on one opens
-      the show or the film, not screen 31.
+      comes the same way. The ones with an HOUR are laned; a day-only air
+      date has no minute to sit at, so it is listed under *All day* above the
+      timeline (`all_day/1`) and counted with the rest. Leaving it off made
+      this page say *Nothing scheduled* for a day the month grid had just
+      dotted and listed. A tap on one opens the show or the film, not
+      screen 31.
 
     * **The tick.** `done` on the 08:00 habit and on the 15:00 todo has no
       column anywhere: `Kati.Calendars.Event` models timing, identity, kind and
@@ -140,8 +142,22 @@ defmodule Kati.Screens.Day do
       date: date,
       filter: nil,
       open_groups: [],
-      occurrences: occurrences
+      occurrences: occurrences,
+      all_day: Kati.Screens.Day.all_day(date)
     )
+  end
+
+  @doc """
+  The day's items with no hour — a show whose episodes air on a date and not
+  at a time, a film released on a day — as the rows screen 02 draws for them.
+  Every one belongs to the Screen chip.
+  """
+  @spec all_day(Date.t()) :: [map()]
+  def all_day(%Date{} = date) do
+    date
+    |> Kati.Calendars.Airings.rows()
+    |> Enum.filter(&is_nil(&1.at))
+    |> Enum.map(&Kati.Screens.Calendar.shaped/1)
   end
 
   @doc """
@@ -174,13 +190,15 @@ defmodule Kati.Screens.Day do
     # between a meeting and a renewal is not a clash once the renewals are
     # gone, and the lanes have to be recomputed to say so.
     clusters = clusters(visible(assigns.occurrences, filter), assigns.open_groups)
+    all_day = if filter in [nil, "Screen"], do: Map.get(assigns, :all_day, []), else: []
 
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_top={64} padding_bottom={40}>
         <Column fill_width={true} padding_left={21} padding_right={21}>
-          {Kati.Screens.Day.header(date, clusters)}
+          {Kati.Screens.Day.header(date, clusters, length(all_day))}
           {Kati.Screens.Day.chips(filter, Kati.Screens.Day.counts(assigns))}
+          {Kati.Screens.Day.all_day_block(all_day)}
         </Column>
         {Kati.Screens.Day.timeline(clusters)}
       </Column>
@@ -194,10 +212,29 @@ defmodule Kati.Screens.Day do
   chip can never say `6` and then show four.
   """
   @spec counts(map()) :: [{String.t(), non_neg_integer()}]
-  def counts(%{occurrences: occurrences}) do
-    tally = Enum.frequencies_by(occurrences, &Kati.Screens.Day.bucket/1)
+  def counts(%{occurrences: occurrences} = assigns) do
+    tally =
+      occurrences
+      |> Enum.frequencies_by(&Kati.Screens.Day.bucket/1)
+      |> Map.update(
+        "Screen",
+        length(Map.get(assigns, :all_day, [])),
+        &(&1 + length(Map.get(assigns, :all_day, [])))
+      )
 
     for label <- @chips, do: {label, Map.get(tally, label, 0)}
+  end
+
+  @doc "The *All day* group above the timeline, or nothing when the day has none."
+  def all_day_block([]), do: ~MOB"<Spacer size={0} />"
+
+  def all_day_block(rows) do
+    ~MOB"""
+    <Column fill_width={true} padding_top={18}>
+      {Kati.UI.eyebrow(gettext("All day"))}
+      {Kati.Screens.MonthGrid.day_rows(rows)}
+    </Column>
+    """
   end
 
   @doc "The lane rows, in clock order."
@@ -212,9 +249,9 @@ defmodule Kati.Screens.Day do
   # Arabic-script joins) and the sub-line's face asks the string, because
   # `kati_mono.ttf` carries no Persian glyph.
   @doc false
-  def header(date, clusters) do
+  def header(date, clusters, all_day \\ 0) do
     heading = Kati.Locale.date(date, :long)
-    subtitle = summary(clusters)
+    subtitle = summary(clusters, all_day)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -445,10 +482,10 @@ defmodule Kati.Screens.Day do
   narrows the count with it. A collapsed card counts every member it stands
   for — "3 episodes" is three things the day holds, not one.
   """
-  @spec summary([map()]) :: String.t()
-  def summary(clusters) do
+  @spec summary([map()], non_neg_integer()) :: String.t()
+  def summary(clusters, all_day \\ 0) do
     items =
-      Enum.reduce(clusters, 0, fn c, acc ->
+      Enum.reduce(clusters, all_day, fn c, acc ->
         acc + Enum.sum(Enum.map(c.placements, &member_count(&1.event))) + hidden_count(c.overflow)
       end)
 
