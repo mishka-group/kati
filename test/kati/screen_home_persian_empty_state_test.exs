@@ -91,11 +91,12 @@ defmodule Kati.ScreenHomePersianEmptyStateTest do
   # `Kati.ScreenEmptyDatabaseTest`'s `@quoted` holds the same six against the
   # board file itself, so neither end can drift alone.
   #
-  # N52-D took two of the section labels off it: وعده‌ها and عادت‌ها are pages
-  # that still draw sample data, so Home no longer draws a door to either.
+  # N52-D took وعده‌ها off it: Meals is not a section the first run offers, so
+  # the row, which follows the kept sections, draws no Meals card.
   @board_55_chrome [
     "جست‌وجوی فیلم، سریال، رویداد…",
     "بخش‌ها",
+    "عادت‌ها",
     "تنظیمات",
     "باقی امروز"
   ]
@@ -379,9 +380,9 @@ defmodule Kati.ScreenHomePersianEmptyStateTest do
       texts = with_empty_store(fn -> chose_sections!() && home_texts() end)
 
       assert "نمایش" in texts
+      assert "عادت‌ها" in texts
       assert "تنظیمات" in texts
-      refute "وعده‌ها" in texts, "Meals is not a section, and its page draws sample data"
-      refute "عادت‌ها" in texts, "Habits' page still draws sample data (N52-D)"
+      refute "وعده‌ها" in texts, "Meals is not a section the first run offers (N52-D)"
 
       refute "شام ۱۹:۳۰" in texts,
              "screen 43 owns the day's meals and has its own active-plan gate; 55 reached past " <>
@@ -394,8 +395,8 @@ defmodule Kati.ScreenHomePersianEmptyStateTest do
       refute "۰ مورد مانده" in texts,
              "and a counted nought is the plausible-looking zero screen 96 forbids"
 
-      assert Enum.map(Home.tile_rows(), & &1.meta) == [nil, nil]
-      assert Enum.map(Home.tile_rows(), & &1.dot) == [nil, nil]
+      assert Home.tile_rows() |> Enum.map(& &1.meta) |> Enum.uniq() == [nil]
+      assert Home.tile_rows() |> Enum.map(& &1.dot) |> Enum.uniq() == [nil]
     end
 
     test "a section that is off leaves the page" do
@@ -410,13 +411,12 @@ defmodule Kati.ScreenHomePersianEmptyStateTest do
              "تنظیمات is not a section, and this card is the one route into it"
     end
 
-    test "the live labels are the kept sections that are real, then Settings" do
+    test "the live labels are the kept sections, then Settings" do
       # `drawn_tiles/0` is the board's three tiles with their frozen metas;
-      # `tile_rows/0` follows `Kati.Sections.chosen/0` and draws only the
-      # sections whose page reads the reader's own data (N52-D).
-      :ok = Kati.Sections.put(Kati.Sections.all())
+      # `tile_rows/0` follows `Kati.Sections.chosen/0` (N52-D).
+      :ok = Kati.Sections.put(["screen", "habits"])
 
-      assert Enum.map(Home.tile_rows(), & &1.title) == ["نمایش", "تنظیمات"]
+      assert Enum.map(Home.tile_rows(), & &1.title) == ["نمایش", "عادت‌ها", "تنظیمات"]
       assert length(Home.drawn_tiles()) == 3
     end
   end
@@ -485,12 +485,12 @@ defmodule Kati.ScreenHomePersianEmptyStateTest do
           %{
             hero: Home.hero_summary(),
             continue: Kati.Screens.Home.continue_watching_rows(),
-            metas: Enum.map(Home.tile_rows(), & &1.meta),
+            metas: Home.tile_rows() |> Enum.map(& &1.meta) |> Enum.uniq(),
             timeline: Kati.Calendars.Today.rows()
           }
         end)
 
-      assert empty == %{hero: nil, continue: [], metas: [nil, nil], timeline: []},
+      assert empty == %{hero: nil, continue: [], metas: [nil], timeline: []},
              "a reader answered with a value on an empty store, which is the drawing being " <>
                "handed to a person as their own"
     end

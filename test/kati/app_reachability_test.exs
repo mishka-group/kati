@@ -225,42 +225,6 @@ defmodule Kati.AppReachabilityTest do
        "is already gone."}
   ]
 
-  # N52-D. The meal, health, goals and money pages. Their doors were Home's
-  # Meals tile and Stats' More numbers rows, and every one of these pages still
-  # draws sample data, so both doors are hidden until the section is real.
-  @hidden_section "a section page that still draws sample data. Its doors — " <>
-                    "Home's Meals tile and Stats' More numbers rows — are hidden " <>
-                    "until the section reads the reader's own data (N52-D)."
-  @no_route @no_route ++
-              Enum.map(
-                [
-                  Screens.Health,
-                  Screens.MealsToday,
-                  Screens.MealPlan,
-                  Screens.Meal,
-                  Screens.MealSwap,
-                  Screens.Nutrition,
-                  Screens.Shopping,
-                  Screens.Plans,
-                  Screens.PlanShare,
-                  Screens.MealReminders,
-                  Screens.Goals,
-                  Screens.NewGoal,
-                  Screens.Money,
-                  Screens.Weight,
-                  Screens.LogWeight,
-                  Screens.Medication,
-                  Screens.MealLibrary,
-                  Screens.MealEdit,
-                  Screens.AddIngredient,
-                  Screens.PlanImport,
-                  Screens.WeekImage,
-                  Screens.AddMedication,
-                  Screens.MedicationDetail
-                ],
-                &{&1, @hidden_section}
-              )
-
   test "every drawn screen is reachable, or is on the inventory with a reason" do
     reached = reachable(push_graph(), @roots)
     exempt = MapSet.new(Enum.map(@no_route, &elem(&1, 0)))

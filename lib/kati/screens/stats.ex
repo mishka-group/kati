@@ -34,10 +34,13 @@ defmodule Kati.Screens.Stats do
     * `Recently watched` is the three newest watches, with the episode label
       the tick stored and the rating that night carried.
 
-  **More numbers** is two rows, Activity log and Subscriptions, each a door to
-  a page that reads the reader's own data — see `more_numbers/0`.
+  **Still the drawing's own copy**, because the domain cannot say it yet:
 
-  *Where the hours went* was a stand-in until 6 September, on the argument
+    * **More numbers.** Four rows belonging to four other domains, and three of
+      them — Habits, Nutrition, Subscriptions — have no resource at all. The
+      card stays whole rather than having one real line among three stand-ins.
+
+  *Where the hours went* was in that list until 6 September, on the argument
   that `Kati.Media.CachedTitle.genres` is *"one free-text column with no defined
   separator, written by nothing and read by nothing"*. Two thirds of that had
   gone stale: `Kati.Media.Tmdb.genres/1` writes it `", "`-separated, and screens
@@ -74,7 +77,7 @@ defmodule Kati.Screens.Stats do
       a 64pt paper tile carrying the glyph of the thing that is empty, a bold
       headline, one sentence. `Kati.Screens.HomeEmpty.invitation/0` is the same
       recipe on a root, and its numbers are the ones used here.
-    * **123 — Money**, which states the rule
+    * **123 — Money**, which is reached *from this screen* and states the rule
       for a statistic with nothing under it: *"The rate reads —, never £0.00 and
       never infinity. Dividing by no hours has no answer, so Kati declines to
       invent one."* An empty ledger is drawn as an empty ledger and not as a
@@ -90,11 +93,25 @@ defmodule Kati.Screens.Stats do
 
   The header, because `Your year` and the range under it are the page's identity
   and the range is the device's own clock. The share disc, per 101. One card in
-  27's geometry. Then `More numbers`, whose two rows each answer an empty store
-  in words — `0 entries`, *No subscriptions yet*.
+  27's geometry. Then `More numbers`, kept — screen 139's empty Home *"states
+  which parts still work, because an empty Home that looks broken sends a new
+  user back out"*, and these five rows are the only route to Activity, Habits,
+  Nutrition, Goals and Money outside the gallery. They keep their titles, their
+  tiles and their chevrons, and lose their second lines: `1,204 entries` and
+  `4 active · 12-day best` are figures this app cannot ask for, and a row with no
+  second line is the same recipe minus a line it has no source for.
 
   Nothing else. No hero figure, no change pill, no grid, no count cards, no
   breakdown bars, no `Recently watched`.
+
+  ### Two fabrications this screen still carries, and they are not the empty state
+
+  Both are drawn on a device that *has* watched things, so neither is reachable
+  from a fresh install any more, and both are recorded here rather than quietly
+  left:
+
+    * `More numbers`' second lines are `Kati.Stats.Sample.more_numbers/0` on
+      every device. Three of the five domains have no resource at all.
   """
   use Kati.Screens.Root, root: :stats
   use Gettext, backend: Kati.Gettext
@@ -231,8 +248,8 @@ defmodule Kati.Screens.Stats do
   @doc """
   Screen 07 on a phone that has watched nothing.
 
-  Header, one card, and the `More numbers` list. See the moduledoc for which
-  board decided each of those three.
+  Header, one card, and the `More numbers` list with its invented second lines
+  gone. See the moduledoc for which board decided each of those three.
   """
   @spec nothing_counted(String.t()) :: map()
   def nothing_counted(range) do
@@ -777,18 +794,30 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc """
-  The rows under `More numbers`: the activity log and subscriptions.
+  The five rows under `More numbers`.
 
-  Both open pages that read the reader's own data — `Kati.Screens.Activity` is
-  the watch log and `Kati.Screens.Subscriptions` is the services ledger, with
-  its own empty state. Board 61 also drew Habits, Nutrition, Goals, Money and
-  Health rows; their pages still fall back to sample data, so a row that opened
-  one would put somebody else's numbers one tap from the reader's year. They
-  are not drawn until those pages are real (N52-D).
+  `counted?` is whether this device has watched anything, and it decides one
+  thing: whether each row carries its second line. Those lines —
+  `1,204 entries`, `4 active · 12-day best`, `Cutting v3 · 86%`,
+  `3 active · 38 of 52 books`, `£46.47 a month · 7 expenses` — are
+  `Kati.Stats.Sample`'s, and three of the five domains behind them have no
+  resource at all. On a phone that has counted nothing they are the defect this
+  round exists to remove, so they are not drawn.
+
+  The rows themselves stay on both branches, and that is deliberate: screen
+  139's empty Home *"states which parts still work"*, and these five are the
+  only route to Activity, Habits, Nutrition, Goals and Money outside the
+  gallery. Dropping them would make half the app unreachable for exactly the
+  person who has just installed it.
   """
   @spec more_numbers() :: map()
   def more_numbers do
-    rows = Kati.Screens.Stats.number_rows()
+    rows =
+      Kati.Stats.Sample.more_numbers()
+      |> Enum.reject(&(&1.id == :recently_watched))
+      |> Enum.map(&entries_line/1)
+      |> Kati.Screens.Stats.with_subscriptions()
+
     last = length(rows) - 1
 
     ~MOB"""
@@ -808,27 +837,52 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc """
-  The `More numbers` rows as data: `id`, `icon`, `title` and the second line.
+  Board 61's rows, plus the one Kati adds: **Subscriptions**.
 
-      iex> Kati.Screens.Stats.number_rows() |> Enum.map(& &1.id)
-      [:activity, :subscriptions]
+  Appended here rather than written into `Kati.Stats.Sample.more_numbers/0`,
+  and the distinction is the reason that module exists: the Sample is board
+  61's own transcription, the value a design test compares a render against,
+  and a row the board never drew does not belong in it. This is the app's own
+  addition to a card the board specified.
+
+  The argument for adding it is that **cost per watched hour is a watch
+  statistic**. `Kati.Subscriptions.hours_by_service/0` divides what a service
+  costs by the hours actually watched on it, and it reads episode runtimes
+  through the same rule `runtimes_for/1` uses one function over — a series'
+  duration is on the EPISODE, a film's on the title. That question is asked
+  nowhere on this page and answered in full one tap away.
+
+  Screen 23 was already reachable, from *My services* and from Money, so this
+  is a second door to a page that has one rather than a rescue. It earns its
+  place by subject: a reader asking how much they watched is a tap from asking
+  what it cost them, and neither of the existing doors is on the page where
+  that question is being asked.
+
+  The sub-line is the ledger's own monthly total, and **the words screen 23 uses
+  when there is no ledger** — not `empty_ledger/0`'s bare `—`. That dash is
+  right on screen 23, where it sits under an `Every month` label; standing alone
+  as a row sub-line beside *Nothing to add up yet*, *No goals set* and *Not set
+  up* it reads as a rendering fault, which is board 309's rule for this card
+  stated in its own words: *"A row missing its sub-line is not the same claim as
+  a row that has one and says the honest thing — the first reads as a rendering
+  fault, and the second as an answer. **Not set up** is what the page behind each
+  of them says."* Found by tapping the row on the emulator and reading the page
+  it opened, which says *No subscriptions yet*.
+
+  Not a figure either way: `£46.47 a month · 7 expenses` is what the Money row
+  beside it carried on every device until #45.
   """
-  @spec number_rows() :: [map()]
-  def number_rows do
-    [
-      %{
-        id: :activity,
-        icon: "history",
-        title: gettext("Activity log"),
-        sub: Kati.Screens.Stats.entries_count()
-      },
-      %{
-        id: :subscriptions,
-        icon: "subscriptions",
-        title: gettext("Subscriptions"),
-        sub: Kati.Screens.Stats.subscriptions_line()
-      }
-    ]
+  @spec with_subscriptions([map()]) :: [map()]
+  def with_subscriptions(rows) do
+    rows ++
+      [
+        %{
+          id: :subscriptions,
+          icon: "subscriptions",
+          title: gettext("Subscriptions"),
+          sub: Kati.Screens.Stats.subscriptions_line()
+        }
+      ]
   end
 
   @doc """
@@ -846,6 +900,143 @@ defmodule Kati.Screens.Stats do
     end
   rescue
     _error -> gettext("No subscriptions yet")
+  end
+
+  # The one row of the five whose second line this app can actually answer.
+  #
+  # `1,204 entries` was `Kati.Stats.Sample`'s on every device — a specific claim
+  # about the reader's own history, of exactly the kind a fixture must
+  # not make, sitting on a phone that may hold four watches. It is the
+  # activity log's own count, read off the log — see `entries_count/0`.
+  #
+  # The other four stay the drawing's, and the moduledoc's reason stands for
+  # them: Habits, Nutrition and Money have no resource behind them at all, and a
+  # card with one real line among three stand-ins would be harder to read as a
+  # stand-in card than one that is wholly frozen. What changes here is that the
+  # line the app CAN answer is no longer among the frozen ones.
+  # The rest of the frozen-figure defect. Four rows carried the drawing's own
+  # figures on every device — `4 active · 12-day best`, `Cutting v3 · 86%`,
+  # `3 active · 38 of 52 books`, `£46.47 a month · 7 expenses` — beside one
+  # that counts. Two of the four can be counted now and are; the other two
+  # cannot and say nothing rather than saying somebody else's numbers, which
+  # is the call #75 made on screen 92 and #58 on screen 15.
+  defp entries_line(%{id: :activity} = row) do
+    %{row | sub: Kati.Screens.Stats.entries_count()}
+  end
+
+  defp entries_line(%{id: :goals} = row), do: %{row | sub: Kati.Screens.Stats.goals_line()}
+  defp entries_line(%{id: :money} = row), do: %{row | sub: Kati.Screens.Stats.money_line()}
+  defp entries_line(%{id: :health} = row), do: %{row | sub: Kati.Screens.Stats.weight_line()}
+
+  # `Kati.Habits` is a `Sample` module and nothing else — no resource, no
+  # table — and `Nutrition`'s `Cutting v3 · 86%` is a diet plan, which
+  # `Kati.Health` holds no column for either. Both rows stay, because the row
+  # is the door to a page that exists; what goes is the figure.
+  #
+  # `nil` until board 309, which is the half this got wrong: *"The row was
+  # shipping with no second line while every other row on the page carried
+  # one."* A row missing its sub-line is not the same claim as a row that has
+  # one and says the honest thing — the first reads as a rendering fault, and
+  # the second as an answer. **Not set up** is what the page behind each of them
+  # says, which is 309's rule for the whole card.
+  # The ID, not the drawn title. `Kati.Stats.Sample.more_numbers/0` has
+  # translated its titles since mishka-group/kati#103, so this clause matched
+  # two English words and no Persian ones: on board 61 Habits and Nutrition fell
+  # through to the drawing's frozen `4 active · 12-day best` and
+  # `Cutting v3 · 86%`, which is the very defect the clause was written to
+  # close, restored by translating the thing it was keyed on.
+  defp entries_line(%{id: id} = row) when id in [:habits, :nutrition],
+    do: %{row | sub: gettext("Not set up")}
+
+  defp entries_line(row), do: row
+
+  @doc """
+  `3 active` — the goals the reader is running, counted.
+
+      iex> is_binary(Kati.Screens.Stats.goals_line())
+      true
+  """
+  @spec goals_line() :: String.t()
+  def goals_line do
+    case Kati.Goals.Goal |> Ash.read!() |> length() do
+      # Board 309's wording, which says what 105 says: the count runs whether or
+      # not a goal has been set, so *none set* is not *nothing counted*.
+      0 -> gettext("No goals set — Kati counts anyway")
+      n -> ngettext("%{n} goal", "%{n} goals", n, n: Kati.Locale.number(n))
+    end
+  rescue
+    _error -> gettext("None set")
+  end
+
+  @doc """
+  `76.0 kg` — the reader's latest weight, or the absence of one.
+
+  Board 61's third *More numbers* row, which the English card does not have:
+  screen 42 is the Health hub in English and Persian has no such page, so
+  screen 61's own moduledoc calls this row the route. It drew **۷۶٫۰ کیلوگرم**
+  frozen on every device, which is the frozen-figure defect on the one
+  row of the three that has a resource behind it — `Kati.Health.Reading` —
+  and `Kati.Screens.Weight.latest/0` is the reader that answers it.
+  """
+  @spec weight_line() :: String.t()
+  def weight_line do
+    if Kati.Screens.Weight.stored?() do
+      latest = Kati.Screens.Weight.latest()
+
+      gettext("%{figure} %{unit}",
+        figure: Kati.Locale.number(latest.figure),
+        unit: latest.unit
+      )
+    else
+      # 309's rule for a row whose page has nothing in it: the row stays,
+      # because it is the door to a page that exists, and the figure goes.
+      #
+      # `stored?/0` and not `entries() == []`, which is what this asked and
+      # which is never true: screen 110 falls back to its drawing on an empty
+      # store, so the guard took the other branch on every device and this row
+      # reported the drawing's **76.0 kg** to somebody who has never been
+      # weighed. The function's own doc says it was written against exactly
+      # that defect.
+      gettext("Not set up")
+    end
+  rescue
+    _error -> gettext("Not set up")
+  end
+
+  @doc """
+  `£46.47 a month · 7 expenses` — the reader's own, both halves.
+
+  The subscription total is `Kati.Screens.MyServices`'s, read through the same
+  function screen 92's own Money row reads, so the two pages cannot disagree
+  about what a month costs.
+  """
+  @spec money_line() :: String.t()
+  def money_line do
+    total = Kati.Screens.MyServices.monthly_total()
+    n = Kati.Money.Expense |> Ash.read!() |> length()
+
+    [
+      # `Kati.Locale.ltr/1` on the total. It is a Latin money run — `£46.47` —
+      # and the currency mark is a neutral character to the bidi algorithm, so
+      # inside a Persian sentence it resolved right-to-left and the page drew
+      # **۴۶٫۴۷ £ در ماه** with the sign on the wrong side of its own figure.
+      if(total in [nil, "—"],
+        do: nil,
+        else: gettext("%{total} a month", total: Kati.Locale.ltr(total))
+      ),
+      if(n == 0,
+        do: nil,
+        else: ngettext("%{n} expense", "%{n} expenses", n, n: Kati.Locale.number(n))
+      )
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      # 309's wording for a money row at zero: what 123's page says of itself.
+      [] -> gettext("Nothing to add up yet")
+      parts -> Enum.join(parts, " · ")
+    end
+  rescue
+    _error -> gettext("Nothing added yet")
   end
 
   @doc """
@@ -1522,9 +1713,9 @@ defmodule Kati.Screens.Stats do
     Date.add(today, -back)
   end
 
-  # Five steps, because `Kati.Stats.Ramp.intensity/1` paints five. Four or more
-  # in a day is the heaviest square there is; the ramp has nowhere further to go
-  # and a busier day is not a different colour.
+  # Five steps, because `Kati.Stats.Ramp.intensity/1` paints five. Four or
+  # more in a day is the heaviest square there is; the ramp has nowhere further
+  # to go and a busier day is not a different colour.
   defp level(0), do: 0
   defp level(1), do: 1
   defp level(2), do: 2
@@ -1624,9 +1815,27 @@ defmodule Kati.Screens.Stats do
     end
   end
 
+  # The More numbers rows are the only route to these screens outside the
+  # gallery, which is scaffolding.
   @destinations %{
     "activity" => Kati.Screens.Activity,
+    "habits" => Kati.Screens.Habits,
+    "nutrition" => Kati.Screens.Health,
+    "goals" => Kati.Screens.Goals,
+    "money" => Kati.Screens.Money,
+    # Board 61's row, kept through the fold — see `Kati.Stats.Sample`. Screen
+    # 110 is the weight page itself rather than screen 42's hub, because the row
+    # names a reading and the hub is a menu.
+    "health" => Kati.Screens.Weight,
+    # Kati's own row rather than board 61's — see `with_subscriptions/1` for
+    # why cost per watched hour belongs on the page that counts the hours.
     "subscriptions" => Kati.Screens.Subscriptions
+    # `Recently watched` was here, and `more_numbers/1` rejects that row by
+    # name — so no `go_Recently watched` tag was ever emitted and the entry was
+    # dead code. Deleted rather than drawn: the row is
+    # rejected because this screen already shows those three watches in full
+    # one section down, and a numbers row that only counts them would be the
+    # page telling you twice.
   }
 
   @impl true

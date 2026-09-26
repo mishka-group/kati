@@ -1434,29 +1434,6 @@ defmodule Kati.DesignLiterals do
       {"09", "release · wishlisted"},
       {"09", "2 renewals"},
       {"09", "£22.98"},
-      # N52-D: board 07's and 61's *More numbers* rows for Habits, Nutrition,
-      # Goals, Money and Health open pages that still draw sample data, so the
-      # rows are not drawn; the card keeps Activity log and Subscriptions.
-      {"07", "goals"},
-      {"07", "habits"},
-      {"07", "nutrition"},
-      {"07", "money"},
-      {"07", "3 active · 38 of 52 books"},
-      {"07", "£46.47 a month · 7 expenses"},
-      {"61", "اهداف"},
-      {"61", "۳ هدف فعال"},
-      {"61", "۴۶٫۴۷ پوند در ماه"},
-      # N52-D: board 98's scope chips for sections that keep no watches of
-      # their own — they could only narrow the card to nothing. 99 and 103 are
-      # the same row with Books selected and in Persian.
-      {"98", "books"},
-      {"98", "music"},
-      {"98", "meals"},
-      {"98", "habits"},
-      {"99", "habits"},
-      {"103", "کتاب"},
-      {"103", "موسیقی"},
-      {"103", "وعده"},
       # N52-D: board 139's dashed footnote was the design's reasoning read to
       # the reader. 158 and 159 are the same page in Persian and in dark.
       {"139",

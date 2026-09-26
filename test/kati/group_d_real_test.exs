@@ -1,7 +1,8 @@
 defmodule Kati.GroupDRealTest do
   @moduledoc """
-  N52-D — Home, Stats and the share card draw the reader's own data, or an
-  honest empty state, and no door to a page that still draws sample data.
+  N52-D — Home's Sections row follows the sections the reader chose, empty
+  Home reads no design notes, and Stats and the share card draw the reader's
+  own year or an honest empty state.
 
   Each block writes into a transaction that is rolled back, so the store is
   exactly what the block says it is: nothing, or one watched film.
@@ -19,29 +20,52 @@ defmodule Kati.GroupDRealTest do
   @emptied ~w(media_events media_watches media_content_warnings tracked_titles cached_episodes cached_seasons cached_titles services event_occurrence_overrides events)
 
   describe "Home's Sections row follows the sections the reader chose" do
-    test "Screen and Books chosen: the Screen card and Settings, and nothing unchosen" do
+    test "Screen and Books chosen: those two cards and Settings, nothing unchosen" do
       :ok = Kati.Sections.put(["screen", "books"])
 
       texts = with_empty_store(fn -> texts_of(tree(mount_screen(Home))) end)
 
       assert "Screen" in texts
+      assert "Books" in texts
       assert "Settings" in texts
 
-      for word <- ["Meals", "Habits", "Books"] do
-        refute word in texts, "#{word} has a card on Home, and its page is not real yet"
+      for word <- ["Meals", "Habits", "Music", "Money"] do
+        refute word in texts, "#{word} has a card on Home, and nobody chose it"
       end
     end
 
-    test "every section chosen still draws only sections whose page is real" do
+    test "every section chosen: a card for each section with a page, then Settings" do
       :ok = Kati.Sections.put(Kati.Sections.all())
 
-      assert Enum.map(Home.tile_rows(), & &1.tag) == [:open_library, :open_settings]
+      assert Enum.map(Home.tile_rows(), & &1.tag) ==
+               [
+                 :open_library,
+                 :open_books,
+                 :open_music,
+                 :open_habits,
+                 :open_money,
+                 :open_settings
+               ]
     end
 
-    test "Screen not chosen: Settings alone" do
+    test "every card opens its section's page" do
+      socket = Mob.Socket.new(Home)
+
+      for {tag, module} <- [
+            {:open_books, Kati.Screens.Books},
+            {:open_music, Kati.Screens.Music},
+            {:open_habits, Kati.Screens.Habits},
+            {:open_money, Kati.Screens.Money}
+          ] do
+        {:noreply, moved} = Home.handle_tap(tag, socket)
+        assert {:push, ^module, _params} = moved.__mob__.nav_action
+      end
+    end
+
+    test "Screen not chosen: no Screen card" do
       :ok = Kati.Sections.put(["books"])
 
-      assert Enum.map(Home.tile_rows(), & &1.title) == ["Settings"]
+      assert Enum.map(Home.tile_rows(), & &1.title) == ["Books", "Settings"]
     end
 
     test "the Screen card opens the Library the way the dock does" do
@@ -71,27 +95,7 @@ defmodule Kati.GroupDRealTest do
     end
   end
 
-  describe "Stats' More numbers" do
-    test "draws the activity log and subscriptions, and no row into a sample page" do
-      words = with_empty_store(fn -> text(tree(mount_screen(Stats))) end)
-
-      assert words =~ "Activity log"
-      assert words =~ "Subscriptions"
-
-      for title <- ["Habits", "Nutrition", "Goals", "Money", "Health"] do
-        refute words =~ title
-      end
-    end
-
-    test "a hidden row's tag no longer opens its sample page" do
-      socket = Mob.Socket.new(Stats)
-
-      for tag <- [:go_habits, :go_nutrition, :go_goals, :go_money, :go_health] do
-        {:noreply, moved} = Stats.handle_tap(tag, socket)
-        assert Map.get(moved.__mob__, :nav_action) == nil, "#{tag} still navigates"
-      end
-    end
-
+  describe "Stats" do
     test "with one film watched, the year is that film's" do
       words =
         with_empty_store(fn ->
@@ -103,6 +107,11 @@ defmodule Kati.GroupDRealTest do
       assert words =~ "Harbour"
       assert words =~ "1 entry"
       refute words =~ "312h 40m"
+    end
+
+    test "the grid's colours come from the ramp, not the sample" do
+      assert Kati.Stats.Ramp.intensity(0) == Kati.Stats.Sample.intensity(0)
+      assert Kati.Stats.Ramp.intensity(4) == Kati.Stats.Sample.intensity(4)
     end
   end
 
@@ -135,16 +144,6 @@ defmodule Kati.GroupDRealTest do
 
       assert shown == YearShare.empty_share()
       refute shown == YearShare.drawn_share()
-    end
-
-    test "offers the scopes that can hold something: All and Screen" do
-      assert Enum.map(YearShare.scope_options(), &elem(&1, 0)) == [:all, :screen]
-
-      words = inspect(YearShare.scopes(:all), limit: :infinity)
-
-      for word <- ["Books", "Music", "Meals", "Habits"] do
-        refute words =~ word
-      end
     end
   end
 

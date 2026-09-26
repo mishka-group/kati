@@ -178,9 +178,6 @@ defmodule Kati.Screens.Home do
   # The design's own three posters, in the order it stacks them.
   @hero_seeds ~w(ashfall42 marram15 harbour86)
 
-  # The sections whose page reads the reader's own data. See `tile_rows/0`.
-  @real_sections ~w(screen)
-
   @impl true
   def load(socket) do
     timeline = Kati.Calendars.Today.rows()
@@ -491,18 +488,15 @@ defmodule Kati.Screens.Home do
   end
 
   @doc """
-  The Sections row: one card per section the reader keeps whose page is real,
-  then Settings.
+  The Sections row: one card per section the reader keeps, then Settings.
 
   The row drew *Meals*, *Habits* and *Settings* whatever the reader had
   chosen, so somebody who kept Screen and Books on the first run was offered
-  two sections they never picked and not the one they did (N52-D). It follows
-  `Kati.Sections.chosen/0` now, and a section is drawn only when its page reads
-  the reader's own data: `@real_sections` is that list, and Screen — films,
-  series and anime, which open on the Library — is the only section in it. The
-  other sections still show sample pages, so a card that opened one would hand
-  the reader somebody else's data. A section joins `@real_sections` when its
-  page does.
+  two sections they never picked and not the ones they did (N52-D). It follows
+  `Kati.Sections.chosen/0` now, in the order the first run lists them: a kept
+  section with a page gets a card that opens it, and an unchosen one gets
+  none. Notes has no page yet, so it has no card. Meals is not a section the
+  first run offers, so it has no card either.
 
   Settings is not a section and is always drawn: this card is the one route
   into it.
@@ -515,8 +509,8 @@ defmodule Kati.Screens.Home do
   def tile_rows do
     sections =
       Kati.Sections.chosen()
-      |> Enum.filter(&(&1 in @real_sections))
       |> Enum.map(&section_tile/1)
+      |> Enum.reject(&is_nil/1)
 
     sections ++
       [
@@ -531,16 +525,15 @@ defmodule Kati.Screens.Home do
       ]
   end
 
-  defp section_tile("screen") do
-    %{
-      section: "screen",
-      icon: "movie",
-      title: gettext("Screen"),
-      meta: nil,
-      dot: nil,
-      tag: :open_library
-    }
-  end
+  defp section_tile("screen"), do: tile_for("screen", "movie", gettext("Screen"), :open_library)
+  defp section_tile("books"), do: tile_for("books", "menu_book", gettext("Books"), :open_books)
+  defp section_tile("music"), do: tile_for("music", "graphic_eq", gettext("Music"), :open_music)
+  defp section_tile("habits"), do: tile_for("habits", "bolt", gettext("Habits"), :open_habits)
+  defp section_tile("money"), do: tile_for("money", "payments", gettext("Money"), :open_money)
+  defp section_tile(_no_page), do: nil
+
+  defp tile_for(section, icon, title, tag),
+    do: %{section: section, icon: icon, title: title, meta: nil, dot: nil, tag: tag}
 
   # ── The drawing's own values, which nothing on a device reaches ─────────────
 
@@ -1259,21 +1252,42 @@ defmodule Kati.Screens.Home do
         n: Kati.Locale.number(count)
       )
 
+  # Three tiles to a row, because screen 01 draws three a third wide each and
+  # Mob has no wrap. A last row with fewer cards holds the rest of the width
+  # open rather than stretching one card across the page, which is
+  # `cards_in_row/1`'s rule one band up.
   @doc false
   def sections(tiles) do
+    rows =
+      tiles
+      |> Enum.chunk_every(3)
+      |> Enum.map(&Kati.Screens.Home.tile_row/1)
+      |> Enum.intersperse(Kati.Screens.Home.tile_row_gap())
+
+    assigns = %{rows: rows}
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        {Kati.Screens.Home.tiles(tiles)}
-      </Row>
+      {@rows}
       <Spacer size={26} />
     </Column>
     """
   end
 
-  # Three slots, because screen 01 draws three tiles a third wide each. A row
-  # with fewer cards holds the rest of the width open rather than stretching
-  # one card across the page, which is `cards_in_row/1`'s rule one band up.
+  @doc false
+  def tile_row(tiles) do
+    assigns = %{tiles: Kati.Screens.Home.tiles(tiles)}
+
+    ~MOB"""
+    <Row fill_width={true} align="top">
+      {@tiles}
+    </Row>
+    """
+  end
+
+  @doc false
+  def tile_row_gap, do: ~MOB"<Spacer size={9} />"
+
   @doc false
   def tiles(rows) do
     empty = List.duplicate(Kati.Screens.Home.half(), max(3 - length(rows), 0))
@@ -1683,6 +1697,15 @@ defmodule Kati.Screens.Home do
   # `:root_library` and one tag on two nodes is one name for two controls.
   def handle_tap(:open_library, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
+
+  def handle_tap(:open_books, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+
+  def handle_tap(:open_music, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+
+  def handle_tap(:open_money, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Money)}
 
   def handle_tap(:open_meals, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}

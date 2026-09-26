@@ -431,12 +431,10 @@ defmodule Kati.ScreenHomeEmptyStateTest do
       refute "Nothing chosen yet" in texts,
              "Home told a person who kept every section that they had chosen none"
 
-      assert "Screen" in texts,
+      assert "Habits" in texts,
              "a section this person kept has no card on the page they land on"
 
-      refute "Habits" in texts,
-             "Habits is kept but its page still draws sample data, so Home offers no door " <>
-               "to it (N52-D)"
+      assert "Screen" in texts
 
       # And the reason the inversion above is safe rather than a regression:
       # every band on the page they now land on is a read, so an empty store
@@ -637,9 +635,9 @@ defmodule Kati.ScreenHomeEmptyStateTest do
       texts = with_empty_store(fn -> answered_home_texts() end)
 
       assert "Screen" in texts
+      assert "Habits" in texts
       assert "Settings" in texts
-      refute "Meals" in texts
-      refute "Habits" in texts
+      refute "Meals" in texts, "Meals is not a section the first run offers (N52-D)"
 
       refute "Dinner 19:30" in texts,
              "screen 43 owns the day's meals and has its own active-plan gate; Home reached " <>

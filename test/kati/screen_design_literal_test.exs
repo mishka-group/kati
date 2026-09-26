@@ -265,14 +265,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
-    # N52-D: the More numbers rows whose pages still draw sample data, and
-    # board 139's footnote — see `DesignLiterals.retired_lines/0`.
-    {"07", "bolt"},
-    {"07", "checklist"},
-    {"07", "nutrition"},
-    {"07", "payments"},
-    {"61", "checklist"},
-    {"61", "payments"},
+    # N52-D: board 139's footnote — see `DesignLiterals.retired_lines/0`.
     {"139", "info"},
     {"158", "info"},
     {"159", "info"},
@@ -1033,6 +1026,39 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.Screens.Activity.entries_line/1`'s wording either way, and both
       # ends of the range are asserted in `Kati.ScreenStatsTest` and
       # `Kati.ScreenStatsEmptyTest`.
+      {
+        "07",
+        "3 active · 38 of 52 books",
+        "the reader's own goals, which board 07 froze at the drawing's three and " <>
+          "`Kati.Screens.Stats.goals_line/0` now counts",
+        # Board 309 reworded the zero: *No goals set — Kati counts anyway*, which
+        # is what page 105 says of itself. A row's second line at zero is an
+        # ANSWER on that board, not an absence.
+        ~r/^(no goals set — kati counts anyway|1 goal|\p{N}[\p{N},]* goals)$/u
+      },
+      {
+        "07",
+        "£46.47 a month · 7 expenses",
+        "the reader's own subscriptions and expenses, which board 07 froze at the drawing's " <>
+          "and `Kati.Screens.Stats.money_line/0` now reads — through the same function " <>
+          "screen 92's Money row reads, so the two pages cannot disagree",
+        # `nothing to add up yet` joins the list: `monthly_total/0` answers `"—"`
+        # on a device with no services rather than the drawing's £46.47, so an
+        # empty store reaches the zero wording instead of the rescue's.
+        ~r/^(nothing added yet|nothing to add up yet|.*a month.*|\p{N}+ expenses?)$/u
+      },
+      # 61's two, which are 07's read in Persian — the same rows, since
+      # mishka-group/kati#103 folded the mirror away and board 61 became screen
+      # 07 under `:fa`. They were ۳ هدف فعال and ۴۶٫۴۷ پوند در ماه frozen on
+      # every device, the frozen-figure defect two rows at once. The third,
+      # ۷۶٫۰ کیلوگرم, is the row board 61 has and board 07 does not; it survived
+      # the fold with `Kati.Screens.Stats.weight_line/0` behind it, and
+      # `Kati.Stats.Sample.more_numbers/0` carries the argument.
+      {"61", "۳ هدف فعال", "the reader's own goals, which board 61 froze at the drawing's three",
+       ~r/^(هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد|\p{N}+ هدف|تعیین نشده)$/u},
+      {"61", "۴۶٫۴۷ پوند در ماه",
+       "the reader's own subscriptions and expenses, which board 61 froze at the drawing's",
+       ~r/^(هنوز چیزی برای جمع‌زدن نیست|.*در ماه.*|\p{N}+ هزینه)$/u},
       {"07", "1,204 entries",
        "the size of the reader's own history, which board 07 froze at 1,204 and " <>
          "`Kati.Screens.Stats.entries_count/0` now counts",

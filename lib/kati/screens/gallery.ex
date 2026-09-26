@@ -619,17 +619,76 @@ defmodule Kati.Screens.Gallery do
     # Library → Music → an album tile → Rate (album_detail.ex:52,945).
     "180",
     # ── The meal pages. Home → Meals, and the tiles on the day.
+    # Home → the Meals tile (home.ex:1372); also Health → the Meals card.
+    "43",
+    # Meals today → the Week tile, or the calendar_view_week disc
+    #   (meals_today.ex:1377,1382).
+    "44",
+    # Meals today → any meal card on the day's timeline
+    #   (meals_today.ex:1220,1481).
+    "45",
+    # Meals today → a meal card's Swap button (meals_today.ex:1200,1419); also
+    #   Meal → the swap disc.
+    "46",
+    # Meals today → the Nutrition tile (meals_today.ex:1432).
+    "47",
+    # Meals today → the Shop tile (meals_today.ex:1386).
+    "48",
+    # Meals today → the Plan tile or the plan-name pill
+    #   (meals_today.ex:1438,1441); also Meal plan → the edit disc.
+    "49",
+    # Plans → the ⋯ disc on the active plan card (plans.ex:410).
+    "50",
+    # Meals today → ⋯ → Reminders (meals_today.ex:1454); also Notifications →
+    #   a held meal reminder.
+    "51",
     # Schedule → ⋯ → Meals on the calendar (calendar.ex:1274); also Meals
     #   today → See tomorrow.
     "52",
+    # Meals today → the Library tile (meals_today.ex:1380).
+    "116",
+    # Meal library → the + disc for a new meal, or a meal tile to edit one
+    #   (meal_library.ex:609,627).
+    "118",
+    # Create or edit a meal → Add an ingredient, or an ingredient row
+    #   (meal_edit.ex:798,800,856).
+    "119",
+    # Plans → the Import a plan row (plans.ex:92,407).
+    "120",
+    # Plans → Share a plan → Print the week (plan_share.ex:266,362).
+    "121",
     # ── Health, habits and weight. Stats → More numbers, and Health's own tiles.
     # Stats → More numbers → Habits (stats.ex:1407); also Home's Habits
     #   shortcut and Health's Habits tile.
     "22",
+    # Stats → More numbers → Nutrition (stats.ex:1408) — the only non-gallery
+    #   door, and it survives a fresh install.
+    "42",
+    # Stats → More numbers → Nutrition → Health → the Weight tile
+    #   (health.ex:937,1102).
+    "109",
+    # Health → Weight → the + disc (weight.ex:475).
+    "111",
+    # Health → the Medication tile (health.ex:1105); also Notifications → a
+    #   health reminder.
+    "112",
     # Health → the dashed Sleep or Workouts tile (health.ex:1111,1145); also
     #   Auto-detect → the Browser extension tile.
     "114",
-    # ── Money.
+    # Health → Medication → the + disc in the header (medication.ex:1330).
+    "188",
+    # Health → Medication → a row in the Schedules band
+    #   (medication.ex:1080-1088,1351).
+    "189",
+    # ── Goals. Stats → More numbers → Goals.
+    # Stats → More numbers → Goals (stats.ex:1409).
+    "104",
+    # Stats → More numbers → Goals → the + disc (goals.ex:269,520).
+    "106",
+    # ── Money. Stats → More numbers → Money.
+    # Stats → More numbers → Money (stats.ex:1410) — the only non-gallery
+    #   door.
+    "122",
     # Schedule → ⋯ → Quick add → the Expense chip in the file-as row
     #   (quick_add.ex:301,343).
     "124",
@@ -696,6 +755,10 @@ defmodule Kati.Screens.Gallery do
     # Persian Library → a poster tile (library_fa.ex:964); also Persian Search
     #   → a result.
     "58",
+    # Persian Home → the وعده‌ها tile (home_fa.ex:1060).
+    "59",
+    # Persian Home → وعده‌ها → امروز → the week disc (today_fa.ex:711).
+    "60",
     # Persian dock → the آمار tab (fa.ex:129,458).
     "61",
     # Persian Home → the تنظیمات tile (home_fa.ex:1063); also the Persian
@@ -724,6 +787,12 @@ defmodule Kati.Screens.Gallery do
     "97",
     # Persian Stats → the share disc (stats.ex).
     "103",
+    # Persian Stats → the اهداف card (stats.ex).
+    "108",
+    # Persian Stats → the سلامت card (stats.ex).
+    "115",
+    # Persian Stats → the پول card (stats.ex).
+    "127",
     # Persian first run → the بازگردانی link on 164/137, or the Persian empty
     #   Home's restore invitation (home_fa_empty.ex:309).
     "132",
@@ -743,11 +812,6 @@ defmodule Kati.Screens.Gallery do
     "166",
     # Persian Library → the کتاب‌ها segment (library_fa.ex:931).
     "176"
-    # (N52-D: the meal, health, goals and money pages — 42-51, 59, 60, 104,
-    # 106, 108, 109, 111, 112, 115, 116, 118-122, 127, 188, 189 — were here,
-    # reached through Home's Meals tile and Stats' More numbers rows. Those
-    # pages still draw sample data, so both doors are hidden until the sections
-    # are real, and the pages are back on the gallery.)
   ]
 
   @doc false

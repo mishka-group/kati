@@ -1201,6 +1201,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # the *More numbers* list whose second lines are read rather than drawn.
     {"61", "61", "سال شما"},
     {"61", "61", "اعداد بیشتر"},
+    {"61", "61", "اهداف"},
     {"28", "139", "Nothing scheduled"},
     {"28", "139", "add anything with +"},
     # Board 317 gave screen 55 the gate 139 gives screen 01, so a Persian
@@ -3237,6 +3238,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.ScreenDesignLiteralTest` carries the same pair with the full
       # reasoning; this list is that one's shorter twin.
       {"62", "ایران · ۳ سرویس", ~r/^.+ · (هنوز هیچ‌کدام|\p{N}+ اشتراک)$/u},
+      # 61's three More numbers rows, which are 07's two in Persian plus the
+      # weight row Persian has no Health hub to reach. `Kati.ScreenDesignLiteralTest`
+      # carries the same three with the full reasoning; this list is that one's
+      # shorter twin.
+      {"61", "۳ هدف فعال", ~r/^(هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد|\p{N}+ هدف|تعیین نشده)$/u},
+      {"61", "۴۶٫۴۷ پوند در ماه", ~r/^(هنوز چیزی برای جمع‌زدن نیست|.*در ماه.*|\p{N}+ هزینه)$/u},
       # 80's two cache figures, neither of which exists on a device with an
       # empty database. Its provider-supplied *Connected as* line went with the
       # group it sat in (N41) — see `DesignLiterals.retired_lines/0`.

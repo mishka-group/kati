@@ -291,7 +291,7 @@ defmodule Kati.Screens.YearShare do
       false
   """
   # `atom()` first, because that is what a chip's tap resolves to — `pick_scope/2`
-  # matches the tapped key against `scope_options/0` and assigns
+  # matches the tapped key against `Kati.Stats.ShareSample.scopes/0` and assigns
   # the ATOM, and all four doctests below pass one. The spec said `String.t()`
   # alone, which contradicted every one of them; the string half is kept because
   # `in_scope?/2`'s last clause deliberately answers `false` for a scope it does
@@ -366,25 +366,10 @@ defmodule Kati.Screens.YearShare do
   @spec shown(map()) :: map()
   def shown(assigns), do: assigns[:share] || Kati.Screens.YearShare.empty_share()
 
-  @doc """
-  The scope chips, as `{key, label}`: *All* and *Screen*.
-
-      iex> Kati.Screens.YearShare.scope_options() |> Enum.map(&elem(&1, 0))
-      [:all, :screen]
-
-  Board 98 also draws Books, Music, Meals and Habits. Those sections keep no
-  watches of their own yet, so their chips could only ever narrow the card to
-  nothing; they are not drawn until the sections are real (N52-D).
-  """
-  @spec scope_options() :: [{atom(), String.t()}]
-  def scope_options, do: [{:all, gettext("All")}, {:screen, gettext("Screen")}]
-
-  @doc "Take a scope chip's tap, if it names one of the chips."
+  @doc "Take a scope chip's tap, if it names one of the six."
   @spec pick_scope(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def pick_scope(socket, key) do
-    case Enum.find(Kati.Screens.YearShare.scope_options(), fn {k, _l} ->
-           Atom.to_string(k) == key
-         end) do
+    case Enum.find(Kati.Stats.ShareSample.scopes(), fn {k, _l} -> Atom.to_string(k) == key end) do
       {scope, _label} ->
         socket |> Mob.Socket.assign(:scope, scope) |> Kati.Screens.YearShare.restated()
 
@@ -416,7 +401,7 @@ defmodule Kati.Screens.YearShare do
   @spec scopes(atom()) :: map()
   def scopes(active) do
     chips =
-      Kati.Screens.YearShare.scope_options()
+      ShareSample.scopes()
       |> Enum.map(fn {key, label} ->
         UI.chip(label,
           selected: key == active,
