@@ -1,3 +1,5 @@
+Code.require_file("../support/drawn_boards.exs", __DIR__)
+
 defmodule Kati.ScreenLibraryEmptyTest do
   @moduledoc """
   Screen 03 on a fresh device: the emptiness the design draws, and no films.
@@ -116,7 +118,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
       # The fixture is untouched and still holds nine — so the assertion above
       # is about the screen's read and not about an emptied Sample module.
       assert length(Sample.titles()) == 9
-      assert length(Library.drawn_titles()) == 9
+      assert length(Kati.Test.DrawnBoards.library_titles()) == 9
     end
   end
 

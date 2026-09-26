@@ -1,3 +1,5 @@
+Code.require_file("../support/drawn_boards.exs", __DIR__)
+
 defmodule Kati.MyServicesGateTest do
   @moduledoc """
   Screen 92 answers the same question Home does.
@@ -58,9 +60,9 @@ defmodule Kati.MyServicesGateTest do
       # answers empty must not have answered by losing the values its board was
       # captured from. `drawn_page/0` is the arrival board 92 is a drawing OF,
       # and `Kati.ScreenDesignLiteralTest.drawn_state/0` installs it.
-      assert MyServices.drawn_page().subscribed == Sample.subscribed()
-      assert MyServices.drawn_page().free == Sample.free()
-      assert MyServices.drawn_page().set_up?
+      assert Kati.Test.DrawnBoards.services_page().subscribed == Sample.subscribed()
+      assert Kati.Test.DrawnBoards.services_page().free == Sample.free()
+      assert Kati.Test.DrawnBoards.services_page().set_up?
     end
 
     test "Settings says none yet too, where its board froze three" do

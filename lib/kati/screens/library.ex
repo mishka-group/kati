@@ -41,7 +41,7 @@ defmodule Kati.Screens.Library do
   ## A database with no library draws the emptiness, not nine invented films
 
   This screen used to answer an empty shelf with `drawn_titles/0` — the nine
-  titles `Kati.Library.Sample` holds — on the argument that *missing data is
+  titles board 03 draws — on the argument that *missing data is
   not a reason for a blank screen* and that a Library rendered empty could not
   be compared with the drawing. Both halves were wrong in the way that matters
   to a person rather than to a capture:
@@ -63,10 +63,10 @@ defmodule Kati.Screens.Library do
       one thing that fixes it — never render a plausible-looking zero."*
 
   So `titles/0` is the shelf and nothing else, and `shelf_body/3` puts screen
-  27's card where the chips and the grid go. `drawn_titles/0` and
-  `Kati.Library.Sample` are untouched and are no longer reachable from a
-  render: they are what screen 03's own drawing was captured from, and the
-  fixture the shelf tests build their "rows present" half against.
+  27's card where the chips and the grid go. The nine drawn titles are no
+  longer this module's at all: the board's fixture lives in
+  `test/support/drawn_boards.exs`, which is the only place a test builds the
+  "rows present" half from, and nothing in this file can reach it.
 
   ### What the empty branch keeps, and why
 
@@ -99,7 +99,6 @@ defmodule Kati.Screens.Library do
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaProgress
-  alias Kati.Library.Sample
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
@@ -364,7 +363,7 @@ defmodule Kati.Screens.Library do
 
   `id` is the tracked row's own, and it is the only field here that is an
   identity rather than a caption: it is what a tapped tile carries to the screen
-  it opens. `Kati.Library.Sample`'s rows do not pass through here and so do not
+  it opens. The board's drawn rows do not pass through here and so do not
   have one, which is how `open_tile/3` tells a shelf tile from a drawn one.
 
   `cached` may be `nil` and `ticks` may be zero; both are ordinary states and
@@ -520,7 +519,16 @@ defmodule Kati.Screens.Library do
 
   # A series divides ticks by the episode total; a film divides its resume point
   # by its runtime. Anything either half cannot answer is nil, never a guess.
-  defp fraction_for(%TrackedTitle{kind: :movie} = tracked, cached, _ticks, seen) do
+  # A film by `Kati.Media.Anime.film?/2`, as `meta_for/4` asks it: an anime
+  # film is tracked as `:anime`, and asking `kind == :movie` left its rail
+  # empty however many times it was logged.
+  defp fraction_for(%TrackedTitle{} = tracked, cached, ticks, seen) do
+    if Kati.Media.Anime.film?(tracked.kind, cached),
+      do: film_fraction(tracked, cached, seen),
+      else: cached |> CachedTitle.progress(ticks) |> CachedTitle.ratio()
+  end
+
+  defp film_fraction(tracked, cached, seen) do
     seconds = tracked.progress_seconds
     minutes = cached && cached.runtime_minutes
 
@@ -540,46 +548,6 @@ defmodule Kati.Screens.Library do
       true ->
         nil
     end
-  end
-
-  defp fraction_for(%TrackedTitle{}, cached, ticks, _seen) do
-    cached |> CachedTitle.progress(ticks) |> CachedTitle.ratio()
-  end
-
-  @doc """
-  The nine titles `test/design/screens/03.html` draws, in its own order.
-
-  **No longer reachable from a render.** It was `titles/0`'s empty-shelf
-  answer until #91; it is now what the drawing was captured from and the
-  fixture the shelf tests build a full grid out of, and nothing on a device
-  reaches it. See the moduledoc for why an empty shelf draws screen 27's card
-  instead.
-
-  Stand-in data, and marked as such — `Kati.Library.Sample`'s moduledoc says so
-  at length. What is NOT stand-in is the set of states: three titles not
-  started, four part-watched and two finished, which is every chip the design
-  draws and every branch of `tile_meta/1`.
-
-  Each row is given the `status` a real one carries, so `visible/3`,
-  `chip_counts/1` and `subtitle/1` ask one question of both kinds of row and
-  cannot answer it two different ways.
-  """
-  @spec drawn_titles() :: [map()]
-  def drawn_titles, do: Enum.map(Sample.titles(), &with_status/1)
-
-  # The Sample rows predate `Kati.Media.TrackedTitle` and carry a fraction where
-  # a real row carries a status. The mapping is the one the chips used to make
-  # inline — 0 is not started, 1 is finished, anything between is watching — so
-  # the counts and the filtered grid are unchanged to the pixel.
-  defp with_status(%{progress: progress} = row) do
-    status =
-      cond do
-        progress <= 0.0 -> :not_started
-        progress >= 1.0 -> :finished
-        true -> :watching
-      end
-
-    Map.put(row, :status, status)
   end
 
   @doc false
@@ -761,7 +729,7 @@ defmodule Kati.Screens.Library do
   @doc """
   The header's mono subtitle: `9 titles · 4 in progress`.
 
-  Counted off the shelf rather than off `Kati.Library.Sample`, so the line and
+  Counted off the shelf rather than off the drawing, so the line and
   the grid under it can never disagree about how many titles there are.
   """
   @spec subtitle([map()]) :: String.t()
@@ -1118,10 +1086,8 @@ defmodule Kati.Screens.Library do
   Discover has always passed, so an empty shelf gets the drawing's own
   no-count tile rather than a zero the board never draws.
 
-  **Lists gets `nil` unconditionally.** There is no list resource anywhere in
-  `lib/kati` — `Kati.Screens.Lists` assigns `Sample.lists/0` outright — so
-  there is no number to be right. A count invented for a feature with no store
-  behind it cannot become true by being recomputed.
+  The *Lists* tile is counted the same way, off `Kati.Lists.Shelf.made/0` —
+  see `lists_kept/0` and `lists_badge/1`.
 
       iex> Kati.Screens.Library.up_next_badge([])
       nil
@@ -1567,7 +1533,7 @@ defmodule Kati.Screens.Library do
 
   The tracked row's id is unique by construction and bounded by the shelf, so
   it is the identity now. The title stays as the fallback for a row that has
-  no id — `Kati.Library.Sample`'s nine, and every drawing that reuses this —
+  no id — board 03's nine, and every drawing that reuses this —
   because a tile still has to be nameable when the store is not behind it.
 
       iex> Kati.Screens.Library.poster_tag(%{kind: :film, title: "Low Water"})
@@ -1626,7 +1592,7 @@ defmodule Kati.Screens.Library do
   with an id is named by the id and a row without one by its title, and the
   list is what knows which.
 
-  A row with no id — `Kati.Library.Sample`'s nine, and a tag that matches
+  A row with no id — board 03's nine, and a tag that matches
   nothing — pushes with **no params at all** rather than with `%{id: nil}`.
   That is `Kati.Screens.Calendar`'s rule for its own rows and its reason: a
   destination that pattern-matches on the key would otherwise take a `nil` for
@@ -1744,11 +1710,10 @@ defmodule Kati.Screens.Library do
   # frame the way a poster does; without it Coil letterboxes and the card
   # develops margins the design does not have.
   #
-  # `Kati.Design.Images.poster/1` rather than `Kati.Library.Sample.poster/1`
-  # — the Sample function is a one-line delegation to it, and the shelf's own
-  # seeds now arrive on `Kati.Media.CachedTitle.poster_path` (see `shaped/3`),
-  # so routing a real row's artwork through the fixture module would be a lie
-  # about where the value came from.
+  # `Kati.Design.Images.poster/1` directly: the shelf's own seeds arrive on
+  # `Kati.Media.CachedTitle.poster_path` (see `shaped/3`), so routing a real
+  # row's artwork through a fixture module would be a lie about where the value
+  # came from.
   @doc false
   def artwork(item) do
     case Kati.Design.Images.poster(item[:seed]) do
@@ -1885,9 +1850,8 @@ defmodule Kati.Screens.Library do
   # stopped being inert.
   # The sort disc, which board 145 has drawn a destination for since the shelf
   # wave landed. Bare, like screens 20 and 21's: `shelf_filters.ex:79` is
-  # `def mount(_params, _session, socket)` and its five sort rows come from
-  # `Kati.Library.ShelfFiltersSample.sort_options/0`, where `Runtime` is a
-  # literal — there is no key to name a shelf in, and writing one the sheet
+  # `def mount(_params, _session, socket)` and its five sort rows are one fixed
+  # list — there is no key to name a shelf in, and writing one the sheet
   # does not read is an argument nobody can check. When 145 learns which shelf
   # opened it, all four pushes gain a third argument together.
   #

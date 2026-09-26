@@ -1509,7 +1509,14 @@ defmodule Kati.DesignLiterals do
       {"158", "و همیشه زنده می‌مانند — پیش از آنکه برنامه تنظیم شود هم می‌شود از آن استفاده کرد."},
       {"159", "خانه صفحه‌ای از کارت‌های بخش‌هاست، پس بدون بخش چیزی برای نشان‌دادن ندارد."},
       {"159", "تقویم و افزودن سریع به بخش وابسته نیستند"},
-      {"159", "و همیشه زنده می‌مانند — پیش از آنکه برنامه تنظیم شود هم می‌شود از آن استفاده کرد."}
+      {"159", "و همیشه زنده می‌مانند — پیش از آنکه برنامه تنظیم شود هم می‌شود از آن استفاده کرد."},
+      # N52-C: board 05's Mark all is drawn only when an Out now row can be
+      # ticked, and the board's rows have no episode behind them. Board 92's
+      # credit named its page by board number, *credited on 83*; it names it
+      # by title now.
+      {"05", "mark all"},
+      {"92",
+       "which service carries what comes from justwatch, through tmdb. both are credited on"}
     ]
   end
 

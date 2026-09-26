@@ -1,3 +1,5 @@
+Code.require_file("../support/drawn_boards.exs", __DIR__)
+
 defmodule Kati.ScreenInboxTest do
   @moduledoc """
   Screen 05 reading `Kati.Media` instead of `Kati.Library.Sample`.
@@ -64,12 +66,12 @@ defmodule Kati.ScreenInboxTest do
       # `Kati.ScreenInboxEmptyTest` holds that board's own copy.
       refute Inbox.releases()
       assert Inbox.inbox().nothing_followed?
-      refute Inbox.inbox() == Inbox.drawn_inbox()
+      refute Inbox.inbox() == Kati.Test.DrawnBoards.inbox()
     end
 
     test "and draws none of the lines frame 05 holds" do
       words = text(tree(mount_screen(Inbox)))
-      drawn = Inbox.drawn_inbox()
+      drawn = Kati.Test.DrawnBoards.inbox()
 
       # The name survives — board 260 keeps it, and it is what
       # `Kati.ScreenEmptyDatabaseTest` quotes for this screen.
@@ -88,7 +90,7 @@ defmodule Kati.ScreenInboxTest do
       # `Kati.ScreenDesignLiteralTest.drawn_state/0` installs for board 05, so
       # every literal on that frame is still compared — against the page in the
       # state a reader reaches once they follow something.
-      drawn = Inbox.drawn_inbox()
+      drawn = Kati.Test.DrawnBoards.inbox()
 
       assert length(drawn.out_now) == 3
       assert length(drawn.coming_up) == 3
@@ -103,7 +105,7 @@ defmodule Kati.ScreenInboxTest do
 
       assert Inbox.inbox().out_now == []
       assert Inbox.inbox().coming_up == []
-      refute Inbox.inbox() == Inbox.drawn_inbox()
+      refute Inbox.inbox() == Kati.Test.DrawnBoards.inbox()
     end
   end
 
@@ -423,7 +425,7 @@ defmodule Kati.ScreenInboxTest do
 
   describe "the same three over the drawing" do
     test "carry no taps, because the board's rows have no episode behind them" do
-      drawn = Inbox.drawn_inbox()
+      drawn = Kati.Test.DrawnBoards.inbox()
 
       assert Inbox.tickable(drawn) == []
       assert Enum.all?(drawn.out_now, &(Inbox.watch_tap(&1) == nil))

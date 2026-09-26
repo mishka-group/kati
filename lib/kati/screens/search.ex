@@ -53,63 +53,18 @@ defmodule Kati.Screens.Search do
   reached from. `Home` is still what a push naming nothing gets, because it is
   the word board 19 draws.
 
-  ## Why this screen still reads `Kati.Screens.Search.Sample`
+  ## Where every hit comes from
 
-  Screen 03 moved onto `Kati.Media` (see `Kati.Screens.Library.shelf/0`), and
-  more of this screen could follow it than of any other still on a sample —
-  which is exactly why it has not. Its whole claim is **one query, four kinds
-  of answer**, and it has no way to ask the question.
+  `Kati.Search.Query.run/1` — the store, read on every keystroke: titles and
+  episodes from `Kati.Media`, events from `Kati.Calendars`, books from
+  `Kati.Books` and notes from `Kati.Media.Watch.review`. The chip counts are
+  counts of that result set (`Kati.Search.Query.chip_counts/1`), and the
+  recent shelf is `Kati.Search.Recent`, the reader's own queries. Nothing
+  typed is the idle page; a query that matched nothing is the *nothing found*
+  card, which offers TMDB and the hand-typed form with the query carried over.
 
-  The obvious blocker until this round was the one `Kati.Screens.Series` names
-  — `Kati.Media` had no episode, so the drawing's second Screen hit
-  (`Hollow Season · Episode · S2E5 · watched 12 Aug`) named a record nothing
-  stored. `Kati.Media.Watch` came close and still comes up short on its own:
-  `season_number` and `episode_number` are a label snapshot written at tick
-  time, so `S2E5` survives a cache wipe, and `watched_on` is the date, but no
-  row held the episode's **name**. That was never merely a blank in the row —
-  a search cannot *match* `hollow` against a name stored nowhere, so the hit
-  was unfindable rather than untitled, and `Kati.Screens.UpNext`'s `Untitled`
-  degradation had nothing to degrade from. `Kati.Media.CachedEpisode` lands
-  that name this round.
-
-  It is worth being exact about what that does and does not settle. It makes
-  the episode row **drawable**; it does not make it **findable**, and this is
-  a search screen. What no resource expresses is the search itself:
-
-    * **`hollow` in the field** — the query. Nothing stores one and no action
-      takes one. There is no index and no read action anywhere that matches a
-      title, an episode, an event or a review by substring; every existing
-      read is an equality filter on an id, a kind or a status. The screen is
-      drawn mid-query against a query nothing can run.
-    * **the chip counts `6 / 3 / 2 / 1`** — counts of what the query matched
-      across the whole result set, not of what each group has room to draw.
-      `Kati.Screens.Search.Sample.chips/0` is explicit that deriving them from
-      the drawn rows turns the drawing's 6 and 3 into 5 and 2. Without a
-      matched set there is nothing to count.
-    * **the recent shelf** — `dentist`, `leaving soon`, `ines karvel`,
-      `4 stars`. Query history is stored nowhere.
-
-  Every **field** each group draws does exist, and that is the shape of the
-  gap: the columns are all there and nothing can select the rows.
-
-    * **the Screen group** — `Series · S2 · watching` is
-      `Kati.Media.CachedTitle.kind`, `Kati.Media.TrackedTitle.progress_season`
-      and `status`; the episode row's name, runtime and air date are
-      `Kati.Media.CachedEpisode`.
-    * **the Calendar group** — `Kati.Calendars.Event.summary`, with
-      `dtstart_utc` giving both `20 AUG` and `20:00`.
-    * **the Notes group** — `Kati.Media.Watch.review` is the user's own note
-      about a title, `watched_on` is the `6 AUG` in its eyebrow, and the cache
-      row supplies `THE LONG HOLLOW`. Splitting the quoted line at the match is
-      what `note_lines/1` already does.
-
-  So this screen is not waiting on a column, the way screen 06 waits on a
-  release year. It is waiting on the one thing it is named after, and building
-  a half of it — Screen and Calendar answered for real, Notes and the recent
-  shelf still drawn — would be worse than waiting: a page whose six hits are
-  three real and three frozen reads as six real, which is the argument
-  `Kati.Screens.Series` makes about its own half-real card. It moves whole,
-  when there is an index to move it onto.
+  `drawn_results/0` and `drawn_recent/0` are board 19's transcription, and
+  only `Kati.ScreenDesignLiteralTest` installs them.
   """
   use Mob.Screen
   use Gettext, backend: Kati.Gettext

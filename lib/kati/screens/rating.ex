@@ -393,7 +393,9 @@ defmodule Kati.Screens.Rating do
 
   Only for a FILM. A series is finished when its last episode is ticked, which
   is a different fact and belongs with the tick that establishes it; logging a
-  watch of one episode says nothing about the other nine.
+  watch of one episode says nothing about the other nine. A film is asked of
+  `Kati.Media.Anime.film?/2` rather than of `kind == :movie`, because an anime
+  film is tracked as `:anime` and its cached row is what says it is a film.
 
   A failure here does not fail the watch. The log is the thing the person
   asked for and it is already written; a status that did not move is a wrong
@@ -402,7 +404,8 @@ defmodule Kati.Screens.Rating do
   @spec finish_title({:ok, struct()} | {:error, term()}, String.t()) ::
           {:ok, struct()} | {:error, term()}
   def finish_title({:ok, _watch} = written, tracked_id) do
-    with {:ok, %TrackedTitle{kind: :movie} = tracked} <- Ash.get(TrackedTitle, tracked_id) do
+    with {:ok, %TrackedTitle{} = tracked} <- Ash.get(TrackedTitle, tracked_id),
+         true <- Kati.Media.Anime.film?(tracked.kind, Kati.Media.Release.cached_for(tracked)) do
       tracked
       |> Ash.Changeset.for_update(:update, %{status: :finished})
       |> Ash.update()

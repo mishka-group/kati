@@ -533,7 +533,9 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MyServices, :rule_rentals},
     {Kati.Screens.MyServices, :rule_purchases},
     {Kati.Screens.MyServices, :rule_hide_unavailable},
-    {Kati.Screens.MyServices, :search},
+    # (`{Kati.Screens.MyServices, :search}` left this list with N52-C: the
+    # typing field's row carried a tag nothing answered, and it carries none
+    # now. 93's drawn field keeps its own, below.)
     # One entry per drawn service since #97 gave the rows their own names
     # (`Kati.Screens.MyServices.service_tag/1`). They are listed rather than
     # matched by prefix because that is what this list is: a control named here

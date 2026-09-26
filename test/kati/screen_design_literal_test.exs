@@ -1,4 +1,5 @@
 Code.require_file("../support/show_boards.exs", __DIR__)
+Code.require_file("../support/drawn_boards.exs", __DIR__)
 Code.require_file("../support/screen_sweep.exs", __DIR__)
 Code.require_file("../support/design_literals.exs", __DIR__)
 Code.require_file("../support/heavy_day.exs", __DIR__)
@@ -1601,7 +1602,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # drawing's three coming-up rows on the one page whose job is to say what
       # is new. `Kati.ScreenEmptyDatabaseTest`'s `@no_empty_board` holds that
       # half; this puts the screen in the state its own board was captured in.
-      {"05", Kati.Screens.Inbox, &Map.put(&1, :inbox, Kati.Screens.Inbox.drawn_inbox())},
+      {"05", Kati.Screens.Inbox, &Map.put(&1, :inbox, Kati.Test.DrawnBoards.inbox())},
       {"12", Kati.Screens.Lists,
        &Map.put(&1, :lists, %{Kati.Screens.Lists.Sample.lists() | kept: Kati.Lists.Shelf.kept()})},
       # 10 is drawn with a hero and four ready rows, which is a queue a reader
@@ -1841,7 +1842,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # and board 92 is captured from a reader who has picked one.
       {"92", Kati.Screens.MyServices,
        &(&1
-         |> Map.put(:services, Kati.Screens.MyServices.drawn_page())
+         |> Map.put(:services, Kati.Test.DrawnBoards.services_page())
          |> Map.put(:chosen_region, &1.region))},
       # 97 is 92 in Persian and reads through the same map, so it takes the
       # same arrival. `:on` rides with it: the switches are lit from the
@@ -1849,7 +1850,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # take its switches from there too.
       {"97", Kati.Screens.MyServices,
        fn assigns ->
-         drawn = Kati.Screens.MyServices.drawn_page()
+         drawn = Kati.Test.DrawnBoards.services_page()
 
          assigns
          |> Map.put(:services, drawn)
@@ -1874,12 +1875,12 @@ defmodule Kati.ScreenDesignLiteralTest do
            if row.shape == :airing, do: Map.put(row, :open?, true), else: row
          end)
        )},
-      {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
+      {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Test.DrawnBoards.library_titles())},
       # 57 is the same screen and the same state read under `:fa` since
       # mishka-group/kati#103. One entry, because `Kati.Library.Sample.titles/0`
       # is a FUNCTION over `gettext/1` rather than nine frozen strings — board
       # 57's گودال بلند and board 03's The Long Hollow are one msgid.
-      {"57", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
+      {"57", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Test.DrawnBoards.library_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so
       # its state is 01's with one entry fewer: board 28 has no Watching row and
       # no Sections band. `:moment` is deliberately NOT replaced — the date line

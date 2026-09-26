@@ -1,4 +1,5 @@
 Code.require_file("../support/show_boards.exs", __DIR__)
+Code.require_file("../support/drawn_boards.exs", __DIR__)
 Code.require_file("../support/screen_sweep.exs", __DIR__)
 Code.require_file("../support/design_literals.exs", __DIR__)
 Code.require_file("../support/heavy_day.exs", __DIR__)
@@ -1415,7 +1416,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # "Nothing queued", one body sentence and the back pill's chrome is
     # eleven strings, and padding it to clear a generic floor would be
     # inventing a second sentence this state does not need.
-    "10" => 11
+    # N52-C: eight, not eleven. The three it lost were a second card under the
+    # empty one — a pause glyph, *Nothing ready to watch* and *Everything on
+    # your shelf is paused* — which told a reader with no shelf that their
+    # shelf was paused.
+    "10" => 8
   }
 
   # The same exception for an `@undrawn` screen, and the same argument.
@@ -2904,7 +2909,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # is now *the read answered nothing* against *the read answered something*
       # rather than *the drawing*.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.releases/0, nil,
-       fn -> Kati.Screens.Inbox.drawn_inbox() end},
+       fn -> Kati.Test.DrawnBoards.inbox() end},
       {"19", Kati.Screens.Search, fn -> Kati.Search.Query.run("hollow").titles end, [],
        fn -> Kati.Screens.Search.drawn_results().titles end},
       {"89", Kati.Screens.SearchResultStates, fn -> Kati.Search.Query.run("hollow").titles end,
@@ -3061,11 +3066,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"56", Kati.Screens.Calendar, fn -> Kati.Screens.Calendar.day_rows(today) end, [],
        &Kati.Screens.Calendar.drawn_rows/0},
       {"03", Kati.Screens.Library, &Kati.Screens.Library.titles/0, [],
-       &Kati.Screens.Library.drawn_titles/0},
+       &Kati.Test.DrawnBoards.library_titles/0},
       # 57 is 03 read under `:fa` since mishka-group/kati#103, so it gates on
       # 03's own pair — the same read, and the same drawing to fall back to.
       {"57", Kati.Screens.Library, &Kati.Screens.Library.titles/0, [],
-       &Kati.Screens.Library.drawn_titles/0},
+       &Kati.Test.DrawnBoards.library_titles/0},
       # 07 has no single accessor: `figures/0` answers a keyword list whose third
       # element is a real read either way. The two the branch turns on are taken,
       # in the order the list holds them — and `year: nil` rather than a map of
@@ -3084,7 +3089,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # aimed at a different shelf from the screen that opened it would drop the
       # wrong title.
       {"149", Kati.Screens.DropSheet, &Kati.Screens.Library.titles/0, [],
-       &Kati.Screens.Library.drawn_titles/0},
+       &Kati.Test.DrawnBoards.library_titles/0},
       # ── 28 and 55, band by band ───────────────────────────────────────────
       #
       # Screen 01's mirrors, gated the way 01 is: one entry per band, because

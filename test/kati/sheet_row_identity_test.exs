@@ -1,4 +1,5 @@
 Code.require_file("../support/show_boards.exs", __DIR__)
+Code.require_file("../support/drawn_boards.exs", __DIR__)
 
 defmodule Kati.SheetRowIdentityTest do
   @moduledoc """
@@ -1144,7 +1145,7 @@ defmodule Kati.SheetRowIdentityTest do
     end
 
     test "the drawn shelf names nothing, which is what every capture was taken from" do
-      for row <- Kati.Screens.Library.drawn_titles() do
+      for row <- Kati.Test.DrawnBoards.library_titles() do
         assert Kati.Screens.Series.params_for(row) == %{}
       end
 
@@ -1157,7 +1158,7 @@ defmodule Kati.SheetRowIdentityTest do
         Mob.Socket.assign(
           Mob.Socket.new(Kati.Screens.Library),
           :titles,
-          Kati.Screens.Library.drawn_titles()
+          Kati.Test.DrawnBoards.library_titles()
         )
 
       {:noreply, nobody} = Kati.Screens.Library.handle_tap(:open_series_nobody, socket)

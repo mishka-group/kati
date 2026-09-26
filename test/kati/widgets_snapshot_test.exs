@@ -292,7 +292,11 @@ defmodule Kati.Widgets.SnapshotTest do
     test "adding a title", %{tmp_dir: dir} do
       refute Map.has_key?(snapshot(dir), "hero")
 
-      assert {:ok, _tracked} = Kati.Screens.AddTitle.track("Widget Added", %{kind: :tv})
+      # `:watching`, screen 163's add: a title added from 06 is not started
+      # (N52-C) and has no business in the hero, so only an add that says the
+      # reader is watching it can move one.
+      assert {:ok, _tracked} =
+               Kati.Screens.AddTitle.track("Widget Added", %{kind: :tv}, :watching)
 
       assert :ok = Refresher.flush()
       assert snapshot(dir)["hero"]["title"] == "Widget Added"
