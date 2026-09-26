@@ -578,7 +578,7 @@ defmodule Kati.Screens.Stats do
 
   @doc false
   def cell(level) do
-    color = Kati.Screens.Stats.intensity(level)
+    color = Kati.Stats.Ramp.intensity(level)
 
     ~MOB"""
     <Box width={8} height={8} corner_radius={2} background={color} />
@@ -1522,16 +1522,9 @@ defmodule Kati.Screens.Stats do
     Date.add(today, -back)
   end
 
-  @doc "The contribution grid's five-step ramp, empty to heaviest."
-  @spec intensity(0..4) :: integer()
-  def intensity(0), do: 0xFFE7E3DC
-  def intensity(1), do: 0xFFE9CFA8
-  def intensity(2), do: 0xFFEDB273
-  def intensity(3), do: 0xFFE8823C
-  def intensity(4), do: 0xFFC96A28
-
-  # Four or more in a day is the heaviest square there is; the ramp has nowhere
-  # further to go and a busier day is not a different colour.
+  # Five steps, because `Kati.Stats.Ramp.intensity/1` paints five. Four or more
+  # in a day is the heaviest square there is; the ramp has nowhere further to go
+  # and a busier day is not a different colour.
   defp level(0), do: 0
   defp level(1), do: 1
   defp level(2), do: 2

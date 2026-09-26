@@ -201,7 +201,11 @@ defmodule Kati.MealsRoutesTest do
     assert wrong == [], "\n" <> Enum.join(wrong, "\n")
   end
 
-  test "every Meals screen is reachable without the gallery" do
+  # N52-D: the Meals section still draws sample data, so Home no longer draws
+  # its Meals card and the section's pages are reached only from the gallery
+  # until it is real. The inversion is the claim: none of these is reachable
+  # from a shell root. When the section becomes real, flip it back.
+  test "no Meals screen is reachable from the shell while the section is sample data" do
     graph = push_graph(:en)
 
     # Not a formality. `Kati.Screens.Gallery` is excluded below, and if the
@@ -218,12 +222,12 @@ defmodule Kati.MealsRoutesTest do
            "the walk reached #{MapSet.size(reached)} screens, which is too few to " <>
              "have walked anything"
 
-    unreachable = Enum.reject(@meals_screens, &MapSet.member?(reached, &1))
+    open = Enum.filter(@meals_screens, &MapSet.member?(reached, &1))
 
-    assert unreachable == [],
-           "these Meals screens have no path from any of the four shell roots, so " <>
-             "only Kati.Screens.Gallery can open them:\n" <>
-             Enum.map_join(unreachable, "\n", &("  " <> inspect(&1)))
+    assert open == [],
+           "these Meals screens are reachable from a shell root, and every one of " <>
+             "them still draws sample data:\n" <>
+             Enum.map_join(open, "\n", &("  " <> inspect(&1)))
   end
 
   test "screen 51 is the only Meals screen with no way in" do
