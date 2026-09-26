@@ -35,12 +35,13 @@ defmodule Kati.Screens.OnboardingFirstTitle do
 
   ## What the board decides
 
-  **Skipping lands on the empty Home — screen 139**, and not on a half-set-up
-  page. Skipping is a real answer, so it gets the state the app draws for
-  having nothing, which is a page that says which parts still work.
-  **Finish setup** adds nothing of its own: whatever the reader added is
-  already on the shelf, and finishing with nothing added is the same honest
-  empty Home a reader reaches after a skip, minus the wording.
+  **Skip and Finish setup land on the same Home.** Board 139 sends a skip to
+  the *Nothing chosen yet* page, but nobody reaches this step without having
+  chosen sections, and that page's one action is *Choose sections* — it told
+  a reader who had just answered that the answer did not register.
+  `Kati.Screens.Home` draws 139 itself, only when no section is chosen and
+  nothing is kept (`Kati.Screens.Home.nothing_kept?/1`). **Finish setup** adds
+  nothing of its own: whatever the reader added is already on the shelf.
   """
   use Kati.Screens.Pushed, back: nil
   use Gettext, backend: Kati.Gettext
@@ -170,15 +171,6 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   def notice(assigns), do: AddTitle.search_notice(assigns.search_error, assigns.search_reason)
 
   @doc """
-  The empty Home a skipped run lands on.
-
-      iex> Kati.Screens.OnboardingFirstTitle.empty_home()
-      Kati.Screens.HomeEmpty
-  """
-  @spec empty_home() :: module()
-  def empty_home, do: Kati.Screens.HomeEmpty
-
-  @doc """
   Coming back from screen 80: re-read whether a TMDB key is usable now.
 
   The token block is the door to that page, so the page it opens is the one
@@ -222,14 +214,12 @@ defmodule Kati.Screens.OnboardingFirstTitle do
     {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.shell_root(Kati.Locale.current()))}
   end
 
-  # Skipping is a real answer, so it lands on the state the app draws for
-  # having nothing — board 139, which states which parts still work. It
-  # finishes setup too: the board offers it as a way past adding a title, not
-  # as a way to abandon the run, and someone who takes it has still chosen a
-  # language and their sections.
+  # Skipping finishes setup too: it is a way past adding a title, not a way to
+  # abandon the run, and someone who takes it has chosen a language and their
+  # sections. See the moduledoc on why it no longer lands on board 139.
   def handle_tap(:skip, socket) do
     Kati.Onboarding.complete!()
-    {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.OnboardingFirstTitle.empty_home())}
+    {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.shell_root(Kati.Locale.current()))}
   end
 
   def handle_tap(:step_back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}

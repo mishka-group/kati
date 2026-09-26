@@ -130,6 +130,12 @@ defmodule Kati.AppReachabilityTest do
      "the decision that an empty section is omitted rather than worded, drawn " <>
        "on a Persian Home so both cases can be seen at once. A board about a " <>
        "rule rather than a place in the app — screen 96's reason."},
+    {Screens.HomeEmpty,
+     "boards 139 and 158 are what `Kati.Screens.Home` draws, through " <>
+       "`HomeEmpty.content/1`, when no section is chosen and nothing is kept. " <>
+       "Nothing pushes the module since the first run's Skip lands on Home (N49): " <>
+       "a skip always follows the sections step, so 139's Choose sections was " <>
+       "an answer already given."},
     {Screens.HomeEmptyDark,
      "158 in the dark colourway — the same page in another colourway, " <>
        "reached by having dark on and having kept nothing."},

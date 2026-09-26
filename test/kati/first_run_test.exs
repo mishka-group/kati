@@ -168,12 +168,11 @@ defmodule Kati.FirstRunTest do
   end
 
   describe "finishing" do
-    # Both ways out of the last step finish the run. Skip is a way past adding
-    # a title, not a way to abandon setup: someone who takes it has still
-    # chosen a language and their sections, and the board sends them to the
-    # empty Home — the page that says which parts still work — rather than to
-    # a half-set-up one.
-    for {tag, landing} <- [finish: Screens.Home, skip: Screens.HomeEmpty] do
+    # Both ways out of the last step finish the run, and both land on Home.
+    # Skip used to reset to board 139, *Nothing chosen yet*, whose one action
+    # is Choose sections — shown to somebody who had just chosen them. Home
+    # draws 139 itself when nothing is chosen.
+    for {tag, landing} <- [finish: Screens.Home, skip: Screens.Home] do
       test "#{tag} records completion and resets the stack to #{inspect(landing)}" do
         # Rolled back so that nothing a tap might write outlives the test:
         # the design sweeps compare a screen's render with its drawing, and a
@@ -298,7 +297,7 @@ defmodule Kati.FirstRunTest do
           socket_for(Screens.OnboardingFirstTitle)
         )
 
-      assert reset_target(moved) == Screens.HomeEmpty
+      assert reset_target(moved) == Screens.Home
     end
   end
 

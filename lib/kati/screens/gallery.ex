@@ -556,9 +556,6 @@ defmodule Kati.Screens.Gallery do
     # Home → `+` → Can't find it? Add it by hand. #113 made its Kind
     # correctable and its duplicate guard match on the name.
     "154",
-    # Home with nothing stored — board 139 is what Home draws on a fresh
-    # install, and a fresh install is how you reach it.
-    "139",
     # ── Retired in the same pass, once every remaining row had been checked
     # for a real door. The route beside each is the one a person walks; a
     # 12-agent survey found them and `Kati.AppReachabilityTest` proves them,
