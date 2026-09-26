@@ -50,15 +50,7 @@ defmodule Kati.FilmWatchTest do
   end
 
   defp rewatch_sheet(film) do
-    page =
-      Kati.Screens.Film
-      |> Mob.Socket.new()
-      |> Mob.Socket.assign(:film, Kati.Screens.Film.film(film.id))
-
-    assert %{tag: :log_watch} = Kati.Screens.Film.log_item(page.assigns.film)
-
-    {:noreply, pushed} = Kati.Screens.Film.handle_info({:tap, :log_watch}, page)
-    {:push, Rating, params} = Map.get(pushed.__mob__, :nav_action)
+    params = Rating.params_for(%{tracked_id: film.id}, :new)
     {:ok, sheet} = Rating.mount(params, %{}, Mob.Socket.new(Rating))
     sheet
   end
@@ -217,8 +209,10 @@ defmodule Kati.FilmWatchTest do
     end
   end
 
-  describe "Log rewatch on screen 08" do
-    test "opens a blank sheet numbered as the next viewing, and Save adds a row" do
+  describe "logging from screen 08" do
+    test "the one ⋯ item on a seen film edits the saved watch, and Save changes it in place" do
+      # The owner, 26 Sep: one logging item, which shows the current data. Log
+      # rewatch — a blank second sheet — is no longer on screen 08.
       film = a_film!()
       rated = Ash.create!(Watch, %{tracked_title_id: film.id, rating: 8, review: "First."})
 
@@ -227,32 +221,22 @@ defmodule Kati.FilmWatchTest do
         |> Mob.Socket.new()
         |> Mob.Socket.assign(:film, Kati.Screens.Film.film(film.id))
 
-      assert inspect(Kati.Screens.Film.log_item(page.assigns.film), limit: :infinity) =~
-               "Log rewatch"
+      assert %{tag: :rate} = item = Kati.Screens.Film.log_item(page.assigns.film)
+      refute inspect(item) =~ "rewatch"
 
-      {:noreply, pushed} = Kati.Screens.Film.handle_info({:tap, :log_watch}, page)
+      {:noreply, pushed} = Kati.Screens.Film.handle_info({:tap, :rate}, page)
       {:push, Rating, params} = Map.get(pushed.__mob__, :nav_action)
-      assert params == %{tracked_title_id: film.id, new: true}
-
       {:ok, sheet} = Rating.mount(params, %{}, Mob.Socket.new(Rating))
 
-      assert sheet.assigns.watch_id == nil, "a rewatch edited the first watch"
-      assert sheet.assigns.watch.rating == nil
-      assert sheet.assigns.watch.review == ""
-
-      assert sheet.assigns.watch.rewatch == "1st rewatch",
-             "the second viewing is the first rewatch"
+      assert sheet.assigns.watch_id == rated.id
+      assert sheet.assigns.watch.review == "First."
 
       {:noreply, starred} = Rating.handle_info({:tap, :star_7}, sheet)
       {:noreply, _saved} = Rating.handle_info({:tap, :save}, starred)
 
-      rows = watches_for(film.id)
-      assert length(rows) == 2
-      second = Enum.find(rows, &(&1.id != rated.id))
-      assert second.rating == 7
-      assert second.rewatch_number == 2
-      assert Ash.get!(Watch, rated.id).rating == 8, "the first viewing was rewritten"
-      assert Kati.Screens.Film.film(film.id).seen == "2 times"
+      assert [only] = watches_for(film.id)
+      assert only.id == rated.id
+      assert only.rating == 7
     end
 
     test "the badge counts rewatches, one behind the viewings the store keeps" do

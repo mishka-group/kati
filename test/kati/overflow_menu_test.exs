@@ -47,7 +47,7 @@ defmodule Kati.OverflowMenuTest do
        {:open_quick_add, Screens.QuickAdd},
        {:open_meals_day, Screens.MealsDay}
      ]},
-    {Screens.Film, :toggle_menu, [{:log_watch, Screens.Rating}]},
+    {Screens.Film, :toggle_menu, [{:rate, Screens.Rating}]},
     {Screens.Library, :toggle_menu, [{:open_what_fits, Screens.WhatFits}]},
     {Screens.MealsToday, :toggle_menu, [{:open_reminders, Screens.MealReminders}]}
   ]
@@ -193,8 +193,8 @@ defmodule Kati.OverflowMenuTest do
   defp expected_params(Screens.Series, :open_settings, socket),
     do: Screens.SeriesSettings.params_for(socket.assigns.series)
 
-  defp expected_params(Screens.Film, :log_watch, socket),
-    do: Screens.Rating.params_for(socket.assigns.film, :new)
+  defp expected_params(Screens.Film, :rate, socket),
+    do: Screens.Rating.params_for(socket.assigns.film)
 
   defp expected_params(_module, _tag, _socket), do: %{}
 

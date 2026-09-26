@@ -1141,7 +1141,6 @@ defmodule Kati.Screens.Film do
       trigger,
       menu?,
       [
-        Kati.Screens.Film.edit_log_item(f),
         Kati.Screens.Film.log_item(f),
         # The one control that can set `Kati.Media.TrackedTitle.private`, and
         # therefore the one thing that makes screen 98's *Hide titles I marked
@@ -1168,41 +1167,19 @@ defmodule Kati.Screens.Film do
   end
 
   @doc """
-  *Edit your log* — the saved viewing, reopened with its stars, review and
-  details — once the film has been seen; nothing before.
+  The one logging item: *Log a watch* before the film has been seen, which
+  opens a blank sheet, and *Edit your log* after, which reopens the saved
+  viewing with its stars, review and details — the rating card's own door.
 
-  The rating card already opened it, and nothing on the page said so: the
-  owner, looking for a way to change a rating, found only *Log rewatch* in
-  this menu and got a blank sheet (the Galaxy A55, 26 Sep).
-  """
-  @spec edit_log_item(map()) :: map() | []
-  def edit_log_item(f) do
-    if Map.get(f, :tracked_id) && Map.get(f, :seen_count, 0) > 0 do
-      Kati.UI.Menu.item("edit", gettext("Edit your log"), :rate)
-    else
-      []
-    end
-  end
-
-  @doc """
-  *Log a watch* — or *Log rewatch* once the film has been seen — or nothing
-  at all when there is no film to log.
-
-  The label is `action_label/3` over the page's own `seen_count`, and the row
-  opens screen 33 BLANK (`Kati.Screens.Rating.params_for/2` with `:new`), so
-  Save adds a viewing rather than editing the last one. The rating card and the
-  note pencil are the doors that edit.
+  There were two, *Edit your log* and *Log rewatch*, and the owner asked for
+  one: a log you already made is a log you change (26 Sep).
   """
   @spec log_item(map()) :: map() | []
   def log_item(f) do
-    if Map.get(f, :tracked_id) do
-      Kati.UI.Menu.item(
-        "star",
-        Kati.Screens.Film.action_label("", :log_watch, Map.get(f, :seen_count, 0)),
-        :log_watch
-      )
-    else
-      []
+    cond do
+      is_nil(Map.get(f, :tracked_id)) -> []
+      Map.get(f, :seen_count, 0) > 0 -> Kati.UI.Menu.item("edit", gettext("Edit your log"), :rate)
+      true -> Kati.UI.Menu.item("star", gettext("Log a watch"), :rate)
     end
   end
 
@@ -1757,10 +1734,8 @@ defmodule Kati.Screens.Film do
   # The sheet is about a watch OF this film, so it is told which. Bare, "Log a
   # watch" on one film opened whatever the newest logged watch in the whole
   # library happened to be.
-  # Three doors onto screen 33 and two behaviours. The ⋯ row logs ANOTHER
-  # viewing, so it opens the sheet blank and Save creates a watch; the rating
-  # card and the note pencil are about the viewing already logged, so they
-  # reopen it and Save edits it. See `log_item/1`.
+  # Not drawn on screen 08 any more — the ⋯ item edits the saved watch — but
+  # screen 33's blank-sheet door is still a real path, kept for its callers.
   def handle_info({:tap, :log_watch}, socket) do
     {:noreply,
      socket
