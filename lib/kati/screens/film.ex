@@ -443,6 +443,7 @@ defmodule Kati.Screens.Film do
       seen_count: length(watches),
       note_date: noted && note_date(noted, zone),
       note: noted && noted.review,
+      note_watch_id: noted && noted.id,
       # Where this film can be watched — the same band screen 14 draws and the
       # same column it reads. It was `[]` on both, for want of an offers
       # resource; `Kati.Media.CachedTitle.providers` is that resource now.
@@ -1739,13 +1740,25 @@ defmodule Kati.Screens.Film do
      )}
   end
 
-  def handle_info({:tap, tag}, socket) when tag in [:rate, :edit_note] do
+  def handle_info({:tap, :rate}, socket) do
     {:noreply,
      socket
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.push_screen(
        Kati.Screens.Rating,
        Kati.Screens.Rating.params_for(socket.assigns.film)
+     )}
+  end
+
+  def handle_info({:tap, :edit_note}, socket) do
+    film = socket.assigns.film
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(
+       Kati.Screens.Rating,
+       Kati.Screens.Rating.params_for(film, Map.get(film, :note_watch_id))
      )}
   end
 

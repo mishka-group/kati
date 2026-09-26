@@ -253,9 +253,9 @@ defmodule Kati.Screens.Rating do
     # and a screen is its own process — see `Kati.Locale.activate/0`.
     Kati.Locale.activate()
     Kati.Screens.Resume.watch()
-    tracked_id = Map.get(params || %{}, :tracked_title_id)
-    opened = if Map.get(params || %{}, :new) == true, do: nil, else: logged_record(tracked_id)
-    {draft, id} = draft_and_id(opened, tracked_id)
+    params = params || %{}
+    tracked_id = Map.get(params, :tracked_title_id)
+    {draft, id} = params |> opened(tracked_id) |> draft_and_id(tracked_id)
 
     {:ok,
      socket
@@ -283,12 +283,46 @@ defmodule Kati.Screens.Rating do
   end
 
   defp draft_and_id(nil, _none), do: {empty_watch(), nil}
+  defp draft_and_id(:gone, _tracked_id), do: {empty_watch(), nil}
 
   defp draft_and_id(logged, _tracked_id) do
     case shape(logged) do
       nil -> {empty_watch(), nil}
       shaped -> {shaped, logged.id}
     end
+  end
+
+  # Which saved watch the sheet opens, if any. `new: true` is a new viewing and
+  # opens none. `watch_id` names the one to edit — the rating card's and the
+  # note pencil's door (N56) — and a named watch that is no longer there, or
+  # is not a whole-title watch of the title the push names, is `:gone`, which
+  # draws `empty_watch/0` rather than a different row or a new one. Without
+  # either it is the title's newest log, as it always was.
+  defp opened(%{new: true}, _tracked_id), do: nil
+
+  defp opened(%{watch_id: watch_id}, tracked_id) when is_binary(watch_id) do
+    case Kati.Screens.Rating.watch_record(watch_id, tracked_id) do
+      nil -> :gone
+      logged -> logged
+    end
+  end
+
+  defp opened(_params, tracked_id), do: logged_record(tracked_id)
+
+  @doc """
+  The saved whole-title watch `watch_id` names, with its title loaded, or
+  `nil` — for a row that has gone, an episode tick, or a watch of a title other
+  than `tracked_id` when one is named.
+  """
+  @spec watch_record(String.t(), String.t() | nil) :: Watch.t() | nil
+  def watch_record(watch_id, tracked_id) do
+    Watch
+    |> Ash.Query.filter(id == ^watch_id and is_nil(episode_source_id))
+    |> Ash.Query.load(:tracked_title)
+    |> Ash.read!()
+    |> Enum.find(&(is_nil(tracked_id) or &1.tracked_title_id == tracked_id))
+  rescue
+    _error -> nil
   end
 
   @doc """
@@ -354,6 +388,12 @@ defmodule Kati.Screens.Rating do
   A film with no tracked row — the drawing's — yields `%{}`, which is what
   `Mob.Socket.push_screen/3` defaults to and what every bare push already sends.
 
+  A title with a saved watch names that title's newest one as `:watch_id`
+  (N56), so the rating card opens the log it is showing to be edited — its
+  stars, review, date, where, who with and tags — and Save updates that row.
+  The id is carried rather than left for the sheet to re-derive, so the sheet
+  cannot open on a different row from the one the card was drawn from.
+
       iex> Kati.Screens.Rating.params_for(%{tracked_id: "abc"})
       %{tracked_title_id: "abc"}
 
@@ -361,7 +401,13 @@ defmodule Kati.Screens.Rating do
       %{}
   """
   @spec params_for(map() | nil) :: map()
-  def params_for(%{tracked_id: id}) when is_binary(id), do: %{tracked_title_id: id}
+  def params_for(%{tracked_id: id} = film) when is_binary(id) do
+    case logged_record(id) do
+      %Watch{id: watch_id} -> params_for(film, watch_id)
+      _nothing_logged -> %{tracked_title_id: id}
+    end
+  end
+
   def params_for(_film), do: %{}
 
   @doc """
@@ -374,12 +420,23 @@ defmodule Kati.Screens.Rating do
 
       iex> Kati.Screens.Rating.params_for(%{}, :new)
       %{}
+
+  Given a watch id instead, it opens that saved watch to be edited — the note
+  pencil's door, which names the watch its note is from.
+
+      iex> Kati.Screens.Rating.params_for(%{tracked_id: "abc"}, "w1")
+      %{tracked_title_id: "abc", watch_id: "w1"}
   """
-  @spec params_for(map() | nil, :new) :: map()
+  @spec params_for(map() | nil, :new | String.t() | nil) :: map()
   def params_for(%{tracked_id: id}, :new) when is_binary(id),
     do: %{tracked_title_id: id, new: true}
 
   def params_for(_film, :new), do: %{}
+
+  def params_for(%{tracked_id: id}, watch_id) when is_binary(id) and is_binary(watch_id),
+    do: %{tracked_title_id: id, watch_id: watch_id}
+
+  def params_for(film, _no_watch), do: params_for(film)
 
   @doc """
   A film you have watched is a film you have finished.
@@ -940,7 +997,10 @@ defmodule Kati.Screens.Rating do
           padding_top={64}
           padding_bottom={40}
         >
-          {Kati.Screens.Rating.header(not Kati.Screens.Rating.empty?(w))}
+          {Kati.Screens.Rating.header(
+            not Kati.Screens.Rating.empty?(w),
+            is_binary(Map.get(assigns, :watch_id))
+          )}
           {Kati.Screens.Rating.body(w, save_error)}
         </Column>
       </Scroll>
@@ -1013,11 +1073,12 @@ defmodule Kati.Screens.Rating do
   Without a title behind the sheet there is no Save: a pill whose only answer
   is a refusal is a dead control. Its width is kept so the title stays centred.
   """
-  @spec header(boolean()) :: map()
-  def header(live? \\ true) do
+  @spec header(boolean(), boolean()) :: map()
+  def header(live? \\ true, editing? \\ false) do
     close = {self(), :close}
 
     assigns = %{
+      heading: if(editing?, do: Kati.Screens.Rating.edit_heading(), else: gettext("Log a watch")),
       save:
         if(live?,
           do: Kati.Screens.Rating.save_pill({self(), :save}),
@@ -1031,7 +1092,7 @@ defmodule Kati.Screens.Rating do
         {Kati.Screens.Rating.close_disc(close)}
         <Spacer weight={1.0} />
         <Text
-          text={gettext("Log a watch")}
+          text={@heading}
           text_size={15}
           font_weight="bold"
           text_color={:on_surface}
@@ -1044,6 +1105,15 @@ defmodule Kati.Screens.Rating do
     </Column>
     """
   end
+
+  @doc """
+  The heading while the sheet edits a saved watch rather than logging a new
+  one (N56): the rating card and the note pencil reopen a log, and a sheet
+  headed *Log a watch* over it read as a second viewing about to be added.
+  """
+  @spec edit_heading() :: String.t()
+  def edit_heading,
+    do: pgettext("screen 33's heading while it edits a saved watch", "Edit your log")
 
   @doc """
   The dismissal disc: `Kati.Components.MishkaCloseButton` at the drawing's own

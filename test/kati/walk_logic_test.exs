@@ -180,7 +180,7 @@ defmodule Kati.WalkLogicTest do
       assert is_binary(error)
 
       texts = texts(view)
-      header = Enum.find_index(texts, &(&1.props.text == "Log a watch"))
+      header = Enum.find_index(texts, &(&1.props.text == Rating.edit_heading()))
       notice = Enum.find_index(texts, &(&1.props.text == error))
       title = Enum.find_index(texts, &(&1.props.text == "Estuary"))
 
