@@ -116,18 +116,27 @@ defmodule Kati.Screens.Calendar do
   `0 items` over an event that had just been written — the same defect the
   shelf had, one root over.
 
-  The rows only. `date` is the day the reader has selected and `filter` is
-  what they narrowed to; neither is the sheet's to reset, which is the whole
-  reason `:resumed` is opt-in per screen rather than a re-run of `load/1`.
+  The rows, and the day they are for. `filter` is what the reader narrowed to
+  and is not the sheet's to reset, which is the whole reason `:resumed` is
+  opt-in per screen rather than a re-run of `load/1`. The day is read back from
+  `Kati.Calendars.SelectedDate`, because the month grid and the week pushed
+  over this screen may have moved it: picking the 3rd on screen 16 and pressing
+  back lands on the 3rd here.
   """
   @impl true
   def handle_kati(:resumed, _payload, socket) do
-    {:noreply, Mob.Socket.assign(socket, :rows, day_rows(socket.assigns.date))}
+    date = Kati.Calendars.SelectedDate.get()
+    {:noreply, Mob.Socket.assign(socket, date: date, rows: day_rows(date))}
   end
 
+  @doc """
+  The day the Schedule opens on: `Kati.Calendars.SelectedDate`'s, which is
+  today on a new launch and whatever day the reader last picked on any of the
+  calendar's views since.
+  """
   @impl true
   def load(socket) do
-    date = Kati.Time.today()
+    date = Kati.Calendars.SelectedDate.get()
 
     Mob.Socket.assign(socket,
       date: date,
@@ -542,6 +551,7 @@ defmodule Kati.Screens.Calendar do
     # An unfold chevron beside a month name means one thing, and the design
     # already drew screen 16 as the thing it means.
     month_tap = {self(), :open_month}
+    today_tap = if date == Kati.Time.today(), do: nil, else: {self(), :today}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -566,6 +576,7 @@ defmodule Kati.Screens.Calendar do
           padding_left={13}
           padding_right={13}
           align="center"
+          on_tap={today_tap}
         >
           <Text
             text={gettext("Today")}
@@ -1571,9 +1582,13 @@ defmodule Kati.Screens.Calendar do
   A row from `Kati.Calendars.Airings` has no event behind it, so it carries
   `row_series_<tracked id>`: the followed `Kati.Media.TrackedTitle` whose
   episode airs, which `open_timeline_row/3` pushes screen 04 with as
-  `%{id: tracked_id}`.
+  `%{id: tracked_id}`. A followed film's release carries `row_film_<tracked
+  id>` and opens the film page the same way.
   """
   @spec tag(map()) :: atom()
+  def tag(%{tracked_id: tracked_id, tracked_kind: :film}) when is_binary(tracked_id),
+    do: String.to_atom("row_film_" <> tracked_id)
+
   def tag(%{tracked_id: tracked_id}) when is_binary(tracked_id),
     do: String.to_atom("row_series_" <> tracked_id)
 
@@ -1644,6 +1659,7 @@ defmodule Kati.Screens.Calendar do
     # An airing from `Kati.Calendars.Airings`, whose id is the followed show's
     # `Kati.Media.TrackedTitle` rather than an event's — see `tag/1`.
     "series" => Kati.Screens.Series,
+    "film" => Kati.Screens.Film,
     # Screen 126 rather than 23. A money row on a calendar day is a renewal or
     # an expense on THAT DAY, and the page that answers "what does this day
     # cost" is the day — 23 is the account, one tap further in.
@@ -1674,6 +1690,18 @@ defmodule Kati.Screens.Calendar do
 
   def handle_tap(:open_month, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MonthGrid)}
+
+  # The `Today` pill: the strip and the timeline go back to today, and so does
+  # every other view of the calendar, because the selection they share is
+  # cleared rather than overwritten. It had no `on_tap` at all — a drawn control
+  # that did nothing — and the `"day_" <> iso` clause below already names what
+  # it is for: a pill labelled with a date is a date control. On today it
+  # carries no tap, for `Kati.Screens.ViewSwitcher`'s reason: the view you are
+  # already in is not a destination.
+  def handle_tap(:today, socket) do
+    date = Kati.Calendars.SelectedDate.reset()
+    {:noreply, Mob.Socket.assign(socket, date: date, rows: day_rows(date))}
+  end
 
   @doc """
   Board 306's button. `Kati.Screens.PickSections.ask_for_calendar/1`'s call,
@@ -1784,6 +1812,8 @@ defmodule Kati.Screens.Calendar do
           # is the same defect the row tags below had, one screen along.
           {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Day, %{date: date})}
         else
+          Kati.Calendars.SelectedDate.put(date)
+
           {:noreply,
            Mob.Socket.assign(socket,
              date: date,
@@ -1869,8 +1899,9 @@ defmodule Kati.Screens.Calendar do
   # `Meals on the calendar` and `Money on the calendar` mean THIS calendar — the
   # day the strip is on — and the menu was sending neither of them which day
   # that was. Agenda and Quick add take nothing: 30 is a root, whose mount
-  # discards params outright (`Kati.Screens.Root`), and 18 draws a frozen parse
-  # with no date anywhere on it.
+  # discards params outright (`Kati.Screens.Root`) and which reads the day from
+  # `Kati.Calendars.SelectedDate` instead, and 18 draws a frozen parse with no
+  # date anywhere on it.
   defp pick_params(socket, module) when module in @day_screens,
     do: %{date: socket.assigns.date}
 

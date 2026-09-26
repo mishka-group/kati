@@ -302,7 +302,9 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.RestoreFirstRun, :pick_file, Kati.Screens.Import},
     {Kati.Screens.RestoreFirstRun, :restore_everything, Kati.Screens.Import},
     {Kati.Screens.RestoreFirstRun, :scan_qr, Kati.Screens.Import},
-    {Kati.Screens.Agenda, :view_Day, Kati.Screens.Day},
+    # (`{Kati.Screens.Agenda, :view_Day, Kati.Screens.Day}` was here. N52-E:
+    # the agenda holds the calendar's selected day now, from
+    # `Kati.Calendars.SelectedDate`, and its Day segment carries it.)
 
     # ── Rate, from the two domains screen 33 does not rate.
     #

@@ -2819,7 +2819,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        [], fn -> [%{time: "09:30", title: "2 at once — Standup, Design review"}] end},
       {"17", Kati.Screens.Week, fn -> Kati.Screens.Week.week(today, today).rows end, [],
        fn -> [%{time: "09:30", title: "Standup", length: "15m"}] end},
-      {"30", Kati.Screens.Agenda, fn -> Kati.Screens.Agenda.agenda(today).groups end, [],
+      {"30", Kati.Screens.Agenda, fn -> Kati.Screens.Agenda.agenda(today, today).groups end, [],
        fn -> [%{kicker: "TODAY", rows: [%{title: "Call Mum"}]}] end},
       # 146 gates on the list, which is the whole of what it draws that could
       # come from anywhere: the tiles, which start selected, and every count the

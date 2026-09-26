@@ -40,6 +40,15 @@ defmodule Kati.Screens.ViewSwitcher do
   The labels stay with the screens rather than living here, so each screen
   file still contains every word its drawing contains.
 
+  ## A label is a key, and the word is the reader's
+
+  Each screen names its segments by their English key — `"Day"`, `"Week"`,
+  `"Month"`, `"Agenda"` — and that key is what the tap tag is built from and
+  what `screen/1` routes on. The word drawn is `label/1`'s, through gettext, so
+  the strip reads روز · هفته · ماه · فهرست on a Persian page while the tags
+  stay `view_Day` and friends. Building the tag out of the drawn word would
+  have renamed every control under `:fa` and routed none of them.
+
   ## Tapping a segment
 
   Every segment except the selected one carries `on_tap: {self(), :view_<Label>}`.
@@ -62,6 +71,7 @@ defmodule Kati.Screens.ViewSwitcher do
   with taps of its own puts its own clauses above that line.
   """
 
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Theme.Palette
@@ -93,8 +103,21 @@ defmodule Kati.Screens.ViewSwitcher do
   @doc false
   def gap, do: ~MOB"<Spacer size={4} />"
 
+  @doc """
+  The word a segment key is drawn as, in the reader's language.
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Screens.ViewSwitcher.label("Week") end)
+      "هفته"
+  """
+  @spec label(String.t()) :: String.t()
+  def label("Day"), do: gettext("Day")
+  def label("Week"), do: gettext("Week")
+  def label("Month"), do: gettext("Month")
+  def label("Agenda"), do: gettext("Agenda")
+  def label(other), do: other
+
   @doc false
-  def segment(label, on?) do
+  def segment(key, on?) do
     # Bound to locals first: inside ~MOB an `@name` is an assign, never a
     # module attribute, so @selected_shadow would be read as assigns.selected_shadow.
     shadow = if on?, do: @selected_shadow, else: nil
@@ -107,7 +130,8 @@ defmodule Kati.Screens.ViewSwitcher do
     color = if on?, do: Palette.ink(), else: Palette.segment_idle()
     weight = if on?, do: "bold", else: "semibold"
     # The view you are already in is not a destination.
-    tap = if on?, do: nil, else: {self(), String.to_atom("view_" <> label)}
+    tap = if on?, do: nil, else: {self(), String.to_atom("view_" <> key)}
+    label = label(key)
 
     ~MOB"""
     <Box
@@ -143,10 +167,14 @@ defmodule Kati.Screens.ViewSwitcher do
   # *Day* landed on `Kati.Screens.Day`'s no-params branch, which drew a fixture
   # rather than a date — so the one control whose whole job is "the same moment,
   # a different way" changed the moment too.
+  #
+  # A screen with no `:date` of its own carries the calendar's selected day, so
+  # *Day* never lands on a date the reader did not pick. The three roots ignore
+  # the param and read `Kati.Calendars.SelectedDate` themselves.
   defp carried(socket) do
     case Map.get(socket.assigns, :date) do
       %Date{} = date -> %{date: date}
-      _none -> %{}
+      _none -> %{date: Kati.Calendars.SelectedDate.get()}
     end
   end
 

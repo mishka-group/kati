@@ -30,6 +30,22 @@ defmodule Kati.Calendars.Airings do
   show would push the reader's own day off the screen, so a show's episodes on
   one day are one row: its title, its poster, the first episode's `S# · E#`,
   and the count when there is more than one.
+
+  ## Films, on the day they come out
+
+  A followed film has no episodes, but it has a date: `Kati.Media.Release.resolve/2`
+  over its cached title, where a `user_override_date` wins — the same read
+  `Kati.Screens.Inbox` lists a film's release with. It lands by the same
+  `:exact`/`:day` rule and carries `tracked_kind: :film`, which is what sends a
+  tap to the film page rather than to a series page. The date is the one the
+  store holds — `next_release_at` is the NEXT release — so the day moves when
+  a source moves it, and a film nobody has dated to the day lands nowhere.
+
+  ## On screen 09
+
+  `occurrences/1` is the same rows in `Kati.Calendar.Layout`'s shape, for the
+  ones with an hour. A day-only airing has no minute to lane at, and screen 09
+  draws no all-day band, so it stays on 02, 16, 17 and 30.
   """
 
   use Gettext, backend: Kati.Gettext
@@ -52,6 +68,7 @@ defmodule Kati.Calendars.Airings do
   @type row :: %{
           id: nil,
           tracked_id: String.t(),
+          tracked_kind: :series | :film,
           kind: :air_date,
           location: nil,
           title: String.t(),
@@ -91,8 +108,13 @@ defmodule Kati.Calendars.Airings do
         %{}
 
       tracked ->
+        cache = cached_titles(tracked)
+
         tracked
-        |> airing_between(from, to, zone)
+        |> airing_between(cache, from, to, zone)
+        |> Map.merge(releasing_between(tracked, cache, from, to, zone), fn _day, a, b ->
+          a ++ b
+        end)
         |> Map.new(fn {day, rows} -> {day, Enum.sort_by(rows, &order/1)} end)
     end
   rescue
@@ -139,9 +161,8 @@ defmodule Kati.Calendars.Airings do
     |> Enum.filter(& &1.add_air_dates_to_calendar)
   end
 
-  defp airing_between(tracked, from, to, zone) do
+  defp airing_between(tracked, cache, from, to, zone) do
     by_show = Map.new(tracked, &{{&1.source, &1.source_id}, &1})
-    cache = cached_titles(tracked)
 
     tracked
     |> episodes_near(from, to)
@@ -162,6 +183,73 @@ defmodule Kati.Calendars.Airings do
         row(Map.fetch!(by_show, key), Map.get(cache, key), aired, zone)
       end
     )
+  end
+
+  defp releasing_between(tracked, cache, from, to, zone) do
+    tracked
+    |> Enum.filter(&(&1.kind == :movie))
+    |> Enum.flat_map(fn film ->
+      cached = Map.get(cache, {film.source, film.source_id})
+
+      case landing(Release.resolve(film, cached), zone) do
+        {day, landed} ->
+          if within?(day, from, to), do: [{day, film_row(film, cached, landed, zone)}], else: []
+
+        nil ->
+          []
+      end
+    end)
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  end
+
+  defp film_row(film, cached, landed, zone) do
+    at =
+      case landed do
+        {:at, at} -> at
+        :all_day -> nil
+      end
+
+    %{
+      id: nil,
+      tracked_id: film.id,
+      tracked_kind: :film,
+      kind: :air_date,
+      location: nil,
+      title: (cached && cached.title) || gettext("Untitled"),
+      meta: gettext("Film release"),
+      seed: cached && cached.poster_path,
+      time: if(at, do: Kati.Locale.time(Kati.Time.in_zone(at, zone)), else: gettext("All day")),
+      at: at,
+      now?: false
+    }
+  end
+
+  @doc """
+  The day's airings and releases that have an hour, as `Kati.Calendar.Layout`
+  occurrences for screen 09: the minute each lands at, no length, and the
+  row's own title, line, poster and show.
+  """
+  @spec occurrences(Date.t()) :: [map()]
+  def occurrences(%Date{} = date) do
+    zone = Kati.Time.device_zone()
+
+    for %{at: %DateTime{} = at} = row <- rows(date) do
+      local = Kati.Time.in_zone(at, zone)
+      minute = local.hour * 60 + local.minute
+
+      %{
+        id: "airing_" <> row.tracked_id,
+        tracked_id: row.tracked_id,
+        tracked_kind: row.tracked_kind,
+        start_min: minute,
+        end_min: minute,
+        kind: :air_date,
+        location: nil,
+        title: row.title,
+        meta: row.meta,
+        seed: row.seed
+      }
+    end
   end
 
   defp within?(day, from, to),
@@ -202,6 +290,7 @@ defmodule Kati.Calendars.Airings do
     %{
       id: nil,
       tracked_id: tracked.id,
+      tracked_kind: :series,
       kind: :air_date,
       location: nil,
       title: (cached && cached.title) || gettext("Untitled"),
