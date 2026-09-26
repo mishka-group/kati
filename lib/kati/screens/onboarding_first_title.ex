@@ -74,6 +74,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       search_error: nil,
       search_reason: nil,
       save_error: nil,
+      adds_as: :watching,
       tmdb_ready: Kati.Media.Tmdb.usable?()
     )
   end

@@ -106,11 +106,14 @@ defmodule Kati.Search do
 
   # Scripts where a single character is a word, and the minimum is therefore 1.
   # Ranges rather than a language list, because what matters is what was typed
-  # rather than what the app is set to.
+  # rather than what the app is set to. The two Arabic presentation-form blocks
+  # are what some keyboards and pasted text produce for the same letters.
   @single_char_scripts [
     {0x0600, 0x06FF},
     {0x0750, 0x077F},
     {0x08A0, 0x08FF},
+    {0xFB50, 0xFDFF},
+    {0xFE70, 0xFEFF},
     {0x3040, 0x30FF},
     {0x3400, 0x4DBF},
     {0x4E00, 0x9FFF},

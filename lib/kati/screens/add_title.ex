@@ -36,11 +36,11 @@ defmodule Kati.Screens.AddTitle do
   `Kati.Media.Artwork` only: the downloaded file when the title is already on
   this device, TMDB's small thumbnail by URL otherwise, and a placeholder tile
   when the result has no poster. A design seed can never reach it — `thumb/1`
-  used to go through `Kati.Library.Sample.poster/1`, which would have answered
+  used to go through a fixture module's `poster/1`, which would have answered
   a non-TMDB seed with one of the drawing's photographs.
 
-  `Kati.Library.Sample`'s rows are still what `Kati.ScreenDesignLiteralTest`
-  puts on the socket to compare board 06 against; nothing on a device does.
+  Board 06's four drawn rows are what `Kati.ScreenDesignLiteralTest` puts on
+  the socket to compare the board against; nothing on a device does.
   """
   # Not `Kati.Screens.Pushed`: this screen has its own close button in the
   # header, and the pushed chrome would draw a second back affordance over the
@@ -75,7 +75,8 @@ defmodule Kati.Screens.AddTitle do
     # drawn is ignored unless the epoch moves. See `K-46` in `native/LEDGER.md`.
     handed = Kati.Screens.AddTitle.opening_query(params)
 
-    if handed != "", do: Kati.Media.SearchDebounce.ask(self(), handed)
+    searching? = Kati.Search.long_enough?(handed)
+    if searching?, do: Kati.Media.SearchDebounce.ask(self(), handed)
 
     {:ok,
      Mob.Socket.assign(socket,
@@ -97,7 +98,7 @@ defmodule Kati.Screens.AddTitle do
        # Board 308's second band, from the first frame: a sheet handed a query
        # by screen 19's *Look it up* has a request in flight before it draws, so
        # it opens on the skeletons rather than on the empty card and then them.
-       searching?: handed != "",
+       searching?: searching?,
        save_error: nil,
        search_error: nil
      )}
@@ -688,7 +689,7 @@ defmodule Kati.Screens.AddTitle do
       if tracked? do
         Kati.Screens.AddTitle.untrack(title, row)
       else
-        Kati.Screens.AddTitle.track(title, row)
+        Kati.Screens.AddTitle.track(title, row, Map.get(socket.assigns, :adds_as, :not_started))
       end
 
     case result do
@@ -802,9 +803,26 @@ defmodule Kati.Screens.AddTitle do
   def row_key(%{source_id: id}) when is_binary(id) and id != "", do: id
   def row_key(%{title: title}), do: title
 
-  @doc false
-  @spec track(String.t(), map() | nil) :: {:ok, term()} | {:error, term()}
-  def track(title, %{source: :tmdb, source_id: source_id, kind: kind}) do
+  @doc """
+  Put a title on the shelf as `status`, which is `:not_started` unless the
+  caller says otherwise.
+
+  Adding a title records that the reader wants it, not that they have seen any
+  of it. This wrote `:watching`, so a film added from this sheet sat under the
+  shelf's *Watching* chip and on Home's *Continue watching* before a minute of
+  it had been logged. A series moves to `:watching` when an episode is ticked
+  (`Kati.Screens.Series.restate/1`) and a film to `:finished` when a watch of
+  it is logged (`Kati.Screens.Rating.finish_title/2`).
+
+  Screen 163 passes `:watching` through its `:adds_as` assign, because its
+  question is *pick something you are watching now* and the reader's answer is
+  exactly that claim.
+  """
+  @spec track(String.t(), map() | nil, :not_started | :watching) ::
+          {:ok, term()} | {:error, term()}
+  def track(title, row, status \\ :not_started)
+
+  def track(title, %{source: :tmdb, source_id: source_id, kind: kind}, status) do
     # The detail call, and the only place it is made. It fills
     # `Kati.Media.CachedTitle`, `CachedSeason` and `CachedEpisode` — the
     # episodes are the point, because nothing can be ticked before they exist,
@@ -823,7 +841,7 @@ defmodule Kati.Screens.AddTitle do
              # reader in the app knew and nothing ever wrote,
              # and this is the writer.
              kind: Kati.Media.Anime.kind_for(kind, Map.get(filled, :title), nil),
-             status: :watching
+             status: status
            }) do
       # The picture, fetched once, here, because this is the only moment the
       # app knows a title is wanted and is allowed to be slow. `poster_path` is
@@ -847,7 +865,7 @@ defmodule Kati.Screens.AddTitle do
     |> Kati.Write.note("track #{title}")
   end
 
-  def track(title, row) do
+  def track(title, row, status) do
     kind = Kati.Screens.AddTitle.kind_of(row)
 
     with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, kind),
@@ -856,7 +874,7 @@ defmodule Kati.Screens.AddTitle do
              source: :manual,
              source_id: title,
              kind: kind,
-             status: :watching
+             status: status
            }) do
       Kati.Media.Log.write(tracked, :added, %{from_status: nil})
 
@@ -1004,7 +1022,7 @@ defmodule Kati.Screens.AddTitle do
   there was one language to render it in.
 
   The fallback stays, and stays English, because the rows that reach it are
-  English: board 06's four fixtures come from `Kati.Library.Sample`, which
+  English: board 06's four fixtures, which
   writes their `meta` in Latin under both scripts, and a title typed by hand
   carries no kind of its own either. A guess that reads the words already on
   screen is still better than a default nobody chose.
