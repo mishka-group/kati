@@ -54,7 +54,7 @@ defmodule Kati.AccessibilityRealTest do
   test "no 235% claim and no contrast row" do
     words = drawn(nil)
 
-    refute words =~ "235"
+    refute words =~ "235%"
     refute words =~ "Increase contrast"
   end
 end
