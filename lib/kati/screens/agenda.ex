@@ -10,12 +10,15 @@ defmodule Kati.Screens.Agenda do
 
   ## Whose agenda
 
-  The reader's next `@horizon_days` days from today, read through
-  `Kati.Screens.Calendar.rows_between/2` — the stored events and the followed
+  The reader's next `@horizon_days` days from the day the calendar has
+  selected — `Kati.Calendars.SelectedDate`, which is today unless the reader
+  picked another day on 02, 16 or 17 — read through
+  `Kati.Screens.Calendar.rows_between/2`: the stored events and the followed
   shows' airings, the same rows screen 02 draws for each date. Each day with
-  anything on it is one group; the footer says how far the list reaches. With
-  nothing in that span the page draws screen 02's *Nothing scheduled* card and
-  no footer.
+  anything on it is one group; the footer says how far the list reaches, and
+  tapping it — its `expand_more` says it opens — reaches `@horizon_days`
+  further. With nothing in that span the page draws screen 02's *Nothing
+  scheduled* card and no footer.
 
   A row opens what screen 02's row for it opens.
 
@@ -27,12 +30,9 @@ defmodule Kati.Screens.Agenda do
   The footer's outline is `1.5px dashed`. The bridge's border has no dash
   pattern, so it ships solid at the design's `rgba(26,25,23,.16)`.
 
-  The switcher's four labels are **deliberately still Latin**.
-  `Kati.Screens.ViewSwitcher.bar/1` builds each segment's tap tag out of the
-  word it prints and `ViewSwitcher.screen/1` routes on the English word, so
-  translating the labels here would rename three live controls under `:fa` and
-  the strip would go dead on the Persian page. The fix is a stable tag in the
-  module that builds it.
+  The switcher's four entries are English KEYS, not words: the tap tag is
+  built from the key and `Kati.Screens.ViewSwitcher.label/1` draws it in the
+  reader's language, so the Persian strip is Persian and still routes.
   """
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
@@ -47,27 +47,37 @@ defmodule Kati.Screens.Agenda do
   @horizon_days 30
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :agenda, agenda(Kati.Time.today()))
+  def load(socket), do: show(socket, Kati.Calendars.SelectedDate.get(), @horizon_days)
 
   @doc """
-  Coming back from a row opened from here: the agenda is read again.
+  Coming back from a row or another view opened from here: the agenda is read
+  again, from the day the calendar has selected.
   """
   @impl true
   def handle_kati(:resumed, _payload, socket),
-    do: {:noreply, Mob.Socket.assign(socket, :agenda, agenda(Kati.Time.today()))}
+    do: {:noreply, show(socket, Kati.Calendars.SelectedDate.get(), socket.assigns.days)}
 
   def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
+  defp show(socket, date, days) do
+    Mob.Socket.assign(socket,
+      date: date,
+      days: days,
+      agenda: agenda(date, Kati.Time.today(), days)
+    )
+  end
+
   @doc """
-  The agenda from `today`: one group per day with anything on it, in date
-  order, and the last day the list covers.
+  The agenda for `days` days from `from`: one group per day with anything on
+  it, in date order, and the last day the list covers. `today` is what the
+  kickers are counted from.
   """
-  @spec agenda(Date.t()) :: %{groups: [map()], through: Date.t()}
-  def agenda(%Date{} = today) do
-    through = Date.add(today, @horizon_days - 1)
+  @spec agenda(Date.t(), Date.t(), pos_integer()) :: %{groups: [map()], through: Date.t()}
+  def agenda(%Date{} = from, %Date{} = today, days \\ @horizon_days) do
+    through = Date.add(from, days - 1)
 
     groups =
-      today
+      from
       |> Schedule.rows_between(through)
       |> Enum.sort_by(fn {day, _rows} -> day end, Date)
       |> Enum.map(fn {day, rows} -> group(day, rows, today) end)
@@ -90,16 +100,17 @@ defmodule Kati.Screens.Agenda do
 
   @doc """
   What a day's kicker calls it: *Today*, *Tomorrow*, its weekday while it is
-  inside the coming week, and its month after that — far enough out that the
-  day of the week has stopped being how anybody finds it.
+  inside the coming week, and its month otherwise — far enough out, or far
+  enough back when the reader has selected a past day, that the day of the
+  week has stopped being how anybody finds it.
   """
   @spec kicker(Date.t(), Date.t()) :: String.t()
   def kicker(day, today) do
     case Date.diff(day, today) do
       0 -> gettext("Today")
       1 -> gettext("Tomorrow")
-      n when n < 7 -> weekday(day)
-      _later -> Kati.Locale.month_name(day, :short)
+      n when n > 1 and n < 7 -> weekday(day)
+      _other -> Kati.Locale.month_name(day, :short)
     end
   end
 
@@ -336,6 +347,7 @@ defmodule Kati.Screens.Agenda do
       border_width={1.5}
       padding={14}
       align="center"
+      on_tap={{self(), :agenda_more}}
     >
       <Row align="center">
         {UI.symbol("expand_more", size: 18, color: Palette.sub())}
@@ -366,6 +378,9 @@ defmodule Kati.Screens.Agenda do
   # ── What a tap changes ────────────────────────────────────────────────────
 
   @impl true
+  def handle_tap(:agenda_more, socket),
+    do: {:noreply, show(socket, socket.assigns.date, socket.assigns.days + @horizon_days)}
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "row_" <> _rest ->

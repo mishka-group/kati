@@ -23,6 +23,13 @@ defmodule Kati.Screens.MonthGrid do
   selected date again opens screen 09 on it, the gesture screen 02's day strip
   already uses.
 
+  ## Which day is selected
+
+  `Kati.Calendars.SelectedDate`'s — the one day every calendar view shares. The
+  grid opens on the month that day falls in, and every selection made here is
+  written back, so the Schedule, the week and the agenda are on the same day
+  when the reader goes to them.
+
   A root, not a pushed screen: the drawing carries the dock with Calendar
   active, so it renders through `Kati.Shell` and the four-mode switcher is how
   you leave it rather than a back pill.
@@ -33,9 +40,8 @@ defmodule Kati.Screens.MonthGrid do
   what the cell carries — the modifier chain is weight → aspect_ratio, so the
   height follows the width the Row actually handed out, at any frame.
 
-  The switcher's four labels stay Latin: `Kati.Screens.ViewSwitcher.bar/1`
-  builds each segment's tap tag out of the word it prints, and
-  `Kati.Screens.Agenda`'s moduledoc carries that argument in full.
+  The switcher's four entries are English keys; `Kati.Screens.ViewSwitcher`
+  builds the tap tag from the key and draws the reader's word for it.
   """
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
@@ -54,16 +60,18 @@ defmodule Kati.Screens.MonthGrid do
 
   @impl true
   def load(socket) do
-    today = Kati.Time.today()
-    Mob.Socket.assign(socket, date: today, month: month(today, today))
+    date = Kati.Calendars.SelectedDate.get()
+    Mob.Socket.assign(socket, date: date, month: month(date, Kati.Time.today()))
   end
 
   @doc """
-  Coming back from a day or an event opened from here: the month is read again
-  and the selected date is kept.
+  Coming back from a day, an event or another view opened from here: the month
+  is read again, on the day the calendar has selected.
   """
   @impl true
-  def handle_kati(:resumed, _payload, socket), do: {:noreply, select(socket, socket.assigns.date)}
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, show(socket, Kati.Calendars.SelectedDate.get())}
+
   def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @doc """
@@ -541,9 +549,10 @@ defmodule Kati.Screens.MonthGrid do
       else: start
   end
 
-  defp select(socket, date) do
-    Mob.Socket.assign(socket, date: date, month: month(date, Kati.Time.today()))
-  end
+  defp select(socket, date), do: show(socket, Kati.Calendars.SelectedDate.put(date))
+
+  defp show(socket, date),
+    do: Mob.Socket.assign(socket, date: date, month: month(date, Kati.Time.today()))
 
   # ── What a tap changes ────────────────────────────────────────────────────
 

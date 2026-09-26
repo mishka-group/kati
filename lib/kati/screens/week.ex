@@ -20,6 +20,10 @@ defmodule Kati.Screens.Week do
   Tapping a lane names its day in the card; tapping the named lane again opens
   screen 09 on it. The chevrons move a week either way.
 
+  The named day is `Kati.Calendars.SelectedDate`'s, the one day every calendar
+  view shares: the week opens around it, and naming a lane or moving a week
+  writes it back.
+
   A root, not a pushed screen: the drawing carries the dock with Calendar
   active.
 
@@ -30,9 +34,8 @@ defmodule Kati.Screens.Week do
   design's way of marking a section that reports rather than points at
   something happening — so that one is drawn here.
 
-  The switcher's four labels stay Latin: `Kati.Screens.ViewSwitcher.bar/1`
-  builds each segment's tap tag out of the word it prints, and
-  `Kati.Screens.Agenda`'s moduledoc carries that argument in full.
+  The switcher's four entries are English keys; `Kati.Screens.ViewSwitcher`
+  builds the tap tag from the key and draws the reader's word for it.
   """
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
@@ -55,16 +58,18 @@ defmodule Kati.Screens.Week do
 
   @impl true
   def load(socket) do
-    today = Kati.Time.today()
-    Mob.Socket.assign(socket, date: today, week: week(today, today))
+    date = Kati.Calendars.SelectedDate.get()
+    Mob.Socket.assign(socket, date: date, week: week(date, Kati.Time.today()))
   end
 
   @doc """
-  Coming back from a day or an event opened from here: the week is read again
-  and the named day is kept.
+  Coming back from a day, an event or another view opened from here: the week
+  is read again, around the day the calendar has selected.
   """
   @impl true
-  def handle_kati(:resumed, _payload, socket), do: {:noreply, select(socket, socket.assigns.date)}
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, show(socket, Kati.Calendars.SelectedDate.get())}
+
   def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @doc """
@@ -624,9 +629,10 @@ defmodule Kati.Screens.Week do
     """
   end
 
-  defp select(socket, date) do
-    Mob.Socket.assign(socket, date: date, week: week(date, Kati.Time.today()))
-  end
+  defp select(socket, date), do: show(socket, Kati.Calendars.SelectedDate.put(date))
+
+  defp show(socket, date),
+    do: Mob.Socket.assign(socket, date: date, week: week(date, Kati.Time.today()))
 
   # ── What a tap changes ────────────────────────────────────────────────────
 

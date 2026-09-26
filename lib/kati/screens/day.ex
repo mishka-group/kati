@@ -63,7 +63,9 @@ defmodule Kati.Screens.Day do
   A push carrying `%{date: date}` — what `Kati.Screens.Calendar`'s open
   gesture, the month grid and the week lanes send — titles this screen with
   that date and draws that day's own events out of `Kati.Calendars.Event`. A
-  push carrying nothing draws today. `day/1` is the whole of that decision.
+  push carrying nothing draws the day the calendar has selected —
+  `Kati.Calendars.SelectedDate`, which is today unless the reader picked
+  another. `day/1` is the whole of that decision.
 
   ## Why a real day is thinner than the drawing
 
@@ -150,7 +152,8 @@ defmodule Kati.Screens.Day do
 
   `%{date: date}` is what the calendar's views push — the cell the user tapped
   — and this screen titles itself with it and draws that day's own events. No
-  date is today, read like any other day. `Kati.Calendars.Today.occurrences/1`
+  date is the calendar's selected day, `Kati.Calendars.SelectedDate`, read like
+  any other day. `Kati.Calendars.Today.occurrences/1`
   answers the day's timed events in `Kati.Calendar.Layout`'s own shape, ids
   included, and a day with none answers `[]`.
   """
@@ -159,7 +162,7 @@ defmodule Kati.Screens.Day do
     date =
       case Map.get(params, :date) do
         %Date{} = date -> date
-        _no_date -> Kati.Time.today()
+        _no_date -> Kati.Calendars.SelectedDate.get()
       end
 
     {date, Kati.Calendars.Today.occurrences(date)}
@@ -1058,6 +1061,11 @@ defmodule Kati.Screens.Day do
   straight through; and the glyph is the same `Kati.UI.symbol/2` Text, now
   inside a Row that hugs it — a Row takes its content's size, and a hugging Row
   centred in a Box lands where the bare Text did.
+
+  It opens the agenda. The disc was drawn lifted, which is how this app says
+  *button*, and it carried no tap at all. `density_medium` is the glyph screen
+  02's own menu gives *Agenda*, so the same picture leads to the same place
+  here, through `Kati.Screens.ViewSwitcher` like the other views' segments.
   """
   @spec density_disc() :: map()
   def density_disc do
@@ -1067,7 +1075,8 @@ defmodule Kati.Screens.Day do
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
-        shadow: Kati.Theme.shadow_button()
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: :view_Agenda
       ],
       [Kati.UI.symbol("density_medium", size: 21)]
     )
@@ -1392,8 +1401,8 @@ defmodule Kati.Screens.Day do
 
         {:noreply, Mob.Socket.assign(socket, :occurrences, occurrences)}
 
-      _ ->
-        {:noreply, socket}
+      _other ->
+        Kati.Screens.ViewSwitcher.handle_tap(tag, socket)
     end
   end
 end
