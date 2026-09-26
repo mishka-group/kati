@@ -76,18 +76,15 @@ defmodule Kati.Screens.Day do
   furniture that would have to be invented** — the all-day band, a merged
   renewals total, and chip counts or a headline it cannot count.
 
-    * **The episodes.** Not for want of an episode resource any more —
-      `20260821231241_media_seasons_and_episodes` built
-      `Kati.Media.CachedEpisode`, and `Kati.Screens.Series` and
-      `Kati.Screens.Inbox` came off their Sample modules on the strength of it.
-      **The missing thing is the join, not the table.** `Kati.Calendars.Event`
-      carries `uid`, `summary`, `location` and its sync bookkeeping and no
-      `{source, source_id}` pair at all, so an `air_date` row on this day cannot
-      reach the episode that produced it: the 20:00 group's `S3 · E2` lines have
-      nothing to look up, and `Kati.Media.CachedTitle.poster_path` is equally
-      out of reach for the poster stack and the 23:15 row's tile. Matching on
-      `summary` would be a guess wearing the shape of a join, which is the same
-      objection the `£22.98` bullet below makes about `description`.
+    * **Most of the episodes.** A followed show's airing is not an event —
+      `Kati.Calendars.Event` carries no `{source, source_id}` pair — so it
+      comes from `Kati.Calendars.Airings`, which reads the air date off
+      `Kati.Media.CachedEpisode` and joins it to its show, poster and `S · E`
+      line (`Kati.Calendars.Airings.occurrences/1`). A followed film's release
+      comes the same way. Only the ones with an HOUR are laned here: a
+      day-only air date has no minute to sit at, and this screen draws no
+      all-day band, so those stay on 02 and the grid views. A tap on one opens
+      the show or the film, not screen 31.
 
     * **The tick.** `done` on the 08:00 habit and on the 15:00 todo has no
       column anywhere: `Kati.Calendars.Event` models timing, identity, kind and
@@ -165,7 +162,7 @@ defmodule Kati.Screens.Day do
         _no_date -> Kati.Calendars.SelectedDate.get()
       end
 
-    {date, Kati.Calendars.Today.occurrences(date)}
+    {date, Kati.Calendars.Today.occurrences(date) ++ Kati.Calendars.Airings.occurrences(date)}
   end
 
   @doc false
@@ -1344,7 +1341,9 @@ defmodule Kati.Screens.Day do
   end
 
   @doc """
-  The tag a timeline card carries: `event_<occurrence id>`, or none.
+  The tag a timeline card carries: `event_<occurrence id>`, an airing's
+  `Kati.Screens.Calendar.tag/1` (`row_series_<id>` or `row_film_<id>`), or
+  none.
 
   An atom rather than a tuple, for `Kati.Screens.Calendar.tag/1`'s reason —
   `Mob.Renderer` derives an `accessibility_id` only from an atom, so a
@@ -1361,6 +1360,9 @@ defmodule Kati.Screens.Day do
   `grouped_card/2` already makes between a card and the disc on it.
   """
   @spec card_tap(map()) :: {pid(), atom()} | nil
+  def card_tap(%{tracked_id: tracked_id} = airing) when is_binary(tracked_id),
+    do: {self(), Kati.Screens.Calendar.tag(airing)}
+
   def card_tap(%{id: id}) when is_binary(id) or is_integer(id),
     do: {self(), String.to_atom("event_" <> to_string(id))}
 
@@ -1377,6 +1379,9 @@ defmodule Kati.Screens.Day do
     case Atom.to_string(tag) do
       "event_" <> id ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
+
+      "row_" <> _show ->
+        {:noreply, Kati.Screens.Calendar.open_timeline_row(socket, tag, socket.assigns.date)}
 
       "filter_" <> label ->
         filter = if socket.assigns.filter == label, do: nil, else: label

@@ -135,26 +135,130 @@ defmodule Kati.CalendarAiringsTest do
     end)
   end
 
+  describe "films and anime" do
+    test "a followed film's release day is a row that opens the film page" do
+      rolled_back(fn ->
+        today = Kati.Time.today()
+        film = follow!("Vellum", kind: :movie, status: :not_started, release: midnight(today))
+
+        assert [row] = Airings.rows(today)
+        assert row.title == "Vellum"
+        assert row.meta == "Film release"
+        assert row.tracked_kind == :film
+        assert row.time == "All day"
+
+        {:ok, socket} = Schedule.mount(%{}, %{}, %Mob.Socket{})
+        [shaped] = socket.assigns.rows
+        tag = Schedule.tag(shaped)
+
+        assert tag == String.to_atom("row_film_" <> film.id)
+
+        {:noreply, moved} = Schedule.handle_info({:tap, tag}, socket)
+
+        assert moved.__mob__.nav_action ==
+                 {:push, Kati.Screens.Film, %{id: film.id, back: "Calendar"}}
+      end)
+    end
+
+    test "a date the reader typed for a film wins over the source's" do
+      rolled_back(fn ->
+        today = Kati.Time.today()
+        later = Date.add(today, 12)
+
+        follow!("Vellum",
+          kind: :movie,
+          status: :not_started,
+          release: midnight(today),
+          override: later
+        )
+
+        assert Airings.rows(today) == []
+        assert [%{title: "Vellum"}] = Airings.rows(later)
+      end)
+    end
+
+    test "a film dated only to a month or a year lands on no day" do
+      rolled_back(fn ->
+        today = Kati.Time.today()
+
+        follow!("Vague",
+          kind: :movie,
+          status: :not_started,
+          release: midnight(today),
+          confidence: :month
+        )
+
+        assert Airings.rows(today) == []
+      end)
+    end
+
+    test "a followed anime's episode airs like any show's" do
+      rolled_back(fn ->
+        show = follow!("Frieren", kind: :anime)
+        episode!(show, season: 1, episode: 5, on: Kati.Time.today())
+
+        assert [%{title: "Frieren", meta: "S1 · E5", tracked_kind: :series}] =
+                 Airings.rows(Kati.Time.today())
+      end)
+    end
+  end
+
+  describe "on screen 09" do
+    test "an airing with an hour is laned at it and opens the show" do
+      rolled_back(fn ->
+        today = Kati.Time.today()
+        zone = Kati.Time.device_zone()
+        {:ok, nine} = Kati.Time.to_utc(NaiveDateTime.new!(today, ~T[21:00:00]), zone)
+
+        show = follow!("Frieren", poster: nil)
+        episode!(show, season: 1, episode: 12, at: nine, confidence: :exact)
+
+        all_day = follow!("Dark", poster: nil)
+        episode!(all_day, season: 3, episode: 1, on: today)
+
+        {^today, occurrences} = Kati.Screens.Day.day(%{date: today})
+
+        assert [%{title: "Frieren", start_min: 1260, kind: :air_date} = airing] = occurrences
+        assert Kati.Screens.Day.bucket(airing) == "Screen"
+
+        tag = String.to_atom("row_series_" <> show.id)
+        assert Kati.Screens.Day.card_tap(airing) == {self(), tag}
+
+        view = mount_screen(Kati.Screens.Day, %{date: today})
+        moved = render_info(view, {:tap, tag})
+
+        assert moved.socket.__mob__.nav_action ==
+                 {:push, Kati.Screens.Series, %{id: show.id, back: "Calendar"}}
+      end)
+    end
+  end
+
   defp follow!(title, opts \\ []) do
     source_id = "calendar-airings:#{System.unique_integer([:positive])}"
+    kind = Keyword.get(opts, :kind, :tv)
 
     Ash.create!(CachedTitle, %{
       source: :tmdb,
       source_id: source_id,
-      kind: :tv,
+      kind: kind,
       title: title,
       poster_path: Keyword.get(opts, :poster),
+      next_release_at: Keyword.get(opts, :release),
+      date_confidence: Keyword.get(opts, :confidence, :day),
       fetched_at: DateTime.utc_now() |> DateTime.truncate(:second)
     })
 
     Ash.create!(TrackedTitle, %{
       source: :tmdb,
       source_id: source_id,
-      kind: :tv,
+      kind: kind,
       status: Keyword.get(opts, :status, :watching),
+      user_override_date: Keyword.get(opts, :override),
       add_air_dates_to_calendar: Keyword.get(opts, :calendar?, true)
     })
   end
+
+  defp midnight(date), do: DateTime.new!(date, ~T[00:00:00.000000], "Etc/UTC")
 
   defp episode!(show, opts) do
     at =

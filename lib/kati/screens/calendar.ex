@@ -1582,9 +1582,13 @@ defmodule Kati.Screens.Calendar do
   A row from `Kati.Calendars.Airings` has no event behind it, so it carries
   `row_series_<tracked id>`: the followed `Kati.Media.TrackedTitle` whose
   episode airs, which `open_timeline_row/3` pushes screen 04 with as
-  `%{id: tracked_id}`.
+  `%{id: tracked_id}`. A followed film's release carries `row_film_<tracked
+  id>` and opens the film page the same way.
   """
   @spec tag(map()) :: atom()
+  def tag(%{tracked_id: tracked_id, tracked_kind: :film}) when is_binary(tracked_id),
+    do: String.to_atom("row_film_" <> tracked_id)
+
   def tag(%{tracked_id: tracked_id}) when is_binary(tracked_id),
     do: String.to_atom("row_series_" <> tracked_id)
 
@@ -1655,6 +1659,7 @@ defmodule Kati.Screens.Calendar do
     # An airing from `Kati.Calendars.Airings`, whose id is the followed show's
     # `Kati.Media.TrackedTitle` rather than an event's — see `tag/1`.
     "series" => Kati.Screens.Series,
+    "film" => Kati.Screens.Film,
     # Screen 126 rather than 23. A money row on a calendar day is a renewal or
     # an expense on THAT DAY, and the page that answers "what does this day
     # cost" is the day — 23 is the account, one tap further in.
