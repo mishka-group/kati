@@ -1141,6 +1141,7 @@ defmodule Kati.Screens.Film do
       trigger,
       menu?,
       [
+        Kati.Screens.Film.edit_log_item(f),
         Kati.Screens.Film.log_item(f),
         # The one control that can set `Kati.Media.TrackedTitle.private`, and
         # therefore the one thing that makes screen 98's *Hide titles I marked
@@ -1164,6 +1165,23 @@ defmodule Kati.Screens.Film do
       |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
     )
+  end
+
+  @doc """
+  *Edit your log* — the saved viewing, reopened with its stars, review and
+  details — once the film has been seen; nothing before.
+
+  The rating card already opened it, and nothing on the page said so: the
+  owner, looking for a way to change a rating, found only *Log rewatch* in
+  this menu and got a blank sheet (the Galaxy A55, 26 Sep).
+  """
+  @spec edit_log_item(map()) :: map() | []
+  def edit_log_item(f) do
+    if Map.get(f, :tracked_id) && Map.get(f, :seen_count, 0) > 0 do
+      Kati.UI.Menu.item("edit", gettext("Edit your log"), :rate)
+    else
+      []
+    end
   end
 
   @doc """
@@ -1283,6 +1301,19 @@ defmodule Kati.Screens.Film do
           />
         </Row>
       </Column>
+      {Kati.Screens.Film.card_chevron(tap)}
+    </Row>
+    """
+  end
+
+  @doc "The card's own sign that it opens something: a chevron when it has a tap."
+  def card_chevron(nil), do: ~MOB"<Spacer size={0} />"
+
+  def card_chevron(_tap) do
+    ~MOB"""
+    <Row align="center">
+      <Spacer size={10} />
+      {Kati.UI.SettingsList.chevron()}
     </Row>
     """
   end

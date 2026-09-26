@@ -215,4 +215,18 @@ defmodule Kati.FilmLogEditTest do
       end
     end)
   end
+
+  describe "the ⋯ menu" do
+    test "offers Edit your log once the film has been seen, opening the saved watch" do
+      assert %{} = item = Kati.Screens.Film.edit_log_item(%{tracked_id: "t1", seen_count: 1})
+      assert inspect(item) =~ "Edit your log"
+      assert inspect(item) =~ ":rate"
+    end
+
+    test "offers nothing to edit before a first log" do
+      assert Kati.Screens.Film.edit_log_item(%{tracked_id: "t1", seen_count: 0}) == []
+      assert Kati.Screens.Film.edit_log_item(%{}) == []
+    end
+  end
+
 end

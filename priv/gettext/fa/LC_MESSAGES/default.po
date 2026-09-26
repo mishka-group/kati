@@ -117,7 +117,7 @@ msgstr "افزودن به فهرست"
 #: lib/kati/screens/add_by_hand_book.ex:208
 #: lib/kati/screens/add_by_hand_book.ex:569
 #: lib/kati/screens/add_by_hand_record.ex:159
-#: lib/kati/screens/title_preview.ex:303
+#: lib/kati/screens/title_preview.ex:349
 #, elixir-autogen, elixir-format
 msgid "Add to library"
 msgstr "افزودن به کتابخانه"
@@ -613,7 +613,7 @@ msgid "Kati, and Mob"
 msgstr "Kati, Mob"
 
 #: lib/kati/screens/clear_history.ex:440
-#: lib/kati/screens/film.ex:2236
+#: lib/kati/screens/film.ex:2267
 #: lib/kati/screens/list_detail.ex:220
 #, elixir-autogen, elixir-format
 msgid "Keep it"
@@ -4051,7 +4051,7 @@ msgstr "یادداشت شما"
 
 #: lib/kati/meals/sample_recipe.ex:246
 #: lib/kati/screens/album_detail.ex:444
-#: lib/kati/screens/film.ex:1241
+#: lib/kati/screens/film.ex:1259
 #: lib/kati/screens/meal.ex:463
 #: lib/kati/screens/shelf_filters.ex:234
 #, elixir-autogen, elixir-format
@@ -4258,7 +4258,7 @@ msgstr "بدون پوستر"
 msgid "Q%{q} %{year}"
 msgstr "فصل %{q} %{year}"
 
-#: lib/kati/screens/film.ex:2201
+#: lib/kati/screens/film.ex:2232
 #: lib/kati/screens/series.ex:1987
 #, elixir-autogen, elixir-format
 msgid "Remove from library"
@@ -4311,7 +4311,7 @@ msgstr "تنظیمات سریال"
 #: lib/kati/screens/series_settings.ex:231
 #: lib/kati/screens/series_settings.ex:234
 #: lib/kati/screens/stats.ex:1765
-#: lib/kati/screens/title_preview.ex:401
+#: lib/kati/screens/title_preview.ex:447
 #: lib/kati/screens/up_next.ex:674
 #: lib/kati/screens/up_next.ex:675
 #: lib/kati/screens/what_fits.ex:559
@@ -8664,8 +8664,8 @@ msgstr "چه چیزی نشانه را می‌گذارد — و کدام برند
 msgid "Where Add to library goes"
 msgstr "«افزودن به کتابخانه» به کجا می‌رود"
 
-#: lib/kati/screens/film.ex:1448
-#: lib/kati/screens/film.ex:1463
+#: lib/kati/screens/film.ex:1479
+#: lib/kati/screens/film.ex:1494
 #: lib/kati/screens/series_meta.ex:404
 #, elixir-autogen, elixir-format
 msgid "Where to watch"
@@ -9318,7 +9318,7 @@ msgctxt "what switching numbering affects"
 msgid "What it changes"
 msgstr "چه چیزی را تغییر می‌دهد"
 
-#: lib/kati/screens/film.ex:2028
+#: lib/kati/screens/film.ex:2059
 #: lib/kati/screens/series_meta.ex:289
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
@@ -9344,7 +9344,7 @@ msgctxt "where to watch"
 msgid "included"
 msgstr "با اشتراک"
 
-#: lib/kati/screens/film.ex:2025
+#: lib/kati/screens/film.ex:2056
 #: lib/kati/screens/series_meta.ex:288
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
@@ -11594,7 +11594,7 @@ msgstr "کاتی آن را نفرستاد: %{reason}."
 msgid "Kati keeps the version an edit started from, so that a disagreement can be a three-way merge rather than a guess. This one has none — the queued change was quarantined, or the edit is older than the queue. Your version and the one on %{calendar} differ, and two versions that differ say nothing about who moved, so Kati will not choose between them for you."
 msgstr "کاتی نسخه‌ای را که هر ویرایش از آن شروع شده نگه می‌دارد تا اختلاف، یک ادغام سه‌طرفه باشد نه یک حدس. این یکی چنین نسخه‌ای ندارد — یا تغییرِ در صف قرنطینه شده، یا ویرایش از خودِ صف قدیمی‌تر است. نسخهٔ شما و نسخهٔ روی %{calendar} با هم فرق دارند، و دو نسخه که فرق دارند چیزی دربارهٔ اینکه کدام جابه‌جا شده نمی‌گویند؛ پس کاتی به‌جای شما میان‌شان انتخاب نمی‌کند."
 
-#: lib/kati/screens/film.ex:1451
+#: lib/kati/screens/film.ex:1482
 #: lib/kati/screens/nothing_set_up_knock_on.ex:154
 #, elixir-autogen, elixir-format
 msgid "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
@@ -11753,7 +11753,7 @@ msgstr "جست‌وجوی بی‌نتیجه"
 msgid "Send your version. Theirs is kept below."
 msgstr "نسخهٔ شما فرستاده می‌شود. نسخهٔ آن‌ها پایین نگه داشته می‌شود."
 
-#: lib/kati/screens/film.ex:1450
+#: lib/kati/screens/film.ex:1481
 #: lib/kati/screens/nothing_set_up_knock_on.ex:153
 #, elixir-autogen, elixir-format
 msgid "Set up your services to see where this is streaming"
@@ -12546,7 +12546,7 @@ msgid "Done on 14 August — 4 months early"
 msgstr "در ۱۴ آبان تمام شد — ۴ ماه زودتر"
 
 #: lib/kati/screens/drop_sheet.ex:945
-#: lib/kati/screens/film.ex:1205
+#: lib/kati/screens/film.ex:1223
 #, elixir-autogen, elixir-format
 msgid "Drop this film"
 msgstr "رهاکردن این فیلم"
@@ -13511,7 +13511,7 @@ msgstr "اگر نه بگویید، کاتی به نشان صندوق برمی‌
 msgid "Kati is quiet unless you ask it not to be. Turn a reminder on and it will show up here first, before it ever interrupts you."
 msgstr "کاتی ساکت است مگر خودتان بخواهید نباشد. یک یادآور را روشن کنید تا اول همین‌جا نشان داده شود، پیش از آنکه اصلاً کارتان را قطع کند."
 
-#: lib/kati/screens/film.ex:2045
+#: lib/kati/screens/film.ex:2076
 #, elixir-autogen, elixir-format
 msgid "Keep off shared cards"
 msgstr "دور نگه‌داشتن از کارت‌های اشتراکی"
@@ -13588,7 +13588,7 @@ msgstr "شمار پخش، امتیازها و یادداشت‌ها همچنان
 msgid "Quiet hours, digest, stop after two skips"
 msgstr "ساعات سکوت، خلاصه، توقف پس از دو بار رد کردن"
 
-#: lib/kati/screens/film.ex:2044
+#: lib/kati/screens/film.ex:2075
 #, elixir-autogen, elixir-format
 msgid "Show on shared cards"
 msgstr "نمایش در کارت‌های اشتراکی"
@@ -13613,12 +13613,12 @@ msgstr "این‌ها به TMDB می‌روند، نه به یک پیشنهاد�
 msgid "This is a %{source} export from before %{year}. Everything else maps. "
 msgstr "این یک خروجی %{source} از پیش از %{year} است. بقیه نگاشت می‌شوند. "
 
-#: lib/kati/screens/film.ex:2129
+#: lib/kati/screens/film.ex:2160
 #, elixir-autogen, elixir-format
 msgid "This is a film"
 msgstr "این یک فیلم است"
 
-#: lib/kati/screens/film.ex:2128
+#: lib/kati/screens/film.ex:2159
 #, elixir-autogen, elixir-format
 msgid "This is a series"
 msgstr "این یک سریال است"
@@ -13648,7 +13648,7 @@ msgstr "ناشناخته برای کاشیِ نام‌برده — بگویید 
 msgid "Use %{source} instead"
 msgstr "استفاده از %{source}"
 
-#: lib/kati/screens/film.ex:1844
+#: lib/kati/screens/film.ex:1875
 #, elixir-autogen, elixir-format
 msgid "Watch %{title}"
 msgstr "تماشای %{title}"
@@ -13826,19 +13826,19 @@ msgctxt "film action pill"
 msgid "Schedule"
 msgstr "برنامه‌ریزی"
 
-#: lib/kati/screens/film.ex:2029
+#: lib/kati/screens/film.ex:2060
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "Buy from %{name}"
 msgstr "خرید از %{name}"
 
-#: lib/kati/screens/film.ex:2032
+#: lib/kati/screens/film.ex:2063
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "On %{name}"
 msgstr "در %{name}"
 
-#: lib/kati/screens/film.ex:2026
+#: lib/kati/screens/film.ex:2057
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "Rent from %{name}"
@@ -13940,7 +13940,7 @@ msgctxt "the preview band's name for screen 112's today card"
 msgid "Today card"
 msgstr "کارت امروز"
 
-#: lib/kati/screens/film.ex:1241
+#: lib/kati/screens/film.ex:1259
 #, elixir-autogen, elixir-format
 msgctxt "the rating card's count eyebrow"
 msgid "Seen"
@@ -13953,13 +13953,13 @@ msgctxt "the watched pill over a film's artwork"
 msgid "Watched"
 msgstr "دیده شد"
 
-#: lib/kati/screens/film.ex:2087
+#: lib/kati/screens/film.ex:2118
 #, elixir-autogen, elixir-format
 msgctxt "the ⋯ row that tags a title as anime"
 msgid "Mark as anime"
 msgstr "علامت‌زدن به‌عنوان انیمه"
 
-#: lib/kati/screens/film.ex:2085
+#: lib/kati/screens/film.ex:2116
 #, elixir-autogen, elixir-format
 msgctxt "the ⋯ row that tags a title as anime"
 msgid "Not anime"
@@ -16496,27 +16496,27 @@ msgstr "تغییر می‌کند:"
 msgid "Does not change:"
 msgstr "تغییر نمی‌کند:"
 
-#: lib/kati/screens/film.ex:2226
+#: lib/kati/screens/film.ex:2257
 #, elixir-autogen, elixir-format
 msgid "Remove %{title} from your library?"
 msgstr "«%{title}» از کتابخانهٔ شما حذف شود؟"
 
-#: lib/kati/screens/film.ex:2235
+#: lib/kati/screens/film.ex:2266
 #, elixir-autogen, elixir-format
 msgid "Remove it"
 msgstr "حذفش کن"
 
-#: lib/kati/screens/film.ex:2225
+#: lib/kati/screens/film.ex:2256
 #, elixir-autogen, elixir-format
 msgid "Removing it"
 msgstr "حذف عنوان"
 
-#: lib/kati/screens/film.ex:2228
+#: lib/kati/screens/film.ex:2259
 #, elixir-autogen, elixir-format
 msgid "the title leaves your shelf, with every watch, rating and note you logged for it, and its places on your lists."
 msgstr "عنوان از قفسهٔ شما می‌رود، با همهٔ تماشاها، امتیازها و یادداشت‌هایی که برایش ثبت کرده‌اید، و جایش در فهرست‌هایتان."
 
-#: lib/kati/screens/film.ex:2232
+#: lib/kati/screens/film.ex:2263
 #, elixir-autogen, elixir-format
 msgid "your other titles and your lists. Adding it again brings back its details, not its history."
 msgstr "عنوان‌های دیگر و خود فهرست‌هایتان. افزودن دوباره‌اش جزئیاتش را برمی‌گرداند، نه تاریخچه‌اش را."
@@ -16878,12 +16878,12 @@ msgstr "جست‌وجو در کتابخانه"
 msgid "TMDB found nothing beyond what you already keep."
 msgstr "TMDB چیزی جز آنچه نگه می‌دارید پیدا نکرد."
 
-#: lib/kati/screens/title_preview.ex:409
+#: lib/kati/screens/title_preview.ex:455
 #, elixir-autogen, elixir-format
 msgid "Loading from TMDB…"
 msgstr "در حال دریافت از TMDB…"
 
-#: lib/kati/screens/title_preview.ex:327
+#: lib/kati/screens/title_preview.ex:373
 #, elixir-autogen, elixir-format
 msgid "Overview"
 msgstr "خلاصهٔ داستان"
@@ -16891,5 +16891,10 @@ msgstr "خلاصهٔ داستان"
 #: lib/kati/screens/rating.ex:1116
 #, elixir-autogen, elixir-format
 msgctxt "screen 33's heading while it edits a saved watch"
+msgid "Edit your log"
+msgstr "ویرایش ثبت تماشا"
+
+#: lib/kati/screens/film.ex:1190
+#, elixir-autogen, elixir-format
 msgid "Edit your log"
 msgstr "ویرایش ثبت تماشا"
