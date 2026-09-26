@@ -82,8 +82,7 @@ defmodule Kati.Screens.UpNext do
   draw `empty/0`'s honest card instead: what a real queue looks like with
   nothing in it, not four titles the reader does not have. `Kati.Screens.
   UpNext.Sample` still exists — `Kati.ScreenDesignLiteralTest` reads it to
-  check frame 10's literals against the drawing, the same way `Kati.Screens.
-  Lists.Sample.lists/0` survives Lists' own fix — it is simply no longer
+  check frame 10's literals against the drawing — and it is simply no longer
   something a real reader's own empty queue can render.
 
   ## Both scripts, one screen
@@ -632,10 +631,20 @@ defmodule Kati.Screens.UpNext do
     %{
       title: title_of(c),
       seed: seed_of(c),
-      meta: join(episode(row) ++ runtime(c)),
+      meta: ready_meta(row, c),
       id: row.id,
       kind: row.kind
     }
+  end
+
+  # `hero_meta/2`'s answer for a row under the hero: the next episode where
+  # one is cached, and what the title is when nothing else is known — a row
+  # with no bookmark and no runtime drew an empty mono line under its title.
+  defp ready_meta(row, c) do
+    case join(next_or_bookmark(row) ++ runtime(c)) do
+      "" -> join(Enum.map(identity(row, c), &Kati.UI.eyebrow_label/1))
+      meta -> meta
+    end
   end
 
   # `action` is the offer this screen makes on a thread that has gone quiet, not
@@ -1012,7 +1021,14 @@ defmodule Kati.Screens.UpNext do
   # full-height Boxes rather than one: each needs its own bottom alignment, and
   # a Box stacks its children, so the gradient, the caption row and the progress
   # bar can all sit at the bottom edge without fighting for the same slot.
+  #
+  # An empty queue has no hero and no reason card either: `empty_card/1` is
+  # already saying what is missing. Drawing *Everything on your shelf is
+  # paused* under it told a fresh install, which has no shelf at all, that its
+  # shelf was paused.
   @doc false
+  def hero(%{empty?: true}), do: ~MOB"<Spacer size={0} />"
+
   def hero(%{hero: nil}) do
     ~MOB"""
     <Column fill_width={true}>
@@ -1266,7 +1282,7 @@ defmodule Kati.Screens.UpNext do
   construction, because it collects the tags a screen DOES draw and a screen
   with none passes every check in the file.
 
-  `nil` for a drawn row, which is what `Kati.Library.Sample.queue/0` is: not
+  `nil` for a drawn row, which is what board 10's own rows are: not
   tappable rather than broken, the value that sweep's own docs name for a
   control with nowhere to go. Every real row carries the id it was read from.
 

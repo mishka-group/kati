@@ -17,8 +17,10 @@ defmodule Kati.Screens.MyServices do
 
   Screen 23 lists the same services with a cost per watched hour. The `info`
   row under the subscribed group prints the ownership out loud — *this screen
-  owns these prices; 23 reads them — edit here, and cost per watched hour
-  follows* — so nobody has to work out which page to edit.
+  owns these prices; Subscriptions reads them — edit here, and cost per
+  watched hour follows* — so nobody has to work out which page to edit. It
+  names the page by its title: it said *23*, the page's number in the design,
+  which no reader has ever been shown.
 
   ## Every rule carries its consequence in words
 
@@ -27,10 +29,10 @@ defmodule Kati.Screens.MyServices do
   what it does **not** touch, because "hide" beside a library is a frightening
   word.
 
-  ## The Money row quotes screen 23 rather than summing this page
+  ## The Money row adds up what is stored
 
-  See `Kati.Services.Sample.monthly_total/0`. The two figures differ and the
-  difference is real.
+  See `monthly_total/0`: the stored prices through
+  `Kati.Services.Service.total/1`, and a dash when nothing has a price.
 
   ## `Something else` is the only create path drawn for a service
 
@@ -158,10 +160,7 @@ defmodule Kati.Screens.MyServices do
   Neither group falls back to `Kati.Services.Sample` any more.
   A phone that had been told nothing was shown Lumen+
   £8.99, Orbit £13.99, Kino £11.49, *Subscribed · 3* and `£46.47 A MONTH` —
-  one tap after Home had said *No subscriptions yet*. The drawing's values are
-  still the drawing's: `Kati.ScreenDesignLiteralTest.drawn_state/0` installs
-  them to compare board 92 against, which is the arrangement screens 01 and 03
-  already have.
+  one tap after Home had said *No subscriptions yet*.
   """
   @spec free() :: [map()]
   def free, do: stored(:free_with_ads) |> Enum.map(&shape/1)
@@ -188,22 +187,17 @@ defmodule Kati.Screens.MyServices do
     _error -> []
   end
 
-  @doc "The drawing's values, unconditionally — the fixture, not a fallback path."
+  @doc """
+  The drawing's values, unconditionally — the fixture, not a fallback path.
+
+  Nothing on this page reads it. Its callers are the two reference boards
+  that draw 92's services as a specimen, `Kati.Screens.MyServicesStates` and
+  `Kati.Screens.MyServicesEmpty`'s free group, both reached only from
+  `Kati.Screens.Gallery`; board 92's own set-up arrival is
+  `Kati.Test.DrawnBoards.services_page/0`, a test fixture.
+  """
   @spec drawn() :: map()
   def drawn, do: page(Sample.subscribed(), Sample.free(), false, Sample.monthly_total())
-
-  @doc """
-  Board 92's own arrival: the drawing's services, on a page that IS set up.
-
-  `drawn/0`'s `set_up?` is false because that is the question it answers — what
-  a device with nothing stored reads back — and a device with nothing stored
-  draws board 93 now. This is the other thing: the state board 92 was captured
-  in, which is a reader with three subscriptions. Two maps, because they are
-  answers to two questions, and collapsing them is how a board stops being
-  compared against the page it is a drawing of.
-  """
-  @spec drawn_page() :: map()
-  def drawn_page, do: page(Sample.subscribed(), Sample.free(), true, Sample.monthly_total())
 
   @doc """
   Everything this page draws that comes from anywhere but the markup, as one
@@ -585,9 +579,10 @@ defmodule Kati.Screens.MyServices do
   you could type into there would take a name and have nowhere to put it, which
   is a worse field than one that is honestly a picture.
 
-  The `on_tap` stays on the row in both. It is the drawn hit area, and on the
-  typing clause it is what a tap on the glyph or the padding lands on rather
-  than on the field itself.
+  Only the drawn clause carries an `on_tap`. On the typing clause the row held
+  one too, as the hit area around the field, and no handler answered it: a
+  tag that does nothing is a dead control to every sweep and to the reader,
+  and the field under it is what a tap is for.
   """
   @spec search_field(String.t() | nil) :: map()
   def search_field(query \\ nil, set_up? \\ true, epoch \\ 0)
@@ -655,7 +650,6 @@ defmodule Kati.Screens.MyServices do
         padding_left={17}
         padding_right={17}
         align="center"
-        on_tap={{self(), :search}}
       >
         {UI.symbol("search", size: 19, color: Palette.tertiary())}
         <Spacer size={11} />
@@ -984,7 +978,7 @@ defmodule Kati.Screens.MyServices do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={10} />
-      {Kati.UI.SettingsList.note("info", gettext("This screen owns these prices. 23 reads them — edit here, and cost per watched hour follows."))}
+      {Kati.UI.SettingsList.note("info", gettext("This screen owns these prices. Subscriptions reads them — edit here, and cost per watched hour follows."))}
     </Column>
     """
   end
@@ -1228,18 +1222,19 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  @doc "Where the availability data comes from, pointing at screen 83."
+  @doc """
+  Where the availability data comes from, pointing at the page that credits it.
+
+  It said *credited on 83*, which is the page's number in the design and not a
+  word a reader has ever seen: the page is *Where this comes from*, under
+  Settings, and the note names it the way the Settings list does.
+  """
   @spec credit() :: map()
   def credit do
-    # One literal, for `no_match/2`'s reason. `83` is written into the Persian
-    # rather than interpolated through `Kati.Locale.number/1`, which is what
-    # `ownership_note/1` already does with its `23`: a board number inside a
-    # sentence is part of the sentence, and two ways of writing one would be two
-    # things to keep in step.
     SettingsList.note(
       "info",
       gettext(
-        "Which service carries what comes from JustWatch, through TMDB. Both are credited on 83."
+        "Which service carries what comes from JustWatch, through TMDB. Both are credited in Settings, under Where this comes from."
       )
     )
   end

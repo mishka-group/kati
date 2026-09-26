@@ -1,3 +1,5 @@
+Code.require_file("../support/drawn_boards.exs", __DIR__)
+
 defmodule Kati.SheetRowIdentityTest do
   @moduledoc """
   Three sheets act on the row that opened them — screens 70, 73 and 118 — and,
@@ -1142,7 +1144,7 @@ defmodule Kati.SheetRowIdentityTest do
     end
 
     test "the drawn shelf names nothing, which is what every capture was taken from" do
-      for row <- Kati.Screens.Library.drawn_titles() do
+      for row <- Kati.Test.DrawnBoards.library_titles() do
         assert Kati.Screens.Series.params_for(row) == %{}
       end
 
@@ -1155,7 +1157,7 @@ defmodule Kati.SheetRowIdentityTest do
         Mob.Socket.assign(
           Mob.Socket.new(Kati.Screens.Library),
           :titles,
-          Kati.Screens.Library.drawn_titles()
+          Kati.Test.DrawnBoards.library_titles()
         )
 
       {:noreply, nobody} = Kati.Screens.Library.handle_tap(:open_series_nobody, socket)

@@ -1,3 +1,4 @@
+Code.require_file("../support/drawn_boards.exs", __DIR__)
 Code.require_file("../support/screen_sweep.exs", __DIR__)
 
 defmodule Kati.ServicesTest do
@@ -248,11 +249,11 @@ defmodule Kati.ServicesTest do
       # and two free services — on a phone that had been told nothing.
       assert MyServices.listed().subscribed == []
       assert MyServices.listed().free == []
-      refute MyServices.listed() == MyServices.drawn_page()
+      refute MyServices.listed() == Kati.Test.DrawnBoards.services_page()
     end
 
     test "and the drawing is still there to compare the board against" do
-      assert MyServices.drawn_page().subscribed == Kati.Services.Sample.subscribed()
+      assert Kati.Test.DrawnBoards.services_page().subscribed == Kati.Services.Sample.subscribed()
     end
   end
 

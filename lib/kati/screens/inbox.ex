@@ -33,8 +33,8 @@ defmodule Kati.Screens.Inbox do
       empty Coming up. That is the true answer.
     * **Releases** — the page proper, every line a column.
 
-  `drawn_inbox/0` is board 05's own state, installed only by
-  `Kati.ScreenDesignLiteralTest`; no reader reaches it.
+  Board 05's own state is a test fixture, `Kati.Test.DrawnBoards.inbox/0`,
+  installed only by `Kati.ScreenDesignLiteralTest`; no reader reaches it.
 
   ### Out now
 
@@ -82,7 +82,6 @@ defmodule Kati.Screens.Inbox do
   require Ash.Query
 
   alias Kati.Components.MishkaSeparator
-  alias Kati.Library.Sample
   alias Kati.Media.CachedEpisode
   alias Kati.Media.CachedSeason
   alias Kati.Media.CachedTitle
@@ -121,8 +120,8 @@ defmodule Kati.Screens.Inbox do
   @doc """
   Board 260 — the watcher is running and has nothing to watch.
 
-  What a device that follows nothing used to get was `drawn_inbox/0`: the
-  drawing's three coming-up rows and `Kati.Library.Sample`'s Out now rows, so
+  What a device that follows nothing used to get was board 05's drawing: its
+  three coming-up rows and its Out now rows, so
   a fresh install opened its release inbox on releases nobody was waiting for.
   That is #91's sentence about a different screen and board 260 is the answer
   the design gives to this one.
@@ -141,10 +140,6 @@ defmodule Kati.Screens.Inbox do
   offer is what it is: a release inbox is the output of a watcher rather than a
   shelf, so the ink action opens screen 06 — the only door that puts anything
   into the followed set — and the quiet alternative is the shelf itself.
-
-  `drawn_inbox/0` is still what `Kati.ScreenDesignLiteralTest` puts the screen
-  into for board 05, and only that: a state a reader reaches once they follow
-  something, not one a fresh install falls into.
   """
   @spec nothing_followed() :: map()
   def nothing_followed do
@@ -158,17 +153,6 @@ defmodule Kati.Screens.Inbox do
       nothing_followed?: true
     }
   end
-
-  @doc """
-  Screen 05 exactly as it is drawn.
-
-  `Kati.Library.Sample` for the watcher card and the Out now rows; the
-  coming-up rows are `coming_up_rows/0`, which is stated in this module and
-  says why in its own doc.
-  """
-  @spec drawn_inbox() :: map()
-  def drawn_inbox,
-    do: Map.merge(Sample.inbox(), %{coming_up: coming_up_rows(), last_checked: watcher_line()})
 
   @doc """
   The watcher card's mono line: when a check last completed, and how often the
@@ -1050,9 +1034,10 @@ defmodule Kati.Screens.Inbox do
   now** row and re-reads, which empties the section and recounts the subtitle —
   the behaviour the moduledoc already described as if it had shipped.
 
-  Drawn without a tap when the list is empty, and that is not the same as
-  inert: there is nothing to mark all OF. Over the board it is likewise a
-  picture, because the drawing's rows have no episode behind them.
+  Not drawn at all when there is nothing to mark. It used to be drawn without a
+  tap over an empty Out now, which is a pill that looks pressable and does
+  nothing — on a fresh install it sat over the *nothing followed* card. The
+  row keeps its 44 so the title under it does not move.
 
   **Two words, so it is `pgettext/2`.** *Mark all* is one Jaro step from the
   *Mark eaten* screen 33 already has, and `mix gettext.merge` would hand this
@@ -1062,7 +1047,24 @@ defmodule Kati.Screens.Inbox do
   """
   @spec mark_all(map()) :: map()
   def mark_all(inbox \\ %{}) do
-    assigns = %{tap: if(Kati.Screens.Inbox.tickable(inbox) != [], do: {self(), :mark_all})}
+    if Kati.Screens.Inbox.tickable(inbox) == [],
+      do: Kati.Screens.Inbox.mark_all_space(),
+      else: Kati.Screens.Inbox.mark_all_pill()
+  end
+
+  @doc false
+  def mark_all_space do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} height={44} align="center" />
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def mark_all_pill do
+    assigns = %{tap: {self(), :mark_all}}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -1089,40 +1091,6 @@ defmodule Kati.Screens.Inbox do
       <Spacer size={16} />
     </Column>
     """
-  end
-
-  @doc """
-  The three dated rows the **drawing** puts in the Coming up card.
-
-  Stated here rather than taken from `Kati.Library.Sample`, whose list had
-  drifted to a different three titles with a mono day/time where the design
-  draws a bell. The drawing is the authority for this card: an air date that
-  is already being watched for (a filled orange `notifications_active`) and
-  two that are only listed (a hollow `notifications`).
-
-  `drawn_inbox/0` lays these over the Sample map, so the fallback this screen
-  answers with is one value rather than a map beside a list — which is what lets
-  `Kati.ScreenEmptyDatabaseTest` compare `inbox/0` with it as a term.
-  """
-  @spec coming_up_rows() :: [map()]
-  def coming_up_rows do
-    [
-      %{
-        month: "AUG",
-        day: "20",
-        title: "The Long Hollow — S2E6",
-        line: "Lumen+ · 20:00",
-        armed: true
-      },
-      %{month: "SEP", day: "04", title: "Vellum", line: "In cinemas", armed: false},
-      %{
-        month: "SEP",
-        day: "12",
-        title: "Nightbirds — Season 2",
-        line: "Full season drop",
-        armed: false
-      }
-    ]
   end
 
   @doc false
@@ -1338,11 +1306,10 @@ defmodule Kati.Screens.Inbox do
   @doc false
   def row_gap, do: ~MOB"<Spacer size={9} />"
 
-  # `Kati.Design.Images.poster/1` rather than `Kati.Library.Sample.poster/1` —
-  # the Sample function is a one-line delegation to it, and a real row's seed now
-  # arrives on `Kati.Media.CachedTitle.poster_path` (see `out_now_row/4`), so
-  # routing it through the fixture module would be a lie about where the value
-  # came from. Screens 03 and 08 made the same move for the same reason.
+  # `Kati.Design.Images.poster/1` directly: a real row's seed arrives on
+  # `Kati.Media.CachedTitle.poster_path` (see `out_now_row/4`), so routing it
+  # through a fixture module would be a lie about where the value came from.
+  # Screens 03 and 08 made the same move for the same reason.
   @doc false
   def thumb(row) do
     case Kati.Design.Images.poster(row[:seed]) do
@@ -1380,8 +1347,8 @@ defmodule Kati.Screens.Inbox do
   end
 
   # `Kati.Locale.mono_face/1` on the month and not `mono_face/0`, because this
-  # slot holds both scripts at once: a real row draws مرداد and the drawn rows
-  # `coming_up_rows/0` still carry `AUG`, which is the board's own Latin and
+  # slot holds both scripts at once: a real row draws مرداد and board 05's
+  # drawn rows still carry `AUG`, which is the board's own Latin and
   # belongs in DM Mono. Asking the STRING is the only question that answers
   # both — `Kati.Screens.DataSources` makes the same call for provider names.
   @doc false

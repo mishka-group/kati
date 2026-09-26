@@ -111,14 +111,13 @@ defmodule Kati.ScreenInboxEmptyTest do
       assert {:push, Kati.Screens.ReleaseWatcher, _} = Map.get(watcher.__mob__, :nav_action)
     end
 
-    test "Mark all stays, as a picture, because the board keeps it" do
-      # Board 260 draws `Mark all` in its header. It is drawn WITHOUT a tap
-      # when there is nothing to mark — `mark_all/1` says so — which is not the
-      # same as inert: there is nothing to mark all OF, and the control is part
-      # of the page's chrome rather than an offer.
+    test "Mark all is not drawn, because there is nothing to mark" do
+      # Board 260 draws `Mark all` in its header, and it was drawn here without
+      # a tap: a pill that looks pressable and does nothing (N52-C). With
+      # nothing followed there is nothing to mark all OF, so it is gone.
       words = text(mount_screen(Inbox))
 
-      assert words =~ "Mark all"
+      refute words =~ "Mark all"
     end
 
     test "and the subtitle is gone, because it counted sections that are not drawn" do

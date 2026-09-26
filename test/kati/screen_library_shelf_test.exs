@@ -1,3 +1,5 @@
+Code.require_file("../support/drawn_boards.exs", __DIR__)
+
 defmodule Kati.ScreenLibraryShelfTest do
   @moduledoc """
   Screen 03's grid, against `Kati.Media` and against an empty database.
@@ -187,7 +189,7 @@ defmodule Kati.ScreenLibraryShelfTest do
       # The fixture is untouched and still holds nine, so the pair above is
       # about this screen's read and not about an emptied Sample module.
       assert length(Sample.titles()) == 9
-      assert length(Library.drawn_titles()) == 9
+      assert length(Kati.Test.DrawnBoards.library_titles()) == 9
     end
 
     test "not one of the drawing's nine reaches the tree" do
@@ -283,7 +285,7 @@ defmodule Kati.ScreenLibraryShelfTest do
       Library.render(%{
         filter: filter,
         shelf: "Screen",
-        titles: Library.drawn_titles(),
+        titles: Kati.Test.DrawnBoards.library_titles(),
         menu?: false
       })
     )
@@ -347,7 +349,7 @@ defmodule Kati.ScreenLibraryShelfTest do
     end
 
     test "the subtitle and the chip counts are the ones the Sample module produced" do
-      titles = Library.drawn_titles()
+      titles = Kati.Test.DrawnBoards.library_titles()
 
       assert Library.subtitle(titles) == Sample.subtitle()
       assert Library.subtitle(titles) == "9 titles · 4 in progress"
@@ -423,7 +425,7 @@ defmodule Kati.ScreenLibraryShelfTest do
         Library.render(%{
           filter: :all,
           shelf: "Screen",
-          titles: Library.drawn_titles(),
+          titles: Kati.Test.DrawnBoards.library_titles(),
           menu?: false
         }),
         extra: [:anchored]
