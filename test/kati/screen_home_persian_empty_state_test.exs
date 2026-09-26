@@ -335,7 +335,9 @@ defmodule Kati.ScreenHomePersianEmptyStateTest do
     test "the search field stays, and is empty" do
       texts = with_empty_store(&home_texts/0)
 
-      assert "جست‌وجوی هر چیزی که نگه می‌دارید" in texts
+      # N54: the placeholder is `Kati.Search.placeholder/0`'s, shortened so a
+      # phone does not cut it off.
+      assert "جست‌وجو در کتابخانه" in texts
     end
 
     test "one gate for two languages, and it is 139's own read" do

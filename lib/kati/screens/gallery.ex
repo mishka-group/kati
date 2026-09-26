@@ -540,10 +540,10 @@ defmodule Kati.Screens.Gallery do
     # Settings → Auto-detect → This phone (auto_detect.ex:897,1197). N22 — it
     #   draws the one card for the phone's own grant, not the board's four.
     "151",
-    # Home → the search field, which opens idle before a query exists.
-    "86",
-    # 86 → the tune disc. #131 made its back pill name the page it returns to.
-    "88",
+    # ("86" and "88" were here — Home → the search field, and 86 → the tune
+    # disc. N54 made screen 19 the one search page every door opens, so 86 is
+    # the board's own drawing and 88 went with the only disc that opened it;
+    # both are back in the gallery.)
     # Stats → the share disc. #3 gave it board 102's two missing card faces.
     "98",
     # ("100" was here — Settings → Year cards. Removed with the row; see the

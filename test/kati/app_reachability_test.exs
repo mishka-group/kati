@@ -177,6 +177,14 @@ defmodule Kati.AppReachabilityTest do
        "medications, not by navigating. The two destinations it names are " <>
        "both live from 112 itself."},
     {Screens.SearchTyping, "screen 86's three states before results, in 27's manner. As above."},
+    {Screens.SearchIdle,
+     "board 86, the search field before a query. Since N54 every search door " <>
+       "opens screen 19, which draws this state itself — its Recent group and " <>
+       "its note — on the same page as the results. Kept as the board's drawing."},
+    {Screens.SearchSpec,
+     "board 88, the search contract read as a page. Its only door was screen " <>
+       "86's tune disc, and 86 is the board's drawing since N54; screen 19 " <>
+       "carries no tune disc."},
     {Screens.SearchResultStates,
      "screen 86's four result edge states, in 27's manner. As above."},
     {Screens.SearchLarge,

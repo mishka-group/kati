@@ -613,9 +613,9 @@ defmodule Kati.Screens.SearchResultStates do
     # translated.
     #
     # `query` is deliberately NOT wrapped in `Kati.Locale.ltr/1`, for the
-    # reason that call site gives. The live caller is
-    # `Kati.Screens.Search.no_matches/1` and the value is then the reader's own
-    # text, which can be in either script; isolating a Persian query as a
+    # reason that call site gives. The value is the reader's own text — it was
+    # screen 19's live query until N54 moved that page to its inline *On TMDB*
+    # section — which can be in either script; isolating a Persian query as a
     # left-to-right run would mirror the exact defect that helper exists to
     # fix. A Latin query needs no isolate here anyway — the sentence's own
     # quotation marks bound it on both sides, so it strands no trailing neutral

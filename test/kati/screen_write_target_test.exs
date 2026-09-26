@@ -385,19 +385,11 @@ defmodule Kati.ScreenWriteTargetTest do
     # — so the write carried the typed word nowhere and changed what the
     # Library's search disc opened next. It pushes the query now, and writes
     # nothing. Found on the Pixel 9a, 25 Sep.)
-    # Screen 19's `or add it by hand`, on the same card as `Look it up`. Unlike
-    # that row it has to write rather than push: see
-    # `Kati.Screens.AddByHand.prefill/1` for why a nav param makes 154 a params
-    # reader whose every sweep question assumes the key names a row. It leaves the query for
-    # screen 154 so somebody who has just been told nothing matched does not
-    # retype the word the app showed them.
-    #
-    # A one-shot key of 154's own rather than `Kati.Search.hand_over/1`'s:
-    # `take_prefill/0` deletes as it reads, so it fills that one arrival and
-    # not a Library reached some other way later — which is the bug screens 03
-    # and 20 both carry a comment about, the search disc opening *"somebody's
-    # last search, from a previous launch"*.
-    {Kati.Screens.Search, :add_by_hand, {:state, "add_by_hand:title"}},
+    # (Screen 19's `or add it by hand` was here too, writing 154's one-shot
+    # prefill key. Since N54 the card that drew it is gone: the offer is drawn
+    # only when TMDB has also answered nothing, which is a state no sweep over
+    # an empty field reaches. `Kati.SearchTmdbSectionTest` presses it.)
+
     # Screen 06's *Add “X” by hand*, the same one-shot key for the same reason:
     # the row quotes the typed words back at the reader, and 154 opened on its
     # placeholder until this carried them (N26). The query is the page's own

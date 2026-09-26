@@ -172,6 +172,44 @@ defmodule Kati.SearchGroupsTest do
       assert moved.__mob__.nav_action ==
                {:push, Kati.Screens.Series, %{id: tracked.id, back: "Search"}}
     end
+
+    test "a shelved hit names its source, which is what the TMDB section de-duplicates on" do
+      shelve!("source", "Severance")
+      [row] = Query.run("Severance").titles
+
+      assert {row.source, row.source_id} == {:tmdb, @prefix <> "source"}
+    end
+  end
+
+  describe "the On TMDB section's place (N54)" do
+    test "is under All and Screen, and nowhere else" do
+      results = Query.run("zzqwx-nothing")
+      pending = %{Kati.Search.OnTmdb.idle() | status: :pending, query: "zzqwx-nothing"}
+
+      for filter <- [:all, :screen] do
+        refute Search.on_tmdb(results, filter, pending) == [], "#{filter} drew no TMDB section"
+      end
+
+      for filter <- [:books, :calendar, :notes] do
+        assert Search.on_tmdb(results, filter, pending) == [],
+               "#{filter} drew TMDB's films under a scope the reader narrowed away from them"
+      end
+    end
+
+    test "draws nothing while the field is idle or TMDB has not been asked" do
+      pending = %{Kati.Search.OnTmdb.idle() | status: :pending, query: "h"}
+
+      assert Search.on_tmdb(Query.run("h"), :all, pending) == []
+      assert Search.on_tmdb(Query.run("hollow"), :all, Kati.Search.OnTmdb.idle()) == []
+    end
+
+    test "a query that matched nothing in the library is one quiet line, not a card" do
+      tree = Search.state_or_groups(Query.run("zzqwx-nothing"), :all, [])
+      texts = for %{props: %{text: text}} <- flatten(tree), is_binary(text), do: text
+
+      assert "Not in your library" in texts
+      refute Enum.any?(texts, &String.contains?(&1, "Search TMDB for"))
+    end
   end
 
   describe "the note this screen draws while it waits" do

@@ -83,8 +83,11 @@ defmodule Kati.ScreenHomeEmptyStateTest do
   # Screen 139's own copy, `test/design/screens/139.html`, verbatim. The
   # eyebrow is upper-cased by `Kati.UI.SettingsList.eyebrow_muted/1` rather
   # than in the drawing's text, so it is written here the way the tree holds it.
+  # The placeholder is the one exception (N54): the board's *Search anything
+  # you keep* was cut short on a phone, and `Kati.Search.placeholder/0` reads
+  # *Search your library* on every search field.
   @drawn_139 [
-    "Search anything you keep",
+    "Search your library",
     "Nothing chosen yet",
     "Kati keeps what you tell it to. Pick a section and this page fills with what you are " <>
       "watching, reading and eating.",
@@ -136,7 +139,7 @@ defmodule Kati.ScreenHomeEmptyStateTest do
   # the page and assert nothing.
   @empty_taps [
     {:open_settings, Kati.Screens.Settings},
-    {:open_search, Kati.Screens.SearchIdle},
+    {:open_search, Kati.Screens.Search},
     {:choose_sections, Kati.Screens.PickSections},
     {:restore_backup, Kati.Screens.Restore},
     {:open_calendar, Kati.Screens.Calendar}
@@ -262,7 +265,7 @@ defmodule Kati.ScreenHomeEmptyStateTest do
       refute "Nothing chosen yet" in texts,
              "139 tells this person they have chosen nothing while they are tracking a show"
 
-      refute "Search anything you keep" in texts,
+      refute "Search your library" in texts,
              "the page drawn is still 139's, whatever else is on it"
     end
 

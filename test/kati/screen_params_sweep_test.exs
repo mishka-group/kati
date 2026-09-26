@@ -378,7 +378,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # back to that. `Kati.MealSwapTest` drives that door directly, and
     # `Kati.MealsTodayWriteTest` drives the per-card tags. Moving it onto the
     # push would be changing the door screen 46 was built around.
-    {Kati.Screens.MealsToday, :swap, Kati.Screens.MealSwap},
+    {Kati.Screens.MealsToday, :swap, Kati.Screens.MealSwap}
 
     # ── Screen 151's `Log by hand`, and why it is no longer here.
     #
@@ -400,10 +400,9 @@ defmodule Kati.ScreenParamsSweepTest do
     #
     # mishka-group/kati#103 translated 86 with the rest of the search family
     # and folded all four mirrors into `Kati.Screens.Home` and
-    # `Kati.Screens.HomeEmpty`, so every home in the app opens the same empty
-    # field — `Kati.Screens.SearchIdle`, which reads no params at all and is
-    # not a reader this sweep asks about.,
-    {Kati.Screens.HomeOmittedSections, :open_search, Kati.Screens.Search}
+    # `Kati.Screens.HomeEmpty`, and since N54 every home in the app opens
+    # screen 19 itself, naming `query: ""` — `Kati.Screens.HomeOmittedSections`
+    # included, which was the last entry here.
   ]
 
   # Every door into a params reader that names its subject and hands the reader

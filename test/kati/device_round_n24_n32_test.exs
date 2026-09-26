@@ -3,7 +3,8 @@ defmodule Kati.DeviceRoundN24N32Test do
   Nine defects found on the device on 25 September, N24 to N32, one describe
   each.
 
-    * **N24** — backspacing through a query filled Recent with its prefixes.
+    * **N24** — typing through a query filled Recent with its prefixes; Recent
+      now records only a committed query.
     * **N25** — a title opened from a search hit had the back pill *Library*.
     * **N26** — screen 06's *Add “X” by hand* opened 154 with the title empty.
     * **N27** — 154's note broke into three lines around its bold clause.
@@ -26,7 +27,7 @@ defmodule Kati.DeviceRoundN24N32Test do
   alias Kati.Screens.Series
   alias Kati.Search.Recent
 
-  doctest Kati.Search.Recent, only: [deleting?: 2]
+  doctest Kati.Search.Recent, only: [prefix_of_any?: 2]
   doctest Kati.Screens.Film, only: [watched: 1]
 
   @prefix "n24-n32-"
@@ -44,8 +45,8 @@ defmodule Kati.DeviceRoundN24N32Test do
     :ok
   end
 
-  describe "N24: backspacing is not searching" do
-    test "deleting back through a word records none of the shorter words" do
+  describe "N24: a keystroke is not a search" do
+    test "typing and backspacing through a word records nothing" do
       socket = search_socket("")
 
       socket =
@@ -53,34 +54,30 @@ defmodule Kati.DeviceRoundN24N32Test do
 
       Enum.reduce(["hollo", "holl", "hol", "ho"], socket, &type/2)
 
-      assert Recent.all() == ["hollow"]
+      assert Recent.all() == []
     end
 
-    test "a shorter search typed fresh after a longer one is still its own search" do
+    test "the keyboard's search key records what is in the field, once" do
       socket = search_socket("")
-      socket = Enum.reduce(["As", "Ash", "Ashf", "Ashfall"], socket, &type/2)
-      socket = type("", socket)
+      socket = Enum.reduce(["T", "Th", "The", "TheM", "The Matrix"], socket, &type/2)
 
-      Enum.reduce(["A", "As", "Ash"], socket, &type/2)
+      {:noreply, _submitted} = Search.handle_info({:submit, :commit}, socket)
 
-      assert Recent.all() == ["Ash", "Ashfall"]
+      assert Recent.all() == ["The Matrix"]
     end
 
-    test "backspacing then typing on to a new word records the new word" do
-      socket = search_socket("")
-      socket = Enum.reduce(["ho", "hol", "holl", "hollo", "hollow"], socket, &type/2)
-      socket = Enum.reduce(["hollo", "holl", "hol", "ho"], socket, &type/2)
-
-      Enum.reduce(["hou", "hous", "house"], socket, &type/2)
-
-      assert Recent.all() == ["house", "hollow"]
-    end
-
-    test "remember/2 without a previous query records as it always did" do
+    test "a prefix of a kept query is never stored beside it" do
       Recent.remember("Ashfall")
       Recent.remember("Ash")
 
-      assert Recent.all() == ["Ash", "Ashfall"]
+      assert Recent.all() == ["Ashfall"]
+    end
+
+    test "a word the new query grew around gives way to it" do
+      Recent.remember("Matrix")
+      Recent.remember("The Matrix")
+
+      assert Recent.all() == ["The Matrix"]
     end
   end
 
