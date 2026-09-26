@@ -385,6 +385,30 @@ defmodule Kati.Locale do
   end
 
   @doc """
+  The first and last day of the month `date` falls in, in the reader's own
+  calendar.
+
+      iex> Kati.Locale.month_span(~D[2026-08-16])
+      {~D[2026-08-01], ~D[2026-08-31]}
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.month_span(~D[2026-08-16]) end)
+      {~D[2026-07-23], ~D[2026-08-22]}
+
+  Gregorian `Date`s either way, like `year_start/1`: 16 August 2026 is 25
+  Mordad 1405, and Mordad runs from 23 July to 22 August.
+  """
+  @spec month_span(Date.t()) :: {Date.t(), Date.t()}
+  def month_span(%Date{} = date) do
+    if calendar() == :shamsi do
+      {year, month, day} = Kati.Calendar.Shamsi.from_gregorian(date)
+      first = Date.add(date, 1 - day)
+      {first, Date.add(first, Kati.Calendar.Shamsi.days_in_month(year, month) - 1)}
+    else
+      {Date.beginning_of_month(date), Date.end_of_month(date)}
+    end
+  end
+
+  @doc """
   The year number a date falls in, in the reader's own calendar and digits.
 
       iex> Kati.Locale.year_of(~D[2026-08-12])

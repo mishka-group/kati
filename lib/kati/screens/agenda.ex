@@ -5,84 +5,113 @@ defmodule Kati.Screens.Agenda do
   Built to `test/design/screens/30.html`. The fourth view mode, and the
   only one with no grid at all: a date kicker appears where something exists
   and nowhere else, so an empty week costs no scrolling. The gap at the end is
-  *stated* — "Nothing else until 12 Sep" inside a dashed outline — rather than
-  left as blank paper the user has to interpret.
+  *stated* inside an outline rather than left as blank paper the user has to
+  interpret.
+
+  ## Whose agenda
+
+  The reader's next `@horizon_days` days from today, read through
+  `Kati.Screens.Calendar.rows_between/2` — the stored events and the followed
+  shows' airings, the same rows screen 02 draws for each date. Each day with
+  anything on it is one group; the footer says how far the list reaches. With
+  nothing in that span the page draws screen 02's *Nothing scheduled* card and
+  no footer.
+
+  A row opens what screen 02's row for it opens.
 
   A root, not a pushed screen: the drawing carries the dock with Calendar
   active.
 
-  ## The components this screen uses
-
-    * `disc/1` — `Kati.Components.MishkaActionIcon`, filled and circular. It
-      became one this round: an Action Icon had no `shadow` prop before, and a
-      filled disc without one is a flat patch rather than a button floating
-      over the paper.
-    * `hairline/1` — `Kati.Components.MishkaSeparator` at **`render: :box`**.
-      The default `:divider` is Material3's antialiased `drawLine`, whose last
-      pixel row lands at ~69% coverage on this device; the design asks for a
-      1px rule and `:box` is the only setting that draws one.
-
-  The switcher belongs to `Kati.Screens.ViewSwitcher`, and the footer's outline
-  is not a component — see below.
-
   ## Where this diverges from the drawing
 
-  The footer's outline is `1.5px dashed`. The bridge's border draws a solid
-  stroke — there is no dash pattern on the prop — so it ships solid at the
-  design's `rgba(26,25,23,.16)`. The intent (an outline that reads as a
-  placeholder rather than a control) mostly survives; the literal dash does
-  not, and is recorded here rather than faked with a row of small boxes.
+  The footer's outline is `1.5px dashed`. The bridge's border has no dash
+  pattern, so it ships solid at the design's `rgba(26,25,23,.16)`.
 
-  ## Which words on this page are this file's
-
-  One: the heading. Everything else this screen draws is a string it was
-  handed, and the two places they come from are both outside this file.
-
-  `Kati.Calendar.SampleAgenda` owns every kicker, every subtitle, every row —
-  the times, the titles, the `Lumen+` line, and the footer's
-  `Nothing else until 12 Sep`. This screen receives them already rendered and
-  `gettext/1` cannot take a variable, so they can only be wrapped where they
-  are written. That module has not been folded yet (nothing under
-  `lib/kati/calendar/` has), and until it is, a Persian reader gets a Persian
-  frame around an English drawing — the same honest half-state
-  `Kati.Screens.EventDetail` records for `Kati.Calendar.SampleEvent`.
-
-  `Kati.Screens.ViewSwitcher` owns the Day/Week/Month/Agenda strip, and its
-  four labels are **deliberately still Latin**. `bar/1` builds each segment's
-  tap tag out of the word it prints — `String.to_atom("view_" <> label)` — and
-  `ViewSwitcher.screen/1` matches those English words to route it. Translating
-  the labels here would rename three live controls to `:view_روز`,
-  `:view_هفته`, `:view_ماه` under `:fa`: `screen/1` would answer `nil` and the
-  strip would go dead on the Persian page, and the tags would fail the sweep in
-  `test/kati/screen_tap_sweep_test.exs` that forbids a control named after the
-  word printed on it, for exactly this reason — a control that renames itself
-  with the language is a control no device test can type. The fix is one prop
-  upstream (a `{label, tag, selected?}` triple, so the tag stops being the
-  copy), it belongs in the file that builds the tag, and screens 16 and 17 draw
-  the same strip and will want it too. Until then the heading says `فهرست` and
-  the segment under it says `Agenda`, which is the visible cost and is
-  preferable to three dead segments.
-
-  What the fold did reach here: the heading through `Kati.Gettext`, and the
-  three mono slots — the kicker, its subtitle and the row's time — through
-  `Kati.Locale.mono_face/1` and `Kati.Locale.tracking/1`, so they are already
-  right on the day `Kati.Calendar.SampleAgenda` starts answering in Persian.
-
-  mishka-group/kati#103.
+  The switcher's four labels are **deliberately still Latin**.
+  `Kati.Screens.ViewSwitcher.bar/1` builds each segment's tap tag out of the
+  word it prints and `ViewSwitcher.screen/1` routes on the English word, so
+  translating the labels here would rename three live controls under `:fa` and
+  the strip would go dead on the Persian page. The fix is a stable tag in the
+  module that builds it.
   """
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Calendar.SampleAgenda
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
+  alias Kati.Screens.Calendar, as: Schedule
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
 
+  @horizon_days 30
+
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :agenda, SampleAgenda.agenda())
+  def load(socket), do: Mob.Socket.assign(socket, :agenda, agenda(Kati.Time.today()))
+
+  @doc """
+  Coming back from a row opened from here: the agenda is read again.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :agenda, agenda(Kati.Time.today()))}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+
+  @doc """
+  The agenda from `today`: one group per day with anything on it, in date
+  order, and the last day the list covers.
+  """
+  @spec agenda(Date.t()) :: %{groups: [map()], through: Date.t()}
+  def agenda(%Date{} = today) do
+    through = Date.add(today, @horizon_days - 1)
+
+    groups =
+      today
+      |> Schedule.rows_between(through)
+      |> Enum.sort_by(fn {day, _rows} -> day end, Date)
+      |> Enum.map(fn {day, rows} -> group(day, rows, today) end)
+
+    %{groups: groups, through: through}
+  end
+
+  defp group(day, rows, today) do
+    n = length(rows)
+
+    %{
+      date: day,
+      kicker: UI.eyebrow_label(kicker(day, today)),
+      sub:
+        Kati.Locale.date(day, :long) <>
+          " · " <> ngettext("%{n} item", "%{n} items", n, n: Kati.Locale.number(n)),
+      rows: rows
+    }
+  end
+
+  @doc """
+  What a day's kicker calls it: *Today*, *Tomorrow*, its weekday while it is
+  inside the coming week, and its month after that — far enough out that the
+  day of the week has stopped being how anybody finds it.
+  """
+  @spec kicker(Date.t(), Date.t()) :: String.t()
+  def kicker(day, today) do
+    case Date.diff(day, today) do
+      0 -> gettext("Today")
+      1 -> gettext("Tomorrow")
+      n when n < 7 -> weekday(day)
+      _later -> Kati.Locale.month_name(day, :short)
+    end
+  end
+
+  # Three letters in Latin, the whole name in Persian: slicing پنج‌شنبه to
+  # three graphemes gives پنج, the word for five.
+  defp weekday(date) do
+    Kati.Locale.pick(
+      String.slice(Kati.Time.day_name(date), 0, 3),
+      Kati.Calendar.Shamsi.weekday_name(Kati.Calendar.Shamsi.weekday_index(date))
+    )
+  end
 
   @doc false
   def content(assigns) do
@@ -99,17 +128,35 @@ defmodule Kati.Screens.Agenda do
       >
         {Kati.Screens.Agenda.header()}
         {Kati.Screens.Agenda.switcher()}
-        {Enum.map(agenda.groups, fn group -> Kati.Screens.Agenda.group(group) end)}
-        {Kati.Screens.Agenda.footer(agenda.footer)}
+        {Kati.Screens.Agenda.body(agenda)}
       </Column>
     </Scroll>
     """
   end
 
-  # The one word on this page this file writes. `tracking/1` rather than the
-  # bare -0.03: the design tightens its headings by a fraction of an em, and
-  # the same fraction applied to Vazirmatn pulls the letters apart at the
-  # joins, which is a different word rather than a tighter one.
+  @doc false
+  def body(%{groups: []}) do
+    Schedule.empty_card("calendar_month", gettext("Nothing scheduled"), [
+      gettext("Add anything with +")
+    ])
+  end
+
+  def body(agenda) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(agenda.groups, fn group -> Kati.Screens.Agenda.group(group) end)}
+      {Kati.Screens.Agenda.footer(Kati.Screens.Agenda.footer_label(agenda.through))}
+    </Column>
+    """
+  end
+
+  @doc "The footer's sentence: how far ahead the list has looked."
+  @spec footer_label(Date.t()) :: String.t()
+  def footer_label(through),
+    do: gettext("Nothing else through %{date}", date: Kati.Locale.date(through, :short))
+
+  # `tracking/1` rather than the bare -0.03: the same fraction of an em applied
+  # to Vazirmatn pulls the letters apart at the joins.
   @doc false
   def header do
     ~MOB"""
@@ -134,32 +181,9 @@ defmodule Kati.Screens.Agenda do
   end
 
   @doc """
-  A header disc: `Kati.Components.MishkaActionIcon`, filled and circular.
-
-  An icon-only button is what an Action Icon is for, and `shape: :circle`
-  resolves to an exact `size / 2` — the 22 that was written here by hand.
-
-  **`shadow` is the whole point.** `variant: :filled` paints a fill and stops
-  there, which reads as a flat patch of paper; the design's disc floats, and
-  `Kati.Theme.shadow_button()` is how far. That prop is new this round, and its
-  absence is why this stayed a hand-rolled `Box`.
-
-  The glyph goes in as a child: the component's `icon:` shorthand builds a
-  `Text` with no `font_family`, so `"search"` would be typeset as the word
-  rather than resolved through the Material Symbols ligature — and
-  `Kati.UI.symbol/2` keeps `Kati.Icons.glyph!/1`'s raise for a name outside the
-  shipped subset.
-
-  ## Why the pixels do not move
-
-  The node is `Box{width: 44, height: 44, align: :center, corner_radius: 22.0,
-  background: …, shadow: …}` — every number this wrote by hand. `align: :center`
-  and `align="center"` reach the bridge as the same string, and `corner_radius`
-  is read with `floatProp`, so `22.0` is `22`.
-
-  The one addition is the `Row` the component wraps children in, and it is
-  inert: `MobBridge.kt`'s row branch never fills, so a propless `Row` hugs its
-  single child on both axes and the Box centres the same rectangle.
+  A header disc: `Kati.Components.MishkaActionIcon`, filled and circular, with
+  the `shadow` that makes it float rather than sit flat. The glyph goes in as
+  a child so it resolves through the Material Symbols ligature.
   """
   def disc(icon) do
     MishkaActionIcon.action_icon(
@@ -167,8 +191,6 @@ defmodule Kati.Screens.Agenda do
         size: 44,
         shape: :circle,
         variant: :filled,
-        # The card token, not `on_ink`/`fab_glyph`/`on_media`: a disc is a
-        # surface floating above the page, so it follows the ground.
         background: Palette.card(),
         shadow: Kati.Theme.shadow_button()
       },
@@ -176,13 +198,6 @@ defmodule Kati.Screens.Agenda do
     )
   end
 
-  # These four stay in Latin, and it is not an oversight — see the moduledoc.
-  # `Kati.Screens.ViewSwitcher.bar/1` builds each segment's tap tag out of the
-  # label it prints and `ViewSwitcher.screen/1` routes on the English word, so
-  # a `gettext/1` here renames three live controls per language: the strip goes
-  # dead under `:fa` and the tags fail `test/kati/screen_tap_sweep_test.exs`'s
-  # "no control is named after the word printed on it". The translation waits
-  # on a stable tag in the module that builds it.
   @doc false
   def switcher do
     bar =
@@ -207,7 +222,7 @@ defmodule Kati.Screens.Agenda do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.Agenda.kicker(group)}
+      {Kati.Screens.Agenda.kicker_row(group)}
       <Column
         fill_width={true}
         background={Palette.card()}
@@ -227,22 +242,11 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
-  # Two mono labels on one baseline: the day in ink, its weight in #A0998F —
-  # `eyebrow`, the mono section label, which is what the second one is.
-  #
-  # Both faces ask the STRING, not the reader. `kati_mono.ttf` carries no
-  # Persian glyph, so a Persian kicker set in `mono` is handed to Android's own
-  # substitute face and lands in a typeface that is not Kati's — but `TODAY`
-  # and `20 Aug · 14 items · 2 clashes` are pure ASCII today, and DM Mono has
-  # every glyph they need. `Kati.Locale.mono_face/1` answers `"mono"` for those
-  # and Vazirmatn for whatever replaces them, so this slot is already right on
-  # the day `Kati.Calendar.SampleAgenda` folds and needs no second edit here.
-  #
-  # The tracking asks the reader instead, because that is the question it is:
-  # 0.16em opens the gaps between Latin capitals and breaks the joins between
-  # Arabic-script letters, so there is no value that is right for both.
+  # Two mono labels on one baseline: the day in ink, its weight in `eyebrow`.
+  # Both faces ask the STRING — `kati_mono.ttf` carries no Persian glyph — and
+  # the tracking asks the reader, because 0.16em breaks Arabic-script joins.
   @doc false
-  def kicker(group) do
+  def kicker_row(group) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
@@ -268,19 +272,17 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
-  # The clock stays in Latin digits under both scripts and that is the rule,
-  # not an omission: `kati_mono.ttf` carries none of U+06F0–U+06F9, so a time
-  # put through `Kati.Locale.number/1` would be Persian numerals in a face that
-  # has no Persian numeral. `Kati.Locale.mono_face/1` keeps the column in DM
-  # Mono for `20:00` and hands the one row that draws an em dash instead of a
-  # time to the reader's own face, which is the only glyph in this column that
-  # is not ASCII.
+  # The clock's face is asked of the string: `kati_mono.ttf` carries none of
+  # U+06F0–U+06F9, so a Persian clock set in DM Mono would be empty boxes.
   @doc false
   def row(row, rule?) do
+    tap = Schedule.tap(row)
+    rule = row |> Schedule.section() |> Schedule.section_color()
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Column width={38}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13} on_tap={tap}>
+        <Column width={44}>
           <Text
             text={row.time}
             font_family={Kati.Locale.mono_face(row.time)}
@@ -290,9 +292,9 @@ defmodule Kati.Screens.Agenda do
           />
         </Column>
         <Spacer size={12} />
-        <Box width={3} height={30} corner_radius={2} background={row.rule} />
+        <Box width={3} height={30} corner_radius={2} background={rule} />
         <Spacer size={12} />
-        {Kati.Screens.Agenda.thumb(row)}
+        {Kati.Screens.Agenda.thumb(Map.get(row, :seed))}
         <Column weight={1.0}>
           <Text
             text={row.title}
@@ -302,7 +304,7 @@ defmodule Kati.Screens.Agenda do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+          <Text text={row.meta} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
       </Row>
       {Kati.Screens.Agenda.hairline(rule?)}
@@ -310,14 +312,13 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
-  # A poster only where the drawing has one — the two screen rows and the
-  # cinema release. A row without artwork closes the gap rather than reserving
-  # an empty 26pt slot, which is what the design does too.
+  # A poster only where the row has one — a followed show's. A row without
+  # artwork closes the gap rather than reserving an empty 26pt slot.
   @doc false
-  def thumb(%{seed: nil}), do: ~MOB"<Spacer size={0} />"
+  def thumb(nil), do: ~MOB"<Spacer size={0} />"
 
-  def thumb(row) do
-    case Images.poster(row.seed) do
+  def thumb(seed) do
+    case Images.poster(seed) do
       nil ->
         ~MOB"""
         <Row align="center">
@@ -337,20 +338,9 @@ defmodule Kati.Screens.Agenda do
   end
 
   @doc """
-  The rule between two agenda rows — `Kati.Components.MishkaSeparator`, and it
-  has to be `render: :box`.
-
-  The component's default is `:divider`, which the bridge maps to Material3's
-  `HorizontalDivider` — an antialiased `drawLine`, not a filled rect. At this
-  device's 2.6875x a 1dp rule is handed a 3px canvas and a 2.6875px stroke, so
-  the last pixel row lands at ~69% coverage: a full-width row 4-5/255 lighter
-  than the two above it. `render: :box` paints three full rows of
-  `rgba(26,25,23,.07)`, which is the hairline this drew by hand.
-
-  A `:box` rule carries one extra node, a `<Spacer size={1}/>` that exists for
-  iOS (`MobBox` drops a Box's height unless the Box also has a width). On
-  Android it is a 1x1dp child with no background inside a `Box` already pinned
-  to `fill_width` and `height: 1` — it measures nothing new and paints nothing.
+  The rule between two agenda rows — `Kati.Components.MishkaSeparator` at
+  `render: :box`. The default `:divider` is Material3's antialiased
+  `drawLine`, whose last pixel row lands lighter than the 1px rule drawn.
   """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
@@ -383,14 +373,28 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
+  @doc """
+  The day a row tag was drawn under, read back off the groups on screen, so a
+  money or meals row opens its own day rather than today.
+  """
+  @spec day_of(map(), atom()) :: Date.t()
+  def day_of(agenda, tag) do
+    Enum.find_value(agenda.groups, Kati.Time.today(), fn group ->
+      if Enum.any?(group.rows, &(Schedule.tag(&1) == tag)), do: group.date
+    end)
+  end
+
   # ── What a tap changes ────────────────────────────────────────────────────
 
-  # The switcher this screen draws is its only control, and its three live
-  # segments (`view_Day`, `view_Week`, `view_Month`) are routed by the module
-  # that drew them. `Kati.Screens.ViewSwitcher.handle_tap/2` returns the socket
-  # untouched for anything that is not a `view_*` tag, so delegating the whole
-  # callback is safe and stays right if this screen grows a control of its own
-  # — those clauses go above this line.
   @impl true
-  def handle_tap(tag, socket), do: Kati.Screens.ViewSwitcher.handle_tap(tag, socket)
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "row_" <> _rest ->
+        date = day_of(socket.assigns.agenda, tag)
+        {:noreply, Schedule.open_timeline_row(socket, tag, date)}
+
+      _other ->
+        Kati.Screens.ViewSwitcher.handle_tap(tag, socket)
+    end
+  end
 end

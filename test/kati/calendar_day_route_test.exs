@@ -301,23 +301,21 @@ defmodule Kati.CalendarDayRouteTest do
           assert body =~ title, "screen 09 does not draw #{inspect(title)}, a row of this day"
         end
 
-        # A day the user opened is drawn as itself. `drawn?` gates the all-day
-        # band, the merged renewals row and the drawing's own headline, and
-        # `Kati.Screens.Day`'s moduledoc spends five bullets on why none of them
-        # can be computed from a stored event — so over real rows they must all
-        # be absent, and the flag alone would not say whether they were.
-        assert assigns(opened).drawn? == false
+        # A day the user opened is drawn as itself: the drawing's all-day band,
+        # merged renewals row and headline cannot be computed from a stored
+        # event, so over real rows they must all be absent.
+        refute Map.has_key?(assigns(opened), :drawn?)
         refute body =~ "£22.98"
         refute body =~ "Vellum — in cinemas"
-        refute body =~ Kati.Calendar.SampleDay.summary()
+        refute body =~ "14 items · 2 clashes"
       end)
     end
 
     test "today with nothing stored opens empty, like every other empty day" do
       # Every assertion the test above used to make, kept whole and moved to
-      # the state it is actually about. `Kati.Screens.Day.day/1`'s `empty/1`
-      # answers TODAY-with-nothing-stored with `Kati.Calendar.SampleDay`, and
-      # this is the only place in the suite that renders that branch:
+      # the state it is actually about. `Kati.Screens.Day.day/1` once answered
+      # TODAY-with-nothing-stored with `Kati.Calendar.SampleDay`, and this is
+      # the only place in the suite that renders that state:
       # `Kati.EventRowIdentityTest` covers the no-date branch and an empty day
       # thirty days out, and both of its other cases have events on today.
       # Deleting it here would have taken the branch's only coverage with it.
@@ -348,11 +346,10 @@ defmodule Kati.CalendarDayRouteTest do
 
         assert assigns(opened).date == date
         assert assigns(opened).occurrences == []
-        assert assigns(opened).drawn? == false
 
         body = text(opened)
         assert body =~ "Nothing scheduled"
-        refute body =~ Kati.Calendar.SampleDay.summary()
+        refute body =~ "14 items · 2 clashes"
         refute body =~ "£22.98"
         refute body =~ "Vellum — in cinemas"
       end)
@@ -371,7 +368,6 @@ defmodule Kati.CalendarDayRouteTest do
 
       assert assigns(opened).date == date
       assert assigns(opened).occurrences == []
-      assert assigns(opened).drawn? == false
       assert text(opened) =~ "Nothing scheduled"
       refute text(opened) =~ "£22.98"
     end

@@ -1,5 +1,6 @@
 Code.require_file("../support/screen_sweep.exs", __DIR__)
 Code.require_file("../support/design_literals.exs", __DIR__)
+Code.require_file("../support/heavy_day.exs", __DIR__)
 
 defmodule Kati.ScreenDesignLiteralTest do
   @moduledoc """
@@ -376,7 +377,12 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"80", "tv"},
     {"82", "expand_more"},
     {"82", "graphic_eq"},
-    {"82", "menu_book"}
+    {"82", "menu_book"},
+    # N51 — see `DesignLiterals.retired_lines/0`: board 09's merged renewals
+    # row carried `payments`, and board 16's month title an `unfold_more`
+    # that opened nothing.
+    {"09", "payments"},
+    {"16", "unfold_more"}
   ]
 
   # Lines a screen deliberately does not draw, because what carried them is
@@ -442,7 +448,12 @@ defmodule Kati.ScreenDesignLiteralTest do
   # read the same ledger since 25 September, so their `cloud_done` is 128's
   # branch too. `Kati.BackupRestoreRealTest` seeds the ledger and asserts it on
   # both — delete these two entries if that test goes.
+  #
+  # `expand_more` is board 30's footer, which an agenda draws under its groups
+  # and an empty one does not (N51). `Kati.CalendarViewsRealTest` stores an
+  # event and asserts the footer — delete this entry if that test goes.
   @unreachable_symbols [
+    {"30", "expand_more"},
     {"128", "cloud_done"},
     {"131", "cloud_done"},
     {"133", "cloud_done"},
@@ -1637,11 +1648,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # page has them — both bands are the drawing's and this keeps them drawn.
       {"35", Kati.Screens.SeriesSettings,
        &Map.put(&1, :show, Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil))},
-      # 09 draws an empty day on an empty store now, so the board's own fourteen
-      # items have to be installed to compare the frame — the band, the merged
-      # renewals row and the chip counts are all composed from the list.
-      {"09", Kati.Screens.Day,
-       &Map.merge(&1, %{occurrences: Kati.Calendar.SampleDay.occurrences(), drawn?: true})},
+      # 09 draws an empty day on an empty store now, so the board's own timed
+      # items have to be installed to compare the frame. N51: the drawn-only
+      # furniture (the all-day band, the merged renewals row, the 14-item
+      # headline) is gone with `Kati.Calendar.SampleDay`, and its literals are
+      # retired in design_literals.exs.
+      {"09", Kati.Screens.Day, &Map.put(&1, :occurrences, Kati.Test.HeavyDay.occurrences())},
+      # 31 draws `missing/0` for a push naming no stored event (N51), so the
+      # board's own event has to be installed to compare the frame.
+      {"31", Kati.Screens.EventDetail, &Map.put(&1, :event, Kati.DesignLiterals.event_board())},
       # 146, same: the grid draws the reader's own shelf and answers `[]` when
       # there is none, so the board's own nine tiles have to be installed to
       # compare the frame — header counts included, since they are composed

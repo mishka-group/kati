@@ -1,3 +1,5 @@
+Code.require_file("../support/heavy_day.exs", __DIR__)
+
 defmodule Kati.ScreenDayTest do
   @moduledoc """
   Screen 09's collapsed group, closed and open.
@@ -21,14 +23,14 @@ defmodule Kati.ScreenDayTest do
   """
   use Mob.ScreenCase, async: false
 
-  alias Kati.Calendar.SampleDay
+  alias Kati.Test.HeavyDay
   alias Kati.Screens.Day
 
   # ── A real day of the shape the drawing has ────────────────────────────────
   #
   # These tests are about GROUPING — the 20:00 collapse, the poster stack, the
   # chevron — and they used to get their fourteen items from
-  # `Kati.Calendar.SampleDay` because screen 09 drew it on a bare mount. It does
+  # `Kati.Calendar.SampleDay` (now `Kati.Test.HeavyDay`) because screen 09 drew it on a bare mount. It does
   # not any more: an empty calendar draws an empty day, which is the defect this
   # round fixed. So the day is written as real rows here instead, from the very
   # same fixture, and every assertion below goes on measuring the layout rather
@@ -51,7 +53,7 @@ defmodule Kati.ScreenDayTest do
     today = Kati.Time.today()
     zone = Kati.Time.device_zone()
 
-    for occ <- SampleDay.occurrences() do
+    for occ <- HeavyDay.occurrences() do
       naive =
         NaiveDateTime.new!(today, Time.new!(div(occ.start_min, 60), rem(occ.start_min, 60), 0))
 
@@ -82,7 +84,7 @@ defmodule Kati.ScreenDayTest do
   # loudly instead of agreeing with itself.
   @group :group_1200
 
-  # `Kati.Calendar.SampleDay`'s three 20:00 episodes, in the order
+  # `Kati.Test.HeavyDay`'s three 20:00 episodes, in the order
   # `Kati.Calendar.Layout` sorts them: by start minute.
   @members [
     {"Ashfall", "S3 · E2", "20:00", "ashfall42"},
@@ -295,11 +297,11 @@ defmodule Kati.ScreenDayTest do
 
   describe "the sample day the group is built from" do
     test "still holds three episodes at 20:00" do
-      # Everything above counts to three. If `Kati.Calendar.SampleDay` ever
+      # Everything above counts to three. If `Kati.Test.HeavyDay` ever
       # holds a different number of 20:00 episodes, these tests should fail
       # here — naming the data — rather than as six confusing count mismatches.
       at_2000 =
-        SampleDay.occurrences()
+        HeavyDay.occurrences()
         |> Enum.filter(&(&1.kind == :air_date and &1.start_min in 1200..1210))
 
       assert length(at_2000) == length(@members)

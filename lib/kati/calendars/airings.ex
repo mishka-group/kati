@@ -71,14 +71,32 @@ defmodule Kati.Calendars.Airings do
   @spec rows(Date.t() | nil) :: [row()]
   def rows(date \\ nil) do
     day = date || Kati.Time.today()
+    Map.get(by_day(day, day), day, [])
+  end
+
+  @doc """
+  Every airing from `from` to `to` inclusive, keyed by the day it lands on in
+  the device's zone, each day ordered the way `rows/1` orders one.
+
+  One read of the followed shows and one of their episodes for the whole run,
+  which is what lets a month grid put a dot under each day without asking the
+  store forty-two times. A day with nothing airing has no key.
+  """
+  @spec by_day(Date.t(), Date.t()) :: %{Date.t() => [row()]}
+  def by_day(%Date{} = from, %Date{} = to) do
     zone = Kati.Time.device_zone()
 
     case shows() do
-      [] -> []
-      tracked -> tracked |> airing_on(day, zone) |> Enum.sort_by(&order/1)
+      [] ->
+        %{}
+
+      tracked ->
+        tracked
+        |> airing_between(from, to, zone)
+        |> Map.new(fn {day, rows} -> {day, Enum.sort_by(rows, &order/1)} end)
     end
   rescue
-    _error -> []
+    _error -> %{}
   end
 
   @doc """
@@ -121,31 +139,40 @@ defmodule Kati.Calendars.Airings do
     |> Enum.filter(& &1.add_air_dates_to_calendar)
   end
 
-  defp airing_on(tracked, day, zone) do
+  defp airing_between(tracked, from, to, zone) do
     by_show = Map.new(tracked, &{{&1.source, &1.source_id}, &1})
     cache = cached_titles(tracked)
 
     tracked
-    |> episodes_near(day)
+    |> episodes_near(from, to)
     |> Enum.filter(&Map.has_key?(by_show, {&1.source, &1.title_source_id}))
     |> Enum.flat_map(fn episode ->
-      case landing(Release.air(episode), day, zone) do
+      case landing(Release.air(episode), zone) do
+        {day, landed} -> if within?(day, from, to), do: [{day, episode, landed}], else: []
         nil -> []
-        landed -> [{episode, landed}]
       end
     end)
-    |> Enum.group_by(fn {episode, _landed} -> {episode.source, episode.title_source_id} end)
-    |> Enum.map(fn {key, aired} ->
-      row(Map.fetch!(by_show, key), Map.get(cache, key), aired, zone)
+    |> Enum.group_by(fn {day, episode, _landed} ->
+      {day, {episode.source, episode.title_source_id}}
     end)
+    |> Enum.group_by(
+      fn {{day, _key}, _aired} -> day end,
+      fn {{_day, key}, aired} ->
+        aired = Enum.map(aired, fn {_day, episode, landed} -> {episode, landed} end)
+        row(Map.fetch!(by_show, key), Map.get(cache, key), aired, zone)
+      end
+    )
   end
 
-  # A day either side of the one asked for, because `air_at` is UTC and the
+  defp within?(day, from, to),
+    do: Date.compare(day, from) != :lt and Date.compare(day, to) != :gt
+
+  # A day either side of the run asked for, because `air_at` is UTC and the
   # day is the device's: an 01:00 airing in Tehran is stored the evening
-  # before. `landing/3` is what decides the day; this only bounds the read.
-  defp episodes_near(tracked, day) do
-    from = DateTime.new!(Date.add(day, -1), ~T[00:00:00], "Etc/UTC")
-    to = DateTime.new!(Date.add(day, 2), ~T[00:00:00], "Etc/UTC")
+  # before. `landing/2` is what decides the day; this only bounds the read.
+  defp episodes_near(tracked, first, last) do
+    from = DateTime.new!(Date.add(first, -1), ~T[00:00:00], "Etc/UTC")
+    to = DateTime.new!(Date.add(last, 2), ~T[00:00:00], "Etc/UTC")
     ids = tracked |> Enum.map(& &1.source_id) |> Enum.uniq()
 
     CachedEpisode
@@ -162,12 +189,11 @@ defmodule Kati.Calendars.Airings do
     |> Map.new(&{{&1.source, &1.source_id}, &1})
   end
 
-  defp landing({:exact, at, _origin}, day, zone) do
-    if DateTime.to_date(Kati.Time.in_zone(at, zone)) == day, do: {:at, at}
-  end
+  defp landing({:exact, at, _origin}, zone),
+    do: {DateTime.to_date(Kati.Time.in_zone(at, zone)), {:at, at}}
 
-  defp landing({:day, date, _origin}, day, _zone), do: if(date == day, do: :all_day)
-  defp landing(_coarse, _day, _zone), do: nil
+  defp landing({:day, date, _origin}, _zone), do: {date, :all_day}
+  defp landing(_coarse, _zone), do: nil
 
   defp row(tracked, cached, aired, zone) do
     [{first, _landed} | _rest] = Enum.sort_by(aired, &episode_order/1)

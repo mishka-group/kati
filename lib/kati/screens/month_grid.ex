@@ -3,10 +3,25 @@ defmodule Kati.Screens.MonthGrid do
   Screen 16 — Calendar, month.
 
   Built to `test/design/screens/16.html`. The design's own caption states
-  the idea: *"Month view is a load map, not a list"* — one dot per section, a
-  filled card on the heaviest day, and the selected day's clashes summarised
+  the idea: *"Month view is a load map, not a list"* — one dot per section
+  under each date, today on an ink card, and the selected day's items listed
   underneath. Nothing on the grid says what an event is called, because at
   seven columns nothing legible would fit.
+
+  ## Whose month
+
+  The reader's. It opens on today's month in the reader's own calendar —
+  Gregorian, or Shamsi under Persian (`Kati.Locale.month_span/1`) — laid out
+  from the reader's own first weekday (`Kati.Screens.Stats.week_start_on/1`).
+  The dots, the legend and the rows under the grid all come from
+  `Kati.Screens.Calendar.rows_between/2`: the stored events and the followed
+  shows' airings, the same rows screen 02 draws for any one of these days. A
+  month with nothing in it draws no dots, no legend and screen 02's own
+  *Nothing scheduled* card.
+
+  The chevrons move a month either way. Tapping a date selects it; tapping the
+  selected date again opens screen 09 on it, the gesture screen 02's day strip
+  already uses.
 
   A root, not a pushed screen: the drawing carries the dock with Calendar
   active, so it renders through `Kati.Shell` and the four-mode switcher is how
@@ -16,70 +31,110 @@ defmodule Kati.Screens.MonthGrid do
 
   Each cell is `aspect-ratio: 1` in the export, and `aspect_ratio={1.0}` is
   what the cell carries — the modifier chain is weight → aspect_ratio, so the
-  height follows the width the Row actually handed out, at any frame. The 50
-  that used to be declared here was only ever the answer at the drawing's own
-  402pt frame: `(360 - 12) / 7 = 49.7`. A 411dp device gives each column 51,
-  so a capture measured the cells 51 wide and 50 tall — squares that were not
-  square. `Kati.Screens.Widgets` and `Kati.Screens.SeriesMeta` carry the same
-  fix for the same reason.
+  height follows the width the Row actually handed out, at any frame.
 
-  ## What is Persian on this page, and what is still August 2026
-
-  Almost every word the grid draws comes from `Kati.Calendar.SampleMonth`, and
-  nothing under `lib/kati/calendar/` has been folded yet —
-  `Kati.Screens.Agenda`'s moduledoc records the same half-state for
-  `Kati.Calendar.SampleAgenda`, and `gettext/1` cannot take a variable, so
-  those strings can only be wrapped where they are written. What this file
-  could reach it did: the weekday letters, the three mono faces, the tracking,
-  the legend's case, and the two chevrons.
-
-  What it could not, it left whole rather than half-converted, and the reason
-  is worth writing down because it is not an oversight. The month's title, the
-  forty-two day numbers, the selected day's summary and the three clash rows
-  are ONE fixture — 1–31 August 2026, laid out Monday-first, with
-  `SampleMonth`'s `@dots` keyed to the Gregorian day numbers and the 16th and
-  20th singled out. Mordad 1405 runs 23 July – 22 August 2026, so folding the
-  header on its own would head a Gregorian grid with a Shamsi month it does
-  not contain, and running `Kati.Locale.number/1` over the cells would print
-  ۱۶ for a day that is not the sixteenth of anything the reader counts —
-  `Kati.Locale.day_of_month/1`'s doc names that exact defect on screen 02,
-  "the right days, counted in the wrong calendar". The grid and its title
-  convert together, in the module that lays them out;
-  `Kati.Calendar.Shamsi.month_grid/2` already returns a شنبه-first month for
-  the day it does.
-
-  The switcher's four labels are deliberately still Latin, and
-  `Kati.Screens.Agenda`'s moduledoc carries that argument in full:
-  `Kati.Screens.ViewSwitcher.bar/1` builds each segment's tap tag out of the
-  word it prints, so a `gettext/1` here would rename three live controls to
-  `:view_روز`, `:view_هفته` and `:view_فهرست` under `:fa` —
-  `ViewSwitcher.screen/1` would answer `nil`, the strip would go dead on the
-  Persian page, and the tags would fail
-  `test/kati/screen_tap_sweep_test.exs`'s *no control is named after the word
-  printed on it*. The fix is one prop in the module that builds the tag, and
-  screens 17 and 30 draw the same strip and want it too.
-
-  mishka-group/kati#103.
+  The switcher's four labels stay Latin: `Kati.Screens.ViewSwitcher.bar/1`
+  builds each segment's tap tag out of the word it prints, and
+  `Kati.Screens.Agenda`'s moduledoc carries that argument in full.
   """
   use Kati.Screens.Root, root: :calendar
+  use Gettext, backend: Kati.Gettext
 
-  alias Kati.Calendar.SampleMonth
   alias Kati.Components.MishkaSeparator
+  alias Kati.Screens.Calendar, as: Schedule
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  # The Monday `Kati.Calendar.SampleMonth.days/0`'s first row begins on — the
-  # 27 July 2026 that opens the grid. Only its WEEKDAY is read; the date itself
-  # never reaches the screen.
-  @first_column ~D[2026-07-27]
+  @sections [:screen, :personal, :money]
+
+  # `box-shadow: 0 1px 2px rgba(26,25,23,.05)` — one layer, not the card
+  # recipe. The selected tile sits on the grid, not lifted off paper.
+  @selected_shadow "0 1 2 0 #0D1A1917"
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :month, SampleMonth.month())
+  def load(socket) do
+    today = Kati.Time.today()
+    Mob.Socket.assign(socket, date: today, month: month(today, today))
+  end
+
+  @doc """
+  Coming back from a day or an event opened from here: the month is read again
+  and the selected date is kept.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, select(socket, socket.assigns.date)}
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+
+  @doc """
+  The month `date` falls in, with `date` selected, read from the store.
+
+  `:days` is every cell of the grid, whole weeks from the reader's first
+  weekday; `:rows` is the selected day's shaped rows; `:sections` the sections
+  that have anything this month, in legend order.
+  """
+  @spec month(Date.t(), Date.t()) :: map()
+  def month(%Date{} = date, %Date{} = today) do
+    {first, last} = Kati.Locale.month_span(date)
+    start = Kati.Screens.Stats.week_start_on(first)
+    weeks = div(Date.diff(last, start), 7) + 1
+    by_day = Schedule.rows_between(first, last)
+
+    days =
+      for offset <- 0..(weeks * 7 - 1) do
+        day = Date.add(start, offset)
+        in_month? = Date.compare(day, first) != :lt and Date.compare(day, last) != :gt
+
+        %{
+          date: day,
+          label: Kati.Locale.day_of_month(day),
+          in_month?: in_month?,
+          today?: day == today,
+          selected?: day == date,
+          sections: if(in_month?, do: sections(Map.get(by_day, day, [])), else: [])
+        }
+      end
+
+    %{
+      title:
+        gettext("%{month} %{year}",
+          month: Kati.Locale.month_name(date),
+          year: Kati.Locale.year_of(date)
+        ),
+      first: first,
+      last: last,
+      days: days,
+      rows: Map.get(by_day, date, []),
+      sections: by_day |> Map.values() |> List.flatten() |> sections()
+    }
+  end
+
+  @doc "The sections a day's rows fall in, in legend order, each once."
+  @spec sections([map()]) :: [atom()]
+  def sections(rows) do
+    present = rows |> Enum.map(&Schedule.section/1) |> MapSet.new()
+    Enum.filter(@sections, &MapSet.member?(present, &1))
+  end
+
+  @doc """
+  The line above the selected day's rows: its date and how many things it
+  holds, or that it holds nothing.
+  """
+  @spec selected_label(Date.t(), [map()]) :: String.t()
+  def selected_label(date, []),
+    do: Kati.Locale.date(date, :long) <> " · " <> gettext("Nothing scheduled")
+
+  def selected_label(date, rows) do
+    n = length(rows)
+
+    Kati.Locale.date(date, :long) <>
+      " · " <> ngettext("%{n} item", "%{n} items", n, n: Kati.Locale.number(n))
+  end
 
   @doc false
   def content(assigns) do
     month = assigns.month
+    label = selected_label(assigns.date, month.rows)
 
     ~MOB"""
     <Scroll>
@@ -92,28 +147,19 @@ defmodule Kati.Screens.MonthGrid do
       >
         {Kati.Screens.MonthGrid.header(month)}
         {Kati.Screens.MonthGrid.switcher()}
-        {Kati.Screens.MonthGrid.weekday_row()}
+        {Kati.Screens.MonthGrid.weekday_row(month)}
         {Kati.Screens.MonthGrid.grid(month)}
-        {Kati.Screens.MonthGrid.legend()}
-        {UI.eyebrow(month.selected_label)}
-        {Kati.Screens.MonthGrid.clashes(month)}
+        {Kati.Screens.MonthGrid.legend(month.sections)}
+        {UI.eyebrow(label)}
+        {Kati.Screens.MonthGrid.day_rows(month.rows)}
       </Column>
     </Scroll>
     """
   end
 
-  # Previous month and next month, and under `rtl` the two glyphs swap.
-  # `layout_direction` mirrors the Row — the pair moves to the left edge and
-  # the title to the right — but it cannot mirror a PICTURE, so a chevron left
-  # as drawn goes on pointing at the month a Persian reader has already left.
-  # In reading order the pair is still previous-then-next, so previous points
-  # back along the line (right, in Persian) and next points forward.
-  #
-  # `forward_chevron/0` is the app's answer to "the way this page moves
-  # forward". Its opposite has no helper — `Kati.Locale.back_glyph/0` is the
-  # arrow and `Kati.Screens.Pushed.back_glyph/0` is the pill's iOS chevron,
-  # and neither is this — so it is `pick/2` with both glyphs at the call site,
-  # which is what that function's doc asks for.
+  # Previous month and next month, and under `rtl` the two glyphs swap:
+  # `layout_direction` mirrors the Row but not the picture inside a glyph, so
+  # previous points back along the line (right, in Persian) and next forward.
   @doc false
   def header(month) do
     previous = Kati.Locale.pick("chevron_left", "chevron_right")
@@ -130,12 +176,14 @@ defmodule Kati.Screens.MonthGrid do
           text_color={:on_surface}
           max_lines={1}
         />
-        <Spacer size={6} />
-        {UI.symbol("unfold_more", size: 19, color: Palette.sub())}
         <Spacer weight={1.0} />
-        {UI.symbol(previous, size: 22, color: Palette.sub())}
-        <Spacer size={8} />
-        {UI.symbol(upcoming, size: 22, color: Palette.ink())}
+        <Box width={30} height={30} align="center" on_tap={{self(), :month_previous}}>
+          {UI.symbol(previous, size: 22, color: Palette.sub())}
+        </Box>
+        <Spacer size={4} />
+        <Box width={30} height={30} align="center" on_tap={{self(), :month_next}}>
+          {UI.symbol(upcoming, size: 22, color: Palette.ink())}
+        </Box>
       </Row>
       <Spacer size={16} />
     </Column>
@@ -160,45 +208,20 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
-  # Monday-first, matching the drawing's header row. Duplicated letters are the
-  # design's, not a mistake: Tuesday and Thursday are both T.
-  #
-  # Derived from seven dates rather than written out as `["M", "T", "W", …]`,
-  # because they are not the same seven letters in both scripts:
-  # `Kati.Locale.weekday_initial/1` answers `M T W T F S S` in Latin and
-  # `د س چ پ ج ش ی` in Persian, off `Kati.Calendar.Shamsi.weekday_short/1`.
-  # Screens 02 and 22 build their own axes the same way, and
-  # `Kati.Screens.Nutrition.daily_buckets/1` carries the long version.
-  #
-  # A FUNCTION and not the module attribute this replaces, which is the whole
-  # reason it moved: `weekday_initial/1` asks `Kati.Locale.current/0` at the
-  # moment it is called, and a module attribute is evaluated once at COMPILE
-  # time — it would freeze whichever script `mix compile` happened to be in and
-  # hand it to both readers.
-  #
-  # ## Still Monday-first in Persian, and that is the grid's doing
-  #
-  # Board 137 makes the week start follow the language, so a Persian axis
-  # should begin on Saturday — `Kati.Screens.Nutrition` moves its buckets for
-  # exactly that. It cannot move here: `Kati.Calendar.SampleMonth.days/0` lays
-  # the 42 cells out from Monday in both scripts — five trailing days of July,
-  # then August, then six of September — so a شنبه-first header would print ش
-  # over a column of Mondays, which is the quiet kind of wrong this fold keeps
-  # finding. The letters follow the GRID until the module that lays the grid
-  # out starts asking the reader.
-  @doc false
-  def weekdays do
-    Enum.map(0..6, fn offset ->
-      @first_column |> Date.add(offset) |> Kati.Locale.weekday_initial()
-    end)
+  @doc """
+  The seven weekday letters over the grid, read off the grid's own first row
+  so a letter always heads the column of the day it names.
+  """
+  @spec weekdays(map()) :: [String.t()]
+  def weekdays(month) do
+    month.days |> Enum.take(7) |> Enum.map(&Kati.Locale.weekday_initial(&1.date))
   end
 
   @doc false
-  def weekday_row do
-    letters = weekdays()
-
+  def weekday_row(month) do
     cells =
-      letters
+      month
+      |> weekdays()
       |> Enum.map(fn letter -> Kati.Screens.MonthGrid.weekday(letter) end)
       |> Enum.intersperse(cell_gap())
 
@@ -212,15 +235,8 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
-  # The face asks the LETTER, not the reader. `kati_mono.ttf` carries no
-  # Arabic-script glyph, so a `ش` set in `mono` is handed to Android's own
-  # substitute face and lands in a typeface that is not Kati's, beside six
-  # others that are — `Kati.PersianFontTest` fails exactly this. `M` is ASCII
-  # and DM Mono has it, so the Latin axis is untouched.
-  #
-  # The tracking asks the reader instead, because that is the question it is:
-  # 0.08em opens the gaps between Latin capitals and breaks the joins between
-  # Persian letters, so there is no one value that is right for both.
+  # The face asks the LETTER: `kati_mono.ttf` carries no Arabic-script glyph,
+  # so a `ش` set in `mono` would land in Android's substitute face.
   @doc false
   def weekday(letter) do
     ~MOB"""
@@ -269,17 +285,47 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
-  # The cell centres its stack, and both halves of that are load-bearing:
-  # a Column takes no horizontal alignment on this bridge, so the number and
-  # the dot row are centred by full-width Rows with weighted Spacers either
-  # side, and the Box's align="center" is what puts the pair on the cell's
-  # vertical middle.
+  @doc """
+  The tag a date cell carries: `day_<iso date>`, the shape screen 02's strip
+  uses, so the handler reads the date straight off it.
+  """
+  @spec day_tag(Date.t()) :: atom()
+  def day_tag(%Date{} = date), do: String.to_atom("day_" <> Date.to_iso8601(date))
+
+  @doc """
+  How a cell is painted: `{background, shadow, number colour, weight, dot
+  colours}`.
+
+  Today is an ink card with its dots inverted to paper; the selected day, when
+  it is not today, a card-white tile with a hairline shadow; a date outside the
+  month is muted and carries no dots.
+  """
+  @spec paint(map()) :: {term(), term(), term(), String.t(), [term()]}
+  def paint(%{today?: true} = day),
+    do:
+      {Palette.ink_fill(), nil, Palette.on_ink(), "bold",
+       Enum.map(day.sections, fn _ -> Palette.on_ink() end)}
+
+  def paint(%{selected?: true} = day),
+    do:
+      {Palette.card(), @selected_shadow, Palette.ink(), "bold",
+       Enum.map(day.sections, &Schedule.section_color/1)}
+
+  def paint(%{in_month?: false}),
+    do: {Palette.transparent(), nil, Palette.rail_idle(), "medium", []}
+
+  def paint(day),
+    do:
+      {Palette.transparent(), nil, Palette.ink(), "medium",
+       Enum.map(day.sections, &Schedule.section_color/1)}
+
+  # The cell centres its stack with full-width Rows and weighted Spacers either
+  # side — a Column takes no horizontal alignment on this bridge — and the
+  # Box's align="center" puts the pair on the cell's vertical middle.
   @doc false
   def day_cell(day) do
-    background = day.background
-    shadow = day.shadow
-    color = day.color
-    weight = day.weight
+    {background, shadow, color, weight, dots} = paint(day)
+    tap = {self(), day_tag(day.date)}
 
     ~MOB"""
     <Box
@@ -289,6 +335,7 @@ defmodule Kati.Screens.MonthGrid do
       background={background}
       shadow={shadow}
       align="center"
+      on_tap={tap}
     >
       <Column fill_width={true}>
         <Row fill_width={true} align="center">
@@ -305,7 +352,7 @@ defmodule Kati.Screens.MonthGrid do
         <Spacer size={4} />
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          {Kati.Screens.MonthGrid.dots(day.dots)}
+          {Kati.Screens.MonthGrid.dots(dots)}
           <Spacer weight={1.0} />
         </Row>
       </Column>
@@ -314,8 +361,7 @@ defmodule Kati.Screens.MonthGrid do
   end
 
   # An empty day still reserves the 5pt band, so a date with no dots sits at
-  # the same height as one with three. The drawing does the same — the dot
-  # container is `height:5px` whether or not it has children.
+  # the same height as one with three.
   @doc false
   def dots([]), do: ~MOB"<Row height={5} />"
 
@@ -342,11 +388,22 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
-  @doc false
-  def legend do
+  @doc """
+  The key under the grid: one entry per section that has anything this month,
+  and nothing at all for an empty month — a key to colours that are not on
+  the page would be decoration.
+  """
+  def legend([]), do: ~MOB"<Spacer size={0} />"
+
+  def legend(sections) do
     items =
-      SampleMonth.legend()
-      |> Enum.map(fn {color, label} -> Kati.Screens.MonthGrid.legend_item(color, label) end)
+      sections
+      |> Enum.map(fn section ->
+        Kati.Screens.MonthGrid.legend_item(
+          Schedule.section_color(section),
+          Schedule.section_label(section)
+        )
+      end)
       |> Enum.intersperse(legend_gap())
 
     ~MOB"""
@@ -362,13 +419,8 @@ defmodule Kati.Screens.MonthGrid do
   @doc false
   def legend_gap, do: ~MOB"<Spacer size={14} />"
 
-  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`, which is the same
-  # edit `Kati.UI.eyebrow/2` already carries: Arabic script has no case, so
-  # upcasing عادت‌ها returns عادت‌ها and the call reads as though something
-  # happened. The word is the argument to the face as well, for the reason
-  # `weekday/1` gives one function up — these three are
-  # `Kati.Calendar.SampleMonth.legend/0`'s, so they are ASCII today and take
-  # Vazirmatn on the day that module folds, with no second edit here.
+  # `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`: Arabic script has
+  # no case. The face asks the word, so a Persian label takes Vazirmatn.
   @doc false
   def legend_item(color, label) do
     word = UI.eyebrow_label(label)
@@ -389,9 +441,17 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
-  @doc false
-  def clashes(month) do
-    last = length(month.clashes) - 1
+  @doc """
+  The selected day's rows, or screen 02's empty card for a day with none.
+  """
+  def day_rows([]) do
+    Schedule.empty_card("calendar_month", gettext("Nothing scheduled"), [
+      gettext("Add anything with +")
+    ])
+  end
+
+  def day_rows(rows) do
+    last = length(rows) - 1
 
     ~MOB"""
     <Column
@@ -404,26 +464,24 @@ defmodule Kati.Screens.MonthGrid do
       padding_top={4}
       padding_bottom={4}
     >
-      {month.clashes
+      {rows
        |> Enum.with_index()
-       |> Enum.map(fn {row, i} -> Kati.Screens.MonthGrid.clash_row(row, i < last) end)}
+       |> Enum.map(fn {row, i} -> Kati.Screens.MonthGrid.day_row(row, i < last) end)}
     </Column>
     """
   end
 
-  # The clock keeps its Latin digits in both scripts and only its FACE is a
-  # question, which is `Kati.Locale.number/1`'s own ruling for a figure the
-  # design sets in mono: `kati_mono.ttf` carries none of U+06F0–U+06F9, so
-  # ۰۹:۳۰ in DM Mono would be a row of empty boxes. `mono_face/1` asks the
-  # string — `09:30` is ASCII and stays in DM Mono — so the slot is already
-  # right for whatever `Kati.Calendar.SampleMonth.clashes/0` puts there next.
-  # `Kati.Screens.Agenda.row/2` draws the same slot the same way.
+  # The clock's face is asked of the string: `kati_mono.ttf` carries none of
+  # U+06F0–U+06F9, so a Persian clock set in DM Mono would be empty boxes.
   @doc false
-  def clash_row(row, rule?) do
+  def day_row(row, rule?) do
+    tap = Schedule.tap(row)
+    rule = row |> Schedule.section() |> Schedule.section_color()
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Column width={38}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13} on_tap={tap}>
+        <Column width={44}>
           <Text
             text={row.time}
             font_family={Kati.Locale.mono_face(row.time)}
@@ -433,16 +491,25 @@ defmodule Kati.Screens.MonthGrid do
           />
         </Column>
         <Spacer size={13} />
-        <Box width={3} height={22} corner_radius={2} background={Palette.accent()} />
+        <Box width={3} height={22} corner_radius={2} background={rule} />
         <Spacer size={13} />
-        <Text
-          text={row.label}
-          text_size={12.5}
-          font_weight="semibold"
-          text_color={:on_surface}
-          weight={1.0}
-          max_lines={1}
-        />
+        <Column weight={1.0}>
+          <Text
+            text={row.title}
+            text_size={12.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
+          <Spacer size={2} />
+          <Text
+            text={row.meta}
+            font_family={Kati.Locale.mono_face(row.meta)}
+            text_size={10.5}
+            text_color={Palette.sub()}
+            max_lines={1}
+          />
+        </Column>
         <Spacer size={13} />
         {UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())}
       </Row>
@@ -453,37 +520,54 @@ defmodule Kati.Screens.MonthGrid do
 
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  # `MishkaSeparator` rather than a hand-rolled Box, and `render: :box` rather
-  # than the component's `:divider` default.
-  #
-  # `:divider` is NOT the Box this used to be. The comment that stood here said
-  # it was — that Compose's `HorizontalDivider` is
-  # `Box(fillMaxWidth().height(t).background(color))` — and that is wrong:
-  # Material3 draws it as `Canvas { drawLine(strokeWidth = t.toPx()) }`, an
-  # ANTIALIASED stroke. At this device's 2.6875x a 1dp rule gets a 3px canvas
-  # and a 2.6875px stroke centred in it, so the bottom pixel row lands at ~69%
-  # coverage — a full-width row 4-5/255 lighter than the two above it. The
-  # adoption softened the hairline by one pixel row and nothing said so.
-  #
-  # `render: :box` is the component's filled-rect primitive: `<Box fill_width
-  # height={thickness} background={color}>`, which is the node that was written
-  # here by hand before the adoption, so the rule goes back to three full-colour
-  # rows. (Its `<Spacer size={1} />` child is an iOS height workaround — on
-  # Android the Box's own `height` pins it and the background covers it.)
-  #
-  # `color` is passed rather than left to the component's `:border` default:
-  # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
+
+  # `render: :box`: the component's default `:divider` is Material3's
+  # antialiased `drawLine`, whose last pixel row lands lighter than the rule.
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
+  @doc """
+  The month before or after the one `date` is in, and which day of it to
+  select: today when today is in it, otherwise its first day.
+  """
+  @spec shift(Date.t(), :previous | :next, Date.t()) :: Date.t()
+  def shift(date, direction, today) do
+    {first, last} = Kati.Locale.month_span(date)
+    landing = if direction == :previous, do: Date.add(first, -1), else: Date.add(last, 1)
+    {start, stop} = Kati.Locale.month_span(landing)
+
+    if Date.compare(today, start) != :lt and Date.compare(today, stop) != :gt,
+      do: today,
+      else: start
+  end
+
+  defp select(socket, date) do
+    Mob.Socket.assign(socket, date: date, month: month(date, Kati.Time.today()))
+  end
+
   # ── What a tap changes ────────────────────────────────────────────────────
 
-  # The switcher this screen draws is its only control, and its three live
-  # segments (`view_Day`, `view_Week`, `view_Agenda`) are routed by the module
-  # that drew them. `Kati.Screens.ViewSwitcher.handle_tap/2` returns the socket
-  # untouched for anything that is not a `view_*` tag, so delegating the whole
-  # callback is safe and stays right if this screen grows a control of its own
-  # — those clauses go above this line.
   @impl true
-  def handle_tap(tag, socket), do: Kati.Screens.ViewSwitcher.handle_tap(tag, socket)
+  def handle_tap(:month_previous, socket),
+    do: {:noreply, select(socket, shift(socket.assigns.date, :previous, Kati.Time.today()))}
+
+  def handle_tap(:month_next, socket),
+    do: {:noreply, select(socket, shift(socket.assigns.date, :next, Kati.Time.today()))}
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "day_" <> iso ->
+        date = Date.from_iso8601!(iso)
+
+        if date == socket.assigns.date,
+          do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Day, %{date: date})},
+          else: {:noreply, select(socket, date)}
+
+      "row_" <> _rest ->
+        {:noreply, Schedule.open_timeline_row(socket, tag, socket.assigns.date)}
+
+      _other ->
+        Kati.Screens.ViewSwitcher.handle_tap(tag, socket)
+    end
+  end
 end

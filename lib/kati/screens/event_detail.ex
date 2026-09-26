@@ -71,18 +71,10 @@ defmodule Kati.Screens.EventDetail do
   `Kati.Calendars.Event` primary key put there by the row that was tapped — see
   `Kati.Screens.Calendar.tag/1` — and this screen loads THAT event.
 
-  It used to assign `Kati.Calendar.SampleEvent.event/0` unconditionally, which
-  is the defect issue #84 is named for: screen 02 could open this screen and
-  had no way to say which of the day's rows it had opened, so the third
-  appointment on a Thursday and the first one drew the same page. A detail
-  screen that cannot be told what it is detailing is a detail screen about
-  whatever the store hands back first.
-
-  **No id still means the sample, exactly as before.** That is the state every
-  frame of `test/design/screens/31.html` was captured in and the state the
-  empty-database sweep renders, and an id that names nothing stored — a
-  deleted event, a fresh install — falls back to the same place rather than to
-  a blank page.
+  **No id, or an id that names nothing stored** — a deleted event, a fresh
+  install — draws `missing/0`: a page that says the event is not here, with
+  nothing to edit and nothing to delete. It never draws somebody else's event
+  in its place.
 
   ## What a stored event can and cannot fill in
 
@@ -110,34 +102,15 @@ defmodule Kati.Screens.EventDetail do
       describe them — and printing `FREQ=WEEKLY;INTERVAL=2;BYDAY=TH` at a user
       is a database row talking to itself. Alerts have no column at all.
 
-  The drawn event keeps all four, because the drawing is where those values
-  come from and it is the only thing they are true of.
-
-  ## Which words on this page are this file's
-
-  Only the ones it writes: the chrome (`Edit event`, `Save`, `Delete event`),
-  the two headings (`Clash`, `Invitees`), the `Add someone` row, and every
-  field a STORED event produces — `Timezone`, `Location`, `All day`, the three
-  travel behaviours, the date, the clock line and the duration. Those go
-  through `Kati.Gettext`, and the date, clock and duration go through
-  `Kati.Locale` as well, because a Gregorian date in Latin digits is not a
-  thing a catalogue can translate.
-
-  Everything the DRAWN event says is `Kati.Calendar.SampleEvent`'s — its title,
-  its two section chips, its five field rows, its clash line and its three
-  resolutions, its two invitees. That module is the one place those strings
-  exist and the only place they can be wrapped; this screen receives them
-  already rendered and `gettext/1` cannot take a variable. Until it is folded,
-  a Persian reader gets a Persian page around an English drawing, which is the
-  honest half-state rather than a second copy of the words.
-
-  mishka-group/kati#103.
+  Every word on the page goes through `Kati.Gettext`, and the date, clock and
+  duration through `Kati.Locale` as well, because a Gregorian date in Latin
+  digits is not a thing a catalogue can translate. The title and the location
+  are the reader's own words and are never translated.
   """
   use Mob.Screen
   use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
-  alias Kati.Calendar.SampleEvent
   alias Kati.Calendars.Event
   alias Kati.Components.MishkaAvatar
   alias Kati.Components.MishkaChip
@@ -164,26 +137,38 @@ defmodule Kati.Screens.EventDetail do
   end
 
   @doc """
-  The event this screen is about: the one the push named, or the drawing's.
+  The event this screen is about: the one the push named, or `missing/0`.
 
   Split out of `mount/3` and public because it is the whole of the screen's
-  read, and the pair the empty-database sweep asks — *what does this answer
-  with when nothing is stored* — can only be put to a named function. See the
-  moduledoc for what a stored event fills in and what it deliberately leaves
-  out.
-
-  Three ways in and two answers. An id that names a stored, un-tombstoned event
-  answers that event; no id at all, and an id that names nothing, both answer
-  the drawing. The second of those matters as much as the first: an event
+  read. An id that names a stored, un-tombstoned event answers that event; no
+  id at all, and an id that names nothing, both answer `missing/0`. An event
   deleted on another device is a push whose id is now a dead letter, and the
   screen it opens has to be a page rather than a crash.
   """
   @spec event(map()) :: map()
   def event(params \\ %{}) do
     case Map.get(params, :id) do
-      id when is_binary(id) and id != "" -> stored(id) || SampleEvent.event()
-      _no_id -> SampleEvent.event()
+      id when is_binary(id) and id != "" -> stored(id) || missing()
+      _no_id -> missing()
     end
+  end
+
+  @doc """
+  The page for an event that is not stored: a title and a line saying so, and
+  no fields, clash, invitees, Save or Delete — there is no row to show or
+  write.
+  """
+  @spec missing() :: map()
+  def missing do
+    %{
+      id: nil,
+      title: gettext("This event is not here"),
+      note: gettext("It was deleted, or it was never saved on this phone."),
+      sections: [],
+      fields: [],
+      clash: nil,
+      invitees: []
+    }
   end
 
   # `Ash.get/2` answers a tombstone as happily as a live row — `deleted_at` is
@@ -203,13 +188,6 @@ defmodule Kati.Screens.EventDetail do
     zone = Kati.Time.device_zone()
 
     %{
-      # The handle, not a rendering. Save and Delete are both writes about THIS
-      # row, and everything else in this map is a projection of the event that
-      # cannot be turned back into it. `Kati.Calendar.SampleEvent.event/0` has
-      # no such key and is deliberately not given one: it is a transcription of
-      # board 31, there is no row behind it, and `Map.get(event, :id)` reading
-      # `nil` is what tells the two apart — and what keeps both controls
-      # untapped on the page every sweep sees. See `save_pill/1`.
       id: event.id,
       title: event.summary || gettext("Untitled"),
       sections: [],
@@ -371,8 +349,7 @@ defmodule Kati.Screens.EventDetail do
           {Kati.Screens.EventDetail.title_card(event)}
           {Kati.Screens.EventDetail.fields(event)}
           {Kati.Screens.EventDetail.clash(event)}
-          {Kati.Screens.EventDetail.muted_eyebrow(gettext("Invitees"))}
-          {Kati.Screens.EventDetail.invitees(event)}
+          {Kati.Screens.EventDetail.people(event)}
           {Kati.Screens.EventDetail.delete(event)}
         </Column>
       </Scroll>
@@ -441,12 +418,9 @@ defmodule Kati.Screens.EventDetail do
   keeps its `:id`, so the sentence stopped being true the round screen 02's
   timeline started naming its own events.
 
-  **It is still inert on the drawn event, and by the same clause rather than
-  by a second one.** `Kati.Calendar.SampleEvent.event/0` has no `:id`, so
-  `save_tap/1` answers `nil` and `Kati.Components.MishkaPill` omits the prop
-  entirely — the drawn pill is the node it always was, down to the absent key,
-  and it draws no `accessibility_id` for a control that would have nothing to
-  write. A tap that silently does nothing is worse than no tap, which is
+  **It is not drawn at all over `missing/0`**, which has no row to write: a
+  spacer of the pill's width keeps the title centred instead. A control that
+  silently does nothing is worse than no control, which is
   `Kati.Screens.Account.row_tap/3`'s rule on the same kind of decision.
 
   What it commits is one field, and that is not a shortfall being hidden — it
@@ -462,6 +436,10 @@ defmodule Kati.Screens.EventDetail do
   edges alone would leave the pill padded top and bottom as well.
   """
   def save_pill(event) do
+    if writable?(event), do: pill(event), else: ~MOB"<Spacer size={44} />"
+  end
+
+  defp pill(event) do
     MishkaPill.pill(
       label: gettext("Save"),
       on_tap: Kati.Screens.EventDetail.save_tap(event),
@@ -478,13 +456,9 @@ defmodule Kati.Screens.EventDetail do
     )
   end
 
-  # The 22pt title is the event's own summary — a stored `summary` column, or
-  # the drawing's — so it can be Persian, and its tracking goes through
-  # `Kati.Locale.tracking/1`. A negative letter-spacing is a Latin display
-  # habit; in the Arabic script it pulls the letters apart at their JOINS, which
-  # is not tighter type but a word broken into letterforms. The `max_lines={1}`
-  # beside it was already here and is what keeps a longer Persian summary on the
-  # one line the caret rule is measured against.
+  # The 22pt title is the event's own summary, so it can be Persian, and its
+  # tracking goes through `Kati.Locale.tracking/1`: a negative letter-spacing
+  # pulls Arabic-script letters apart at their joins.
   @doc false
   def title_card(event) do
     ~MOB"""
@@ -508,9 +482,22 @@ defmodule Kati.Screens.EventDetail do
           <Spacer size={3} />
           <Box width={2} height={22} background={Palette.accent()} />
         </Row>
+        {Kati.Screens.EventDetail.note(Map.get(event, :note))}
         {Kati.Screens.EventDetail.sections_row(event.sections)}
       </Column>
       <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def note(nil), do: ~MOB"<Spacer size={0} />"
+
+  def note(line) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={8} />
+      <Text text={line} text_size={12.5} line_height={1.5} text_color={Palette.sub()} />
     </Column>
     """
   end
@@ -594,6 +581,8 @@ defmodule Kati.Screens.EventDetail do
   end
 
   @doc false
+  def fields(%{fields: []}), do: ~MOB"<Spacer size={0} />"
+
   def fields(event) do
     last = length(event.fields) - 1
 
@@ -691,11 +680,7 @@ defmodule Kati.Screens.EventDetail do
   but it is the shape of the defect `Kati.Screens.Calendar.chips/0` carries the
   note for, where a chip drawn «نمایش» tagged `:"filter_نمایش"` and a `visible/2`
   matching the literal `"Screen"` fell through. The difference is that nothing
-  here compares a translated label against a hardcoded English one. Giving each
-  row a key the way `chips/0` does would need a `:key` in the field maps, and
-  those are built in two places — here and `Kati.Calendar.SampleEvent.fields/0`
-  — so it is one change across two files rather than a wrap, and is left for
-  whoever folds that module.
+  here compares a translated label against a hardcoded English one.
   """
   @spec field_tap(map()) :: {pid(), atom()} | nil
   def field_tap(%{trailing: {:switch, _on?}, title: title}),
@@ -884,6 +869,23 @@ defmodule Kati.Screens.EventDetail do
     """
   end
 
+  @doc """
+  The Invitees heading and card, for a stored event only: a page about an
+  event that is not here has nobody to invite to it.
+  """
+  def people(event) do
+    if writable?(event) do
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.Screens.EventDetail.muted_eyebrow(gettext("Invitees"))}
+        {Kati.Screens.EventDetail.invitees(event)}
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
+
   @doc false
   def invitees(event) do
     ~MOB"""
@@ -1012,17 +1014,10 @@ defmodule Kati.Screens.EventDetail do
 
   @doc """
   The two writes this page can make, as the tags their controls carry — or
-  `nil` on the drawn event, which is no row and has nothing to write.
+  `nil` over `missing/0`, which is no row and has nothing to write.
 
   One predicate for both, because it is one fact: `shaped/1` keeps the stored
-  row's `:id` and `Kati.Calendar.SampleEvent.event/0` has none. That is also
-  what keeps the page the design gates and both tap sweeps see byte-identical
-  to the page they have always seen — a `nil` tap draws no `accessibility_id`
-  and `Kati.ScreenSweep.tap_tags/1` does not collect it, so neither control can
-  join `@inert_taps` by being drawn over nothing.
-
-  Separate from the section chips and the timezone switch, which are socket
-  state on both branches and stay live either way.
+  row's `:id` and `missing/0` has none.
   """
   @spec save_tap(map()) :: atom() | nil
   def save_tap(event), do: if(writable?(event), do: :save)
@@ -1039,9 +1034,14 @@ defmodule Kati.Screens.EventDetail do
   end
 
   # Outlined in red rather than filled: destructive, and one tap away from
-  # nothing. The design gives it no background at all.
+  # nothing. The design gives it no background at all. Not drawn over
+  # `missing/0`, which has nothing to delete.
   @doc false
   def delete(event) do
+    if writable?(event), do: delete_bar(event), else: ~MOB"<Spacer size={0} />"
+  end
+
+  defp delete_bar(event) do
     tap = Kati.Screens.EventDetail.delete_tap(event)
 
     ~MOB"""
@@ -1077,8 +1077,8 @@ defmodule Kati.Screens.EventDetail do
     do: {:noreply, Kati.Screens.EventDetail.delete_event(socket)}
 
   # One clause for every chip and every switch on the screen: the tag carries
-  # the label, so a third section or a second switch is a change to
-  # `Kati.Calendar.SampleEvent` rather than to this file.
+  # the label, so a third section or a second switch is a change to the event
+  # rather than to this file.
   def handle_info({:tap, tag}, socket) do
     event = socket.assigns.event
 
@@ -1123,11 +1123,7 @@ defmodule Kati.Screens.EventDetail do
   The page is then READ BACK rather than left holding what it asked for, which
   is `Kati.Screens.Goals.toggle_repeat/2`'s contract as a page: a switch that
   snaps back to whatever the store actually says, and a row deleted underneath
-  the screen falling to the drawing rather than staying editable.
-
-  The drawn event never reaches here — `save_tap/1` draws it no tap — so there
-  is no branch for it and no saved-nothing message on a page that draws no
-  place for one.
+  the screen falling to `missing/0` rather than staying editable.
   """
   @spec save(Mob.Socket.t()) :: Mob.Socket.t()
   def save(socket) do

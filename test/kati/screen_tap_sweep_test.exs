@@ -463,7 +463,8 @@ defmodule Kati.ScreenTapSweepTest do
     # already-selected chip and a selected filter carries no tap. The tag is
     # drawn by nothing, and this file walks the tags a tree DRAWS. The chip is
     # still live on a feed with picks in it.)
-    {Kati.Screens.EventDetail, :section_Work},
+    # (`{Kati.Screens.EventDetail, :section_Work}` was here. N51: screen 31 no
+    # longer draws the board's event, so no section chip is drawn at all.)
     # Screen 20's, which joined the day its chip rail was wired: `All` is the
     # chip `load/1` opens on, so tapping it re-selects what is selected.
     # Screen 70's unit segments. `Page` is the one the sheet opens on, so

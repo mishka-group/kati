@@ -1,5 +1,6 @@
 Code.require_file("../support/screen_sweep.exs", __DIR__)
 Code.require_file("../support/design_literals.exs", __DIR__)
+Code.require_file("../support/heavy_day.exs", __DIR__)
 
 defmodule Kati.ScreenEmptyDatabaseTest do
   @moduledoc """
@@ -209,15 +210,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"05", Kati.Screens.Inbox},
     {"07", Kati.Screens.Stats},
     {"08", Kati.Screens.Film},
-    # 09 and 31 joined on 26 August with #84, and both fall back on the same
-    # trigger: **the push said nothing about which one**. 09 draws the day it
-    # was handed and 31 the event it was handed, so a bare push — which is what
-    # this file's renders are, and what `Kati.Screens.ViewSwitcher` sends 09 —
-    # is the branch that answers with the drawing. That is a different trigger
-    # from every other screen here, whose fallback fires on the store being
-    # empty; the two gates below say which they are asking.
+    # 09 and 31 joined on 26 August with #84. 09 draws the day it was handed
+    # and 31 the event it was handed; a push that names nothing draws today's
+    # real day on 09 and `missing/0` on 31 (N51), never the drawing.
     {"09", Kati.Screens.Day},
     {"31", Kati.Screens.EventDetail},
+    # N51: 16, 17 and 30 drew `Kati.Calendar.SampleMonth`, `SampleWeek` and
+    # `SampleAgenda` and read nothing. They read the reader's calendar now —
+    # `Kati.Screens.Calendar.rows_between/2` — and answer an empty store with
+    # 02's own *Nothing scheduled* card.
+    {"16", Kati.Screens.MonthGrid},
+    {"17", Kati.Screens.Week},
+    {"30", Kati.Screens.Agenda},
     # 52 joined on 5 September with the same trigger and for the same reason.
     # It read `Kati.Calendar.SampleMealDay` unconditionally, so every route in
     # landed on `Mon 17 Aug` and the page's own title was the one thing on it
@@ -686,6 +690,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     undo, which the Library does not draw and screen 27 itself does.
   @empty_boards %{
     "01" => [{"139", :whole}],
+    # 31 → no board (N51): a push naming no stored event draws `missing/0`,
+    # a title and one sentence saying the event is not here, so board 31's own
+    # event has nothing left on this screen for an empty database to be held
+    # to. `Kati.ScreenDesignLiteralTest` installs the board's event to compare
+    # the frame.
+    "31" => [],
     # 10 → no board at all, the same treatment 12 gets: a shelf with nothing
     # ready or cold draws `empty/0`'s honest card now, not board 10's own
     # hero and four rows, so there is nothing left on this screen for an
@@ -973,6 +983,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        "screens that own them, translated, and its no-match state is board 89's card. " <>
        "`Kati.SearchRunTest` holds what the read answers on a store with rows and without",
      Kati.SearchRunTest},
+    # N51: no board draws the month, the week or the agenda with nothing on
+    # them. What they draw instead is 02's own empty card, quoted from 139.
+    {"16",
+     "board 16 draws August 2026 with dots on eleven days, and no board draws a month with " <>
+       "nothing on it. The card under the grid is 02's own *Nothing scheduled*, quoted from 139",
+     Kati.CalendarViewsRealTest},
+    {"17",
+     "board 17 draws a week of fourteen blocks, and no board draws a week with nothing on " <>
+       "it. The card under the lanes is 02's own *Nothing scheduled*, quoted from 139",
+     Kati.CalendarViewsRealTest},
+    {"30",
+     "board 30 draws four days of rows, and no board draws an agenda with nothing on it. " <>
+       "What it draws instead is 02's own *Nothing scheduled* card, quoted from 139",
+     Kati.CalendarViewsRealTest},
     {"02",
      "no artboard draws a Schedule with nothing on it — 02 draws a day with five items — " <>
        "and none draws one Kati is not allowed to read either. `Kati.Screens.Calendar`'s " <>
@@ -1147,6 +1171,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"89", "89", "All"},
     {"02", "139", "Nothing scheduled"},
     {"02", "139", "add anything with +"},
+    {"16", "139", "Nothing scheduled"},
+    {"16", "139", "add anything with +"},
+    {"17", "139", "Nothing scheduled"},
+    {"17", "139", "add anything with +"},
+    {"30", "139", "Nothing scheduled"},
+    {"30", "139", "add anything with +"},
     # 56's three, and what constrains it is the chrome board 56 draws itself
     # and an empty store cannot take away: the page's own name and the two
     # chips whose meaning does not depend on a row existing. 139 is an English
@@ -1282,6 +1312,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # that. Named, with a number, so a page that shrinks further still fails.
   @small_empty_boards %{
     "23" => 9,
+    # 31 over no stored event is its close disc, the chrome's title, and the
+    # title and sentence of `missing/0` — four strings (N51). Everything else
+    # on board 31 is one event's, and there is none.
+    "31" => 4,
     # 149 over no title is the header's title, its close disc and one
     # sentence — three strings. The position card, six reason chips, both
     # cards, both buttons and the undo pill that padded it past the floor all
@@ -2278,25 +2312,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # board — and a device with a series on it gets four real values and
       # three empty bands, which is the half of this that only
       # `Kati.SeriesMetaSubjectTest` can see.
-      # 09 is asked the question this file's renders ask: a bare push, the one
-      # `Kati.Screens.ViewSwitcher` sends and the one `render_migrated/0` makes,
-      # must answer with the drawn day whole — its date, its fourteen
-      # occurrences and the flag that keeps the band, the renewals row and the
-      # `14 items · 2 clashes` headline drawn. Compared as the triple `day/1`
-      # answers rather than as its occurrences alone: the flag is what the other
-      # three read, so a gate that dropped it would pass while the day went
-      # bare.
-      #
-      # 31 is gated on the branch that READS: an id that names nothing stored,
-      # which on an empty database is every id there is. That is the fallback a
-      # push can actually land on — an event deleted on another device, a
-      # restored backup, a fresh install — and it has to answer with the drawing
-      # rather than with a blank page. The no-id path is pinned in
-      # `Kati.EventRowIdentityTest` beside the tap that produces an id, where
-      # the two can be compared with each other.
-      {"31", Kati.Screens.EventDetail,
-       fn -> Kati.Screens.EventDetail.event(%{id: Ecto.UUID.generate()}) end,
-       &Kati.Calendar.SampleEvent.event/0},
       # 52 is gated the way 09 is, on the branch a bare push lands on, because it
       # is the same branch: `day/1` with no `:date` answers the drawn day whole
       # — the heading, the spine and the `drawn?` flag the collapse row and the
@@ -2755,8 +2770,23 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # handed date, because that answers `[]`, and `[]` is the right answer" —
       # the two branches just disagreed. They agree now: a day with nothing on
       # it is empty whichever day it is.
-      {"09", Kati.Screens.Day, fn -> Kati.Screens.Day.day(%{}) end, {today, [], false},
-       fn -> {today, Kati.Calendar.SampleDay.occurrences(), true} end},
+      {"09", Kati.Screens.Day, fn -> Kati.Screens.Day.day(%{}) end, {today, []},
+       fn -> {today, Kati.Test.HeavyDay.occurrences()} end},
+      # 31 answers `missing/0` for an id that names nothing stored, which on an
+      # empty database is every id (N51). It used to answer board 31's own
+      # event, so a deleted event opened as *Design review*.
+      {"31", Kati.Screens.EventDetail,
+       fn -> Kati.Screens.EventDetail.event(%{id: Ecto.UUID.generate()}) end,
+       Kati.Screens.EventDetail.missing(), &Kati.DesignLiterals.event_board/0},
+      # 16, 17 and 30 answer nothing on an empty store (N51): no rows under the
+      # month, none under the week, no agenda groups. The drawn values are the
+      # boards' own lines, which is what the samples held.
+      {"16", Kati.Screens.MonthGrid, fn -> Kati.Screens.MonthGrid.month(today, today).rows end,
+       [], fn -> [%{time: "09:30", title: "2 at once — Standup, Design review"}] end},
+      {"17", Kati.Screens.Week, fn -> Kati.Screens.Week.week(today, today).rows end, [],
+       fn -> [%{time: "09:30", title: "Standup", length: "15m"}] end},
+      {"30", Kati.Screens.Agenda, fn -> Kati.Screens.Agenda.agenda(today).groups end, [],
+       fn -> [%{kicker: "TODAY", rows: [%{title: "Call Mum"}]}] end},
       # 146 gates on the list, which is the whole of what it draws that could
       # come from anywhere: the tiles, which start selected, and every count the
       # header composes from them. An empty shelf answers with nothing now —
