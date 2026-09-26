@@ -208,6 +208,7 @@ defmodule Kati.Screens.DataSources do
       ])}
       <Spacer size={12} />
       {Kati.Screens.DataSources.own_key(token, saved?, error, epoch)}
+      <Spacer size={12} />
       {Kati.UI.SettingsList.note("info", gettext("Kati uses your own TMDB token, so searches are yours and nobody else’s. It is free: sign in at themoviedb.org, open Settings → API, and paste the API Read Access Token — the long one starting eyJ."))}
       <Spacer size={24} />
     </Column>
@@ -443,7 +444,6 @@ defmodule Kati.Screens.DataSources do
           rule: false
         )
       ])}
-      <Spacer size={10} />
       {Kati.Screens.DataSources.token_state(false, @error)}
     </Column>
     """
@@ -513,7 +513,11 @@ defmodule Kati.Screens.DataSources do
 
   @doc false
   def token_state(_saved?, error) when is_binary(error),
-    do: Kati.UI.SettingsList.note("error", error)
+    do: ~MOB"""
+    <Column fill_width={true} padding_top={10}>
+      {Kati.UI.SettingsList.note("error", error)}
+    </Column>
+    """
 
   def token_state(true, _error),
     do:
@@ -522,12 +526,7 @@ defmodule Kati.Screens.DataSources do
         gettext("A token of yours is stored. Kati searches with it.")
       )
 
-  def token_state(_saved?, _error),
-    do:
-      Kati.UI.SettingsList.note(
-        "info",
-        gettext("themoviedb.org → your account → Settings → API. Copy the read access token.")
-      )
+  def token_state(_saved?, _error), do: ~MOB"<Spacer size={0} />"
 
   @doc """
   Whether this device is holding a token of the reader's own.

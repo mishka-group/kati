@@ -62,11 +62,14 @@ defmodule Kati.TmdbTokenFieldTest do
   end
 
   describe "what the reader is told" do
-    test "where to get a token, when none is stored" do
-      drawn = inspect(DataSources.token_state(false, nil), limit: :infinity)
+    test "where to get a token, said once under the card rather than twice" do
+      assert %{type: :spacer} = DataSources.token_state(false, nil)
 
-      assert drawn =~ "themoviedb.org"
-      assert drawn =~ "read access token"
+      drawn = inspect(DataSources.tmdb("", false, nil, 0), limit: :infinity)
+      [_before | once] = String.split(drawn, "themoviedb.org")
+
+      assert length(once) == 1, "the TMDB card told the reader where to get a token twice"
+      assert drawn =~ "API Read Access Token"
     end
 
     test "that one is stored, when one is" do

@@ -933,7 +933,7 @@ msgstr ""
 msgid "Reading"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:402
+#: lib/kati/screens/data_sources.ex:403
 #: lib/kati/screens/list_detail.ex:564
 #: lib/kati/screens/shelf_large.ex:360
 #: lib/kati/screens/shelf_selection.ex:830
@@ -2031,7 +2031,7 @@ msgid "On pace to finish"
 msgstr ""
 
 #: lib/kati/goals/sample.ex:51
-#: lib/kati/screens/data_sources.ex:854
+#: lib/kati/screens/data_sources.ex:853
 #: lib/kati/screens/goals.ex:247
 #: lib/kati/screens/habits.ex:580
 #, elixir-autogen, elixir-format
@@ -2311,7 +2311,7 @@ msgstr ""
 
 #: lib/kati/health/weight_sample.ex:76
 #: lib/kati/screens/album_detail.ex:377
-#: lib/kati/screens/data_sources.ex:851
+#: lib/kati/screens/data_sources.ex:850
 #, elixir-autogen, elixir-format
 msgid "today"
 msgstr ""
@@ -2710,13 +2710,13 @@ msgstr ""
 msgid "Removes them from Discover, Up next and What fits tonight. Your library and wishlist keep everything."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:780
+#: lib/kati/screens/data_sources.ex:779
 #: lib/kati/screens/data_sources_states.ex:746
 #, elixir-autogen, elixir-format
 msgid "%{n} MB cached"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1061
+#: lib/kati/screens/data_sources.ex:1060
 #, elixir-autogen, elixir-format
 msgid "%{n} could not be reached."
 msgid_plural "%{n} could not be reached."
@@ -2747,7 +2747,7 @@ msgid_plural "%{n} minutes ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:858
+#: lib/kati/screens/data_sources.ex:857
 #, elixir-autogen, elixir-format
 msgid "%{n} month"
 msgid_plural "%{n} months"
@@ -2769,7 +2769,7 @@ msgstr ""
 msgid "A pasted client secret again. ListenBrainz does the same job with a token you issue and can revoke yourself, which is why that one is offered and this one is not."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:522
+#: lib/kati/screens/data_sources.ex:526
 #, elixir-autogen, elixir-format
 msgid "A token of yours is stored. Kati searches with it."
 msgstr ""
@@ -2804,13 +2804,13 @@ msgstr ""
 msgid "Cached metadata"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:722
+#: lib/kati/screens/data_sources.ex:721
 #: lib/kati/screens/search_idle.ex:261
 #, elixir-autogen, elixir-format
 msgid "Clear"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:904
+#: lib/kati/screens/data_sources.ex:903
 #, elixir-autogen, elixir-format
 msgid "Cleared %{n} cached row."
 msgid_plural "Cleared %{n} cached rows."
@@ -2827,7 +2827,7 @@ msgstr ""
 msgid "Community book ratings, read with a token of your own."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1009
+#: lib/kati/screens/data_sources.ex:1008
 #, elixir-autogen, elixir-format
 msgid "Couldn’t remove it. Nothing changed."
 msgstr ""
@@ -2837,7 +2837,7 @@ msgstr ""
 msgid "Covers, editions, ISBNs"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:691
+#: lib/kati/screens/data_sources.ex:690
 #, elixir-autogen, elixir-format
 msgid "Disconnect everything and wipe tokens"
 msgstr ""
@@ -2857,7 +2857,7 @@ msgstr ""
 msgid "Kati already has Open Library for covers and editions, and a second book source that needs an account is a setup step for a number you did not ask for."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:722
+#: lib/kati/screens/data_sources.ex:721
 #, elixir-autogen, elixir-format
 msgid "Kati refreshes anything older than six months on its own. That is a promise it keeps, not a limit it suffers."
 msgstr ""
@@ -2888,7 +2888,7 @@ msgid "Not in this version"
 msgstr ""
 
 #: lib/kati/screens/add_ingredient.ex:466
-#: lib/kati/screens/data_sources.ex:550
+#: lib/kati/screens/data_sources.ex:549
 #: lib/kati/screens/health_empty_states.ex:609
 #: lib/kati/screens/health_empty_states.ex:673
 #: lib/kati/screens/notification_access.ex:564
@@ -2902,7 +2902,7 @@ msgstr ""
 msgid "Not set up — tap to see why"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:793
+#: lib/kati/screens/data_sources.ex:792
 #, elixir-autogen, elixir-format
 msgid "Nothing cached yet"
 msgstr ""
@@ -2912,22 +2912,22 @@ msgstr ""
 msgid "Nothing named"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1052
+#: lib/kati/screens/data_sources.ex:1051
 #, elixir-autogen, elixir-format
 msgid "Nothing on the shelf to refresh."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:839
+#: lib/kati/screens/data_sources.ex:838
 #, elixir-autogen, elixir-format
 msgid "Nothing to refresh"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:901
+#: lib/kati/screens/data_sources.ex:900
 #, elixir-autogen, elixir-format
 msgid "Nothing was cached."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:827
+#: lib/kati/screens/data_sources.ex:826
 #: lib/kati/screens/data_sources_states.ex:725
 #, elixir-autogen, elixir-format
 msgid "Oldest entry %{age}"
@@ -2938,7 +2938,7 @@ msgstr ""
 msgid "Open this from the thing you were asking about and Kati says why that one is not here."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1016
+#: lib/kati/screens/data_sources.ex:1015
 #, elixir-autogen, elixir-format
 msgid "Paste a token first."
 msgstr ""
@@ -2953,25 +2953,25 @@ msgstr ""
 msgid "Posters, backdrops, cast"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:719
+#: lib/kati/screens/data_sources.ex:718
 #, elixir-autogen, elixir-format
 msgid "Refresh"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1055
-#: lib/kati/screens/data_sources.ex:1059
+#: lib/kati/screens/data_sources.ex:1054
+#: lib/kati/screens/data_sources.ex:1058
 #, elixir-autogen, elixir-format
 msgid "Refreshed %{n} title."
 msgid_plural "Refreshed %{n} titles."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:719
+#: lib/kati/screens/data_sources.ex:718
 #, elixir-autogen, elixir-format
 msgid "Refreshing…"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:269
+#: lib/kati/screens/data_sources.ex:270
 #, elixir-autogen, elixir-format
 msgid "Replace"
 msgstr ""
@@ -2990,13 +2990,13 @@ msgid "Save"
 msgstr ""
 
 #: lib/kati/screens/backup.ex:1523
-#: lib/kati/screens/data_sources.ex:340
+#: lib/kati/screens/data_sources.ex:341
 #: lib/kati/screens/restore.ex:1929
 #, elixir-autogen, elixir-format
 msgid "Saved"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:348
+#: lib/kati/screens/data_sources.ex:349
 #, elixir-autogen, elixir-format
 msgid "Saved %{ago}"
 msgstr ""
@@ -3023,7 +3023,7 @@ msgstr ""
 msgid "Sleep"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1103
+#: lib/kati/screens/data_sources.ex:1102
 #, elixir-autogen, elixir-format
 msgid "TMDB didn’t accept this. Check you copied the API Read Access Token and not the API key, and that it has no trailing space."
 msgstr ""
@@ -3033,13 +3033,13 @@ msgstr ""
 msgid "TV & film · TVmaze"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:1110
-#: lib/kati/screens/data_sources.ex:1112
+#: lib/kati/screens/data_sources.ex:1109
+#: lib/kati/screens/data_sources.ex:1111
 #, elixir-autogen, elixir-format
 msgid "That did not save."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:909
+#: lib/kati/screens/data_sources.ex:908
 #, elixir-autogen, elixir-format
 msgid "The cache could not be cleared."
 msgstr ""
@@ -3105,7 +3105,7 @@ msgstr ""
 msgid "Workouts"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:272
+#: lib/kati/screens/data_sources.ex:273
 #, elixir-autogen, elixir-format
 msgid "Your key is in use"
 msgstr ""
@@ -3128,11 +3128,6 @@ msgstr ""
 #: lib/kati/settings/watcher.ex:196
 #, elixir-autogen, elixir-format
 msgid "never checked"
-msgstr ""
-
-#: lib/kati/screens/data_sources.ex:529
-#, elixir-autogen, elixir-format
-msgid "themoviedb.org → your account → Settings → API. Copy the read access token."
 msgstr ""
 
 #: lib/kati/screens/activity.ex:1455
@@ -8684,7 +8679,7 @@ msgstr ""
 msgid "Where to watch"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:592
+#: lib/kati/screens/data_sources.ex:591
 #: lib/kati/screens/data_sources_states.ex:879
 #, elixir-autogen, elixir-format
 msgid "Wipe all tokens?"
@@ -8695,7 +8690,7 @@ msgstr ""
 msgid "Wipe confirmation · after wiping"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:602
+#: lib/kati/screens/data_sources.ex:601
 #: lib/kati/screens/data_sources_states.ex:851
 #, elixir-autogen, elixir-format
 msgid "Wipe tokens"
@@ -9288,7 +9283,7 @@ msgctxt "the provider’s own state while Kati throttles itself"
 msgid "normal"
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:611
+#: lib/kati/screens/data_sources.ex:610
 #: lib/kati/screens/data_sources_states.ex:865
 #, elixir-autogen, elixir-format
 msgctxt "the safe answer to the wipe confirmation"
@@ -16114,21 +16109,21 @@ msgstr ""
 msgid "changes nothing at all."
 msgstr ""
 
-#: lib/kati/screens/data_sources.ex:968
+#: lib/kati/screens/data_sources.ex:967
 #, elixir-autogen, elixir-format
 msgid "%{n} account disconnected."
 msgid_plural "%{n} accounts disconnected."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:594
+#: lib/kati/screens/data_sources.ex:593
 #, elixir-autogen, elixir-format
 msgid "%{n} account disconnects. Your library, ratings and history are untouched — only the keys go."
 msgid_plural "%{n} accounts disconnect. Your library, ratings and history are untouched — only the keys go."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/data_sources.ex:948
+#: lib/kati/screens/data_sources.ex:947
 #, elixir-autogen, elixir-format
 msgid "Nothing is connected."
 msgstr ""
