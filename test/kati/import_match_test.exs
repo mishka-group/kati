@@ -30,21 +30,14 @@ defmodule Kati.ImportMatchTest do
   end
 
   setup do
-    token = System.get_env("TMDB_READ_TOKEN")
-
-    Kati.Sources.put_tmdb_key(:kati)
-    System.put_env("TMDB_READ_TOKEN", "test-token")
+    Application.put_env(:kati, :tmdb_test_token, "test-token")
     Application.put_env(:kati, :tmdb_req_options, adapter: Adapter)
     Application.put_env(:kati, :import_match_stub, &tmdb/1)
 
     on_exit(fn ->
       Application.delete_env(:kati, :tmdb_req_options)
       Application.delete_env(:kati, :import_match_stub)
-
-      if token,
-        do: System.put_env("TMDB_READ_TOKEN", token),
-        else: System.delete_env("TMDB_READ_TOKEN")
-
+      Application.delete_env(:kati, :tmdb_test_token)
       wipe!()
     end)
 
@@ -139,8 +132,7 @@ defmodule Kati.ImportMatchTest do
 
   describe "leaves the row as the import wrote it" do
     test "when there is no key" do
-      Kati.Sources.put_tmdb_key(:own)
-      System.delete_env("TMDB_READ_TOKEN")
+      Application.delete_env(:kati, :tmdb_test_token)
 
       Application.put_env(:kati, :import_match_stub, fn _req ->
         flunk("asked TMDB with no key")

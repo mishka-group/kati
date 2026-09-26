@@ -160,8 +160,8 @@ machine-checked one, and the number left over would be the real backlog.
 ## Rules that cost time when forgotten
 
 * Deploy with `mix kati.e2e.stage && ./bin/deploy_native.sh`. Never `adb
-  install`, never raw Gradle. Source `~/.config/kati/tmdb.env` first or the
-  build ships without a TMDB key.
+  install`, never raw Gradle. No build carries a TMDB key: paste one on screen
+  80 (Settings → Data sources) after installing.
 * `deploy_native.sh` runs `pm clear` when `/data` is short — that wipes the app
   database and revokes permissions. Test data does not survive it.
 * `~MOB` is an **uppercase sigil**: no interpolation, no escapes. It also needs

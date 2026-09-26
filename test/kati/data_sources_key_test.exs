@@ -2,12 +2,11 @@ defmodule Kati.DataSourcesKeyTest do
   @moduledoc """
   The reader brings their own TMDB token, and the app asks for it.
 
-  The owner's decision, 19 Sep: *"user must put its token, not my code."* The
-  default was Kati's key, so a fresh install silently used whatever was compiled
-  into the build — and a public build has none, so the first film search came
-  back empty with nothing saying why. Now the reader's own key is the default,
-  Kati's key is offered only on a build that carries one, and a missing key is
-  a door to screen 80 wherever a search would have failed.
+  The owner's decision: *"all users must put their token there."* A key of
+  Kati's own used to be compiled into development builds and offered on screen
+  80 as a choice beside the reader's; it is gone. The reader's own token, saved
+  in `Kati.SecureStore`, is the only TMDB key there is, and a missing key is a
+  door to screen 80 wherever a search would have failed.
   """
 
   use Mob.ScreenCase, async: false
@@ -15,29 +14,38 @@ defmodule Kati.DataSourcesKeyTest do
   alias Kati.Screens.DataSources
   alias Kati.UI.TmdbPrompt
 
-  describe "screen 80's key chips" do
-    test "are offered on a build that carries Kati's key" do
-      drawn = inspect(DataSources.key_chips(:own, true), limit: :infinity)
+  describe "screen 80" do
+    setup do
+      was = System.get_env("TMDB_READ_TOKEN")
+      Application.delete_env(:kati, :tmdb_test_token)
 
-      assert drawn =~ "Use Kati’s key"
-      assert drawn =~ "Use my own key"
+      on_exit(fn ->
+        if was,
+          do: System.put_env("TMDB_READ_TOKEN", was),
+          else: System.delete_env("TMDB_READ_TOKEN")
+      end)
 
-      # Only the chip NOT in force carries a tap — `key_chip/3`'s own rule.
-      assert drawn =~ "key_kati"
+      :ok
+    end
+
+    test "offers no key of Kati's own, and no chip to choose one" do
+      drawn = inspect(tree(mount_screen(DataSources)), limit: :infinity)
+
+      assert drawn =~ "TMDB"
+      refute drawn =~ "Use Kati’s key"
+      refute drawn =~ "key_kati"
       refute drawn =~ "key_own"
     end
 
-    test "and are not offered where there is none to choose" do
-      # Offering *Use Kati's key* on a build without one would switch search
-      # off with a single tap.
-      drawn = inspect(DataSources.key_chips(:own, false), limit: :infinity)
+    test "with no token of the reader's, there is no key — whatever the environment holds" do
+      System.put_env("TMDB_READ_TOKEN", "an-environment-token")
 
-      refute drawn =~ "Use Kati’s key"
-      refute drawn =~ "key_kati"
+      assert Kati.Media.Tmdb.key() == {:error, :no_api_key}
+      refute Kati.Media.Tmdb.usable?()
     end
 
-    test "and the paragraph under them no longer argues against the decision" do
-      drawn = inspect(DataSources.tmdb(:own), limit: :infinity)
+    test "and the paragraph under the card says how to get one" do
+      drawn = inspect(DataSources.tmdb(), limit: :infinity)
 
       refute drawn =~ "Paste your own only if"
       assert drawn =~ "API Read Access Token"

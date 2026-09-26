@@ -23,12 +23,12 @@ defmodule Kati.Screens.DataSources do
 
   ## The reader brings the TMDB key
 
-  The owner's decision, 19 Sep: a store build carries no TMDB key, so *Use my
-  own key* is the default and the only working choice on one. *Use Kati's key*
-  appears only on a development build that carries a developer's token
-  (`Kati.Media.Tmdb.bundled?/0`), and `mix mob.release` refuses to package
-  such a build — `Kati.SecureStore`'s moduledoc tables every credential and
-  where it can go.
+  The owner's decision: *"all users must put their token there."* No build
+  carries a TMDB key of its own — not a store release and not a development
+  build — so there is nothing to choose between and no chips: the card is the
+  reader's token field, or the saved card once one is stored, and that token
+  is the only key `Kati.Media.Tmdb.key/0` ever sends. `Kati.SecureStore`'s
+  moduledoc tables every credential and where it can go.
 
   ## Where tokens live, said honestly
 
@@ -60,14 +60,10 @@ defmodule Kati.Screens.DataSources do
   @impl true
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:tmdb, Sources.tmdb_key())
     |> Mob.Socket.assign(:token, "")
     |> Mob.Socket.assign(:token_epoch, 0)
     |> Mob.Socket.assign(:token_error, nil)
     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
-    # Whether this build carries Kati's own key, read once here with the rest
-    # of the page's reads — see `key_chips/2`.
-    |> Mob.Socket.assign(:bundled?, Kati.Media.Tmdb.bundled?())
     |> Mob.Socket.assign(:confirm_wipe?, false)
     |> Mob.Socket.assign(:wipe_notice, nil)
   end
@@ -86,7 +82,7 @@ defmodule Kati.Screens.DataSources do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("Data sources"), gettext("Where Kati’s posters, covers and facts come from."), nil, :name)}
         {UI.eyebrow(gettext("Better artwork and metadata"))}
-        {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0), Map.get(assigns, :bundled?, false))}
+        {Kati.Screens.DataSources.tmdb(Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0))}
         {UI.eyebrow(gettext("Where your tokens live"))}
         {Kati.Screens.DataSources.tokens(assigns)}
         {UI.eyebrow(gettext("Cached metadata"))}
@@ -193,17 +189,14 @@ defmodule Kati.Screens.DataSources do
   end
 
   @doc """
-  TMDB, and the choice between Kati's key and your own.
+  TMDB, and the reader's own token under it.
 
-  Two chips rather than a switch, because neither is the *off* state — both are
-  a working configuration and the page's job is to say that plainly.
+  No choice of key: the token field, or board 318's saved card once one is
+  stored, is always drawn — see the moduledoc's *The reader brings the TMDB
+  key*.
   """
-  # Five arguments, and the spec named four — so it described `tmdb/4`, a head
-  # the default arguments generate and `content/1` never calls. `own_key/5`
-  # already spells the last one `non_neg_integer()`; this is the same value one
-  # frame up.
-  @spec tmdb(atom(), String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
-  def tmdb(choice, token \\ "", saved? \\ false, error \\ nil, epoch \\ 0, bundled? \\ false) do
+  @spec tmdb(String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
+  def tmdb(token \\ "", saved? \\ false, error \\ nil, epoch \\ 0) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
@@ -214,8 +207,7 @@ defmodule Kati.Screens.DataSources do
         )
       ])}
       <Spacer size={12} />
-      {Kati.Screens.DataSources.key_chips(choice, bundled?)}
-      {Kati.Screens.DataSources.own_key(choice, token, saved?, error, epoch)}
+      {Kati.Screens.DataSources.own_key(token, saved?, error, epoch)}
       {Kati.UI.SettingsList.note("info", gettext("Kati uses your own TMDB token, so searches are yours and nobody else’s. It is free: sign in at themoviedb.org, open Settings → API, and paste the API Read Access Token — the long one starting eyJ."))}
       <Spacer size={24} />
     </Column>
@@ -223,54 +215,12 @@ defmodule Kati.Screens.DataSources do
   end
 
   @doc """
-  The two key chips — or none, on a build with no key of Kati's own.
+  Where the reader's token goes, and the only place it can.
 
-  *Use Kati's key* is offered only when `Kati.Media.Tmdb.bundled?/0` says the
-  build carries one: a development and testing convenience, never present in a
-  public build. Offering it where there is none would switch search off with
-  one tap, since choosing it routes to a key that is not there. With nothing to
-  choose between there are no chips at all — the reader's own token is simply
-  what this card is for.
-
-  The paragraph under the card used to argue the other way — *"Kati's key is
-  public… That costs you nothing… Paste your own only if you want your own
-  limits."* — which is the opposite of the owner's decision that the reader
-  brings their own, so it now says how to get one.
-  """
-  @spec key_chips(:kati | :own, boolean()) :: map()
-  def key_chips(choice, bundled?) do
-    if bundled? do
-      assigns = %{choice: choice}
-
-      ~MOB"""
-      <Column fill_width={true}>
-        <Row fill_width={true}>
-          {Kati.Screens.DataSources.key_chip(gettext("Use Kati’s key"), :key_kati, @choice == :kati)}
-          <Spacer size={7} />
-          {Kati.Screens.DataSources.key_chip(gettext("Use my own key"), :key_own, @choice == :own)}
-          <Spacer weight={1.0} />
-        </Row>
-        <Spacer size={12} />
-      </Column>
-      """
-    else
-      ~MOB"<Spacer size={0} />"
-    end
-  end
-
-  @doc """
-  The field the *Use my own key* chip has always needed.
-
-  Tapping that chip wrote `:own` to `Mob.State` and there was nowhere on this
-  page — or anywhere in the app — to put a token. `Kati.Media.Tmdb.key/0` then
-  routed to the always-empty secure store and answered `{:error, :no_api_key}`,
-  so screen 06 stopped returning results and started drawing a notice pointing
-  back at THIS page. One tap on a control that reads as a preference, and
-  search was off with no way to switch it on.
-
-  Drawn only under `:own`, because under `:kati` there is nothing to enter —
-  which is also why this is not on board 80: the board is drawn with Kati's key
-  chosen.
+  `Kati.Media.Tmdb.key/0` reads nothing else, so without a token here screen
+  06 returns no results and draws a notice pointing back at THIS page. Board
+  80 does not draw it — the board was drawn with a key of Kati's own chosen,
+  and that key no longer exists.
 
   `Kati.SecureStore.available?/0` is checked before the field is offered rather
   than after a save fails, which is the rule that module states in its own
@@ -278,8 +228,8 @@ defmodule Kati.Screens.DataSources do
   connect an account, so the user is told the truth instead of discovering it
   when the first save fails.*
   """
-  @spec own_key(atom(), String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
-  def own_key(:own, token, saved?, error, epoch) do
+  @spec own_key(String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
+  def own_key(token, saved?, error, epoch) do
     cond do
       not Kati.SecureStore.available?() ->
         Kati.Screens.DataSources.no_keystore()
@@ -291,8 +241,6 @@ defmodule Kati.Screens.DataSources do
         Kati.Screens.DataSources.key_field(token, error, epoch)
     end
   end
-
-  def own_key(_kati, _token, _saved?, _error, _epoch), do: ~MOB"<Spacer size={0} />"
 
   @doc """
   Board 318's SAVED state: the key is in use, so the field is gone.
@@ -595,38 +543,6 @@ defmodule Kati.Screens.DataSources do
   catch
     :exit, _reason -> false
   end
-
-  @doc """
-  One of the two TMDB key chips.
-
-  Both were decoration until this round: `Kati.UI.chip/2` reads `:on_toggle`
-  out of its opts and emits no tap at all without one, so the page drew a
-  choice it could not be told. The destination was not invented — the Persian
-  mirror of this exact card had answered `:key_kati` and `:key_own` through
-  `Kati.Sources.put_tmdb_key/1` since screen 82 landed, and this was the half of
-  a mirrored pair that was never connected. mishka-group/kati#103 folded the
-  mirror away and board 82 is this card under `:fa`, so there is one card now
-  and it is wired.
-
-  **The chip in force carries no tag**, which is the one place this diverges
-  from board 82 as drawn. It is the shape `Kati.Screens.Settings.segment/2` keeps for the
-  theme trough one screen up — *only the unselected tiles are choices* — and
-  the reason is the same: this is an exclusive pair, not a filter family, so
-  tapping the chip that is already lit can only set the value it already has.
-  Drawing a tag for that is drawing a control that answers nothing, which is
-  what `Kati.ScreenTapSweepTest`'s `no new dead-looking taps` reports and what
-  `@inert_taps` then has to carry a line about — one line now, for this screen,
-  rather than one for each of a pair.
-
-  Nothing visible moves either way: a chip's pill and label are the component's
-  and do not depend on `:on_toggle`. What the unselected chip gains is an
-  `accessibility_id` — `key_kati` or `key_own`, each unique on screen 80.
-  """
-  @spec key_chip(String.t(), atom(), boolean()) :: term()
-  def key_chip(label, _tag, true), do: Kati.UI.chip(label, selected: true)
-
-  def key_chip(label, tag, false),
-    do: Kati.UI.chip(label, selected: false, on_toggle: {self(), tag})
 
   @doc "114's pill, and screen 88's — one mark for *named and not doing this*."
   @spec not_in_v1() :: map()
@@ -1046,7 +962,6 @@ defmodule Kati.Screens.DataSources do
     {:noreply,
      socket
      |> Mob.Socket.assign(:confirm_wipe?, false)
-     |> Mob.Socket.assign(:tmdb, Sources.tmdb_key())
      |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
      |> Mob.Socket.assign(
        :wipe_notice,
@@ -1061,31 +976,6 @@ defmodule Kati.Screens.DataSources do
 
   def handle_tap(:wipe_cancel, socket),
     do: {:noreply, Mob.Socket.assign(socket, :confirm_wipe?, false)}
-
-  # Store first, then relight the chip — the same order screen 24's theme
-  # trough keeps, and for the same reason: the chip and `Sources.tmdb_key/0`
-  # are one fact drawn twice and must not be able to disagree. Byte for byte
-  # what the Persian mirror of this screen answered from the day 82 landed,
-  # which is why folding it away changed nothing about what a tap does.
-  #
-  # Both clauses stay even though `key_chip/3` only ever draws the tag for the
-  # chip that is NOT in force. A handler that exists for a tag the resting
-  # screen does not draw costs nothing; a tag drawn on some other state with no
-  # handler behind it is the defect this whole round is about.
-  def handle_tap(:key_kati, socket) do
-    Sources.put_tmdb_key(:kati)
-    {:noreply, Mob.Socket.assign(socket, :tmdb, :kati)}
-  end
-
-  def handle_tap(:key_own, socket) do
-    Sources.put_tmdb_key(:own)
-
-    {:noreply,
-     socket
-     |> Mob.Socket.assign(:tmdb, :own)
-     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
-     |> Mob.Socket.assign(:token_error, nil)}
-  end
 
   # Board 318's two controls on the saved card. `Replace` puts the field back
   # WITHOUT clearing the store: a reader who opens it and changes their mind

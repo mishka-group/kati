@@ -769,17 +769,12 @@ defmodule Kati.ScreenTapSweepTest do
     # that mirror into this screen and the tags became ids.
     {Kati.Screens.Books, :filter_all},
     # Screen 82's `key_kati` was here until mishka-group/kati#103 folded the
-    # mirror away. The chip in force carries no tag on screen 80 — `key_chip/3`
-    # draws it only for the chip that is NOT selected — so with one screen
-    # instead of two there is no `key_kati` drawn anywhere, in either locale,
-    # and the line that named it went with the mirror.
+    # mirror away, and N53 then removed screen 80's key chips altogether: the
+    # reader's own token is the only TMDB key, so there is nothing to choose.
     # Screen 126's opening filter.
     {Kati.Screens.MoneyDay, :filter_All},
     # Screen 93's two fields, which open no keyboard (#45). (Screen 80's
-    # `key_own` was here too. The key chips are drawn only on a build carrying
-    # Kati's own key, which is never the case under test, so the tag is no
-    # longer drawn at all — the reader's own key is simply the default.
-    # `Kati.DataSourcesKeyTest` draws the chips both ways.)
+    # `key_own` was here too, until N53 removed the key chips.)
     {Kati.Screens.MyServicesEmpty, :search},
     # Two, not five: 93 draws only the free card — having no subscriptions is
     # the whole subject of the board. Same `service_tag/1`, same reason.

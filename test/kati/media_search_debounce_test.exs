@@ -93,8 +93,8 @@ defmodule Kati.MediaSearchDebounceTest do
     end
 
     test "the current query is searched, and says so when there is no key", %{socket: socket} do
-      # No TMDB key in `:test` — `Kati.Media.Tmdb` guards `@bundled_key` on
-      # `Mix.env/0` — so this asserts the branch was ENTERED, by the refusal it
+      # No TMDB key unless a test hands one to `:tmdb_test_token`, and this one
+      # does not — so this asserts the branch was ENTERED, by the refusal it
       # leaves behind. A dropped answer would leave `:search_error` nil.
       typed = Mob.Socket.assign(socket, :query, "severance")
 

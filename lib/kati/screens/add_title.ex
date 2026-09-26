@@ -182,8 +182,8 @@ defmodule Kati.Screens.AddTitle do
 
   `search/1` has assigned `:search_error` since it was written and **nothing
   drew it**, which was found on a device: typing `matrix` on a phone answers
-  `RESULTS 0` and says nothing at all, because a release carries no
-  `TMDB_READ_TOKEN` and `Kati.Media.Tmdb.key/0` answers `{:error,
+  `RESULTS 0` and says nothing at all, because no build carries a TMDB key
+  and, until the reader saves one, `Kati.Media.Tmdb.key/0` answers `{:error,
   :no_api_key}`. The sentence that would have explained it — *No TMDB key
   yet. Add one in Settings → Data sources.* — was composed on line 254,
   put on the socket, and thrown away by a render that never read the key.
@@ -206,8 +206,8 @@ defmodule Kati.Screens.AddTitle do
   # A missing key is the one failure the reader can fix from here, so it gets a
   # door as well as a sentence. The sentence alone — *Add one in Settings → Data
   # sources* — sent them hunting for a page two levels away from the one they
-  # were already on. With the reader's own key now the default (see
-  # `Kati.Sources.tmdb_key/0`), this is what a fresh install meets on its first
+  # were already on. The reader's own token being the only key there is (see
+  # `Kati.Media.Tmdb.key/0`), this is what a fresh install meets on its first
   # search, so the door is the first thing it needs.
   def search_notice(message, :no_api_key),
     do: [Kati.UI.notice(message), Kati.Screens.AddTitle.key_door()]

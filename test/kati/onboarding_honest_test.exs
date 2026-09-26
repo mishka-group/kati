@@ -34,23 +34,16 @@ defmodule Kati.OnboardingHonestTest do
     Kati.Locale.put(:en)
     Kati.Onboarding.reset!()
     push = Watcher.loud?(:push)
-    key = Kati.Sources.tmdb_key()
-    token = System.get_env("TMDB_READ_TOKEN")
 
-    on_exit(fn ->
-      if token,
-        do: System.put_env("TMDB_READ_TOKEN", token),
-        else: System.delete_env("TMDB_READ_TOKEN")
-    end)
+    on_exit(fn -> Application.delete_env(:kati, :tmdb_test_token) end)
 
-    Process.put(:restore, {push, key})
+    Process.put(:restore, push)
     :ok
   end
 
   defp restore do
-    {push, key} = Process.get(:restore)
-    Watcher.put_loud(:push, push)
-    Kati.Sources.put_tmdb_key(key)
+    Watcher.put_loud(:push, Process.get(:restore))
+    Application.delete_env(:kati, :tmdb_test_token)
   end
 
   defp mounted(module) do
@@ -183,15 +176,13 @@ defmodule Kati.OnboardingHonestTest do
     end
 
     test "re-reads the TMDB key when the reader comes back from screen 80" do
-      Kati.Sources.put_tmdb_key(:own)
-      System.delete_env("TMDB_READ_TOKEN")
+      Application.delete_env(:kati, :tmdb_test_token)
       socket = mounted(OnboardingFirstTitle)
 
       refute socket.assigns.tmdb_ready
       assert drawn(OnboardingFirstTitle, socket) =~ "Add your TMDB token"
 
-      Kati.Sources.put_tmdb_key(:kati)
-      System.put_env("TMDB_READ_TOKEN", "test-token")
+      Application.put_env(:kati, :tmdb_test_token, "test-token")
 
       {:noreply, back} = OnboardingFirstTitle.handle_kati(:resumed, nil, socket)
 

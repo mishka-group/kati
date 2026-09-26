@@ -311,25 +311,10 @@ defmodule Kati.ServicesTest do
       end
     end
 
-    test "the TMDB choice is two working configurations, not an on and an off" do
-      # From nothing stored, which is a fresh install. `Mob.State` is a DETS file
-      # shared by every test file and every run, so the default has to be asked
-      # of an empty key rather than of whatever an earlier test left there.
-      Mob.State.delete(:kati_tmdb_key)
-
-      # The reader's own key by default — the owner's decision that the reader
-      # brings their own token. It was `:kati`, so a fresh install silently used
-      # a key compiled into the build, and a public build has none.
-      assert Sources.tmdb_key() == :own
-
-      Sources.put_tmdb_key(:kati)
-      assert Sources.tmdb_key() == :kati
-
-      Sources.put_tmdb_key(:own)
-      assert Sources.tmdb_key() == :own
-
-      # Left as a fresh install is, so no later file inherits a choice.
-      Mob.State.delete(:kati_tmdb_key)
+    test "there is no TMDB key to choose: the reader's own is the only one" do
+      Code.ensure_loaded!(Sources)
+      refute function_exported?(Sources, :tmdb_key, 0)
+      refute function_exported?(Sources, :put_tmdb_key, 1)
     end
 
     test "an empty cache says so rather than reporting nought megabytes" do

@@ -9,10 +9,11 @@ defmodule Kati.MediaTmdbTest do
 
   The live half is tagged `:live` and excluded, because a test that needs the
   network and somebody's key is a test that fails for reasons the code did not
-  cause. Run it with a key present:
+  cause. Run it with a read token in `TMDB_READ_TOKEN` — the test hands it
+  to `Kati.Media.Tmdb` through the test-only `:tmdb_test_token` seam, since
+  the app itself reads no environment for a key:
 
-      set -a; . ~/.config/kati/tmdb.env; set +a
-      mix test test/kati/media_tmdb_test.exs --include live
+      TMDB_READ_TOKEN=eyJ... mix test test/kati/media_tmdb_test.exs --include live
   """
   use Mob.ScreenCase, async: false
 
@@ -30,18 +31,15 @@ defmodule Kati.MediaTmdbTest do
     :ok
   end
 
-  # Every test here reaches TMDB through `TMDB_READ_TOKEN`, which is the BUNDLED
-  # key's route, and the bundled key is only used when it is chosen: the
-  # reader's own key is the default now (`Kati.Sources.tmdb_key/0`). So each
-  # test chooses Kati's key explicitly rather than inheriting whatever an
-  # earlier file left in `Mob.State`.
+  # The reader's own token is the only key `Kati.Media.Tmdb` reads, and
+  # `Kati.SecureStore` has no host backend — so every test here hands its token
+  # in through the test-only `:tmdb_test_token` seam.
   setup do
-    Kati.Sources.put_tmdb_key(:kati)
-
     real = :persistent_term.get({__MODULE__, :real_token}, nil)
-    System.put_env("TMDB_READ_TOKEN", "test-token")
+    Application.put_env(:kati, :tmdb_test_token, "test-token")
 
     on_exit(fn ->
+      Application.delete_env(:kati, :tmdb_test_token)
       Application.delete_env(:kati, :tmdb_req_options)
       Application.delete_env(:kati, :tmdb_test_stub)
 
@@ -291,9 +289,7 @@ defmodule Kati.MediaTmdbTest do
     end
 
     test "no key is not a failed request, and says where to fix it" do
-      System.delete_env("TMDB_READ_TOKEN")
-      System.delete_env("TMDB_TOKEN")
-      on_exit(fn -> System.put_env("TMDB_READ_TOKEN", "test-token") end)
+      Application.delete_env(:kati, :tmdb_test_token)
 
       assert {:error, :no_api_key} = Tmdb.search("anything")
       assert Tmdb.message(:no_api_key) =~ "Data sources"
@@ -329,7 +325,7 @@ defmodule Kati.MediaTmdbTest do
 
     test "one search and one detail fill the cache", %{real_token: real} do
       Application.delete_env(:kati, :tmdb_req_options)
-      if real, do: System.put_env("TMDB_READ_TOKEN", real)
+      if real, do: Application.put_env(:kati, :tmdb_test_token, real)
 
       assert {:ok, results} = Tmdb.search("Severance")
       assert series = Enum.find(results, &(&1.kind == :tv and &1.title == "Severance"))

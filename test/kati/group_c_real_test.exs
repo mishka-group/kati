@@ -29,16 +29,11 @@ defmodule Kati.GroupCRealTest do
   setup do
     Kati.Locale.put(:en)
     wipe!()
-    token = System.get_env("TMDB_READ_TOKEN")
 
     on_exit(fn ->
       Application.delete_env(:kati, :tmdb_req_options)
       Application.delete_env(:kati, :tmdb_test_stub)
-
-      if token,
-        do: System.put_env("TMDB_READ_TOKEN", token),
-        else: System.delete_env("TMDB_READ_TOKEN")
-
+      Application.delete_env(:kati, :tmdb_test_token)
       wipe!()
     end)
 
@@ -177,15 +172,13 @@ defmodule Kati.GroupCRealTest do
 
   describe "V16 — one Persian, Arabic or CJK character searches on 06 and 19" do
     defp with_tmdb(fun) do
-      choice = Kati.Sources.tmdb_key()
-      Kati.Sources.put_tmdb_key(:kati)
-      System.put_env("TMDB_READ_TOKEN", "test-token")
+      Application.put_env(:kati, :tmdb_test_token, "test-token")
       Application.put_env(:kati, :tmdb_req_options, adapter: Adapter)
 
       try do
         fun.()
       after
-        Kati.Sources.put_tmdb_key(choice)
+        Application.delete_env(:kati, :tmdb_test_token)
       end
     end
 

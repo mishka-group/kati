@@ -18,11 +18,12 @@ defmodule Kati.Media.Tmdb do
 
   ## The key, and which one
 
-  `Kati.Sources.tmdb_key/0` answers `:kati` or `:own`, and *which* is not a
-  secret — only the key is. A user-supplied key lives in `Kati.SecureStore`
-  under `tmdb`; the bundled one is a developer's token read at build time, is
-  absent in a checkout and in every store release (`compiled_key?/0`), which
-  is why `key/0` can answer `{:error, :no_api_key}` and every caller has to
+  The reader's own token, and nothing else. It lives in `Kati.SecureStore`
+  under `tmdb`, entered on screen 80; no build carries a key of its own — not
+  a store release, not a development build, not a test binary — and nothing
+  here reads the environment or a file for one. The owner's decision: *"all
+  users must put their token there."* So `key/0` answers
+  `{:error, :no_api_key}` on every fresh install, and every caller has to
   handle it.
 
   The key reaches exactly one place: the `authorization` header of a request
@@ -484,50 +485,20 @@ defmodule Kati.Media.Tmdb do
   end
 
   @doc """
-  The key in force, or why there is none.
+  The reader's own token, or why there is none.
 
-  `:own` reads `Kati.SecureStore`; `:kati` reads the bundled key, which is
-  absent in a checkout. Either way a missing key is `{:error, :no_api_key}` and
-  never a crash — screen 80 is where one is entered.
+  Read from `Kati.SecureStore` under `tmdb` and from nowhere else. A missing
+  key is `{:error, :no_api_key}` and never a crash — screen 80 is where one is
+  entered.
   """
   @spec key() :: {:ok, String.t()} | {:error, :no_api_key}
   def key do
-    token =
-      case which_key() do
-        :own -> own_key()
-        :kati -> bundled_key()
-      end
-
+    token = own_key()
     if is_binary(token) and token != "", do: {:ok, token}, else: {:error, :no_api_key}
   end
 
-  # `Kati.Sources.tmdb_key/0` reads `Mob.State`, which is DETS, and DETS raises
-  # rather than answering when its table is not open — a bare `mix run` and a
-  # test that has not started the app both hit it. This module's contract is
-  # that nothing here raises, so the unopened table is read as "no choice
-  # recorded", which is what `:kati` already means.
-  defp which_key do
-    Kati.Sources.tmdb_key()
-  rescue
-    _error -> :own
-  end
-
   @doc """
-  Whether this build carries Kati's own key.
-
-  A development convenience — `~/.config/kati/tmdb.env` or `TMDB_READ_TOKEN` at
-  build time — and never present in a public build or under test. Screen 80
-  offers *Use Kati's key* only when this is true, because offering a key that
-  is not there would switch search off with one tap.
-  """
-  @spec bundled?() :: boolean()
-  # `to_string/1` because the key's type differs by build: a string in dev,
-  # `nil` under test. Any branch on `nil` reads as dead code to the type checker
-  # in whichever build it is compiled for, and `nil` becomes `""` here either way.
-  def bundled?, do: bundled_key() |> to_string() |> byte_size() > 0
-
-  @doc """
-  Whether a search could be made right now: a key is in force and present.
+  Whether a search could be made right now: the reader has saved a token.
 
   What Home and screen 06 ask before sending a reader to search, so a missing
   key is a door to screen 80 rather than a search that returns nothing.
@@ -535,79 +506,22 @@ defmodule Kati.Media.Tmdb do
   @spec usable?() :: boolean()
   def usable?, do: match?({:ok, _key}, key())
 
-  defp own_key do
+  # `:tmdb_test_token` exists only in the test build: `Kati.SecureStore` has no
+  # host backend, so a host test hands its token in here. A dev or release
+  # build compiles the second clause alone and has no way to be given a key
+  # other than the reader's.
+  if Mix.env() == :test do
+    defp own_key do
+      Application.get_env(:kati, :tmdb_test_token) || secure_store_key()
+    end
+  else
+    defp own_key, do: secure_store_key()
+  end
+
+  defp secure_store_key do
     case Kati.SecureStore.get("tmdb") do
       {:ok, token} -> token
       _other -> nil
-    end
-  end
-
-  # The environment, and nothing committed. A checkout has no bundled key, so a
-  # developer's own key is the only one there is.
-  #
-  # **This is where a development device build gets one.** `System.get_env/1` is read on the
-  # machine the code is RUNNING on, and the machine a Kati release runs on is a
-  # phone, which has no shell and no environment: every device build answered
-  # `{:error, :no_api_key}` and every search for a film came back empty. Found
-  # by typing `matrix` into screen 06 on a Pixel 9a and getting `RESULTS 0`.
-  #
-  # So the value is also captured at COMPILE time, into `@bundled_key`, and
-  # travels in the BEAM that `mix kati.e2e.stage` pushes. The runtime read
-  # still wins, so a developer's shell still overrides a stale build.
-  #
-  # **Never in `:test`**, and that is the whole reason for the `Mix.env/0`
-  # guard rather than a bare capture: `Kati.MediaTmdbTest`'s *no key is not a
-  # failed request* deletes both variables and asserts the refusal, and a key
-  # baked into the test binary would answer past it and quietly delete that
-  # coverage. A test binary must not carry anybody's credentials either.
-  #
-  # The token reaches the build from `~/.config/kati/tmdb.env`, which is
-  # outside the repository and mode 600. Nothing here is committed: the value
-  # lives in `_build`, which is ignored, and in the pushed artefact.
-  # The documented location, read at compile time as well as the environment —
-  # because depending on the environment alone meant depending on whether the
-  # shell that happened to run `mix kati.e2e.stage` had sourced the file.
-  # `Kati.Media.TmdbKeyFile` carries the rest of that argument, and the
-  # `@external_resource` is what makes a changed token recompile this.
-  #
-  # **Never in a store release either** — `Kati.Media.TmdbKeyFile.bundle?/2`.
-  # A release compiles under `:dev` like every Mob build, so the `Mix.env/0`
-  # guard alone would have put the developer's token in the AAB. The release
-  # flag is what tells the two apart, and a release build reads no environment
-  # at run time as well: the key it answers is the reader's or none.
-  @env_file Kati.Media.TmdbKeyFile.path()
-  @external_resource @env_file
-
-  @release_build Kati.Media.TmdbKeyFile.release_build?()
-
-  @bundled_key if Kati.Media.TmdbKeyFile.bundle?(Mix.env(), @release_build),
-                 do:
-                   System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") ||
-                     Kati.Media.TmdbKeyFile.read(@env_file),
-                 else: nil
-
-  @compiled_key is_binary(@bundled_key)
-
-  @doc """
-  Whether a developer's token was compiled into this build.
-
-  Answers a boolean and never the token. The `mob.release` alias in `mix.exs`
-  refuses to package a build where this is `true`.
-  """
-  @spec compiled_key?() :: boolean()
-  def compiled_key?, do: @compiled_key
-
-  @doc false
-  # Mix's recompile hook: a release compile after a dev one — same `_build/dev`,
-  # nothing in the source changed — must still recompile this module, or the
-  # token captured by the dev compile would travel in the release.
-  def __mix_recompile__?, do: Kati.Media.TmdbKeyFile.release_build?() != @release_build
-
-  if @release_build do
-    defp bundled_key, do: nil
-  else
-    defp bundled_key do
-      System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") || @bundled_key
     end
   end
 

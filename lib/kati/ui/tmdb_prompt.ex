@@ -4,9 +4,9 @@ defmodule Kati.UI.TmdbPrompt do
 
   The owner's decision, 19 Sep: the reader brings their own TMDB token, and
   when there is none, *"show empty block on home for film and series and tell
-  click to put your token."* `Kati.Sources.tmdb_key/0` now defaults to the
-  reader's own key, so on a fresh install every film and series search answers
-  `{:error, :no_api_key}` until one is pasted. Without this, the first a reader
+  click to put your token."* The reader's own token is the only TMDB key the
+  app has (`Kati.Media.Tmdb.key/0`), so on a fresh install every film and
+  series search answers `{:error, :no_api_key}` until one is pasted. Without this, the first a reader
   heard of it was a search that came back empty — which reads as a catalogue
   with nothing in it, not as a setting they have not made yet.
 

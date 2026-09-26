@@ -508,12 +508,6 @@ defmodule Kati.DesignLiterals do
       {"25", "unread count on the bell"},
       {"25", "weekly digest"},
       {"25", "sundays at 18:00"},
-      # Screen 80's two key chips are drawn only on a build that carries Kati's
-      # own key (`Kati.Media.Tmdb.bundled?/0`) — a development and testing
-      # convenience, never present in a public build and never under test. The
-      # reader's own token is the default now, so where there is nothing to
-      # choose between there are no chips. `Kati.DataSourcesKeyTest` draws them
-      # both ways.
       # N41: board 80 lists six providers beside TMDB — *Working out of the
       # box* (TVmaze, Open Library, MusicBrainz) and *Connect an account*
       # (ListenBrainz, Hardcover, TheTVDB, with ListenBrainz's pairing card
@@ -551,6 +545,10 @@ defmodule Kati.DesignLiterals do
       {"82", "listenbrainz"},
       {"82", "در حال جفت‌شدن"},
       {"82", "listenbrainz به توکن خودتان نیاز دارد، چون روی حساب شما می‌نویسد نه حساب کاتی."},
+      # N53: screen 80's two key chips are gone. The owner's decision — *"all
+      # users must put their token there"* — leaves the reader's own token as
+      # the only TMDB key, so there is nothing to choose between.
+      # `Kati.DataSourcesKeyTest` asserts neither is drawn.
       {"80", "use kati’s key"},
       {"80", "use my own key"},
       {"82", "کلید کاتی"},

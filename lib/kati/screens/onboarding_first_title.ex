@@ -175,8 +175,8 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   Coming back from screen 80: re-read whether a TMDB key is usable now.
 
   The token block is the door to that page, so the page it opens is the one
-  place the answer can change — a reader who pasted a token or chose Kati's key
-  there came back to a block still asking for one.
+  place the answer can change — a reader who pasted a token there came back to
+  a block still asking for one.
   """
   @impl true
   def handle_kati(:resumed, _payload, socket),

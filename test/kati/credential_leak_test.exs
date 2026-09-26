@@ -1,7 +1,8 @@
 defmodule Kati.CredentialLeakTest do
   @moduledoc """
-  The three ways a provider token could leave the place it is kept: in a
-  backup, in a log or an error reason, and in a store build.
+  The ways a provider token could leave the place it is kept — in a backup, in
+  a log or an error reason — and the one way a key could arrive from anywhere
+  but the reader: the environment or a file at build time.
 
   Every test plants a canary — a value shaped like a token and used nowhere
   else — in every place a token can sit on a host, and then looks for it where
@@ -18,7 +19,6 @@ defmodule Kati.CredentialLeakTest do
 
   alias Kati.Backup.Catalog
   alias Kati.Media.Tmdb
-  alias Kati.Media.TmdbKeyFile
 
   @canary "kati-canary-eyJhbGciOiJIUzI1NiJ9.leak-test-token"
 
@@ -34,15 +34,10 @@ defmodule Kati.CredentialLeakTest do
   end
 
   setup do
-    previous = System.get_env("TMDB_READ_TOKEN")
-    System.put_env("TMDB_READ_TOKEN", @canary)
-    Kati.Sources.put_tmdb_key(:kati)
+    Application.put_env(:kati, :tmdb_test_token, @canary)
 
     on_exit(fn ->
-      if previous,
-        do: System.put_env("TMDB_READ_TOKEN", previous),
-        else: System.delete_env("TMDB_READ_TOKEN")
-
+      Application.delete_env(:kati, :tmdb_test_token)
       Application.delete_env(:kati, :tmdb_req_options)
       Application.delete_env(:kati, :credential_leak_stub)
     end)
@@ -189,47 +184,26 @@ defmodule Kati.CredentialLeakTest do
     end
   end
 
-  describe "a store build" do
-    test "carries no developer token, whatever this machine has in ~/.config/kati" do
-      refute TmdbKeyFile.bundle?(:dev, true)
-      refute TmdbKeyFile.bundle?(:prod, false)
-      refute TmdbKeyFile.bundle?(:test, false)
-      assert TmdbKeyFile.bundle?(:dev, false), "a development build can no longer test search"
+  describe "a TMDB key" do
+    test "comes from the reader's secure store and from nowhere else in lib" do
+      refute function_exported?(Tmdb, :bundled?, 0)
+      refute function_exported?(Tmdb, :compiled_key?, 0)
+      refute Code.ensure_loaded?(Kati.Media.TmdbKeyFile)
+
+      files = Path.wildcard(Path.join(Path.expand("../../lib", __DIR__), "**/*.{ex,exs}"))
+
+      assert length(files) > 100,
+             "found #{length(files)} files under lib — this scan proves nothing"
+
+      for file <- files,
+          forbidden <- ["TMDB_READ_TOKEN", "TMDB_TOKEN", "tmdb.env", "KATI_RELEASE_BUILD"] do
+        refute File.read!(file) =~ forbidden,
+               "#{file} names #{forbidden} — the reader's token is the only TMDB key"
+      end
     end
 
-    test "the test build has no token compiled in" do
-      refute Tmdb.compiled_key?()
-    end
-
-    test "mix mob.release marks the compile as a release before anything is built" do
-      steps = Mix.Project.config() |> Keyword.fetch!(:aliases) |> Keyword.fetch!(:"mob.release")
-
-      assert List.last(steps) == "mob.release"
-      [mark | rest] = steps
-      assert is_function(mark, 1)
-      compile_at = Enum.find_index(rest, &(&1 == "compile"))
-      assert compile_at, "the alias no longer compiles under the flag before packaging"
-
-      assert rest |> Enum.drop(compile_at + 1) |> Enum.any?(&is_function(&1, 1)),
-             "nothing checks the compiled key between the release compile and packaging"
-
-      previous = System.get_env(TmdbKeyFile.release_env())
-      on_exit(fn -> restore_env(TmdbKeyFile.release_env(), previous) end)
-      System.delete_env(TmdbKeyFile.release_env())
-
-      mark.([])
-      assert TmdbKeyFile.release_build?()
-    end
-
-    test "a release compile after a dev one recompiles the module that holds the key" do
-      previous = System.get_env(TmdbKeyFile.release_env())
-      on_exit(fn -> restore_env(TmdbKeyFile.release_env(), previous) end)
-
-      System.delete_env(TmdbKeyFile.release_env())
-      refute Tmdb.__mix_recompile__?()
-
-      System.put_env(TmdbKeyFile.release_env(), "1")
-      assert Tmdb.__mix_recompile__?()
+    test "has no alias around mix mob.release any more, because there is nothing to refuse" do
+      refute Mix.Project.config() |> Keyword.get(:aliases, []) |> Keyword.has_key?(:"mob.release")
     end
   end
 
@@ -277,7 +251,4 @@ defmodule Kati.CredentialLeakTest do
       end
     end
   end
-
-  defp restore_env(name, nil), do: System.delete_env(name)
-  defp restore_env(name, value), do: System.put_env(name, value)
 end

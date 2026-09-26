@@ -193,35 +193,30 @@ defmodule Kati.DeviceRoundN34N42Test do
     end
   end
 
-  describe "N40: Settings says whose TMDB key is in force" do
-    test "Kati's key chosen on a build that carries one says so, not *your token*" do
-      keyed(:kati, "a-developer-token", fn ->
-        assert Settings.tmdb_state() == :kati
-        line = Settings.sub(%{id: "data_sources"})
-
-        assert line == "TMDB · Kati’s key"
-        refute line =~ "your token"
+  describe "N40: Settings says whether the reader's TMDB token is saved" do
+    test "a saved token says *your token*" do
+      keyed("a-reader-token", fn ->
+        assert Settings.tmdb_state() == :own
+        assert Settings.sub(%{id: "data_sources"}) == "TMDB · your token"
       end)
     end
 
-    test "Kati's key chosen on a build without one is no key" do
-      keyed(:kati, nil, fn ->
-        assert Settings.tmdb_state() == :none
-        assert Settings.sub(%{id: "data_sources"}) == "TMDB · no token yet"
-      end)
-    end
+    test "no saved token is no key, whatever the environment holds" do
+      keyed(nil, fn ->
+        was = System.get_env("TMDB_READ_TOKEN")
+        System.put_env("TMDB_READ_TOKEN", "a-developer-token")
 
-    test "the reader's own chosen, with a build key present, is not Kati's" do
-      keyed(:own, "a-developer-token", fn ->
-        refute Settings.tmdb_state() == :kati
-
-        unless Kati.SecureStore.available?(),
-          do: assert(Settings.sub(%{id: "data_sources"}) == "TMDB · no token yet")
+        try do
+          assert Settings.tmdb_state() == :none
+          assert Settings.sub(%{id: "data_sources"}) == "TMDB · no token yet"
+        after
+          restore_env("TMDB_READ_TOKEN", was)
+        end
       end)
     end
 
     test "in Persian" do
-      assert Kati.Locale.as(:fa, fn -> Settings.tmdb_line(:kati) end) == "TMDB · کلید کاتی"
+      assert Kati.Locale.as(:fa, fn -> Settings.tmdb_line(:own) end) == "TMDB · توکن خودتان"
     end
   end
 
@@ -306,29 +301,18 @@ defmodule Kati.DeviceRoundN34N42Test do
     socket
   end
 
-  # The choice and the build key set on the way in and put back on the way
-  # out, inside the test: `Mob.ScreenCase` restarts `Mob.State` around each
-  # test, so an `on_exit/1` would find it gone.
-  defp keyed(choice, build_key, fun) do
-    was = %{
-      choice: Mob.State.get(:kati_tmdb_key),
-      read: System.get_env("TMDB_READ_TOKEN"),
-      token: System.get_env("TMDB_TOKEN")
-    }
-
-    System.delete_env("TMDB_TOKEN")
-    restore_env("TMDB_READ_TOKEN", build_key)
-    Mob.State.put(:kati_tmdb_key, choice)
+  # The reader's token handed in through the test-only seam, and taken away
+  # again inside the test rather than in `on_exit/1`, so the next test starts
+  # with none.
+  defp keyed(token, fun) do
+    if token,
+      do: Application.put_env(:kati, :tmdb_test_token, token),
+      else: Application.delete_env(:kati, :tmdb_test_token)
 
     try do
       fun.()
     after
-      restore_env("TMDB_READ_TOKEN", was.read)
-      restore_env("TMDB_TOKEN", was.token)
-
-      if was.choice,
-        do: Mob.State.put(:kati_tmdb_key, was.choice),
-        else: Mob.State.delete(:kati_tmdb_key)
+      Application.delete_env(:kati, :tmdb_test_token)
     end
   end
 

@@ -29,22 +29,14 @@ defmodule Kati.OnboardingFirstTitleTest do
     def run(request), do: Application.fetch_env!(:kati, :tmdb_test_stub).(request)
   end
 
-  # The key choice is restored at the END of each test rather than in
-  # `on_exit`: it lives in `Mob.State`, which `Kati.FirstRunTest` records is no
-  # longer alive by the time an on_exit callback runs.
   setup do
     Kati.Locale.put(:en)
     Kati.Onboarding.reset!()
-    Process.put(:tmdb_key_choice, Kati.Sources.tmdb_key())
-    token = System.get_env("TMDB_READ_TOKEN")
 
     on_exit(fn ->
       Application.delete_env(:kati, :tmdb_req_options)
       Application.delete_env(:kati, :tmdb_test_stub)
-
-      if token,
-        do: System.put_env("TMDB_READ_TOKEN", token),
-        else: System.delete_env("TMDB_READ_TOKEN")
+      Application.delete_env(:kati, :tmdb_test_token)
 
       for size <- ~w(w342 w780) do
         File.rm(artwork_file(size))
@@ -121,8 +113,7 @@ defmodule Kati.OnboardingFirstTitleTest do
     end
 
     test "offline is a sentence, not an empty list" do
-      Kati.Sources.put_tmdb_key(:kati)
-      System.put_env("TMDB_READ_TOKEN", "test-token")
+      Application.put_env(:kati, :tmdb_test_token, "test-token")
 
       stub(fn req -> {req, %Req.TransportError{reason: :nxdomain}} end)
       Application.put_env(:kati, :tmdb_req_options, adapter: Adapter, retry: false)
@@ -169,7 +160,7 @@ defmodule Kati.OnboardingFirstTitleTest do
 
   describe "with no TMDB token" do
     test "the step draws the token door once, and it opens screen 80" do
-      Kati.Sources.put_tmdb_key(:own)
+      Application.delete_env(:kati, :tmdb_test_token)
       refute Kati.Media.Tmdb.usable?(), "this host has a reader's own TMDB token stored"
 
       socket = socket_for()
@@ -191,7 +182,7 @@ defmodule Kati.OnboardingFirstTitleTest do
     end
   end
 
-  defp restore_key, do: Kati.Sources.put_tmdb_key(Process.get(:tmdb_key_choice, :own))
+  defp restore_key, do: Application.delete_env(:kati, :tmdb_test_token)
 
   defp new_cached(before) do
     Enum.reject(Ash.read!(CachedTitle), &MapSet.member?(before, &1.id))
@@ -211,8 +202,7 @@ defmodule Kati.OnboardingFirstTitleTest do
   end
 
   defp stub_tmdb!(search_body \\ nil) do
-    Kati.Sources.put_tmdb_key(:kati)
-    System.put_env("TMDB_READ_TOKEN", "test-token")
+    Application.put_env(:kati, :tmdb_test_token, "test-token")
 
     for size <- ~w(w342 w780) do
       File.mkdir_p!(Path.dirname(artwork_file(size)))

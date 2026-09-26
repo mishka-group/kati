@@ -26,7 +26,6 @@ defmodule Kati.SecureStore do
   | CalDAV account password (self-hosted servers that offer nothing else) | No — revoking it means changing the account password | **Rejected.** Kati does not ask for one and has nowhere to put it. Those servers are unsupported until they can issue an app password. |
   | OAuth refresh/access token (Google, Microsoft Graph) | Yes — revoked from the account's connected-apps page | **Accepted.** |
   | A user's own third-party API key (TMDB and friends, the Tier-3 "Use my own API keys" setting) | Yes — rotated or deleted in the provider's dashboard | **Accepted.** |
-  | A developer's TMDB token (`~/.config/kati/tmdb.env`) | Yes, by its owner | **Not stored here, and never shipped.** Compiled into development builds only — see the provider table. |
 
   ## Every provider, and where its credential can and cannot go
 
@@ -36,8 +35,7 @@ defmodule Kati.SecureStore do
 
   | Provider | Credential | Stored | Logs | Backup | Crash | APK |
   |---|---|---|---|---|---|---|
-  | TMDB API (`Kati.Media.Tmdb`) | The reader's own v4 read token | Here, under `tmdb`. `Mob.State` holds only the non-secret `:kati_tmdb_key` choice and `:own_tmdb_saved_at` | No: the client has no log call, and a failure quoting the header comes back `:redacted` (`Kati.Net.Redact`) | No: the export reads Ash tables only, and this store cannot be enumerated | **Yes, in one window**: while a token is being typed on screen 80 it sits in that screen's assigns and in its last `{:change, :tmdb_token, _}` message, so a crash of that screen before *Save* prints it into the crash report. Cleared on save | Never the reader's |
-  | TMDB, developer token | `TMDB_READ_TOKEN` / `tmdb.env` at compile time | Compiled into `Kati.Media.Tmdb` in a `:dev` build | As above | No | No | **Development builds only** (`mix mob.deploy`, `mix kati.e2e.stage`). `mix mob.release` compiles with `KATI_RELEASE_BUILD=1` and refuses to package if `Kati.Media.Tmdb.compiled_key?/0` is true |
+  | TMDB API (`Kati.Media.Tmdb`) | The reader's own v4 read token | Here, under `tmdb`. `Mob.State` holds only the non-secret `:own_tmdb_saved_at`. No build carries a TMDB key of its own | No: the client has no log call, and a failure quoting the header comes back `:redacted` (`Kati.Net.Redact`) | No: the export reads Ash tables only, and this store cannot be enumerated | **Yes, in one window**: while a token is being typed on screen 80 it sits in that screen's assigns and in its last `{:change, :tmdb_token, _}` message, so a crash of that screen before *Save* prints it into the crash report. Cleared on save | Never the reader's |
   | TMDB images (`Kati.Media.Artwork`) | None — `image.tmdb.org` is keyless | — | — | — | — | — |
   | CalDAV (`Kati.Sync.Adapter.CalDAV`) | App-specific password, as `{url, username, password}` JSON | Here, under `Kati.Calendars.Account.credentials_ref`. Nothing in the app writes one yet | No log call; a transport failure quoting the `authorization` header comes back `:redacted` before `Kati.Sync.Outbox` inspects it into `last_error` | No: `credentials_ref` is a dropped column, and the password is never in a table | No | No |
   | Android calendar provider (`Kati.Calendars.DeviceImport`) | None — the `READ_CALENDAR` permission | — | — | — | — | — |
@@ -48,10 +46,10 @@ defmodule Kati.SecureStore do
 
   The build machine holds two more that never enter the app: the Android
   upload keystore (`android/keystore.properties`, `*.jks`) and the Play
-  service account `mix mob.publish` uses. `.gitignore` covers the first two
-  and `~/.config/kati/tmdb.env` is outside the repository.
+  service account `mix mob.publish` uses. `.gitignore` covers both.
   `Kati.CredentialLeakTest` fails if a planted token reaches a backup, a TMDB
-  error reason or a log line, or if a release could carry the developer token.
+  error reason or a log line, or if the app reads a TMDB key from anywhere but
+  this store.
 
   ## Threat model — say this much and no more
 

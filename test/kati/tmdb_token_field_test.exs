@@ -1,17 +1,10 @@
 defmodule Kati.TmdbTokenFieldTest do
   @moduledoc """
-  *Use my own key* now has a key to use.
+  Screen 80's field for the reader's own TMDB token.
 
-  Tapping that chip wrote `:own` to `Mob.State` and there was nowhere on screen
-  80 — or anywhere in the app — to put a token. `Kati.Media.Tmdb.key/0` then
-  routed to the always-empty secure store and answered `{:error, :no_api_key}`,
-  so screen 06 stopped returning results and started drawing a notice pointing
-  back at THIS page. One tap on a control that reads as a preference, and
-  search was off with no way to switch it on.
-
-  It is also the flow the app is built around: Kati ships no key of its own to
-  a public build, so a reader creates a token on themoviedb.org and brings it
-  in — and until now there was no *in*.
+  It is the flow the app is built around: Kati ships no key of its own to any
+  build, so a reader creates a token on themoviedb.org and brings it in, and
+  `Kati.Media.Tmdb.key/0` reads nothing else.
   """
 
   use Mob.ScreenCase, async: false
@@ -19,12 +12,8 @@ defmodule Kati.TmdbTokenFieldTest do
   alias Kati.Screens.DataSources
 
   describe "the field" do
-    test "is drawn only when the reader has chosen their own key" do
-      under_own = inspect(DataSources.tmdb(:own, "", false, nil), limit: :infinity)
-      under_kati = inspect(DataSources.tmdb(:kati, "", false, nil), limit: :infinity)
-
-      refute under_kati =~ "tmdb_token",
-             "there is nothing to enter under Kati's key, and board 80 is drawn in that state"
+    test "is always drawn, because there is no other key to choose" do
+      under_own = inspect(DataSources.tmdb("", false, nil), limit: :infinity)
 
       # On a host with no encrypted store the field is withheld and the reason
       # is drawn instead — `Kati.SecureStore.available?/0` is checked BEFORE

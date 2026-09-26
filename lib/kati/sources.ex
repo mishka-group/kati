@@ -26,12 +26,12 @@ defmodule Kati.Sources do
       (Music). Free and keyless is the requirement, not a preference: tier 0
       is defined by needing no account, so a provider that wants a key belongs
       in tier 1 or 2 and changes what screen 80 promises.
-    * **Tier 1 — the reader's own key.** TMDB. A store build ships no key: the
-      reader pastes their own read token on screen 80 and it goes to
-      `Kati.SecureStore`. A development build may carry a developer's token
-      for testing (`tmdb_key/0`), and `mix mob.release` refuses to package one.
-      Every credential and where it can go is tabled in `Kati.SecureStore`'s
-      moduledoc.
+    * **Tier 1 — the reader's own key.** TMDB. No build ships a key, a
+      development build included: every reader pastes their own read token on
+      screen 80 and it goes to `Kati.SecureStore` under `tmdb`, which is the
+      only TMDB key the app ever sends (`Kati.Media.Tmdb.key/0`). The owner's
+      decision: *"all users must put their token there."* Every credential and
+      where it can go is tabled in `Kati.SecureStore`'s moduledoc.
     * **Tier 2 — connect an account.** ListenBrainz, Hardcover, TheTVDB. Not
       drawn on screen 80 either, for tier 0's reason: Kati has no client for
       any of the three, so there is nothing a token would connect to.
@@ -163,36 +163,6 @@ defmodule Kati.Sources do
       {:simkl, "needs a pasted client_secret"},
       {:lastfm, "needs a pasted client_secret"}
     ]
-  end
-
-  @doc """
-  The TMDB key in force: `:own` unless the reader chose `:kati`.
-
-  **The reader's own is the default.** The owner's decision, 19 Sep: *"user
-  must put its token, not my code."* It defaulted to `:kati`, so a fresh
-  install silently used whatever key was compiled into the build and nothing
-  ever asked — and a public build has none, so search simply returned nothing.
-  Kati's bundled key is a development and testing convenience from
-  `~/.config/kati/tmdb.env`, offered on screen 80 only on a build that carries
-  one (`Kati.Media.Tmdb.bundled?/0`).
-
-  Stored in `Mob.State` and not in the secure store, because *which* key is not
-  a secret — only the key itself is, and a user-supplied one goes to
-  `Kati.SecureStore` under `tmdb`.
-  """
-  @spec tmdb_key() :: :kati | :own
-  def tmdb_key do
-    case Mob.State.get(:kati_tmdb_key) do
-      :kati -> :kati
-      _other -> :own
-    end
-  end
-
-  @doc "Choose which TMDB key to use."
-  @spec put_tmdb_key(:kati | :own) :: :ok
-  def put_tmdb_key(choice) when choice in [:kati, :own] do
-    Mob.State.put(:kati_tmdb_key, choice)
-    :ok
   end
 
   @doc """
