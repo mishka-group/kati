@@ -125,8 +125,17 @@ defmodule Kati.Screens.TitlePreview do
       save_error: nil
     }
 
+    cached = Kati.Screens.TitlePreview.cached(state)
+
     cond do
-      Kati.Screens.TitlePreview.cached(state) ->
+      cached && Kati.Screens.TitlePreview.artwork_ready?(cached) ->
+        %{state | status: :ready}
+
+      cached && Kati.Media.Tmdb.usable?() ->
+        Kati.Screens.TitlePreview.fetch(self(), state)
+        %{state | status: :ready}
+
+      cached ->
         %{state | status: :ready}
 
       Kati.Media.Tmdb.usable?() ->
@@ -137,6 +146,28 @@ defmodule Kati.Screens.TitlePreview do
         %{state | status: :error, reason: :no_api_key}
     end
   end
+
+  @doc """
+  Download the poster a preview draws, the way adding a title does.
+
+  `Kati.Media.Tmdb.fetch/2` writes the cached row and nothing else, and the
+  page draws artwork only from a file on the phone — so a preview opened on a
+  title nobody had added showed an empty hero (the Galaxy A55, 26 Sep).
+  """
+  @spec artwork(CachedTitle.t() | nil) :: :ok
+  def artwork(%{poster_path: path}) when is_binary(path) do
+    _downloaded = Kati.Media.Artwork.cache(path)
+    :ok
+  end
+
+  def artwork(_none), do: :ok
+
+  @doc false
+  @spec artwork_ready?(CachedTitle.t()) :: boolean()
+  def artwork_ready?(%{poster_path: path}) when is_binary(path),
+    do: not is_nil(Kati.Media.Artwork.local(path))
+
+  def artwork_ready?(_no_poster), do: true
 
   @doc "Whether a title page's assigns hold a preview rather than a tracked title."
   @spec previewing?(map()) :: boolean()
@@ -191,7 +222,14 @@ defmodule Kati.Screens.TitlePreview do
   @doc false
   @spec fetched(t()) :: {:ok, map()} | {:error, term()}
   def fetched(state) do
-    Kati.Media.Tmdb.fetch(state.source_id, state.kind)
+    case Kati.Media.Tmdb.fetch(state.source_id, state.kind) do
+      {:ok, _written} = found ->
+        Kati.Screens.TitlePreview.artwork(Kati.Screens.TitlePreview.cached(state))
+        found
+
+      other ->
+        other
+    end
   rescue
     error -> {:error, {:network, error}}
   end
@@ -199,13 +237,21 @@ defmodule Kati.Screens.TitlePreview do
   @doc """
   The fetch coming back, put on the socket under `key` through `build`.
 
-  Only for the preview still on the page and still waiting: an answer for a
-  title the reader has left, or for one this page already drew, is dropped.
+  Only for the preview still on the page: an answer for a title the reader has
+  left is dropped. A page already drawn from the cache takes the answer as a
+  redraw — its poster has just been downloaded — and keeps what it drew if
+  the fetch failed.
   """
   @spec answered(Mob.Socket.t(), atom(), String.t(), term(), (CachedTitle.t() -> map())) ::
           Mob.Socket.t()
   def answered(socket, key, source_id, result, build) do
     case Map.get(socket.assigns, :preview) do
+      %{source_id: ^source_id, status: :ready} = state ->
+        case {result, Kati.Screens.TitlePreview.cached(state)} do
+          {{:ok, _written}, %CachedTitle{} = row} -> Mob.Socket.assign(socket, key, build.(row))
+          _kept -> socket
+        end
+
       %{source_id: ^source_id, status: :loading} = state ->
         case {result, Kati.Screens.TitlePreview.cached(state)} do
           {{:ok, _written}, %CachedTitle{} = row} ->
