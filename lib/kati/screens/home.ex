@@ -1710,7 +1710,8 @@ defmodule Kati.Screens.Home do
       # see `Kati.Screens.Calendar.open_timeline_row/3`. The card is today, so
       # today is the date a meals or money row is opened on.
       "row_" <> _rest ->
-        {:noreply, Kati.Screens.Calendar.open_timeline_row(socket, tag, Kati.Time.today())}
+        {:noreply,
+         Kati.Screens.Calendar.open_timeline_row(socket, tag, Kati.Time.today(), "Home")}
 
       # A continue-watching card, by its own title. `Kati.Screens.Library`
       # answers the identical two prefixes for the identical rows; the only

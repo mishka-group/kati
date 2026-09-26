@@ -1834,21 +1834,28 @@ defmodule Kati.Screens.Calendar do
 
   The split between the two push shapes is `@day_screens`': 52 and 126 title
   themselves with a date and read no id, so they take the day; 08 and 31 are
-  about the row and take its id. A row with no id — the drawn day — pushes with
-  no params at all, and each destination answers that with its own empty page.
+  about the row and take its id. A row with no id pushes with no params at
+  all, and each destination answers that with its own empty page.
+
+  `back` is the caller's name for the pill on the page it opens. Without it a
+  show opened from a calendar day said *Library*, the series page's own
+  default, which is not where back goes.
   """
-  @spec open_timeline_row(Mob.Socket.t(), atom(), Date.t()) :: Mob.Socket.t()
-  def open_timeline_row(socket, tag, date) do
+  @spec open_timeline_row(Mob.Socket.t(), atom(), Date.t(), String.t()) :: Mob.Socket.t()
+  def open_timeline_row(socket, tag, date, back \\ "Calendar") do
     {kind, id} = tag |> Atom.to_string() |> String.replace_prefix("row_", "") |> split_row()
 
-    open_row(socket, Map.fetch!(@row_screens, kind), id, date)
+    open_row(socket, Map.fetch!(@row_screens, kind), id, date, back)
   end
 
-  defp open_row(socket, module, _id, date) when module in @day_screens,
-    do: Mob.Socket.push_screen(socket, module, %{date: date})
+  defp open_row(socket, module, _id, date, back) when module in @day_screens,
+    do: Mob.Socket.push_screen(socket, module, %{date: date, back: back})
 
-  defp open_row(socket, module, nil, _date), do: Mob.Socket.push_screen(socket, module)
-  defp open_row(socket, module, id, _date), do: Mob.Socket.push_screen(socket, module, %{id: id})
+  defp open_row(socket, module, nil, _date, back),
+    do: Mob.Socket.push_screen(socket, module, %{back: back})
+
+  defp open_row(socket, module, id, _date, back),
+    do: Mob.Socket.push_screen(socket, module, %{id: id, back: back})
 
   # Close the menu, then go. The socket this returns is what `Mob.Screen` saves
   # onto the nav history, so a menu left open is a menu that reopens itself

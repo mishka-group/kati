@@ -282,7 +282,7 @@ defmodule Kati.Screens.Agenda do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13} on_tap={tap}>
-        <Column width={44}>
+        <Column min_width={44}>
           <Text
             text={row.time}
             font_family={Kati.Locale.mono_face(row.time)}

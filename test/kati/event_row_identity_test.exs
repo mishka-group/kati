@@ -90,7 +90,9 @@ defmodule Kati.EventRowIdentityTest do
         opened = render_info(view, {:tap, Enum.at(row_tags(view), 1)})
 
         assert navigated_to(opened) == EventDetail
-        assert opened.socket.__mob__.nav_action == {:push, EventDetail, %{id: second.id}}
+
+        assert opened.socket.__mob__.nav_action ==
+                 {:push, EventDetail, %{id: second.id, back: "Calendar"}}
 
         refute opened.socket.__mob__.nav_action == {:push, EventDetail, %{id: first.id}},
                "the second row pushed the first row's event, which is the defect: a screen " <>
