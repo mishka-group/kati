@@ -1154,10 +1154,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # their two doors, and the absence of the meta line the board's note is
     # about.
     {"05", "05", "New releases"},
-    {"86", "87", "Search anything you keep"},
+    # N54: the placeholder all four quoted from board 87 is
+    # `Kati.Search.placeholder/0`'s *Search your library* now — the board's
+    # words were cut short on a phone — so none of them quotes it any more.
     {"86", "86", "Screen"},
     {"86", "86", "Try"},
-    {"87", "87", "Search anything you keep"},
     {"87", "87", "Nothing searched yet"},
     {"06", "06", "Add a title"},
     {"06", "06", "Everything"},
@@ -1169,18 +1170,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 06 is drawn mid-query, so every line it has to lend is one of the four
     # above, and what an empty sheet says instead is 87's card at this size
     # rather than anything 06 draws.
-    {"19", "87", "Search anything you keep"},
+    # 19's `Recent` heading went with N54: an empty history draws no Recent
+    # section, and a store with nothing in it has no history.
     {"19", "19", "All"},
-    {"19", "19", "Recent"},
     # 90's two, and only two. The pair 19 borrows from board 87 has no Persian
     # twin — 87 is an English board and nothing in the 152 draws the idle field
     # in Persian — so what constrains 90 is the chrome board 90 draws itself:
-    # the chip that reads as selected, and the shelf's own heading. A Persian
-    # results page that quietly lost its scope row or its Recent heading fails
-    # here exactly as the English one does.
+    # the chip that reads as selected. Its Recent heading went with N54, as
+    # 19's did.
     {"90", "90", "همه"},
-    {"90", "90", "اخیر"},
-    {"89", "87", "Search anything you keep"},
     {"89", "89", "All"},
     {"02", "139", "Nothing scheduled"},
     {"02", "139", "add anything with +"},
@@ -1227,8 +1225,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # the rest, including that the three announcing bands are gone.
     {"55", "158", "هنوز چیزی اینجا نیست"},
     {"55", "158", "انتخاب بخش‌ها"},
-    {"55", "158", "تقویم همچنان کار می‌کند"},
-    {"55", "158", "جست‌وجوی هر چیزی که نگه می‌دارید"}
+    {"55", "158", "تقویم همچنان کار می‌کند"}
   ]
 
   # Screens that read the database and have **no drawing at all**.

@@ -1713,13 +1713,11 @@ defmodule Kati.Screens.Home do
   def handle_tap(:open_habits, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
 
-  # Screen 86 rather than 19, and the two are different states rather than a
-  # replacement: 86 is the empty field the moment it opens — which is what a tap
-  # on this one produces — and 19 is *Search everything* with results showing,
-  # reached from the Library. Both are drawn and both are worth being able to
-  # look at.
+  # Screen 19, opened empty, which is the one search page every door opens. It
+  # pushed screen 86, a second page drawn like it whose *Clear* and results
+  # lived elsewhere; the owner's ruling made them one.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchIdle)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   # *See all* over the day's own card. Screen 02 with no params opens on
   # `Kati.Time.today()` by its own `load/1`, which is the day this card is —

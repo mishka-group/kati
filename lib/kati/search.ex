@@ -290,11 +290,15 @@ defmodule Kati.Search do
   The field's placeholder.
 
   Copy rather than data, which is why it lives with the specification and not
-  in a fixture: it says what the field will look in, and the answer is
-  everything — the scope chips narrow, the field does not.
+  in a fixture: it says what the field will look in first — the reader's own
+  library, with TMDB underneath it on screen 19.
+
+  Three words, because a phone cuts the field short: *Search anything you
+  keep* was drawn as *Search anything you*, which reads as a sentence that
+  lost its end.
   """
   @spec placeholder() :: String.t()
-  def placeholder, do: gettext("Search anything you keep")
+  def placeholder, do: gettext("Search your library")
 
   @doc """
   The sentence explaining why the chips carry no counts until something is typed.

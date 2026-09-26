@@ -29,7 +29,7 @@ defmodule Kati.Search.Recent do
 
   ## Why the write is separate from the read
 
-  `remember/2` is called by the screen that ran the query, not by
+  `remember/1` is called by the screen that ran the query, not by
   `Kati.Search.Query.run/1`. Running a query is what the reference boards do
   when they draw the spec, and a history that filled itself from a render
   would fill with whatever the gallery drew last.
@@ -57,50 +57,35 @@ defmodule Kati.Search.Recent do
   end
 
   @doc """
-  Remember `query`, at the front.
+  Remember `query`, at the front — called when the reader COMMITS a query.
 
   Short queries are dropped rather than stored: `Kati.Search.long_enough?/1`
-  is what says a query has run at all, and a shelf that filled with every
-  first keystroke would be a list of single letters.
+  is what says a query has run at all.
 
-  ## A query you were on the way to is not a query you made
+  ## Only what was committed
 
-  `Kati.Screens.Search` records on every keystroke and says why — the results
-  arrive while you type, so there is no submit to record on. The cost showed up
-  the first time anyone typed a whole word on a device: searching *Ashfall*
-  left `Ash`, `Ashf`, `Ashfa`, `Ashfal` and `Ashfall` in a list that keeps
-  eight, so one search filled five of the eight slots with its own keystrokes
-  and pushed out every earlier search.
+  Screen 19 recorded on every keystroke, and the shelf filled with the words a
+  query passed through on the way: typing *The* in front of *Matrix* left
+  `TMatrix`, `ThMatrix` and `TheMatrix` beside `Matrix`. So the screen calls
+  this only when a query is committed — the keyboard's search key, a result
+  opened or added, a recent line tapped — and never from a keystroke.
 
-  So an entry the new query **starts with** is dropped along with an exact
-  repeat: it is a word you passed through rather than one you stopped on. The
-  reverse is not true and must not be — typing `Ash` after having searched
-  `Ashfall` is a shorter search, not an abandoned longer one, and both are kept
-  with the newer first.
+  ## Each query once, and never a prefix of another
 
-  ## A query you were backing out of is not one either
-
-  The same keystroke recording has a second way to fill the shelf, and the
-  rule above cannot see it: backspacing. Searching *hollow* and deleting back
-  to *ho* recorded `hollo`, `holl`, `hol` and `ho` — each shorter than the
-  last, so none was typed *through* by the next, and four of the eight slots
-  went to letters being taken away.
-
-  So `previous` is what the field held one keystroke earlier, and a query that
-  `deleting?/2` says was reached by deleting from it records nothing. It is the
-  TRANSITION that is judged and not the history: `Ash` typed fresh after
-  `Ashfall` was searched arrives from an empty field or from another word,
-  never from `Ashfall` itself, and is kept exactly as the rule above keeps it.
-  A caller with no field behind it — a recent chip, a test — passes nothing and
-  every query it names is recorded.
+  An entry the new query contains, compared without regard to case, is dropped:
+  an exact repeat, a word the new query was typed through (`Ash` under
+  `Ashfall`), and a word it grew around (`Matrix` under `The Matrix`). A new
+  query that is a strict prefix of an entry already kept is not stored at all,
+  so the shelf never holds both `Ash` and `Ashfall`.
   """
-  @spec remember(String.t(), String.t() | nil) :: :ok
-  def remember(query, previous \\ nil) when is_binary(query) do
+  @spec remember(String.t()) :: :ok
+  def remember(query) when is_binary(query) do
     trimmed = String.trim(query)
+    stored = all()
 
-    if Kati.Search.long_enough?(trimmed) and not deleting?(trimmed, previous) do
+    if Kati.Search.long_enough?(trimmed) and not prefix_of_any?(trimmed, stored) do
       kept =
-        [trimmed | Enum.reject(all(), &passed_through?(trimmed, &1))]
+        [trimmed | Enum.reject(stored, &contains?(trimmed, &1))]
         |> Enum.take(Kati.Search.recent_kept())
 
       Mob.State.put(@key, kept)
@@ -112,35 +97,27 @@ defmodule Kati.Search.Recent do
   end
 
   @doc """
-  Whether `now` was reached by deleting from `before`: strictly shorter than
-  it, and the start of it. Trimmed and compared without regard to case, the way
-  `remember/2` compares what it stores.
+  Whether `query` is a strict prefix of one of `stored`, without regard to case.
 
-      iex> Kati.Search.Recent.deleting?("holl", "hollow")
+      iex> Kati.Search.Recent.prefix_of_any?("Ash", ["Ashfall"])
       true
-      iex> Kati.Search.Recent.deleting?("Ash", "")
+      iex> Kati.Search.Recent.prefix_of_any?("ashfall", ["Ashfall"])
       false
-      iex> Kati.Search.Recent.deleting?("hollow", "hollo")
-      false
-      iex> Kati.Search.Recent.deleting?("ho", nil)
+      iex> Kati.Search.Recent.prefix_of_any?("hollow", ["estuary"])
       false
   """
-  @spec deleting?(String.t(), String.t() | nil) :: boolean()
-  def deleting?(now, before) when is_binary(now) and is_binary(before) do
-    now = now |> String.trim() |> String.downcase()
-    before = before |> String.trim() |> String.downcase()
+  @spec prefix_of_any?(String.t(), [String.t()]) :: boolean()
+  def prefix_of_any?(query, stored) do
+    folded = String.downcase(query)
 
-    String.length(now) < String.length(before) and String.starts_with?(before, now)
+    Enum.any?(stored, fn entry ->
+      entry = String.downcase(entry)
+      entry != folded and String.starts_with?(entry, folded)
+    end)
   end
 
-  def deleting?(_now, _before), do: false
-
-  # An exact repeat, or a word the new query was typed through. Compared
-  # case-insensitively for the reason the search itself is: `ash` and `Ash` are
-  # one word to a person, and keeping both would put the shift key in the
-  # history.
-  defp passed_through?(now, stored) do
-    String.starts_with?(String.downcase(now), String.downcase(stored))
+  defp contains?(now, stored) do
+    String.contains?(String.downcase(now), String.downcase(stored))
   end
 
   @doc "Forget everything. For the tests, and for a future *Clear history* row."

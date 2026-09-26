@@ -187,7 +187,7 @@ defmodule Kati.Screens.HomeEmpty do
   The search bar, at the drawing's own copy.
 
   Same 52pt/radius-26 recipe `Kati.Screens.Home.search/0` draws, but not a
-  call into it: this board's placeholder is *Search anything you keep*, not
+  call into it: this board's placeholder is `Kati.Search.placeholder/0`, not
   *Search films, shows, events…*, and this board draws no trailing `tune`
   glyph inside the bar — there is nothing yet to filter.
 
@@ -397,7 +397,7 @@ defmodule Kati.Screens.HomeEmpty do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
 
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchIdle)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   def handle_tap(:choose_sections, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}

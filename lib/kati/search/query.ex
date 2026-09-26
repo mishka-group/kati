@@ -441,7 +441,11 @@ defmodule Kati.Search.Query do
       # on. `Kati.Screens.Library.shaped/3` collapses the same way: a film is
       # its own screen and everything else is the series screen.
       kind: if(row.kind == :movie, do: :film, else: :series),
-      id: tracked |> Map.get({row.source, row.source_id}) |> then(&(&1 && &1.id))
+      id: tracked |> Map.get({row.source, row.source_id}) |> then(&(&1 && &1.id)),
+      # The pair screen 19's TMDB section matches its rows against, so a title
+      # found in the library is not drawn a second time under *On TMDB*.
+      source: row.source,
+      source_id: row.source_id
     }
   end
 

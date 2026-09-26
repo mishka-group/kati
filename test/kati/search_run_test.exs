@@ -342,7 +342,7 @@ defmodule Kati.SearchRunTest do
       # `query_tag/2` replaced spaces with underscores
       # to make an atom a device test can type, and `open/2` undid it by
       # replacing underscores with spaces — which is not the inverse of
-      # anything. `sci_fi` is stored as typed (`Kati.Search.Recent.remember/2`
+      # anything. `sci_fi` is stored as typed (`Kati.Search.Recent.remember/1`
       # "never translates — they are your words"), tagged `:repeat_query_sci_fi`
       # and came back as `sci fi`: a different search, silently.
       assert Kati.Screens.SearchIdle.resolve("sci_fi", ["sci_fi"]) == "sci_fi"
@@ -427,11 +427,10 @@ defmodule Kati.SearchRunTest do
     end
 
     test "the keystrokes on the way to a word are not five searches" do
-      # Screen 19 records on every keystroke and says why: the results arrive
-      # while you type, so there is no submit to record on. On a device that
-      # left `Ash`, `Ashf`, `Ashfa`, `Ashfal` and `Ashfall` in a list that
-      # keeps eight — one search holding five of the eight slots and pushing
-      # out everything typed before it.
+      # Screen 19 once recorded on every keystroke, and on a device that left
+      # `Ash`, `Ashf`, `Ashfa`, `Ashfal` and `Ashfall` in a list that keeps
+      # eight. It records only a committed query now; the store still folds a
+      # run of them into the word they were on the way to.
       Kati.Search.Recent.remember("estuary")
 
       for typed <- ["Ash", "Ashf", "Ashfa", "Ashfal", "Ashfall"] do
@@ -441,14 +440,20 @@ defmodule Kati.SearchRunTest do
       assert Kati.Search.Recent.all() == ["Ashfall", "estuary"]
     end
 
-    test "a shorter search after a longer one is its own search" do
-      # The rule is one-way on purpose. `Ash` typed after `Ashfall` has been
-      # searched is a person looking for something else, not the abandoned
-      # start of the word they already found.
+    test "a prefix of a kept search is never stored beside it" do
+      # The owner's minimum for the shelf: no entry is a strict prefix of
+      # another, so `Ash` and `Ashfall` never sit side by side.
       Kati.Search.Recent.remember("Ashfall")
       Kati.Search.Recent.remember("Ash")
 
-      assert Kati.Search.Recent.all() == ["Ash", "Ashfall"]
+      assert Kati.Search.Recent.all() == ["Ashfall"]
+    end
+
+    test "a word the new search grew around gives way to it" do
+      Kati.Search.Recent.remember("Matrix")
+      Kati.Search.Recent.remember("TheMatrix")
+
+      assert Kati.Search.Recent.all() == ["TheMatrix"]
     end
 
     test "case is not a second search" do
@@ -570,8 +575,8 @@ defmodule Kati.SearchRunTest do
       results = Kati.Search.Query.run("zzzznothingatall")
       drawn = rendered_text(render(results, :all))
 
-      assert Enum.any?(drawn, &String.contains?(&1, "Nothing here for")),
-             "a query that found nothing anywhere lost its no-match card: " <> inspect(drawn)
+      assert Enum.any?(drawn, &String.contains?(&1, "Not in your library")),
+             "a query that found nothing anywhere lost its no-match line: " <> inspect(drawn)
 
       refute Enum.any?(drawn, &String.contains?(&1, "Nothing in")),
              "the cross-scope row was drawn with nowhere to point: " <> inspect(drawn)

@@ -60,8 +60,27 @@ defmodule Kati.Screens.Search do
   `Kati.Books` and notes from `Kati.Media.Watch.review`. The chip counts are
   counts of that result set (`Kati.Search.Query.chip_counts/1`), and the
   recent shelf is `Kati.Search.Recent`, the reader's own queries. Nothing
-  typed is the idle page; a query that matched nothing is the *nothing found*
-  card, which offers TMDB and the hand-typed form with the query carried over.
+  typed is the idle page; a query that matched nothing in the library says so
+  in one quiet line.
+
+  ## TMDB, under the library
+
+  Under the library's hits, and under the Screen and All chips only, sits an
+  *On TMDB* section (`on_tmdb/4`, state in `Kati.Search.OnTmdb`): the same
+  query, sent to `Kati.Media.Tmdb.search/1` once the typing stops
+  (`Kati.Media.SearchDebounce`), in a task, with skeleton rows while it is out.
+  A title already listed above is not listed again, a row the reader keeps
+  opens its own page, and the add disc adds the rest from where they are. The
+  chip counts stay counts of the library: TMDB's rows are not the reader's,
+  and a chip saying 20 over a shelf of 2 would be the catalogue talking.
+
+  Only when TMDB also finds nothing does the page offer the hand-typed form.
+
+  ## What the recent shelf remembers
+
+  A query the reader committed — the keyboard's search key, a result opened
+  or added, a recent line tapped — and never a keystroke. See
+  `Kati.Search.Recent.remember/1`.
 
   `drawn_results/0` and `drawn_recent/0` are board 19's transcription, and
   only `Kati.ScreenDesignLiteralTest` installs them.
@@ -72,6 +91,7 @@ defmodule Kati.Screens.Search do
 
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
+  alias Kati.Search.OnTmdb
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -96,6 +116,9 @@ defmodule Kati.Screens.Search do
     params = params || %{}
     query = Kati.Screens.Search.opening_query(params)
     results = Kati.Search.Query.run(query)
+    tmdb_ready = Kati.Media.Tmdb.usable?()
+    tmdb = OnTmdb.begin(query, tmdb_ready)
+    if tmdb.status == :pending, do: Kati.Media.SearchDebounce.ask(self(), tmdb.query)
 
     {:ok,
      Mob.Socket.assign(socket,
@@ -110,7 +133,10 @@ defmodule Kati.Screens.Search do
        # drawn is otherwise ignored.
        query_epoch: if(query == "", do: 0, else: 1),
        back: Map.get(params, :back, gettext("Home")),
-       history: Kati.Search.Recent.all()
+       history: Kati.Search.Recent.all(),
+       tmdb: tmdb,
+       tmdb_epoch: 0,
+       tmdb_ready: tmdb_ready
      )}
   end
 
@@ -288,6 +314,8 @@ defmodule Kati.Screens.Search do
     # five keys, so a required sixth would be a `KeyError` raised in a file that
     # has nothing to do with back pills.
     back = Map.get(assigns, :back, gettext("Home"))
+    tmdb = Map.get(assigns, :tmdb, OnTmdb.idle())
+    save_error = Map.get(assigns, :save_error)
 
     ~MOB"""
     <Box
@@ -310,6 +338,7 @@ defmodule Kati.Screens.Search do
           {Kati.Screens.Search.field(query, true, Map.get(assigns, :query_epoch, 0))}
           {Kati.Screens.Search.chips(filter, results)}
           {Kati.Screens.Search.state_or_groups(results, filter, history)}
+          {Kati.Screens.Search.on_tmdb(results, filter, tmdb, save_error)}
           {Kati.Screens.Search.recent_shelf(results, history, recent)}
         </Column>
       </Scroll>
@@ -320,47 +349,73 @@ defmodule Kati.Screens.Search do
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   @doc """
-  Every keystroke, run.
+  Every keystroke, run against the library — and TMDB asked once it settles.
 
-  No debounce, and `Kati.Search.debounce_ms/0` is not being ignored: the 180ms
-  it specifies is the interval between *counted* queries, which is a statement
-  about a network-backed index. This one reads SQLite on the device and
-  `Kati.Search.Query.run/1` narrows in Elixir, so the cost of a keystroke is a
-  scan of a personal library — a debounce would buy latency rather than spend
-  it. It goes in the day a query costs a request.
+  No debounce for the library, and `Kati.Search.debounce_ms/0` is not being
+  ignored: this reads SQLite on the device and `Kati.Search.Query.run/1`
+  narrows in Elixir, so a keystroke costs a scan of a personal library. TMDB is
+  a request, so it waits for `Kati.Media.SearchDebounce` and goes out in a task
+  (`Kati.Search.OnTmdb.fetch/3`); `:tmdb_epoch` moves on every keystroke, so an
+  answer to a query the reader has typed past is dropped when it lands.
 
-  The history is written here rather than on submit, because there is no
-  submit. A field that only remembered what you pressed Enter on would
-  remember almost nothing: the results arrive while you type, and you stop
-  typing when you can see them.
+  Nothing is remembered here. A keystroke is a word on the way to a query, not
+  a query — see `Kati.Search.Recent.remember/1`.
   """
   def handle_info({:change, :query, typed}, socket) when is_binary(typed) do
-    Kati.Search.Recent.remember(typed, Map.get(socket.assigns, :query))
-
     {:noreply,
      socket
      |> Mob.Socket.assign(:query, typed)
      |> Mob.Socket.assign(:results, Kati.Search.Query.run(typed))
-     |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
+     |> Kati.Screens.Search.ask_tmdb(typed, :debounced)}
   end
 
-  # Both ways out of a query that found nothing. The lookup carries what was
-  # typed, so screen 06 opens already searching for it rather than asking
-  # again — retyping a word the app has just shown you is what makes a dead
-  # end feel like one.
-  #
-  # IN THE PUSH. This handed over through `Kati.Search.hand_over/1` and pushed
-  # bare, and screen 06 has never read that key — it reads `params[:query]`
-  # (`Kati.Screens.AddTitle.opening_query/1`). So *Search TMDB for "Arrival"*
-  # opened a blank add sheet with the placeholder greyed in the field, while the
-  # key it did write changed what the Library's search disc opened next. Found
-  # on the Pixel 9a, 25 Sep. `Kati.Screens.QuickAdd`'s *Title* chip had already
-  # been fixed for this exact reason and said so in a comment; the fix never
-  # made it back to the row it was copied from.
-  def handle_info({:tap, :look_up}, socket),
-    do:
-      {:noreply,
-       Mob.Socket.push_screen(socket, Kati.Screens.AddTitle, %{query: socket.assigns.query})}
+  # The keyboard's search key: the query is committed, and TMDB is asked now
+  # rather than after the pause.
+  def handle_info({:submit, :commit}, socket) do
+    query = Map.get(socket.assigns, :query, "")
+
+    {:noreply,
+     socket
+     |> Kati.Screens.Search.commit()
+     |> Kati.Screens.Search.ask_tmdb(query, :now)}
+  end
+
+  # The pause after the typing. Asked only if it is still the query in the
+  # field and the section is still waiting on it; one request per epoch.
+  def handle_info({:search_ready, query}, socket) when is_binary(query) do
+    tmdb = Map.get(socket.assigns, :tmdb, OnTmdb.idle())
+    epoch = Map.get(socket.assigns, :tmdb_epoch, 0)
+    current = socket.assigns |> Map.get(:query, "") |> String.trim()
+
+    if query == current and tmdb.status == :pending and tmdb.requested != epoch do
+      OnTmdb.fetch(self(), epoch, query)
+      {:noreply, Mob.Socket.assign(socket, :tmdb, %{tmdb | requested: epoch})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:tmdb_answer, epoch, query, result}, socket) do
+    tmdb = Map.get(socket.assigns, :tmdb, OnTmdb.idle())
+
+    if epoch == Map.get(socket.assigns, :tmdb_epoch, 0) and tmdb.query == query do
+      {:noreply, Mob.Socket.assign(socket, :tmdb, OnTmdb.answered(tmdb, result))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:tap, :add_tmdb_token}, socket),
+    do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Search")}
+
+  def handle_info({:tap, :clear_recent}, socket) do
+    Kati.Search.Recent.forget!()
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:history, [])
+     |> Mob.Socket.assign(:recent, nil)}
+  end
 
   # The query goes with it. The push was bare, so a reader who searched for
   # *Estuary*, was told nothing matched, and pressed *or add it by hand* landed
@@ -402,9 +457,7 @@ defmodule Kati.Screens.Search do
      # the device it was not inert; it was wrong.
      |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
      |> Mob.Socket.assign(:results, Kati.Search.Query.run(""))
-     # Board 312's *Recent, now carrying what you just cleared*. The store has
-     # remembered it since the first keystroke; this is what puts it on the page
-     # in the same breath as emptying the field.
+     |> Kati.Screens.Search.ask_tmdb("", :now)
      |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
   end
 
@@ -426,16 +479,25 @@ defmodule Kati.Screens.Search do
       # nothing with its own drawing rather than a crash, which is what makes
       # a row deleted on another device a page instead of a dead letter.
       "event_" <> id ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
+        {:noreply,
+         socket
+         |> Kati.Screens.Search.commit()
+         |> Mob.Socket.push_screen(Kati.Screens.EventDetail, %{id: id})}
 
       # A Screen hit, by its own title — `hit_tag/1`, resolved against the very
       # list the group was drawn from, which is `Kati.Screens.Library`'s rule
       # for the identical two prefixes.
       "open_film_" <> _title ->
-        {:noreply, Kati.Screens.Search.open_hit(socket, tag, Kati.Screens.Film)}
+        {:noreply,
+         socket
+         |> Kati.Screens.Search.commit()
+         |> Kati.Screens.Search.open_hit(tag, Kati.Screens.Film)}
 
       "open_series_" <> _title ->
-        {:noreply, Kati.Screens.Search.open_hit(socket, tag, Kati.Screens.Series)}
+        {:noreply,
+         socket
+         |> Kati.Screens.Search.commit()
+         |> Kati.Screens.Search.open_hit(tag, Kati.Screens.Series)}
 
       # An episode hit opens the SERIES it belongs to, because that is where an
       # episode lives — screen 04's list is the running order, and Kati has no
@@ -443,32 +505,30 @@ defmodule Kati.Screens.Search do
       # `results.titles`, which is the list episodes now live in, and the row's
       # `:id` is already the tracked title's.
       "open_episode_" <> _source_id ->
-        {:noreply, Kati.Screens.Search.open_hit(socket, tag, Kati.Screens.Series)}
-
-      # The shelf is a shortcut INTO a query, which is what screen 86's own
-      # recent rows are — `Kati.Screens.SearchIdle.open/2` opens this page on
-      # the line that was tapped. Here the page is already open, so the query
-      # is re-run in place.
-      #
-      # This used to fill the chip and stop, and the comment by `recent_chip/2`
-      # said why: "until an index exists the screen cannot answer the new
-      # question". `Kati.Search.Query.run/1` is that index, and
-      # `handle_info({:change, :query, …})` above already re-runs it on every
-      # keystroke — so the field and the hits move together, which is the exact
-      # thing that reasoning was protecting.
-      #
-      # Remembered as well as run, for the reason typing is: the shelf is the
-      # last eight queries you actually made, and one you reached for by name
-      # is one of them.
-      "recent_" <> label ->
-        Kati.Search.Recent.remember(label)
-
         {:noreply,
          socket
-         |> Mob.Socket.assign(:query, label)
-         |> Mob.Socket.assign(:results, Kati.Search.Query.run(label))
-         |> Mob.Socket.assign(:recent, label)
-         |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
+         |> Kati.Screens.Search.commit()
+         |> Kati.Screens.Search.open_hit(tag, Kati.Screens.Series)}
+
+      # The shelf is a shortcut INTO a query: the field takes the line, the
+      # library and TMDB are asked for it, and it counts as committed.
+      "recent_" <> label ->
+        {:noreply,
+         socket
+         |> Kati.Screens.Search.run_committed(label)
+         |> Mob.Socket.assign(:recent, label)}
+
+      # The idle page's shelf — `Kati.Screens.SearchIdle.recent/1`'s rows, by
+      # the line they were drawn from.
+      "repeat_query_" <> line ->
+        query = Kati.Screens.SearchIdle.resolve(line, Map.get(socket.assigns, :history, []))
+        {:noreply, Kati.Screens.Search.run_committed(socket, query)}
+
+      "add_" <> position ->
+        {:noreply, Kati.Screens.Search.add_from_tmdb(socket, position)}
+
+      "tmdb_open_" <> position ->
+        {:noreply, Kati.Screens.Search.open_tmdb(socket, position)}
 
       _other ->
         {:noreply, socket}
@@ -493,10 +553,140 @@ defmodule Kati.Screens.Search do
     {:noreply,
      socket
      |> Mob.Socket.assign(:results, Kati.Search.Query.run(query))
-     |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
+     |> Mob.Socket.assign(:history, Kati.Search.Recent.all())
+     |> Kati.Screens.Search.refresh_tmdb(query)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  Move the TMDB section onto `query`: a new epoch, and the request either
+  waited for (`:debounced`, a keystroke) or sent now (`:now`, a committed
+  query). Under the minimum, or with no token, nothing is sent.
+  """
+  @spec ask_tmdb(Mob.Socket.t(), String.t(), :debounced | :now) :: Mob.Socket.t()
+  def ask_tmdb(socket, query, how) do
+    epoch = Map.get(socket.assigns, :tmdb_epoch, 0) + 1
+    tmdb = OnTmdb.begin(query, Map.get(socket.assigns, :tmdb_ready, false))
+
+    tmdb =
+      case {tmdb.status, how} do
+        {:pending, :debounced} ->
+          Kati.Media.SearchDebounce.ask(self(), tmdb.query)
+          tmdb
+
+        {:pending, :now} ->
+          OnTmdb.fetch(self(), epoch, tmdb.query)
+          %{tmdb | requested: epoch}
+
+        _nothing_to_send ->
+          tmdb
+      end
+
+    socket
+    |> Mob.Socket.assign(:tmdb_epoch, epoch)
+    |> Mob.Socket.assign(:tmdb, tmdb)
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
+  The TMDB section on a return to this page: the rows re-marked against the
+  shelf, which a title page above may have changed — or, when the section was
+  the missing-token door and a token now exists, the query asked again.
+  """
+  @spec refresh_tmdb(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def refresh_tmdb(socket, query) do
+    socket = Mob.Socket.assign(socket, :tmdb_ready, Kati.Media.Tmdb.usable?())
+
+    case Map.get(socket.assigns, :tmdb, OnTmdb.idle()) do
+      %{status: :error, reason: :no_api_key} ->
+        if socket.assigns.tmdb_ready,
+          do: Kati.Screens.Search.ask_tmdb(socket, query, :now),
+          else: socket
+
+      tmdb ->
+        Mob.Socket.assign(socket, :tmdb, %{tmdb | rows: OnTmdb.mark(tmdb.rows)})
+    end
+  end
+
+  @doc "Remember the query in the field, because the reader has committed to it."
+  @spec commit(Mob.Socket.t()) :: Mob.Socket.t()
+  def commit(socket) do
+    Kati.Search.Recent.remember(Map.get(socket.assigns, :query, ""))
+    Mob.Socket.assign(socket, :history, Kati.Search.Recent.all())
+  end
+
+  @doc """
+  Put `query` in the field as a committed query: the field redrawn with it,
+  the library searched, TMDB asked at once, and the shelf told.
+  """
+  @spec run_committed(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def run_committed(socket, query) do
+    socket
+    |> Mob.Socket.assign(:query, query)
+    |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
+    |> Mob.Socket.assign(:results, Kati.Search.Query.run(query))
+    |> Kati.Screens.Search.commit()
+    |> Kati.Screens.Search.ask_tmdb(query, :now)
+  end
+
+  @doc """
+  The add disc on a TMDB row.
+
+  A row the reader does not keep is tracked through
+  `Kati.Screens.AddTitle.track/3` — screen 06's own write — and the page is
+  re-read, so the title now answers as a library hit and opens its page. A row
+  already kept is not taken back off the shelf from here: its disc opens it,
+  as the row does, because removing a title with a history behind it is the
+  title page's decision and not a search result's.
+  """
+  @spec add_from_tmdb(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def add_from_tmdb(socket, position) do
+    tmdb = Map.get(socket.assigns, :tmdb, OnTmdb.idle())
+
+    case OnTmdb.at(tmdb, position) do
+      nil ->
+        socket
+
+      %{id: id} = row when is_binary(id) ->
+        Kati.Screens.Search.open_kept(socket, row)
+
+      row ->
+        Kati.Screens.Search.track_row(Kati.Screens.Search.commit(socket), tmdb, row)
+    end
+  end
+
+  @doc false
+  @spec track_row(Mob.Socket.t(), OnTmdb.t(), map()) :: Mob.Socket.t()
+  def track_row(socket, tmdb, row) do
+    case Kati.Screens.AddTitle.track(row.title, row, :not_started) do
+      {:ok, _tracked} ->
+        socket
+        |> Mob.Socket.assign(:tmdb, %{tmdb | rows: OnTmdb.mark(tmdb.rows)})
+        |> Mob.Socket.assign(:results, Kati.Search.Query.run(socket.assigns.query))
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, _reason} = error ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
+    end
+  end
+
+  @doc "A TMDB row's body: its own page when the reader keeps it, and nothing otherwise."
+  @spec open_tmdb(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def open_tmdb(socket, position) do
+    case OnTmdb.at(Map.get(socket.assigns, :tmdb, OnTmdb.idle()), position) do
+      %{id: id} = row when is_binary(id) -> Kati.Screens.Search.open_kept(socket, row)
+      _not_kept -> socket
+    end
+  end
+
+  @doc false
+  @spec open_kept(Mob.Socket.t(), map()) :: Mob.Socket.t()
+  def open_kept(socket, row) do
+    socket
+    |> Kati.Screens.Search.commit()
+    |> Mob.Socket.push_screen(OnTmdb.destination(row), %{id: row.id, back: "Search"})
+  end
 
   @doc """
   Open `module` on the hit that carries `tag`.
@@ -525,9 +715,8 @@ defmodule Kati.Screens.Search do
       # `Emergence` opened a page about The Long Hollow.
       #
       # It carries no tap at all now: `hit_tag/1` refuses a row with no id, so
-      # the card is a card and not a door. Adding it from here would be a
-      # second add flow on a screen whose subject is finding things — screen 06
-      # is one tap away and is where a title is added.
+      # the card is a card and not a door. The *On TMDB* section under the
+      # library is where a title nobody keeps is added from.
       nil -> socket
       id -> Mob.Socket.push_screen(socket, module, %{id: id, back: "Search"})
     end
@@ -602,11 +791,12 @@ defmodule Kati.Screens.Search do
           query: query,
           id: "search_query",
           on_change: {self(), :query},
+          on_submit: {self(), :commit},
           clear: {self(), :clear},
           epoch: epoch
         }
       else
-        %{query: query, id: nil, on_change: nil, clear: nil, epoch: epoch}
+        %{query: query, id: nil, on_change: nil, on_submit: nil, clear: nil, epoch: epoch}
       end
 
     # `min_height`, not `height`. `Kati.DynamicTypeTest` states the rule: a
@@ -641,6 +831,7 @@ defmodule Kati.Screens.Search do
           weight={1.0}
           accessibility_id={@id}
           on_change={@on_change}
+          on_submit={@on_submit}
         />
         <Spacer size={8} />
         <Box on_tap={@clear} fill_width={false}>
@@ -915,7 +1106,7 @@ defmodule Kati.Screens.Search do
         Kati.Screens.Search.cross_scope(filter, elsewhere)
 
       true ->
-        Kati.Screens.Search.no_matches(results.query)
+        Kati.Screens.Search.not_in_library()
     end
   end
 
@@ -1042,27 +1233,14 @@ defmodule Kati.Screens.Search do
   field was real the design never put a person here without one. A person can
   now clear it, so the state exists and has to say something.
 
-  What it says is the two sentences the idle boards already own —
-  `Kati.Screens.SearchTyping.nothing_yet/0` is board 87's *Nothing searched
-  yet* card and `Kati.Search.counts_note/0` is board 88's paragraph about why
-  the chips carry no counts. Neither is invented here; a third wording of the
-  same idea is how two screens end up disagreeing about what an empty search
-  means.
-
-  With a history, the card gives way to the shelf below it, which is the
-  shortcut back into a query rather than an explanation of why there is none.
+  Board 312: **it becomes 86, not 87** — 86's Recent group
+  (`Kati.Screens.SearchIdle.recent/1`), the shortcut back into a query, over
+  `Kati.Search.local_note/0`. With no history there is no Recent section at
+  all: the owner's ruling, since an eyebrow over *Nothing searched yet* was a
+  heading over nothing.
   """
   @spec waiting([String.t()]) :: map()
   def waiting(history) do
-    # Board 312: **it becomes 86, not 87.** 87's idle page is the first open —
-    # no recents, nothing searched. Clearing a field is a later moment, and
-    # what belongs there is 86's Recent group, *"now populated by the query
-    # just cleared."*
-    #
-    # `Kati.Screens.SearchIdle.recent/1` already handles both halves and states
-    # its own reason for the empty one: the eyebrow stays and the card under it
-    # explains itself, so the shape of the screen does not change under the
-    # reader on a first run.
     assigns = %{recent: Kati.Screens.SearchIdle.recent(history)}
 
     ~MOB"""
@@ -1076,28 +1254,212 @@ defmodule Kati.Screens.Search do
   end
 
   @doc """
-  What a query that matched nothing says — board 89's own card, wired.
+  What a query that matched nothing in the library says: one quiet line.
 
-  Not a card of this screen's own. `Kati.Screens.SearchResultStates.nothing/2`
-  is the drawing of exactly this state, down to naming the query back inside
-  its quotation marks, and 89's caption carries the reasoning: `Kati.Search`'s
-  scopes are all things you keep, so an empty result is not a failure to find
-  — it is a correct report that you do not have it, and the sentence says so
-  before offering the lookup.
-
-  What 89 could not have is the two destinations, and both exist now. The add
-  pill goes outward to `Kati.Screens.AddTitle`, which searches TMDB for real
-  since `Kati.Media.Tmdb` landed; the line under it goes to
-  `Kati.Screens.AddByHand`, board 154, which is the path that works without a
-  catalogue at all. In that order, because a title Kati has never heard of is
-  likelier to be findable than to be worth typing out.
+  Not a card and not a way out. TMDB is asked in the section under it
+  (`on_tmdb/4`), so the next answer is already on the page; a card offering to
+  go and look somewhere else would offer what the page is doing.
   """
-  @spec no_matches(String.t()) :: map()
-  def no_matches(query) do
-    Kati.Screens.SearchResultStates.nothing(query,
-      lookup: {self(), :look_up},
-      by_hand: {self(), :add_by_hand}
-    )
+  @spec not_in_library() :: map()
+  def not_in_library do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
+        {Kati.UI.symbol("info", size: 17, color: Palette.muted())}
+        <Spacer size={8} />
+        <Text
+          text={gettext("Not in your library")}
+          text_size={12.5}
+          text_color={Palette.sub()}
+          weight={1.0}
+        />
+      </Row>
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The *On TMDB* section, under the library's groups — or nothing.
+
+  Drawn under the All and Screen chips, because TMDB answers for films and
+  series and nothing else; under Calendar or Notes it would be an answer to a
+  question the reader narrowed away. Its heading takes the accent dash when the
+  library drew nothing above it, by the positional rule `groups/2` follows.
+  """
+  @spec on_tmdb(map(), atom(), OnTmdb.t(), String.t() | nil) :: map() | []
+  def on_tmdb(results, filter, tmdb, save_error \\ nil) do
+    if Map.get(results, :idle?, false) or filter not in [:all, :screen] or tmdb.status == :idle do
+      []
+    else
+      Kati.Screens.Search.tmdb_section(results, filter, tmdb, save_error)
+    end
+  end
+
+  @doc false
+  def tmdb_section(results, filter, tmdb, save_error) do
+    label = gettext("On TMDB")
+
+    heading =
+      if Kati.Screens.Search.visible_groups(results, filter) == [],
+        do: UI.eyebrow(label),
+        else: Kati.Screens.Search.section(label)
+
+    assigns = %{
+      heading: heading,
+      notice: Kati.Screens.AddTitle.save_notice(save_error),
+      body:
+        Kati.Screens.Search.tmdb_body(
+          tmdb,
+          Map.get(results, :titles) || [],
+          Kati.Screens.Search.empty?(results)
+        )
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@heading}
+      {@notice}
+      {@body}
+    </Column>
+    """
+  end
+
+  @doc false
+  def tmdb_body(%{status: :pending}, _local, _nothing_local?),
+    do: Kati.Screens.AddTitle.skeletons()
+
+  def tmdb_body(%{status: :error, reason: :no_api_key}, _local, _nothing_local?),
+    do: Kati.UI.TmdbPrompt.block(false)
+
+  def tmdb_body(%{status: :error, reason: reason}, _local, _nothing_local?) do
+    assigns = %{notice: Kati.UI.notice(Kati.Media.Tmdb.message(reason))}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@notice}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def tmdb_body(%{status: :ready, rows: rows, query: query}, local, nothing_local?) do
+    case {OnTmdb.shown(rows, local), rows} do
+      {[], []} ->
+        Kati.Screens.Search.nothing_on_tmdb(query, nothing_local?)
+
+      {[], _all_above} ->
+        Kati.Screens.Search.tmdb_line(gettext("TMDB found nothing beyond what you already keep."))
+
+      {shown, _rows} ->
+        Kati.Screens.Search.tmdb_rows(shown)
+    end
+  end
+
+  def tmdb_body(_state, _local, _nothing_local?), do: []
+
+  @doc """
+  TMDB found nothing either. Said with the query in it, and — only when the
+  library was empty too — the one way left: typing the title by hand.
+  """
+  @spec nothing_on_tmdb(String.t(), boolean()) :: map()
+  def nothing_on_tmdb(query, nothing_local?) do
+    by_hand =
+      if nothing_local?,
+        do:
+          Kati.Screens.AddTitle.by_hand_row(
+            gettext("Add \u201C%{query}\u201D by hand?", query: query)
+          ),
+        else: []
+
+    assigns = %{
+      line:
+        Kati.Screens.Search.tmdb_line(
+          gettext("Nothing on TMDB for \u201C%{query}\u201D", query: query)
+        ),
+      by_hand: by_hand
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@line}
+      {@by_hand}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def tmdb_line(text) do
+    assigns = %{text: text}
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={2} padding_right={2}>
+      <Text text={@text} text_size={12.5} text_color={Palette.sub()} />
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def tmdb_rows(rows) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {rows
+       |> Enum.map(fn row -> Kati.Screens.Search.tmdb_row(row) end)
+       |> Enum.intersperse(Kati.Screens.AddTitle.row_gap())}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  One TMDB row: screen 06's result row, with a body that opens the title when
+  the reader keeps it. A row they do not keep opens nothing — there is no page
+  for a title that is not on the shelf — and its disc is how it gets there.
+  """
+  def tmdb_row(row) do
+    tap =
+      Map.get(row, :id) &&
+        {self(), String.to_atom("tmdb_open_" <> Integer.to_string(row.position))}
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={13}
+      padding_right={13}
+      padding_top={11}
+      padding_bottom={11}
+      align="center"
+      on_tap={tap}
+    >
+      {Kati.Screens.AddTitle.thumb(row)}
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Text
+          text={row.title}
+          text_size={14}
+          font_weight="bold"
+          letter_spacing={Kati.Locale.tracking(-0.015)}
+          text_color={:on_surface}
+          max_lines={2}
+        />
+        <Spacer size={5} />
+        <Text
+          text={row.meta}
+          font_family={Kati.Locale.mono_face(row.meta)}
+          text_size={10.5}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
+      </Column>
+      <Spacer size={13} />
+      {Kati.Screens.AddTitle.add_button(row.added, row.position)}
+    </Row>
+    """
   end
 
   @doc """
@@ -1515,7 +1877,8 @@ defmodule Kati.Screens.Search do
   """
   @spec recent_shelf(map(), [String.t()], String.t() | nil) :: [map()]
   def recent_shelf(results, history, picked) do
-    if Map.get(results, :idle?, false) do
+    if Map.get(results, :idle?, false) or
+         (history == [] and Map.get(results, :recent, []) == []) do
       []
     else
       [

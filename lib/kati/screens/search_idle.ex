@@ -1,12 +1,18 @@
 defmodule Kati.Screens.SearchIdle do
   @moduledoc """
-  Screen 86 — Search, idle. The tap-through from Home's search field.
+  Screen 86 — Search, idle. The board's own page, reached from the gallery.
+
+  Every door in the app opens screen 19 (`Kati.Screens.Search`) instead —
+  Home's field included — so the idle state and the results are one page, and
+  the recent shelf's *Clear* is answered where a reader meets it. This module
+  stays as the board's drawing and as the home of the pieces screen 19 and
+  board 87 share: `recent/1`, `chips/1`, `query_tag/2`.
 
   ## Four things the ticket left open, decided here
 
-    * **The placeholder generalises.** `Search anything you keep`, because
-      scope now spans seven domains and `Search films, shows, events…` names
-      three of them.
+    * **The placeholder generalises.** `Kati.Search.placeholder/0` names the
+      library rather than a list of domains, because `Search films, shows,
+      events…` names three of seven — and it is short enough to fit a phone.
     * **Counts are withheld while the query is empty.** The chips carry no
       numbers on open, and the page says why: *eight zeroes on open would read
       as an empty app.* A count of nothing is a true statement that looks like
@@ -217,13 +223,17 @@ defmodule Kati.Screens.SearchIdle do
     do: gettext("Recent · last %{n}", n: Kati.Locale.number(Search.recent_kept()))
 
   @doc """
-  The last eight queries, and the row that forgets them.
+  The last eight queries, and the row that forgets them — or nothing at all.
+
+  An empty history draws no section: the owner's ruling on screen 19, where an
+  eyebrow over *Nothing searched yet* was a heading over nothing. The shelf
+  appears with the first committed query.
 
   `Clear` sits on the eyebrow rather than at the foot of the list, because a
   destructive control below eight rows is a control you reach by scrolling past
   the thing it destroys.
   """
-  @spec recent([String.t()]) :: map()
+  @spec recent([String.t()]) :: map() | []
   def recent(queries) do
     rows =
       queries
@@ -236,24 +246,8 @@ defmodule Kati.Screens.SearchIdle do
         )
       end)
 
-    # An empty history is WORDED, not omitted, and board 87 is where that was
-    # decided: `Kati.Screens.SearchTyping.nothing_yet/0` carries the reasoning
-    # in full — "dropping the section entirely on a first run would make the
-    # shelf appear from nowhere after the first search; stating that it is
-    # empty and what will fill it keeps the shape of the screen constant."
-    #
-    # 86's own caption says the same in four words: *Recent is empty by
-    # definition* on a first run. So the eyebrow stays and the card under it
-    # explains itself.
     if rows == [] do
-      assigns = %{eyebrow: Kati.Screens.SearchIdle.recent_eyebrow()}
-
-      ~MOB"""
-      <Column fill_width={true}>
-        {Kati.UI.eyebrow(@eyebrow)}
-        {Kati.Screens.SearchTyping.nothing_yet()}
-      </Column>
-      """
+      []
     else
       assigns = %{rows: rows, eyebrow: Kati.Screens.SearchIdle.recent_eyebrow()}
 
@@ -496,7 +490,7 @@ defmodule Kati.Screens.SearchIdle do
 
   This used to undo `query_tag/2` by hand —
   `String.replace(line, "_", " ")` — which is not the inverse of anything.
-  `sci_fi` is stored as typed by `Kati.Search.Recent.remember/2`, which "never
+  `sci_fi` is stored as typed by `Kati.Search.Recent.remember/1`, which "never
   translates — they are your words", tagged `:repeat_query_sci_fi`, and came
   back as `sci fi`: a different search, silently. `two  spaces` collapsed the
   same way.
@@ -561,8 +555,8 @@ defmodule Kati.Screens.SearchIdle do
   `Kati.Screens.LanguagePick`'s two entries in `@inert_taps` exist for — so a
   clear that did not also move `:history` would look dead to every sweep AND
   leave eight rows on screen under a heading that says they are gone. The
-  card gives way to board 87's *Nothing searched yet* on the next render,
-  which is the state `recent/1` already draws for an empty history.
+  section is gone on the next render, which is what `recent/1` draws for an
+  empty history.
   """
   def handle_tap(:clear_recent, socket) do
     Kati.Search.Recent.forget!()

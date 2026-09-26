@@ -57,8 +57,7 @@ defmodule Kati.WalkLogicTest do
       view = mount_screen(SearchScreen, %{query: ""}) |> render_info({:change, :query, "d"})
 
       assert assigns(view).results.idle?, "one Latin letter ran a query"
-      refute :look_up in tap_tags(view), "one Latin letter drew the nothing-found card"
-      refute :add_by_hand in tap_tags(view)
+      refute :add_by_hand in tap_tags(view), "one Latin letter drew the nothing-found offer"
 
       assert Search.Recent.all() == ["estuary"], "a query too short to run was remembered"
 
@@ -87,7 +86,9 @@ defmodule Kati.WalkLogicTest do
       view = mount_screen(SearchScreen, %{query: ""}) |> render_info({:change, :query, "ژ"})
 
       refute assigns(view).results.idle?
-      assert :look_up in tap_tags(view), "a Persian query that ran drew no nothing-found card"
+
+      assert Enum.any?(texts(view), &(&1.props.text == "Not in your library")),
+             "a Persian query that ran drew no nothing-found line"
     end
 
     test "V17: the clear disc returns to idle with the recent shelf under it" do
@@ -96,6 +97,7 @@ defmodule Kati.WalkLogicTest do
       view =
         mount_screen(SearchScreen, %{query: ""})
         |> render_info({:change, :query, "hollow"})
+        |> render_info({:submit, :commit})
 
       refute assigns(view).results.idle?
 
@@ -109,18 +111,17 @@ defmodule Kati.WalkLogicTest do
       assert SearchIdle.query_tag("repeat_query", "hollow") in tags
       assert SearchIdle.query_tag("repeat_query", "estuary") in tags
       assert :clear_recent in tags
-      refute :look_up in tags
     end
 
     test "V17: backspacing the field to nothing is the same idle page" do
       view =
         mount_screen(SearchScreen, %{query: ""})
         |> render_info({:change, :query, "hollow"})
+        |> render_info({:submit, :commit})
         |> render_info({:change, :query, ""})
 
       assert assigns(view).results.idle?
       assert SearchIdle.query_tag("repeat_query", "hollow") in tap_tags(view)
-      refute :look_up in tap_tags(view)
     end
   end
 

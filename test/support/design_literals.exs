@@ -1525,7 +1525,17 @@ defmodule Kati.DesignLiterals do
       {"31", "accepted"},
       {"31", "tomas rhee"},
       {"31", "no reply yet"},
-      {"31", "add someone"}
+      {"31", "add someone"},
+      # N54: the owner's search round. *Search anything you keep* was cut short
+      # on a phone to *Search anything you*, so the field's placeholder is
+      # `Kati.Search.placeholder/0`'s *Search your library* on every board that
+      # drew the old words — 86 and 87, and Home's empty page (139, and 158 and
+      # 159 in Persian and in dark).
+      {"86", "search anything you keep"},
+      {"87", "search anything you keep"},
+      {"139", "search anything you keep"},
+      {"158", "جست‌وجوی هر چیزی که نگه می‌دارید"},
+      {"159", "جست‌وجوی هر چیزی که نگه می‌دارید"}
     ]
   end
 

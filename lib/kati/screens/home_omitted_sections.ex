@@ -298,7 +298,7 @@ defmodule Kati.Screens.HomeOmittedSections do
   end
 
   def handle_info({:tap, :open_search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   def handle_info({:tap, :open_inbox}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
