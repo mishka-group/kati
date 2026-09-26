@@ -180,12 +180,12 @@ defmodule Kati.SearchGroupsTest do
 
       refute note =~ "debounce", "screen 19 runs on every keystroke, deliberately"
 
-      # N34: it named a count — first five, then `length(chip_keys/0)` — and
-      # the row the device draws is neither, with Music greyed and chips off
-      # the edge. It now names no number at all.
-      assert note =~ "a row of zeroes on open"
-      refute note =~ ~r/\d+ zeroes/
-      refute note =~ "eight zeroes"
+      # N34 took the chip count out; N50 took the whole design argument out —
+      # "a row of zeroes on open would read as an empty app" is why the chips
+      # are drawn that way, not something a reader acts on.
+      refute note =~ "zeroes"
+      refute note =~ "chips"
+      assert note =~ "Two letters start it"
     end
 
     test "and it says so in the other script too" do
@@ -195,10 +195,8 @@ defmodule Kati.SearchGroupsTest do
       Kati.Locale.as(:fa, fn ->
         note = Kati.Search.local_note()
 
-        refute note =~ "Counts stay off"
-        assert note =~ "چیپ‌ها"
-        assert note =~ "یک ردیف صفر"
-        refute note =~ Kati.Locale.number(length(Kati.Search.chip_keys())) <> " صفر"
+        refute note =~ "Searches everything"
+        assert note =~ "دو حرف"
       end)
     end
 

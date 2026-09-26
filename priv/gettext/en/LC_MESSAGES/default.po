@@ -117,7 +117,7 @@ msgid "Add to library"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:203
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Add your first title"
 msgstr ""
@@ -199,7 +199,7 @@ msgid "Back to language"
 msgstr ""
 
 #: lib/kati/screens/loudness_prompt.ex:49
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Back to loudness"
 msgstr ""
@@ -452,7 +452,7 @@ msgid "Films, shows, books, habits — each one is a shelf, and all of them feed
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:209
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Finish setup"
 msgstr ""
@@ -894,7 +894,7 @@ msgid "Pick a list"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:206
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Pick something you are watching now — the calendar fills itself from there."
 msgstr ""
@@ -1041,7 +1041,7 @@ msgid "Shop"
 msgstr ""
 
 #: lib/kati/screens/onboarding.ex:210
-#: lib/kati/screens/onboarding_first_title.ex:89
+#: lib/kati/screens/onboarding_first_title.ex:90
 #, elixir-autogen, elixir-format
 msgid "Skip — I’ll add things later"
 msgstr ""
@@ -1515,7 +1515,7 @@ msgid "Recognised"
 msgstr ""
 
 #: lib/kati/screens/add_title.ex:145
-#: lib/kati/screens/onboarding_first_title.ex:154
+#: lib/kati/screens/onboarding_first_title.ex:155
 #: lib/kati/screens/pushed.ex:205
 #, elixir-autogen, elixir-format
 msgid "Search"
@@ -3410,7 +3410,7 @@ msgstr ""
 
 #: lib/kati/books/sample.ex:160
 #: lib/kati/screens/book_detail.ex:388
-#: lib/kati/screens/gallery.ex:923
+#: lib/kati/screens/gallery.ex:920
 #: lib/kati/screens/log_progress.ex:636
 #: lib/kati/screens/log_progress_states.ex:297
 #, elixir-autogen, elixir-format, fuzzy
@@ -5479,7 +5479,7 @@ msgstr ""
 
 #: lib/kati/screens/add_title.ex:137
 #: lib/kati/screens/add_title_music.ex:271
-#: lib/kati/screens/onboarding_first_title.ex:152
+#: lib/kati/screens/onboarding_first_title.ex:153
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} result"
 msgid_plural "%{n} results"
@@ -7522,7 +7522,7 @@ msgstr ""
 msgid "show settings"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:924
+#: lib/kati/screens/gallery.ex:921
 #, elixir-autogen, elixir-format
 msgid "tap to open"
 msgstr ""
@@ -7700,7 +7700,7 @@ msgctxt "emphasis in “what it can do”"
 msgid "can"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:870
+#: lib/kati/screens/gallery.ex:867
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "Every page"
@@ -7724,7 +7724,7 @@ msgctxt "eyebrow"
 msgid "How often"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:978
+#: lib/kati/screens/gallery.ex:975
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "eyebrow"
 msgid "Not yet drawn"
@@ -7913,7 +7913,7 @@ msgctxt "release watcher"
 msgid "Checking…"
 msgstr ""
 
-#: lib/kati/screens/gallery.ex:870
+#: lib/kati/screens/gallery.ex:867
 #, elixir-autogen, elixir-format
 msgctxt "screen title"
 msgid "All screens"
@@ -15615,25 +15615,25 @@ msgstr ""
 msgid "scrobbles at %{percent}% or %{floor}"
 msgstr ""
 
-#: lib/kati/search.ex:678
+#: lib/kati/search.ex:683
 #, elixir-autogen, elixir-format
 msgctxt "Persian normalisation table"
 msgid "ZWNJ"
 msgstr ""
 
-#: lib/kati/search.ex:679
+#: lib/kati/search.ex:684
 #, elixir-autogen, elixir-format
 msgctxt "Persian normalisation table"
 msgid "folded"
 msgstr ""
 
-#: lib/kati/search.ex:680
+#: lib/kati/search.ex:685
 #, elixir-autogen, elixir-format
 msgctxt "Persian normalisation table"
 msgid "harakat"
 msgstr ""
 
-#: lib/kati/search.ex:681
+#: lib/kati/search.ex:686
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "Persian normalisation table"
 msgid "stripped"
@@ -17201,11 +17201,6 @@ msgstr ""
 msgid "Changes:"
 msgstr ""
 
-#: lib/kati/search.ex:338
-#, elixir-autogen, elixir-format
-msgid "Counts stay off the chips until a query exists — a row of zeroes on open would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one character is a word. Every keystroke runs: the search is your own library on this device, so waiting would cost more than it saved."
-msgstr ""
-
 #: lib/kati/ui/destructive.ex:52
 #, elixir-autogen, elixir-format
 msgid "Does not change:"
@@ -17446,4 +17441,9 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "search field placeholder"
 msgid "Film or series title"
+msgstr ""
+
+#: lib/kati/search.ex:345
+#, elixir-autogen, elixir-format
+msgid "Searches everything you keep on this phone. Two letters start it — one is enough in Persian, Arabic, Chinese or Japanese."
 msgstr ""

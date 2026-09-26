@@ -330,16 +330,21 @@ defmodule Kati.Search do
   claim about chips the page does not show (N34). *A row of zeroes* is true at
   any width.
 
+  It no longer explains the chips or the keystroke rule at all: that was the
+  design's reasoning, read aloud to the reader (N50). What is left is what a
+  reader can act on — where it looks and how much to type.
+
       iex> Kati.Search.local_note() =~ "debounce"
+      false
+
+      iex> Kati.Search.local_note() =~ "zeroes"
       false
   """
   @spec local_note() :: String.t()
   def local_note do
     gettext(
-      "Counts stay off the chips until a query exists — a row of zeroes on open would read as " <>
-        "an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where " <>
-        "one character is a word. Every keystroke runs: the search is your own library on this " <>
-        "device, so waiting would cost more than it saved."
+      "Searches everything you keep on this phone. Two letters start it — one is enough in " <>
+        "Persian, Arabic, Chinese or Japanese."
     )
   end
 

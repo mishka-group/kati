@@ -1326,6 +1326,11 @@ defmodule Kati.DesignLiterals do
       {"166", "مرام"},
       {"166", "پرندگان شب"},
       {"166", "در انگلیسی. پوسترها هرگز آینه نمی‌شوند؛ فقط تیک به گوشه پیشرو می‌رود."},
+      # N50: screen 86's note argued the design ("a row of zeroes on open
+      # would read as an empty app") to the reader; it now says where search
+      # looks and how much to type. `Kati.SearchGroupsTest` asserts it.
+      {"86", "2 characters"},
+      {"86", ", or"},
       # N49: the first run read its designers' notes aloud — board 161's
       # restore note, 162's "band drawn on 136", 163's "Skipping lands on
       # empty Home — 139" and their Persian twins — and offered a Weekly
