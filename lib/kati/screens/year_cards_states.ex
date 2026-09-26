@@ -509,7 +509,7 @@ defmodule Kati.Screens.YearCardsStates do
       <Spacer size={16} />
       {Kati.Screens.YearCardsStates.poster_stack()}
       <Spacer weight={1.0} />
-      {YearShare.ranks()}
+      {YearShare.ranks(ShareSample.top_titles())}
       <Spacer size={10} />
       <Text
         text={hidden}

@@ -242,28 +242,22 @@ defmodule Kati.ScreenStatsTest do
       refute "" in names
     end
 
-    test "counts the two More numbers rows it can, and the two it cannot say nothing" do
-      # The rest of the frozen-figure defect. All four carried the drawing's own
-      # figures beside one that counted. `Kati.Goals.Goal` and
-      # `Kati.Money.Expense` are real resources, so those two are counted;
-      # `Kati.Habits` is a Sample module and nothing else, and `Nutrition`'s
-      # `Cutting v3 · 86%` is a diet plan no column holds — so those two draw
-      # no second line rather than somebody else's numbers.
+    test "draws only the More numbers rows whose pages are real" do
+      # N52-D. Habits, Nutrition, Goals, Money and Health open pages that still
+      # fall back to sample data, so their rows are not drawn — and none of the
+      # drawing's frozen figures can reach the page through them.
       words = text(tree(mount_screen(Stats)))
 
-      for row <- Sample.more_numbers(),
-          row.title not in ["Recently watched", "Activity log"] do
-        assert words =~ row.title, "the row is the door to a page that exists"
+      assert words =~ "Activity log"
+      assert words =~ "Subscriptions"
+
+      for title <- ["Habits", "Nutrition", "Goals", "Money", "Health"] do
+        refute words =~ title, "#{title} opens a page that still draws sample data"
       end
 
-      # The two that cannot be counted say nothing at all.
       refute words =~ "4 active · 12-day best"
       refute words =~ "Cutting v3 · 86%"
-
-      # And the two that can are this reader's.
       refute words =~ "3 active · 38 of 52 books"
-      assert words =~ Kati.Screens.Stats.goals_line()
-      assert words =~ Kati.Screens.Stats.money_line()
     end
 
     test "and counts the Activity row, which is the one it can" do
@@ -432,18 +426,8 @@ defmodule Kati.ScreenStatsTest do
     # R8. Cost per watched hour is a watch statistic and this page had no way
     # to ask it — screen 23 was reachable from *My services* and from Money,
     # neither of which is the page where a reader is counting their hours.
-    test "is on the More numbers card, and board 61's own rows are untouched" do
-      assert Enum.any?(Sample.more_numbers(), &(&1.id == :money)),
-             "the board's rows moved, so what follows is measuring the wrong card"
-
-      refute Enum.any?(Sample.more_numbers(), &(&1.id == :subscriptions)),
-             "the row was written into `Kati.Stats.Sample`, which is board 61's own " <>
-               "transcription and the value the design test compares a render against"
-
-      ids = Stats.with_subscriptions(Sample.more_numbers()) |> Enum.map(& &1.id)
-
-      assert :subscriptions in ids
-      assert List.last(ids) == :subscriptions, "it is Kati's addition and goes after the board's"
+    test "is on the More numbers card, after the activity log" do
+      assert Enum.map(Stats.number_rows(), & &1.id) == [:activity, :subscriptions]
     end
 
     test "it is drawn, and its tap opens screen 23" do

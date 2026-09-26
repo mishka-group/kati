@@ -92,10 +92,7 @@ defmodule Kati.ScreenHomeEmptyStateTest do
     "or restore a backup",
     "THE CALENDAR STILL WORKS",
     "Today",
-    "Nothing scheduled — add anything with +",
-    "Home is a page of section cards, so with no sections there is nothing for it to show. " <>
-      "The calendar and quick-add are section-agnostic and stay live — the app is usable " <>
-      "before it is configured."
+    "Nothing scheduled — add anything with +"
   ]
 
   # Screen 01's fabricated content: the copy that describes a library, a
@@ -398,8 +395,12 @@ defmodule Kati.ScreenHomeEmptyStateTest do
       refute "Habits" in texts,
              "the home card outlived the choice, which is the design's rule failing quietly"
 
+      assert "Screen" in texts, "the one section kept is the one card drawn"
+
       assert "Settings" in texts,
-             "Meals and Settings are not sections the first run offers to keep, so they stay"
+             "Settings is not a section, and this card is the one route into it"
+
+      refute "Meals" in texts, "Meals is not a section anybody chose (N52-D)"
     end
 
     test "a section that is kept and holds nothing draws that section, empty — not 139" do
@@ -430,8 +431,12 @@ defmodule Kati.ScreenHomeEmptyStateTest do
       refute "Nothing chosen yet" in texts,
              "Home told a person who kept every section that they had chosen none"
 
-      assert "Habits" in texts,
+      assert "Screen" in texts,
              "a section this person kept has no card on the page they land on"
+
+      refute "Habits" in texts,
+             "Habits is kept but its page still draws sample data, so Home offers no door " <>
+               "to it (N52-D)"
 
       # And the reason the inversion above is safe rather than a regression:
       # every band on the page they now land on is a read, so an empty store
@@ -631,9 +636,10 @@ defmodule Kati.ScreenHomeEmptyStateTest do
     test "draw the cards and neither of the drawing's counts" do
       texts = with_empty_store(fn -> answered_home_texts() end)
 
-      assert "Meals" in texts
-      assert "Habits" in texts
+      assert "Screen" in texts
       assert "Settings" in texts
+      refute "Meals" in texts
+      refute "Habits" in texts
 
       refute "Dinner 19:30" in texts,
              "screen 43 owns the day's meals and has its own active-plan gate; Home reached " <>

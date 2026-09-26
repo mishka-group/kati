@@ -812,12 +812,7 @@ defmodule Kati.ScreenTapSweepTest do
     # move is the one thing it exists to argue against. Its own moduledoc says
     # so, and 98 is where the choice is actually made.
     {Kati.Screens.YearShareBooks, :scope_all},
-    {Kati.Screens.YearShareBooks, :scope_books},
     {Kati.Screens.YearShareBooks, :scope_screen},
-    {Kati.Screens.YearShareBooks, :scope_books},
-    {Kati.Screens.YearShareBooks, :scope_music},
-    {Kati.Screens.YearShareBooks, :scope_meals},
-    {Kati.Screens.YearShareBooks, :scope_habits},
     {Kati.Screens.YearShareBooks, :aspect_square},
     # Screen 97's third rule, the Persian mirror of 92's — the same `Mob.State`
     # blind spot the English entries above record.

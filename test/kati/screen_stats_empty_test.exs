@@ -165,13 +165,18 @@ defmodule Kati.ScreenStatsEmptyTest do
       assert find_all(tree, :text, text: Kati.Icons.glyph("star")) == []
     end
 
-    test "keeps `More numbers`, because those five rows are the only route to those screens" do
+    test "keeps `More numbers`, with the two rows whose pages are real" do
       words = text(tree(mount_screen(Stats)))
 
       assert words =~ String.upcase("More numbers")
 
-      for row <- Sample.more_numbers(), row.title != "Recently watched" do
-        assert words =~ row.title, "#{row.title} lost its row, and with it its only route"
+      for row <- Stats.number_rows() do
+        assert words =~ row.title, "#{row.title} lost its row, and with it its route"
+      end
+
+      # N52-D: the rows whose pages still draw sample data are not drawn.
+      for title <- ["Habits", "Nutrition", "Goals", "Money", "Health"] do
+        refute words =~ title
       end
     end
 
@@ -195,14 +200,8 @@ defmodule Kati.ScreenStatsEmptyTest do
       # drew them in every state and the English page did not.
       words = text(tree(mount_screen(Stats)))
 
-      for line <- [
-            Kati.Screens.Stats.goals_line(),
-            Kati.Screens.Stats.money_line(),
-            Kati.Screens.Stats.weight_line(),
-            Kati.Screens.Stats.entries_count()
-          ] do
-        assert words =~ line, "an empty store's own answer is missing: #{inspect(line)}"
-      end
+      assert words =~ Kati.Screens.Stats.entries_count()
+      assert words =~ "No subscriptions yet"
     end
 
     test "every `More numbers` row still opens the screen it names" do
@@ -216,13 +215,7 @@ defmodule Kati.ScreenStatsEmptyTest do
       # build it at all.
       for {id, module} <- [
             {:activity, Kati.Screens.Activity},
-            {:habits, Kati.Screens.Habits},
-            {:nutrition, Kati.Screens.Health},
-            {:goals, Kati.Screens.Goals},
-            {:money, Kati.Screens.Money},
-            # Board 61's row, kept through mishka-group/kati#103's stats fold —
-            # `Kati.Stats.Sample.more_numbers/0` carries the argument.
-            {:health, Kati.Screens.Weight}
+            {:subscriptions, Kati.Screens.Subscriptions}
           ] do
         {:noreply, moved} = Stats.handle_tap(String.to_atom("go_#{id}"), socket)
 
@@ -250,7 +243,6 @@ defmodule Kati.ScreenStatsEmptyTest do
       assert year.streak == "longest streak — 11 nights"
       assert year.counts == [{"84", "Films"}, {"19", "Series"}, {"4.1", "Avg ★"}]
       assert length(year.breakdown) == 5
-      assert length(Sample.more_numbers()) == 7
 
       # And the same fixture read in the other script, which is what board 61
       # is: one set of figures, composed through `Kati.Locale` rather than
@@ -300,21 +292,15 @@ defmodule Kati.ScreenStatsEmptyTest do
     test "and the `More numbers` rows come back with it" do
       words = text(tree(mount_screen(Stats)))
 
-      for row <- Sample.more_numbers(), row.title != "Recently watched" do
+      for row <- Stats.number_rows() do
         assert words =~ row.title
       end
 
-      # Three of the five rows are counted now rather than frozen — one watch
-      # is written in this block's setup, and `1,204 entries` was what every
-      # device saw.
+      # One watch is written in this block's setup, and `1,204 entries` was
+      # what every device saw.
       assert words =~ "1 entry"
       refute words =~ "1,204 entries"
 
-      assert words =~ Kati.Screens.Stats.goals_line()
-      assert words =~ Kati.Screens.Stats.money_line()
-
-      # And the two with no resource behind them say nothing rather than
-      # somebody else's figures.
       refute words =~ "4 active · 12-day best"
       refute words =~ "Cutting v3 · 86%"
     end

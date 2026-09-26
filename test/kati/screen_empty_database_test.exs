@@ -1201,7 +1201,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # the *More numbers* list whose second lines are read rather than drawn.
     {"61", "61", "سال شما"},
     {"61", "61", "اعداد بیشتر"},
-    {"61", "61", "اهداف"},
     {"28", "139", "Nothing scheduled"},
     {"28", "139", "add anything with +"},
     # Board 317 gave screen 55 the gate 139 gives screen 01, so a Persian
@@ -1628,6 +1627,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   }
 
   @moment_symbols [
+    # N52-D: board 139's footnote, and 158 and 159 which are the same page in
+    # Persian and in dark. `DesignLiterals.retired_lines/0` holds the words;
+    # `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this entry's twin.
+    {"139", "info"},
+    {"158", "info"},
+    {"159", "info"},
     # N49: the design note that carried this glyph is gone from the first run.
     {"163", "info"},
     {"166", "info"},
@@ -3008,8 +3013,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Sections`. The tiles themselves are navigation and are drawn either
       # way; it is the two metas under them that claimed a dinner and two
       # unfinished habits, and neither has a resource behind it anywhere.
-      {"01", Kati.Screens.Home, fn -> Enum.map(Kati.Screens.Home.tile_rows(), & &1.meta) end,
-       [nil, nil, nil], fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
+      {"01", Kati.Screens.Home,
+       fn -> Kati.Screens.Home.tile_rows() |> Enum.map(& &1.meta) |> Enum.uniq() end, [nil],
+       fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
       # `Rest of today`, asked of `Kati.Calendars.Today` rather than of the card
       # it fills. That read was never the problem — the `[]` clause underneath
       # it was, and the clause is gone, so what is left to assert is that the
@@ -3091,8 +3097,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # two metas under them that claimed a dinner and two unfinished habits,
       # and neither has a resource behind it anywhere. 01 carries the identical
       # pair one screen over.
-      {"55", Kati.Screens.Home, fn -> Enum.map(Kati.Screens.Home.tile_rows(), & &1.meta) end,
-       [nil, nil, nil], fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
+      {"55", Kati.Screens.Home,
+       fn -> Kati.Screens.Home.tile_rows() |> Enum.map(& &1.meta) |> Enum.uniq() end, [nil],
+       fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
       {"55", Kati.Screens.Home, fn -> timeline() end, [], &Kati.Screens.Home.drawn_rows/0}
     ]
   end
@@ -3230,12 +3237,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.ScreenDesignLiteralTest` carries the same pair with the full
       # reasoning; this list is that one's shorter twin.
       {"62", "ایران · ۳ سرویس", ~r/^.+ · (هنوز هیچ‌کدام|\p{N}+ اشتراک)$/u},
-      # 61's three More numbers rows, which are 07's two in Persian plus the
-      # weight row Persian has no Health hub to reach. `Kati.ScreenDesignLiteralTest`
-      # carries the same three with the full reasoning; this list is that one's
-      # shorter twin.
-      {"61", "۳ هدف فعال", ~r/^(هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد|\p{N}+ هدف|تعیین نشده)$/u},
-      {"61", "۴۶٫۴۷ پوند در ماه", ~r/^(هنوز چیزی برای جمع‌زدن نیست|.*در ماه.*|\p{N}+ هزینه)$/u},
       # 80's two cache figures, neither of which exists on a device with an
       # empty database. Its provider-supplied *Connected as* line went with the
       # group it sat in (N41) — see `DesignLiterals.retired_lines/0`.
