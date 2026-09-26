@@ -494,11 +494,33 @@ defmodule Kati.Media.Detect do
       watched_on: Kati.Time.today()
     })
     |> Ash.create()
+    |> Kati.Media.Detect.restate(tracked, episode)
     |> case do
       {:ok, _watch} -> {:ok, :ticked}
       {:error, _reason} -> :ignored
     end
   end
+
+  @doc """
+  Move the title's status the way a tick by hand does.
+
+  A detected tick was a watch row and nothing else, so a show Kati ticked for
+  you stayed *not started* on the shelf and a film it logged never finished.
+  An episode goes through `Kati.Screens.Series.restate/1`, a film through
+  `Kati.Screens.Rating.finish_title/2` — the same two calls screens 04 and 33
+  make, so a detected tick and a tapped one leave the same shelf.
+  """
+  @spec restate({:ok, struct()} | {:error, term()}, map(), String.t() | nil) ::
+          {:ok, struct()} | {:error, term()}
+  def restate({:ok, _watch} = written, tracked, nil),
+    do: Kati.Screens.Rating.finish_title(written, tracked.id)
+
+  def restate({:ok, _watch} = written, tracked, _episode) do
+    Kati.Screens.Series.restate(tracked.id)
+    written
+  end
+
+  def restate(other, _tracked, _episode), do: other
 
   @doc """
   Remember a title Kati could not place, so screen 36 can ask about it.

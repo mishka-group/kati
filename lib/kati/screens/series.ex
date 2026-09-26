@@ -2552,12 +2552,7 @@ defmodule Kati.Screens.Series do
   """
   @spec restate(binary() | nil) :: :ok
   def restate(tracked_id) when is_binary(tracked_id) do
-    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, tracked_id),
-         %CachedTitle{episode_count: total} when is_integer(total) and total > 0 <-
-           Release.cached_for(tracked) do
-      # Through the named action rather than a `filter` expression, for the
-      # reason stated at the top of this file: no `require Ash.Query` here, and
-      # `:for_title` is the read this screen already makes about its own ticks.
+    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, tracked_id) do
       ticked =
         Kati.Media.Watch
         |> Ash.Query.for_read(:for_title, %{tracked_title_id: tracked_id})
@@ -2567,7 +2562,8 @@ defmodule Kati.Screens.Series do
         |> Enum.uniq()
         |> length()
 
-      status = if ticked >= total, do: :finished, else: :watching
+      status =
+        Kati.Screens.Series.status_after(tracked.status, ticked, episode_total(tracked))
 
       changes =
         %{status: status}
@@ -2587,6 +2583,39 @@ defmodule Kati.Screens.Series do
   end
 
   def restate(_none), do: :ok
+
+  @doc """
+  The status a show's ticks put it in.
+
+  Every episode ticked is finished and any tick is watching. A show whose
+  episode count nobody knows — one typed by hand, or not yet fetched — can
+  never be called finished, but its first tick still makes it watching; it
+  used to stay *not started* however many were ticked, because the count
+  gated the whole update. No ticks leaves the status as the reader set it.
+
+      iex> Kati.Screens.Series.status_after(:not_started, 1, nil)
+      :watching
+
+      iex> Kati.Screens.Series.status_after(:watching, 8, 8)
+      :finished
+
+      iex> Kati.Screens.Series.status_after(:not_started, 0, 8)
+      :not_started
+  """
+  @spec status_after(atom(), non_neg_integer(), pos_integer() | nil) :: atom()
+  def status_after(_status, ticked, total)
+      when is_integer(total) and total > 0 and ticked >= total,
+      do: :finished
+
+  def status_after(_status, ticked, _total) when ticked > 0, do: :watching
+  def status_after(status, _ticked, _total), do: status
+
+  defp episode_total(tracked) do
+    case Release.cached_for(tracked) do
+      %CachedTitle{episode_count: total} when is_integer(total) and total > 0 -> total
+      _unknown -> nil
+    end
+  end
 
   @doc false
   @spec write_tick(binary() | nil, map() | nil) :: :ok | {:error, term()}
