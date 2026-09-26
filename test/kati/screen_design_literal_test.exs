@@ -416,10 +416,12 @@ defmodule Kati.ScreenDesignLiteralTest do
   # `FirstRunTest.assertNothingInvented/1` on the device is the assertion
   # written for it.
   #
-  # Nothing is picked on a bare mount now, so no tile carries the tick.
-  # `Kati.FirstRunTest`'s "finishing puts the chosen title on the shelf" taps a
-  # tile and asserts what follows, in both locales — delete these two entries
-  # if that test goes.
+  # The poster wall is gone since (N46): step 5 is screen 06's TMDB search, and
+  # the glyph is drawn by a result's add disc once that title is on the shelf —
+  # which a bare mount, with no query and no results, never is.
+  # `Kati.OnboardingFirstTitleTest`'s "is added with TMDB's own poster path"
+  # adds one and asserts the disc turns — delete these two entries if that test
+  # goes.
   #
   # 131 and 133 draw 128's status card in the dark colourway and at 235%, and
   # read the same ledger since 25 September, so their `cloud_done` is 128's
@@ -1579,7 +1581,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"37", Kati.Screens.Import, &Map.put(&1, :job, Kati.Import.Sample.job(:trakt))},
       {"141", Kati.Screens.ImportRecognised, &Map.put(&1, :job, Kati.Import.Sample.recognised())},
       # 11 answers an empty feed now, so the board's own is installed here.
-      {"11", Kati.Screens.Discover, &Map.put(&1, :feed, Kati.DesignLiterals.discover_board_feed())},
+      {"11", Kati.Screens.Discover,
+       &Map.put(&1, :feed, Kati.DesignLiterals.discover_board_feed())},
       # 34 answers an empty season now, so the board's own goes in here.
       {"34", Kati.Screens.Season, &Map.put(&1, :season, Kati.Screens.Season.drawn_season())},
       # 153 is one show's numbering and a bare mount names no show, so the

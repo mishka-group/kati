@@ -24,10 +24,15 @@ defmodule Kati.Media.Watch do
 
   ## Why `rewatch_number` is stored rather than counted
 
-  Screen 33 prints "2nd rewatch". Counting rows would say "1st" for anyone who
-  watched the film twice before Kati existed or imported a partial history — and
-  screen 15's import row ("412 titles from a CSV backup") says that user exists.
-  It is the user's own count, so it is the user's own column.
+  It counts VIEWINGS: `1` is the first watch, `2` the second. Screen 33's badge
+  counts REWATCHES, so viewing `n` prints as the `(n - 1)`th rewatch — `2` is
+  "1st rewatch", `3` is "2nd rewatch" — and a first watch has no badge.
+  `Kati.Screens.Activity`'s "3rd time" reads the same column as the viewing it is.
+
+  Counting rows would undercount for anyone who watched the film twice before
+  Kati existed or imported a partial history — and screen 15's import row ("412
+  titles from a CSV backup") says that user exists. It is the user's own count,
+  so it is the user's own column.
 
   ## Dates
 

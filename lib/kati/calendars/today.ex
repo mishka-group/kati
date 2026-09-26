@@ -7,11 +7,15 @@ defmodule Kati.Calendars.Today do
 
   ## A row carries its kind; the label is a rendering decision
 
-  A row is `%{id, time, title, meta, kind, location, now?}`. `kind` is the
+  A row is `%{id, time, at, title, meta, kind, location, now?}`. `kind` is the
   event's own `Kati.Calendars.Event` kind, **verbatim** rather than collapsed,
   and `location` is the event's own — so a screen has the two facts the
   sub-line is made of, not only the one sentence one language wrote out of
   them.
+
+  `at` is the instant `time` was printed from, so a screen that merges these
+  rows with rows from somewhere else — `Kati.Calendars.Airings` on screen 02 —
+  orders them by when they happen rather than by a clock string.
 
   ## A row carries WHICH event it is
 
@@ -172,6 +176,7 @@ defmodule Kati.Calendars.Today do
       # numerals. Board 56's gutter reads ۰۸:۰۰, which is why its mirror
       # digited this by hand on the way past.
       time: Kati.Locale.time(local),
+      at: event.dtstart_utc,
       title: event.summary || gettext("Untitled"),
       # The event's own kind, uncollapsed. `:reminder` and `:event` share a
       # label and draw differently — screen 56 gives a reminder a hollow ring

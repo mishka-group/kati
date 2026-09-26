@@ -112,7 +112,7 @@ defmodule Kati.ScreenRatingLogTest do
       rating: 7,
       review: "Rex, back row.",
       contains_spoilers: true,
-      rewatch_number: 3,
+      rewatch_number: 4,
       service: "Rex",
       place: "back row",
       companions: "Sam",

@@ -1308,7 +1308,24 @@ defmodule Kati.DesignLiterals do
       {"151", "log by hand instead"},
       {"151", "granted"},
       {"151", "on · media notifications only"},
-      {"151", "live"}
+      {"151", "live"},
+      # Boards 163 and 166's poster wall: four films that do not exist, in both
+      # scripts, and the note's sentence about their artwork. Shelving one put a
+      # title nobody can look up on the shelf with a design seed as its poster,
+      # which Home, the Library and Up next then drew as the reader's own film
+      # (N46). Step 5 is screen 06's TMDB search now, so there is no wall, no
+      # artwork to mirror and no tick on a tile; `Kati.OnboardingFirstTitleTest`
+      # adds a real title through it.
+      {"163", "the long hollow"},
+      {"163", "ashfall"},
+      {"163", "marram"},
+      {"163", "nightbirds"},
+      {"163", ". artwork never mirrors; only the tick moves to the leading corner."},
+      {"166", "گودال بلند"},
+      {"166", "بارش خاکستر"},
+      {"166", "مرام"},
+      {"166", "پرندگان شب"},
+      {"166", "در انگلیسی. پوسترها هرگز آینه نمی‌شوند؛ فقط تیک به گوشه پیشرو می‌رود."}
     ]
   end
 

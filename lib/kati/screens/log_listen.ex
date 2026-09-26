@@ -720,12 +720,12 @@ defmodule Kati.Screens.LogListen do
   one skeleton with a translated suffix — a shape that would be the English
   rule with Persian letters in it.
 
-  ## Why the Persian half is a word where the rewatch badge's is a numeral
+  ## Why the Persian half is a word where Activity's rewatch row is a numeral
 
   Board 296 draws this sheet's confirmation as **چهارمین بار این ماه**, with
   the ordinal spelled out. `Kati.Screens.Activity.ordinal/1` prints `بار ۳ام`
   for a rewatch, numeral and suffix, and both are right for what they count: a
-  rewatch badge runs to twenty and this line counts the times one record was
+  rewatch row runs to twenty and this line counts the times one record was
   played inside one month, which is a small number a Persian sentence says
   rather than prints. `nth_time/1`'s `pgettext/2` context is what keeps the two
   constructions apart in the catalogue.

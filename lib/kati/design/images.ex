@@ -81,7 +81,7 @@ defmodule Kati.Design.Images do
   none.
 
   Only two of the fifty seeds have a 520x384 — `hollow71` and `saltiron33` —
-  and three of the four titles screen 163's poster wall offers do not. Found on
+  and three of the four titles screen 163's poster wall offered do not. Found on
   a real phone: picking **Marram** in onboarding put it on Home's *Continue
   watching* card as a grey rectangle, because the seed reached the card and the
   crop did not. It only showed up there because the emulator run happened to
