@@ -1965,6 +1965,9 @@ defmodule Kati.Screens.Film do
   # N37: `resumed/3` is the whole refresh, shared with screen 04, so a title
   # removed while this page sat under a sheet turns into `gone/2`'s page on the
   # way back, and its ⋯ and its remove question go with it.
+  def handle_info({:kati, :title_filled, _id}, socket),
+    do: handle_info({:kati, :resumed, nil}, socket)
+
   def handle_info({:kati, :resumed, _payload}, %{assigns: %{preview: %{}}} = socket),
     do: {:noreply, Kati.Screens.TitlePreview.resumed(socket, :film, &Kati.Screens.Film.film/1)}
 

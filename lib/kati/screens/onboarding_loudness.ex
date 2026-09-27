@@ -109,9 +109,15 @@ defmodule Kati.Screens.OnboardingLoudness do
   def label(:notify), do: gettext("Notify me")
   def label(_quiet), do: gettext("Quietly")
 
-  @doc false
+  @doc """
+  Each choice's line. *Notify me* is the card as well as the push — the
+  inbox and Home's card hold the same list either way
+  (`Kati.Settings.Watcher`), and push is what this choice adds — and its line
+  says both, because a reader who wanted the card and a notification read
+  the two choices as one or the other.
+  """
   @spec line(atom()) :: String.t()
-  def line(:notify), do: gettext("A push when something lands.")
+  def line(:notify), do: gettext("The card on home, plus a push when something lands.")
   def line(_quiet), do: gettext("A card on home. Nothing buzzes.")
 
   @doc """

@@ -157,7 +157,7 @@ defmodule Kati.Screens.Library do
   whole.
   """
   @impl true
-  def handle_kati(:resumed, _payload, socket),
+  def handle_kati(topic, _payload, socket) when topic in [:resumed, :title_filled],
     do:
       {:noreply,
        Mob.Socket.assign(socket, titles: titles(), queued: queued(), lists: lists_kept())}

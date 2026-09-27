@@ -208,7 +208,8 @@ defmodule Kati.Screens.Home do
   no state the reader chose. Screen 03 cannot do this and says why.
   """
   @impl true
-  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+  def handle_kati(topic, _payload, socket) when topic in [:resumed, :title_filled],
+    do: {:noreply, load(socket)}
 
   @doc """
   Whether this device has nothing for Home to draw.

@@ -697,6 +697,11 @@ defmodule Kati.Screens.AddTitle do
 
   Untracking deletes the `TrackedTitle` and leaves the `CachedTitle`: what you
   decided is yours to undo, what a title IS is not a decision.
+
+  The add is a local write now (`track/3`), so the disc turns to ✓ at once —
+  and a second tap landing on that ✓ within `@double_tap_ms` of the add is
+  the same tap twice, not a change of mind, and is ignored rather than taking
+  the title straight back off the shelf.
   """
   @spec add(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def add(socket, key) do
@@ -704,23 +709,44 @@ defmodule Kati.Screens.AddTitle do
     title = row && row.title
     tracked? = row && row.added
 
-    result =
-      if tracked? do
-        Kati.Screens.AddTitle.untrack(title, row)
-      else
-        Kati.Screens.AddTitle.track(title, row, Map.get(socket.assigns, :adds_as, :not_started))
+    if tracked? and Kati.Screens.AddTitle.just_added?(socket, key) do
+      socket
+    else
+      result =
+        if tracked? do
+          Kati.Screens.AddTitle.untrack(title, row)
+        else
+          Kati.Screens.AddTitle.track(
+            title,
+            row,
+            Map.get(socket.assigns, :adds_as, :not_started)
+          )
+        end
+
+      case result do
+        {:ok, _record} ->
+          socket
+          |> Mob.Socket.assign(:results, Kati.Screens.AddTitle.mark(socket.assigns.results, key))
+          |> Mob.Socket.assign(:save_error, nil)
+          |> Mob.Socket.assign(:last_add, if(tracked?, do: nil, else: {key, now_ms()}))
+
+        {:error, _reason} = error ->
+          Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
       end
-
-    case result do
-      {:ok, _record} ->
-        socket
-        |> Mob.Socket.assign(:results, Kati.Screens.AddTitle.mark(socket.assigns.results, key))
-        |> Mob.Socket.assign(:save_error, nil)
-
-      {:error, _reason} = error ->
-        Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
     end
   end
+
+  @double_tap_ms 1_000
+
+  @doc false
+  def just_added?(socket, key) do
+    case Map.get(socket.assigns, :last_add) do
+      {^key, at} -> now_ms() - at < @double_tap_ms
+      _other -> false
+    end
+  end
+
+  defp now_ms, do: System.monotonic_time(:millisecond)
 
   @doc """
   The row a tap names by its position, toggled.
@@ -861,45 +887,18 @@ defmodule Kati.Screens.AddTitle do
           {:ok, term()} | {:error, term()}
   def track(title, row, status \\ :not_started)
 
-  def track(title, %{source: source, source_id: source_id, kind: kind}, status)
+  def track(title, %{source: source, source_id: source_id, kind: kind} = row, status)
       when source in [:tmdb, :anilist, :tvmaze] do
-    # The detail call, and the only place it is made. It fills
-    # `Kati.Media.CachedTitle`, `CachedSeason` and `CachedEpisode` — the
-    # episodes are the point, because nothing can be ticked before they exist,
-    # and a series tracked without them is a row with no progress possible.
-    #
-    # A tracked row under the TMDB id rather than under the title: the cached
-    # episodes reference `title_source_id`, so a `:manual` row keyed on a
-    # string would sit beside its own episode list and never join to it.
-    with {:ok, filled} <- Kati.Media.Provider.fetch(source, source_id, tmdb_kind(kind)),
+    with {:ok, cached} <- Kati.Screens.AddTitle.cache_from_row(title, row),
          {:ok, tracked} <-
            Ash.create(Kati.Media.TrackedTitle, %{
              source: source,
              source_id: source_id,
-             # Board 152's third rule, asked of the row the fetch just wrote:
-             # TMDB's Animation + Japanese origin. `:anime` was a kind every
-             # reader in the app knew and nothing ever wrote,
-             # and this is the writer.
-             kind: Kati.Media.Anime.kind_for(kind, Map.get(filled, :title), nil),
+             kind: Kati.Screens.AddTitle.first_kind(source, kind, cached),
              status: status
            }) do
-      # The picture, fetched once, here, because this is the only moment the
-      # app knows a title is wanted and is allowed to be slow. `poster_path` is
-      # a path on TMDB's CDN and every screen resolves artwork through
-      # `Kati.Design.Images`, which can only answer for a file already on the
-      # device — so without this line every title a user added drew a grey
-      # placeholder on Home, on the shelf, on Up next and on its own page.
-      #
-      # The result is deliberately dropped. A poster that did not download is a
-      # grey card, which is what the app drew before; refusing to add the title
-      # would let the network decide what is on somebody's shelf.
-      _artwork = Kati.Media.Artwork.cache(Kati.Screens.AddTitle.poster_of(filled))
-
-      # Screen 15's `Added` chip could never match a row,
-      # because nothing recorded that a title arrived. `from_status` is nil on
-      # an add — there was no before.
       Kati.Media.Log.write(tracked, :added, %{from_status: nil})
-
+      Kati.Screens.AddTitle.fill_later(tracked, kind)
       {:ok, tracked}
     end
     |> Kati.Write.note("track #{title}")
@@ -921,6 +920,126 @@ defmodule Kati.Screens.AddTitle do
       {:ok, tracked}
     end
     |> Kati.Write.note("track #{title}")
+  end
+
+  @doc """
+  The cached row a catalogue search row stands for: the one already there, or
+  one written now from what the search row carries — title, year, overview
+  and poster — so the title is on the shelf, drawn, the moment it is added.
+
+  Adding used to wait on the catalogue: the detail call, then one request per
+  season, then the poster, all before the tracked row was written. On a long
+  series that is a dozen round trips, and the + sat there. The reader's shelf
+  is a local SQLite table and the add is a local write; the catalogue fills in
+  behind it (`fill_later/2`). `fetched_at` is the epoch until then, so if the
+  fill never lands the cache's own staleness pass fetches it the next time.
+  """
+  @spec cache_from_row(String.t(), map()) :: {:ok, term()} | {:error, term()}
+  def cache_from_row(title, %{source: source, source_id: source_id} = row) do
+    existing =
+      Kati.Media.CachedTitle
+      |> Ash.Query.do_filter(source: source, source_id: source_id)
+      |> Ash.read!()
+      |> List.first()
+
+    if existing do
+      {:ok, existing}
+    else
+      Ash.create(Kati.Media.CachedTitle, %{
+        source: source,
+        source_id: source_id,
+        kind: tmdb_kind(Map.get(row, :kind)),
+        title: Map.get(row, :title) || title,
+        overview: Map.get(row, :overview),
+        poster_path: Map.get(row, :poster_path),
+        first_release_year: Kati.Screens.AddTitle.year_number(Map.get(row, :year)),
+        fetched_at: ~U[1970-01-01 00:00:00Z]
+      })
+    end
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc false
+  def year_number(year) when is_binary(year) do
+    case Integer.parse(year) do
+      {n, _rest} when n > 0 -> n
+      _other -> nil
+    end
+  end
+
+  def year_number(_other), do: nil
+
+  @doc """
+  The kind a title is tracked under before its details arrive. AniList lists
+  anime and nothing else, so its rows are anime from the start; the others ask
+  `Kati.Media.Anime.kind_for/3` of whatever the cache already holds, and
+  `fill_later/2` asks again once the details are in.
+  """
+  @spec first_kind(atom(), atom(), term()) :: atom()
+  def first_kind(:anilist, _kind, _cached), do: :anime
+  def first_kind(_source, kind, cached), do: Kati.Media.Anime.kind_for(kind, cached, nil)
+
+  @doc """
+  Fetch a just-added title's details, episodes and poster off the screen's
+  process, then tell whatever screen is up (`{:kati, :title_filled, id}`) so it
+  draws them.
+
+  Supervised under `Kati.TaskSupervisor` when it is running, and done inline
+  when it is not — a test without the supervisor gets the filled rows before
+  `track/3` returns, which is what those tests assert. The kind is asked again
+  here because TMDB's *Animation + Japanese* rule needs the details.
+  """
+  @spec fill_later(Kati.Media.TrackedTitle.t(), atom()) :: :ok
+  def fill_later(tracked, kind) do
+    work = fn -> Kati.Screens.AddTitle.fill(tracked, kind) end
+
+    if Process.whereis(Kati.TaskSupervisor) &&
+         Application.get_env(:kati, :fill_titles_in_background, true) do
+      {:ok, _pid} = Task.Supervisor.start_child(Kati.TaskSupervisor, work)
+      :ok
+    else
+      work.()
+      :ok
+    end
+  end
+
+  @doc false
+  def fill(tracked, kind) do
+    case Kati.Media.Provider.fetch(tracked.source, tracked.source_id, tmdb_kind(kind)) do
+      {:ok, filled} ->
+        _artwork = Kati.Media.Artwork.cache(Kati.Screens.AddTitle.poster_of(filled))
+        settle_kind(tracked, kind, Map.get(filled, :title))
+
+      {:error, _reason} ->
+        :ok
+    end
+
+    announce(tracked.id)
+  rescue
+    _error -> announce(tracked.id)
+  end
+
+  defp settle_kind(%{source: :anilist}, _kind, _cached), do: :ok
+
+  defp settle_kind(tracked, kind, cached) do
+    wanted = Kati.Media.Anime.kind_for(kind, cached, nil)
+
+    with {:ok, current} <- Ash.get(Kati.Media.TrackedTitle, tracked.id),
+         true <- current.kind != wanted do
+      current |> Ash.Changeset.for_update(:update, %{kind: wanted}) |> Ash.update()
+    end
+
+    :ok
+  end
+
+  defp announce(id) do
+    case Process.whereis(:mob_screen) do
+      nil -> :ok
+      screen -> send(screen, {:kati, :title_filled, id})
+    end
+
+    :ok
   end
 
   @doc """

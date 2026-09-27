@@ -91,7 +91,11 @@ defmodule Kati.OnboardingFirstTitleTest do
       rolled_back(fn ->
         {socket, _results} = search(socket_for(), "spirited")
         {:noreply, added} = OnboardingFirstTitle.handle_info({:tap, :add_0}, socket)
-        {:noreply, removed} = OnboardingFirstTitle.handle_info({:tap, :add_0}, added)
+        {:noreply, twice} = OnboardingFirstTitle.handle_info({:tap, :add_0}, added)
+        assert [%{added: true}] = twice.assigns.results
+
+        later = Mob.Socket.assign(added, :last_add, nil)
+        {:noreply, removed} = OnboardingFirstTitle.handle_info({:tap, :add_0}, later)
 
         assert [%{added: false}] = removed.assigns.results
         refute Enum.find(Ash.read!(TrackedTitle), &(&1.source == :tmdb and &1.source_id == "129"))

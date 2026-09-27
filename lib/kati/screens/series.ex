@@ -2408,6 +2408,9 @@ defmodule Kati.Screens.Series do
   # rather than in a `handle_kati/3` and why the push's id stands in when the
   # page on screen is the one that says the show has gone — and, since N37,
   # why a show that has gone closes the ⋯ and the remove question with it.
+  def handle_info({:kati, :title_filled, _id}, socket),
+    do: handle_info({:kati, :resumed, nil}, socket)
+
   def handle_info({:kati, :resumed, _payload}, %{assigns: %{preview: %{}}} = socket),
     do:
       {:noreply,

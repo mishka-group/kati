@@ -334,11 +334,14 @@ defmodule Kati.DiscoverFeedTest do
       assert Ash.read!(TrackedTitle) |> Enum.map(& &1.source_id) |> Enum.member?("82708") == false
     end
 
-    test "a refused add is said out loud rather than swallowed", %{feed: feed} do
-      # `Kati.Screens.AddTitle.track/2` fetches from TMDB first, and this suite
-      # has no key — so this is the refusal path, exercised for the thing that
-      # matters about it: that the screen SAYS so. Screen 06 sets the same
-      # assign and draws it nowhere, which is `D-60`'s defect in English.
+    test "an add lands on the shelf with no network, and the details follow", %{feed: feed} do
+      # `Kati.Screens.AddTitle.track/3` writes the tracked row from the pick
+      # itself and fetches from TMDB behind it, so a suite with no key still
+      # adds: the shelf is local, and the catalogue only fills in.
+      on_exit(fn ->
+        for row <- Ash.read!(TrackedTitle), row.source_id == "82708", do: Ash.destroy!(row)
+      end)
+
       socket =
         Discover
         |> Mob.Socket.new()
@@ -346,8 +349,8 @@ defmodule Kati.DiscoverFeedTest do
 
       after_tap = Discover.add(socket, "82708")
 
-      assert is_binary(after_tap.assigns.add_error)
-      assert drawn_with(after_tap.assigns) =~ after_tap.assigns.add_error
+      assert after_tap.assigns.add_error == nil
+      assert Ash.read!(TrackedTitle) |> Enum.any?(&(&1.source_id == "82708"))
     end
   end
 

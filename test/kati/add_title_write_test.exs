@@ -73,6 +73,10 @@ defmodule Kati.AddTitleWriteTest do
       view = render_info(view, {:tap, tag_for(title)})
       assert length(Ash.read!(Kati.Media.TrackedTitle)) == 1
 
+      _twice = render_info(view, {:tap, tag_for(title)})
+      assert length(Ash.read!(Kati.Media.TrackedTitle)) == 1, "a double tap took the add back"
+
+      view = %{view | socket: Mob.Socket.assign(view.socket, :last_add, nil)}
       _ = render_info(view, {:tap, tag_for(title)})
 
       assert Ash.read!(Kati.Media.TrackedTitle) == [],
