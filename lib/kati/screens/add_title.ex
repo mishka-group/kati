@@ -450,7 +450,7 @@ defmodule Kati.Screens.AddTitle do
   def searched(socket, query) do
     socket = Mob.Socket.assign(socket, :searching?, false)
 
-    case Kati.Media.Tmdb.search(query) do
+    case Kati.Screens.AddTitle.catalogue_search(query) do
       {:ok, rows} ->
         socket
         |> Mob.Socket.assign(
@@ -467,6 +467,46 @@ defmodule Kati.Screens.AddTitle do
         |> Mob.Socket.assign(:save_error, nil)
     end
   end
+
+  @doc """
+  The catalogues a search asks: TMDB with the reader's token, and without one
+  AniList and TVmaze together — both asked at once, AniList's rows first and a
+  TVmaze row dropped when AniList already lists the same title and year
+  (`Kati.Search.Keyless.duplicate?/2`). An answer from either is an answer;
+  only both failing is `{:error, reason}`, AniList's reason first.
+  """
+  @spec catalogue_search(String.t()) :: {:ok, [map()]} | {:error, term()}
+  def catalogue_search(query) do
+    if Kati.Media.Tmdb.usable?() do
+      Kati.Media.Tmdb.search(query)
+    else
+      [anilist, tvmaze] =
+        [:anilist, :tvmaze]
+        |> Enum.map(fn source ->
+          Task.async(fn -> Kati.Media.Provider.search(source, query) end)
+        end)
+        |> Task.await_many(30_000)
+
+      case {anilist, tvmaze} do
+        {{:error, reason}, {:error, _other}} ->
+          {:error, reason}
+
+        _some ->
+          first = ok_rows(anilist)
+          matched = Enum.map(first, &%{match: Kati.Search.Keyless.match(&1)})
+
+          second =
+            Enum.reject(ok_rows(tvmaze), fn row ->
+              Kati.Search.Keyless.duplicate?(%{match: Kati.Search.Keyless.match(row)}, matched)
+            end)
+
+          {:ok, first ++ second}
+      end
+    end
+  end
+
+  defp ok_rows({:ok, rows}), do: rows
+  defp ok_rows(_error), do: []
 
   @doc """
   One TMDB result in the shape this screen draws.

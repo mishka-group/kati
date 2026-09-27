@@ -75,7 +75,8 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       search_reason: nil,
       save_error: nil,
       adds_as: :watching,
-      tmdb_ready: Kati.Media.Tmdb.usable?()
+      tmdb_ready: Kati.Media.Tmdb.usable?(),
+      tmdb_skipped: Kati.UI.TmdbPrompt.skipped?()
     )
   end
 
@@ -107,7 +108,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
         text_color={Palette.ink_soft()}
       />
       <Spacer size={20} />
-      {Kati.UI.TmdbPrompt.block(assigns.tmdb_ready)}
+      {Kati.UI.TmdbPrompt.inline(assigns.tmdb_ready, Map.get(assigns, :tmdb_form), Map.get(assigns, :tmdb_skipped) == true)}
       {AddTitle.field(assigns.query, assigns.query_epoch)}
       {Kati.Screens.OnboardingFirstTitle.notice(assigns)}
       {AddTitle.save_notice(assigns.save_error)}
@@ -202,7 +203,27 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   def handle_info({:search_ready, query} = message, socket) when is_binary(query),
     do: AddTitle.handle_info(message, socket)
 
+  def handle_info({:change, :inline_tmdb_token, _typed} = message, socket) do
+    {:ok, socket} =
+      Kati.UI.TmdbPrompt.handle(message, socket, &Kati.Screens.OnboardingFirstTitle.token_saved/1)
+
+    {:noreply, socket}
+  end
+
   def handle_info(message, socket), do: super(message, socket)
+
+  @doc """
+  After a token is saved in the form on this page: the search in the field is
+  asked again, now of TMDB, so the reader sees films without typing it twice.
+  """
+  @spec token_saved(Mob.Socket.t()) :: Mob.Socket.t()
+  def token_saved(socket) do
+    query = socket.assigns |> Map.get(:query, "") |> String.trim()
+
+    if Kati.Search.long_enough?(query),
+      do: AddTitle.searched(socket, query),
+      else: socket
+  end
 
   # Both ways out FINISH the run, and `reset_to/2` rather than `push_screen/2`
   # so Home is the bottom of the stack — pushing would leave the whole first
@@ -224,6 +245,18 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   end
 
   def handle_tap(:step_back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_tap(tag, socket)
+      when tag in [:inline_save_token, :skip_tmdb_token, :tmdb_unskip, :get_tmdb_token] do
+    {:ok, socket} =
+      Kati.UI.TmdbPrompt.handle(
+        {:tap, tag},
+        socket,
+        &Kati.Screens.OnboardingFirstTitle.token_saved/1
+      )
+
+    {:noreply, socket}
+  end
 
   def handle_tap(tag, socket) when tag in [:add_tmdb_token, :open_data_sources],
     do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Back")}

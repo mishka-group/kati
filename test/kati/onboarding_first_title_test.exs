@@ -1,3 +1,5 @@
+Code.require_file("../support/keyless_stubs.exs", __DIR__)
+
 defmodule Kati.OnboardingFirstTitleTest do
   @moduledoc """
   Screen 163's first title is a real one (N46).
@@ -163,25 +165,30 @@ defmodule Kati.OnboardingFirstTitleTest do
   end
 
   describe "with no TMDB token" do
-    test "the step draws the token door once, and it opens screen 80" do
+    test "the step draws the token form once, and finds titles on AniList and TVmaze" do
       Application.delete_env(:kati, :tmdb_test_token)
       refute Kati.Media.Tmdb.usable?(), "this host has a reader's own TMDB token stored"
+      Kati.Test.KeylessStubs.install!()
 
       socket = socket_for()
       refute socket.assigns.tmdb_ready
 
       {:noreply, typed} =
-        OnboardingFirstTitle.handle_info({:change, :title_query, "spirited"}, socket)
+        OnboardingFirstTitle.handle_info({:change, :title_query, "sakamoto"}, socket)
 
-      {:noreply, refused} = OnboardingFirstTitle.handle_info({:search_ready, "spirited"}, typed)
-      assert refused.assigns.search_reason == :no_api_key
+      {:noreply, found} = OnboardingFirstTitle.handle_info({:search_ready, "sakamoto"}, typed)
+      assert found.assigns.search_error == nil
+      titles = Enum.map(found.assigns.results, & &1.title)
+      assert "SAKAMOTO DAYS" in titles
+      assert "Sakamoto Desu ga?" in titles
+      refute "Sakamoto Days" in titles, "TVmaze's copy of the AniList title was drawn twice"
 
-      drawn = inspect(OnboardingFirstTitle.render(refused.assigns), limit: :infinity)
+      drawn = inspect(OnboardingFirstTitle.render(found.assigns), limit: :infinity)
       assert length(String.split(drawn, "Add your TMDB token")) == 2
-
-      {:noreply, opened} = OnboardingFirstTitle.handle_info({:tap, :add_tmdb_token}, refused)
-      assert {:push, Kati.Screens.DataSources, _params} = opened.__mob__.nav_action
+      assert drawn =~ "inline_tmdb_token"
+      assert drawn =~ "skip_tmdb_token"
     after
+      Kati.Test.KeylessStubs.restore!()
       restore_key()
     end
   end

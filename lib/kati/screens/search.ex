@@ -439,6 +439,15 @@ defmodule Kati.Screens.Search do
     end
   end
 
+  def handle_info({:kati, :title_filled, _id}, socket) do
+    {:noreply,
+     Mob.Socket.assign(
+       socket,
+       :results,
+       Kati.Search.Query.run(Map.get(socket.assigns, :query, ""))
+     )}
+  end
+
   def handle_info({:tap, :add_tmdb_token}, socket),
     do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Search")}
 
