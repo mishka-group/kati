@@ -160,9 +160,24 @@ defmodule Kati.KeylessTitlesTest do
       :ok
     end
 
-    test "the cache refresh sweeps TMDB rows only" do
+    test "the cache refresh sends each row to its own catalogue, never TMDB" do
       assert Kati.Media.Cache.tracked() == []
-      assert {:ok, %{refreshed: 0, failed: 0}} = Kati.Media.Cache.refresh()
+      flush_requests()
+
+      assert {:ok, %{refreshed: 2, failed: 0}} = Kati.Media.Cache.refresh()
+      refute_received {:tmdb_asked, _path}
+      assert_received {:keyless_request, :anilist, {:detail, 177_709}}
+      assert_received {:keyless_request, :tvmaze, {:detail, 4444}}
+    end
+
+    test "a cleared cache comes back from AniList and TVmaze, with no TMDB key at all" do
+      Application.delete_env(:kati, :tmdb_test_token)
+      assert {:ok, _removed} = Kati.Media.Cache.clear()
+      assert Ash.read!(CachedTitle) == []
+
+      assert {:ok, %{refreshed: 2, failed: 0}} = Kati.Media.Cache.refresh()
+      assert cached(:anilist, "177709").title == "SAKAMOTO DAYS"
+      assert cached(:tvmaze, "4444").title == "Sakamoto Desu ga?"
       refute_received {:tmdb_asked, _path}
     end
 
@@ -201,6 +216,14 @@ defmodule Kati.KeylessTitlesTest do
 
   defp cached(source, source_id) do
     Enum.find(Ash.read!(CachedTitle), &(&1.source == source and &1.source_id == source_id))
+  end
+
+  defp flush_requests do
+    receive do
+      {:keyless_request, _source, _what} -> flush_requests()
+    after
+      0 -> :ok
+    end
   end
 
   defp answer(view) do

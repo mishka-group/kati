@@ -2006,9 +2006,10 @@ defmodule Kati.Screens.Series do
   @doc """
   Why a series from a provider has no episode list yet, and what happens next.
 
-  `Kati.Media.Cache.refresh/0` re-reads every TMDB-sourced title, its seasons
-  and its episodes, so a list the provider has not published yet arrives here
-  on a later refresh without the reader doing anything.
+  `Kati.Media.Cache.refresh/0` re-reads every TMDB-, AniList- and
+  TVmaze-sourced title from its own catalogue, its seasons and its episodes,
+  so a list the provider has not published yet arrives here on a later
+  refresh without the reader doing anything.
   """
   @spec pending_note() :: String.t()
   def pending_note,

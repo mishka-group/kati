@@ -75,34 +75,44 @@ defmodule Kati.Media.Cache do
   end
 
   @doc """
-  Re-read every tracked title from TMDB, and say how it went.
+  Re-read every tracked title from its own catalogue, and say how it went.
+
+  TMDB rows from TMDB (`tracked/0`), with the reader's key; AniList and TVmaze
+  rows from AniList and TVmaze (`keyless_tracked/0`), which need none. Each
+  source's ids are its own, so a row is only ever sent back to the catalogue
+  it came from — an AniList id asked of TMDB would answer a different title.
+  The keyless rows are also the only way their cache comes back after
+  *Clear*: nothing else re-fetches them.
 
   `{:ok, %{refreshed: n, failed: n}}`, or `{:error, reason}` when the whole
-  sweep could not start — a missing key is the one that matters, and
-  `Kati.Media.Tmdb.message/1` already has the sentence for it.
+  sweep could not start — a missing TMDB key with no keyless title to refresh
+  instead is the one that matters, and `Kati.Media.Tmdb.message/1` already
+  has the sentence for it.
   """
   @spec refresh() ::
           {:ok, %{refreshed: non_neg_integer(), failed: non_neg_integer()}} | {:error, term()}
   def refresh do
-    case Tmdb.key() do
-      {:error, reason} ->
+    keyless = Kati.Media.Cache.keyless_tracked()
+
+    case {Tmdb.key(), keyless} do
+      {{:error, reason}, []} ->
         {:error, reason}
 
-      {:ok, _key} ->
-        {:ok,
-         Kati.Media.Cache.tracked()
-         |> Enum.reduce(%{refreshed: 0, failed: 0}, fn tracked, tally ->
-           case Tmdb.fetch(
-                  tracked.source_id,
-                  Kati.Media.Cache.tmdb_kind(tracked, cached(tracked))
-                ) do
-             {:ok, _written} -> Map.update!(tally, :refreshed, &(&1 + 1))
-             {:error, _reason} -> Map.update!(tally, :failed, &(&1 + 1))
-           end
-         end)}
+      {key, keyless} ->
+        tmdb = if match?({:ok, _key}, key), do: Kati.Media.Cache.tracked(), else: []
+        {:ok, Enum.reduce(tmdb ++ keyless, %{refreshed: 0, failed: 0}, &refresh_one/2)}
     end
   rescue
     error -> {:error, error}
+  end
+
+  defp refresh_one(tracked, tally) do
+    kind = Kati.Media.Cache.tmdb_kind(tracked, cached(tracked))
+
+    case Kati.Media.Provider.fetch(tracked.source, tracked.source_id, kind) do
+      {:ok, _written} -> Map.update!(tally, :refreshed, &(&1 + 1))
+      {:error, _reason} -> Map.update!(tally, :failed, &(&1 + 1))
+    end
   end
 
   @doc """
@@ -132,6 +142,19 @@ defmodule Kati.Media.Cache do
       |> Ash.Query.for_read(:shelf, %{kind: kind})
       |> Ash.read!()
       |> Enum.filter(&(&1.source == :tmdb))
+    end)
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  @spec keyless_tracked() :: [TrackedTitle.t()]
+  def keyless_tracked do
+    Enum.flat_map(@kinds, fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+      |> Enum.filter(&(&1.source in Kati.Media.Provider.keyless()))
     end)
   rescue
     _error -> []
