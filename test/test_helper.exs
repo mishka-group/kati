@@ -43,6 +43,27 @@ Ecto.Migrator.run(Kati.Repo, Path.join(:code.priv_dir(:kati), "repo/migrations")
 # that out of every test that is not about it. `Kati.FirstRunTest` re-arms it.
 :persistent_term.put({Kati.Screens.Root, :launched}, true)
 
+# AniList, TVmaze and the image CDNs are keyless, so nothing stops a screen
+# test that never thought about them from reaching the real network: screen
+# 19 asks AniList and TVmaze whenever no TMDB token is saved, and adding a
+# title downloads its poster. Each of their Req seams starts every test
+# answering 503 without a socket; a test about one of them installs its own
+# adapter and puts `Kati.TestOffline.options/0` back when it is done.
+defmodule Kati.TestOffline do
+  @moduledoc false
+  @keys [:anilist_req_options, :tvmaze_req_options, :artwork_req_options]
+
+  def run(request), do: {request, Req.Response.new(status: 503, body: "")}
+
+  def options, do: [adapter: __MODULE__, retry: false]
+
+  def restore(key) when key in @keys, do: Application.put_env(:kati, key, options())
+
+  def restore_all, do: Enum.each(@keys, &restore/1)
+end
+
+Kati.TestOffline.restore_all()
+
 # `:live` reaches a third-party API over the network with somebody's key.
 # Excluded by default, because a test that fails when TMDB is slow, or when
 # the machine running it has no key, is a test that reports something other

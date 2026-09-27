@@ -595,10 +595,14 @@ defmodule Kati.Media.Tmdb do
   words they can act on. Anything else stays `{:network, reason}`.
 
   Only on the failure path, so a working search pays nothing for it.
+
+  `host` is TMDB's API host unless a caller names its own: `Kati.Media.Anilist`
+  and `Kati.Media.Tvmaze` ask the same question of theirs, because a network
+  that filters one catalogue may well filter the others.
   """
-  @spec transport_failure(term()) :: :blocked | {:network, term()}
-  def transport_failure(reason) do
-    case :inet.gethostbyname(String.to_charlist(@dns_host)) do
+  @spec transport_failure(term(), String.t()) :: :blocked | {:network, term()}
+  def transport_failure(reason, host \\ @dns_host) do
+    case :inet.gethostbyname(String.to_charlist(host)) do
       {:ok, {:hostent, _name, _aliases, :inet, 4, [address | _rest]}} ->
         if Kati.Media.Tmdb.sinkhole?(address), do: :blocked, else: {:network, reason}
 

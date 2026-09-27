@@ -47,6 +47,25 @@ defmodule Kati.Media.Artwork do
   of widths and the app draws posters at 400x600 or smaller; `w342` is the
   first rung above that, so it is sharp on a 3x screen without paying for
   `original` on a phone that will never show the difference.
+
+  ## Full URLs, from the keyless sources
+
+  `Kati.Media.Anilist` and `Kati.Media.Tvmaze` answer with a whole `https`
+  URL — `https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/…`,
+  `https://static.tvmaze.com/uploads/images/medium_portrait/…` — rather than a
+  path on a CDN with a width ladder. Neither offers a ladder, so a URL is one
+  file on disk, answered for both `:poster` and `:wide`, named by a digest of
+  the URL (`url_<digest>.jpg`) because a URL is not a flat namespace the way a
+  TMDB path is. Only `https` counts: a plain-`http` value is not remote, so
+  nothing here ever fetches over an unencrypted connection. The URL's own host
+  goes through `Kati.Net.Dns.resolve/1` before the request, for the reason
+  TMDB's does.
+
+  ## Test seam
+
+  `:artwork_req_options` is merged into every download, as
+  `:tmdb_req_options` is into `Kati.Media.Tmdb`'s requests, so a host test
+  hands Req an adapter instead of a socket.
   """
 
   require Logger
@@ -60,13 +79,20 @@ defmodule Kati.Media.Artwork do
   @doc """
   Whether `value` is a CDN path rather than one of the design's seeds.
 
-  TMDB paths start with `/` and seeds never do, which is the whole test — and
-  it is a test on the SHAPE of the value rather than on a flag beside it,
-  because the value arrives on `Kati.Media.CachedTitle.poster_path` from two
-  sources that do not agree about what belongs in it.
+  TMDB paths start with `/`, the keyless sources' values with `https://`, and
+  seeds never do either, which is the whole test — and it is a test on the
+  SHAPE of the value rather than on a flag beside it, because the value
+  arrives on `Kati.Media.CachedTitle.poster_path` from sources that do not
+  agree about what belongs in it.
 
       iex> Kati.Media.Artwork.remote?("/kBf3g9crrADGMc2AMAMlLBgSm2h.jpg")
       true
+
+      iex> Kati.Media.Artwork.remote?("https://static.tvmaze.com/uploads/images/medium_portrait/1/4388.jpg")
+      true
+
+      iex> Kati.Media.Artwork.remote?("http://static.tvmaze.com/uploads/images/medium_portrait/1/4388.jpg")
+      false
 
       iex> Kati.Media.Artwork.remote?("hollow71")
       false
@@ -75,8 +101,12 @@ defmodule Kati.Media.Artwork do
       false
   """
   @spec remote?(term()) :: boolean()
-  def remote?(value) when is_binary(value), do: String.starts_with?(value, "/")
+  def remote?(value) when is_binary(value),
+    do: String.starts_with?(value, "/") or url?(value)
+
   def remote?(_other), do: false
+
+  defp url?(value), do: String.starts_with?(value, "https://")
 
   @doc """
   The downloaded file for `path`, if this device already has it. Never fetches.
@@ -107,10 +137,14 @@ defmodule Kati.Media.Artwork do
   the row points at the CDN and nothing is written.
 
   `w154`: the row draws 44x62, which is 132x186 at 3x, and `w154` is the first
-  rung of TMDB's ladder above that.
+  rung of TMDB's ladder above that. A full URL has no ladder and is its own
+  thumbnail.
 
       iex> Kati.Media.Artwork.thumbnail("/kBf3g9crrADGMc2AMAMlLBgSm2h.jpg")
       "https://image.tmdb.org/t/p/w154/kBf3g9crrADGMc2AMAMlLBgSm2h.jpg"
+
+      iex> Kati.Media.Artwork.thumbnail("https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1.jpg")
+      "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1.jpg"
 
       iex> Kati.Media.Artwork.thumbnail("hollow71")
       nil
@@ -120,7 +154,11 @@ defmodule Kati.Media.Artwork do
   """
   @spec thumbnail(term()) :: String.t() | nil
   def thumbnail(path) do
-    if remote?(path), do: @host <> "/w154" <> path
+    cond do
+      not remote?(path) -> nil
+      url?(path) -> path
+      true -> @host <> "/w154" <> path
+    end
   end
 
   @doc """
@@ -134,15 +172,21 @@ defmodule Kati.Media.Artwork do
 
   Both sizes are fetched, because the poster and the hero crop are drawn by
   different screens and a second trip at hero time would be a blank header on
-  the one screen that is mostly header.
+  the one screen that is mostly header. A full URL is one file for both, so it
+  is fetched once.
   """
   @spec cache(term()) :: {:ok, String.t()} | {:error, term()}
   def cache(path) when is_binary(path) do
-    if remote?(path) do
-      _wide = download(path, :wide)
-      download(path, :poster)
-    else
-      {:error, :not_remote}
+    cond do
+      not remote?(path) ->
+        {:error, :not_remote}
+
+      url?(path) ->
+        download(path, :poster)
+
+      true ->
+        _wide = download(path, :wide)
+        download(path, :poster)
     end
   end
 
@@ -195,12 +239,17 @@ defmodule Kati.Media.Artwork do
   # reasons: the pure-BEAM TLS stack needs its CA bundle wired up, and Android's
   # resolver lives behind a Java API that `:inet_res` cannot reach, so the
   # platform NIF has to seed `:inet_db` before Finch looks in it. Neither is
-  # optional on a device and both are no-ops on the host.
+  # optional on a device and both are no-ops on the host. The host resolved is
+  # the URL's own: TMDB's CDN for a path, AniList's or TVmaze's for a URL.
   defp get(url) do
     Kati.Net.Tls.ensure!()
-    _resolved = Kati.Net.Dns.resolve(@dns_host)
+    _resolved = Kati.Net.Dns.resolve(URI.parse(url).host || @dns_host)
 
-    case Req.get(url: url, receive_timeout: @timeout, max_redirects: 3) do
+    [url: url, receive_timeout: @timeout, max_redirects: 3]
+    |> Keyword.merge(Application.get_env(:kati, :artwork_req_options, []))
+    |> Req.new()
+    |> Req.request()
+    |> case do
       {:ok, %{status: 200, body: body}} when is_binary(body) and byte_size(body) > 0 ->
         {:ok, body}
 
@@ -214,7 +263,9 @@ defmodule Kati.Media.Artwork do
     error -> {:error, error}
   end
 
-  defp url(path, size), do: @host <> "/" <> width(size) <> path
+  defp url(path, size) do
+    if url?(path), do: path, else: @host <> "/" <> width(size) <> path
+  end
 
   defp width(:wide), do: @wide_width
   defp width(_poster), do: @poster_width
@@ -222,9 +273,27 @@ defmodule Kati.Media.Artwork do
   # `/abc123.jpg` becomes `abc123_w342.jpg`. The leading slash is dropped and
   # nothing else is: TMDB paths are already a flat namespace of opaque names, so
   # there is no directory to recreate and no name to collide with.
+  #
+  # A URL is named by a digest of the whole of it, with its extension kept:
+  # two hosts can serve the same file name, and a URL's path has directories.
   defp file_for(path, size) do
-    name = path |> String.trim_leading("/") |> String.replace("/", "_")
-    Path.join(dir(), width(size) <> "_" <> name)
+    if url?(path) do
+      Path.join(dir(), "url_" <> digest(path) <> extension(path))
+    else
+      name = path |> String.trim_leading("/") |> String.replace("/", "_")
+      Path.join(dir(), width(size) <> "_" <> name)
+    end
+  end
+
+  defp digest(url) do
+    :sha256 |> :crypto.hash(url) |> Base.url_encode64(padding: false) |> binary_part(0, 32)
+  end
+
+  defp extension(url) do
+    case url |> URI.parse() |> Map.get(:path) |> to_string() |> Path.extname() do
+      ext when ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"] -> ext
+      _other -> ".jpg"
+    end
   end
 
   defp dir, do: Path.join(Mob.data_dir(), "artwork")
