@@ -111,7 +111,9 @@ defmodule Kati.SearchMorePagesTest do
 
     test "an answer for a page nobody is waiting on changes nothing" do
       section = answered_page_1()
-      assert OnTmdb.more_answered(section, 2, {:ok, %{results: [], more?: false}}, & &1) == section
+
+      assert OnTmdb.more_answered(section, 2, {:ok, %{results: [], more?: false}}, & &1) ==
+               section
     end
   end
 

@@ -1917,13 +1917,17 @@ defmodule Kati.Screens.Search do
 
   @doc """
   The by-hand row under the keyless sections: only when the library found
-  nothing and both catalogues have answered with nothing to show.
+  nothing and both catalogues have settled with nothing to show — answered
+  empty, or failed. A catalogue that could not be reached is not a reason to
+  leave the reader with no way to add the title: offline, or on a network
+  that blocks both, this row is the only move left.
   """
   @spec keyless_by_hand(Keyless.t(), [map()], map()) :: map() | []
   def keyless_by_hand(keyless, local, results) do
     answered_empty? =
       Enum.all?(Keyless.sources(), fn source ->
-        keyless[source].status == :ready and Keyless.shown(keyless, source, local) == []
+        keyless[source].status == :error or
+          (keyless[source].status == :ready and Keyless.shown(keyless, source, local) == [])
       end)
 
     if answered_empty? and Kati.Screens.Search.empty?(results) do

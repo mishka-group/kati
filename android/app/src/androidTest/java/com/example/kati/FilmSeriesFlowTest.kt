@@ -192,7 +192,7 @@ class FilmSeriesFlowTest {
                 .performTextInput(token)
             kati.device.waitForIdle()
             kati.tap("save_token")
-            kati.compose.waitUntil(10_000) { kati.present("replace_token") }
+            kati.compose.waitUntil(10_000) { kati.present("edit_token") }
         }
         assertTrue("screen 80 still draws the token field after Save", !kati.present("tmdb_token"))
 
@@ -416,7 +416,7 @@ class FilmSeriesFlowTest {
         kati.tap("root_home")
         kati.awaitScreen("home")
         kati.tap("open_search")
-        kati.awaitScreen("search_idle")
+        kati.awaitScreen("search")
         kati.compose.waitUntil(20_000) { kati.present("search_query") }
         noInvented("the idle Search page")
 

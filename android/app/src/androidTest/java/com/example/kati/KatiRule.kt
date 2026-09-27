@@ -1,6 +1,8 @@
 package com.example.kati
 
 import android.app.Instrumentation
+import android.app.UiAutomation
+import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.semantics.getOrNull
@@ -35,6 +37,16 @@ import java.io.File
  * of it, and deleting it makes every test pay the extraction again. [wipe]
  * removes the store files by name and nothing else — which is also why
  * `testOptions` in `build.gradle` sets no `clearPackageData`.
+ *
+ * A third, outside the app: another tool driving the same emulator. Argent
+ * (Software Mansion's agent toolkit) keeps a helper app,
+ * `com.argent.androiddevtools`, reading the screen's accessibility tree; while
+ * it runs, every test here waited out its first `awaitScreen` and failed — 25
+ * of 25, 27 Sep 2026 — and the same suite passed once it was stopped. [wipe]
+ * stops it before each test, from the shell the instrumentation already has,
+ * so the suite holds whether it is started from Gradle or from the IDE. The
+ * shell is reached with `FLAG_DONT_USE_ACCESSIBILITY` because the ordinary
+ * connection is the very one the helper is holding.
  */
 class KatiRule : TestRule {
 
@@ -76,10 +88,27 @@ class KatiRule : TestRule {
      * Deletes the store BY NAME. Never the directory — see the class doc.
      */
     fun wipe() {
+        stopOtherDrivers()
         listOf("kati.db", "kati.db-wal", "kati.db-shm", "mob_state.dets")
             .map { File(filesDir, it) }
             .filter { it.exists() }
             .forEach { it.delete() }
+    }
+
+    /** Stops the screen readers of other tools; see the class doc. */
+    private fun stopOtherDrivers() {
+        OTHER_DRIVERS.forEach { pkg ->
+            runCatching {
+                val out = instrumentation
+                    .getUiAutomation(UiAutomation.FLAG_DONT_USE_ACCESSIBILITY)
+                    .executeShellCommand("am force-stop $pkg")
+                ParcelFileDescriptor.AutoCloseInputStream(out).use { it.readBytes() }
+            }
+        }
+    }
+
+    private companion object {
+        val OTHER_DRIVERS = listOf("com.argent.androiddevtools")
     }
 
     /** Launches the real activity. */

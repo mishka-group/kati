@@ -94,7 +94,7 @@ class SearchTest {
         kati.tap("root_home")
         kati.awaitScreen("home")
         kati.tap("open_search")
-        kati.awaitScreen("search_idle")
+        kati.awaitScreen("search")
         kati.compose.waitUntil(20_000) { kati.present("search_query") }
     }
 
@@ -147,21 +147,18 @@ class SearchTest {
 
         kati.awaitScreen("search")
 
-        // Board 89's card, and it names the query back. An empty list under a
-        // query reads as a search that broke; this reads as a correct report
-        // that you do not have it.
-        kati.compose.waitUntil(20_000) { textPresent("Nothing here for") }
+        // The library's own line, and it says so rather than drawing an empty
+        // list: an empty list under a query reads as a search that broke.
+        kati.compose.waitUntil(20_000) { textPresent("Not in your library") }
+
+        // The way out comes once the online catalogues have settled — answered
+        // with nothing, or failed. Either way the reader can still add it.
+        kati.compose.waitUntil(40_000) { kati.present("look_up") || kati.present("add_by_hand") }
 
         assertTrue(
             "a query that matched nothing drew no state of its own, which reads as a " +
                 "search that failed rather than as a library that does not have it",
-            textPresent("Nothing here for")
-        )
-
-        assertTrue(
-            "the no-match card offers no way out — a dead end with no next move is the " +
-                "state this card exists to avoid",
-            kati.present("look_up") || kati.present("add_by_hand")
+            textPresent("Not in your library")
         )
 
         assertTrue(

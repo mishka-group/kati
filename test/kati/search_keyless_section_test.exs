@@ -204,6 +204,28 @@ defmodule Kati.SearchKeylessSectionTest do
       assert :add_by_hand in tap_tags(view)
     end
 
+    test "both catalogues unreachable still leaves the title to add by hand" do
+      KeylessStubs.install!(anilist: 503, tvmaze: 503)
+
+      view = search() |> typed("zzqwx") |> settle()
+      drawn = texts(view)
+
+      assert "AniList answered 503. Nothing was saved." in drawn
+      assert Enum.count(drawn, &(&1 == "Add “zzqwx” by hand?")) == 1
+      assert :add_by_hand in tap_tags(view)
+    end
+
+    test "one catalogue still out leaves no by-hand row yet" do
+      KeylessStubs.install!(anilist: 503)
+
+      view = search() |> typed("zzqwx")
+      view = render_info(view, {:search_ready, "zzqwx"})
+      assert_receive {:keyless_answer, :anilist, epoch, "zzqwx", result}, 5_000
+      view = render_info(view, {:keyless_answer, :anilist, epoch, "zzqwx", result})
+
+      refute :add_by_hand in tap_tags(view)
+    end
+
     test "in Persian, the headings and a failure are Persian with the trade names kept" do
       KeylessStubs.install!(tvmaze: 429)
 
