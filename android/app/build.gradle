@@ -240,7 +240,10 @@ dependencies {
     // Two and a half years behind, and the reason #79 could not use autoSize:
     // that arrived in Compose 1.8. Bumped with Kotlin 2 rather than separately
     // because the Compose compiler plugin is versioned with the compiler now.
-    def composeBom = platform('androidx.compose:compose-bom:2026.06.00')
+    //
+    // 2026.06.01 is the newest BOM that builds under compileSdk 36. From
+    // 2026.08.00 the BOM carries Compose 1.12, whose AARs require compileSdk 37.
+    def composeBom = platform('androidx.compose:compose-bom:2026.06.01')
     // KATI-END(K-32 compose-bom)
     implementation composeBom
     implementation 'androidx.compose.ui:ui'
@@ -248,11 +251,20 @@ dependencies {
     implementation 'androidx.compose.material:material-icons-extended'
     implementation 'androidx.compose.foundation:foundation'
     implementation 'androidx.compose.animation:animation'
-    implementation 'androidx.activity:activity-compose:1.8.2'
-    implementation 'io.coil-kt:coil-compose:2.6.0'
+    // KATI-BEGIN(K-61 android-libs) mob_new=0.6.0
+    // was: androidx.activity:activity-compose:1.8.2
+    //      io.coil-kt:coil-compose:2.6.0
+    // The template's versions are from early 2024. coil stays on the 2.x line:
+    // coil 3 moves to the `io.coil-kt.coil3` group and a new package, which is
+    // a code migration and not a version bump.
+    implementation 'androidx.activity:activity-compose:1.13.0'
+    implementation 'io.coil-kt:coil-compose:2.7.0'
+    // KATI-END(K-61 android-libs)
     // The "continue watching" home-screen widget. Pure Kotlin, no BEAM
     // involved — see KatiRefreshWorker.kt for why nothing here can boot one.
-    implementation 'androidx.glance:glance-appwidget:1.1.1'
+    // KATI-BEGIN(K-61 android-libs) mob_new=0.6.0
+    implementation 'androidx.glance:glance-appwidget:1.2.0'
+    // KATI-END(K-61 android-libs)
 
     // KATI-BEGIN(K-30 pruned-deps) mob_new=0.4.20
     // Removed by #75, with the Kotlin that referenced them:
@@ -291,9 +303,10 @@ dependencies {
     // which is why #58's "undocumented manifest_application_snippets splice"
     // is not on Kati's critical path at all. See native/LEDGER.md.
     //
-    // 2.9.1 pinned exactly, and it is the version #58's own research settled
-    // on: it is the last line built against Kotlin 1.8 metadata, and this
-    // project is on the Kotlin 1.9.22 Gradle plugin. The -ktx artifact is
+    // Pinned exactly. It was 2.9.1, the last line built against Kotlin 1.8
+    // metadata, while this project was on the Kotlin 1.9.22 Gradle plugin; K-32
+    // moved the plugin to Kotlin 2, which retired that constraint, and 2.12.0
+    // is the current stable line (27 September 2026). The -ktx artifact is
     // needed for PeriodicWorkRequestBuilder<T>, which is an inline reified
     // function and has no Java equivalent.
     //
@@ -301,7 +314,7 @@ dependencies {
     // in transitively (WorkManager keeps its queue in a Room database).
     // Nothing else in Kati uses Room. That is the price of not writing a
     // scheduler.
-    implementation 'androidx.work:work-runtime-ktx:2.9.1'
+    implementation 'androidx.work:work-runtime-ktx:2.12.0'
     // KATI-END(K-22 work-manager)
 
     // KATI-BEGIN(K-36 e2e-test-deps) mob_new=0.7.24
@@ -315,7 +328,7 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'
     androidTestImplementation 'androidx.test:runner:1.7.0'
     androidTestImplementation 'androidx.test:rules:1.7.0'
-    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.4.0'
     e2eImplementation 'androidx.compose.ui:ui-test-manifest'
     // The Orchestrator needs BOTH APKs on the device. Without test-services it
     // installs, reports no error, and every @Test after the first shares one

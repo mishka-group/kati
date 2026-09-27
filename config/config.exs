@@ -38,3 +38,12 @@ config :kati,
     Kati.Services,
     Kati.Sync
   ]
+
+# Read TWICE, which is why it is also in Kati.Runtime: Ash 3.33's
+# RequireStringLengthCountConfig transformer refuses to compile any resource
+# until it is set, and `Ash.Type.String` reads it again at runtime whenever a
+# `max_length`/`min_length` or `string_length` is evaluated — where, on the
+# phone, only Kati.Runtime can put it. `:codepoints` is what SQLite's
+# `length()` counts, so a constraint checked in Elixir and one checked
+# atomically in the database agree.
+config :ash, default_string_length_count: :codepoints

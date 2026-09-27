@@ -10,6 +10,11 @@ defmodule Kati.RuntimeTest do
 
   @config_exs Path.expand("../../config/config.exs", __DIR__)
 
+  # Keys a dependency reads with `Application.get_env/2` both while Kati
+  # compiles and while it runs, so they belong in both files. Each one is
+  # asserted below to carry the same value in both.
+  @read_at_compile_and_runtime [{:ash, :default_string_length_count}]
+
   describe "the registry" do
     test "configure/0 is idempotent" do
       assert :ok = Kati.Runtime.configure()
@@ -40,12 +45,33 @@ defmodule Kati.RuntimeTest do
         |> Enum.map(fn {app, key, _} -> {app, key} end)
         |> MapSet.new()
 
-      overlap = MapSet.intersection(config_keys, runtime_keys)
+      overlap =
+        config_keys
+        |> MapSet.intersection(runtime_keys)
+        |> MapSet.difference(MapSet.new(@read_at_compile_and_runtime))
 
       assert MapSet.size(overlap) == 0,
              "keys set in both places: #{inspect(MapSet.to_list(overlap))}. " <>
                "A key belongs to exactly one — config.exs for compile_env and mix " <>
                "tasks, Kati.Runtime for anything read at runtime."
+    end
+
+    test "a key read at compile time and at runtime has one value in both places" do
+      config = Config.Reader.read!(@config_exs)
+
+      runtime =
+        Map.new(Kati.Runtime.runtime_env(), fn {app, key, value} -> {{app, key}, value} end)
+
+      for {app, key} <- @read_at_compile_and_runtime do
+        assert Keyword.has_key?(config[app] || [], key),
+               "#{inspect(app)}/#{inspect(key)} is missing from config/config.exs"
+
+        assert Map.has_key?(runtime, {app, key}),
+               "#{inspect(app)}/#{inspect(key)} is missing from Kati.Runtime"
+
+        assert config[app][key] == runtime[{app, key}],
+               "#{inspect(app)}/#{inspect(key)} differs between config.exs and Kati.Runtime"
+      end
     end
   end
 

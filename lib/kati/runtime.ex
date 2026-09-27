@@ -52,6 +52,12 @@ defmodule Kati.Runtime do
       {:mnesia, :dir, String.to_charlist(Mob.data_dir())},
       {:mob, :repo, Kati.Repo},
       {:ash, :disable_async?, true},
+      # Also in config/config.exs, and the one key that must be: Ash 3.33
+      # checks it while compiling every resource and again at runtime, and
+      # raises in both places when it is unset. The runtime read happens only
+      # when a string length is counted, so nothing fails at boot — the first
+      # `max_length` on a phone would.
+      {:ash, :default_string_length_count, :codepoints},
       # Without this, Calendar falls back to UTCOnlyTimeZoneDatabase and every
       # zone lookup fails — silently for display, catastrophically for
       # recurrence. `tz` compiles IANA data in at build time, so there is no

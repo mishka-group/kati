@@ -39,14 +39,20 @@ defmodule Kati.MixProject do
       # Mob is pre-1.0 with a fast release cadence, no `mix mob.upgrade`, and a
       # native shell that is forked at generation time — so every bump has to be
       # a deliberate act with a bridge diff, not a silent `~>` drift.
-      {:mob, "== 0.8.1"},
-      {:mob_dev, "== 0.7.0", only: :dev, runtime: false},
+      #
+      # `override: true` because no published mob_dev admits mob 0.9 yet: 0.7.1
+      # requires `~> 0.7.25 or ~> 0.8.1`. mob 0.8.2 → 0.9.3 is additive (post-
+      # mortem capture, plugin-manifest tags, `text_content_type`) and mob_dev
+      # 0.7.1 compiles against it without a warning. Drop the override when
+      # mob_dev widens its range.
+      {:mob, "== 0.9.3", override: true},
+      {:mob_dev, "== 0.7.1", only: :dev, runtime: false},
       {:ecto_sqlite3, "~> 0.24"},
       # Ash is the data layer for the whole system. Pinned exactly: Kati appears
       # to be the first public user of AshSqlite on a device BEAM, so a silent
       # minor bump is not something to discover on a user's phone.
-      {:ash, "== 3.31.3"},
-      {:ash_sqlite, "== 0.2.17"},
+      {:ash, "== 3.33.11"},
+      {:ash_sqlite, "== 0.2.19"},
       # Timezone database. `tz` compiles IANA data into modules at BUILD time;
       # `tzdata` downloads at runtime into a writable directory, which a
       # device-first app with no server must refuse. The periodic updaters are
