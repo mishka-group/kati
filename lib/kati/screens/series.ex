@@ -1598,18 +1598,18 @@ defmodule Kati.Screens.Series do
         <Box weight={1.0}>
           <Row
             fill_width={true}
-            height={50}
-            corner_radius={25}
+            height={46}
+            corner_radius={23}
             background={Palette.ink_fill()}
             align="center"
             on_tap={mark}
           >
             <Spacer weight={1.0} />
-            {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
-            <Spacer size={8} />
+            {Kati.UI.symbol("check", size: 16, color: Palette.on_ink())}
+            <Spacer size={6} />
             <Text
               text={Kati.Screens.Series.mark_next_label(s)}
-              text_size={14}
+              text_size={13}
               font_weight="bold"
               text_color={Palette.on_ink()}
               max_lines={1}
@@ -1629,12 +1629,12 @@ defmodule Kati.Screens.Series do
   end
 
   # Chelekom's headless Action Icon. `shadow` is the prop that made it usable:
-  # these two discs sit beside a 50pt ink button on paper, and with a flat fill
+  # these two discs sit beside a 46pt ink button on paper, and with a flat fill
   # they read as holes in the row rather than as buttons next to it. The lift is
   # the design's own `shadow_card_soft()`.
   #
-  # `shape: :circle` computes `50 / 2` = 25.0 where the Box stated 25;
-  # `floatProp` reads both as 25.0f.
+  # `shape: :circle` computes `46 / 2` = 23.0 where the Box stated 23;
+  # `floatProp` reads both as 23.0f.
   #
   # This used to say *bookmark and rate are not built*, and pass no handler.
   # Both are built now. A `nil` tap still omits the key
@@ -1645,14 +1645,14 @@ defmodule Kati.Screens.Series do
   def action_disc(icon, tap \\ nil, ink \\ nil) do
     MishkaActionIcon.action_icon(
       [
-        size: 50,
+        size: 46,
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
         shadow: Theme.shadow_card_soft(),
         on_tap: tap
       ],
-      [Kati.UI.symbol(icon, size: 21, color: ink, fill: ink != nil)]
+      [Kati.UI.symbol(icon, size: 19, color: ink, fill: ink != nil)]
     )
   end
 
