@@ -139,11 +139,11 @@ defmodule Kati.UI.TmdbPrompt do
         <Row
           fill_width={true}
           corner_radius={14}
-          background={:background}
+          background={Kati.Theme.Palette.card()}
           border_width={1}
           border_color={Kati.Theme.Palette.border()}
-          padding_left={12}
-          padding_right={12}
+          padding_left={4}
+          padding_right={4}
           align="center"
         >
           <TextField
