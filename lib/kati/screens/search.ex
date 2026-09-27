@@ -1525,6 +1525,8 @@ defmodule Kati.Screens.Search do
         do: UI.eyebrow(label),
         else: Kati.Screens.Search.section(label)
 
+    nothing_local? = Kati.Screens.Search.empty?(results)
+
     assigns = %{
       heading: heading,
       notice: Kati.Screens.AddTitle.save_notice(save_error),
@@ -1532,8 +1534,9 @@ defmodule Kati.Screens.Search do
         Kati.Screens.Search.tmdb_body(
           tmdb,
           Map.get(results, :titles) || [],
-          Kati.Screens.Search.empty?(results)
-        )
+          nothing_local?
+        ),
+      by_hand: Kati.Screens.Search.tmdb_by_hand(tmdb, nothing_local?)
     }
 
     ~MOB"""
@@ -1541,6 +1544,7 @@ defmodule Kati.Screens.Search do
       {@heading}
       {@notice}
       {@body}
+      {@by_hand}
     </Column>
     """
   end
@@ -1586,35 +1590,49 @@ defmodule Kati.Screens.Search do
   def tmdb_body(_state, _local, _nothing_local?), do: []
 
   @doc """
-  TMDB found nothing either. Said with the query in it, and — only when the
-  library was empty too — the one way left: typing the title by hand.
+  TMDB found nothing either, said with the query in it. The by-hand row that
+  follows is `tmdb_by_hand/2`'s.
   """
   @spec nothing_on_tmdb(String.t(), boolean()) :: map()
-  def nothing_on_tmdb(query, nothing_local?) do
-    by_hand =
-      if nothing_local?,
-        do:
-          Kati.Screens.AddTitle.by_hand_row(
-            gettext("Add \u201C%{query}\u201D by hand?", query: query)
-          ),
-        else: []
-
+  def nothing_on_tmdb(query, _nothing_local?) do
     assigns = %{
       line:
         Kati.Screens.Search.tmdb_line(
           gettext("Nothing on TMDB for \u201C%{query}\u201D", query: query)
-        ),
-      by_hand: by_hand
+        )
     }
 
     ~MOB"""
     <Column fill_width={true}>
       {@line}
-      {@by_hand}
+      <Spacer size={8} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The by-hand row under the TMDB section: when the library found nothing and
+  TMDB has settled — answered or failed — whatever it answered. TMDB's
+  `search/multi` is fuzzy, so a title it does not have still comes back with
+  the nearest-sounding ones, and a row that only stood when TMDB listed
+  nothing left that reader with nothing to tap. `keyless_by_hand/3` is the
+  same rule for AniList and TVmaze.
+  """
+  @spec tmdb_by_hand(OnTmdb.t(), boolean()) :: map() | []
+  def tmdb_by_hand(%{status: status, query: query}, true) when status in [:ready, :error] do
+    assigns = %{
+      row: Kati.Screens.AddTitle.by_hand_row(gettext("Add “%{query}” by hand?", query: query))
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@row}
       <Spacer size={22} />
     </Column>
     """
   end
+
+  def tmdb_by_hand(_tmdb, _nothing_local?), do: []
 
   @doc false
   def tmdb_line(text) do

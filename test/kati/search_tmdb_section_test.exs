@@ -218,6 +218,25 @@ defmodule Kati.SearchTmdbSectionTest do
       Kati.Screens.AddByHand.take_prefill()
     end
 
+    test "TMDB's near matches do not hide the by-hand row when the library has nothing" do
+      stub_tmdb!([result(101, "Bellicher", "tv")])
+
+      view = search() |> typed("vellichor") |> settle()
+      drawn = texts(view)
+
+      assert "Bellicher" in drawn
+      assert Enum.count(drawn, &(&1 == "Add “vellichor” by hand?")) == 1
+      assert :add_by_hand in tap_tags(view)
+    end
+
+    test "TMDB unreachable still offers the title by hand" do
+      Application.put_env(:kati, :tmdb_test_token, "test-token")
+      stub(fn req -> {req, %Req.TransportError{reason: :nxdomain}} end)
+
+      view = search() |> typed("vellichor") |> settle()
+      assert :add_by_hand in tap_tags(view)
+    end
+
     test "a library hit and nothing on TMDB does not offer the by-hand form" do
       shelve!("n54-local", "Zzqwx Local", :movie)
       stub_tmdb!([])
