@@ -214,11 +214,12 @@ defmodule Kati.DiscoverFeedTest do
       refute drawn(arrived) =~ "match"
     end
 
-    test "a device with no token is told where to put one", %{feed: feed} do
+    test "a device with no token gets the token form on the page", %{feed: feed} do
       drawn = drawn(Discover.answered(feed, {:error, :no_api_key}))
 
-      assert drawn =~ "No TMDB token yet"
-      assert drawn =~ Kati.Media.Tmdb.message(:no_api_key)
+      assert drawn =~ "Add your TMDB token"
+      assert drawn =~ "inline_tmdb_token"
+      assert drawn =~ "skip_tmdb_token"
       refute drawn =~ "Nothing to suggest yet"
     end
 

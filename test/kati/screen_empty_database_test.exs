@@ -1388,12 +1388,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # untappable rows, about a show that did not exist.
     "04" => 4,
     "58" => 4,
-    # 11 with nothing on the shelf to seed from is the back pill, the heading,
-    # its two discs and one card saying where picks come from — eight strings.
-    # The match lines, the people card, the leaving rail and the chips that
-    # padded it past the floor have no store behind them and are gone on every
-    # device, not only an empty one.
-    "11" => 8,
     # 15 with nothing logged is the heading, its count sentence, the four chips
     # and one empty line — the seven rows and the rewatch card that used to pad
     # it past the generic floor are the whole of what an empty log has not got.

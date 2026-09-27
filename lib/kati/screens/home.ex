@@ -193,6 +193,7 @@ defmodule Kati.Screens.Home do
     # `Kati.UI.TmdbPrompt`: with the reader's own key the default, a fresh
     # install has none, and Home says so rather than letting a search fail.
     |> Mob.Socket.assign(:tmdb_ready, Kati.Media.Tmdb.usable?())
+    |> Mob.Socket.assign(:tmdb_skipped, Kati.UI.TmdbPrompt.skipped?())
   end
 
   @doc """
@@ -295,7 +296,7 @@ defmodule Kati.Screens.Home do
       >
         {Kati.Screens.Home.header()}
         {Kati.Screens.Home.search()}
-        {Kati.UI.TmdbPrompt.block(assigns[:tmdb_ready])}
+        {Kati.UI.TmdbPrompt.inline(assigns[:tmdb_ready], assigns[:tmdb_form], assigns[:tmdb_skipped] == true)}
         {Kati.Screens.Home.new_this_week(assigns.hero)}
         {Kati.Screens.Home.continue_watching(assigns.continue)}
         {UI.eyebrow(gettext("Watching"))}
@@ -1650,6 +1651,14 @@ defmodule Kati.Screens.Home do
   end
 
   @impl true
+  def handle_info({:change, :inline_tmdb_token, _typed} = message, socket) do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle(message, socket, &load/1)
+    {:noreply, socket}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @impl true
   def handle_tap(:open_inbox, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
 
@@ -1665,6 +1674,12 @@ defmodule Kati.Screens.Home do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)}
 
   def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Home")}
+
+  def handle_tap(tag, socket)
+      when tag in [:inline_save_token, :skip_tmdb_token, :tmdb_unskip, :get_tmdb_token] do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle({:tap, tag}, socket, &load/1)
+    {:noreply, socket}
+  end
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}

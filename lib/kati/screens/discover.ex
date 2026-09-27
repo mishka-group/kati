@@ -66,7 +66,9 @@ defmodule Kati.Screens.Discover do
       feed: feed,
       tune?: false,
       seed_id: Map.get(feed, :seed_id),
-      add_error: nil
+      add_error: nil,
+      tmdb_ready: Kati.Media.Tmdb.usable?(),
+      tmdb_skipped: Kati.UI.TmdbPrompt.skipped?()
     )
     |> ask()
   end
@@ -331,6 +333,11 @@ defmodule Kati.Screens.Discover do
     end
   end
 
+  def handle_info({:change, :inline_tmdb_token, _typed} = message, socket) do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle(message, socket, &load/1)
+    {:noreply, socket}
+  end
+
   def handle_info(message, socket), do: super(message, socket)
 
   @doc """
@@ -378,6 +385,7 @@ defmodule Kati.Screens.Discover do
         {Kati.Screens.Discover.header(f, Kati.Screens.Discover.tunable?(f), Map.get(assigns, :filters))}
         {Kati.Screens.Discover.tune_panel(f, Map.get(assigns, :tune?, false))}
         {Kati.Screens.Discover.add_error(Map.get(assigns, :add_error))}
+        {Kati.UI.TmdbPrompt.inline(Map.get(assigns, :tmdb_ready), Map.get(assigns, :tmdb_form), Map.get(assigns, :tmdb_skipped) == true)}
         {Kati.Screens.Discover.because_section(f)}
       </Column>
     </Scroll>
@@ -540,8 +548,7 @@ defmodule Kati.Screens.Discover do
         gettext("Checking what goes with what you last watched.")
       )
 
-  def picks_or_not(%{picks_error: :no_api_key}),
-    do: nothing_card("lock", gettext("No TMDB token yet"), Kati.Media.Tmdb.message(:no_api_key))
+  def picks_or_not(%{picks_error: :no_api_key}), do: ~MOB"<Spacer size={0} />"
 
   def picks_or_not(%{picks_error: reason}) when not is_nil(reason),
     do:
@@ -759,6 +766,12 @@ defmodule Kati.Screens.Discover do
   end
 
   @impl true
+  def handle_tap(tag, socket)
+      when tag in [:inline_save_token, :skip_tmdb_token, :tmdb_unskip, :get_tmdb_token] do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle({:tap, tag}, socket, &load/1)
+    {:noreply, socket}
+  end
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "add_" <> source_id ->

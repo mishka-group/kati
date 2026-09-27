@@ -177,6 +177,7 @@ defmodule Kati.Screens.HomeDark do
     # Board 315 is the dark 139 this file's moduledoc said did not exist.
     |> Mob.Socket.assign(:nothing_kept, Kati.Screens.Home.nothing_kept?(timeline))
     |> Mob.Socket.assign(:tmdb_ready, Kati.Media.Tmdb.usable?())
+    |> Mob.Socket.assign(:tmdb_skipped, Kati.UI.TmdbPrompt.skipped?())
     |> then(&{:ok, &1})
   end
 
@@ -351,6 +352,17 @@ defmodule Kati.Screens.HomeDark do
   # TMDB prompt too — see `Kati.UI.TmdbPrompt`.
   def handle_info({:tap, :add_tmdb_token}, socket),
     do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Home")}
+
+  def handle_info({:tap, tag} = message, socket)
+      when tag in [:inline_save_token, :skip_tmdb_token, :tmdb_unskip, :get_tmdb_token] do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle(message, socket, & &1)
+    {:noreply, socket}
+  end
+
+  def handle_info({:change, :inline_tmdb_token, _typed} = message, socket) do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle(message, socket, & &1)
+    {:noreply, socket}
+  end
 
   # 139's header draws a settings disc where 28's draws the inbox bell, so this
   # tag only ever arrives on the empty branch.

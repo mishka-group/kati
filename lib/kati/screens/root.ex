@@ -273,7 +273,7 @@ defmodule Kati.Screens.Root do
       # symptom at all. `rescue_tap/3` reports the absence loudly instead; see
       # the moduledoc. `rescue_kati/4` supplies the drop for `handle_kati/3`,
       # where an unclaimed topic is normal rather than a mistake.
-      defoverridable load: 1
+      defoverridable load: 1, handle_info: 2
     end
   end
 

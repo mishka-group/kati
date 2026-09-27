@@ -137,7 +137,7 @@ defmodule Kati.Screens.HomeEmpty do
       >
         {Kati.Screens.HomeEmpty.header()}
         {Kati.Screens.HomeEmpty.search()}
-        {Kati.UI.TmdbPrompt.block(assigns[:tmdb_ready])}
+        {Kati.UI.TmdbPrompt.inline(assigns[:tmdb_ready], assigns[:tmdb_form], assigns[:tmdb_skipped] == true)}
         {Kati.Screens.HomeEmpty.invitation()}
         {SettingsList.eyebrow_muted(gettext("The calendar still works"))}
         {Kati.Screens.HomeEmpty.today_card()}
@@ -387,11 +387,29 @@ defmodule Kati.Screens.HomeEmpty do
   # by Home: the one read it needs is whether a TMDB search could run. See
   # `Kati.UI.TmdbPrompt`.
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :tmdb_ready, Kati.Media.Tmdb.usable?())
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:tmdb_ready, Kati.Media.Tmdb.usable?())
+    |> Mob.Socket.assign(:tmdb_skipped, Kati.UI.TmdbPrompt.skipped?())
+  end
+
+  @impl true
+  def handle_info({:change, :inline_tmdb_token, _typed} = message, socket) do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle(message, socket, &load/1)
+    {:noreply, socket}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
 
   @impl true
   @spec handle_tap(atom(), term()) :: {:noreply, term()}
   def handle_tap(:add_tmdb_token, socket), do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Home")}
+
+  def handle_tap(tag, socket)
+      when tag in [:inline_save_token, :skip_tmdb_token, :tmdb_unskip, :get_tmdb_token] do
+    {:ok, socket} = Kati.UI.TmdbPrompt.handle({:tap, tag}, socket, &load/1)
+    {:noreply, socket}
+  end
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}

@@ -151,7 +151,7 @@ msgstr ""
 
 #: lib/kati/screens/anime_filter.ex:267
 #: lib/kati/screens/anime_filter.ex:332
-#: lib/kati/screens/home.ex:470
+#: lib/kati/screens/home.ex:471
 #: lib/kati/screens/library.ex:1210
 #: lib/kati/screens/shelf_filters.ex:399
 #: lib/kati/screens/stats.ex:1795
@@ -225,7 +225,7 @@ msgstr ""
 
 #: lib/kati/screens/anime_filter.ex:705
 #: lib/kati/screens/books.ex:539
-#: lib/kati/screens/home.ex:529
+#: lib/kati/screens/home.ex:530
 #: lib/kati/screens/library.ex:982
 #: lib/kati/screens/music.ex:681
 #: lib/kati/screens/pick_sections/sample.ex:47
@@ -433,7 +433,7 @@ msgstr ""
 #: lib/kati/discover/filters.ex:336
 #: lib/kati/screens/add_by_hand.ex:360
 #: lib/kati/screens/add_by_hand_states.ex:260
-#: lib/kati/screens/home.ex:469
+#: lib/kati/screens/home.ex:470
 #: lib/kati/screens/stats.ex:1794
 #: lib/kati/screens/up_next.ex:624
 #: lib/kati/screens/what_fits.ex:429
@@ -505,8 +505,8 @@ msgstr ""
 #: lib/kati/screens/calendars.ex:579
 #: lib/kati/screens/goals.ex:608
 #: lib/kati/screens/habits.ex:166
-#: lib/kati/screens/home.ex:531
-#: lib/kati/screens/home.ex:624
+#: lib/kati/screens/home.ex:532
+#: lib/kati/screens/home.ex:625
 #: lib/kati/screens/home_omitted_sections.ex:205
 #: lib/kati/screens/pick_sections/sample.ex:49
 #: lib/kati/screens/retired_tile.ex:293
@@ -693,7 +693,7 @@ msgstr ""
 
 #: lib/kati/calendars/today.ex:254
 #: lib/kati/notifications/inbox.ex:115
-#: lib/kati/screens/home.ex:616
+#: lib/kati/screens/home.ex:617
 #: lib/kati/screens/home_omitted_sections.ex:205
 #: lib/kati/screens/meal.ex:657
 #: lib/kati/screens/meals_day.ex:565
@@ -728,7 +728,7 @@ msgstr ""
 #: lib/kati/screens/calendar.ex:237
 #: lib/kati/screens/calendar.ex:733
 #: lib/kati/screens/day.ex:401
-#: lib/kati/screens/home.ex:532
+#: lib/kati/screens/home.ex:533
 #: lib/kati/screens/money_day.ex:363
 #: lib/kati/screens/my_services.ex:468
 #: lib/kati/screens/my_services_empty.ex:134
@@ -741,7 +741,7 @@ msgstr ""
 
 #: lib/kati/screens/auto_detect_music.ex:229
 #: lib/kati/screens/books.ex:539
-#: lib/kati/screens/home.ex:530
+#: lib/kati/screens/home.ex:531
 #: lib/kati/screens/library.ex:983
 #: lib/kati/screens/music.ex:681
 #: lib/kati/screens/music.ex:1122
@@ -991,7 +991,7 @@ msgstr ""
 #: lib/kati/screens/calendar.ex:236
 #: lib/kati/screens/calendar.ex:731
 #: lib/kati/screens/day.ex:399
-#: lib/kati/screens/home.ex:528
+#: lib/kati/screens/home.ex:529
 #: lib/kati/screens/library.ex:981
 #: lib/kati/screens/meals_day.ex:566
 #: lib/kati/screens/money_day.ex:364
@@ -1011,7 +1011,7 @@ msgstr ""
 #: lib/kati/discover/filters.ex:335
 #: lib/kati/screens/add_by_hand.ex:356
 #: lib/kati/screens/add_by_hand_states.ex:260
-#: lib/kati/screens/home.ex:471
+#: lib/kati/screens/home.ex:472
 #: lib/kati/screens/pushed.ex:206
 #: lib/kati/screens/series_meta.ex:393
 #: lib/kati/screens/series_meta.ex:558
@@ -1128,8 +1128,8 @@ msgstr ""
 #: lib/kati/library/sample.ex:277
 #: lib/kati/library/sample.ex:331
 #: lib/kati/screens/calendar.ex:320
-#: lib/kati/screens/home.ex:565
-#: lib/kati/screens/home.ex:1406
+#: lib/kati/screens/home.ex:566
+#: lib/kati/screens/home.ex:1407
 #: lib/kati/screens/onboarding.ex:216
 #: lib/kati/screens/search.ex:231
 #: lib/kati/screens/search.ex:255
@@ -1209,7 +1209,7 @@ msgstr ""
 #: lib/kati/screens/add_by_hand_states.ex:289
 #: lib/kati/screens/anime_filter.ex:282
 #: lib/kati/screens/health.ex:102
-#: lib/kati/screens/home.ex:287
+#: lib/kati/screens/home.ex:288
 #: lib/kati/screens/library.ex:1178
 #: lib/kati/screens/settings.ex:569
 #, elixir-autogen, elixir-format
@@ -1481,7 +1481,7 @@ msgstr ""
 msgid "Medication"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1218
+#: lib/kati/screens/home.ex:1219
 #: lib/kati/screens/money_states.ex:293
 #: lib/kati/screens/my_services.ex:468
 #: lib/kati/screens/my_services_empty.ex:134
@@ -1523,8 +1523,8 @@ msgstr ""
 #: lib/kati/backup/sample.ex:92
 #: lib/kati/screens/account.ex:427
 #: lib/kati/screens/backup_dark.ex:223
-#: lib/kati/screens/home.ex:520
-#: lib/kati/screens/home.ex:632
+#: lib/kati/screens/home.ex:521
+#: lib/kati/screens/home.ex:633
 #: lib/kati/screens/home_omitted_sections.ex:205
 #: lib/kati/screens/pushed.ex:207
 #: lib/kati/screens/settings.ex:569
@@ -2234,6 +2234,7 @@ msgstr ""
 #: lib/kati/health/weight_sample.ex:227
 #: lib/kati/screens/medication.ex:1019
 #: lib/kati/screens/medication_empty.ex:436
+#: lib/kati/ui/tmdb_prompt.ex:243
 #, elixir-autogen, elixir-format
 msgid "Skip"
 msgstr ""
@@ -2942,6 +2943,7 @@ msgid "Open this from the thing you were asking about and Kati says why that one
 msgstr ""
 
 #: lib/kati/screens/data_sources.ex:1140
+#: lib/kati/ui/tmdb_prompt.ex:346
 #, elixir-autogen, elixir-format
 msgid "Paste a token first."
 msgstr ""
@@ -3017,6 +3019,7 @@ msgid "Sleep"
 msgstr ""
 
 #: lib/kati/screens/data_sources.ex:1249
+#: lib/kati/ui/tmdb_prompt.ex:389
 #, elixir-autogen, elixir-format
 msgid "TMDB didn’t accept this. Check you copied the API Read Access Token and not the API key, and that it has no trailing space."
 msgstr ""
@@ -3028,6 +3031,8 @@ msgstr ""
 
 #: lib/kati/screens/data_sources.ex:1256
 #: lib/kati/screens/data_sources.ex:1258
+#: lib/kati/ui/tmdb_prompt.ex:396
+#: lib/kati/ui/tmdb_prompt.ex:398
 #, elixir-autogen, elixir-format
 msgid "That did not save."
 msgstr ""
@@ -3287,7 +3292,7 @@ msgid "Restore a Kati backup"
 msgstr ""
 
 #: lib/kati/screens/health.ex:102
-#: lib/kati/screens/home.ex:287
+#: lib/kati/screens/home.ex:288
 #: lib/kati/screens/home_omitted_sections.ex:67
 #: lib/kati/screens/settings.ex:569
 #, elixir-autogen, elixir-format
@@ -3338,7 +3343,7 @@ msgstr ""
 msgid "Ticks, ratings and reviews — the shelves stay"
 msgstr ""
 
-#: lib/kati/screens/home.ex:588
+#: lib/kati/screens/home.ex:589
 #: lib/kati/settings/sample.ex:149
 #, elixir-autogen, elixir-format
 msgid "United Kingdom"
@@ -4671,7 +4676,7 @@ msgctxt "search scope"
 msgid "Screen"
 msgstr ""
 
-#: lib/kati/screens/search.ex:2372
+#: lib/kati/screens/search.ex:2388
 #, elixir-autogen, elixir-format
 msgid "Recent"
 msgstr ""
@@ -5031,7 +5036,7 @@ msgstr ""
 #: lib/kati/library/sample.ex:32
 #: lib/kati/library/sample.ex:91
 #: lib/kati/screens/calendar.ex:325
-#: lib/kati/screens/home.ex:571
+#: lib/kati/screens/home.ex:572
 #, elixir-autogen, elixir-format
 msgid "Salt & Iron"
 msgstr ""
@@ -5068,7 +5073,7 @@ msgstr ""
 msgid "%{n} in progress"
 msgstr ""
 
-#: lib/kati/screens/home.ex:605
+#: lib/kati/screens/home.ex:606
 #: lib/kati/screens/library.ex:466
 #: lib/kati/screens/up_next.ex:735
 #, elixir-autogen, elixir-format
@@ -5080,7 +5085,7 @@ msgstr ""
 msgid "%{titles} · %{watching}"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:438
+#: lib/kati/screens/discover.ex:446
 #: lib/kati/screens/library.ex:1019
 #, elixir-autogen, elixir-format
 msgid "Discover"
@@ -5100,7 +5105,7 @@ msgstr ""
 
 #: lib/kati/calendars/airings.ex:148
 #: lib/kati/screens/clear_history.ex:242
-#: lib/kati/screens/home.ex:424
+#: lib/kati/screens/home.ex:425
 #: lib/kati/screens/library.ex:485
 #: lib/kati/screens/numbering_scheme.ex:348
 #: lib/kati/screens/up_next.ex:609
@@ -5177,12 +5182,12 @@ msgstr ""
 msgid " — not worded empty, not at all."
 msgstr ""
 
-#: lib/kati/screens/home.ex:1627
+#: lib/kati/screens/home.ex:1628
 #, elixir-autogen, elixir-format
 msgid "%{day} · %{n} %{month}"
 msgstr ""
 
-#: lib/kati/screens/home.ex:625
+#: lib/kati/screens/home.ex:626
 #: lib/kati/screens/home_omitted_sections.ex:205
 #, elixir-autogen, elixir-format
 msgid "%{n} left today"
@@ -5190,19 +5195,19 @@ msgid_plural "%{n} left today"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/home.ex:894
+#: lib/kati/screens/home.ex:895
 #, elixir-autogen, elixir-format
 msgid "%{n} new episode"
 msgid_plural "%{n} new episodes"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/home.ex:1250
+#: lib/kati/screens/home.ex:1251
 #, elixir-autogen, elixir-format
 msgid "%{region} · %{n} subscribed"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1405
+#: lib/kati/screens/home.ex:1406
 #, elixir-autogen, elixir-format
 msgid "%{title} — S%{s}E%{e}"
 msgstr ""
@@ -5212,12 +5217,12 @@ msgstr ""
 msgid "A section with nothing in it is omitted rather than worded empty — but "
 msgstr ""
 
-#: lib/kati/screens/home.ex:1423
+#: lib/kati/screens/home.ex:1424
 #, elixir-autogen, elixir-format
 msgid "Airs tonight · %{service}"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1436
+#: lib/kati/screens/home.ex:1437
 #: lib/kati/widgets/sample.ex:162
 #, elixir-autogen, elixir-format
 msgid "Call Mum"
@@ -5228,30 +5233,30 @@ msgstr ""
 msgid "Choose sections"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1040
+#: lib/kati/screens/home.ex:1041
 #: lib/kati/screens/home_dark.ex:707
 #: lib/kati/screens/home_omitted_sections.ex:68
 #, elixir-autogen, elixir-format
 msgid "Continue watching"
 msgstr ""
 
-#: lib/kati/screens/home.ex:617
+#: lib/kati/screens/home.ex:618
 #: lib/kati/screens/home_omitted_sections.ex:205
 #, elixir-autogen, elixir-format
 msgid "Dinner %{at}"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1645
+#: lib/kati/screens/home.ex:1646
 #, elixir-autogen, elixir-format
 msgid "Good afternoon"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1646
+#: lib/kati/screens/home.ex:1647
 #, elixir-autogen, elixir-format
 msgid "Good evening"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1644
+#: lib/kati/screens/home.ex:1645
 #, elixir-autogen, elixir-format
 msgid "Good morning"
 msgstr ""
@@ -5261,14 +5266,14 @@ msgstr ""
 msgid "Kati keeps what you tell it to. Pick a section and this page fills with what you are watching, reading and eating."
 msgstr ""
 
-#: lib/kati/screens/home.ex:822
+#: lib/kati/screens/home.ex:823
 #: lib/kati/screens/home_dark.ex:518
 #: lib/kati/screens/home_omitted_sections.ex:68
 #, elixir-autogen, elixir-format
 msgid "New this week"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1246
+#: lib/kati/screens/home.ex:1247
 #: lib/kati/screens/nothing_set_up_knock_on.ex:325
 #: lib/kati/screens/series_settings.ex:590
 #: lib/kati/screens/stats.ex:899
@@ -5282,49 +5287,49 @@ msgstr ""
 msgid "Nothing chosen yet"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1460
+#: lib/kati/screens/home.ex:1461
 #: lib/kati/screens/home_dark.ex:867
 #: lib/kati/screens/home_empty.ex:369
 #, elixir-autogen, elixir-format
 msgid "Nothing scheduled — add anything with +"
 msgstr ""
 
-#: lib/kati/screens/home.ex:555
+#: lib/kati/screens/home.ex:556
 #, elixir-autogen, elixir-format
 msgid "One premiere · two titles leave Lumen+ on Friday"
 msgstr ""
 
-#: lib/kati/screens/home.ex:829
+#: lib/kati/screens/home.ex:830
 #: lib/kati/screens/home_dark.ex:533
 #, elixir-autogen, elixir-format
 msgid "Open inbox"
 msgstr ""
 
-#: lib/kati/screens/home.ex:1437
+#: lib/kati/screens/home.ex:1438
 #, elixir-autogen, elixir-format
 msgid "Repeats weekly"
 msgstr ""
 
-#: lib/kati/screens/home.ex:287
+#: lib/kati/screens/home.ex:288
 #: lib/kati/screens/home_dark.ex:219
 #: lib/kati/screens/home_omitted_sections.ex:265
 #, elixir-autogen, elixir-format
 msgid "Rest of today"
 msgstr ""
 
-#: lib/kati/screens/home.ex:602
+#: lib/kati/screens/home.ex:603
 #, elixir-autogen, elixir-format
 msgid "S%{s} · E%{e} · %{left}"
 msgstr ""
 
-#: lib/kati/screens/home.ex:778
+#: lib/kati/screens/home.ex:779
 #: lib/kati/screens/home_dark.ex:452
 #: lib/kati/screens/home_omitted_sections.ex:141
 #, elixir-autogen, elixir-format
 msgid "Search films, shows, events…"
 msgstr ""
 
-#: lib/kati/screens/home.ex:288
+#: lib/kati/screens/home.ex:289
 #, elixir-autogen, elixir-format
 msgid "See all"
 msgstr ""
@@ -5354,14 +5359,14 @@ msgstr ""
 msgid "a missing row"
 msgstr ""
 
-#: lib/kati/screens/home.ex:895
+#: lib/kati/screens/home.ex:896
 #, elixir-autogen, elixir-format
 msgid "is waiting"
 msgid_plural "are waiting"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/home.ex:556
+#: lib/kati/screens/home.ex:557
 #, elixir-autogen, elixir-format
 msgid "last check %{at}"
 msgstr ""
@@ -8198,12 +8203,12 @@ msgstr ""
 msgid "Cast"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:540
+#: lib/kati/screens/discover.ex:548
 #, elixir-autogen, elixir-format
 msgid "Checking what goes with what you last watched."
 msgstr ""
 
-#: lib/kati/screens/discover.ex:550
+#: lib/kati/screens/discover.ex:557
 #, elixir-autogen, elixir-format
 msgid "Could not look just now"
 msgstr ""
@@ -8347,7 +8352,7 @@ msgstr ""
 msgid "Location"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:539
+#: lib/kati/screens/discover.ex:547
 #, elixir-autogen, elixir-format
 msgid "Looking for something"
 msgstr ""
@@ -8378,11 +8383,6 @@ msgstr ""
 msgid "Next %{day} · keeps this week intact"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:544
-#, elixir-autogen, elixir-format
-msgid "No TMDB token yet"
-msgstr ""
-
 #: lib/kati/screens/meal_reminders.ex:488
 #, elixir-autogen, elixir-format
 msgid "No nudge during a calendar event"
@@ -8398,7 +8398,7 @@ msgstr ""
 msgid "Nothing to leave yet"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:558
+#: lib/kati/screens/discover.ex:565
 #, elixir-autogen, elixir-format
 msgid "Nothing to suggest yet"
 msgstr ""
@@ -8434,7 +8434,7 @@ msgstr ""
 msgid "Persian normalisation"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:220
+#: lib/kati/screens/discover.ex:222
 #, elixir-autogen, elixir-format
 msgid "Picks from"
 msgstr ""
@@ -8535,7 +8535,7 @@ msgstr ""
 msgid "TMDB didn’t accept this key. Check you copied the "
 msgstr ""
 
-#: lib/kati/screens/discover.ex:559
+#: lib/kati/screens/discover.ex:566
 #, elixir-autogen, elixir-format
 msgid "TMDB knows of nothing like it. Watch something else and this fills in."
 msgstr ""
@@ -8976,25 +8976,25 @@ msgctxt "destination note"
 msgid "Straight to"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:176
+#: lib/kati/screens/discover.ex:178
 #, elixir-autogen, elixir-format
 msgctxt "discover heading"
 msgid "%{sort} %{noun}"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:179
+#: lib/kati/screens/discover.ex:181
 #, elixir-autogen, elixir-format
 msgctxt "discover heading"
 msgid "%{sort} %{noun}, %{rating}"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:170
+#: lib/kati/screens/discover.ex:172
 #, elixir-autogen, elixir-format
 msgctxt "discover heading"
 msgid "films"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:169
+#: lib/kati/screens/discover.ex:171
 #, elixir-autogen, elixir-format
 msgctxt "discover heading"
 msgid "series"
@@ -15999,32 +15999,32 @@ msgctxt "where a film is showing"
 msgid "Cinema"
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:687
+#: lib/kati/media/tmdb.ex:688
 #, elixir-autogen, elixir-format
 msgid "Could not reach TMDB. Hand-typed titles still work."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:673
+#: lib/kati/media/tmdb.ex:674
 #, elixir-autogen, elixir-format
 msgid "No TMDB key yet. Add one in Settings → Data sources."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:684
+#: lib/kati/media/tmdb.ex:685
 #, elixir-autogen, elixir-format
 msgid "TMDB answered %{status}. Nothing was saved."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:681
+#: lib/kati/media/tmdb.ex:682
 #, elixir-autogen, elixir-format
 msgid "TMDB has nothing under that id."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:679
+#: lib/kati/media/tmdb.ex:680
 #, elixir-autogen, elixir-format
 msgid "TMDB is rate-limiting Kati. Try again in a minute."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:676
+#: lib/kati/media/tmdb.ex:677
 #, elixir-autogen, elixir-format
 msgid "TMDB refused that key. Check it in Settings → Data sources."
 msgstr ""
@@ -16145,7 +16145,7 @@ msgstr ""
 msgid "%{matched} matched · %{skipped} skipped"
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:691
+#: lib/kati/media/tmdb.ex:692
 #, elixir-autogen, elixir-format
 msgid "This network is blocking TMDB. Try another Wi-Fi or mobile data. Hand-typed titles still work."
 msgstr ""
@@ -16153,6 +16153,7 @@ msgstr ""
 #: lib/kati/screens/add_title.ex:223
 #: lib/kati/ui/tmdb_prompt.ex:31
 #: lib/kati/ui/tmdb_prompt.ex:61
+#: lib/kati/ui/tmdb_prompt.ex:107
 #, elixir-autogen, elixir-format
 msgid "Add your TMDB token"
 msgstr ""
@@ -16576,7 +16577,7 @@ msgstr ""
 msgid "Films you follow, on the day they come out"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:498
+#: lib/kati/screens/discover.ex:506
 #, elixir-autogen, elixir-format
 msgid "Nothing to recommend from yet"
 msgstr ""
@@ -16591,7 +16592,7 @@ msgstr ""
 msgid "On, but Android is not letting Kati show them"
 msgstr ""
 
-#: lib/kati/screens/discover.ex:499
+#: lib/kati/screens/discover.ex:507
 #, elixir-autogen, elixir-format
 msgid "Picks here are built from the films and series on your shelf. Add one, or browse TMDB with the sort button above."
 msgstr ""
@@ -16842,8 +16843,8 @@ msgstr ""
 msgid "Your library, ratings and the posters already saved stay as they are."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1598
-#: lib/kati/screens/search.ex:1937
+#: lib/kati/screens/search.ex:1624
+#: lib/kati/screens/search.ex:1953
 #, elixir-autogen, elixir-format
 msgid "Add “%{query}” by hand?"
 msgstr ""
@@ -16853,7 +16854,7 @@ msgstr ""
 msgid "Not in your library"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1605
+#: lib/kati/screens/search.ex:1601
 #, elixir-autogen, elixir-format
 msgid "Nothing on TMDB for “%{query}”"
 msgstr ""
@@ -16868,7 +16869,7 @@ msgstr ""
 msgid "Search your library"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1576
+#: lib/kati/screens/search.ex:1580
 #, elixir-autogen, elixir-format
 msgid "TMDB found nothing beyond what you already keep."
 msgstr ""
@@ -16894,22 +16895,22 @@ msgstr ""
 msgid "Edit your log"
 msgstr ""
 
-#: lib/kati/media/provider.ex:149
+#: lib/kati/media/provider.ex:159
 #, elixir-autogen, elixir-format
 msgid "%{source} answered %{status}. Nothing was saved."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1887
+#: lib/kati/screens/search.ex:1905
 #, elixir-autogen, elixir-format
 msgid "%{source} found nothing beyond the titles above."
 msgstr ""
 
-#: lib/kati/media/provider.ex:145
+#: lib/kati/media/provider.ex:155
 #, elixir-autogen, elixir-format
 msgid "%{source} has nothing under that id."
 msgstr ""
 
-#: lib/kati/media/provider.ex:142
+#: lib/kati/media/provider.ex:152
 #, elixir-autogen, elixir-format
 msgid "%{source} is busy. Try again in a minute."
 msgstr ""
@@ -16919,7 +16920,7 @@ msgstr ""
 msgid "Anime series and films, episode counts"
 msgstr ""
 
-#: lib/kati/media/provider.ex:155
+#: lib/kati/media/provider.ex:165
 #, elixir-autogen, elixir-format
 msgid "Could not reach %{source}. Hand-typed titles still work."
 msgstr ""
@@ -16939,17 +16940,17 @@ msgstr ""
 msgid "Loading from %{source}…"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1878
+#: lib/kati/screens/search.ex:1896
 #, elixir-autogen, elixir-format
 msgid "Nothing on %{source} for “%{query}”"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1853
+#: lib/kati/screens/search.ex:1871
 #, elixir-autogen, elixir-format
 msgid "On AniList"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1854
+#: lib/kati/screens/search.ex:1872
 #, elixir-autogen, elixir-format
 msgid "On TVmaze"
 msgstr ""
@@ -16964,7 +16965,7 @@ msgstr ""
 msgid "TVmaze lists it as Animation, origin Japanese"
 msgstr ""
 
-#: lib/kati/media/provider.ex:159
+#: lib/kati/media/provider.ex:169
 #, elixir-autogen, elixir-format
 msgid "This network is blocking %{source}. Try another Wi-Fi or mobile data. Hand-typed titles still work."
 msgstr ""
@@ -16979,12 +16980,12 @@ msgstr ""
 msgid "Searches and title details come from TMDB, using the token you gave Kati. Without a token, searches go to AniList and TVmaze, which need none. Posters come from the same services’ image servers. No other service is contacted."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1675
+#: lib/kati/screens/search.ex:1693
 #, elixir-autogen, elixir-format
 msgid "Couldn’t load more · Try again"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1678
+#: lib/kati/screens/search.ex:1696
 #, elixir-autogen, elixir-format
 msgid "Show more"
 msgstr ""
@@ -16992,4 +16993,34 @@ msgstr ""
 #: lib/kati/screens/rating.ex:1125
 #, elixir-autogen, elixir-format
 msgid "Watched it again? Log a rewatch"
+msgstr ""
+
+#: lib/kati/ui/tmdb_prompt.ex:272
+#, elixir-autogen, elixir-format
+msgid "Add a token"
+msgstr ""
+
+#: lib/kati/ui/tmdb_prompt.ex:204
+#, elixir-autogen, elixir-format
+msgid "Couldn’t open the browser. Go to themoviedb.org/settings/api and copy the token."
+msgstr ""
+
+#: lib/kati/ui/tmdb_prompt.ex:107
+#, elixir-autogen, elixir-format
+msgid "Films come from TMDB, and it needs a token of your own. It is free: sign in at themoviedb.org, open Settings → API, and copy the API Read Access Token — the long one starting eyJ."
+msgstr ""
+
+#: lib/kati/ui/tmdb_prompt.ex:226
+#, elixir-autogen, elixir-format
+msgid "Get a token"
+msgstr ""
+
+#: lib/kati/ui/tmdb_prompt.ex:196
+#, elixir-autogen, elixir-format
+msgid "TMDB’s API page is open in your browser. Copy the token there and paste it here."
+msgstr ""
+
+#: lib/kati/ui/tmdb_prompt.ex:272
+#, elixir-autogen, elixir-format
+msgid "Without a TMDB token Kati can’t bring you films. Series and anime still come from AniList and TVmaze, with less detail."
 msgstr ""

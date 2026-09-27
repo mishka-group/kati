@@ -173,32 +173,25 @@ class FilmSeriesFlowTest {
             ?.takeIf { it.isNotEmpty() }
 
     /**
-     * Pastes [token] into screen 80's field and saves it, then waits for Home's
-     * TMDB block to go — the reader's own token being the only key there is.
+     * Pastes [token] into the form Home draws when there is no token, and
+     * saves it there — no trip to screen 80. Home then fills in where it
+     * stands and the form goes, the reader's own token being the only key.
      */
     private fun saveOwnToken(token: String) {
         kati.tap("root_home")
         kati.awaitScreen("home")
-        kati.compose.waitUntil(20_000) { kati.present("add_tmdb_token") }
+        kati.compose.waitUntil(20_000) { kati.present("inline_tmdb_token") }
+        noInvented("Home without a key")
+        assertTrue("Home still sends the reader to another page for the token", !kati.present("add_tmdb_token"))
 
-        kati.tap("add_tmdb_token")
-        kati.awaitScreen("data_sources")
-        noInvented("Data sources")
-        assertTrue("screen 80 still offers a key of Kati's own", !kati.present("key_kati"))
-
-        kati.compose.waitUntil(10_000) { kati.present("tmdb_token") }
         withoutTheToken {
-            kati.compose.onNodeWithTag("tmdb_token", useUnmergedTree = true)
+            kati.compose.onNodeWithTag("inline_tmdb_token", useUnmergedTree = true)
                 .performTextInput(token)
             kati.device.waitForIdle()
-            kati.tap("save_token")
-            kati.compose.waitUntil(10_000) { kati.present("edit_token") }
+            kati.tap("inline_save_token")
+            kati.compose.waitUntil(10_000) { !kati.present("inline_tmdb_token") }
         }
-        assertTrue("screen 80 still draws the token field after Save", !kati.present("tmdb_token"))
-
-        kati.tap("back")
         kati.awaitScreen("home")
-        kati.compose.waitUntil(20_000) { !kati.present("add_tmdb_token") }
         noInvented("Home with a key")
     }
 
