@@ -32,11 +32,21 @@ defmodule Kati.Media.Provider do
   name itself), the test seam merged in, and every failure named — a sinkhole
   answer is `:blocked` through `Kati.Media.Tmdb.transport_failure/2`, the
   same question TMDB's failures are asked. Nothing raises.
+
+  ## How long a dead network takes to say so
+
+  Connecting is capped at `@connect_timeout` (8s) and the answer at `@timeout`
+  (15s). Req's own connect default is 30s, which put a search on a network
+  that drops packets at 45s before its section could show an error — and
+  screen 19's by-hand row waits for both sections to settle, so the reader
+  sat that long with nothing to tap. The emulator suite found it: its
+  no-match search waited 40s and failed twice in full runs.
   """
 
   use Gettext, backend: Kati.Gettext
 
   @timeout 15_000
+  @connect_timeout 8_000
 
   @typedoc "A catalogue Kati can search and fetch from."
   @type source :: :tmdb | :anilist | :tvmaze
@@ -175,7 +185,7 @@ defmodule Kati.Media.Provider do
     Kati.Net.Tls.ensure!()
     _resolved = Kati.Net.Dns.resolve(dns_host)
 
-    [receive_timeout: @timeout, retry: false]
+    [receive_timeout: @timeout, connect_options: [timeout: @connect_timeout], retry: false]
     |> Keyword.merge(options)
     |> Keyword.merge(Application.get_env(:kati, seam, []))
     |> Req.new()

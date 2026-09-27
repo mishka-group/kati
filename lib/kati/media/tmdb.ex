@@ -575,6 +575,7 @@ defmodule Kati.Media.Tmdb do
       params: params,
       headers: [{"authorization", "Bearer " <> key}, {"accept", "application/json"}],
       receive_timeout: @timeout,
+      connect_options: [timeout: 8_000],
       retry: false
     ]
     |> Keyword.merge(Application.get_env(:kati, :tmdb_req_options, []))
