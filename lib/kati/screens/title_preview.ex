@@ -1,7 +1,7 @@
 defmodule Kati.Screens.TitlePreview do
   @moduledoc """
-  A TMDB title the reader does not keep, drawn on its own page before it is
-  added (N55).
+  A catalogue title the reader does not keep, drawn on its own page before it
+  is added (N55).
 
   Screen 19's *On TMDB* rows and screen 06's results opened nothing unless the
   title was already on the shelf, so the only way to learn what a search hit
@@ -15,6 +15,13 @@ defmodule Kati.Screens.TitlePreview do
   history — the rating card, the seen count, ticks, the ⋯ menu, *Mark next
   watched* — needs a `Kati.Media.TrackedTitle` and is not drawn. One ink pill,
   *Add to library*, is what makes it one.
+
+  ## Which catalogue
+
+  `source` is `:tmdb`, `:anilist` or `:tvmaze` — whichever section of screen
+  19 the row came from — and `Kati.Media.Provider` fetches from that one. TMDB
+  needs the reader's token and the other two need nothing, so only a TMDB
+  preview can open on *No TMDB key yet*.
 
   ## The cache is not the library
 
@@ -44,7 +51,7 @@ defmodule Kati.Screens.TitlePreview do
 
   @typedoc "The preview on a title page's socket."
   @type t :: %{
-          source: :tmdb,
+          source: Kati.Media.Provider.source(),
           source_id: String.t(),
           kind: :movie | :tv,
           title: String.t() | nil,
@@ -69,16 +76,20 @@ defmodule Kati.Screens.TitlePreview do
   end
 
   @doc """
-  What a push to screen 08 or 04 carries for a TMDB row.
+  What a push to screen 08 or 04 carries for a catalogue row: its own source,
+  or TMDB for a row that names none.
 
       iex> Kati.Screens.TitlePreview.params(%{source_id: "329865", kind: :movie, title: "Arrival"}, "Search")
       %{preview: %{source: :tmdb, source_id: "329865", kind: :movie, title: "Arrival"}, back: "Search"}
+
+      iex> Kati.Screens.TitlePreview.params(%{source: :tvmaze, source_id: "82", kind: :tv, title: "Game of Thrones"}, "Search").preview.source
+      :tvmaze
   """
   @spec params(map(), String.t()) :: map()
   def params(row, back) do
     %{
       preview: %{
-        source: :tmdb,
+        source: Map.get(row, :source, :tmdb),
         source_id: row.source_id,
         kind: row.kind,
         title: Map.get(row, :title)
@@ -94,15 +105,16 @@ defmodule Kati.Screens.TitlePreview do
       so the page is the ordinary one.
     * `{:preview, state}` — a title nobody keeps. Already cached, it is
       `:ready`; otherwise it is `:loading` and the fetch is under way, or
-      `:error` straight away when there is no token to fetch with.
+      `:error` straight away when TMDB has no token to fetch with.
     * `:none` — no preview asked for, or one that names nothing usable.
   """
   @spec open(map() | nil) :: {:tracked, String.t()} | {:preview, t()} | :none
   def open(params) do
     case Map.get(params || %{}, :preview) do
-      %{source: :tmdb, source_id: id, kind: kind} = asked
-      when is_binary(id) and id != "" and kind in [:movie, :tv] ->
-        case Kati.Screens.TitlePreview.tracked_id(:tmdb, id) do
+      %{source: source, source_id: id, kind: kind} = asked
+      when source in [:tmdb, :anilist, :tvmaze] and is_binary(id) and id != "" and
+             kind in [:movie, :tv] ->
+        case Kati.Screens.TitlePreview.tracked_id(source, id) do
           nil -> {:preview, Kati.Screens.TitlePreview.start(asked)}
           tracked -> {:tracked, tracked}
         end
@@ -116,7 +128,7 @@ defmodule Kati.Screens.TitlePreview do
   @spec start(map()) :: t()
   def start(asked) do
     state = %{
-      source: :tmdb,
+      source: asked.source,
       source_id: asked.source_id,
       kind: asked.kind,
       title: text_or_nil(Map.get(asked, :title)),
@@ -126,19 +138,20 @@ defmodule Kati.Screens.TitlePreview do
     }
 
     cached = Kati.Screens.TitlePreview.cached(state)
+    usable? = Kati.Media.Provider.usable?(state.source)
 
     cond do
       cached && Kati.Screens.TitlePreview.artwork_ready?(cached) ->
         %{state | status: :ready}
 
-      cached && Kati.Media.Tmdb.usable?() ->
+      cached && usable? ->
         Kati.Screens.TitlePreview.fetch(self(), state)
         %{state | status: :ready}
 
       cached ->
         %{state | status: :ready}
 
-      Kati.Media.Tmdb.usable?() ->
+      usable? ->
         Kati.Screens.TitlePreview.fetch(self(), state)
         state
 
@@ -222,7 +235,7 @@ defmodule Kati.Screens.TitlePreview do
   @doc false
   @spec fetched(t()) :: {:ok, map()} | {:error, term()}
   def fetched(state) do
-    case Kati.Media.Tmdb.fetch(state.source_id, state.kind) do
+    case Kati.Media.Provider.fetch(state.source, state.source_id, state.kind) do
       {:ok, _written} = found ->
         Kati.Screens.TitlePreview.artwork(Kati.Screens.TitlePreview.cached(state))
         found
@@ -305,7 +318,7 @@ defmodule Kati.Screens.TitlePreview do
   def track(state, title) do
     case Kati.Screens.TitlePreview.tracked_id(state.source, state.source_id) do
       nil ->
-        row = %{source: :tmdb, source_id: state.source_id, kind: state.kind}
+        row = %{source: state.source, source_id: state.source_id, kind: state.kind}
 
         case Kati.Screens.AddTitle.track(title, row, :not_started) do
           {:ok, tracked} -> {:ok, tracked.id}
@@ -401,8 +414,8 @@ defmodule Kati.Screens.TitlePreview do
 
   @doc """
   The page while the title is on its way, or when it could not be fetched:
-  the name the row carried, and *Loading* or `Kati.Media.Tmdb.message/1`'s
-  sentence. The back pill works in both.
+  the name the row carried, and *Loading* or `Kati.Media.Provider.message/2`'s
+  sentence for the preview's own catalogue. The back pill works in both.
   """
   @spec waiting(module(), t(), String.t()) :: map()
   def waiting(module, state, back) do
@@ -448,14 +461,31 @@ defmodule Kati.Screens.TitlePreview do
 
   @doc false
   @spec status_line(t()) :: map()
-  def status_line(%{status: :error, reason: reason}),
-    do: Kati.UI.notice(Kati.Media.Tmdb.message(reason))
+  def status_line(%{status: :error, reason: reason} = state),
+    do: Kati.UI.notice(Kati.Media.Provider.message(Map.get(state, :source, :tmdb), reason))
 
-  def status_line(_loading) do
+  def status_line(state) do
+    assigns = %{line: Kati.Screens.TitlePreview.loading_line(Map.get(state, :source, :tmdb))}
+
     ~MOB"""
-    <Text text={gettext("Loading from TMDB…")} text_size={13} text_color={Palette.sub()} />
+    <Text text={@line} text_size={13} text_color={Palette.sub()} />
     """
   end
+
+  @doc """
+  What the page says while a title is on its way from `source`.
+
+      iex> Kati.Screens.TitlePreview.loading_line(:tmdb)
+      "Loading from TMDB…"
+
+      iex> Kati.Screens.TitlePreview.loading_line(:anilist)
+      "Loading from AniList…"
+  """
+  @spec loading_line(Kati.Media.Provider.source()) :: String.t()
+  def loading_line(:tmdb), do: gettext("Loading from TMDB…")
+
+  def loading_line(source),
+    do: gettext("Loading from %{source}…", source: Kati.Media.Provider.name(source))
 
   defp text_or_nil(text) when is_binary(text) and text != "", do: text
   defp text_or_nil(_other), do: nil

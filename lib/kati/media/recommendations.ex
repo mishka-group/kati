@@ -82,6 +82,10 @@ defmodule Kati.Media.Recommendations do
   — and `nil` for every other state: an empty store, a shelf of archived rows,
   a title whose cache was evicted.
 
+  A title from AniList or TVmaze is never a seed: its id is that catalogue's,
+  and `/movie/{id}/recommendations` would answer it with whatever TMDB title
+  happens to share the number (`Kati.Media.Provider`'s *What stays TMDB's*).
+
   `nil` is what draws screen 11's empty-shelf card
   (`Kati.Screens.Discover.empty_feed/0`).
   """
@@ -103,8 +107,9 @@ defmodule Kati.Media.Recommendations do
   def seed(_newest) do
     Enum.find_value(newest(), fn tracked ->
       case cached_for(tracked) do
-        %CachedTitle{source_id: id, title: title} = cached
-        when is_binary(id) and is_binary(title) and title != "" ->
+        %CachedTitle{source: source, source_id: id, title: title} = cached
+        when source not in [:anilist, :tvmaze] and is_binary(id) and is_binary(title) and
+               title != "" ->
           {tracked, cached}
 
         _no_cache ->
@@ -387,7 +392,8 @@ defmodule Kati.Media.Recommendations do
 
   A title with no cache row behind it is left out for `seed/0`'s own reason —
   there is nothing to name it by, and a row offered as a choice has to have a
-  name on it.
+  name on it. An AniList or TVmaze title is left out for `seed/0`'s other
+  reason: its id means nothing to TMDB.
   """
   @spec seedable() :: [{TrackedTitle.t(), CachedTitle.t()}]
   def seedable do
@@ -400,8 +406,9 @@ defmodule Kati.Media.Recommendations do
     |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
     |> Enum.flat_map(fn tracked ->
       case cached_for(tracked) do
-        %CachedTitle{source_id: id, title: title} = cached
-        when is_binary(id) and is_binary(title) and title != "" ->
+        %CachedTitle{source: source, source_id: id, title: title} = cached
+        when source not in [:anilist, :tvmaze] and is_binary(id) and is_binary(title) and
+               title != "" ->
           [{tracked, cached}]
 
         _no_cache ->

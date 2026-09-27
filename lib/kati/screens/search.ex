@@ -78,6 +78,19 @@ defmodule Kati.Screens.Search do
 
   Only when TMDB also finds nothing does the page offer the hand-typed form.
 
+  ## AniList and TVmaze, when there is no token
+
+  TMDB answers nothing without the reader's own token. So with none saved the
+  *On TMDB* section is not drawn, and the same query goes to the two keyless
+  catalogues instead (`keyless/4`, state in `Kati.Search.Keyless`): *On
+  AniList* (anime, series and films) and *On TVmaze* (series), each with the
+  TMDB section's rows, skeletons, preview and add disc, and TVmaze's rows
+  that are trivially AniList's own left out. Under them sits the small *Add
+  your TMDB token* card (`Kati.UI.TmdbPrompt.hint/0`), because films are
+  TMDB's. The two sections move on the TMDB section's epoch, so an answer to
+  a query typed past is dropped the same way. With a token saved both stay
+  idle and the page is the TMDB page above.
+
   ## What the recent shelf remembers
 
   A query the reader committed — the keyboard's search key, a result opened
@@ -93,6 +106,7 @@ defmodule Kati.Screens.Search do
 
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
+  alias Kati.Search.Keyless
   alias Kati.Search.OnTmdb
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -120,7 +134,10 @@ defmodule Kati.Screens.Search do
     results = Kati.Search.Query.run(query)
     tmdb_ready = Kati.Media.Tmdb.usable?()
     tmdb = OnTmdb.begin(query, tmdb_ready)
-    if tmdb.status == :pending, do: Kati.Media.SearchDebounce.ask(self(), tmdb.query)
+    keyless = Keyless.begin(query, tmdb_ready)
+
+    if tmdb.status == :pending or Keyless.waiting?(keyless),
+      do: Kati.Media.SearchDebounce.ask(self(), String.trim(query))
 
     {:ok,
      Mob.Socket.assign(socket,
@@ -138,7 +155,8 @@ defmodule Kati.Screens.Search do
        history: Kati.Search.Recent.all(),
        tmdb: tmdb,
        tmdb_epoch: 0,
-       tmdb_ready: tmdb_ready
+       tmdb_ready: tmdb_ready,
+       keyless: keyless
      )}
   end
 
@@ -317,6 +335,7 @@ defmodule Kati.Screens.Search do
     # has nothing to do with back pills.
     back = Map.get(assigns, :back, gettext("Home"))
     tmdb = Map.get(assigns, :tmdb, OnTmdb.idle())
+    keyless = Map.get(assigns, :keyless, Keyless.idle())
     save_error = Map.get(assigns, :save_error)
 
     ~MOB"""
@@ -341,6 +360,7 @@ defmodule Kati.Screens.Search do
           {Kati.Screens.Search.chips(filter, results)}
           {Kati.Screens.Search.state_or_groups(results, filter, history)}
           {Kati.Screens.Search.on_tmdb(results, filter, tmdb, save_error)}
+          {Kati.Screens.Search.keyless(results, filter, keyless, save_error)}
           {Kati.Screens.Search.recent_shelf(results, history, recent)}
         </Column>
       </Scroll>
@@ -385,16 +405,15 @@ defmodule Kati.Screens.Search do
   # The pause after the typing. Asked only if it is still the query in the
   # field and the section is still waiting on it; one request per epoch.
   def handle_info({:search_ready, query}, socket) when is_binary(query) do
-    tmdb = Map.get(socket.assigns, :tmdb, OnTmdb.idle())
-    epoch = Map.get(socket.assigns, :tmdb_epoch, 0)
     current = socket.assigns |> Map.get(:query, "") |> String.trim()
 
-    if query == current and tmdb.status == :pending and tmdb.requested != epoch do
-      OnTmdb.fetch(self(), epoch, query)
-      {:noreply, Mob.Socket.assign(socket, :tmdb, %{tmdb | requested: epoch})}
-    else
-      {:noreply, socket}
-    end
+    if query == current,
+      do:
+        {:noreply,
+         socket
+         |> Kati.Screens.Search.settle_tmdb(query)
+         |> Kati.Screens.Search.settle_keyless(query)},
+      else: {:noreply, socket}
   end
 
   def handle_info({:tmdb_answer, epoch, query, result}, socket) do
@@ -402,6 +421,19 @@ defmodule Kati.Screens.Search do
 
     if epoch == Map.get(socket.assigns, :tmdb_epoch, 0) and tmdb.query == query do
       {:noreply, Mob.Socket.assign(socket, :tmdb, OnTmdb.answered(tmdb, result))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # AniList's or TVmaze's answer, kept only for the epoch and the query its
+  # section is still on — the TMDB answer's rule.
+  def handle_info({:keyless_answer, source, epoch, query, result}, socket)
+      when source in [:anilist, :tvmaze] do
+    keyless = Map.get(socket.assigns, :keyless, Keyless.idle())
+
+    if epoch == Map.get(socket.assigns, :tmdb_epoch, 0) and keyless[source].query == query do
+      {:noreply, Mob.Socket.assign(socket, :keyless, Keyless.answered(keyless, source, result))}
     else
       {:noreply, socket}
     end
@@ -532,6 +564,18 @@ defmodule Kati.Screens.Search do
       "tmdb_open_" <> position ->
         {:noreply, Kati.Screens.Search.open_tmdb(socket, position)}
 
+      "anilist_add_" <> position ->
+        {:noreply, Kati.Screens.Search.add_from_keyless(socket, :anilist, position)}
+
+      "anilist_open_" <> position ->
+        {:noreply, Kati.Screens.Search.open_keyless(socket, :anilist, position)}
+
+      "tvmaze_add_" <> position ->
+        {:noreply, Kati.Screens.Search.add_from_keyless(socket, :tvmaze, position)}
+
+      "tvmaze_open_" <> position ->
+        {:noreply, Kati.Screens.Search.open_keyless(socket, :tvmaze, position)}
+
       _other ->
         {:noreply, socket}
     end
@@ -562,52 +606,84 @@ defmodule Kati.Screens.Search do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @doc """
-  Move the TMDB section onto `query`: a new epoch, and the request either
+  Move the online sections onto `query`: a new epoch, and the request either
   waited for (`:debounced`, a keystroke) or sent now (`:now`, a committed
-  query). Under the minimum, or with no token, nothing is sent.
+  query). Under the minimum nothing is sent. With a token TMDB is asked; with
+  none, AniList and TVmaze are (`Kati.Search.Keyless`).
   """
   @spec ask_tmdb(Mob.Socket.t(), String.t(), :debounced | :now) :: Mob.Socket.t()
   def ask_tmdb(socket, query, how) do
     epoch = Map.get(socket.assigns, :tmdb_epoch, 0) + 1
-    tmdb = OnTmdb.begin(query, Map.get(socket.assigns, :tmdb_ready, false))
+    ready? = Map.get(socket.assigns, :tmdb_ready, false)
+    tmdb = OnTmdb.begin(query, ready?)
+    keyless = Keyless.begin(query, ready?)
+    waiting? = tmdb.status == :pending or Keyless.waiting?(keyless)
 
-    tmdb =
-      case {tmdb.status, how} do
-        {:pending, :debounced} ->
-          Kati.Media.SearchDebounce.ask(self(), tmdb.query)
-          tmdb
-
-        {:pending, :now} ->
-          OnTmdb.fetch(self(), epoch, tmdb.query)
-          %{tmdb | requested: epoch}
-
-        _nothing_to_send ->
-          tmdb
-      end
+    if waiting? and how == :debounced,
+      do: Kati.Media.SearchDebounce.ask(self(), String.trim(query))
 
     socket
     |> Mob.Socket.assign(:tmdb_epoch, epoch)
     |> Mob.Socket.assign(:tmdb, tmdb)
+    |> Mob.Socket.assign(:keyless, keyless)
     |> Mob.Socket.assign(:save_error, nil)
+    |> then(fn socket ->
+      if how == :now,
+        do:
+          socket
+          |> Kati.Screens.Search.settle_tmdb(nil)
+          |> Kati.Screens.Search.settle_keyless(nil),
+        else: socket
+    end)
   end
 
   @doc """
-  The TMDB section on a return to this page: the rows re-marked against the
-  shelf, which a title page above may have changed — or, when the section was
-  the missing-token door and a token now exists, the query asked again.
+  Send the TMDB section's request for the current epoch, once: when it is
+  pending, not yet sent, and — for `query` other than `nil` — still on `query`.
+  """
+  @spec settle_tmdb(Mob.Socket.t(), String.t() | nil) :: Mob.Socket.t()
+  def settle_tmdb(socket, query) do
+    tmdb = Map.get(socket.assigns, :tmdb, OnTmdb.idle())
+    epoch = Map.get(socket.assigns, :tmdb_epoch, 0)
+
+    if tmdb.status == :pending and tmdb.requested != epoch and
+         (is_nil(query) or tmdb.query == query) do
+      OnTmdb.fetch(self(), epoch, tmdb.query)
+      Mob.Socket.assign(socket, :tmdb, %{tmdb | requested: epoch})
+    else
+      socket
+    end
+  end
+
+  @doc "`settle_tmdb/2` for the AniList and TVmaze sections."
+  @spec settle_keyless(Mob.Socket.t(), String.t() | nil) :: Mob.Socket.t()
+  def settle_keyless(socket, query) do
+    keyless = Map.get(socket.assigns, :keyless, Keyless.idle())
+    epoch = Map.get(socket.assigns, :tmdb_epoch, 0)
+    Mob.Socket.assign(socket, :keyless, Keyless.request(keyless, self(), epoch, query))
+  end
+
+  @doc """
+  The online sections on a return to this page: the rows re-marked against
+  the shelf, which a title page above may have changed — or, when the TMDB
+  section was the missing-token door and a token now exists, the query asked
+  again, which also puts the AniList and TVmaze sections away.
   """
   @spec refresh_tmdb(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def refresh_tmdb(socket, query) do
     socket = Mob.Socket.assign(socket, :tmdb_ready, Kati.Media.Tmdb.usable?())
+    keyless = Map.get(socket.assigns, :keyless, Keyless.idle())
 
     case Map.get(socket.assigns, :tmdb, OnTmdb.idle()) do
       %{status: :error, reason: :no_api_key} ->
         if socket.assigns.tmdb_ready,
           do: Kati.Screens.Search.ask_tmdb(socket, query, :now),
-          else: socket
+          else: Mob.Socket.assign(socket, :keyless, Keyless.mark(keyless))
 
       tmdb ->
-        Mob.Socket.assign(socket, :tmdb, %{tmdb | rows: OnTmdb.mark(tmdb.rows)})
+        socket
+        |> Mob.Socket.assign(:tmdb, %{tmdb | rows: OnTmdb.mark(tmdb.rows)})
+        |> Mob.Socket.assign(:keyless, Keyless.mark(keyless))
     end
   end
 
@@ -665,6 +741,10 @@ defmodule Kati.Screens.Search do
       {:ok, _tracked} ->
         socket
         |> Mob.Socket.assign(:tmdb, %{tmdb | rows: OnTmdb.mark(tmdb.rows)})
+        |> Mob.Socket.assign(
+          :keyless,
+          Keyless.mark(Map.get(socket.assigns, :keyless, Keyless.idle()))
+        )
         |> Mob.Socket.assign(:results, Kati.Search.Query.run(socket.assigns.query))
         |> Mob.Socket.assign(:save_error, nil)
 
@@ -690,6 +770,51 @@ defmodule Kati.Screens.Search do
         |> Kati.Screens.TitlePreview.push(row, "Search")
 
       nil ->
+        socket
+    end
+  end
+
+  @doc """
+  The add disc on an AniList or TVmaze row: `add_from_tmdb/2`'s rule, over
+  that section's rows. `Kati.Screens.AddTitle.track/3` fetches the title from
+  its own catalogue, so the shelf row is keyed on AniList's or TVmaze's id.
+  """
+  @spec add_from_keyless(Mob.Socket.t(), :anilist | :tvmaze, String.t()) :: Mob.Socket.t()
+  def add_from_keyless(socket, source, position) do
+    keyless = Map.get(socket.assigns, :keyless, Keyless.idle())
+
+    case Keyless.at(keyless, source, position) do
+      nil ->
+        socket
+
+      %{id: id} = row when is_binary(id) ->
+        Kati.Screens.Search.open_kept(socket, row)
+
+      row ->
+        Kati.Screens.Search.track_row(
+          Kati.Screens.Search.commit(socket),
+          Map.get(socket.assigns, :tmdb, OnTmdb.idle()),
+          row
+        )
+    end
+  end
+
+  @doc """
+  An AniList or TVmaze row's body: `open_tmdb/2`'s rule — the kept page, or
+  the preview, which fetches from the row's own catalogue.
+  """
+  @spec open_keyless(Mob.Socket.t(), :anilist | :tvmaze, String.t()) :: Mob.Socket.t()
+  def open_keyless(socket, source, position) do
+    case Keyless.at(Map.get(socket.assigns, :keyless, Keyless.idle()), source, position) do
+      %{id: id} = row when is_binary(id) ->
+        Kati.Screens.Search.open_kept(socket, row)
+
+      %{source: ^source} = row ->
+        socket
+        |> Kati.Screens.Search.commit()
+        |> Kati.Screens.TitlePreview.push(row, "Search")
+
+      _nothing ->
         socket
     end
   end
@@ -1300,10 +1425,14 @@ defmodule Kati.Screens.Search do
   series and nothing else; under Calendar or Notes it would be an answer to a
   question the reader narrowed away. Its heading takes the accent dash when the
   library drew nothing above it, by the positional rule `groups/2` follows.
+
+  Not drawn at all without a token: the page asks AniList and TVmaze instead,
+  and `keyless/4` draws their sections and the token card under them.
   """
   @spec on_tmdb(map(), atom(), OnTmdb.t(), String.t() | nil) :: map() | []
   def on_tmdb(results, filter, tmdb, save_error \\ nil) do
-    if Map.get(results, :idle?, false) or filter not in [:all, :screen] or tmdb.status == :idle do
+    if Map.get(results, :idle?, false) or filter not in [:all, :screen] or
+         tmdb.status == :idle or Map.get(tmdb, :reason) == :no_api_key do
       []
     else
       Kati.Screens.Search.tmdb_section(results, filter, tmdb, save_error)
@@ -1431,9 +1560,13 @@ defmodule Kati.Screens.Search do
   One TMDB row: screen 06's result row, with a body that opens the title — its
   own page when the reader keeps it, and its preview when they do not
   (`open_tmdb/2`). The disc still adds from the row.
+
+  The AniList and TVmaze sections draw the same row under their own tag
+  prefixes — `anilist_open_` and `anilist_add_`, `tvmaze_open_` and
+  `tvmaze_add_` — because each section's positions start at 0.
   """
-  def tmdb_row(row) do
-    tap = {self(), String.to_atom("tmdb_open_" <> Integer.to_string(row.position))}
+  def tmdb_row(row, open_prefix \\ "tmdb_open_", add_prefix \\ "add_") do
+    tap = {self(), String.to_atom(open_prefix <> Integer.to_string(row.position))}
 
     ~MOB"""
     <Row
@@ -1469,9 +1602,173 @@ defmodule Kati.Screens.Search do
         />
       </Column>
       <Spacer size={13} />
-      {Kati.Screens.AddTitle.add_button(row.added, row.position)}
+      {Kati.Screens.AddTitle.add_button(row.added, row.position, add_prefix)}
     </Row>
     """
+  end
+
+  @doc """
+  The *On AniList* and *On TVmaze* sections and the token card under them —
+  or nothing.
+
+  Drawn under the All and Screen chips when the reader has no TMDB token and
+  a query long enough to send (`Kati.Search.Keyless`). The first heading takes
+  the accent dash when the library drew nothing above it, as `on_tmdb/4`'s
+  does. Only when the library and both catalogues found nothing is the title
+  offered by hand.
+  """
+  @spec keyless(map(), atom(), Keyless.t(), String.t() | nil) :: map() | []
+  def keyless(results, filter, keyless, save_error \\ nil) do
+    active? = Enum.any?(Keyless.sources(), &(keyless[&1].status != :idle))
+
+    if Map.get(results, :idle?, false) or filter not in [:all, :screen] or not active? do
+      []
+    else
+      Kati.Screens.Search.keyless_block(results, filter, keyless, save_error)
+    end
+  end
+
+  @doc false
+  def keyless_block(results, filter, keyless, save_error) do
+    local = Map.get(results, :titles) || []
+    first? = Kati.Screens.Search.visible_groups(results, filter) == []
+
+    sections =
+      Keyless.sources()
+      |> Enum.with_index()
+      |> Enum.map(fn {source, index} ->
+        Kati.Screens.Search.keyless_section(keyless, source, local, first? and index == 0)
+      end)
+
+    assigns = %{
+      notice: Kati.Screens.AddTitle.save_notice(save_error),
+      sections: sections,
+      by_hand: Kati.Screens.Search.keyless_by_hand(keyless, local, results),
+      hint: Kati.UI.TmdbPrompt.hint()
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@notice}
+      {@sections}
+      {@by_hand}
+      {@hint}
+    </Column>
+    """
+  end
+
+  @doc false
+  def keyless_section(keyless, source, local, accent?) do
+    label = Kati.Screens.Search.keyless_label(source)
+
+    assigns = %{
+      heading: if(accent?, do: UI.eyebrow(label), else: Kati.Screens.Search.section(label)),
+      body: Kati.Screens.Search.keyless_body(keyless, source, local)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@heading}
+      {@body}
+    </Column>
+    """
+  end
+
+  @doc """
+  A keyless section's heading. Two msgids rather than one with the name in
+  it, so each reads naturally in Persian.
+
+      iex> Kati.Screens.Search.keyless_label(:tvmaze)
+      "On TVmaze"
+  """
+  @spec keyless_label(:anilist | :tvmaze) :: String.t()
+  def keyless_label(:anilist), do: gettext("On AniList")
+  def keyless_label(:tvmaze), do: gettext("On TVmaze")
+
+  @doc false
+  def keyless_body(keyless, source, local) do
+    case keyless[source] do
+      %{status: :pending} ->
+        Kati.Screens.AddTitle.skeletons()
+
+      %{status: :error, reason: reason} ->
+        assigns = %{notice: Kati.UI.notice(Kati.Media.Provider.message(source, reason))}
+
+        ~MOB"""
+        <Column fill_width={true}>
+          {@notice}
+          <Spacer size={22} />
+        </Column>
+        """
+
+      %{status: :ready, rows: rows, query: query} ->
+        case {Keyless.shown(keyless, source, local), rows} do
+          {[], []} ->
+            Kati.Screens.Search.tmdb_line(
+              gettext("Nothing on %{source} for “%{query}”",
+                source: Kati.Media.Provider.name(source),
+                query: query
+              )
+            )
+
+          {[], _all_above} ->
+            Kati.Screens.Search.tmdb_line(
+              gettext("%{source} found nothing beyond the titles above.",
+                source: Kati.Media.Provider.name(source)
+              )
+            )
+
+          {shown, _rows} ->
+            Kati.Screens.Search.keyless_rows(shown, source)
+        end
+
+      _idle ->
+        []
+    end
+  end
+
+  @doc false
+  def keyless_rows(rows, source) do
+    prefix = Atom.to_string(source)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {rows
+       |> Enum.map(fn row -> Kati.Screens.Search.tmdb_row(row, prefix <> "_open_", prefix <> "_add_") end)
+       |> Enum.intersperse(Kati.Screens.AddTitle.row_gap())}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The by-hand row under the keyless sections: only when the library found
+  nothing and both catalogues have answered with nothing to show.
+  """
+  @spec keyless_by_hand(Keyless.t(), [map()], map()) :: map() | []
+  def keyless_by_hand(keyless, local, results) do
+    answered_empty? =
+      Enum.all?(Keyless.sources(), fn source ->
+        keyless[source].status == :ready and Keyless.shown(keyless, source, local) == []
+      end)
+
+    if answered_empty? and Kati.Screens.Search.empty?(results) do
+      assigns = %{
+        row:
+          Kati.Screens.AddTitle.by_hand_row(
+            gettext("Add “%{query}” by hand?", query: keyless.anilist.query)
+          )
+      }
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {@row}
+        <Spacer size={22} />
+      </Column>
+      """
+    else
+      []
+    end
   end
 
   @doc """

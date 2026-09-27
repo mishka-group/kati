@@ -202,8 +202,14 @@ defmodule Kati.Screens.AnimeFilter do
 
   defp guess_reason(track, cached) do
     cond do
-      to_string(track.source) in ~w(jikan anilist) ->
+      track.source == :anilist ->
+        gettext("Found on AniList, which lists only anime")
+
+      to_string(track.source) == "jikan" ->
         gettext("Imported from a file that marks everything in it anime")
+
+      track.source == :tvmaze and Kati.Media.Anime.provider_says?(cached) ->
+        gettext("TVmaze lists it as Animation, origin Japanese")
 
       Kati.Media.Anime.provider_says?(cached) ->
         gettext("TMDB lists it as Animation, origin Japanese")

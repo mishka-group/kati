@@ -480,6 +480,11 @@ defmodule Kati.Screens.AddTitle do
 
   `source_id` and `kind` ride along because `track/2` needs them: a row added
   from TMDB is tracked under its TMDB id, not under its title.
+
+  `source` is the result's own when it carries one — `Kati.Media.Anilist` and
+  `Kati.Media.Tvmaze` stamp theirs, and their `poster_path` is a full URL
+  `Kati.Media.Artwork` answers for just the same — and `:tmdb` when it does
+  not, which is every TMDB result.
   """
   @spec row(map()) :: map()
   def row(result) do
@@ -496,7 +501,7 @@ defmodule Kati.Screens.AddTitle do
       # `false` here and corrected by `already_added/1`, which asks the shelf
       # once for the whole page rather than once per row.
       added: false,
-      source: :tmdb,
+      source: Map.get(result, :source, :tmdb),
       source_id: result.source_id,
       kind: result.kind
     }
@@ -847,12 +852,17 @@ defmodule Kati.Screens.AddTitle do
   Screen 163 passes `:watching` through its `:adds_as` assign, because its
   question is *pick something you are watching now* and the reader's answer is
   exactly that claim.
+
+  A row from any catalogue `Kati.Media.Provider` fetches from — TMDB, AniList
+  or TVmaze — is fetched from its own and tracked under its own `{source,
+  source_id}`; everything else is a hand-typed `:manual` title.
   """
   @spec track(String.t(), map() | nil, :not_started | :watching) ::
           {:ok, term()} | {:error, term()}
   def track(title, row, status \\ :not_started)
 
-  def track(title, %{source: :tmdb, source_id: source_id, kind: kind}, status) do
+  def track(title, %{source: source, source_id: source_id, kind: kind}, status)
+      when source in [:tmdb, :anilist, :tvmaze] do
     # The detail call, and the only place it is made. It fills
     # `Kati.Media.CachedTitle`, `CachedSeason` and `CachedEpisode` — the
     # episodes are the point, because nothing can be ticked before they exist,
@@ -861,10 +871,10 @@ defmodule Kati.Screens.AddTitle do
     # A tracked row under the TMDB id rather than under the title: the cached
     # episodes reference `title_source_id`, so a `:manual` row keyed on a
     # string would sit beside its own episode list and never join to it.
-    with {:ok, filled} <- Kati.Media.Tmdb.fetch(source_id, tmdb_kind(kind)),
+    with {:ok, filled} <- Kati.Media.Provider.fetch(source, source_id, tmdb_kind(kind)),
          {:ok, tracked} <-
            Ash.create(Kati.Media.TrackedTitle, %{
-             source: :tmdb,
+             source: source,
              source_id: source_id,
              # Board 152's third rule, asked of the row the fetch just wrote:
              # TMDB's Animation + Japanese origin. `:anime` was a kind every
@@ -1033,10 +1043,16 @@ defmodule Kati.Screens.AddTitle do
 
       iex> Kati.Screens.AddTitle.tracked_key("Typed by hand", %{title: "Typed by hand"})
       {:manual, "Typed by hand"}
+
+  AniList and TVmaze rows are keyed on their own ids the same way:
+
+      iex> Kati.Screens.AddTitle.tracked_key("SAKAMOTO DAYS", %{source: :anilist, source_id: "177709"})
+      {:anilist, "177709"}
   """
-  @spec tracked_key(String.t(), map() | nil) :: {:tmdb | :manual, String.t()}
-  def tracked_key(_title, %{source: :tmdb, source_id: id}) when is_binary(id) and id != "",
-    do: {:tmdb, id}
+  @spec tracked_key(String.t(), map() | nil) :: {atom(), String.t()}
+  def tracked_key(_title, %{source: source, source_id: id})
+      when source in [:tmdb, :anilist, :tvmaze] and is_binary(id) and id != "",
+      do: {source, id}
 
   def tracked_key(title, _row), do: {:manual, title}
 
@@ -1320,11 +1336,15 @@ defmodule Kati.Screens.AddTitle do
   # drawn colour instead of the component's own `:lg` text glyph. The only
   # structural difference is the `<Row>` the component wraps children in, which
   # hugs its single Text and is centred by the same Box — no measurement moves.
+  #
+  # `prefix` names the list the position is in: `add_` for this screen's and
+  # screen 19's TMDB rows, and `anilist_add_` / `tvmaze_add_` for screen 19's
+  # keyless sections, whose positions restart at 0 in each.
   @doc false
-  def add_button(added?, position) when is_integer(position) do
+  def add_button(added?, position, prefix \\ "add_") when is_integer(position) do
     # See `add_at/2`: the position in the full list, so a chip that hides rows
     # renumbers nothing, and one page of results bounds the atoms.
-    tap = {self(), String.to_atom("add_" <> Integer.to_string(position))}
+    tap = {self(), String.to_atom(prefix <> Integer.to_string(position))}
     bg = if added?, do: Palette.placeholder(), else: Palette.ink_fill()
     icon = if added?, do: "check", else: "add"
     ink = if added?, do: Palette.sub(), else: Palette.on_ink()

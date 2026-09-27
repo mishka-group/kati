@@ -180,7 +180,11 @@ defmodule Kati.SearchTmdbSectionTest do
       view = search() |> typed("arrival")
 
       assert assigns(view).tmdb.reason == :no_api_key
-      assert skeletons(view) == 0
+      refute Kati.UI.eyebrow_label("On TMDB") in texts(view)
+
+      assert skeletons(view) == 6,
+             "no token no longer searches AniList and TVmaze (Kati.SearchKeylessSectionTest)"
+
       assert Enum.count(texts(view), &(&1 == "Add your TMDB token")) == 1
 
       opened = render_info(view, {:tap, :add_tmdb_token})

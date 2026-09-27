@@ -44,6 +44,36 @@ defmodule Kati.UI.TmdbPrompt do
   end
 
   @doc """
+  The same door, under screen 19's AniList and TVmaze sections.
+
+  With no token, search still answers — anime and series come from the two
+  keyless catalogues (`Kati.Search.Keyless`) — so the card no longer says
+  Kati *needs* the token to find anything. What it does say is the part that
+  stays true: films are TMDB's. Same title, same tap, same destination as
+  `block/1`.
+  """
+  @spec hint() :: map()
+  def hint do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.card([
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("movie"),
+          Kati.UI.SettingsList.body(
+            gettext("Add your TMDB token"),
+            gettext("Films and the rest of TV come from TMDB. Free, and takes a minute.")
+          ),
+          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+          rule: false,
+          on_tap: {self(), :add_tmdb_token}
+        )
+      ])}
+      <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  @doc """
   Where the block leads: screen 80, where the token field is.
 
   `back` is the word the pill on screen 80 says — the page it returns to.
