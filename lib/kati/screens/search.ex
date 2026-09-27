@@ -1916,21 +1916,19 @@ defmodule Kati.Screens.Search do
   end
 
   @doc """
-  The by-hand row under the keyless sections: only when the library found
-  nothing and both catalogues have settled with nothing to show — answered
-  empty, or failed. A catalogue that could not be reached is not a reason to
-  leave the reader with no way to add the title: offline, or on a network
-  that blocks both, this row is the only move left.
+  The by-hand row under the keyless sections: when the library found nothing
+  and both catalogues have settled — answered, or failed — whatever they
+  answered. TVmaze's search is fuzzy, so a title that exists in neither comes
+  back with the nearest-sounding show (*vellichor* answers a Dutch thriller,
+  *Bellicher*), and hiding the by-hand row behind any row at all left exactly
+  that reader with nothing to tap. Offline, or on a network that blocks both,
+  this row is the only move left.
   """
   @spec keyless_by_hand(Keyless.t(), [map()], map()) :: map() | []
   def keyless_by_hand(keyless, local, results) do
-    answered_empty? =
-      Enum.all?(Keyless.sources(), fn source ->
-        keyless[source].status == :error or
-          (keyless[source].status == :ready and Keyless.shown(keyless, source, local) == [])
-      end)
+    settled? = Enum.all?(Keyless.sources(), &(keyless[&1].status in [:ready, :error]))
 
-    if answered_empty? and Kati.Screens.Search.empty?(results) do
+    if settled? and Kati.Screens.Search.empty?(results) and local == [] do
       assigns = %{
         row:
           Kati.Screens.AddTitle.by_hand_row(

@@ -215,6 +215,15 @@ defmodule Kati.SearchKeylessSectionTest do
       assert :add_by_hand in tap_tags(view)
     end
 
+    test "catalogue rows do not hide the by-hand row when the library has nothing" do
+      KeylessStubs.install!()
+
+      view = search() |> typed("sakamoto") |> settle()
+
+      assert "SAKAMOTO DAYS" in texts(view)
+      assert Enum.count(texts(view), &(&1 == "Add “sakamoto” by hand?")) == 1
+    end
+
     test "one catalogue still out leaves no by-hand row yet" do
       KeylessStubs.install!(anilist: 503)
 
