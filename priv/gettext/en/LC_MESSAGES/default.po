@@ -523,7 +523,7 @@ msgstr ""
 #: lib/kati/screens/pushed.ex:191
 #: lib/kati/screens/search.ex:154
 #: lib/kati/screens/search.ex:336
-#: lib/kati/screens/search.ex:873
+#: lib/kati/screens/search.ex:950
 #: lib/kati/shell.ex:80
 #, elixir-autogen, elixir-format
 msgid "Home"
@@ -4452,7 +4452,7 @@ msgstr ""
 msgid "Mark episode %{n} watched"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1299
+#: lib/kati/screens/search.ex:1376
 #: lib/kati/screens/search_result_states.ex:738
 #, elixir-autogen, elixir-format
 msgid "%{n} match in %{scope}"
@@ -4482,7 +4482,7 @@ msgstr ""
 msgid "Note · %{date} · %{title}"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1297
+#: lib/kati/screens/search.ex:1374
 #: lib/kati/screens/search_result_states.ex:736
 #, elixir-autogen, elixir-format
 msgid "Nothing in %{scope}. "
@@ -4669,7 +4669,7 @@ msgctxt "search scope"
 msgid "Screen"
 msgstr ""
 
-#: lib/kati/screens/search.ex:2194
+#: lib/kati/screens/search.ex:2368
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Recent"
 msgstr ""
@@ -15997,32 +15997,32 @@ msgctxt "where a film is showing"
 msgid "Cinema"
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:660
+#: lib/kati/media/tmdb.ex:687
 #, elixir-autogen, elixir-format
 msgid "Could not reach TMDB. Hand-typed titles still work."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:646
+#: lib/kati/media/tmdb.ex:673
 #, elixir-autogen, elixir-format
 msgid "No TMDB key yet. Add one in Settings → Data sources."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:657
+#: lib/kati/media/tmdb.ex:684
 #, elixir-autogen, elixir-format
 msgid "TMDB answered %{status}. Nothing was saved."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:654
+#: lib/kati/media/tmdb.ex:681
 #, elixir-autogen, elixir-format
 msgid "TMDB has nothing under that id."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:652
+#: lib/kati/media/tmdb.ex:679
 #, elixir-autogen, elixir-format
 msgid "TMDB is rate-limiting Kati. Try again in a minute."
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:649
+#: lib/kati/media/tmdb.ex:676
 #, elixir-autogen, elixir-format
 msgid "TMDB refused that key. Check it in Settings → Data sources."
 msgstr ""
@@ -16143,7 +16143,7 @@ msgstr ""
 msgid "%{matched} matched · %{skipped} skipped"
 msgstr ""
 
-#: lib/kati/media/tmdb.ex:664
+#: lib/kati/media/tmdb.ex:691
 #, elixir-autogen, elixir-format
 msgid "This network is blocking TMDB. Try another Wi-Fi or mobile data. Hand-typed titles still work."
 msgstr ""
@@ -16840,23 +16840,23 @@ msgstr ""
 msgid "Your library, ratings and the posters already saved stay as they are."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1514
-#: lib/kati/screens/search.ex:1759
+#: lib/kati/screens/search.ex:1598
+#: lib/kati/screens/search.ex:1933
 #, elixir-autogen, elixir-format
 msgid "Add “%{query}” by hand?"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1404
+#: lib/kati/screens/search.ex:1481
 #, elixir-autogen, elixir-format
 msgid "Not in your library"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1521
+#: lib/kati/screens/search.ex:1605
 #, elixir-autogen, elixir-format
 msgid "Nothing on TMDB for “%{query}”"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1444
+#: lib/kati/screens/search.ex:1521
 #, elixir-autogen, elixir-format
 msgid "On TMDB"
 msgstr ""
@@ -16866,7 +16866,7 @@ msgstr ""
 msgid "Search your library"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1495
+#: lib/kati/screens/search.ex:1576
 #, elixir-autogen, elixir-format
 msgid "TMDB found nothing beyond what you already keep."
 msgstr ""
@@ -16892,22 +16892,22 @@ msgstr ""
 msgid "Edit your log"
 msgstr ""
 
-#: lib/kati/media/provider.ex:142
+#: lib/kati/media/provider.ex:149
 #, elixir-autogen, elixir-format
 msgid "%{source} answered %{status}. Nothing was saved."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1716
+#: lib/kati/screens/search.ex:1887
 #, elixir-autogen, elixir-format
 msgid "%{source} found nothing beyond the titles above."
 msgstr ""
 
-#: lib/kati/media/provider.ex:138
+#: lib/kati/media/provider.ex:145
 #, elixir-autogen, elixir-format
 msgid "%{source} has nothing under that id."
 msgstr ""
 
-#: lib/kati/media/provider.ex:135
+#: lib/kati/media/provider.ex:142
 #, elixir-autogen, elixir-format
 msgid "%{source} is busy. Try again in a minute."
 msgstr ""
@@ -16917,7 +16917,7 @@ msgstr ""
 msgid "Anime series and films, episode counts"
 msgstr ""
 
-#: lib/kati/media/provider.ex:148
+#: lib/kati/media/provider.ex:155
 #, elixir-autogen, elixir-format
 msgid "Could not reach %{source}. Hand-typed titles still work."
 msgstr ""
@@ -16937,17 +16937,17 @@ msgstr ""
 msgid "Loading from %{source}…"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1708
+#: lib/kati/screens/search.ex:1878
 #, elixir-autogen, elixir-format
 msgid "Nothing on %{source} for “%{query}”"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1685
+#: lib/kati/screens/search.ex:1853
 #, elixir-autogen, elixir-format
 msgid "On AniList"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1686
+#: lib/kati/screens/search.ex:1854
 #, elixir-autogen, elixir-format
 msgid "On TVmaze"
 msgstr ""
@@ -16962,7 +16962,7 @@ msgstr ""
 msgid "TVmaze lists it as Animation, origin Japanese"
 msgstr ""
 
-#: lib/kati/media/provider.ex:152
+#: lib/kati/media/provider.ex:159
 #, elixir-autogen, elixir-format
 msgid "This network is blocking %{source}. Try another Wi-Fi or mobile data. Hand-typed titles still work."
 msgstr ""
@@ -16975,4 +16975,14 @@ msgstr ""
 #: lib/kati/screens/privacy.ex:99
 #, elixir-autogen, elixir-format
 msgid "Searches and title details come from TMDB, using the token you gave Kati. Without a token, searches go to AniList and TVmaze, which need none. Posters come from the same services’ image servers. No other service is contacted."
+msgstr ""
+
+#: lib/kati/screens/search.ex:1675
+#, elixir-autogen, elixir-format
+msgid "Couldn’t load more · Try again"
+msgstr ""
+
+#: lib/kati/screens/search.ex:1678
+#, elixir-autogen, elixir-format
+msgid "Show more"
 msgstr ""

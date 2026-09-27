@@ -40,7 +40,10 @@ defmodule Kati.Search.Keyless do
           query: String.t(),
           rows: [map()],
           reason: term(),
-          requested: non_neg_integer() | nil
+          requested: non_neg_integer() | nil,
+          page: pos_integer(),
+          more?: boolean(),
+          more: :idle | :loading | {:error, term()}
         }
 
   @typedoc "Both sections."
@@ -69,7 +72,7 @@ defmodule Kati.Search.Keyless do
       :idle
 
       iex> Kati.Search.Keyless.begin(" sakamoto ", false).tvmaze
-      %{source: :tvmaze, status: :pending, query: "sakamoto", rows: [], reason: nil, requested: nil}
+      %{source: :tvmaze, status: :pending, query: "sakamoto", rows: [], reason: nil, requested: nil, page: 1, more?: false, more: :idle}
 
       iex> Kati.Search.Keyless.begin("s", false).anilist.status
       :idle
@@ -142,9 +145,9 @@ defmodule Kati.Search.Keyless do
   end
 
   @doc false
-  @spec search(:anilist | :tvmaze, String.t()) :: {:ok, [map()]} | {:error, term()}
+  @spec search(:anilist | :tvmaze, String.t()) :: {:ok, map()} | {:error, term()}
   def search(source, query) do
-    Kati.Media.Provider.search(source, query)
+    Kati.Media.Provider.search_page(source, query, 1)
   rescue
     error -> {:error, {:network, error}}
   end
@@ -153,13 +156,27 @@ defmodule Kati.Search.Keyless do
   The state an answer from `source` puts that section in. An answer for a
   query the section has moved past is the caller's to drop.
   """
-  @spec answered(t(), :anilist | :tvmaze, {:ok, [map()]} | {:error, term()}) :: t()
-  def answered(state, source, {:ok, results}) when source in @sources,
-    do:
-      Map.put(state, source, %{state[source] | status: :ready, rows: shape(results), reason: nil})
+  @spec answered(t(), :anilist | :tvmaze, {:ok, [map()] | map()} | {:error, term()}) :: t()
+  def answered(state, source, answer) when source in @sources,
+    do: Map.put(state, source, OnTmdb.answered(state[source], answer, &shape/1))
 
-  def answered(state, source, {:error, reason}) when source in @sources,
-    do: Map.put(state, source, %{state[source] | status: :error, rows: [], reason: reason})
+  @doc """
+  `source`'s section with its next page asked for, and the page — see
+  `Kati.Search.OnTmdb.more_begin/1`.
+  """
+  @spec more_begin(t(), :anilist | :tvmaze) :: {:ok, t(), pos_integer()} | :none
+  def more_begin(state, source) when source in @sources do
+    case OnTmdb.more_begin(state[source]) do
+      {:ok, section, page} -> {:ok, Map.put(state, source, section), page}
+      :none -> :none
+    end
+  end
+
+  @doc "`source`'s section once `page` has answered — `Kati.Search.OnTmdb.more_answered/4`."
+  @spec more_answered(t(), :anilist | :tvmaze, pos_integer(), {:ok, map()} | {:error, term()}) ::
+          t()
+  def more_answered(state, source, page, answer) when source in @sources,
+    do: Map.put(state, source, OnTmdb.more_answered(state[source], page, answer, &shape/1))
 
   @doc """
   The results in screen 06's row shape — `Kati.Search.OnTmdb.shape/1`'s rows,

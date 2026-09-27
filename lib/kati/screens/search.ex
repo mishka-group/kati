@@ -442,6 +442,53 @@ defmodule Kati.Screens.Search do
   def handle_info({:tap, :add_tmdb_token}, socket),
     do: {:noreply, Kati.UI.TmdbPrompt.open(socket, "Search")}
 
+  def handle_info({:tap, :more_tmdb}, socket) do
+    tmdb = Map.get(socket.assigns, :tmdb, OnTmdb.idle())
+
+    case OnTmdb.more_begin(tmdb) do
+      {:ok, tmdb, page} ->
+        OnTmdb.fetch_more(
+          self(),
+          Map.get(socket.assigns, :tmdb_epoch, 0),
+          :tmdb,
+          tmdb.query,
+          page
+        )
+
+        {:noreply, Mob.Socket.assign(socket, :tmdb, tmdb)}
+
+      :none ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_info({:tap, tag}, socket) when tag in [:more_anilist, :more_tvmaze] do
+    source = if tag == :more_anilist, do: :anilist, else: :tvmaze
+    keyless = Map.get(socket.assigns, :keyless, Keyless.idle())
+
+    case Keyless.more_begin(keyless, source) do
+      {:ok, keyless, page} ->
+        OnTmdb.fetch_more(
+          self(),
+          Map.get(socket.assigns, :tmdb_epoch, 0),
+          source,
+          keyless[source].query,
+          page
+        )
+
+        {:noreply, Mob.Socket.assign(socket, :keyless, keyless)}
+
+      :none ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_info({:more_answer, source, epoch, query, page, result}, socket) do
+    if epoch == Map.get(socket.assigns, :tmdb_epoch, 0),
+      do: {:noreply, Kati.Screens.Search.more_answered(socket, source, query, page, result)},
+      else: {:noreply, socket}
+  end
+
   def handle_info({:tap, :clear_recent}, socket) do
     Kati.Search.Recent.forget!()
 
@@ -654,6 +701,36 @@ defmodule Kati.Screens.Search do
       socket
     end
   end
+
+  @doc """
+  A next page's answer into its section, when the section is still on the
+  query it was asked for.
+  """
+  @spec more_answered(Mob.Socket.t(), atom(), String.t(), pos_integer(), term()) ::
+          Mob.Socket.t()
+  def more_answered(socket, :tmdb, query, page, result) do
+    tmdb = Map.get(socket.assigns, :tmdb, OnTmdb.idle())
+
+    if tmdb.query == query,
+      do:
+        Mob.Socket.assign(
+          socket,
+          :tmdb,
+          OnTmdb.more_answered(tmdb, page, result, &OnTmdb.shape/1)
+        ),
+      else: socket
+  end
+
+  def more_answered(socket, source, query, page, result) when source in [:anilist, :tvmaze] do
+    keyless = Map.get(socket.assigns, :keyless, Keyless.idle())
+
+    if keyless[source].query == query,
+      do:
+        Mob.Socket.assign(socket, :keyless, Keyless.more_answered(keyless, source, page, result)),
+      else: socket
+  end
+
+  def more_answered(socket, _source, _query, _page, _result), do: socket
 
   @doc "`settle_tmdb/2` for the AniList and TVmaze sections."
   @spec settle_keyless(Mob.Socket.t(), String.t() | nil) :: Mob.Socket.t()
@@ -1486,16 +1563,23 @@ defmodule Kati.Screens.Search do
     """
   end
 
-  def tmdb_body(%{status: :ready, rows: rows, query: query}, local, nothing_local?) do
+  def tmdb_body(%{status: :ready, rows: rows, query: query} = tmdb, local, nothing_local?) do
+    more = Kati.Screens.Search.more_control(tmdb, :more_tmdb)
+
     case {OnTmdb.shown(rows, local), rows} do
       {[], []} ->
         Kati.Screens.Search.nothing_on_tmdb(query, nothing_local?)
 
       {[], _all_above} ->
-        Kati.Screens.Search.tmdb_line(gettext("TMDB found nothing beyond what you already keep."))
+        Kati.Screens.Search.with_more(
+          Kati.Screens.Search.tmdb_line(
+            gettext("TMDB found nothing beyond what you already keep.")
+          ),
+          more
+        )
 
       {shown, _rows} ->
-        Kati.Screens.Search.tmdb_rows(shown)
+        Kati.Screens.Search.tmdb_rows(shown, more)
     end
   end
 
@@ -1545,13 +1629,97 @@ defmodule Kati.Screens.Search do
   end
 
   @doc false
-  def tmdb_rows(rows) do
+  def tmdb_rows(rows, more \\ []) do
     ~MOB"""
     <Column fill_width={true}>
       {rows
        |> Enum.map(fn row -> Kati.Screens.Search.tmdb_row(row) end)
        |> Enum.intersperse(Kati.Screens.AddTitle.row_gap())}
+      {more}
       <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def with_more(line, []), do: line
+
+  def with_more(line, more) do
+    assigns = %{line: line, more: more}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@line}
+      {@more}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  What stands under a section's rows when its catalogue has another page.
+
+  Nothing when there is no next page. While the page is on its way, two
+  skeleton rows where the next rows will land, so the rows already drawn stay
+  put and the wait reads as more of the same list. Otherwise a full-width
+  outlined pill — *Show more*, or *Couldn't load more · Try again* after a
+  failure — in the card and border tokens the search field and the Cancel
+  pill use, so it holds in both themes and stays quieter than the ink
+  *Add* disc on every row above it.
+  """
+  @spec more_control(map(), atom()) :: map() | []
+  def more_control(%{more?: false}, _tap), do: []
+  def more_control(%{more: :loading}, _tap), do: Kati.Screens.Search.more_skeletons()
+
+  def more_control(%{more: {:error, _reason}}, tap),
+    do: Kati.Screens.Search.more_pill(gettext("Couldn’t load more · Try again"), tap)
+
+  def more_control(%{more?: true}, tap),
+    do: Kati.Screens.Search.more_pill(gettext("Show more"), tap)
+
+  def more_control(_section, _tap), do: []
+
+  @doc false
+  def more_skeletons do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.AddTitle.row_gap()}
+      {Kati.Screens.AddTitle.skeleton_row()}
+      {Kati.Screens.AddTitle.row_gap()}
+      {Kati.Screens.AddTitle.skeleton_row()}
+    </Column>
+    """
+  end
+
+  @doc false
+  def more_pill(label, tap) do
+    assigns = %{label: label, tap: {self(), tap}}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row
+        fill_width={true}
+        height={44}
+        corner_radius={22}
+        background={Palette.card()}
+        border_width={1}
+        border_color={Palette.border()}
+        align="center"
+        on_tap={@tap}
+      >
+        <Spacer weight={1.0} />
+        <Text
+          text={@label}
+          text_size={13}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer size={4} />
+        {Kati.UI.symbol("expand_more", size: 18, color: Palette.sub())}
+        <Spacer weight={1.0} />
+      </Row>
     </Column>
     """
   end
@@ -1701,7 +1869,9 @@ defmodule Kati.Screens.Search do
         </Column>
         """
 
-      %{status: :ready, rows: rows, query: query} ->
+      %{status: :ready, rows: rows, query: query} = section ->
+        more = Kati.Screens.Search.more_control(section, String.to_atom("more_#{source}"))
+
         case {Keyless.shown(keyless, source, local), rows} do
           {[], []} ->
             Kati.Screens.Search.tmdb_line(
@@ -1712,14 +1882,17 @@ defmodule Kati.Screens.Search do
             )
 
           {[], _all_above} ->
-            Kati.Screens.Search.tmdb_line(
-              gettext("%{source} found nothing beyond the titles above.",
-                source: Kati.Media.Provider.name(source)
-              )
+            Kati.Screens.Search.with_more(
+              Kati.Screens.Search.tmdb_line(
+                gettext("%{source} found nothing beyond the titles above.",
+                  source: Kati.Media.Provider.name(source)
+                )
+              ),
+              more
             )
 
           {shown, _rows} ->
-            Kati.Screens.Search.keyless_rows(shown, source)
+            Kati.Screens.Search.keyless_rows(shown, source, more)
         end
 
       _idle ->
@@ -1728,7 +1901,7 @@ defmodule Kati.Screens.Search do
   end
 
   @doc false
-  def keyless_rows(rows, source) do
+  def keyless_rows(rows, source, more \\ []) do
     prefix = Atom.to_string(source)
 
     ~MOB"""
@@ -1736,6 +1909,7 @@ defmodule Kati.Screens.Search do
       {rows
        |> Enum.map(fn row -> Kati.Screens.Search.tmdb_row(row, prefix <> "_open_", prefix <> "_add_") end)
        |> Enum.intersperse(Kati.Screens.AddTitle.row_gap())}
+      {more}
       <Spacer size={22} />
     </Column>
     """

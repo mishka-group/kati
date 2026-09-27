@@ -110,6 +110,13 @@ defmodule Kati.Media.Provider do
   def search(:anilist, query), do: Kati.Media.Anilist.search(query)
   def search(:tvmaze, query), do: Kati.Media.Tvmaze.search(query)
 
+  @doc "One page of `source`'s search, and whether there is another."
+  @spec search_page(source(), String.t(), pos_integer()) ::
+          {:ok, %{results: [map()], more?: boolean()}} | {:error, term()}
+  def search_page(:tmdb, query, page), do: Kati.Media.Tmdb.search_page(query, page)
+  def search_page(:anilist, query, page), do: Kati.Media.Anilist.search_page(query, page)
+  def search_page(:tvmaze, query, page), do: Kati.Media.Tvmaze.search_page(query, page)
+
   @doc """
   Fill the cache for one title from its own catalogue, answering what
   `Kati.Media.Tmdb.fetch/2` answers: `%{title: cached_row, seasons: n,

@@ -61,8 +61,8 @@ defmodule Kati.Media.Anilist do
   @fields "id format episodes duration title{romaji english native} coverImage{large} " <>
             "startDate{year month day} countryOfOrigin description(asHtml:false) genres"
 
-  @search "query($s:String){Page(perPage:20){media(search:$s,type:ANIME,isAdult:false){" <>
-            @fields <> "}}}"
+  @search "query($s:String,$p:Int){Page(page:$p,perPage:20){pageInfo{hasNextPage} " <>
+            "media(search:$s,type:ANIME,isAdult:false){" <> @fields <> "}}}"
 
   @detail "query($id:Int){Media(id:$id,type:ANIME){" <>
             @fields <>
@@ -86,12 +86,32 @@ defmodule Kati.Media.Anilist do
   end
 
   defp do_search(query) do
-    with {:ok, body} <- post(@search, %{s: query}) do
-      {:ok,
-       body
-       |> get_in_safe(["data", "Page", "media"])
-       |> List.wrap()
-       |> Enum.flat_map(&shape_result/1)}
+    with {:ok, page} <- search_page(query, 1), do: {:ok, page.results}
+  end
+
+  @doc """
+  One page of `search/1`'s answer, and whether AniList has another after it
+  (`pageInfo.hasNextPage`). Twenty rows a page.
+  """
+  @spec search_page(String.t(), pos_integer()) ::
+          {:ok, %{results: [map()], more?: boolean()}} | {:error, term()}
+  def search_page(query, page) when is_binary(query) and is_integer(page) and page > 0 do
+    case String.trim(query) do
+      "" ->
+        {:ok, %{results: [], more?: false}}
+
+      trimmed ->
+        with {:ok, body} <- post(@search, %{s: trimmed, p: page}) do
+          {:ok,
+           %{
+             results:
+               body
+               |> get_in_safe(["data", "Page", "media"])
+               |> List.wrap()
+               |> Enum.flat_map(&shape_result/1),
+             more?: get_in_safe(body, ["data", "Page", "pageInfo", "hasNextPage"]) == true
+           }}
+        end
     end
   end
 

@@ -211,10 +211,37 @@ defmodule Kati.Media.Tmdb do
   defp shape_recommendation(_other, _kind), do: []
 
   defp do_search(query) do
-    with {:ok, key} <- key(),
-         {:ok, body} <-
-           get(key, "/search/multi", query: query, include_adult: "false", page: "1") do
-      {:ok, body |> Map.get("results", []) |> Enum.flat_map(&shape_result/1)}
+    with {:ok, page} <- search_page(query, 1), do: {:ok, page.results}
+  end
+
+  @doc """
+  One page of `search/1`'s answer, and whether TMDB has another after it
+  (`page < total_pages`). TMDB pages hold twenty; people are dropped from each
+  page as `search/1` drops them, so a page can come back shorter.
+  """
+  @spec search_page(String.t(), pos_integer()) ::
+          {:ok, %{results: [result()], more?: boolean()}} | {:error, term()}
+  def search_page(query, page) when is_binary(query) and is_integer(page) and page > 0 do
+    case String.trim(query) do
+      "" ->
+        {:ok, %{results: [], more?: false}}
+
+      trimmed ->
+        with {:ok, key} <- key(),
+             {:ok, body} <-
+               get(key, "/search/multi",
+                 query: trimmed,
+                 include_adult: "false",
+                 page: Integer.to_string(page)
+               ) do
+          total = Map.get(body, "total_pages")
+
+          {:ok,
+           %{
+             results: body |> Map.get("results", []) |> Enum.flat_map(&shape_result/1),
+             more?: is_integer(total) and page < total
+           }}
+        end
     end
   end
 

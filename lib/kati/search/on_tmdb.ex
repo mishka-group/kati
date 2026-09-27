@@ -10,7 +10,8 @@ defmodule Kati.Search.OnTmdb do
 
   ## The state, and who moves it
 
-  One map on the socket, `%{status:, query:, rows:, reason:, requested:}`:
+  One map on the socket, `%{status:, query:, rows:, reason:, requested:, page:,
+  more?:, more:}`:
 
     * `:idle` — nothing typed, or less than `Kati.Search.minimum/1`.
     * `:pending` — a request is wanted or in flight; the section draws
@@ -18,6 +19,18 @@ defmodule Kati.Search.OnTmdb do
     * `:ready` — TMDB answered; `rows` are shaped by `shape/1`.
     * `:error` — `reason` is what `Kati.Media.Tmdb.message/1` words, and
       `:no_api_key` is the door to screen 80 instead.
+
+  ## More than one page
+
+  `page` is the last page the rows hold and `more?` whether the catalogue said
+  there is another. *Show more* under the rows asks for `page + 1`
+  (`more_begin/1`, then `fetch_more/5`); `more` is that request's own state —
+  `:idle`, `:loading` while the skeletons stand under the rows, or `{:error,
+  reason}` when it failed and the control offers to try again. The rows already
+  drawn never go back to skeletons, and the answer is appended
+  (`more_answered/4`), with a row the reader already sees dropped rather than
+  drawn twice. The AniList and TVmaze sections (`Kati.Search.Keyless`) carry
+  the same keys and go through the same functions.
 
   ## Off the render path, and off the screen's own process
 
@@ -35,12 +48,25 @@ defmodule Kati.Search.OnTmdb do
           query: String.t(),
           rows: [map()],
           reason: term(),
-          requested: non_neg_integer() | nil
+          requested: non_neg_integer() | nil,
+          page: pos_integer(),
+          more?: boolean(),
+          more: :idle | :loading | {:error, term()}
         }
 
   @doc "Nothing asked of TMDB."
   @spec idle() :: t()
-  def idle, do: %{status: :idle, query: "", rows: [], reason: nil, requested: nil}
+  def idle,
+    do: %{
+      status: :idle,
+      query: "",
+      rows: [],
+      reason: nil,
+      requested: nil,
+      page: 1,
+      more?: false,
+      more: :idle
+    }
 
   @doc """
   The state a query starts in, before anything is sent.
@@ -57,7 +83,7 @@ defmodule Kati.Search.OnTmdb do
       :no_api_key
 
       iex> Kati.Search.OnTmdb.begin(" arrival ", true)
-      %{status: :pending, query: "arrival", rows: [], reason: nil, requested: nil}
+      %{status: :pending, query: "arrival", rows: [], reason: nil, requested: nil, page: 1, more?: false, more: :idle}
   """
   @spec begin(String.t(), boolean()) :: t()
   def begin(query, usable?) when is_binary(query) do
@@ -98,18 +124,115 @@ defmodule Kati.Search.OnTmdb do
   end
 
   defp search(query) do
-    Kati.Media.Tmdb.search(query)
+    Kati.Media.Tmdb.search_page(query, 1)
   rescue
     error -> {:error, {:network, error}}
   end
 
-  @doc "The state an answer puts the section in."
-  @spec answered(t(), {:ok, [map()]} | {:error, term()}) :: t()
-  def answered(state, {:ok, results}),
-    do: %{state | status: :ready, rows: shape(results), reason: nil}
+  @doc """
+  The state an answer puts the section in. A page answer carries `more?`; a
+  bare list is a whole answer with nothing after it.
+  """
+  @spec answered(t(), {:ok, [map()] | map()} | {:error, term()}) :: t()
+  def answered(state, answer), do: Kati.Search.OnTmdb.answered(state, answer, &shape/1)
 
-  def answered(state, {:error, reason}),
-    do: %{state | status: :error, rows: [], reason: reason}
+  @doc "`answered/2` with the section's own row shaper."
+  @spec answered(t(), {:ok, [map()] | map()} | {:error, term()}, ([map()] -> [map()])) :: t()
+  def answered(state, {:ok, %{results: results, more?: more?}}, shaper),
+    do: %{
+      state
+      | status: :ready,
+        rows: shaper.(results),
+        reason: nil,
+        page: 1,
+        more?: more?,
+        more: :idle
+    }
+
+  def answered(state, {:ok, results}, shaper) when is_list(results),
+    do: Kati.Search.OnTmdb.answered(state, {:ok, %{results: results, more?: false}}, shaper)
+
+  def answered(state, {:error, reason}, _shaper),
+    do: %{state | status: :error, rows: [], reason: reason, more?: false, more: :idle}
+
+  @doc """
+  The section with its next page asked for, and that page's number — or
+  `:none` when there is nothing to ask: not answered yet, no page after this
+  one, or a page already on its way.
+
+      iex> Kati.Search.OnTmdb.more_begin(%{Kati.Search.OnTmdb.idle() | status: :ready, more?: true})
+      {:ok, %{Kati.Search.OnTmdb.idle() | status: :ready, more?: true, more: :loading}, 2}
+
+      iex> Kati.Search.OnTmdb.more_begin(%{Kati.Search.OnTmdb.idle() | status: :ready, more?: false})
+      :none
+  """
+  @spec more_begin(t()) :: {:ok, t(), pos_integer()} | :none
+  def more_begin(%{status: :ready, more?: true, more: more, page: page} = state)
+      when more != :loading,
+      do: {:ok, %{state | more: :loading}, page + 1}
+
+  def more_begin(_state), do: :none
+
+  @doc """
+  Ask `source` for `page` of `query` off the caller's process, answering `pid`
+  with `{:more_answer, source, epoch, query, page, result}` — `fetch/3`'s task.
+  """
+  @spec fetch_more(pid(), non_neg_integer(), atom(), String.t(), pos_integer()) :: :ok
+  def fetch_more(pid, epoch, source, query, page) when is_pid(pid) and is_binary(query) do
+    work = fn ->
+      result =
+        try do
+          Kati.Media.Provider.search_page(source, query, page)
+        rescue
+          error -> {:error, {:network, error}}
+        end
+
+      send(pid, {:more_answer, source, epoch, query, page, result})
+    end
+
+    try do
+      Task.Supervisor.start_child(Kati.TaskSupervisor, work)
+      :ok
+    catch
+      :exit, _reason ->
+        spawn(work)
+        :ok
+    end
+  end
+
+  @doc """
+  The section once `page` has answered: its rows appended after the ones
+  already drawn and every row re-positioned, a row already present dropped.
+  An answer for a page the section is not waiting on changes nothing; a
+  failure keeps the rows and leaves `more?` on, so the control can try again.
+  """
+  @spec more_answered(t(), pos_integer(), {:ok, map()} | {:error, term()}, ([map()] -> [map()])) ::
+          t()
+  def more_answered(%{more: :loading, page: last} = state, page, answer, shaper)
+      when page == last + 1 do
+    case answer do
+      {:ok, %{results: results, more?: more?}} ->
+        seen = MapSet.new(state.rows, &{&1.source, &1.source_id})
+
+        fresh =
+          results
+          |> shaper.()
+          |> Enum.reject(&MapSet.member?(seen, {&1.source, &1.source_id}))
+
+        %{
+          state
+          | rows: AddTitle.positioned(state.rows ++ fresh),
+            page: page,
+            more?: more? and fresh != [],
+            more: :idle
+        }
+
+      {:error, reason} ->
+        %{state | more: {:error, reason}}
+    end
+  end
+
+  def more_answered(state, _page, _answer, _shaper), do: state
 
   @doc """
   TMDB's results in screen 06's row shape, each stamped with its position and

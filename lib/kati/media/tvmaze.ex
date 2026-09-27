@@ -90,6 +90,19 @@ defmodule Kati.Media.Tvmaze do
   end
 
   @doc """
+  `search/1` as a page. TVmaze's show search answers its best ten and has no
+  second page, so page 1 is the whole answer and `more?` is always false.
+  """
+  @spec search_page(String.t(), pos_integer()) ::
+          {:ok, %{results: [map()], more?: boolean()}} | {:error, term()}
+  def search_page(query, 1) when is_binary(query) do
+    with {:ok, results} <- search(query), do: {:ok, %{results: results, more?: false}}
+  end
+
+  def search_page(query, page) when is_binary(query) and is_integer(page) and page > 1,
+    do: {:ok, %{results: [], more?: false}}
+
+  @doc """
   A search row out of one `{score, show}` hit, or `[]` for one with no name.
 
       iex> Kati.Media.Tvmaze.shape_result(%{
