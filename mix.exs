@@ -45,8 +45,8 @@ defmodule Kati.MixProject do
       # Ash is the data layer for the whole system. Pinned exactly: Kati appears
       # to be the first public user of AshSqlite on a device BEAM, so a silent
       # minor bump is not something to discover on a user's phone.
-      {:ash, "== 3.31.3"},
-      {:ash_sqlite, "== 0.2.17"},
+      {:ash, "== 3.33.11"},
+      {:ash_sqlite, "== 0.2.19"},
       # Timezone database. `tz` compiles IANA data into modules at BUILD time;
       # `tzdata` downloads at runtime into a writable directory, which a
       # device-first app with no server must refuse. The periodic updaters are
