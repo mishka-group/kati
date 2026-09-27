@@ -3261,7 +3261,7 @@ msgid "Permissions and storage"
 msgstr ""
 
 #: lib/kati/screens/account.ex:154
-#: lib/kati/screens/privacy.ex:111
+#: lib/kati/screens/privacy.ex:116
 #: lib/kati/settings/sample.ex:417
 #, elixir-autogen, elixir-format
 msgid "Privacy"
@@ -16277,7 +16277,7 @@ msgstr ""
 msgid "%{day} · set by %{language}"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:102
+#: lib/kati/screens/privacy.ex:107
 #, elixir-autogen, elixir-format
 msgid "A backup leaves this phone only when you save or share one yourself. Android’s own backup is switched off for Kati."
 msgstr ""
@@ -16287,7 +16287,7 @@ msgstr ""
 msgid "Gregorian · set by %{language}"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:63
+#: lib/kati/screens/privacy.ex:68
 #, elixir-autogen, elixir-format
 msgid "Kati has no sign-in and no server of its own. Nothing you enter is sent to the people who make it."
 msgstr ""
@@ -16307,12 +16307,12 @@ msgstr ""
 msgid "No account, no server, no analytics"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:71
+#: lib/kati/screens/privacy.ex:76
 #, elixir-autogen, elixir-format
 msgid "No tracking, no advertising and no crash reports. Kati does not count what you do."
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:79
+#: lib/kati/screens/privacy.ex:84
 #, elixir-autogen, elixir-format
 msgid "One SQLite database in Kati’s private storage on this phone. Your settings and downloaded posters are kept beside it."
 msgstr ""
@@ -16327,58 +16327,53 @@ msgstr ""
 msgid "Right to left · set by %{language}"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:94
-#, elixir-autogen, elixir-format
-msgid "Searches and title details come from TMDB, using the token you gave Kati, and posters from TMDB’s image server. No other service is contacted."
-msgstr ""
-
 #: lib/kati/language/page.ex:199
 #, elixir-autogen, elixir-format
 msgid "Shamsi · set by %{language}"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:111
+#: lib/kati/screens/privacy.ex:116
 #, elixir-autogen, elixir-format
 msgid "What stays on this phone, and what leaves it"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:111
+#: lib/kati/screens/privacy.ex:116
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "On this phone"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:111
+#: lib/kati/screens/privacy.ex:116
 #, elixir-autogen, elixir-format
 msgctxt "eyebrow"
 msgid "What leaves it"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:100
+#: lib/kati/screens/privacy.ex:105
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "privacy"
 msgid "Backups"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:92
+#: lib/kati/screens/privacy.ex:97
 #, elixir-autogen, elixir-format
 msgctxt "privacy"
 msgid "Film and series data"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:61
+#: lib/kati/screens/privacy.ex:66
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "privacy"
 msgid "No account"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:69
+#: lib/kati/screens/privacy.ex:74
 #, elixir-autogen, elixir-format
 msgctxt "privacy"
 msgid "No analytics"
 msgstr ""
 
-#: lib/kati/screens/privacy.ex:77
+#: lib/kati/screens/privacy.ex:82
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "privacy"
 msgid "Your data"
@@ -16975,4 +16970,9 @@ msgstr ""
 #: lib/kati/screens/data_sources.ex:98
 #, elixir-autogen, elixir-format
 msgid "Working out of the box"
+msgstr ""
+
+#: lib/kati/screens/privacy.ex:99
+#, elixir-autogen, elixir-format
+msgid "Searches and title details come from TMDB, using the token you gave Kati. Without a token, searches go to AniList and TVmaze, which need none. Posters come from the same services’ image servers. No other service is contacted."
 msgstr ""

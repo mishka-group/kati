@@ -19,10 +19,15 @@ defmodule Kati.Screens.Privacy do
       the app's private storage. Preferences — the locale, the theme, the
       sections — are `Mob.State`, beside it; downloaded posters are
       `Kati.Media.Artwork`'s, beside it too.
-    * **TMDB, and only TMDB.** The app makes HTTP requests from two places:
-      `Kati.Media.Tmdb`, to `api.themoviedb.org` with the token the reader
-      pasted on screen 80, and `Kati.Media.Artwork`, to TMDB's image server for
-      posters. `Kati.Sources`' moduledoc says the same — Open Library and
+    * **TMDB, AniList and TVmaze, and nothing else.** The app makes HTTP
+      requests from three places: `Kati.Media.Tmdb`, to `api.themoviedb.org`
+      with the token the reader pasted on screen 80;
+      `Kati.Media.Provider.request/3`, the one transport of `Kati.Media.Anilist`
+      (`graphql.anilist.co`) and `Kati.Media.Tvmaze` (`api.tvmaze.com`), which
+      take no key and are searched when no TMDB token is saved; and
+      `Kati.Media.Artwork`, to those services' image servers for posters.
+      Nothing about the reader goes to AniList or TVmaze beyond the words
+      searched and the ids of titles opened. `Kati.Sources`' moduledoc says the same — Open Library and
       MusicBrainz are named there and called nowhere. CalDAV has a transport,
       `Kati.Sync.Adapter.CalDAV.Transport`, and nothing in the app drives it:
       no screen adds a CalDAV account and nothing calls `Kati.Sync.Engine.sync/3`.
@@ -92,7 +97,7 @@ defmodule Kati.Screens.Privacy do
         title: pgettext("privacy", "Film and series data"),
         sub:
           gettext(
-            "Searches and title details come from TMDB, using the token you gave Kati, and posters from TMDB’s image server. No other service is contacted."
+            "Searches and title details come from TMDB, using the token you gave Kati. Without a token, searches go to AniList and TVmaze, which need none. Posters come from the same services’ image servers. No other service is contacted."
           )
       },
       %{

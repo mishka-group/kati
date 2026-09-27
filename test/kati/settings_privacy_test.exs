@@ -131,11 +131,12 @@ defmodule Kati.SettingsPrivacyTest do
     # that the code still matches it.
     @http_callers MapSet.new([
                     "lib/kati/media/tmdb.ex",
+                    "lib/kati/media/provider.ex",
                     "lib/kati/media/artwork.ex",
                     "lib/kati/sync/adapter/caldav/transport.ex"
                   ])
 
-    test "TMDB's two modules and the undriven CalDAV transport are the only HTTP callers" do
+    test "TMDB, the keyless transport, artwork and the undriven CalDAV transport are the only HTTP callers" do
       callers =
         for path <- Path.wildcard("lib/**/*.ex"),
             File.read!(path) =~ ~r/\bReq\.(get|post|put|patch|delete|head|request|new)\b/,
@@ -143,13 +144,20 @@ defmodule Kati.SettingsPrivacyTest do
             do: path
 
       assert callers == @http_callers,
-             "the privacy page says TMDB is the only service Kati contacts; " <>
+             "the privacy page names TMDB, AniList and TVmaze as the only services Kati contacts; " <>
                "update Kati.Screens.Privacy for #{inspect(MapSet.difference(callers, @http_callers) |> MapSet.to_list())}"
     end
 
     test "the two TMDB modules talk to TMDB's hosts" do
       assert File.read!("lib/kati/media/tmdb.ex") =~ ~s(@host "https://api.themoviedb.org/3")
       assert File.read!("lib/kati/media/artwork.ex") =~ ~s(@host "https://image.tmdb.org/t/p")
+    end
+
+    test "the keyless transport serves AniList and TVmaze, and the page names both" do
+      assert File.read!("lib/kati/media/anilist.ex") =~ ~s(@url "https://graphql.anilist.co")
+      assert File.read!("lib/kati/media/tvmaze.ex") =~ ~s(@host "https://api.tvmaze.com")
+      sub = Enum.find(Privacy.leaves(), &(&1.icon == "public")).sub
+      assert sub =~ "AniList" and sub =~ "TVmaze"
     end
 
     test "nothing in the app drives a sync, so the CalDAV transport sends nothing" do
