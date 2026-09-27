@@ -67,6 +67,37 @@ defmodule Kati.FilmLogEditTest do
       assert only.place == "Home"
     end
 
+    test "Log a rewatch under the log turns the sheet into the next viewing" do
+      film = a_film!()
+      watch = a_watch!(film)
+
+      params = film |> film_page() |> render_info({:tap, :rate}) |> nav_params()
+      sheet = mount_screen(Rating, params)
+      assert :log_rewatch in tap_tags(sheet)
+
+      sheet = render_info(sheet, {:tap, :log_rewatch})
+      drawn = texts(sheet)
+
+      assert assigns(sheet).watch_id == nil
+      assert "Log a watch" in drawn
+      assert "1st rewatch" in drawn
+      refute :log_rewatch in tap_tags(sheet)
+
+      _saved = render_info(sheet, {:tap, :save})
+      assert [_, _] = watches = watches_of(film)
+      assert Enum.any?(watches, &(&1.id == watch.id and &1.review == "Held up on a second look."))
+      assert Enum.any?(watches, &(&1.id != watch.id and &1.rewatch_number == 2))
+    end
+
+    test "a first log has no rewatch door" do
+      film = a_film!()
+
+      sheet =
+        mount_screen(Rating, film |> film_page() |> render_info({:tap, :rate}) |> nav_params())
+
+      refute :log_rewatch in tap_tags(sheet)
+    end
+
     test "the newest of two watches is the one opened" do
       film = a_film!()
       _older = a_watch!(film, watched_on: ~D[2026-08-01], review: "First time.")
@@ -230,5 +261,12 @@ defmodule Kati.FilmLogEditTest do
       assert inspect(item) =~ ":rate"
       assert Kati.Screens.Film.log_item(%{}) == []
     end
+  end
+
+  defp tap_tags(view) do
+    for node <- flatten(view),
+        {_pid, tag} <- [Map.get(Map.get(node, :props) || %{}, :on_tap)],
+        is_atom(tag),
+        do: tag
   end
 end

@@ -1184,7 +1184,7 @@ msgstr ""
 #: lib/kati/screens/log_weight.ex:316
 #: lib/kati/screens/meals_today.ex:484
 #: lib/kati/screens/rate_episode.ex:739
-#: lib/kati/screens/rating.ex:2162
+#: lib/kati/screens/rating.ex:2207
 #: lib/kati/screens/up_next.ex:834
 #, elixir-autogen, elixir-format
 msgid "Today"
@@ -2975,7 +2975,7 @@ msgstr ""
 #: lib/kati/screens/meal_edit.ex:430
 #: lib/kati/screens/rate_album.ex:274
 #: lib/kati/screens/rate_episode.ex:936
-#: lib/kati/screens/rating.ex:1189
+#: lib/kati/screens/rating.ex:1234
 #, elixir-autogen, elixir-format
 msgid "Save"
 msgstr ""
@@ -4222,7 +4222,7 @@ msgstr ""
 
 #: lib/kati/screens/film.ex:146
 #: lib/kati/screens/film.ex:1182
-#: lib/kati/screens/rating.ex:1081
+#: lib/kati/screens/rating.ex:1082
 #: lib/kati/screens/series.ex:1973
 #, elixir-autogen, elixir-format
 msgid "Log a watch"
@@ -4669,7 +4669,7 @@ msgctxt "search scope"
 msgid "Screen"
 msgstr ""
 
-#: lib/kati/screens/search.ex:2368
+#: lib/kati/screens/search.ex:2372
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Recent"
 msgstr ""
@@ -12530,8 +12530,8 @@ msgid "Does not change: your shelves, your lists, your reading sessions and your
 msgstr ""
 
 #: lib/kati/screens/rate_episode.ex:1380
-#: lib/kati/screens/rating.ex:2112
-#: lib/kati/screens/rating.ex:2693
+#: lib/kati/screens/rating.ex:2157
+#: lib/kati/screens/rating.ex:2758
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Done"
 msgstr ""
@@ -12881,7 +12881,7 @@ msgid "Type it, or save without —"
 msgstr ""
 
 #: lib/kati/screens/rate_album.ex:576
-#: lib/kati/screens/rating.ex:1857
+#: lib/kati/screens/rating.ex:1902
 #, elixir-autogen, elixir-format
 msgid "What did you make of it?"
 msgstr ""
@@ -13273,14 +13273,14 @@ msgstr ""
 
 #: lib/kati/screens/rate_album.ex:486
 #: lib/kati/screens/rate_episode.ex:1003
-#: lib/kati/screens/rating.ex:1380
+#: lib/kati/screens/rating.ex:1425
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "the rating card's own label"
 msgid "Rating"
 msgstr ""
 
 #: lib/kati/screens/rate_episode.ex:1200
-#: lib/kati/screens/rating.ex:1790
+#: lib/kati/screens/rating.ex:1835
 #, elixir-autogen, elixir-format
 msgctxt "the review card's own label"
 msgid "Review"
@@ -13442,7 +13442,7 @@ msgstr ""
 msgid "A medication needs a name"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2209
+#: lib/kati/screens/rating.ex:2254
 #, elixir-autogen, elixir-format
 msgid "Add your services in Settings → My services, and they will be offered here."
 msgstr ""
@@ -13675,7 +13675,7 @@ msgstr ""
 msgid "Wrong guess — back at the grid, choice remembered"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2163
+#: lib/kati/screens/rating.ex:2208
 #: lib/kati/screens/up_next.ex:837
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Yesterday"
@@ -13737,7 +13737,7 @@ msgctxt "a section with nothing armed"
 msgid "Nothing today"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2700
+#: lib/kati/screens/rating.ex:2765
 #, elixir-autogen, elixir-format
 msgctxt "an example of a room a film was watched in"
 msgid "living room"
@@ -13876,19 +13876,19 @@ msgctxt "the bold half of a footnote"
 msgid "what it found"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2413
+#: lib/kati/screens/rating.ex:2458
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "the button that commits a typed tag"
 msgid "Add"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2794
+#: lib/kati/screens/rating.ex:2859
 #, elixir-autogen, elixir-format
 msgctxt "the chip for a watch that was on no service"
 msgid "Not on a service"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2487
+#: lib/kati/screens/rating.ex:2532
 #, elixir-autogen, elixir-format
 msgctxt "the chip that opens the tag field"
 msgid "+ tag"
@@ -13900,7 +13900,7 @@ msgctxt "the dashed chip that adds a clock time"
 msgid "Add a time"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2700
+#: lib/kati/screens/rating.ex:2765
 #, elixir-autogen, elixir-format
 msgctxt "the eyebrow over the place field"
 msgid "Place"
@@ -13918,7 +13918,7 @@ msgctxt "the notification inbox's empty state"
 msgid "Nothing waiting"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1905
+#: lib/kati/screens/rating.ex:1950
 #, elixir-autogen, elixir-format
 msgctxt "the offer to flag a review as spoiling its ending"
 msgid "Mark spoilers"
@@ -16656,7 +16656,7 @@ msgctxt "a drop captured before any episode"
 msgid "Not started"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1476
+#: lib/kati/screens/rating.ex:1521
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "the ten-point side of the rating scale toggle"
 msgid "10pt"
@@ -16753,7 +16753,7 @@ msgstr ""
 msgid "This event is not here"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1051
+#: lib/kati/screens/rating.ex:1052
 #, elixir-autogen, elixir-format
 msgid "Open a film or a series and choose Log a watch from there."
 msgstr ""
@@ -16768,18 +16768,18 @@ msgstr ""
 msgid "There is no episode here to rate."
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1051
+#: lib/kati/screens/rating.ex:1052
 #, elixir-autogen, elixir-format
 msgid "There is no title here to log a watch of."
 msgstr ""
 
 #: lib/kati/screens/rate_episode.ex:1383
-#: lib/kati/screens/rating.ex:2115
+#: lib/kati/screens/rating.ex:2160
 #, elixir-autogen, elixir-format
 msgid "Who watched with you"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:2307
+#: lib/kati/screens/rating.ex:2352
 #, elixir-autogen, elixir-format
 msgid "rewatch, rainy sunday…"
 msgstr ""
@@ -16841,7 +16841,7 @@ msgid "Your library, ratings and the posters already saved stay as they are."
 msgstr ""
 
 #: lib/kati/screens/search.ex:1598
-#: lib/kati/screens/search.ex:1933
+#: lib/kati/screens/search.ex:1937
 #, elixir-autogen, elixir-format
 msgid "Add “%{query}” by hand?"
 msgstr ""
@@ -16881,7 +16881,7 @@ msgstr ""
 msgid "Overview"
 msgstr ""
 
-#: lib/kati/screens/rating.ex:1116
+#: lib/kati/screens/rating.ex:1161
 #, elixir-autogen, elixir-format
 msgctxt "screen 33's heading while it edits a saved watch"
 msgid "Edit your log"
@@ -16985,4 +16985,9 @@ msgstr ""
 #: lib/kati/screens/search.ex:1678
 #, elixir-autogen, elixir-format
 msgid "Show more"
+msgstr ""
+
+#: lib/kati/screens/rating.ex:1125
+#, elixir-autogen, elixir-format
+msgid "Watched it again? Log a rewatch"
 msgstr ""

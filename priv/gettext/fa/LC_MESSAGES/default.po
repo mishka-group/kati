@@ -1189,7 +1189,7 @@ msgstr "عنوان"
 #: lib/kati/screens/log_weight.ex:316
 #: lib/kati/screens/meals_today.ex:484
 #: lib/kati/screens/rate_episode.ex:739
-#: lib/kati/screens/rating.ex:2162
+#: lib/kati/screens/rating.ex:2207
 #: lib/kati/screens/up_next.ex:834
 #, elixir-autogen, elixir-format
 msgid "Today"
@@ -2980,7 +2980,7 @@ msgstr "در حال تازه‌سازی…"
 #: lib/kati/screens/meal_edit.ex:430
 #: lib/kati/screens/rate_album.ex:274
 #: lib/kati/screens/rate_episode.ex:936
-#: lib/kati/screens/rating.ex:1189
+#: lib/kati/screens/rating.ex:1234
 #, elixir-autogen, elixir-format
 msgid "Save"
 msgstr "ذخیره"
@@ -4227,7 +4227,7 @@ msgstr "جایی که ایستادید نگه داشته می‌شود"
 
 #: lib/kati/screens/film.ex:146
 #: lib/kati/screens/film.ex:1182
-#: lib/kati/screens/rating.ex:1081
+#: lib/kati/screens/rating.ex:1082
 #: lib/kati/screens/series.ex:1973
 #, elixir-autogen, elixir-format
 msgid "Log a watch"
@@ -4674,7 +4674,7 @@ msgctxt "search scope"
 msgid "Screen"
 msgstr "نمایش"
 
-#: lib/kati/screens/search.ex:2368
+#: lib/kati/screens/search.ex:2372
 #, elixir-autogen, elixir-format
 msgid "Recent"
 msgstr "اخیر"
@@ -12535,8 +12535,8 @@ msgid "Does not change: your shelves, your lists, your reading sessions and your
 msgstr "تغییر نمی‌کند: قفسه‌ها، فهرست‌ها، نشست‌های خواندن و شنیدن‌های شما."
 
 #: lib/kati/screens/rate_episode.ex:1380
-#: lib/kati/screens/rating.ex:2112
-#: lib/kati/screens/rating.ex:2693
+#: lib/kati/screens/rating.ex:2157
+#: lib/kati/screens/rating.ex:2758
 #, elixir-autogen, elixir-format
 msgid "Done"
 msgstr "تمام"
@@ -12886,7 +12886,7 @@ msgid "Type it, or save without —"
 msgstr "واردش کنید، یا بدون آن ذخیره کنید —"
 
 #: lib/kati/screens/rate_album.ex:576
-#: lib/kati/screens/rating.ex:1857
+#: lib/kati/screens/rating.ex:1902
 #, elixir-autogen, elixir-format
 msgid "What did you make of it?"
 msgstr "نظرتان دربارهٔ آن چه بود؟"
@@ -13278,14 +13278,14 @@ msgstr "%{n} در ثانیه"
 
 #: lib/kati/screens/rate_album.ex:486
 #: lib/kati/screens/rate_episode.ex:1003
-#: lib/kati/screens/rating.ex:1380
+#: lib/kati/screens/rating.ex:1425
 #, elixir-autogen, elixir-format
 msgctxt "the rating card's own label"
 msgid "Rating"
 msgstr "امتیاز"
 
 #: lib/kati/screens/rate_episode.ex:1200
-#: lib/kati/screens/rating.ex:1790
+#: lib/kati/screens/rating.ex:1835
 #, elixir-autogen, elixir-format
 msgctxt "the review card's own label"
 msgid "Review"
@@ -13447,7 +13447,7 @@ msgstr "، پس در سال شما و روی تقویم پیدا نمی‌شون
 msgid "A medication needs a name"
 msgstr "دارو به یک نام نیاز دارد"
 
-#: lib/kati/screens/rating.ex:2209
+#: lib/kati/screens/rating.ex:2254
 #, elixir-autogen, elixir-format
 msgid "Add your services in Settings → My services, and they will be offered here."
 msgstr "سرویس‌هایتان را در تنظیمات ← سرویس‌های من اضافه کنید تا اینجا پیشنهاد شوند."
@@ -13680,7 +13680,7 @@ msgstr "با تصویر جلد — حالت دوم"
 msgid "Wrong guess — back at the grid, choice remembered"
 msgstr "حدس اشتباه — بازگشت به شبکه، انتخاب به یاد مانده"
 
-#: lib/kati/screens/rating.ex:2163
+#: lib/kati/screens/rating.ex:2208
 #: lib/kati/screens/up_next.ex:837
 #, elixir-autogen, elixir-format
 msgid "Yesterday"
@@ -13742,7 +13742,7 @@ msgctxt "a section with nothing armed"
 msgid "Nothing today"
 msgstr "امروز چیزی نیست"
 
-#: lib/kati/screens/rating.ex:2700
+#: lib/kati/screens/rating.ex:2765
 #, elixir-autogen, elixir-format
 msgctxt "an example of a room a film was watched in"
 msgid "living room"
@@ -13881,19 +13881,19 @@ msgctxt "the bold half of a footnote"
 msgid "what it found"
 msgstr "آنچه پیدا شده"
 
-#: lib/kati/screens/rating.ex:2413
+#: lib/kati/screens/rating.ex:2458
 #, elixir-autogen, elixir-format
 msgctxt "the button that commits a typed tag"
 msgid "Add"
 msgstr "افزودن"
 
-#: lib/kati/screens/rating.ex:2794
+#: lib/kati/screens/rating.ex:2859
 #, elixir-autogen, elixir-format
 msgctxt "the chip for a watch that was on no service"
 msgid "Not on a service"
 msgstr "روی هیچ سرویسی نبود"
 
-#: lib/kati/screens/rating.ex:2487
+#: lib/kati/screens/rating.ex:2532
 #, elixir-autogen, elixir-format
 msgctxt "the chip that opens the tag field"
 msgid "+ tag"
@@ -13905,7 +13905,7 @@ msgctxt "the dashed chip that adds a clock time"
 msgid "Add a time"
 msgstr "افزودن ساعت"
 
-#: lib/kati/screens/rating.ex:2700
+#: lib/kati/screens/rating.ex:2765
 #, elixir-autogen, elixir-format
 msgctxt "the eyebrow over the place field"
 msgid "Place"
@@ -13923,7 +13923,7 @@ msgctxt "the notification inbox's empty state"
 msgid "Nothing waiting"
 msgstr "چیزی در انتظار نیست"
 
-#: lib/kati/screens/rating.ex:1905
+#: lib/kati/screens/rating.ex:1950
 #, elixir-autogen, elixir-format
 msgctxt "the offer to flag a review as spoiling its ending"
 msgid "Mark spoilers"
@@ -16661,7 +16661,7 @@ msgctxt "a drop captured before any episode"
 msgid "Not started"
 msgstr "شروع نشده"
 
-#: lib/kati/screens/rating.ex:1476
+#: lib/kati/screens/rating.ex:1521
 #, elixir-autogen, elixir-format
 msgctxt "the ten-point side of the rating scale toggle"
 msgid "10pt"
@@ -16758,7 +16758,7 @@ msgstr "این هفته چیزی برنامه‌ریزی نشده."
 msgid "This event is not here"
 msgstr "این رویداد اینجا نیست"
 
-#: lib/kati/screens/rating.ex:1051
+#: lib/kati/screens/rating.ex:1052
 #, elixir-autogen, elixir-format
 msgid "Open a film or a series and choose Log a watch from there."
 msgstr "یک فیلم یا سریال را باز کنید و از همان‌جا «ثبت یک تماشا» را بزنید."
@@ -16773,18 +16773,18 @@ msgstr "یک سریال را باز کنید و امتیاز کنار قسمتی
 msgid "There is no episode here to rate."
 msgstr "اینجا قسمتی برای امتیازدادن نیست."
 
-#: lib/kati/screens/rating.ex:1051
+#: lib/kati/screens/rating.ex:1052
 #, elixir-autogen, elixir-format
 msgid "There is no title here to log a watch of."
 msgstr "اینجا عنوانی برای ثبت تماشا نیست."
 
 #: lib/kati/screens/rate_episode.ex:1383
-#: lib/kati/screens/rating.ex:2115
+#: lib/kati/screens/rating.ex:2160
 #, elixir-autogen, elixir-format
 msgid "Who watched with you"
 msgstr "چه کسی با شما تماشا کرد"
 
-#: lib/kati/screens/rating.ex:2307
+#: lib/kati/screens/rating.ex:2352
 #, elixir-autogen, elixir-format
 msgid "rewatch, rainy sunday…"
 msgstr "بازتماشا، یکشنبهٔ بارانی…"
@@ -16846,7 +16846,7 @@ msgid "Your library, ratings and the posters already saved stay as they are."
 msgstr "کتابخانه، امتیازها و پوسترهایی که ذخیره شده‌اند همان‌طور می‌مانند."
 
 #: lib/kati/screens/search.ex:1598
-#: lib/kati/screens/search.ex:1933
+#: lib/kati/screens/search.ex:1937
 #, elixir-autogen, elixir-format
 msgid "Add “%{query}” by hand?"
 msgstr "افزودن دستی «%{query}»؟"
@@ -16886,7 +16886,7 @@ msgstr "در حال دریافت از TMDB…"
 msgid "Overview"
 msgstr "خلاصهٔ داستان"
 
-#: lib/kati/screens/rating.ex:1116
+#: lib/kati/screens/rating.ex:1161
 #, elixir-autogen, elixir-format
 msgctxt "screen 33's heading while it edits a saved watch"
 msgid "Edit your log"
@@ -16991,3 +16991,8 @@ msgstr "بیشتر بارگیری نشد · دوباره"
 #, elixir-autogen, elixir-format
 msgid "Show more"
 msgstr "نمایش بیشتر"
+
+#: lib/kati/screens/rating.ex:1125
+#, elixir-autogen, elixir-format
+msgid "Watched it again? Log a rewatch"
+msgstr "دوباره دیدید؟ بازتماشا را ثبت کنید"

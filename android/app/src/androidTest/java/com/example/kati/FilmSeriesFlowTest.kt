@@ -326,12 +326,18 @@ class FilmSeriesFlowTest {
             kati.scalar("select rating from media_watches where tracked_title_id = '$id'")
         )
 
+        // The ⋯ menu has one logging item, and after a watch it edits that
+        // watch; a rewatch starts from the sheet's own "Log a rewatch".
         kati.tap("toggle_menu")
-        kati.compose.waitUntil(10_000) { kati.present("log_watch") }
-        assertTrue("the ⋯ menu does not offer Log rewatch", textPresent("Log rewatch"))
-        kati.tap("log_watch")
+        kati.compose.waitUntil(10_000) { textPresent("Edit your log") }
+        assertTrue("the ⋯ menu still offers a second logging item", !textPresent("Log rewatch"))
+        kati.tap("toggle_menu")
+        kati.compose.waitUntil(10_000) { !textPresent("Edit your log") }
 
+        kati.tap("rate")
         kati.awaitScreen("rating")
+        kati.compose.waitUntil(10_000) { textPresent("Edit your log") }
+        kati.tap("log_rewatch")
         kati.compose.waitUntil(10_000) { textPresent("1st rewatch") }
         kati.tap("save")
 

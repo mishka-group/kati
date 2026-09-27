@@ -1002,6 +1002,7 @@ defmodule Kati.Screens.Rating do
             is_binary(Map.get(assigns, :watch_id))
           )}
           {Kati.Screens.Rating.body(w, save_error)}
+          {Kati.Screens.Rating.rewatch_door(is_binary(Map.get(assigns, :watch_id)))}
         </Column>
       </Scroll>
     </Box>
@@ -1102,6 +1103,50 @@ defmodule Kati.Screens.Rating do
         {@save}
       </Row>
       <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The way to a second viewing from a sheet that is editing the first.
+
+  Screen 08's ⋯ menu has one logging item — *Log a watch* before any, *Edit
+  your log* after — at the owner's request, and *Log rewatch* went with the
+  second item. A rewatch still has to be loggable, so it lives where a reader
+  who has watched the film again already is: under the log they would
+  otherwise overwrite. Tapping it turns this sheet into a blank one for the
+  next viewing (`blank_for/1`, which numbers it) without leaving the page.
+  Drawn only while editing; a new log has nothing to be a rewatch of yet.
+  """
+  @spec rewatch_door(boolean()) :: map()
+  def rewatch_door(false), do: ~MOB"<Spacer size={0} />"
+
+  def rewatch_door(true) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={18} />
+      <Row
+        fill_width={true}
+        height={44}
+        corner_radius={22}
+        background={Palette.card()}
+        border_width={1}
+        border_color={Palette.border()}
+        align="center"
+        on_tap={{self(), :log_rewatch}}
+      >
+        <Spacer weight={1.0} />
+        {Kati.UI.symbol("replay", size: 17, color: Palette.sub())}
+        <Spacer size={6} />
+        <Text
+          text={gettext("Watched it again? Log a rewatch")}
+          text_size={13}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer weight={1.0} />
+      </Row>
     </Column>
     """
   end
@@ -2502,6 +2547,26 @@ defmodule Kati.Screens.Rating do
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, :log_rewatch}, socket) do
+    case Map.get(socket.assigns, :tracked_title_id) do
+      id when is_binary(id) ->
+        case Kati.Screens.Rating.blank_for(id) do
+          nil ->
+            {:noreply, socket}
+
+          blank ->
+            {:noreply,
+             socket
+             |> Mob.Socket.assign(:watch, blank)
+             |> Mob.Socket.assign(:watch_id, nil)
+             |> Mob.Socket.assign(:save_error, nil)}
+        end
+
+      _none ->
+        {:noreply, socket}
+    end
+  end
 
   # Commit the draft, or keep the sheet up and say why not.
   #
