@@ -513,11 +513,13 @@ defmodule Kati.DesignLiterals do
       # (ListenBrainz, Hardcover, TheTVDB, with ListenBrainz's pairing card
       # open and a connected row reading *ines.k · 412 listens*). Kati calls
       # none of the six — `Kati.SecureStore`'s inventory says so — so the page
-      # advertised sources the app never touches. Both groups are gone, and
-      # `Kati.Sources` keeps the lists for the day a client lands. The glyphs
-      # are `@retired_symbols`' in `Kati.ScreenDesignLiteralTest`; 82 is 80 in
-      # Persian.
-      {"80", "working out of the box"},
+      # advertised sources the app never touches. Both groups went, and
+      # `Kati.Sources` keeps the lists for the day a client lands. The day came
+      # for two keyless sources: *Working out of the box* is drawn again, over
+      # AniList and TVmaze in `Kati.Sources.working/0`'s words — TVmaze has no
+      # films, so the board's *TV & film* line stays retired — and the rest of
+      # both groups stays gone. The glyphs are `@retired_symbols`' in
+      # `Kati.ScreenDesignLiteralTest`; 82 is 80 in Persian.
       {"80", "tv & film · tvmaze"},
       {"80", "air dates, episode lists"},
       {"80", "books · open library"},
@@ -534,7 +536,6 @@ defmodule Kati.DesignLiterals do
       {"80", "connected as ines.k · 412 listens"},
       {"80",
        "listenbrainz needs your own token because it writes to your account, not kati’s. nothing is shared between users."},
-      {"82", "بدون تنظیم کار می‌کند"},
       {"82", "فیلم و سریال · tvmaze"},
       {"82", "تاریخ پخش، فهرست قسمت‌ها"},
       {"82", "کتاب · open library"},

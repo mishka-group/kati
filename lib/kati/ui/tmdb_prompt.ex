@@ -61,7 +61,7 @@ defmodule Kati.UI.TmdbPrompt do
           Kati.UI.SettingsList.icon_tile("movie"),
           Kati.UI.SettingsList.body(
             gettext("Add your TMDB token"),
-            gettext("Films and the rest of TV come from TMDB. Free, and takes a minute.")
+            gettext("Films and more series come from TMDB. Free, and takes a minute.")
           ),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           rule: false,

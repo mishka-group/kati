@@ -220,14 +220,19 @@ defmodule Kati.DeviceRoundN34N42Test do
     end
   end
 
-  describe "N41: screen 80 lists only the source Kati calls" do
-    test "no keyless group and no connect-an-account group, and TMDB stays" do
+  describe "N41: screen 80 lists only the sources Kati calls" do
+    test "the keyless sources with a client, TMDB, and no connect-an-account group" do
       drawn = texts(mount_screen(DataSources))
 
       assert "TMDB" in drawn
 
+      assert Kati.UI.eyebrow_label("Working out of the box") in drawn,
+             "AniList and TVmaze have clients now, and their group is not drawn"
+
+      assert "AniList" in drawn
+      assert "TVmaze" in drawn
+
       for gone <- [
-            "Working out of the box",
             "TV & film · TVmaze",
             "Books · Open Library",
             "Music · MusicBrainz",
@@ -253,7 +258,9 @@ defmodule Kati.DeviceRoundN34N42Test do
       drawn = Kati.Locale.as(:fa, fn -> texts(mount_screen(DataSources)) end)
 
       assert "TMDB" in drawn
-      refute Enum.any?(drawn, &(&1 =~ "TVmaze" or &1 =~ "ListenBrainz" or &1 =~ "MusicBrainz"))
+      assert "AniList" in drawn and "TVmaze" in drawn
+      assert "بدون تنظیم کار می‌کند" in drawn
+      refute Enum.any?(drawn, &(&1 =~ "ListenBrainz" or &1 =~ "MusicBrainz"))
     end
   end
 

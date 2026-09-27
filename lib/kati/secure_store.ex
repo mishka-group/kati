@@ -40,7 +40,8 @@ defmodule Kati.SecureStore do
   | CalDAV (`Kati.Sync.Adapter.CalDAV`) | App-specific password, as `{url, username, password}` JSON | Here, under `Kati.Calendars.Account.credentials_ref`. Nothing in the app writes one yet | No log call; a transport failure quoting the `authorization` header comes back `:redacted` before `Kati.Sync.Outbox` inspects it into `last_error` | No: `credentials_ref` is a dropped column, and the password is never in a table | No | No |
   | Android calendar provider (`Kati.Calendars.DeviceImport`) | None — the `READ_CALENDAR` permission | — | — | — | — | — |
   | ListenBrainz, Hardcover, TheTVDB (`Kati.Sources.tier2/0`) | The reader's own token | Here, under `Kati.Sources.key_for/1`. No screen stores one yet and no code calls these APIs | — | No | — | No |
-  | TVmaze, Open Library, MusicBrainz (`Kati.Sources.tier0/0`) | None — keyless by definition, and not called anywhere yet | — | — | — | — | — |
+  | AniList, TVmaze (`Kati.Media.Anilist`, `Kati.Media.Tvmaze`; `Kati.Sources.working/0`) | None — keyless; their poster CDNs (`s4.anilist.co`, `static.tvmaze.com`) too | — | — | — | — | — |
+  | Open Library, MusicBrainz (`Kati.Sources.tier0/0`) | None — keyless by definition, and not called anywhere yet | — | — | — | — | — |
   | AniList, MyAnimeList, Trakt, Letterboxd (`Kati.Screens.ImportSources`) | None — the reader brings an export file | — | — | — | — | — |
   | Trakt, Simkl, Last.fm accounts (`Kati.Sources.refused/0`) | Refused: they need a pasted `client_secret` | — | — | — | — | — |
 

@@ -204,6 +204,20 @@ defmodule Kati.SearchKeylessSectionTest do
       assert :add_by_hand in tap_tags(view)
     end
 
+    test "in Persian, the headings and a failure are Persian with the trade names kept" do
+      KeylessStubs.install!(tvmaze: 429)
+
+      drawn =
+        Kati.Locale.as(:fa, fn ->
+          search() |> typed("sakamoto") |> settle() |> texts()
+        end)
+
+      assert "در AniList" in drawn
+      assert "در TVmaze" in drawn
+      assert "TVmaze فعلاً شلوغ است. یک دقیقه دیگر دوباره امتحان کنید." in drawn
+      assert "SAKAMOTO DAYS" in drawn
+    end
+
     test "committing the query asks both at once, without waiting for the pause" do
       KeylessStubs.install!()
 

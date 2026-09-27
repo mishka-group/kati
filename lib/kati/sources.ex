@@ -10,18 +10,24 @@ defmodule Kati.Sources do
 
   ## Three tiers, and the third one is a decision rather than a limit
 
-    * **Tier 0 — works out of the box.** TVmaze, Open Library, MusicBrainz. No
-      key, no account, no setup. Screen 80 does not list them: none is called
-      anywhere yet, and a row saying one works would be a claim about a source
-      the app never touches (N41). A provider's row comes back when its client
-      does.
+    * **Tier 0 — works out of the box.** No key, no account, no setup. The
+      board names TVmaze, Open Library and MusicBrainz (`tier0/0`); screen 80
+      lists only the ones Kati actually calls (`working/0`), because a row
+      saying a source works is a claim about a source the app must touch
+      (N41). A provider's row appears once its client exists.
+
+      Two do: **AniList** (`Kati.Media.Anilist` — anime series and films) and
+      **TVmaze** (`Kati.Media.Tvmaze` — series with their seasons and
+      episodes). Screen 19 searches both whenever no TMDB token is saved
+      (`Kati.Search.Keyless`), and a title added from either is fetched from
+      it and cached under its own source.
 
       **Books and Music still need a free API chosen and wired — Open Library
       and MusicBrainz are named here and neither is called anywhere in `lib/`.**
-      Kati has exactly three HTTP callers: `Kati.Media.Tmdb`, its image CDN in
-      `Kati.Media.Artwork`, and CalDAV. So *works out of the box* is true of
-      TVmaze's tier and of nothing else on this line yet, and the two shelves
-      that depend on it are [mishka-group/kati#100](https://github.com/mishka-group/kati/issues/100)
+      Kati's HTTP callers are `Kati.Media.Tmdb`, `Kati.Media.Anilist` and
+      `Kati.Media.Tvmaze` (through `Kati.Media.Provider.request/3`), the image
+      CDNs in `Kati.Media.Artwork`, and CalDAV. The two shelves that depend on
+      the rest of this line are [mishka-group/kati#100](https://github.com/mishka-group/kati/issues/100)
       (Books) and [mishka-group/kati#101](https://github.com/mishka-group/kati/issues/101)
       (Music). Free and keyless is the requirement, not a preference: tier 0
       is defined by needing no account, so a provider that wants a key belongs
@@ -95,6 +101,37 @@ defmodule Kati.Sources do
         icon: "graphic_eq",
         name: gettext("Music · MusicBrainz"),
         supplies: gettext("Albums, artists, cover art")
+      }
+    ]
+  end
+
+  @doc """
+  The keyless providers Kati calls today, as screen 80 lists them under
+  *Working out of the box*.
+
+  Not a filter over `tier0/0`, whose lines are the board's: its TVmaze line
+  says *TV & film*, and TVmaze has no films. These say what each client
+  actually brings. `name` is the trade name alone and untranslated — screen 80
+  sets it in DM Mono in both scripts (`Kati.Locale.mono_face/1`); `supplies`
+  translates.
+
+      iex> Enum.map(Kati.Sources.working(), & &1.id)
+      [:anilist, :tvmaze]
+  """
+  @spec working() :: [map()]
+  def working do
+    [
+      %{
+        id: :anilist,
+        icon: "auto_awesome",
+        name: "AniList",
+        supplies: gettext("Anime series and films, episode counts")
+      },
+      %{
+        id: :tvmaze,
+        icon: "live_tv",
+        name: "TVmaze",
+        supplies: gettext("Series, seasons, episodes, air dates")
       }
     ]
   end

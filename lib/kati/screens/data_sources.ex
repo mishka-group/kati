@@ -5,21 +5,26 @@ defmodule Kati.Screens.DataSources do
   Where every poster, cover, air date and fact comes from, and the one page in
   the app that holds a token.
 
-  ## One source, because Kati calls one
+  ## The sources Kati calls, and only those
 
   Board 80 draws three groups of providers: *Working out of the box* (TVmaze,
   Open Library, MusicBrainz), TMDB, and *Connect an account* (ListenBrainz,
-  Hardcover, TheTVDB). Kati calls exactly one of them. `Kati.SecureStore`'s
-  inventory records it: no code anywhere reaches the other six, so a page
-  listing them as working, or offering to connect them, advertised sources the
-  app never touches (N41). The page now draws TMDB — the source every film and
-  series search does use — and nothing else under a provider heading.
+  Hardcover, TheTVDB). A page listing a source as working, or offering to
+  connect one, that no code reaches would advertise something the app never
+  touches (N41) — so a row is drawn only once its client exists.
 
-  `Kati.Sources.tier0/0` and `tier2/0` keep the lists and the reasoning behind
-  them — ListenBrainz, Hardcover and TheTVDB take a **revocable token**, and
-  Trakt, Simkl and Last.fm are left out because they need a pasted
-  `client_secret` — for the day a client for one of them lands; that is the
-  day its row comes back here.
+  Three exist. TMDB, under *Better artwork and metadata*, with the reader's
+  own token. And under *Working out of the box*, `Kati.Sources.working/0`:
+  AniList (`Kati.Media.Anilist`) and TVmaze (`Kati.Media.Tvmaze`), keyless,
+  which screen 19 searches whenever no TMDB token is saved. Each row's
+  trailing time is when that source last answered (`reached/1`).
+
+  Open Library and MusicBrainz stay off the page — no client calls either —
+  and so does the whole of *Connect an account*. `Kati.Sources.tier0/0` and
+  `tier2/0` keep the lists and the reasoning behind them — ListenBrainz,
+  Hardcover and TheTVDB take a **revocable token**, and Trakt, Simkl and
+  Last.fm are left out because they need a pasted `client_secret` — for the
+  day a client for one of them lands; that is the day its row comes here.
 
   ## The reader brings the TMDB key
 
@@ -101,6 +106,8 @@ defmodule Kati.Screens.DataSources do
       >
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("Data sources"), gettext("Where Kati’s posters, covers and facts come from."), nil, :name)}
+        {UI.eyebrow(gettext("Working out of the box"))}
+        {Kati.Screens.DataSources.working()}
         {UI.eyebrow(gettext("Better artwork and metadata"))}
         {Kati.Screens.DataSources.tmdb(Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0), %{editing?: Map.get(assigns, :editing?, false), confirm_clear?: Map.get(assigns, :confirm_clear?, false)})}
         {UI.eyebrow(gettext("Where your tokens live"))}
@@ -206,6 +213,32 @@ defmodule Kati.Screens.DataSources do
     end
   rescue
     _error -> nil
+  end
+
+  @doc """
+  *Working out of the box*: the keyless sources Kati calls
+  (`Kati.Sources.working/0`), one row each, with when each last answered.
+  Nothing to set up, so nothing to tap.
+  """
+  @spec working() :: map()
+  def working do
+    rows =
+      Enum.map(Kati.Sources.working(), fn source ->
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile(source.icon),
+          Kati.Screens.DataSources.body(source.name, source.supplies),
+          Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.reached(source.id))
+        )
+      end)
+
+    assigns = %{card: Kati.UI.SettingsList.card(rows)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@card}
+      <Spacer size={24} />
+    </Column>
+    """
   end
 
   @doc """
