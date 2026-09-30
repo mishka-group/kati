@@ -1,14 +1,11 @@
 name: Release
 
-# A tag `v<version>` builds and publishes the Android release, from any branch:
-# a failed release is fixed on the branch and tagged again, no merge needed.
-# A push to a `release/**` branch (or a manual run) runs the same pipeline as a
-# dry run: everything is built and checked, nothing is published.
+# A tag `v<version>` builds and publishes the Android release. Nothing else
+# runs it: no branch push, no PR. The tag can sit on any branch, so a failed
+# release is fixed on the branch and tagged again, no merge needed.
 on:
   push:
     tags: ["v*"]
-    branches: ["release/**"]
-  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
