@@ -14,6 +14,8 @@ defmodule Kati.VersionTest do
 
   defp version, do: Mix.Project.config()[:version]
 
+  defp core(version), do: version |> String.split(["-", "+"], parts: 2) |> hd()
+
   defp capture!(path, pattern, field) do
     body = File.read!(path)
 
@@ -43,8 +45,9 @@ defmodule Kati.VersionTest do
            "android/app/build.gradle says #{gradle}, mix.exs says #{version()}. " <>
              "Run `mix kati.version`."
 
-    assert plist == version(),
-           "ios/Info.plist says #{plist}, mix.exs says #{version()}. Run `mix kati.version`."
+    assert plist == core(version()),
+           "ios/Info.plist says #{plist}, mix.exs says #{version()} (plist takes #{core(version())}). " <>
+             "Run `mix kati.version`."
   end
 
   test "the build code is a monotonic integer and the two trees agree on it" do
@@ -66,12 +69,13 @@ defmodule Kati.VersionTest do
     assert code > 0, "the build code must be a positive integer, got #{gradle}"
   end
 
-  test "the version is a plain three-part number" do
-    # `mix kati.version` writes whatever mix.exs holds straight into a plist
-    # and a Gradle string. A pre-release suffix is legal in Elixir and illegal
-    # in CFBundleShortVersionString, so the constraint belongs here rather than
-    # being discovered by a build.
-    assert Regex.match?(~r/^\d+\.\d+\.\d+$/, version()),
-           "#{version()} is not `major.minor.patch`. CFBundleShortVersionString takes no suffix."
+  test "the version is major.minor.patch with an optional pre-release" do
+    # The pre-release rides in Gradle's versionName only. The plist is stamped
+    # with the part before it, because CFBundleShortVersionString takes no
+    # suffix, so the constraint on what is left belongs here.
+    assert Regex.match?(~r/^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/, version()),
+           "#{version()} is not `major.minor.patch[-pre-release]`."
+
+    assert Regex.match?(~r/^\d+\.\d+\.\d+$/, core(version()))
   end
 end

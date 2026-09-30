@@ -65,3 +65,9 @@ ios/DerivedData/
 # whatever was compiled at release time. bin/deploy_native.sh deletes it.
 android/app/src/main/assets/otp.zip
 /ios/.zig-cache
+
+# ── Release ─────────────────────────────────────────────────────────────
+# `mix mob.release --android` stages the release runtime here; the release
+# workflow decodes the upload keystore next to the properties file.
+android/app/src/release/assets/otp.zip
+android/*.keystore

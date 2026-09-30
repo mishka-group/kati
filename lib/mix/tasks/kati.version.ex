@@ -14,8 +14,11 @@ defmodule Mix.Tasks.Kati.Version do
 
   ## What each field takes
 
-    * **`versionName` / `CFBundleShortVersionString`** — the version as people
-      read it, straight from `mix.exs`.
+    * **`versionName`** — the version as people read it, straight from
+      `mix.exs`, pre-release suffix and all (`0.0.1-alpha.1`).
+    * **`CFBundleShortVersionString`** — the same version without its
+      pre-release or build suffix (`0.0.1`): a plist takes `major.minor.patch`
+      and nothing else.
     * **`versionCode` / `CFBundleVersion`** — a monotonic integer, because both
       stores and both installers refuse a build whose number did not go up.
       Derived as `YYYYMMDDNN` from the day and a two-digit counter, or taken
@@ -53,7 +56,8 @@ defmodule Mix.Tasks.Kati.Version do
        ]},
       {@plist,
        [
-         {plist_key("CFBundleShortVersionString"), "CFBundleShortVersionString", version},
+         {plist_key("CFBundleShortVersionString"), "CFBundleShortVersionString",
+          core_version(version)},
          {plist_key("CFBundleVersion"), "CFBundleVersion", code}
        ]}
     ]
@@ -117,6 +121,8 @@ defmodule Mix.Tasks.Kati.Version do
   # every other key in it.
   defp plist_key(key),
     do: ~r/<key>#{Regex.escape(key)}<\/key>\s*<string>([^<]*)<\/string>/
+
+  defp core_version(version), do: version |> String.split(["-", "+"], parts: 2) |> hd()
 
   # A build number that only ever goes up, without a file to remember the last
   # one. `KATI_BUILD` wins when CI supplies a run number.

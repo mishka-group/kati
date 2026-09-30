@@ -148,7 +148,7 @@ defmodule Kati.HostHardeningTest do
              "UIBackgroundModes:[audio] in a tracker that plays nothing risks App Store rejection"
     end
 
-    test "only 64-bit ABIs are built" do
+    test "the ABIs are the two phone ABIs and the emulator's" do
       # Scoped to the abiFilters line: "armeabi-v7a" also appears in the
       # OTP-release path variables, which are unrelated to what ships.
       abis =
@@ -158,7 +158,7 @@ defmodule Kati.HostHardeningTest do
         |> Enum.reject(&String.starts_with?(String.trim(&1), "//"))
         |> Enum.find(&(&1 =~ "abiFilters"))
 
-      refute abis =~ "armeabi-v7a", "32-bit ABI would double the OTP payload"
+      assert abis =~ "armeabi-v7a", "the release ships a 32-bit APK (K-70 abi-splits)"
       assert abis =~ "arm64-v8a", "real devices need arm64"
       assert abis =~ "x86_64", "the emulator on this Intel host needs x86_64"
     end

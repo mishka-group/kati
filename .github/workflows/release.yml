@@ -1,0 +1,273 @@
+name: Release
+
+# A tag `v<version>` builds and publishes the Android release, from any branch:
+# a failed release is fixed on the branch and tagged again, no merge needed.
+# A push to a `release/**` branch (or a manual run) runs the same pipeline as a
+# dry run: everything is built and checked, nothing is published.
+on:
+  push:
+    tags: ["v*"]
+    branches: ["release/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ELIXIR_VERSION: "1.20.2"
+  OTP_VERSION: "29.0.2"
+  # Exact, not a floor: MobDev.Toolchain refuses any other zig.
+  ZIG_VERSION: "0.17.0-dev.269+ebff43698"
+  ANDROID_NDK_VERSION: "27.2.12479018"
+  JAVA_VERSION: "17"
+
+jobs:
+  version:
+    name: Resolve version from mix.exs
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read @version and reconcile it with the ref
+        id: v
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^  @version "\(.*\)"$/\1/p' mix.exs | head -1)"
+          if [ -z "$version" ]; then
+            echo "::error file=mix.exs::could not parse @version from mix.exs"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          case "$version" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            tag="${{ github.ref_name }}"
+            if [ "$tag" != "v$version" ]; then
+              echo "::error file=mix.exs::tag $tag does not match mix.exs @version $version (expected v$version)"
+              exit 1
+            fi
+
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "### Release $version" >> "$GITHUB_STEP_SUMMARY"
+          echo "publish: $([ "${{ github.ref_type }}" = "tag" ] && echo yes || echo 'no (dry run)')" >> "$GITHUB_STEP_SUMMARY"
+
+  test:
+    name: Unit tests
+    needs: version
+    uses: ./.github/workflows/test.yml
+
+  android:
+    name: Android (arm64-v8a / armeabi-v7a / universal APKs + AAB)
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      MIX_ENV: dev
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      - uses: android-actions/setup-android@v4
+
+      - name: Install the pinned NDK
+        run: sdkmanager --install "ndk;${{ env.ANDROID_NDK_VERSION }}" "cmake;3.22.1"
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache the Mob OTP runtimes
+        uses: actions/cache@v6
+        with:
+          path: ~/.mob/cache
+          key: ${{ runner.os }}-mob-otp-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mob-otp-
+
+      - name: Cache deps and the dev build
+        uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-dev-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-dev-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-
+
+      - run: mix deps.get
+
+      - name: Stamp mix.exs's version into Gradle and the plist
+        run: mix kati.version
+
+      - name: Write mob.exs (gitignored, machine-specific by design)
+        run: cp .github/mob.ci.exs mob.exs
+
+      - name: Prefetch the Android OTP runtimes
+        run: |
+          set -euo pipefail
+          mix run --no-start -e '
+            paths =
+              for {abi, key} <- [
+                    {"arm64-v8a", "mob.otp_release"},
+                    {"armeabi-v7a", "mob.otp_release_arm32"},
+                    {"x86_64", "mob.otp_release_x86_64"}
+                  ] do
+                {:ok, path} = MobDev.OtpDownloader.ensure_android(abi)
+                IO.puts("#{abi} -> #{path}")
+                "#{key}=#{path}"
+              end
+
+            props =
+              [
+                "sdk.dir=#{System.fetch_env!("ANDROID_HOME")}",
+                "mob.mob_dir=#{Path.join(File.cwd!(), "deps/mob")}"
+                | paths
+              ]
+
+            File.write!("android/local.properties", Enum.join(props, "\n") <> "\n")
+          '
+          cat android/local.properties
+
+      - name: Decode the upload keystore, if configured
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "::warning::no ANDROID_KEYSTORE_BASE64 secret, the release APKs and AAB will be unsigned"
+            exit 0
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > upload_jks.keystore
+          cat > keystore.properties <<EOF
+          storeFile=upload_jks.keystore
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
+      - name: Build the JNI objects with zig
+        run: |
+          set -euo pipefail
+          mix run --no-start \
+            -e 'MobDev.NativeBuild.build_all(platforms: [:android]) |> IO.inspect(label: "native")' \
+            || echo "::notice::native build returned non-zero (expected: no device attached)"
+
+          apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$apk" ]; then
+            echo "::error::native build produced no $apk, the Android chain did not complete"
+            find android/app/build/outputs -name '*.apk' 2>/dev/null || true
+            exit 1
+          fi
+          echo "native chain complete: $apk ($(du -h "$apk" | cut -f1))"
+
+      - name: Stage otp.zip and build the AAB
+        run: mix mob.release --android
+
+      - name: Assemble the split APKs from the same staging
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PsplitAbi
+
+      - name: Name the outputs after the release
+        run: |
+          set -euo pipefail
+          v="${{ needs.version.outputs.version }}"
+          out="android/app/build/outputs/apk/release"
+          mkdir -p dist
+          pick() {
+            local match
+            match="$(ls "$out"/app-$1-release*.apk 2>/dev/null | head -1 || true)"
+            if [ -z "$match" ]; then
+              echo "::error::no APK matched app-$1-release*.apk in $out"
+              ls -la "$out" || true
+              exit 1
+            fi
+            cp "$match" "dist/kati_${v}_android_$2.apk"
+            echo "  $2 <- $(basename "$match")"
+          }
+          pick "arm64-v8a"   "arm64-v8a"
+          pick "armeabi-v7a" "armeabi-v7a"
+          pick "universal"   "universal"
+          aab="android/app/build/outputs/bundle/release/app-release.aab"
+          test -f "$aab" || { echo "::error::no AAB at $aab"; exit 1; }
+          cp "$aab" "dist/kati_${v}_android.aab"
+          ls -la dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: [version, test, android]
+    if: ${{ needs.version.outputs.publish == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Lay the assets out flat and confirm every one arrived
+        run: |
+          set -euo pipefail
+          v="${{ needs.version.outputs.version }}"
+          mkdir -p release
+          find artifacts -type f -exec cp {} release/ \;
+          expected=(
+            "kati_${v}_android_arm64-v8a.apk"
+            "kati_${v}_android_armeabi-v7a.apk"
+            "kati_${v}_android_universal.apk"
+            "kati_${v}_android.aab"
+          )
+          missing=0
+          for f in "${expected[@]}"; do
+            if [ ! -f "release/$f" ]; then echo "::error::missing release asset: $f"; missing=1; fi
+          done
+          [ "$missing" -eq 0 ] || { ls -la release; exit 1; }
+          ( cd release && sha256sum * > SHA256SUMS.txt )
+          ls -la release
+
+      - name: Create the release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: v${{ needs.version.outputs.version }}
+          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: release/*

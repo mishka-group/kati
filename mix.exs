@@ -1,10 +1,12 @@
 defmodule Kati.MixProject do
   use Mix.Project
 
+  @version "0.0.1-alpha.1"
+
   def project do
     [
       app: :kati,
-      version: "0.0.1",
+      version: @version,
       elixir: "~> 1.19",
       start_permanent: false,
       deps: deps(),
