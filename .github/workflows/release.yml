@@ -1,11 +1,13 @@
 name: Release
 
-# A tag `v<version>` on master builds and publishes the Android release.
-# `workflow_dispatch` runs the same pipeline as a dry run: everything is built
-# and checked, nothing is published.
+# A tag `v<version>` builds and publishes the Android release, from any branch:
+# a failed release is fixed on the branch and tagged again, no merge needed.
+# A push to a `release/**` branch (or a manual run) runs the same pipeline as a
+# dry run: everything is built and checked, nothing is published.
 on:
   push:
     tags: ["v*"]
+    branches: ["release/**"]
   workflow_dispatch:
 
 concurrency:
@@ -55,12 +57,6 @@ jobs:
             tag="${{ github.ref_name }}"
             if [ "$tag" != "v$version" ]; then
               echo "::error file=mix.exs::tag $tag does not match mix.exs @version $version (expected v$version)"
-              exit 1
-            fi
-
-            git fetch --no-tags --quiet origin master
-            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
-              echo "::error::tag $tag points at a commit that is not on master"
               exit 1
             fi
 
