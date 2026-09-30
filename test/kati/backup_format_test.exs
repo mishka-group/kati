@@ -210,7 +210,7 @@ defmodule Kati.BackupFormatTest do
       assert built["format"] == "kati.backup"
       assert is_integer(built["schema_version"])
       assert is_integer(built["format_version"])
-      assert built["app_version"] =~ ~r/\A(\d+\.\d+\.\d+|unknown)\z/
+      assert built["app_version"] =~ ~r/\A(\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?|unknown)\z/
       assert {:ok, _, _} = DateTime.from_iso8601(built["exported_at"])
       assert built["exported_at"] =~ "Z"
       assert built["record_counts"] == %{"events" => 0}

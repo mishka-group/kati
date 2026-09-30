@@ -61,19 +61,15 @@ android {
         // KATI-BEGIN(K-36 instrumentation-runner) mob_new=0.7.24
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // KATI-END(K-36 instrumentation-runner)
-        versionCode 2026082301
-        versionName "0.0.1"
+        versionCode 2026093001
+        versionName "0.0.1-alpha.1"
 
         // KATI-BEGIN(K-01 abi-filters) mob_new=0.4.20
         // was: ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
-        // arm64-v8a ships to real devices; x86_64 exists so the app runs at
-        // native speed on the emulator on an Intel host (this machine is an
-        // i7-7700K, so the arm64 AVD would be software-emulated and unusable).
-        // armeabi-v7a is dropped: it doubles the OTP runtime payload for
-        // 32-bit devices that are gone from the install base, and Play has
-        // required 64-bit since 2019. Release builds can strip x86_64 via a
-        // splits/abi filter when that matters.
-        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+        // arm64-v8a and armeabi-v7a are the two phone ABIs the release ships
+        // (K-70 splits below). x86_64 stays for the emulator on an Intel host;
+        // it gets no APK of its own, only the universal build carries it.
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64' }
         // KATI-END(K-01 abi-filters)
 
         externalNativeBuild {
@@ -94,6 +90,20 @@ android {
             version "3.22.1"
         }
     }
+
+    // KATI-BEGIN(K-70 abi-splits) mob_new=0.6.0
+    // One APK per phone ABI plus a universal one, for the GitHub release. Off
+    // unless -PsplitAbi is passed, so `mix mob.deploy`, the e2e build and
+    // `bundleRelease` keep producing the single artifact they always did.
+    splits {
+        abi {
+            enable project.hasProperty('splitAbi')
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a'
+            universalApk true
+        }
+    }
+    // KATI-END(K-70 abi-splits)
 
     buildFeatures {
         compose true
