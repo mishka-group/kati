@@ -290,57 +290,70 @@ defmodule Kati.ScreenUpNextTest do
 
   defp back(from, days), do: DateTime.add(from, -days * 86_400, :second)
 
-  # Created oldest first: `Kati.Media.Changes.Touch` forces `last_touched_at` to
-  # now on every write, so creation order IS shelf order and the last watching
-  # row written is the hero. That is the same ordering the shelf uses on the
-  # device, exercised rather than stubbed.
+  # Created oldest first, and creation order IS shelf order: the last watching
+  # row written is the hero. `Kati.Media.Changes.Touch` stamps each write with
+  # the wall clock, which two back-to-back inserts on a CI runner can tie or
+  # even reverse, so `stamp_in_order!/1` then spaces them a second apart in the
+  # order they were written.
   defp seed_library(_context) do
-    track!(%{
-      title: "Salt & Iron",
-      seed: "saltiron33",
-      status: :watching,
-      season: 1,
-      episode: 4,
-      runtime: 41,
-      # A bare year: displayable, never armable, and never "soon".
-      release: {DateTime.add(DateTime.utc_now(), 30 * 86_400, :second), :year}
-    })
+    [
+      track!(%{
+        title: "Salt & Iron",
+        seed: "saltiron33",
+        status: :watching,
+        season: 1,
+        episode: 4,
+        runtime: 41,
+        # A bare year: displayable, never armable, and never "soon".
+        release: {DateTime.add(DateTime.utc_now(), 30 * 86_400, :second), :year}
+      }),
+      track!(%{
+        title: "Marram",
+        seed: "marram15",
+        status: :watching,
+        season: 2,
+        episode: 3,
+        runtime: 52,
+        release: {DateTime.add(DateTime.utc_now(), 7 * 86_400, :second), :day}
+      }),
+      track!(%{
+        title: "The Long Hollow",
+        seed: "hollow71",
+        status: :watching,
+        season: 2,
+        episode: 6,
+        runtime: 47,
+        # 29 minutes in, so 18 are left — the drawing's own hero line.
+        seconds: 1740
+      }),
+      track!(%{
+        title: "The Quiet Ones",
+        seed: "quietones12",
+        status: :paused,
+        season: 1,
+        episode: 3
+      }),
 
-    track!(%{
-      title: "Marram",
-      seed: "marram15",
-      status: :watching,
-      season: 2,
-      episode: 3,
-      runtime: 52,
-      release: {DateTime.add(DateTime.utc_now(), 7 * 86_400, :second), :day}
-    })
+      # The three that must not appear anywhere on this screen.
+      track!(%{title: "Nightbirds", status: :watching, archived: true}),
+      track!(%{title: "Harbour", status: :finished}),
+      track!(%{title: "Vellum", status: :dropped})
+    ]
+    |> stamp_in_order!()
+  end
 
-    track!(%{
-      title: "The Long Hollow",
-      seed: "hollow71",
-      status: :watching,
-      season: 2,
-      episode: 6,
-      runtime: 47,
-      # 29 minutes in, so 18 are left — the drawing's own hero line.
-      seconds: 1740
-    })
+  defp stamp_in_order!(source_ids) do
+    now = DateTime.utc_now()
+    count = length(source_ids)
 
-    track!(%{
-      title: "The Quiet Ones",
-      seed: "quietones12",
-      status: :paused,
-      season: 1,
-      episode: 3
-    })
-
-    # The three that must not appear anywhere on this screen.
-    track!(%{title: "Nightbirds", status: :watching, archived: true})
-    track!(%{title: "Harbour", status: :finished})
-    track!(%{title: "Vellum", status: :dropped})
-
-    :ok
+    source_ids
+    |> Enum.with_index()
+    |> Enum.each(fn {source_id, index} ->
+      Kati.Repo.query!(
+        "UPDATE tracked_titles SET last_touched_at = ? WHERE source_id = ?",
+        [DateTime.add(now, index - count, :second), source_id]
+      )
+    end)
   end
 
   # Both halves of one title. The cache row is written only when the fixture
