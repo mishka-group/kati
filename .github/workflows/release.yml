@@ -117,19 +117,7 @@ jobs:
         run: mix kati.version
 
       - name: Write mob.exs (gitignored, machine-specific by design)
-        run: |
-          set -euo pipefail
-          cat > mob.exs <<'EOF'
-          import Config
-
-          config :mob_dev,
-            mob_dir: Path.join(File.cwd!(), "deps/mob"),
-            elixir_lib: Path.join(:code.lib_dir(:elixir), ".."),
-            static_nifs: [
-              %{module: :kati_secure_store, archs: [:android]},
-              %{module: :kati_bridge, archs: [:android]}
-            ]
-          EOF
+        run: cp .github/mob.ci.exs mob.exs
 
       - name: Prefetch the Android OTP runtimes
         run: |
