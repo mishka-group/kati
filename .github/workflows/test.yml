@@ -45,6 +45,8 @@ jobs:
         env:
           MIX_ENV: test
       - run: mix format --check-formatted
+        env:
+          MIX_ENV: test
       - run: mix test
         env:
           MIX_ENV: test

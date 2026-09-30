@@ -75,7 +75,7 @@ jobs:
 
   android:
     name: Android (arm64-v8a / armeabi-v7a / universal APKs + AAB)
-    needs: [version, test]
+    needs: version
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -110,6 +110,15 @@ jobs:
           path: ~/.mob/cache
           key: ${{ runner.os }}-mob-otp-${{ hashFiles('mix.lock') }}
           restore-keys: ${{ runner.os }}-mob-otp-
+
+      - name: Cache deps and the dev build
+        uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-dev-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-dev-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-
 
       - run: mix deps.get
 
