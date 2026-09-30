@@ -208,8 +208,13 @@ android {
     // which is the worst way for it to present.
     //
     // Fails rather than warns. A warning in a Gradle log is a thing nobody sees.
+    //
+    // Only when an e2e task was asked for. AGP wires `preE2eBuild` into the
+    // debug build too, so an unscoped guard broke `assembleDebug` on any tree
+    // that had never staged a runtime, which is every CI checkout.
     tasks.matching { it.name == 'preE2eBuild' }.configureEach {
         doFirst {
+            if (!gradle.startParameter.taskNames.any { it.toLowerCase().contains('e2e') }) return
             def zip = file('src/e2e/assets/otp.zip')
             if (!zip.exists()) {
                 throw new GradleException(
