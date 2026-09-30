@@ -120,7 +120,9 @@ jobs:
       - run: mix deps.get
 
       - name: Stamp mix.exs's version into Gradle and the plist
-        run: mix kati.version
+        # versionCode YYYYMMDDNN with NN from the run number, so a second
+        # release on the same day still installs as an update over the first.
+        run: KATI_BUILD="$(date -u +%Y%m%d)$(printf %02d $(( ${{ github.run_number }} % 100 )))" mix kati.version
 
       - name: Write mob.exs (gitignored, machine-specific by design)
         run: cp .github/mob.ci.exs mob.exs

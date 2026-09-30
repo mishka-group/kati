@@ -44,7 +44,10 @@ exqlite="$(mix run --no-start -e 'IO.puts MobDev.AppFile.dep_version(:exqlite)')
 find "$HOME"/.mob/cache/otp-android* -maxdepth 2 -type d -name 'exqlite-*' ! -name "exqlite-$exqlite" -print -exec rm -rf {} +
 
 echo "── native"
-mix run --no-start -e 'MobDev.NativeBuild.build_all(platforms: [:android])' || true
+# `device:` names no real device on purpose. build_all otherwise installs the
+# debug APK on every attached phone, and where the key differs it uninstalls
+# first: a plugged-in phone would lose its release install and its data.
+mix run --no-start -e 'MobDev.NativeBuild.build_all(platforms: [:android], device: "no-device")' || true
 
 echo "── AAB"
 mix mob.release --android
