@@ -151,6 +151,14 @@ jobs:
           '
           cat android/local.properties
 
+      - name: Drop macOS AppleDouble files from the OTP runtimes
+        run: |
+          # The runtime tarballs are made on a Mac. Linux extracts their
+          # `._*` resource forks as real files, and beam_lib:strip_release
+          # aborts on the first one ("not_a_beam_file"), so no BEAM in the
+          # runtime gets stripped: +19 MB in every artifact.
+          find ~/.mob/cache -name '._*' -delete
+
       - name: Decode the upload keystore, if configured
         working-directory: android
         env:
