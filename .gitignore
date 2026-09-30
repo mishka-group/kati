@@ -71,3 +71,6 @@ android/app/src/main/assets/otp.zip
 # workflow decodes the upload keystore next to the properties file.
 android/app/src/release/assets/otp.zip
 android/*.keystore
+
+# bin/release_android.sh output.
+/dist/
