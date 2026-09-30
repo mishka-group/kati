@@ -37,6 +37,11 @@ eval "$(mix run --no-start -e '
   end')"
 MOB_DIR="$PWD/deps/mob"
 find "$HOME/.mob/cache" -name '._*' -delete
+# The runtime tarballs carry an old exqlite beside the locked one, and
+# mob_beam links sqlite3_nif.so into whichever lib/exqlite-* it reads first:
+# the wrong one leaves the database unopenable and the app blank.
+exqlite="$(mix run --no-start -e 'IO.puts MobDev.AppFile.dep_version(:exqlite)')"
+find "$HOME"/.mob/cache/otp-android* -maxdepth 2 -type d -name 'exqlite-*' ! -name "exqlite-$exqlite" -print -exec rm -rf {} +
 
 echo "── native"
 mix run --no-start -e 'MobDev.NativeBuild.build_all(platforms: [:android])' || true

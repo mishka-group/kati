@@ -151,13 +151,20 @@ jobs:
           '
           cat android/local.properties
 
-      - name: Drop macOS AppleDouble files from the OTP runtimes
+      - name: Clean the OTP runtimes
         run: |
+          set -euo pipefail
           # The runtime tarballs are made on a Mac. Linux extracts their
           # `._*` resource forks as real files, and beam_lib:strip_release
           # aborts on the first one ("not_a_beam_file"), so no BEAM in the
           # runtime gets stripped: +19 MB in every artifact.
           find ~/.mob/cache -name '._*' -delete
+          # The tarballs also carry an old exqlite. The release adds the
+          # locked one beside it, and mob_beam links sqlite3_nif.so into the
+          # FIRST lib/exqlite-* it reads, so on a phone that lists the old one
+          # first the database never opens and the app stays blank.
+          v="$(mix run --no-start -e 'IO.puts MobDev.AppFile.dep_version(:exqlite)')"
+          find ~/.mob/cache/otp-android* -maxdepth 2 -type d -name 'exqlite-*' ! -name "exqlite-$v" -print -exec rm -rf {} +
 
       - name: Decode the upload keystore, if configured
         working-directory: android
