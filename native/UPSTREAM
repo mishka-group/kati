@@ -62,6 +62,7 @@ f761e37fb947cbb83f36c0f969785b4ad820d1d6b0b3a8d230593c0015f812fc  ios/beam_main.
 7669f29fe0ebffc26ce76aaaf696629dfaab7b63c37483c4adff5b1a7c2224f2  ios/build.zig
 f41180e2471954960e89b48d3122a44e417aa34d3df709f01c5d492b1e08006c  ios/build_device.zig
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiDeviceZone.kt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiBootScreen.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiBootReceiver.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiNotificationStore.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiCalendarReader.kt

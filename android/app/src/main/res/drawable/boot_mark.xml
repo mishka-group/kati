@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launch mark in the app's own colours: @drawable/kati_mark with its two
+     paints taken from @color/boot_mark and @color/boot_mark_eye, which follow
+     the phone's light/dark setting. Ink on paper by day, paper on ink by night,
+     so the splash, the window and Kati's boot screen (KatiBootScreen.kt) are
+     one ground from the first frame to the first screen (#111).
+     kati_mark itself stays the brand's black colourway: the launcher and the
+     widget preview use it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="133dp"
+    android:height="133dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- Ladder: two rails, five rungs. -->
+    <path android:pathData="M102 218 L112 94"     android:strokeColor="@color/boot_mark" android:strokeWidth="12" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M178 218 L168 94"     android:strokeColor="@color/boot_mark" android:strokeWidth="12" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M102.6 208.8 L177.4 208.8" android:strokeColor="@color/boot_mark" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M104.8 182.4 L175.2 182.4" android:strokeColor="@color/boot_mark" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M107.0 156.0 L173.0 156.0" android:strokeColor="@color/boot_mark" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M109.2 129.6 L170.8 129.6" android:strokeColor="@color/boot_mark" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M111.4 103.2 L168.6 103.2" android:strokeColor="@color/boot_mark" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+
+    <!-- The faceted spark, carried over from the Mishka mark. -->
+    <path android:pathData="M140 37 L155 52 L140 67 L125 52 Z" android:strokeColor="@color/boot_mark" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M140 28 L140 16"  android:strokeColor="@color/boot_mark" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M152 42 L163 31"  android:strokeColor="@color/boot_mark" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M128 42 L117 31"  android:strokeColor="@color/boot_mark" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+
+    <!-- Sparrow: legs under, then the solid body, then the punched-out eye. -->
+    <path android:pathData="M88 204 L88 213"  android:strokeColor="@color/boot_mark" android:strokeWidth="5" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M99 199 L100 213" android:strokeColor="@color/boot_mark" android:strokeWidth="5" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M106 151 L92 148 L80 157 L76 172 L73 188 L56 197 L63 205 L80 200 L88 205 L105 191 L108 176 L102 160 Z" android:fillColor="@color/boot_mark" />
+    <path android:pathData="M92 155 L96 159 L92 163 L88 159 Z" android:fillColor="@color/boot_mark_eye" />
+</vector>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+'s splash icon. The system scales this into a 288dp box, so the
+     mark is inset to the 133dp it has everywhere else: (288 - 133) / 2 / 288 =
+     26.9% a side, which leaves 112dp of ink, the size the window background
+     and the boot screen draw. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/boot_mark"
+    android:inset="26.9%" />

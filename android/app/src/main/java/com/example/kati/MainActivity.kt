@@ -412,7 +412,15 @@ class MainActivity : ComponentActivity() {
             // "I recomposed because the user typed". See RootState.epoch.
             CompositionLocalProvider(LocalRenderEpoch provides state.epoch) {
                 MaterialTheme(colorScheme = colorScheme) {
-                    MobNavHost(state)
+                    // KATI-BEGIN(K-71 boot-screen) mob_new=0.6.3
+                    // One ground and the launch mark until the BEAM's first
+                    // screen, then a skeleton if that takes long, instead of
+                    // Material's stock dark, Mob's theme and Kati's empty
+                    // paper in turn (#111). See KatiBootScreen.kt.
+                    KatiBoot(ready = state.node != null, themeColors = themeColors) {
+                        MobNavHost(state)
+                    }
+                    // KATI-END(K-71 boot-screen)
                 }
             }
         }

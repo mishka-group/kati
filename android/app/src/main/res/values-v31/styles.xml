@@ -13,6 +13,7 @@
         <item name="android:windowBackground">@drawable/splash</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="android:windowSplashScreenBackground">@color/boot_ground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/boot_splash_icon</item>
     </style>
 </resources>

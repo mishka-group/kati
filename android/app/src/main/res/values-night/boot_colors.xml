@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="boot_ground">#121110</color>
+    <color name="boot_mark">#F5F2EE</color>
+    <color name="boot_mark_eye">#121110</color>
+</resources>

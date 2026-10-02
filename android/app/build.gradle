@@ -61,7 +61,7 @@ android {
         // KATI-BEGIN(K-36 instrumentation-runner) mob_new=0.7.24
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // KATI-END(K-36 instrumentation-runner)
-        versionCode 2026093001
+        versionCode 2026100201
         versionName "0.0.1-alpha.2"
 
         // KATI-BEGIN(K-01 abi-filters) mob_new=0.4.20

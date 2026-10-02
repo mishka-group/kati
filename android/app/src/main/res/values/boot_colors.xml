@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ground and mark from the first frame until Kati's first screen (#111).
+     Kati.Theme's paper and ink: light here, dark in values-night. -->
+<resources>
+    <color name="boot_ground">#EFECE7</color>
+    <color name="boot_mark">#1A1917</color>
+    <color name="boot_mark_eye">#EFECE7</color>
+</resources>

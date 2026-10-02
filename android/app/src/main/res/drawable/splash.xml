@@ -25,7 +25,10 @@
      BEAM anyway, which is exactly the hwui/ERTS pthread race the wait exists to
      prevent. Matching the sizes costs nothing and keeps the BEAM's start on
      its intended signal. -->
+<!-- #111: drawn in the app's paper and ink (@color/boot_ground, @drawable/
+     boot_mark) rather than the launcher's black, so this is the same ground
+     KatiBootScreen.kt and the first screen paint. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/ic_launcher_background" />
-    <item android:drawable="@drawable/kati_mark" android:gravity="center" />
+    <item android:drawable="@color/boot_ground" />
+    <item android:drawable="@drawable/boot_mark" android:gravity="center" />
 </layer-list>
