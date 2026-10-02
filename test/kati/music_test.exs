@@ -608,6 +608,9 @@ defmodule Kati.MusicTest do
       artist = an_artist!()
       album = an_album!(artist)
       today = Kati.Time.today()
+      # Three days back, kept inside this month: the card counts this month
+      # only. On the 1st there is no earlier day, and both land on today.
+      earlier = Enum.max([Date.add(today, -3), Date.beginning_of_month(today)], Date)
 
       Ash.create!(Listen, %{
         album_id: album.id,
@@ -619,10 +622,10 @@ defmodule Kati.MusicTest do
 
       Ash.create!(Listen, %{
         album_id: album.id,
-        listened_on: Date.add(today, -3),
+        listened_on: earlier,
         tracks: 4,
         minutes: 20,
-        started_at: DateTime.new!(Date.add(today, -3), ~T[21:05:00])
+        started_at: DateTime.new!(earlier, ~T[21:05:00])
       })
 
       card = Music.page().listening
@@ -634,9 +637,11 @@ defmodule Kati.MusicTest do
       # 67 minutes of listening, and the twentieth bar is today's — the tallest,
       # so it is the field's full height and above the run of ordinary days.
       assert card.total == "1h 7m"
-      assert List.last(card.bars) == {40.0, Kati.Music.Sample.tone(3)}
+      assert {40.0, _tone} = List.last(card.bars)
+      if earlier != today, do: assert(List.last(card.bars) == {40.0, Kati.Music.Sample.tone(3)})
       # A day with nothing draws nothing rather than a floor this file invented.
-      assert Enum.count(card.bars, &(elem(&1, 0) == 0.0)) == 18
+      assert Enum.count(card.bars, &(elem(&1, 0) == 0.0)) ==
+               if(earlier == today, do: 19, else: 18)
     end
 
     test "the release band is what screen 77 calls unheard, for everyone you follow" do

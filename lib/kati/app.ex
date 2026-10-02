@@ -288,15 +288,15 @@ defmodule Kati.App do
     :ok
   end
 
-  # `:mob_secret` is mob_dev's default and `mix mob.connect` hardcodes it at
-  # mob.connect.ex:114, so a custom value silently breaks `mob.connect`,
-  # `mob.push` and `mob.verify_strip` — which is how this was found.
+  # Since mob 0.9.8 the cookie is private per app: mob_dev keeps one under
+  # `~/.mob/dist_cookies/` and hands it to the device at deploy, and
+  # `Mob.Dist` ignores the public `:mob_secret` passed here. So the default
+  # below is inert, and `MOB_DIST_COOKIE` remains the way to choose one (then
+  # `mix mob.connect --cookie` with the same value).
   #
-  # That is acceptable because the cookie is not protecting anything: the
-  # `@dev?` gate above means distribution is absent from release builds
-  # entirely, and mob_beam additionally drops -name/-setcookie when
-  # MOB_RELEASE is defined. The risk was ever shipping a listening socket to
-  # users, not the value of a dev-only cookie. Still overridable.
+  # Distribution is dev-only either way: the `@dev?` gate above keeps it out
+  # of release builds, and mob_beam drops -name/-setcookie when MOB_RELEASE
+  # is defined.
   defp dev_cookie do
     System.get_env("MOB_DIST_COOKIE", "mob_secret") |> String.to_atom()
   end

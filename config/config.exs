@@ -1,12 +1,14 @@
 import Config
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
-# │ HOST ONLY. The device never reads this file.                              │
+# │ Read on the host by mix tasks, and on the device since mob 0.9.6.         │
 # │                                                                           │
-# │ A Mob app boots `start_clean` with no -config in argv and an empty .app    │
-# │ env, so every line here is invisible on a phone. Verified on device:      │
-# │ Application.get_env(:kati, :ecto_repos) returns [Kati.Repo] on the host    │
-# │ and nil on the device.                                                    │
+# │ mob_dev ships this file to the phone as `mob_app_config`, and             │
+# │ `Mob.App.start/0` applies it before Kati boots. Before that a phone saw   │
+# │ none of it. Kati.Runtime still sets every key the app reads at runtime,   │
+# │ so nothing here may be the only place a device gets a value from: a      │
+# │ build made without mob_dev's module (host tests, an older mob_dev) must   │
+# │ boot the same way.                                                        │
 # │                                                                           │
 # │ What belongs HERE:  keys read by mix tasks, and Application.compile_env   │
 # │                     keys, which are baked in at compile time.             │

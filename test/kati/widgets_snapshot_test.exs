@@ -222,6 +222,13 @@ defmodule Kati.Widgets.SnapshotTest do
                Kati.Screens.Home.handle_info({:notification, %{data: %{}}}, socket)
     end
 
+    test "the widget's payload arriving while Kati is open is not a tap" do
+      socket = Mob.Socket.new(Kati.Screens.Home)
+      arrived = %{presentation: :foreground, data: %{kati_open: "add"}}
+
+      assert {:noreply, ^socket} = Kati.Screens.Home.handle_info({:notification, arrived}, socket)
+    end
+
     test "a tap on a running app is forwarded to the router untouched" do
       start_supervised!({Kati.Native.TapRelay, to: self(), name: :widget_test_relay})
       json = ~s({"id":"kati_widget","data":{"kati_open":"add"}})

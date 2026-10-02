@@ -28,7 +28,7 @@ defmodule Kati.Media.Provider do
   ## One transport for the keyless two
 
   `request/3` is the whole of their HTTP: `Kati.Net.Tls.ensure!/0`, the host
-  resolved through `Kati.Net.Dns.resolve/1` (Android's BEAM cannot resolve a
+  resolved through `Mob.DNS.resolve/1` (Android's BEAM cannot resolve a
   name itself), the test seam merged in, and every failure named — a sinkhole
   answer is `:blocked` through `Kati.Media.Tmdb.transport_failure/2`, the
   same question TMDB's failures are asked. Nothing raises.
@@ -174,7 +174,7 @@ defmodule Kati.Media.Provider do
   @doc """
   One request to a keyless catalogue, with every failure named.
 
-  `options` are Req's; `dns_host` is the name `Kati.Net.Dns.resolve/1`
+  `options` are Req's; `dns_host` is the name `Mob.DNS.resolve/1`
   seeds; `seam` is the application-env key a test hands its adapter
   through (`:anilist_req_options`, `:tvmaze_req_options`), merged last.
   Answers the decoded body of a 200, or `:rate_limited`, `:not_found`,
@@ -183,7 +183,7 @@ defmodule Kati.Media.Provider do
   @spec request(keyword(), String.t(), atom()) :: {:ok, term()} | {:error, term()}
   def request(options, dns_host, seam) do
     Kati.Net.Tls.ensure!()
-    _resolved = Kati.Net.Dns.resolve(dns_host)
+    _resolved = Mob.DNS.resolve(dns_host)
 
     [receive_timeout: @timeout, connect_options: [timeout: @connect_timeout], retry: false]
     |> Keyword.merge(options)

@@ -116,9 +116,14 @@ defmodule Kati.ThemeModeTest do
       # screen process dies on every root switch.
       assert :ok = Mode.put(:dark)
 
-      stop_supervised!(Mob.State)
-      refute Process.whereis(Mob.State), "Mob.State did not actually stop"
-      start_supervised!(Mob.State)
+      # `Mob.ScreenCase.StateOwner` holds the store (mob 0.9.5); a fresh
+      # checkout after the stop opens a new one on the same data dir.
+      store = Process.whereis(Mob.State)
+      GenServer.stop(Mob.State)
+      refute Process.alive?(store), "Mob.State did not actually stop"
+      {:ok, ref} = Mob.ScreenCase.StateOwner.checkout()
+      on_exit(fn -> Mob.ScreenCase.StateOwner.checkin(ref) end)
+      refute Process.whereis(Mob.State) == store
 
       assert Mode.choice() == :dark
     end

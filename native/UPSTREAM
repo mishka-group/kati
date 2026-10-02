@@ -12,20 +12,20 @@
 # redirects to pkg.hexops.org) and was unpacked into ~/.asdf/installs/zig by
 # hand. See .tool-versions.
 #
-# mob 0.9.3 is taken with `override: true` in mix.exs: every published mob_dev,
-# 0.7.1 included (and its master branch on 27 September), still requires
-# `mob ~> 0.7.25 or ~> 0.8.1`. mob_new 0.6.0 is the template that goes with
-# mob 0.9 (its generated mix.exs floors `{:mob, "~> 0.9.0"}`).
+# mob 0.9.10 with mob_dev 0.7.9, which admits `mob ~> 0.9.0`, so the override
+# 0.9.3 needed is gone. mob 0.9.8 and later need mob_dev 0.7.7 or later (the
+# per-app distribution cookie). mob_new 0.6.3 is the template that goes with
+# them (#110, 2 October).
 
-mob_new=0.6.0
-mob=0.9.3
-mob_dev=0.7.1
+mob_new=0.6.3
+mob=0.9.10
+mob_dev=0.7.9
 ndk=27.2.12479018
 zig=0.17.0-dev.269+ebff43698
 erts=17.0
-generated=2026-09-27
+generated=2026-10-02
 
-# sha256 of each PRISTINE baseline file under native/baseline/0.6.0/.
+# sha256 of each PRISTINE baseline file under native/baseline/0.6.3/.
 # These describe upstream, not Kati's edited copies. A mismatch means the
 # baseline was tampered with, which silently corrupts the three-way merge.
 #
@@ -42,25 +42,25 @@ generated=2026-09-27
 # have none now: #75 deleted both files, and 0.4.33 no longer generates either
 # (they moved to the mob_scanner and mob_notify plugins).
 
-1521ce3921e3dd332b4d990c47bc58427829eeb64c594dfa61107ef1053807b8  android/app/src/main/java/com/example/kati/MobBridge.kt
-c2d9c06d67e2cbef18fc1fb1897f5813b8dc3d739293b17ab836f4bf0632474a  android/app/src/main/java/com/example/kati/MainActivity.kt
+851d34c0a3ed7b84d01bf43f40b62e9e6d1901963d91790d42b50582f033aea2  android/app/src/main/java/com/example/kati/MobBridge.kt
+2f9943e266eb53428403762e59c8e2a707b2039086361b185ed90cae3324ae1f  android/app/src/main/java/com/example/kati/MainActivity.kt
 0f116c4bb3fa9e31a15e6c46a72f4850cfa616b7e361939083da0dddd76115b3  android/app/src/main/java/com/example/kati/MobNode.kt
 cf4b7a4ddce15b4487b6a8fa473442ea8facbe04e51980209bd2dc76c9c80041  android/app/src/main/java/com/example/kati/MobJson.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/BeamForegroundService.kt
-8cfcd33e1f320438fc6d5178be5890cead6e1dd9a62ff59da2138eaa5a265be3  android/app/src/main/AndroidManifest.xml
+b67929b57b2776c8fa26b6edd01df8de261b324a203d20b0c6dd815fa02dac99  android/app/src/main/AndroidManifest.xml
 a09ccb6b20abb2bb1b17b20e17063df5ef8ff5390b7a02972d91b40082b0ef9c  android/app/build.gradle
 814b24514334bcdbd8392fac6d12214c5ef01a40f079f79b12232412a4cdcd8d  android/build.gradle
 4b919cfffaed71637d1ee9c89f21f4247273e14eb8433afdcd0672eba906b41f  android/settings.gradle
 09b6c2b77952a6c23f720425f00a908e73326d103f9455110c97d00533415688  android/gradle.properties
 750a8095df99592cfd30060ef970947fda2da9e23710a51ca1f028636c2569b3  android/gradle/wrapper/gradle-wrapper.properties
-5ce13849b2229cd1b902f7df865e76bdf83453eaab5a2a8b65289edcd86cfe8c  android/app/src/main/jni/build.zig
-24fd5f541dec65750dc1a6162bcd8654941983f7b0f9d352b757f546428bc1b7  android/app/src/main/jni/CMakeLists.txt
-c60a945173d39362eba992b1e2994dc4400cca6bb66c7aff082b4b0748beeec5  android/app/src/main/jni/beam_jni.c
+ec09d037fc8adc64f904dad9922e03c05a6c967f294819d6aac426d0541e70de  android/app/src/main/jni/build.zig
+cf270ea5d2f6dce31db413bcf300c045f31c1fcda9fb9c79e6fd602e2d46f8c8  android/app/src/main/jni/CMakeLists.txt
+662b5f234c3867c3af1ed41b7ae1fa1a49b97cea40d284b052509c54d12f6b3b  android/app/src/main/jni/beam_jni.c
 f761e37fb947cbb83f36c0f969785b4ad820d1d6b0b3a8d230593c0015f812fc  ios/beam_main.m
-344dafe3f8722fd11d27803ee9df6e5289eb24ae554c2bf8f0dc6627b0c66e94  ios/AppDelegate.m
-fe73e21c95f31946f20a13239972f80dd61baca73f7bc0b33129d3d94e7416b1  ios/Info.plist
-e88bb8119fa84b8fc74f0d779b33830db1cafc0328ca0f34a0a61be3d2bcc254  ios/build.zig
-de321faa4675af2d9a06859377bbc90727dd7a36ce236ed849cd9e7046c8920c  ios/build_device.zig
+815c789abab771f25e58eec2d70618c92c7f7eb59b20c0bda5554d2ca20c33cc  ios/AppDelegate.m
+28367d3950e63ae85d102215bdcc67cc56a9bdfbbe8e772b6b6ae286ff4b8abb  ios/Info.plist
+7669f29fe0ebffc26ce76aaaf696629dfaab7b63c37483c4adff5b1a7c2224f2  ios/build.zig
+f41180e2471954960e89b48d3122a44e417aa34d3df709f01c5d492b1e08006c  ios/build_device.zig
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiDeviceZone.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiBootReceiver.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiNotificationStore.kt

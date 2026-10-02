@@ -58,7 +58,7 @@ defmodule Kati.Media.Artwork do
   the URL (`url_<digest>.jpg`) because a URL is not a flat namespace the way a
   TMDB path is. Only `https` counts: a plain-`http` value is not remote, so
   nothing here ever fetches over an unencrypted connection. The URL's own host
-  goes through `Kati.Net.Dns.resolve/1` before the request, for the reason
+  goes through `Mob.DNS.resolve/1` before the request, for the reason
   TMDB's does.
 
   ## Test seam
@@ -243,7 +243,7 @@ defmodule Kati.Media.Artwork do
   # the URL's own: TMDB's CDN for a path, AniList's or TVmaze's for a URL.
   defp get(url) do
     Kati.Net.Tls.ensure!()
-    _resolved = Kati.Net.Dns.resolve(URI.parse(url).host || @dns_host)
+    _resolved = Mob.DNS.resolve(URI.parse(url).host || @dns_host)
 
     [url: url, receive_timeout: @timeout, max_redirects: 3]
     |> Keyword.merge(Application.get_env(:kati, :artwork_req_options, []))

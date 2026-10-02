@@ -18,6 +18,9 @@ defmodule Kati.Widgets.Launch do
     * `%{kati_open: "add"}` — the empty state's *Add a title*. Opens the add
       sheet the FAB opens.
 
+  A notification that only ARRIVED while Kati was open (`presentation:
+  :foreground`, mob 0.9.8) is not a tap and opens nothing.
+
   Anything else — a notification that is not the widget's, a payload from an
   older build — leaves the screen as it is: the app has already been brought
   to the front, which is the whole of what a plain tap promised.
@@ -35,6 +38,8 @@ defmodule Kati.Widgets.Launch do
   Navigate for a decoded notification, or return the socket untouched.
   """
   @spec open(Mob.Socket.t(), map()) :: Mob.Socket.t()
+  def open(socket, %{presentation: :foreground}), do: socket
+
   def open(socket, %{data: %{kati_open: "title", id: id} = data})
       when is_binary(id) and id != "" do
     Mob.Socket.push_screen(socket, screen_for(Map.get(data, :kind)), %{id: id, back: "Back"})
