@@ -56,6 +56,7 @@ defmodule Kati.Screens.Pushed do
         Kati.Theme.activate()
         Kati.Locale.activate()
         Kati.Screens.Resume.watch()
+        Kati.LiveScreens.join()
 
         socket
         |> Mob.Socket.assign(:params, params)

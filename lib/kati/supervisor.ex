@@ -40,6 +40,10 @@ defmodule Kati.Supervisor do
           # cannot take a screen with it.
           {Task.Supervisor, name: Kati.TaskSupervisor},
 
+          # Every live screen process, for a change all of them show (#112).
+          # Before the root screen, which joins it at mount.
+          Kati.LiveScreens,
+
           # The root screen. Mob registers it as :mob_screen so the C layer's
           # back handler can find it; supervising it is what turns "frozen app"
           # into "back at Home".

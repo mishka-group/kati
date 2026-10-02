@@ -140,6 +140,7 @@ defmodule Kati.Screens.Series do
     Kati.Locale.activate()
 
     Kati.Screens.Resume.watch()
+    Kati.LiveScreens.join()
     {id, preview, series} = Kati.Screens.Series.opening(params)
 
     {:ok,
@@ -2408,6 +2409,13 @@ defmodule Kati.Screens.Series do
   # rather than in a `handle_kati/3` and why the push's id stands in when the
   # page on screen is the one that says the show has gone — and, since N37,
   # why a show that has gone closes the ⋯ and the remove question with it.
+  # The language changed under this page (#112): speak the new one now, and
+  # rebuild what was built in the old one, before a back tap paints it.
+  def handle_info({:kati, :locale_changed, _locale}, socket) do
+    Kati.Locale.activate()
+    handle_info({:kati, :resumed, nil}, socket)
+  end
+
   def handle_info({:kati, :title_filled, _id}, socket),
     do: handle_info({:kati, :resumed, nil}, socket)
 

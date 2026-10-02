@@ -63,6 +63,7 @@ defmodule Kati.Locale do
   def put(locale) when locale in @locales do
     Mob.State.put(:locale, locale)
     activate()
+    Kati.LiveScreens.broadcast({:kati, :locale_changed, locale})
   end
 
   @doc """

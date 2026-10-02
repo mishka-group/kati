@@ -164,6 +164,7 @@ defmodule Kati.Screens.Film do
     Kati.Locale.activate()
 
     Kati.Screens.Resume.watch()
+    Kati.LiveScreens.join()
     {id, preview, film} = Kati.Screens.Film.opening(params)
 
     {:ok,
@@ -1965,6 +1966,13 @@ defmodule Kati.Screens.Film do
   # N37: `resumed/3` is the whole refresh, shared with screen 04, so a title
   # removed while this page sat under a sheet turns into `gone/2`'s page on the
   # way back, and its ⋯ and its remove question go with it.
+  # The language changed under this page (#112): speak the new one now, and
+  # rebuild what was built in the old one, before a back tap paints it.
+  def handle_info({:kati, :locale_changed, _locale}, socket) do
+    Kati.Locale.activate()
+    handle_info({:kati, :resumed, nil}, socket)
+  end
+
   def handle_info({:kati, :title_filled, _id}, socket),
     do: handle_info({:kati, :resumed, nil}, socket)
 

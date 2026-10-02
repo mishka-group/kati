@@ -120,6 +120,7 @@ defmodule Kati.Screens.Root do
         # a theme installed at mount; it is simply no longer always the same one.
         Kati.Theme.activate()
         Kati.Locale.activate()
+        Kati.LiveScreens.join()
 
         # A fresh install goes to the first-run sequence instead of here.
         #
@@ -428,6 +429,11 @@ defmodule Kati.Screens.Root do
   A `handle_kati/3` that exists and raises is still a bug, and still logged.
   """
   @spec rescue_kati(module(), atom(), term(), term()) :: {:noreply, term()}
+  def rescue_kati(module, :locale_changed, _locale, socket) do
+    Kati.Locale.activate()
+    rescue_kati(module, :resumed, nil, socket)
+  end
+
   def rescue_kati(module, topic, payload, socket) do
     if exports?(module, :handle_kati, 3) do
       try do
