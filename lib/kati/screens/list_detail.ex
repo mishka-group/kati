@@ -127,10 +127,37 @@ defmodule Kati.Screens.ListDetail do
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
+        {Kati.Screens.ListDetail.add_disc()}
+        <Spacer size={10} />
         {@menu}
       </Row>
       <Spacer size={16} />
     </Column>
+    """
+  end
+
+  @doc """
+  The `+` beside the ⋯: titles from the shelf, into this list (#114).
+
+  A list could only be filled from the title's end, through its *Add to list*;
+  this is the door from the list's own. It opens `Kati.Screens.ListAddTitles`.
+  Not on a kept list — `header/1` draws neither disc there — because a list
+  Kati keeps is filled by what the reader does, not by picking.
+  """
+  def add_disc do
+    ~MOB"""
+    <Box
+      width={44}
+      height={44}
+      corner_radius={22}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_button()}
+      align="center"
+      on_tap={{self(), :add_titles}}
+      accessibility_id="add_titles"
+    >
+      {Kati.UI.symbol("add", size: 21)}
+    </Box>
     """
   end
 
@@ -378,12 +405,18 @@ defmodule Kati.Screens.ListDetail do
       />
       <Spacer size={7} />
       <Text
-        text={gettext("Open a film, book or album and tap Add to list.")}
+        text={gettext("Tap + to add titles from your shelf, or open a film and tap Add to list.")}
         text_size={12.5}
         line_height={1.55}
         text_color={Palette.sub()}
         text_align="center"
       />
+      <Spacer size={14} />
+      <Row fill_width={true}>
+        <Spacer weight={1.0} />
+        {SettingsList.action_pill(gettext("Add titles"), {self(), :add_titles})}
+        <Spacer weight={1.0} />
+      </Row>
     </Column>
     """
   end
@@ -660,6 +693,9 @@ defmodule Kati.Screens.ListDetail do
   end
 
   def handle_tap(:undo, socket), do: {:noreply, Kati.Screens.ListDetail.undone(socket)}
+
+  def handle_tap(:add_titles, %{assigns: %{list: %{id: id}}} = socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ListAddTitles, %{id: id})}
 
   def handle_tap(:open_lists, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}

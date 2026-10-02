@@ -1291,7 +1291,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # skip the literal comparison and keep the render, which is what this list
     # is for.
     Kati.Screens.AddToList,
-    Kati.Screens.ListDetail
+    Kati.Screens.ListDetail,
+    # #114's drawer, undrawn for the reason `Kati.ScreenDesignLiteralTest`
+    # gives: screen 03's grid inside a sheet, with no frame of its own.
+    Kati.Screens.ListAddTitles
     # Board 301, the Persian country sheet — screen 97's country row is the
     # door, and 324 is the board that gave that row something to ask for. 301's
     # frame is drawn beside three notes about what 94 and 97 got wrong rather

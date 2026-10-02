@@ -190,6 +190,9 @@ defmodule Kati.ScreenDesignLiteralTest do
     Kati.Screens.DiscoverFilters,
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
+    # #114's drawer has no board: it is screen 03's chips and grid, reused
+    # inside the sheet recipe, so there is no frame of its own to compare.
+    Kati.Screens.ListAddTitles,
     Kati.Screens.ListDetail,
     # Board 328 draws it, and 328 is a state catalogue too: the summary row in
     # both locales, the screen behind it, and the defect it replaces, all in one

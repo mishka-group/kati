@@ -386,6 +386,10 @@ defmodule Kati.Screens.Gallery do
     # able to open them.
     {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail},
     {:open_undrawn_add_to_list, "Add to list", Kati.Screens.AddToList},
+    # #114's drawer, the shelf in a sheet that fills a list from the list's own
+    # end. No board draws it: it is screen 03's chips and grid inside the sheet
+    # recipe, and it is reachable from the + on `ListDetail`.
+    {:open_undrawn_list_add_titles, "Add titles to a list", Kati.Screens.ListAddTitles},
     # Boards 336 and 337 were two more rows here, opening two more modules.
     # mishka-group/kati#103 folded both mirrors into the two screens above, so
     # the rows would open the same module twice and are gone. The boards are

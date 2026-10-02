@@ -1640,6 +1640,7 @@ defmodule Kati.Screens.Library do
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Library.progress(Kati.Screens.Library.fraction(item))}
         </Box>
+        {Kati.Screens.Library.pick_mark(item)}
       </Box>
       <Spacer size={9} />
       <Text
@@ -1661,6 +1662,42 @@ defmodule Kati.Screens.Library do
     </Column>
     """
   end
+
+  @doc """
+  The corner mark a picker draws on a tile it can add (#114).
+
+  Only a tile that carries `:in_list` gets one, which is a picker's row and
+  never the shelf's own: `Kati.Screens.ListAddTitles` reuses this grid and
+  marks each title in or out of the list it is filling. A filled ink disc with
+  a tick is in; an empty card disc with a plus is not, so the tap's answer is
+  on the tile before it is made.
+  """
+  @spec pick_mark(map()) :: map()
+  def pick_mark(%{in_list: in?}) when is_boolean(in?) do
+    {fill, glyph, color} =
+      if in?,
+        do: {Palette.ink_fill(), "check", Palette.on_ink()},
+        else: {Palette.card(), "add", Palette.ink_soft()}
+
+    assigns = %{fill: fill, glyph: glyph, color: color}
+
+    ~MOB"""
+    <Box fill_width={true} fill_height={true} align="top_trailing" padding={7}>
+      <Box
+        width={28}
+        height={28}
+        corner_radius={14}
+        background={@fill}
+        shadow={Kati.Theme.shadow_button()}
+        align="center"
+      >
+        {Kati.UI.symbol(@glyph, size: 17, color: @color)}
+      </Box>
+    </Box>
+    """
+  end
+
+  def pick_mark(_shelf_tile), do: ~MOB"<Spacer size={0} />"
 
   @doc """
   The mono line under a grid title.
