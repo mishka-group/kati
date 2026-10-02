@@ -628,6 +628,36 @@ defmodule Kati.Screens.Rating do
   # rating card on screen 08 is a door onto rating that viewing. So the second
   # read takes the newest whole-title watch; episode ticks stay out of it, for
   # the moduledoc's reason.
+  @doc """
+  How many title-level viewings a title has — watches with no episode, the
+  rows this sheet writes. For a series page's *Log a watch* / *Edit your log*.
+  """
+  @spec title_log_count(String.t()) :: non_neg_integer()
+  def title_log_count(title_id) do
+    Watch
+    |> Ash.Query.filter(is_nil(episode_source_id))
+    |> of_title(title_id)
+    |> Ash.read!()
+    |> length()
+  rescue
+    _error -> 0
+  end
+
+  @doc """
+  Whether a title's own viewings, not its episodes', carry a rating.
+  """
+  @spec title_rated?(String.t()) :: boolean()
+  def title_rated?(title_id) do
+    Watch
+    |> Ash.Query.filter(is_nil(episode_source_id) and not is_nil(rating))
+    |> of_title(title_id)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> Kernel.!=([])
+  rescue
+    _error -> false
+  end
+
   defp newest_log(nil), do: nil
 
   defp newest_log(title_id), do: newest_logged(title_id) || newest_viewing(title_id)

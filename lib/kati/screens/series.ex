@@ -290,6 +290,8 @@ defmodule Kati.Screens.Series do
       private?: false,
       anime?: false,
       media_kind: :tv,
+      rated?: false,
+      seen_count: 0,
       status: :not_started,
       # Empty strings and not `nil`: the typesetting helpers take a run and ask
       # what script it is in, so `Kati.Locale.mono_face/1` has no clause for a
@@ -667,6 +669,12 @@ defmodule Kati.Screens.Series do
       # Kind.
       anime?: Map.get(facts, :anime?, false),
       media_kind: Map.get(facts, :media_kind, :tv),
+      # The show's own log, the one screen 33 writes for the whole title — not
+      # an episode's. The star disc is gold once it carries a rating, and the ⋯
+      # row says *Edit your log* once there is one (#115). Screen 08 reads its
+      # film the same way, off the newest watch.
+      rated?: Kati.Screens.Series.rated?(Map.get(facts, :tracked_id)),
+      seen_count: Kati.Screens.Series.title_logs(Map.get(facts, :tracked_id)),
       # Board 248 draws the shelf's own chip over the hero — `Not started` on
       # the frame, `Watching` on the second one — and its caption rules that it
       # stays the shelf's chip rather than becoming *Added by hand*, "which
@@ -1401,6 +1409,10 @@ defmodule Kati.Screens.Series do
       trigger,
       menu?,
       [
+        # The rating sheet first, as on screen 08 (#115): rating, review, the
+        # date and who you watched it with, for the whole show. The star disc
+        # still opens it too.
+        Kati.Screens.Film.log_item(s, :rate_title),
         Kati.UI.Menu.item("info", gettext("Show details"), :show_details),
         Kati.UI.Menu.item("checklist", gettext("Episode order"), :episode_order),
         Kati.UI.Menu.rule(),
@@ -1708,11 +1720,27 @@ defmodule Kati.Screens.Series do
   """
   @spec rate_disc(map()) :: map()
   def rate_disc(s) do
-    case Map.get(s, :tracked_id) do
-      nil -> action_disc("star")
-      _id -> action_disc("star", {self(), :rate_title})
+    case {Map.get(s, :tracked_id), Map.get(s, :rated?, false)} do
+      {nil, _rated?} -> action_disc("star")
+      {_id, true} -> action_disc("star", {self(), :rate_title}, Palette.gold_icon())
+      {_id, false} -> action_disc("star", {self(), :rate_title})
     end
   end
+
+  @doc """
+  Whether the show itself carries a rating: its newest title-level log, the
+  row screen 33 writes, has one. An episode's rating is not the show's.
+  """
+  @spec rated?(String.t() | nil) :: boolean()
+  def rated?(nil), do: false
+
+  def rated?(tracked_id), do: Kati.Screens.Rating.title_rated?(tracked_id)
+
+  @doc "How many title-level logs the show has, for the ⋯ row's verb."
+  @spec title_logs(String.t() | nil) :: non_neg_integer()
+  def title_logs(nil), do: 0
+
+  def title_logs(tracked_id), do: Kati.Screens.Rating.title_log_count(tracked_id)
 
   @doc false
   def episodes_header(s) do
@@ -2276,11 +2304,15 @@ defmodule Kati.Screens.Series do
   # Before the `"rate_" <> index` clause below, and it has to be: `rate_title`
   # matches that prefix and `String.to_integer("title")` raises inside a tap
   # handler, which kills the screen process.
+  # The menu closes on the way out, as screen 08's does for `:rate`: the ⋯ row
+  # opens this sheet too now (#115), and a menu still open behind the sheet is
+  # what the reader comes back to otherwise.
   def handle_info({:tap, :rate_title}, socket),
     do:
       {:noreply,
-       Mob.Socket.push_screen(
-         socket,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.push_screen(
          Kati.Screens.Rating,
          Kati.Screens.Rating.params_for(socket.assigns.series)
        )}

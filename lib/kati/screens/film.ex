@@ -1174,13 +1174,17 @@ defmodule Kati.Screens.Film do
 
   There were two, *Edit your log* and *Log rewatch*, and the owner asked for
   one: a log you already made is a log you change (26 Sep).
+
+  The series page carries the same row at the top of its own ⋯ (#115), tagged
+  `:rate_title` there, so a show's rating, review and who you watched it with
+  are one menu away on both pages, not only behind the star.
   """
-  @spec log_item(map()) :: map() | []
-  def log_item(f) do
+  @spec log_item(map(), atom()) :: map() | []
+  def log_item(f, tag \\ :rate) do
     cond do
       is_nil(Map.get(f, :tracked_id)) -> []
-      Map.get(f, :seen_count, 0) > 0 -> Kati.UI.Menu.item("edit", gettext("Edit your log"), :rate)
-      true -> Kati.UI.Menu.item("star", gettext("Log a watch"), :rate)
+      Map.get(f, :seen_count, 0) > 0 -> Kati.UI.Menu.item("edit", gettext("Edit your log"), tag)
+      true -> Kati.UI.Menu.item("star", gettext("Log a watch"), tag)
     end
   end
 
@@ -1338,6 +1342,9 @@ defmodule Kati.Screens.Film do
   @doc """
   One star of the row: `:full`, `:empty`, or `:half`.
 
+  Gold, as the series page's star disc is once the show is rated (#115): a
+  filled gold star says *you rated this*, an outlined one says not yet.
+
   The half is `Kati.Screens.Rating.star/1`'s construction at this row's size
   and in this row's pair of glyphs: the empty (outlined) star, with the filled
   one over it clipped to its leading half by `clip_width` (fence `K-16`), which
@@ -1345,15 +1352,15 @@ defmodule Kati.Screens.Film do
   line box beside its neighbours.
   """
   @spec star(:full | :empty | :half) :: map()
-  def star(:full), do: Kati.UI.symbol("star", size: 22, color: Palette.accent(), fill: true)
-  def star(:empty), do: Kati.UI.symbol("star", size: 22, color: Palette.accent())
+  def star(:full), do: Kati.UI.symbol("star", size: 22, color: Palette.gold_icon(), fill: true)
+  def star(:empty), do: Kati.UI.symbol("star", size: 22, color: Palette.gold_icon())
 
   def star(:half) do
     ~MOB"""
     <Box width={22} height={22}>
-      {Kati.UI.symbol("star", size: 22, color: Palette.accent())}
+      {Kati.UI.symbol("star", size: 22, color: Palette.gold_icon())}
       <Box width={22} height={22} clip_width={0.5}>
-        {Kati.UI.symbol("star", size: 22, color: Palette.accent(), fill: true)}
+        {Kati.UI.symbol("star", size: 22, color: Palette.gold_icon(), fill: true)}
       </Box>
     </Box>
     """
