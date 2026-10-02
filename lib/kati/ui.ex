@@ -71,7 +71,13 @@ defmodule Kati.UI do
   def symbol(name, opts \\ []) do
     glyph = Kati.Icons.glyph!(name)
     size = Keyword.get(opts, :size, 22)
-    color = Keyword.get(opts, :color, Palette.ink())
+    # `||`, not a `Keyword.get/3` default: a caller that passes `color: nil`
+    # means "no colour of my own", and the default only applies to a MISSING
+    # key. The series page's action discs pass their ink straight through, nil
+    # when the disc is off, and that nil reached the node as no colour at all,
+    # which Compose draws black: an unfollowed bookmark and the list disc were
+    # black on a dark disc in dark mode, all but invisible.
+    color = Keyword.get(opts, :color) || Palette.ink()
     family = if Keyword.get(opts, :fill, false), do: "symbols_filled", else: "symbols"
 
     ~MOB"""
