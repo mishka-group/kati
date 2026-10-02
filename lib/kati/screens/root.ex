@@ -429,9 +429,18 @@ defmodule Kati.Screens.Root do
   A `handle_kati/3` that exists and raises is still a bug, and still logged.
   """
   @spec rescue_kati(module(), atom(), term(), term()) :: {:noreply, term()}
+  # The language changed under this screen (#112). Its process speaks the new
+  # one from here, and `load/1` rebuilds everything the screen built in the old
+  # one: `:resumed` is not enough, because a screen that answers it refreshes
+  # its reads and keeps its labels, and most screens do not answer it at all.
   def rescue_kati(module, :locale_changed, _locale, socket) do
     Kati.Locale.activate()
-    rescue_kati(module, :resumed, nil, socket)
+
+    if exports?(module, :load, 1) do
+      {:noreply, module.load(socket)}
+    else
+      rescue_kati(module, :resumed, nil, socket)
+    end
   end
 
   def rescue_kati(module, topic, payload, socket) do

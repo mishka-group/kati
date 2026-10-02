@@ -67,6 +67,12 @@ defmodule Kati.LocaleBackNavigationTest do
            "the screen underneath still drew #{inspect(Enum.take(painted, 3))}"
 
     refute "Settings" in painted
+
+    # The rows are built at load, not at render: a new locale in the process
+    # is not enough on its own, the screen has to rebuild them.
+    assert "اندازه متن" in painted
+    refute "Text size" in painted
+    assert "کاتی شما" in painted, "the account card kept the name it was loaded with"
   end
 
   test "and back to English the same way" do
