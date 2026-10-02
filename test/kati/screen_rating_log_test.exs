@@ -133,7 +133,11 @@ defmodule Kati.ScreenRatingLogTest do
 
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 
-  defp stars(tree), do: find_all(tree, :text, font_family: "symbols_filled", text_size: 26)
+  # Filled and outlined both: an empty star is an outline since #116.
+  defp stars(tree),
+    do:
+      find_all(tree, :text, font_family: "symbols_filled", text_size: 26) ++
+        find_all(tree, :text, font_family: "symbols", text_size: 26)
 
   describe "nothing logged" do
     test "the sheet opens empty rather than on somebody else's watch" do
@@ -276,7 +280,11 @@ defmodule Kati.ScreenRatingLogTest do
       empties = stars(tree) |> Enum.map(& &1.props.text_color) |> Enum.uniq()
 
       assert length(stars(tree)) == 5, "an unrated log draws five stars, all of them empty"
-      assert empties == [Kati.Theme.Palette.star_empty()], "one of them is filled in the accent"
+      assert empties == [Kati.Theme.Palette.sub()], "one of them is filled in the accent"
+
+      assert find_all(tree, :text, font_family: "symbols_filled", text_size: 26) == [],
+             "an empty star is an outline, not a faint fill"
+
       assert drawn?(tree, "—")
     end
 

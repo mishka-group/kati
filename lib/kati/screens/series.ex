@@ -1273,6 +1273,14 @@ defmodule Kati.Screens.Series do
   tells you what the button is about to do before you press it. So the folded
   screen takes board 58's wording, and falls back to the bare sentence when
   there is no next episode to name.
+
+  `E12`, not *episode 12* (#117): the button shares its row with three discs,
+  and a long show's four-digit number has to fit beside them without the label
+  touching the pill's ends. Persian keeps board 58's own sentence, which is
+  already the short one.
+
+      iex> Kati.Screens.Series.mark_next_label(%{episodes: [%{n: 1024, watched: false}]})
+      "Mark E1024 watched"
   """
   @spec mark_next_label(map()) :: String.t()
   def mark_next_label(series) do
@@ -1282,7 +1290,7 @@ defmodule Kati.Screens.Series do
 
       position ->
         case Enum.at(Map.get(series, :episodes, []), position) do
-          %{n: n} -> gettext("Mark episode %{n} watched", n: Kati.Locale.number(n))
+          %{n: n} -> gettext("Mark E%{n} watched", n: Kati.Locale.number(n))
           _none -> gettext("Mark next watched")
         end
     end
@@ -1615,14 +1623,16 @@ defmodule Kati.Screens.Series do
             corner_radius={23}
             background={Palette.ink_fill()}
             align="center"
+            padding_left={16}
+            padding_right={16}
             on_tap={mark}
           >
             <Spacer weight={1.0} />
-            {Kati.UI.symbol("check", size: 16, color: Palette.on_ink())}
+            {Kati.UI.symbol("check", size: 15, color: Palette.on_ink())}
             <Spacer size={6} />
             <Text
               text={Kati.Screens.Series.mark_next_label(s)}
-              text_size={13}
+              text_size={12.5}
               font_weight="bold"
               text_color={Palette.on_ink()}
               max_lines={1}
@@ -2158,9 +2168,12 @@ defmodule Kati.Screens.Series do
     """
   end
 
+  # `sub`, not `bar_neutral` (#116): the chart-bar grey was about 1.4:1 on the
+  # card in both themes, so the one way to rate an episode was all but
+  # invisible. `sub` is the row's own second-line colour, above 3:1 in both.
   @doc false
   def rating_face(nil) do
-    Kati.UI.symbol("star", size: 13, color: Palette.bar_neutral())
+    Kati.UI.symbol("star", size: 13, color: Palette.sub())
   end
 
   def rating_face(rating) do
@@ -2200,10 +2213,10 @@ defmodule Kati.Screens.Series do
       height={27}
       corner_radius={14}
       border_width={1}
-      border_color={Palette.bar_neutral()}
+      border_color={Palette.sub()}
       align="center"
     >
-      {Kati.UI.symbol("check", size: 16, color: Palette.bar_neutral())}
+      {Kati.UI.symbol("check", size: 16, color: Palette.sub())}
     </Box>
     """
   end

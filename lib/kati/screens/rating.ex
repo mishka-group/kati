@@ -1820,7 +1820,11 @@ defmodule Kati.Screens.Rating do
 
   @doc false
   def star(:full), do: Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)
-  def star(:empty), do: Kati.UI.symbol("star", size: 26, color: Palette.star_empty(), fill: true)
+  # An outline in `sub`, not a filled `star_empty` (#116): that fill was about
+  # 1.2:1 on the card in dark mode and 1.3:1 in light, so the sheet's one
+  # control read as a blank band. The outline is the film page's own unrated
+  # star, so an empty star means the same thing on both screens.
+  def star(:empty), do: Kati.UI.symbol("star", size: 26, color: Palette.sub())
 
   # A real half star, drawn the way the design draws one: the empty star, with
   # a filled star painted over it and CUT at 50%.
@@ -1840,7 +1844,7 @@ defmodule Kati.Screens.Rating do
   def star(:half) do
     ~MOB"""
     <Box width={26} height={26}>
-      {Kati.UI.symbol("star", size: 26, color: Palette.star_empty(), fill: true)}
+      {Kati.UI.symbol("star", size: 26, color: Palette.sub())}
       <Box width={26} height={26} clip_width={0.5}>
         {Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)}
       </Box>
