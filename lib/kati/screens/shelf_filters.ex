@@ -138,7 +138,7 @@ defmodule Kati.Screens.ShelfFilters do
     chosen = Kati.Library.ShelfFilters.current()
 
     [
-      sort: chosen.sort,
+      sort: Kati.Screens.ShelfFilters.row_sort(chosen.sort),
       direction: chosen.direction,
       decade: Map.get(chosen, :decade),
       rating: nil,
@@ -840,7 +840,7 @@ defmodule Kati.Screens.ShelfFilters do
     all = Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting())
 
     socket
-    |> Mob.Socket.assign(:sort, chosen.sort)
+    |> Mob.Socket.assign(:sort, Kati.Screens.ShelfFilters.row_sort(chosen.sort))
     |> Mob.Socket.assign(:direction, chosen.direction)
     |> Mob.Socket.assign(:genres, MapSet.new(chosen.genres))
     |> Mob.Socket.assign(:showing, length(Kati.Library.ShelfFilters.apply(all, chosen)))
@@ -871,11 +871,16 @@ defmodule Kati.Screens.ShelfFilters do
         {key, :desc}
       end
 
-    stored = %{
-      Kati.Library.ShelfFilters.current()
-      | sort: stored_sort(sort),
-        direction: direction
-    }
+    # Stored on every tap, as the genre and decade chips are: this sheet has
+    # no Done, and a sort that lived only in this socket died with it on the
+    # ✕, so the shelf behind never moved and the sheet reopened on Recently
+    # added (#113).
+    stored =
+      Kati.Library.ShelfFilters.put(%{
+        Kati.Library.ShelfFilters.current()
+        | sort: stored_sort(sort),
+          direction: direction
+      })
 
     if socket.assigns.facets do
       # `put_sort/3` AFTER `restated/2`, not before it.
@@ -913,27 +918,38 @@ defmodule Kati.Screens.ShelfFilters do
   @doc """
   Board 145's sort key, as `Kati.Library.ShelfFilters` names it.
 
-  The board draws five and the store can answer four. `Release date` needs a
-  first-air year and no column holds one — the same absence that takes the
-  decade buckets off a device — so choosing it stores the shelf's own order
-  instead of a sort by a value that is always `nil`. `Your rating` is the
-  standing rating off the newest watch, which is where every rating in this
-  app actually is.
+  The two vocabularies differ in one word: the board's *Your rating* is the
+  store's `:rating`, the standing rating off the newest watch, which is where
+  every rating in this app actually is. *Release date* sorts by the title's
+  first release year.
 
       iex> Kati.Screens.ShelfFilters.stored_sort(:your_rating)
       :rating
 
       iex> Kati.Screens.ShelfFilters.stored_sort(:release_date)
-      :recently_added
+      :release_date
 
       iex> Kati.Screens.ShelfFilters.stored_sort(:title)
       :title
   """
   @spec stored_sort(atom()) :: atom()
   def stored_sort(:your_rating), do: :rating
-  def stored_sort(:release_date), do: :recently_added
-  def stored_sort(key) when key in [:title, :runtime, :recently_added], do: key
+  def stored_sort(key) when key in [:title, :runtime, :recently_added, :release_date], do: key
   def stored_sort(_key), do: :recently_added
+
+  @doc """
+  The row a stored sort ticks: `stored_sort/1` read backwards, so a sheet
+  reopened on *Your rating* has that row checked, not none.
+
+      iex> Kati.Screens.ShelfFilters.row_sort(:rating)
+      :your_rating
+
+      iex> Kati.Screens.ShelfFilters.row_sort(:release_date)
+      :release_date
+  """
+  @spec row_sort(atom()) :: atom()
+  def row_sort(:rating), do: :your_rating
+  def row_sort(key), do: key
 
   @doc "A single-select bucket: tapping the selected one clears it, tapping another replaces it."
   @spec toggle_single(Mob.Socket.t(), atom(), atom()) :: Mob.Socket.t()

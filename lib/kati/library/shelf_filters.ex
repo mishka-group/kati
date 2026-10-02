@@ -28,8 +28,8 @@ defmodule Kati.Library.ShelfFilters do
 
   Four facets are drawn on board 145 and two of them have nothing behind them:
 
-    * **Sort** — real. `last_touched_at`, `title` and the rating are all on the
-      rows the shelf already reads.
+    * **Sort** — real. `last_touched_at`, `title`, the rating, the runtime and
+      the release year are all on the rows the shelf already reads.
     * **Genre** — real, from `Kati.Media.CachedTitle.genres`, the same
       `", "`-separated column screen 07's genre bars read.
     * **Decade** — no column. `Kati.Media.CachedTitle` holds `next_release_at`,
@@ -45,7 +45,7 @@ defmodule Kati.Library.ShelfFilters do
 
   @key "library:shelf_filters"
 
-  @sorts [:recently_added, :title, :rating, :runtime]
+  @sorts [:recently_added, :release_date, :title, :rating, :runtime]
 
   @doc """
   The stored choice, or the resting one.
@@ -204,6 +204,14 @@ defmodule Kati.Library.ShelfFilters do
 
   defp sort(rows, %{sort: :runtime, direction: direction}),
     do: Enum.sort_by(rows, &(Map.get(&1, :runtime) || 0), direction)
+
+  # By `CachedTitle.first_release_year`. A title no provider has dated goes
+  # last whichever way the list runs: it is not older than everything, and
+  # putting it first in ascending order would claim it is.
+  defp sort(rows, %{sort: :release_date, direction: direction}) do
+    {dated, undated} = Enum.split_with(rows, &is_integer(Map.get(&1, :year)))
+    Enum.sort_by(dated, & &1.year, direction) ++ undated
+  end
 
   # Recently added is the shelf's own order — `:shelf` sorts newest touch first
   # — so `:desc` is the list as it arrived and `:asc` is it reversed. Nothing

@@ -260,6 +260,70 @@ defmodule Kati.ShelfFiltersTest do
     end
   end
 
+  describe "the sort rows (#113)" do
+    setup do
+      dated!("severance", "Severance", "Drama", 2022)
+      dated!("arrival", "Arrival", "Science Fiction", 2016)
+      dated!("bladerunner", "Blade Runner", "Science Fiction", 1982)
+      dated!("undated", "Nightbirds", "Drama", nil)
+      :ok
+    end
+
+    defp titles, do: Enum.map(Library.shelf(), & &1.title)
+
+    test "a sort tapped is stored, and the shelf behind is in that order" do
+      mount_screen(Sheet, %{}) |> render_info({:tap, :title})
+
+      assert ShelfFilters.current().sort == :title
+      assert titles() == ["Severance", "Nightbirds", "Blade Runner", "Arrival"]
+    end
+
+    test "tapping the chosen row again turns its direction, and that is stored too" do
+      mount_screen(Sheet, %{})
+      |> render_info({:tap, :title})
+      |> render_info({:tap, :title})
+
+      assert %{sort: :title, direction: :asc} = ShelfFilters.current()
+      assert titles() == ["Arrival", "Blade Runner", "Nightbirds", "Severance"]
+    end
+
+    test "the sheet reopens on the row that was chosen, not on Recently added" do
+      for {row, direction} <- [your_rating: :desc, release_date: :desc, runtime: :desc] do
+        mount_screen(Sheet, %{}) |> render_info({:tap, row})
+
+        reopened = assigns(mount_screen(Sheet, %{}))
+        assert {reopened.sort, reopened.direction} == {row, direction}, "#{row} was not kept"
+      end
+    end
+
+    test "release date is the release year, with an undated title last either way" do
+      mount_screen(Sheet, %{}) |> render_info({:tap, :release_date})
+      assert titles() == ["Severance", "Arrival", "Blade Runner", "Nightbirds"]
+
+      mount_screen(Sheet, %{}) |> render_info({:tap, :release_date})
+      assert titles() == ["Blade Runner", "Arrival", "Severance", "Nightbirds"]
+    end
+
+    test "the Library re-reads in the chosen order when it comes back" do
+      library = mount_screen(Library, %{})
+      mount_screen(Sheet, %{}) |> render_info({:tap, :title})
+
+      back = render_info(library, {:kati, :resumed, nil})
+
+      assert Enum.map(assigns(back).titles, & &1.title) ==
+               ["Severance", "Nightbirds", "Blade Runner", "Arrival"]
+    end
+
+    test "Reset puts the sort back to Recently added" do
+      mount_screen(Sheet, %{})
+      |> render_info({:tap, :title})
+      |> render_info({:tap, :reset})
+
+      assert ShelfFilters.current() == ShelfFilters.resting()
+      assert assigns(mount_screen(Sheet, %{})).sort == :recently_added
+    end
+  end
+
   defp dated!(slug, title, genres, year) do
     source_id = @prefix <> slug
 
