@@ -721,6 +721,8 @@ defmodule Kati.Screens.DropSheet do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      reduce_motion={Kati.Accessibility.motion_prop()}
+      text_scale={Kati.Accessibility.scale_prop()}
       font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >

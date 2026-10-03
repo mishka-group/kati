@@ -56,6 +56,7 @@ defmodule Kati.UI.SettingsList do
   those strings in the rendered tree wherever they were written, it is now a
   consequence of the rule rather than a reason for it.
   """
+  use Gettext, backend: Kati.Gettext
 
   import Mob.Sigil
 
@@ -707,6 +708,27 @@ defmodule Kati.UI.SettingsList do
       thumb_off_color: Palette.on_ink(),
       thumb_shadow: "0 1 3 0 #4D1A1917"
     )
+  end
+
+  @doc """
+  `switch/1` with its state spoken: TalkBack reads *Reduce motion: on*.
+
+  The drawn switch is boxes, so it carries no switch semantics of its own, and
+  the row it sits in is read by its title alone. The label is the one place the
+  state reaches a screen reader, and the e2e suite reads it back the same way.
+  """
+  def switch(on?, label) when is_boolean(on?) and is_binary(label) do
+    state = if on?, do: pgettext("switch state", "on"), else: pgettext("switch state", "off")
+
+    %{
+      type: :box,
+      props: %{
+        width: 46,
+        height: 28,
+        accessibility_label: gettext("%{setting}: %{state}", setting: label, state: state)
+      },
+      children: [switch(on?)]
+    }
   end
 
   @doc """

@@ -335,6 +335,13 @@ defmodule Kati.DesignLiterals do
       :src,
       :text_align,
       :layout_direction,
+      # `Kati.Accessibility`'s root prop for `K-72`: how a page arrives, never
+      # a word anybody reads.
+      :reduce_motion,
+      # What TalkBack speaks for a drawn control: *Reduce motion: on*. Heard,
+      # never drawn, so no board can hold it and comparing it to one would
+      # report every switch as missing copy.
+      :accessibility_label,
       :gradient,
       :axis,
       # An identifier, never copy. `Mob.Renderer` emits it for every atom-tagged

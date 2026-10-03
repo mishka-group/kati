@@ -50,6 +50,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 // KATI-END(K-12 rtl-imports)
+// KATI-BEGIN(K-72 display-imports) mob_new=0.6.3
+import androidx.compose.ui.platform.LocalContext
+// KATI-END(K-72 display-imports)
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -622,6 +625,13 @@ class MainActivity : ComponentActivity() {
 private fun MobNavHost(state: RootState) {
     var containerWidth by remember { mutableIntStateOf(0) }
     val offset = remember { Animatable(0f) }
+    // KATI-BEGIN(K-72 display-fade) mob_new=0.6.3
+    // Reduce motion: a page change fades in where it would slide. The root
+    // node's `reduce_motion` is Kati's own switch (`Kati.Accessibility`);
+    // Android's *Remove animations* (animator scale 0) counts as well.
+    val fade = remember { Animatable(1f) }
+    val context = LocalContext.current
+    // KATI-END(K-72 display-fade)
 
     // Keyed on navKey, NOT on `state`.
     //
@@ -653,10 +663,25 @@ private fun MobNavHost(state: RootState) {
             else -> 0f
         }
 
+        // KATI-BEGIN(K-72 display-fade-run) mob_new=0.6.3
+        val reduce = (state.node?.props?.get("reduce_motion") as? String) == "reduce" ||
+            android.provider.Settings.Global.getFloat(
+                context.contentResolver,
+                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f
+            ) == 0f
+        fade.snapTo(1f)
+        // KATI-END(K-72 display-fade-run)
         if (from == 0f) {
             // No slide for a reset or a first mount, but the offset still has
             // to be returned to rest in case a previous slide was interrupted.
             offset.snapTo(0f)
+        // KATI-BEGIN(K-72 display-fade-swap) mob_new=0.6.3
+        } else if (reduce) {
+            offset.snapTo(0f)
+            fade.snapTo(0f)
+            fade.animateTo(1f, tween(durationMillis = 180))
+        // KATI-END(K-72 display-fade-swap)
         } else {
             offset.snapTo(from)
             offset.animateTo(0f, tween(durationMillis = 300))
@@ -684,7 +709,9 @@ private fun MobNavHost(state: RootState) {
         // A layer translation moves the same pixels in the draw phase with no
         // layout invalidation at all, which on a performance ticket is the
         // difference worth having.
-        Box(Modifier.fillMaxSize().graphicsLayer { translationX = offset.value }) {
+        // KATI-BEGIN(K-72 display-fade-layer) mob_new=0.6.3
+        Box(Modifier.fillMaxSize().graphicsLayer { translationX = offset.value; alpha = fade.value }) {
+        // KATI-END(K-72 display-fade-layer)
             // Rendered straight from `state`, exactly as the AnimatedContent
             // version was. Routing it through a state variable set by a
             // LaunchedEffect would leave the first frame after every set_root

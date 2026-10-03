@@ -525,6 +525,9 @@ defmodule Kati.Screens.Settings do
       %{control: {:segments, options, _}} = row ->
         %{row | control: {:segments, options, Kati.Screens.Settings.label_for(options, choice)}}
 
+      %{id: "reduce_motion"} = row ->
+        %{row | control: {:switch, Kati.Accessibility.reduce_motion?()}}
+
       row ->
         row
     end)
@@ -718,7 +721,8 @@ defmodule Kati.Screens.Settings do
       SettingsList.icon_tile(row.icon),
       SettingsList.body(row.title, Kati.Screens.Settings.sub(row)),
       Kati.Screens.Settings.control(
-        if(row.control == :chevron and is_nil(tap), do: nil, else: row.control)
+        if(row.control == :chevron and is_nil(tap), do: nil, else: row.control),
+        row.title
       ),
       padding: pad,
       rule: rule?,
@@ -802,6 +806,9 @@ defmodule Kati.Screens.Settings do
   end
 
   @doc false
+  def control({:switch, on?}, title), do: SettingsList.switch(on?, title)
+  def control(control, _title), do: Kati.Screens.Settings.control(control)
+
   def control(nil), do: nil
   def control(:chevron), do: SettingsList.chevron()
   def control({:switch, on?}), do: SettingsList.switch(on?)
@@ -948,17 +955,19 @@ defmodule Kati.Screens.Settings do
     end)
   end
 
-  # A switch that names a section writes through; every other switch is local.
-  #
-  # `Reduce motion` is the only other one, and it stays local for the reason
-  # `Kati.Screens.Accessibility` writes out at length: Mob has no animation
-  # primitive, so there is nothing for a stored boolean to change.
+  # A switch that names a section writes through to `Kati.Sections`, and
+  # `Reduce motion` to `Kati.Accessibility`, which every screen's root reads.
   #
   # The store is written FIRST and the thumb only follows an `:ok`.
   # `Kati.Sections.put/1` refuses an empty list — screen 26's *Cannot continue
   # with zero*, enforced in the store so no call site has to remember it — and a
   # thumb that moved anyway would leave a section drawn off that is still on
   # everywhere else, which is the one lie this group exists to avoid.
+  defp flip_switch(socket, "reduce_motion") do
+    :ok = Kati.Accessibility.put_reduce_motion(not Kati.Accessibility.reduce_motion?())
+    put_rows(socket, &Kati.Screens.Settings.settle/1)
+  end
+
   defp flip_switch(socket, id) do
     if id in Kati.Sections.all() do
       case Kati.Sections.put(kept_after(socket.assigns.settings.sections, id)) do

@@ -276,6 +276,8 @@ defmodule Kati.Screens.Pushed do
       fill_height={true}
       background={:background}
       layout_direction={@direction}
+      reduce_motion={Kati.Accessibility.motion_prop()}
+      text_scale={Kati.Accessibility.scale_prop()}
       font_family={@face}
       accessibility_id={@screen}
     >
