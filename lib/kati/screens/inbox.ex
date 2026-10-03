@@ -102,9 +102,43 @@ defmodule Kati.Screens.Inbox do
 
   @impl true
   def load(socket) do
+    inbox = inbox()
+    checking? = Kati.Screens.Inbox.stale?(inbox) and Kati.Screens.Inbox.check(self())
+
     socket
-    |> Mob.Socket.assign(:inbox, inbox())
+    |> Mob.Socket.assign(:inbox, inbox)
+    |> Mob.Socket.assign(:checking?, checking?)
     |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
+  Whether opening the page should look for news first: something is followed,
+  the watcher is on, and the last check is older than the cadence the reader
+  chose — or there has never been one (#122).
+  """
+  @spec stale?(map(), DateTime.t()) :: boolean()
+  def stale?(inbox, now \\ Kati.Time.now())
+  def stale?(%{nothing_followed?: true}, _now), do: false
+
+  def stale?(_inbox, now) do
+    Watcher.watching?() and
+      case Watcher.last_checked() do
+        nil ->
+          true
+
+        at ->
+          minutes = Watcher.interval_for(Watcher.cadence()) || 360
+          DateTime.diff(now, at, :second) > minutes * 60
+      end
+  rescue
+    _error -> false
+  end
+
+  @doc false
+  @spec check(pid()) :: true
+  def check(pid) do
+    Kati.Media.Cache.ask(pid)
+    true
   end
 
   @doc """
@@ -401,6 +435,20 @@ defmodule Kati.Screens.Inbox do
     )
   end
 
+  @doc "The watcher card's second line, or *checking now* while a check runs."
+  @spec checked_text(map()) :: String.t()
+  def checked_text(%{checking?: true}),
+    do: Watcher.checked_line(nil, true) <> " · " <> cadence_label(Watcher.cadence())
+
+  def checked_text(inbox), do: inbox.last_checked
+
+  @doc """
+  *Check now* on the watcher card: look for news without waiting for the
+  cadence. Gone while a check is already running.
+  """
+  def check_pill(true), do: ~MOB"<Spacer size={0} />"
+  def check_pill(false), do: Kati.UI.SettingsList.action_pill(gettext("Check now"), {self(), :check_now})
+
   @doc """
   The gear on the watcher card, which opens screen 25.
 
@@ -437,6 +485,16 @@ defmodule Kati.Screens.Inbox do
      |> Mob.Socket.assign(:save_error, refused)}
   end
 
+  # Look now, whatever the cadence says: the sweep refreshes every followed
+  # title from its source, stamps the check and re-arms the alerts.
+  def handle_tap(:check_now, socket) do
+    {:noreply,
+     Mob.Socket.assign(socket, :checking?, socket.assigns.checking? or check(self()))}
+  end
+
+  def handle_tap(:open_data_sources, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.DataSources, %{back: "Inbox"})}
+
   # Screen 25, which is what the gear on the cream card has always pointed at.
   def handle_tap(:open_watcher, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Inbox"})}
@@ -456,8 +514,49 @@ defmodule Kati.Screens.Inbox do
       "watch_" <> source_id ->
         {:noreply, Kati.Screens.Inbox.tick(socket, source_id)}
 
+      "upcoming_" <> index ->
+        {:noreply, Kati.Screens.Inbox.open_upcoming(socket, index)}
+
       _other ->
         {:noreply, socket}
+    end
+  end
+
+  @doc false
+  @impl true
+  def handle_info({:cache_refreshed, result}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:inbox, inbox())
+     |> Mob.Socket.assign(:checking?, false)
+     |> Mob.Socket.assign(:check_error, Kati.Screens.Inbox.check_error(result))}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc """
+  Why a check could not run, in words, or `nil` when it ran. A missing TMDB
+  key with nothing keyless to check is the usual one, and the line says where
+  a key goes.
+  """
+  @spec check_error(term()) :: String.t() | nil
+  def check_error({:ok, _tally}), do: nil
+  def check_error({:error, reason}), do: Kati.Media.Tmdb.message(reason)
+  def check_error(_other), do: nil
+
+  @doc """
+  Open the title a Coming up row is about: its film, or its show.
+  """
+  @spec open_upcoming(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def open_upcoming(socket, index) do
+    with {i, ""} <- Integer.parse(index),
+         %{tracked_id: id, kind: kind} when is_binary(id) <-
+           Enum.at(Map.get(socket.assigns.inbox, :coming_up, []), i) do
+      if kind == :movie,
+        do: Mob.Socket.push_screen(socket, Kati.Screens.Film, %{id: id, back: "Inbox"}),
+        else: Mob.Socket.push_screen(socket, Kati.Screens.Series, %{tracked_id: id, back: "Inbox"})
+    else
+      _no_row -> socket
     end
   end
 
@@ -744,7 +843,9 @@ defmodule Kati.Screens.Inbox do
       day: Kati.Locale.pick(Calendar.strftime(date, "%d"), Kati.Locale.day_of_month(date)),
       title: upcoming_title(show_title(cached), airing),
       line: upcoming_line(airing, air),
-      armed: armed?(tracked_row, airing, cached)
+      armed: armed?(tracked_row, airing, cached),
+      tracked_id: tracked_row.id,
+      kind: tracked_row.kind
     }
   end
 
@@ -837,7 +938,10 @@ defmodule Kati.Screens.Inbox do
 
   @doc false
   def content(assigns) do
-    inbox = assigns.inbox
+    inbox =
+      assigns.inbox
+      |> Map.put(:checking?, Map.get(assigns, :checking?, false))
+      |> Map.put(:check_error, Map.get(assigns, :check_error))
 
     ~MOB"""
     <Scroll>
@@ -882,6 +986,7 @@ defmodule Kati.Screens.Inbox do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.Inbox.watcher(inbox)}
+      {Kati.Screens.Inbox.check_note(Map.get(inbox, :check_error))}
       {Kati.Screens.Inbox.refusal(save_error)}
       {UI.eyebrow(out_now)}
       {Kati.Screens.Inbox.out_now(inbox)}
@@ -1170,17 +1275,37 @@ defmodule Kati.Screens.Inbox do
           />
           <Spacer size={4} />
           <Text
-            text={inbox.last_checked}
+            text={Kati.Screens.Inbox.checked_text(inbox)}
             font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.cream_meta()}
             max_lines={1}
           />
         </Column>
-        <Spacer size={12} />
+        <Spacer size={10} />
+        {Kati.Screens.Inbox.check_pill(Map.get(inbox, :checking?, false))}
+        <Spacer size={10} />
         {Kati.Screens.Inbox.watcher_gear()}
       </Row>
       <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc "Why the last check could not run, with the way to fix it."
+  def check_note(nil), do: ~MOB"<Spacer size={0} />"
+
+  def check_note(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center">
+        <Text text={@message} text_size={12} text_color={Palette.sub()} weight={1.0} />
+        <Spacer size={10} />
+        {Kati.UI.SettingsList.action_pill(gettext("Data sources"), {self(), :open_data_sources})}
+      </Row>
+      <Spacer size={18} />
     </Column>
     """
   end
@@ -1219,6 +1344,15 @@ defmodule Kati.Screens.Inbox do
   end
 
   @doc false
+  def out_now(%{out_now: []}) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text text={gettext("Nothing new in the last week.")} text_size={12.5} text_color={Palette.sub()} />
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
   def out_now(inbox) do
     ~MOB"""
     <Column fill_width={true}>
@@ -1324,6 +1458,15 @@ defmodule Kati.Screens.Inbox do
   end
 
   @doc false
+  def coming_up(%{coming_up: []}) do
+    Kati.Screens.Library.nothing_card(
+      gettext("No dates yet"),
+      gettext(
+        "When a show or film you follow gets a release date, it shows up here, and Kati can remind you."
+      )
+    )
+  end
+
   def coming_up(inbox) do
     rows = inbox.coming_up
     last = length(rows) - 1
@@ -1341,7 +1484,7 @@ defmodule Kati.Screens.Inbox do
     >
       {rows
        |> Enum.with_index()
-       |> Enum.map(fn {row, i} -> Kati.Screens.Inbox.upcoming_row(row, i < last) end)}
+       |> Enum.map(fn {row, i} -> Kati.Screens.Inbox.upcoming_row(row, i < last, i) end)}
     </Column>
     """
   end
@@ -1352,9 +1495,13 @@ defmodule Kati.Screens.Inbox do
   # belongs in DM Mono. Asking the STRING is the only question that answers
   # both — `Kati.Screens.DataSources` makes the same call for provider names.
   @doc false
-  def upcoming_row(row, rule?) do
+  def upcoming_row(row, rule?, index \\ nil) do
+    tap =
+      if is_binary(Map.get(row, :tracked_id)) and is_integer(index),
+        do: {self(), String.to_atom("upcoming_" <> Integer.to_string(index))}
+
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Column width={42} align="center">
           <Text

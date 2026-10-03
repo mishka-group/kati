@@ -85,7 +85,7 @@ msgstr "رهاشده"
 
 #: lib/kati/screens/add_title.ex:622
 #: lib/kati/screens/add_title_music.ex:332
-#: lib/kati/screens/inbox.ex:952
+#: lib/kati/screens/inbox.ex:1057
 #: lib/kati/screens/library.ex:697
 #: lib/kati/settings/states_sample.ex:104
 #: lib/kati/widgets/snapshot.ex:124
@@ -1411,6 +1411,7 @@ msgstr "بازگشت"
 
 #: lib/kati/screens/data_sources.ex:98
 #: lib/kati/screens/data_sources_states.ex:211
+#: lib/kati/screens/inbox.ex:1301
 #: lib/kati/screens/pushed.ex:188
 #: lib/kati/settings/sample.ex:318
 #, elixir-autogen, elixir-format
@@ -4270,7 +4271,7 @@ msgstr "حذف از کتابخانه"
 #: lib/kati/activity/sample.ex:158
 #: lib/kati/library/sample.ex:221
 #: lib/kati/screens/activity.ex:1336
-#: lib/kati/screens/inbox.ex:778
+#: lib/kati/screens/inbox.ex:879
 #: lib/kati/screens/season.ex:904
 #: lib/kati/screens/series.ex:711
 #, elixir-autogen, elixir-format
@@ -4301,7 +4302,7 @@ msgstr "تنظیمات سریال"
 #: lib/kati/screens/drop_sheet.ex:483
 #: lib/kati/screens/event_detail.ex:192
 #: lib/kati/screens/film.ex:474
-#: lib/kati/screens/inbox.ex:823
+#: lib/kati/screens/inbox.ex:924
 #: lib/kati/screens/library.ex:365
 #: lib/kati/screens/numbering_scheme.ex:106
 #: lib/kati/screens/rate_episode.ex:546
@@ -4397,7 +4398,7 @@ msgstr "این سریال هنوز در کتابخانه‌ی شما نیست."
 #: lib/kati/library/sample.ex:368
 #: lib/kati/meals/sample_library.ex:225
 #: lib/kati/meals/sample_recipe.ex:183
-#: lib/kati/screens/inbox.ex:657
+#: lib/kati/screens/inbox.ex:756
 #: lib/kati/screens/meal.ex:421
 #: lib/kati/screens/meal_edit.ex:233
 #: lib/kati/screens/series.ex:800
@@ -5092,8 +5093,8 @@ msgstr "کشف"
 msgid "Harbour"
 msgstr "بندر آرام"
 
-#: lib/kati/screens/inbox.ex:1098
-#: lib/kati/screens/inbox.ex:1121
+#: lib/kati/screens/inbox.ex:1203
+#: lib/kati/screens/inbox.ex:1226
 #: lib/kati/screens/library.ex:875
 #, elixir-autogen, elixir-format
 msgid "New releases"
@@ -5428,7 +5429,7 @@ msgid_plural "%{n} watches"
 msgstr[0] "%{n} تماشا"
 msgstr[1] "%{n} تماشا"
 
-#: lib/kati/screens/inbox.ex:1116
+#: lib/kati/screens/inbox.ex:1221
 #, elixir-autogen, elixir-format
 msgid "%{out} out now · %{up} coming up"
 msgstr "%{out} منتشرشده · %{up} در راه"
@@ -5470,7 +5471,7 @@ msgstr "افزودن دستی «%{query}»"
 msgid "Browser extension"
 msgstr "افزونهٔ مرورگر"
 
-#: lib/kati/screens/inbox.ex:882
+#: lib/kati/screens/inbox.ex:986
 #, elixir-autogen, elixir-format
 msgid "Coming up"
 msgstr "در راه"
@@ -5500,7 +5501,7 @@ msgstr "قبول است"
 msgid "First-run idle — Recent is empty by definition"
 msgstr "نخستین اجرا، بی‌کار — فهرست اخیر طبق تعریف خالی است"
 
-#: lib/kati/screens/inbox.ex:897
+#: lib/kati/screens/inbox.ex:1002
 #, elixir-autogen, elixir-format
 msgid "It has nothing to watch yet. Follow a show and it starts here."
 msgstr "هنوز چیزی برای پایش ندارد. سریالی را دنبال کنید تا از همین‌جا شروع شود."
@@ -5570,7 +5571,7 @@ msgstr "سرویسی با این نام نیست. کاتی فهرست سرویس
 msgid "No service named"
 msgstr "سرویسی نام برده نشد"
 
-#: lib/kati/screens/inbox.ex:869
+#: lib/kati/screens/inbox.ex:973
 #, elixir-autogen, elixir-format
 msgid "Nothing followed yet"
 msgstr "هنوز چیزی دنبال نشده"
@@ -5587,7 +5588,7 @@ msgstr "چیزی برای «%{query}» پیدا نشد"
 msgid "Nothing logged here yet"
 msgstr "هنوز چیزی اینجا ثبت نشده"
 
-#: lib/kati/screens/inbox.ex:952
+#: lib/kati/screens/inbox.ex:1057
 #, elixir-autogen, elixir-format
 msgid "Nothing new, because nothing is followed"
 msgstr "چیزی تازه نیست، چون چیزی دنبال نشده"
@@ -5622,7 +5623,7 @@ msgstr "از آنجا یک سرویس را باز کنید تا این صفحه 
 msgid "Optional — after a run, before breakfast…"
 msgstr "اختیاری — بعد از دویدن، پیش از صبحانه…"
 
-#: lib/kati/screens/inbox.ex:880
+#: lib/kati/screens/inbox.ex:984
 #, elixir-autogen, elixir-format
 msgid "Out now · %{count}"
 msgstr "منتشرشده · %{count}"
@@ -5682,7 +5683,7 @@ msgstr "سرویس‌ها"
 msgid "Six keystrokes, one search. Scope counts mean seven counted queries per fire, so an undebounced field would run forty-two."
 msgstr "شش ضربهٔ کلید، یک جست‌وجو. شمارش چیپ‌های دامنه یعنی هر بار اجرا هفت جست‌وجوی شمرده‌شده هزینه دارد، پس کادر جست‌وجویی بدون مکث چهل‌ودو جست‌وجو اجرا می‌کرد."
 
-#: lib/kati/screens/inbox.ex:775
+#: lib/kati/screens/inbox.ex:876
 #: lib/kati/screens/season.ex:903
 #, elixir-autogen, elixir-format
 msgid "Specials"
@@ -5703,7 +5704,7 @@ msgstr "بزنید تا روز پرداختش را تعیین کنید"
 msgid "The section chip changes the unit, not the layout: hours become pages, posters become covers, and the aspect ratio holds. Music would read minutes listened; Meals, meals cooked."
 msgstr "چیپ بخش واحد را عوض می‌کند، نه چیدمان را: ساعت‌ها به صفحه تبدیل می‌شوند، پوسترها به جلد، و نسبت تصویر ثابت می‌ماند. برای موسیقی، دقیقهٔ شنیده‌شده نوشته می‌شد؛ برای وعده‌ها، وعده‌های پخته‌شده."
 
-#: lib/kati/screens/inbox.ex:897
+#: lib/kati/screens/inbox.ex:1002
 #, elixir-autogen, elixir-format
 msgid "The watcher is running"
 msgstr "پایشگر در حال کار است"
@@ -5718,7 +5719,7 @@ msgstr "تاریخی برای آن تعیین نشده است"
 msgid "This page is about one service, and the push that opened it named none. It does not pick one: a page that pauses a subscription and takes it off your shelf must be told which."
 msgstr "این صفحه دربارهٔ یک سرویس است و آنچه بازش کرد هیچ سرویسی را نام نبرد. خودش یکی را انتخاب نمی‌کند: صفحه‌ای که اشتراکی را متوقف می‌کند و آن را از قفسه‌تان برمی‌دارد باید بداند کدام یکی."
 
-#: lib/kati/screens/inbox.ex:952
+#: lib/kati/screens/inbox.ex:1057
 #, elixir-autogen, elixir-format
 msgid "This page is the watcher's output. Add a show or a film to your library and every new episode lands here first."
 msgstr "این صفحه خروجی پایشگر است. سریال یا فیلمی را به کتابخانه‌تان اضافه کنید تا هر قسمت تازه اول از همه اینجا بیاید."
@@ -5763,7 +5764,7 @@ msgstr "نامش را بنویسید و قیمتش را بعد از آن — %{e
 msgid "Watched here"
 msgstr "آنچه اینجا دیده‌اید"
 
-#: lib/kati/screens/inbox.ex:396
+#: lib/kati/screens/inbox.ex:430
 #, elixir-autogen, elixir-format
 msgid "Watching for %{n} title"
 msgid_plural "Watching for %{n} titles"
@@ -5805,7 +5806,7 @@ msgstr "اوایل امروز"
 msgid "from your last reading, %{ago}."
 msgstr "نسبت به آخرین ثبت شما، %{ago}."
 
-#: lib/kati/screens/inbox.ex:952
+#: lib/kati/screens/inbox.ex:1057
 #, elixir-autogen, elixir-format
 msgid "or open the shelf"
 msgstr "یا قفسه را باز کنید"
@@ -5842,7 +5843,7 @@ msgctxt "debounce window"
 msgid "%{n} ms"
 msgstr "%{n} میلی‌ثانیه"
 
-#: lib/kati/screens/inbox.ex:648
+#: lib/kati/screens/inbox.ex:747
 #: lib/kati/screens/numbering_scheme.ex:342
 #: lib/kati/screens/rate_episode.ex:591
 #: lib/kati/screens/season.ex:1001
@@ -5854,7 +5855,7 @@ msgid "E%{e}"
 msgstr "ق%{e}"
 
 #: lib/kati/library/sample.ex:409
-#: lib/kati/screens/inbox.ex:641
+#: lib/kati/screens/inbox.ex:740
 #: lib/kati/screens/rate_episode.ex:584
 #, elixir-autogen, elixir-format
 msgctxt "episode number"
@@ -5873,13 +5874,13 @@ msgctxt "how long ago a reading was, when its day cannot be read"
 msgid "last time"
 msgstr "دفعه پیش"
 
-#: lib/kati/screens/inbox.ex:1069
+#: lib/kati/screens/inbox.ex:1174
 #, elixir-autogen, elixir-format
 msgctxt "inbox"
 msgid "Mark all"
 msgstr "همه را دیده‌ام"
 
-#: lib/kati/screens/inbox.ex:1244
+#: lib/kati/screens/inbox.ex:1378
 #, elixir-autogen, elixir-format
 msgctxt "inbox"
 msgid "Watch"
@@ -5891,7 +5892,7 @@ msgctxt "make a list"
 msgid "Make it"
 msgstr "بساز"
 
-#: lib/kati/screens/inbox.ex:695
+#: lib/kati/screens/inbox.ex:794
 #, elixir-autogen, elixir-format
 msgctxt "out now row"
 msgid "aired %{date}"
@@ -5899,7 +5900,7 @@ msgstr "%{date} پخش شد"
 
 #: lib/kati/library/sample.ex:338
 #: lib/kati/library/sample.ex:370
-#: lib/kati/screens/inbox.ex:688
+#: lib/kati/screens/inbox.ex:787
 #, elixir-autogen, elixir-format
 msgctxt "out now row"
 msgid "aired %{time}"
@@ -5943,19 +5944,19 @@ msgctxt "the thing the sheet was opened from"
 msgid "tile"
 msgstr "کاشی"
 
-#: lib/kati/screens/inbox.ex:207
+#: lib/kati/screens/inbox.ex:241
 #, elixir-autogen, elixir-format
 msgctxt "watcher cadence"
 msgid "daily"
 msgstr "روزانه"
 
-#: lib/kati/screens/inbox.ex:206
+#: lib/kati/screens/inbox.ex:240
 #, elixir-autogen, elixir-format
 msgctxt "watcher cadence"
 msgid "every 6h"
 msgstr "هر ۶ ساعت"
 
-#: lib/kati/screens/inbox.ex:205
+#: lib/kati/screens/inbox.ex:239
 #, elixir-autogen, elixir-format
 msgctxt "watcher cadence"
 msgid "hourly"
@@ -16411,25 +16412,25 @@ msgstr "آغاز پخش، قسمت تازه، اکران فیلم"
 msgid "The dot on Home's bell"
 msgstr "نقطه‌ی روی زنگ صفحه‌ی خانه"
 
-#: lib/kati/screens/inbox.ex:344
+#: lib/kati/screens/inbox.ex:378
 #, elixir-autogen, elixir-format
 msgctxt "release alert"
 msgid "%{season} starts today"
 msgstr "%{season} امروز شروع می‌شود"
 
-#: lib/kati/screens/inbox.ex:338
+#: lib/kati/screens/inbox.ex:372
 #, elixir-autogen, elixir-format
 msgctxt "release alert"
 msgid "A new episode is out"
 msgstr "یک قسمت تازه منتشر شد"
 
-#: lib/kati/screens/inbox.ex:339
+#: lib/kati/screens/inbox.ex:373
 #, elixir-autogen, elixir-format
 msgctxt "release alert"
 msgid "New episode: %{episode}"
 msgstr "قسمت تازه: %{episode}"
 
-#: lib/kati/screens/inbox.ex:346
+#: lib/kati/screens/inbox.ex:380
 #, elixir-autogen, elixir-format
 msgctxt "release alert"
 msgid "Out today"
@@ -17084,3 +17085,23 @@ msgstr "به کاتی بگویید هزینهٔ کدام سرویس‌ها را 
 #, elixir-autogen, elixir-format
 msgid "Which of these can you watch?"
 msgstr "کدام‌یک از این‌ها را می‌توانید ببینید؟"
+
+#: lib/kati/screens/inbox.ex:450
+#, elixir-autogen, elixir-format
+msgid "Check now"
+msgstr "همین حالا بررسی کن"
+
+#: lib/kati/screens/inbox.ex:1463
+#, elixir-autogen, elixir-format
+msgid "No dates yet"
+msgstr "هنوز تاریخی نیست"
+
+#: lib/kati/screens/inbox.ex:1348
+#, elixir-autogen, elixir-format
+msgid "Nothing new in the last week."
+msgstr "در هفتهٔ گذشته چیز تازه‌ای نیامده."
+
+#: lib/kati/screens/inbox.ex:1464
+#, elixir-autogen, elixir-format
+msgid "When a show or film you follow gets a release date, it shows up here, and Kati can remind you."
+msgstr "وقتی سریال یا فیلمی که دنبال می‌کنید تاریخ انتشار بگیرد، اینجا نشان داده می‌شود و کاتی می‌تواند یادآوری کند."

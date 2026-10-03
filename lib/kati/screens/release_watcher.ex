@@ -168,7 +168,7 @@ defmodule Kati.Screens.ReleaseWatcher do
         padding_top={64}
         padding_bottom={40}
       >
-        {SettingsList.chrome("more_horiz")}
+        {SettingsList.chrome(nil)}
         {SettingsList.title(gettext("Release watcher"), w.checked, nil, :meta_tight)}
         {Kati.Screens.ReleaseWatcher.banner(w.banner)}
         {UI.eyebrow(pgettext("eyebrow", "Tell me about"))}
@@ -450,12 +450,7 @@ defmodule Kati.Screens.ReleaseWatcher do
   defp cadence_label(other), do: other
 
   @impl true
-  def handle_info({:cache_refreshed, result}, socket) do
-    if match?({:ok, _tally}, result) do
-      Watcher.checked!()
-      Kati.Notifications.Releases.sync()
-    end
-
+  def handle_info({:cache_refreshed, _result}, socket) do
     {:noreply, Mob.Socket.assign(socket, :watcher, Kati.Screens.ReleaseWatcher.watcher())}
   end
 

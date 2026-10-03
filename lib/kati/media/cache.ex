@@ -122,7 +122,7 @@ defmodule Kati.Media.Cache do
   """
   @spec ask(pid()) :: :ok
   def ask(pid) when is_pid(pid) do
-    sweep = fn -> send(pid, {:cache_refreshed, Kati.Media.Cache.refresh()}) end
+    sweep = fn -> send(pid, {:cache_refreshed, Kati.Media.Cache.settle(Kati.Media.Cache.refresh())}) end
 
     try do
       Task.Supervisor.start_child(Kati.TaskSupervisor, sweep)
@@ -133,6 +133,22 @@ defmodule Kati.Media.Cache do
         :ok
     end
   end
+
+  @doc """
+  What every finished sweep does, whoever asked for it: a success is a check —
+  *Release watcher*'s *checked* line moves — and the release alerts are armed
+  again from the fresh dates (#122). The result is handed back unchanged.
+  """
+  @spec settle(term()) :: term()
+  def settle({:ok, _tally} = result) do
+    Kati.Settings.Watcher.checked!()
+    Kati.Notifications.Releases.sync()
+    result
+  rescue
+    _error -> result
+  end
+
+  def settle(result), do: result
 
   @doc false
   @spec tracked() :: [TrackedTitle.t()]

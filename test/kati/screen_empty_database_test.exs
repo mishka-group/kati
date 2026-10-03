@@ -1698,6 +1698,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"41", "more_horiz"},
     {"41", "info"},
     {"41", "format_size"},
+    # #122: screen 25's ⋯ disc opened nothing; it is not drawn.
+    {"25", "more_horiz"},
     # #120: board 146's stills — the resting header's search disc, the notes'
     # info and call_split glyphs, the frozen undo pill — are not drawn.
     {"146", "call_split"},
