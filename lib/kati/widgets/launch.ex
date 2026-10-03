@@ -48,6 +48,10 @@ defmodule Kati.Widgets.Launch do
   def open(socket, %{data: %{kati_open: "add"}}),
     do: Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)
 
+  # A notification about more than one title, or about none (#125).
+  def open(socket, %{data: %{kati_open: "notifications"}}),
+    do: Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)
+
   def open(socket, _other), do: socket
 
   @doc """

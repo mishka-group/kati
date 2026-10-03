@@ -76,9 +76,21 @@ defmodule Kati.Notifications.Reminders do
   """
   @spec candidates(DateTime.t()) :: [Candidate.t()]
   def candidates(now \\ Kati.Time.now()) do
-    now
-    |> Kati.Notifications.Reminders.events()
-    |> Enum.map(&Kati.Notifications.Reminders.candidate/1)
+    scheduled =
+      if Watcher.reminder?(:scheduled),
+        do:
+          now
+          |> Kati.Notifications.Reminders.events()
+          |> Enum.map(&Kati.Notifications.Reminders.candidate/1),
+        else: []
+
+    # #125: a loved title on the anniversary of its last watch.
+    rewatch =
+      if Watcher.reminder?(:rewatch),
+        do: Kati.Notifications.Sources.Rewatch.candidates(),
+        else: []
+
+    scheduled ++ rewatch
   end
 
   @doc false
@@ -103,9 +115,25 @@ defmodule Kati.Notifications.Reminders do
     Candidate.absolute(@prefix <> event.uid, :calendar, fire_at,
       title: event.summary || gettext("Something you scheduled"),
       body: Kati.Notifications.Reminders.body(event.alarm_minutes),
-      meta: %{event_id: event.id, tracked_id: event.tracked_title_id}
+      meta: %{
+        event_id: event.id,
+        tracked_id: event.tracked_title_id,
+        kind: Kati.Notifications.Reminders.kind_of(event.tracked_title_id)
+      }
     )
   end
+
+  @doc false
+  def kind_of(id) when is_binary(id) do
+    case Ash.get(Kati.Media.TrackedTitle, id) do
+      {:ok, tracked} -> tracked.kind
+      _gone -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  def kind_of(_none), do: nil
 
   @doc false
   def body(0), do: gettext("Starting now")
@@ -174,6 +202,8 @@ defmodule Kati.Notifications.Reminders do
     Enum.each(result.cancelled, fn id -> destroy(Map.get(existing, id)) end)
     by_id = Map.new(plan.armed, &{&1.id, &1})
     armed_at = utc(now)
+
+    Kati.Notifications.History.remember_armed(Enum.map(result.armed, &Map.fetch!(by_id, &1)))
 
     Enum.each(result.armed, fn id ->
       destroy(Map.get(existing, id))

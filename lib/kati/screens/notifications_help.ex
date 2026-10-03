@@ -142,6 +142,65 @@ defmodule Kati.Screens.NotificationsHelp do
   end
 
   @doc """
+  The push row, as push actually is (#125): off says the badge stands in and
+  opens the switch; on says so.
+  """
+  def push_row(false) do
+    SettingsList.row(
+      SettingsList.icon_tile("notifications"),
+      SettingsList.body(
+        gettext("Push is off until you ask"),
+        gettext("Kati shows a badge on the bell instead. Nothing here is broken by that."),
+        lines: 3
+      ),
+      SettingsList.trailing(
+        Kati.Screens.NotificationsHelp.status(
+          pgettext("a status on the notifications diagnostic", "Off"),
+          :neutral
+        )
+      ),
+      on_tap: {self(), :open_watcher}
+    )
+  end
+
+  def push_row(true) do
+    SettingsList.row(
+      SettingsList.icon_tile("notifications_active"),
+      SettingsList.body(
+        gettext("Push is on"),
+        gettext("New episodes and releases you follow arrive as notifications."),
+        lines: 3
+      ),
+      SettingsList.trailing(
+        Kati.Screens.NotificationsHelp.status(
+          pgettext("a status on the notifications diagnostic", "On"),
+          :good
+        )
+      ),
+      on_tap: {self(), :open_watcher}
+    )
+  end
+
+  @doc "The quiet-hours row, as the switch is."
+  def quiet_row(on?) do
+    {sub, word} =
+      if on?,
+        do:
+          {gettext("A reminder inside them moves to the morning. It is never dropped."),
+           pgettext("a status on the notifications diagnostic", "Shifting")},
+        else:
+          {gettext("Off — reminders ring whenever they are due, night included."),
+           pgettext("a status on the notifications diagnostic", "Off")}
+
+    SettingsList.row(
+      SettingsList.icon_tile("bedtime"),
+      SettingsList.body(Kati.Screens.NotificationsHelp.quiet_hours_label(), sub, lines: 3),
+      SettingsList.trailing(Kati.Screens.NotificationsHelp.status(word, :neutral)),
+      on_tap: {self(), :open_watcher}
+    )
+  end
+
+  @doc """
   The half Kati is responsible for.
 
   Listed first, deliberately. The commonest true answer to *why am I not
@@ -154,34 +213,8 @@ defmodule Kati.Screens.NotificationsHelp do
     groups = Inbox.groups(plan)
 
     rows = [
-      SettingsList.row(
-        SettingsList.icon_tile("notifications"),
-        SettingsList.body(
-          gettext("Push is off until you ask"),
-          gettext("Kati shows a badge on the bell instead. Nothing here is broken by that."),
-          lines: 3
-        ),
-        SettingsList.trailing(
-          Kati.Screens.NotificationsHelp.status(
-            pgettext("a status on the notifications diagnostic", "By design"),
-            :neutral
-          )
-        )
-      ),
-      SettingsList.row(
-        SettingsList.icon_tile("bedtime"),
-        SettingsList.body(
-          Kati.Screens.NotificationsHelp.quiet_hours_label(),
-          gettext("A reminder inside them moves to the morning. It is never dropped."),
-          lines: 3
-        ),
-        SettingsList.trailing(
-          Kati.Screens.NotificationsHelp.status(
-            pgettext("a status on the notifications diagnostic", "Shifting"),
-            :neutral
-          )
-        )
-      ),
+      Kati.Screens.NotificationsHelp.push_row(Kati.Settings.Watcher.loud?(:push)),
+      Kati.Screens.NotificationsHelp.quiet_row(Kati.Settings.Watcher.loud?(:quiet_hours)),
       SettingsList.row(
         SettingsList.icon_tile("inbox"),
         SettingsList.body(
@@ -519,6 +552,9 @@ defmodule Kati.Screens.NotificationsHelp do
   end
 
   @doc false
+  def handle_tap(:open_watcher, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Back"})}
+
   def handle_tap(:open_inbox, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)}
 

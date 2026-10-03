@@ -233,9 +233,22 @@ defmodule Kati.App do
       end)
 
     case Kati.Background.Handoff.drain() do
-      [] -> :ok
-      runs -> :mob_nif.log("Kati: drained #{length(runs)} background refresh runs")
+      [] ->
+        :ok
+
+      runs ->
+        # #125: what the worker posted while Kati was closed goes into the
+        # Notifications screen's history, and anything it found means the
+        # cache is behind — the sweep brings it up to date.
+        Enum.each(runs, &Kati.Notifications.History.add_found(&1.items, &1.at))
+        if Enum.any?(runs, &(&1.items != [])), do: Kati.Media.Cache.ask(self())
+        :mob_nif.log("Kati: drained #{length(runs)} background refresh runs")
     end
+
+    # Alarms whose time passed while Kati was closed, now history (#125), and
+    # the watchlist the worker reads, rewritten from the shelf as it is.
+    Kati.Notifications.History.collect()
+    Kati.Background.Watchlist.write_later()
 
     _synced =
       Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->

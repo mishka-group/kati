@@ -284,9 +284,13 @@ defmodule Kati.BackgroundHandoffTest do
     test "the cadence is the one that was argued for, not the 15-minute floor" do
       kotlin = worker_code()
 
-      assert kotlin =~ "ExistingPeriodicWorkPolicy.KEEP",
+      # UPDATE, not KEEP (#125): KEEP left the clock alone but also ignored a
+      # new interval, so a reader who chose Hourly never got it.
+      assert kotlin =~ "ExistingPeriodicWorkPolicy.UPDATE",
              "REPLACE restarts the interval clock on every enqueue, so a user who opens " <>
                "Kati daily would never reach the 6h mark and the worker would never run"
+
+      refute kotlin =~ "ExistingPeriodicWorkPolicy.REPLACE"
 
       assert kotlin =~ "NetworkType.CONNECTED"
       assert kotlin =~ "setRequiresBatteryNotLow(true)"

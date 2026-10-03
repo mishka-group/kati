@@ -7822,6 +7822,13 @@ class NotificationReceiver : BroadcastReceiver() {
             .setContentText(body)
             .setContentIntent(contentPi)
             .setAutoCancel(true)
+            // KATI-BEGIN(K-74 notify-group) mob_new=0.6.3
+            // One stack per title in the shade (#125): every alarm about the
+            // same show or film shares the title's group, so a day of updates
+            // folds under one heading instead of spreading across the list.
+            .setGroup(katiGroup(dataStr))
+            .setSmallIcon(R.drawable.kati_mark)
+            // KATI-END(K-74 notify-group)
             .build()
         nm.notify(id.hashCode(), notif)
 
@@ -7831,6 +7838,18 @@ class NotificationReceiver : BroadcastReceiver() {
         // KATI-END(K-01 notify-forget)
 
     }
+
+    // KATI-BEGIN(K-74 notify-group-key) mob_new=0.6.3
+    private fun katiGroup(dataStr: String): String =
+        try {
+            val data = JSONObject(dataStr)
+            val id = data.optString("id")
+            if (data.optString("kati_open") == "title" && id.isNotEmpty()) "kati_title_$id"
+            else "kati_" + data.optString("domain", "other")
+        } catch (e: org.json.JSONException) {
+            "kati_other"
+        }
+    // KATI-END(K-74 notify-group-key)
 
     // Mob.Notification's JSON envelope (see mob's guides/push_notifications.md).
     // Built with JSONObject, not string interpolation: a quote in a title once

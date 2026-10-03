@@ -237,6 +237,15 @@ defmodule Kati.Widgets.SnapshotTest do
 
       assert_receive {:mob_launch_notification, ^json}
     end
+
+    test "a tap Mob has already decoded is forwarded to the screen showing" do
+      start_supervised!({Kati.Native.TapRelay, to: self(), name: :widget_test_relay})
+      notification = %{id: "kati_ep_1", data: %{kati_open: "title", id: "1", kind: "tv"}}
+
+      send(:widget_test_relay, {:notification, notification})
+
+      assert_receive {:notification, ^notification}
+    end
   end
 
   describe "W3: the writes that move the hero refresh it" do

@@ -44,3 +44,4 @@ android/app/src/main/java/com/example/kati/KatiCalendarReader.kt
 android/app/src/main/java/com/example/kati/KatiSecureStore.kt
 android/app/src/main/java/com/example/kati/KatiHostContext.kt
 android/app/src/main/java/com/example/kati/KatiRefreshWorker.kt
+android/app/src/main/java/com/example/kati/KatiReleaseCheck.kt

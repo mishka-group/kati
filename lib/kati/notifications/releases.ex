@@ -45,7 +45,7 @@ defmodule Kati.Notifications.Releases do
   @spec plan(keyword()) :: Plan.t()
   def plan(opts \\ []) do
     Scheduler.plan(
-      Kati.Screens.Inbox.alerts(),
+      Kati.Notifications.Fold.by_title(Kati.Screens.Inbox.alerts(), Kati.Time.device_zone()),
       Keyword.merge(
         [platform: :android, now: Kati.Time.now(), quiet_hours: Watcher.quiet_hours()],
         opts
@@ -109,6 +109,8 @@ defmodule Kati.Notifications.Releases do
 
     by_id = Map.new(plan.armed, &{&1.id, &1})
     armed_at = utc(now)
+
+    Kati.Notifications.History.remember_armed(Enum.map(result.armed, &Map.fetch!(by_id, &1)))
 
     Enum.each(result.armed, fn id ->
       destroy(Map.get(existing, id))

@@ -115,7 +115,11 @@ defmodule Kati.Background.Handoff do
     body = %{
       "schema" => @schema,
       "written_at" => now(opts) |> DateTime.to_iso8601(),
-      "items" => items
+      "items" => items,
+      # #125: what the worker needs to post a notification itself — whether
+      # push is on and when it is quiet, and the words, already translated.
+      "settings" => Keyword.get(opts, :settings, %{}),
+      "strings" => Keyword.get(opts, :strings, %{})
     }
 
     case write_atomic(watchlist_path(opts), encode(body)) do
@@ -264,7 +268,9 @@ defmodule Kati.Background.Handoff do
       "title" => fetch(entry, :title),
       "last_season" => fetch(entry, :last_season),
       "last_episode" => fetch(entry, :last_episode),
-      "etag" => fetch(entry, :etag)
+      "etag" => fetch(entry, :etag),
+      "tracked_id" => fetch(entry, :tracked_id),
+      "kind" => entry |> fetch(:kind) |> then(&(&1 && to_string(&1)))
     }
     |> Map.reject(fn {_key, value} -> is_nil(value) end)
   end
@@ -276,7 +282,9 @@ defmodule Kati.Background.Handoff do
       title: item["title"],
       last_season: item["last_season"],
       last_episode: item["last_episode"],
-      etag: item["etag"]
+      etag: item["etag"],
+      tracked_id: item["tracked_id"],
+      kind: item["kind"]
     }
   end
 

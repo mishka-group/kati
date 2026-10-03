@@ -117,6 +117,20 @@ class KatiRule : TestRule {
     }
 
     /**
+     * Launches the activity with [intent], as a notification's tap does: the
+     * intent carries `mob_notification_json` and the BEAM routes it.
+     */
+    fun launch(intent: android.content.Intent) {
+        scenario?.close()
+        scenario = ActivityScenario.launch(intent)
+    }
+
+    /** Runs [block] on the running activity, on its own thread. */
+    fun onActivity(block: (MainActivity) -> Unit) {
+        scenario?.onActivity { block(it) }
+    }
+
+    /**
      * The one sync point. Waits until the named screen has stamped itself,
      * rather than until Compose is idle — the tree can be idle and empty while
      * the BEAM is still booting.

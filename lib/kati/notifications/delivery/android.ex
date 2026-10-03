@@ -132,13 +132,36 @@ defmodule Kati.Notifications.Delivery.Android do
       "title" => candidate.title || "",
       "body" => candidate.body || "",
       "trigger_at" => DateTime.to_unix(candidate.fire_at),
-      "data" => %{
-        "domain" => Atom.to_string(candidate.domain),
-        "members" => candidate.members,
-        "meta" => stringify(candidate.meta)
-      }
+      "data" =>
+        Map.merge(
+          %{
+            "domain" => Atom.to_string(candidate.domain),
+            "members" => candidate.members,
+            "meta" => stringify(candidate.meta)
+          },
+          Kati.Notifications.Delivery.Android.opens(candidate.meta)
+        )
     }
   end
+
+  @doc """
+  What a tap on the notification opens (#125): the title it is about, through
+  `Kati.Widgets.Launch`, which the widget's own tap already uses.
+
+      iex> Kati.Notifications.Delivery.Android.opens(%{tracked_id: "abc", kind: :movie})
+      %{"kati_open" => "title", "id" => "abc", "kind" => "movie"}
+      iex> Kati.Notifications.Delivery.Android.opens(%{tracked_id: "abc", kind: :anime})
+      %{"kati_open" => "title", "id" => "abc", "kind" => "tv"}
+      iex> Kati.Notifications.Delivery.Android.opens(%{})
+      %{"kati_open" => "notifications"}
+  """
+  @spec opens(map() | nil) :: map()
+  def opens(%{tracked_id: id} = meta) when is_binary(id) do
+    kind = if Map.get(meta, :kind) in [:movie, "movie"], do: "movie", else: "tv"
+    %{"kati_open" => "title", "id" => id, "kind" => kind}
+  end
+
+  def opens(_meta), do: %{"kati_open" => "notifications"}
 
   # ── internals ───────────────────────────────────────────────────────────
 

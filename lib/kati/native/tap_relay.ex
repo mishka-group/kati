@@ -31,6 +31,15 @@ defmodule Kati.Native.TapRelay do
   kept the process). There `onCreate` stores the payload and nobody takes it
   either, so the fence hands it to this process instead.
 
+  ## What arrives since Mob 0.9
+
+  Mob 0.9 decodes the envelope in `Mob.Router` and sends the registered pid
+  `{:notification, notification}` instead of the raw JSON. That reaches this
+  process and nothing else, so it is forwarded to `:mob_screen` as it came,
+  where the router's catch-all hands it to the screen showing — the same
+  `{:notification, …}` a cold launch's tap produces. Before this clause a tap
+  on a running Kati was decoded and then dropped here.
+
   ## Why it starts after the root screen
 
   A cold launch's payload is taken by `Mob.Router.init/1`. Until that has
@@ -60,6 +69,11 @@ defmodule Kati.Native.TapRelay do
 
   @impl true
   def handle_info({:mob_launch_notification, json} = message, state) when is_binary(json) do
+    forward(state.to, message)
+    {:noreply, state}
+  end
+
+  def handle_info({:notification, notification} = message, state) when is_map(notification) do
     forward(state.to, message)
     {:noreply, state}
   end

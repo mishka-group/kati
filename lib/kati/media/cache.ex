@@ -143,6 +143,7 @@ defmodule Kati.Media.Cache do
   def settle({:ok, _tally} = result) do
     Kati.Settings.Watcher.checked!()
     Kati.Notifications.Releases.sync()
+    Kati.Background.Watchlist.write()
     result
   rescue
     _error -> result

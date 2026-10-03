@@ -67,9 +67,20 @@ defmodule Kati.Screens.ReleaseWatcher do
       cadences: Watcher.cadences(),
       cadence: Watcher.cadence(),
       loudness: loudness(),
+      reminders: reminders(),
       notifications: Kati.Permissions.status(:notifications)
     }
   end
+
+  @doc """
+  The *Reminders* rows (#125): what Kati reminds you of because of what you
+  did — a watch you scheduled, a title you loved.
+
+      iex> Enum.map(Kati.Screens.ReleaseWatcher.reminders(), & &1.key)
+      [:scheduled, :rewatch]
+  """
+  @spec reminders() :: [map()]
+  def reminders, do: Enum.map(Watcher.reminders(), &%{key: &1, on: Watcher.reminder?(&1)})
 
   @doc """
   The *Tell me about* rows, each reading its own switch.
@@ -177,6 +188,8 @@ defmodule Kati.Screens.ReleaseWatcher do
         {Kati.Screens.ReleaseWatcher.cadence(w)}
         {UI.eyebrow(pgettext("eyebrow", "How loudly"))}
         {Kati.Screens.ReleaseWatcher.group(w.loudness, "loud", 14, 22, w)}
+        {UI.eyebrow(pgettext("eyebrow", "Reminders"))}
+        {Kati.Screens.ReleaseWatcher.group(w.reminders, "remind", 14, 22, w)}
         {SettingsList.note("info", Kati.Screens.ReleaseWatcher.note())}
       </Column>
     </Scroll>
@@ -264,7 +277,7 @@ defmodule Kati.Screens.ReleaseWatcher do
     SettingsList.row(
       SettingsList.icon_tile(icon(row)),
       SettingsList.body(title, sub),
-      SettingsList.switch(row.on),
+      SettingsList.switch(row.on, title),
       padding: pad,
       rule: rule?,
       on_tap: {self(), String.to_atom(key <> "_" <> Atom.to_string(row.key))}
@@ -275,6 +288,8 @@ defmodule Kati.Screens.ReleaseWatcher do
   defp icon(%{key: :push}), do: "notifications_off"
   defp icon(%{key: :badge}), do: "inbox"
   defp icon(%{key: :quiet_hours}), do: "bedtime"
+  defp icon(%{key: :scheduled}), do: "event_available"
+  defp icon(%{key: :rewatch}), do: "replay"
   defp icon(%{icon: icon}), do: icon
 
   @doc """
@@ -307,6 +322,16 @@ defmodule Kati.Screens.ReleaseWatcher do
     do:
       {gettext("Push notifications"),
        gettext("On — an alert when something you follow comes out")}
+
+  def copy(%{key: :scheduled}, _status),
+    do:
+      {gettext("Scheduled watches"),
+       gettext("A reminder for each watch you schedule, at the time you chose")}
+
+  def copy(%{key: :rewatch}, _status),
+    do:
+      {gettext("Rewatch suggestions"),
+       gettext("A title you rated highly, a year after you last watched it")}
 
   def copy(%{key: :badge}, _status),
     do: {pgettext("watcher loudness", "Inbox badge"), gettext("The dot on Home's bell")}
@@ -476,6 +501,7 @@ defmodule Kati.Screens.ReleaseWatcher do
 
       "banner" ->
         Watcher.put_watching(not Watcher.watching?())
+        Kati.Background.Watchlist.write_later()
         {:noreply, Kati.Screens.ReleaseWatcher.reread(socket)}
 
       "kind_" <> key ->
@@ -483,6 +509,9 @@ defmodule Kati.Screens.ReleaseWatcher do
 
       "loud_" <> key ->
         {:noreply, Kati.Screens.ReleaseWatcher.flip(socket, :loud, key)}
+
+      "remind_" <> key ->
+        {:noreply, Kati.Screens.ReleaseWatcher.flip(socket, :remind, key)}
 
       "cadence_" <> label ->
         Watcher.put_cadence(label)
@@ -511,6 +540,19 @@ defmodule Kati.Screens.ReleaseWatcher do
       kind ->
         Watcher.put_kind(kind, not Watcher.kind?(kind))
         Kati.Notifications.Releases.sync()
+        Kati.Background.Watchlist.write_later()
+        Kati.Screens.ReleaseWatcher.reread(socket)
+    end
+  end
+
+  def flip(socket, :remind, key) do
+    case Enum.find(Watcher.reminders(), &(Atom.to_string(&1) == key)) do
+      nil ->
+        socket
+
+      reminder ->
+        Watcher.put_reminder(reminder, not Watcher.reminder?(reminder))
+        Kati.Notifications.Reminders.sync_later()
         Kati.Screens.ReleaseWatcher.reread(socket)
     end
   end
@@ -524,7 +566,12 @@ defmodule Kati.Screens.ReleaseWatcher do
         on? = not Watcher.loud?(loud)
         Watcher.put_loud(loud, on?)
         socket = if loud == :push and on?, do: ask_permission(socket), else: socket
-        if loud != :badge, do: Kati.Notifications.Releases.sync()
+
+        if loud != :badge do
+          Kati.Notifications.Releases.sync()
+          Kati.Background.Watchlist.write_later()
+        end
+
         Kati.Screens.ReleaseWatcher.reread(socket)
     end
   end

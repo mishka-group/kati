@@ -165,7 +165,10 @@ defmodule Kati.Screens.Library do
   @impl true
   def handle_kati(topic, _payload, socket) when topic in [:resumed, :title_filled] do
     # Back from selection: a Remove whose Undo was never pressed is final now.
-    if topic == :resumed, do: Kati.Screens.ShelfSelection.finalize_pending()
+    if topic == :resumed do
+      Kati.Screens.ShelfSelection.finalize_pending()
+      Kati.Background.Watchlist.write_later()
+    end
 
     {:noreply, Mob.Socket.assign(socket, titles: titles(), queued: queued(), lists: lists_kept())}
   end

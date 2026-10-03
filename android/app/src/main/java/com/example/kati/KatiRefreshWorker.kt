@@ -99,9 +99,12 @@ object KatiPeriodicWork {
      * The cadence is 6 h with a 2 h flex window, and three of those choices
      * are load-bearing:
      *
-     *  * **KEEP, never REPLACE.** REPLACE restarts the interval clock on every
-     *    call, so a user who opens Kati daily would never reach the 6 h mark
-     *    and the worker would never run at all.
+     *  * **UPDATE, never REPLACE.** REPLACE restarts the interval clock on
+     *    every call, so a user who opens Kati daily would never reach the 6 h
+     *    mark and the worker would never run at all. KEEP left the clock alone
+     *    and also ignored a new interval, so a reader who chose Hourly kept
+     *    the old cadence for good (#125). UPDATE keeps the clock and takes the
+     *    new interval.
      *  * **Never the 15-minute floor.** 96 wakeups a day is indefensible for
      *    "did my series get a new episode", and it lands in Android Vitals'
      *    excessive-background-wakeups metric, which is a Play listing problem
@@ -135,7 +138,7 @@ object KatiPeriodicWork {
                     .build()
 
             WorkManager.getInstance(ctx)
-                .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+                .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
             "ok:$interval:$flex"
         } catch (e: Exception) {
             Log.w(TAG, "ensure failed: ${e.javaClass.simpleName}")
@@ -199,12 +202,11 @@ class KatiRefreshWorker(context: Context, params: WorkerParameters) :
             // alarm that is already armed changes nothing.
             KatiNotificationStore.rearmAll(ctx)
 
-            // ── the fetch goes here ──────────────────────────────────────
-            // Read KatiHandoff.watchlist(ctx), request TMDB /3/tv/changes
-            // once for the whole list, diff on (show, season, episode) —
-            // never on name or air date, TMDB revises both — and put what
-            // changed into `found`.
-            val found = JSONArray()
+            // The fetch (#125): every followed show's source asked for its
+            // latest aired episode, compared with what Kati knew, and posted
+            // as one notification per show. KatiReleaseCheck holds the I/O;
+            // what to check and what to say came from the BEAM's watchlist.
+            val found = KatiReleaseCheck.run(ctx, KatiHandoff.watchlist(ctx))
 
             KatiHandoff.record(
                 ctx,

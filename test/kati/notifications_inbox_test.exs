@@ -65,14 +65,19 @@ defmodule Kati.NotificationsInboxTest do
     end
 
     test "every suppression reason has words, including one nobody planned for" do
-      for reason <- [:muted, :quiet_hours, :budget, :digest, :skipped, nil] do
-        assert is_binary(Inbox.held_reason(reason))
-        assert Inbox.held_reason(reason) != ""
+      # The scheduler's own words for a hold — `:over_budget`, `:digested`,
+      # `:past`, `:duplicate` — and the gates' (#125). They fell through to a
+      # capitalised atom before.
+      for reason <-
+            [:muted, :quiet_hours, :over_budget, :digested, :past, :duplicate] ++
+              [:low_confidence, :no_date, :all_day, :cancelled, :skipped] do
+        refute Inbox.held_reason(reason) == Inbox.held_reason(:some_new_reason),
+               "#{inspect(reason)} has no words of its own"
       end
 
-      # An atom this module has never seen still reads as English rather than
-      # as `:some_new_reason`.
-      assert Inbox.held_reason(:some_new_reason) == "Some new reason"
+      # An atom this module has never seen reads as a plain hold, in the
+      # reader's language, rather than as an English rendering of an atom.
+      assert Inbox.held_reason(:some_new_reason) == "Held back"
     end
   end
 
@@ -118,7 +123,7 @@ defmodule Kati.NotificationsInboxTest do
     end
 
     test "a section with nothing armed says so rather than showing a fraction" do
-      assert InboxNotifications.usage_line(0, 24) == "Nothing today"
+      assert InboxNotifications.usage_line(0, 24) == "Nothing scheduled"
       assert InboxNotifications.usage_line(2, 24) == "2 of 24 slots"
     end
 

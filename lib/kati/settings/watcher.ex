@@ -64,6 +64,14 @@ defmodule Kati.Settings.Watcher do
     quiet_hours: {:watcher_quiet_hours, true}
   ]
 
+  # #125: the reminders Kati sends for what the reader did, rather than for
+  # what was released — both on until turned off, because each one is about a
+  # title the reader chose.
+  @reminders [
+    scheduled: {:watcher_scheduled_reminders, true},
+    rewatch: {:watcher_rewatch_reminders, true}
+  ]
+
   @doc """
   The cadence the reader chose, or the board's own.
 
@@ -384,6 +392,32 @@ defmodule Kati.Settings.Watcher do
   @spec put_loud(atom(), boolean()) :: :ok
   def put_loud(key, on?) when is_boolean(on?) do
     {store, _default} = Keyword.fetch!(@loudness, key)
+    Mob.State.put(store, on?)
+    :ok
+  rescue
+    _error -> :ok
+  end
+
+  @doc """
+  The reminder switches, in the order screen 25 draws them.
+
+      iex> Kati.Settings.Watcher.reminders()
+      [:scheduled, :rewatch]
+  """
+  @spec reminders() :: [atom()]
+  def reminders, do: Keyword.keys(@reminders)
+
+  @doc "Whether a reminder switch is on. Both default on."
+  @spec reminder?(atom()) :: boolean()
+  def reminder?(key) do
+    {store, default} = Keyword.fetch!(@reminders, key)
+    flag(store, default)
+  end
+
+  @doc "Set one reminder switch."
+  @spec put_reminder(atom(), boolean()) :: :ok
+  def put_reminder(key, on?) when is_boolean(on?) do
+    {store, _default} = Keyword.fetch!(@reminders, key)
     Mob.State.put(store, on?)
     :ok
   rescue

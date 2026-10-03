@@ -82,7 +82,17 @@ defmodule Kati.Screens.InboxNotifications do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  def load(socket), do: Mob.Socket.assign(socket, :plan, plan())
+  def load(socket) do
+    # #125: alarms whose time has passed are history now, and opening this
+    # page is reading them.
+    Kati.Notifications.History.collect()
+    recent = Kati.Notifications.History.grouped()
+    Kati.Notifications.History.mark_read()
+
+    socket
+    |> Mob.Socket.assign(:plan, plan())
+    |> Mob.Socket.assign(:recent, recent)
+  end
 
   @doc """
   The plan this screen shows.
@@ -136,7 +146,9 @@ defmodule Kati.Screens.InboxNotifications do
     zone = Kati.Time.device_zone()
 
     Enum.concat([
-      safely(&Kati.Screens.Inbox.alerts/0),
+      safely(fn -> Kati.Notifications.Fold.by_title(Kati.Screens.Inbox.alerts(), zone) end),
+      # #124 and #125: scheduled watches and rewatch reminders, armed ahead.
+      safely(&Kati.Notifications.Reminders.candidates/0),
       safely(fn -> Sources.Calendar.candidates(Sources.Calendar.events(day, zone), opts) end),
       safely(fn -> Sources.Habits.candidates(Sources.Habits.events(day, zone), day, opts) end),
       safely(fn -> meals(day, opts) end),
@@ -194,6 +206,7 @@ defmodule Kati.Screens.InboxNotifications do
       >
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("Notifications"), Kati.Screens.InboxNotifications.subtitle(groups))}
+        {Kati.Screens.InboxNotifications.recent(Map.get(assigns, :recent, []))}
         {Kati.Screens.InboxNotifications.group(pgettext("eyebrow", "Now"), groups.now, :armed)}
         {Kati.Screens.InboxNotifications.group(pgettext("eyebrow", "Later"), groups.later, :armed)}
         {Kati.Screens.InboxNotifications.group(pgettext("eyebrow", "Held back"), groups.held, :held)}
@@ -327,6 +340,10 @@ defmodule Kati.Screens.InboxNotifications do
   # Everything else falls through to the domain it was already answered by — the
   # five domains with nowhere of their own to go, and a calendar candidate built
   # before its source carried the key, or from an event that has none.
+  # A reminder about a title opens the title (#125).
+  def tag_for(%Candidate{meta: %{tracked_id: id}}) when is_binary(id),
+    do: String.to_atom("open_title_" <> id)
+
   def tag_for(%Candidate{domain: domain}), do: tag_for(domain)
 
   def tag_for(:calendar), do: :open_calendar
@@ -381,6 +398,63 @@ defmodule Kati.Screens.InboxNotifications do
   end
 
   @doc """
+  What Kati has already told the reader, one row per title (#125): *Dark ·
+  3 updates · New episode · S2E7*. A row opens the title; *Clear* forgets
+  them all.
+  """
+  def recent([]), do: []
+
+  def recent(groups) do
+    rows =
+      groups
+      |> Enum.with_index()
+      |> Enum.map(fn {g, i} -> Kati.Screens.InboxNotifications.recent_row(g, i) end)
+
+    assigns = %{rows: rows}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center">
+        <Column weight={1.0}>
+          {Kati.UI.eyebrow(pgettext("eyebrow", "Recent"))}
+        </Column>
+        {Kati.UI.SettingsList.action_pill(gettext("Clear"), {self(), :clear_recent})}
+      </Row>
+      {Kati.UI.SettingsList.card(@rows)}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def recent_row(group, index) do
+    tap =
+      if is_binary(group.tracked_id),
+        do: {self(), String.to_atom("recent_" <> Integer.to_string(index))}
+
+    icon = if group.kind == "movie", do: "movie", else: "live_tv"
+
+    SettingsList.row(
+      SettingsList.icon_tile(icon),
+      SettingsList.body(group.title, Kati.Notifications.History.line(group)),
+      SettingsList.trailing(Kati.Screens.InboxNotifications.ago(group.at)),
+      on_tap: tap
+    )
+  end
+
+  @doc false
+  def ago(at) when is_integer(at) do
+    label = Kati.Settings.Watcher.since(DateTime.from_unix!(at))
+    assigns = %{label: label}
+
+    ~MOB"""
+    <Text text={@label} text_size={11} text_color={Kati.Theme.Palette.sub()} max_lines={1} />
+    """
+  end
+
+  def ago(_none), do: nil
+
+  @doc """
   The empty state, or nothing.
 
   Invites rather than apologises, which is screen 27's own rule for an empty
@@ -416,6 +490,8 @@ defmodule Kati.Screens.InboxNotifications do
           text_align="center"
           text_color={Palette.sub()}
         />
+        <Spacer size={14} />
+        {Kati.UI.SettingsList.action_pill(gettext("Notification settings"), {self(), :open_watcher})}
       </Column>
       <Spacer size={22} />
     </Column>
@@ -444,7 +520,8 @@ defmodule Kati.Screens.InboxNotifications do
             Inbox.domain_label(domain),
             Kati.Screens.InboxNotifications.usage_line(count, limit)
           ),
-          SettingsList.trailing(nil)
+          SettingsList.trailing(SettingsList.chevron()),
+          on_tap: {self(), Kati.Screens.InboxNotifications.tag_for(domain)}
         )
       end)
 
@@ -476,7 +553,7 @@ defmodule Kati.Screens.InboxNotifications do
   Persian numerals are ones the face carries.
   """
   @spec usage_line(non_neg_integer(), pos_integer()) :: String.t()
-  def usage_line(0, _limit), do: pgettext("a section with nothing armed", "Nothing today")
+  def usage_line(0, _limit), do: pgettext("a section with nothing armed", "Nothing scheduled")
 
   def usage_line(count, limit) do
     gettext("%{count} of %{limit} slots",
@@ -517,7 +594,7 @@ defmodule Kati.Screens.InboxNotifications do
           Kati.UI.SettingsList.icon_tile("notifications_active"),
           Kati.UI.SettingsList.body(
             pgettext("a row on the inbox that opens the loudness settings", "How loudly"),
-            gettext("Quiet hours, digest, stop after two skips")
+            gettext("Push, quiet hours, reminders")
           ),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :open_watcher}
@@ -561,7 +638,7 @@ defmodule Kati.Screens.InboxNotifications do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
 
   def handle_tap(:open_meals, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealReminders)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
 
   def handle_tap(:open_health, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Medication)}
@@ -578,13 +655,46 @@ defmodule Kati.Screens.InboxNotifications do
   # event. `Kati.Screens.EventDetail.event/1` refuses an id that names nothing
   # and answers the drawing, so a reminder for an event deleted on another
   # device opens a page rather than crashing.
+  def handle_tap(:clear_recent, socket) do
+    Kati.Notifications.History.clear()
+    {:noreply, Mob.Socket.assign(socket, :recent, [])}
+  end
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "open_calendar_" <> id ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
 
+      "open_title_" <> id ->
+        {:noreply, Kati.Screens.InboxNotifications.open_title(socket, id)}
+
+      "recent_" <> index ->
+        case Enum.at(socket.assigns.recent, String.to_integer(index)) do
+          %{tracked_id: id} when is_binary(id) ->
+            {:noreply, Kati.Screens.InboxNotifications.open_title(socket, id)}
+
+          _none ->
+            {:noreply, socket}
+        end
+
       _other ->
         {:noreply, socket}
     end
+  end
+
+  @doc false
+  def open_title(socket, id) do
+    case Ash.get(Kati.Media.TrackedTitle, id) do
+      {:ok, %{kind: :movie}} ->
+        Mob.Socket.push_screen(socket, Kati.Screens.Film, %{id: id, back: "Notifications"})
+
+      {:ok, _series} ->
+        Mob.Socket.push_screen(socket, Kati.Screens.Series, %{tracked_id: id, back: "Notifications"})
+
+      _gone ->
+        socket
+    end
+  rescue
+    _error -> socket
   end
 end

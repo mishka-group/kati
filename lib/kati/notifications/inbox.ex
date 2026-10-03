@@ -134,15 +134,23 @@ defmodule Kati.Notifications.Inbox do
   user who reads *quiet hours* should know which switch to look for.
   """
   @spec held_reason(atom() | nil) :: String.t()
-  def held_reason(:muted), do: "Muted for this show"
-  def held_reason(:quiet_hours), do: "Inside quiet hours — moved to the morning"
-  def held_reason(:budget), do: "Beyond this section's share of the phone's alarms"
-  def held_reason(:digest), do: "Rolled into the weekly digest"
-  def held_reason(:skipped), do: "Stopped after two skips"
-  def held_reason(nil), do: "Held back"
+  def held_reason(:muted), do: gettext("Muted for this show")
+  def held_reason(:quiet_hours), do: gettext("Inside quiet hours — moved to the morning")
+  def held_reason(reason) when reason in [:budget, :over_budget],
+    do: gettext("Beyond this section's share of the phone's alarms")
 
-  def held_reason(other),
-    do: other |> Atom.to_string() |> String.replace("_", " ") |> String.capitalize()
+  def held_reason(reason) when reason in [:digest, :digested],
+    do: gettext("Folded into one notification with the others at that time")
+
+  def held_reason(:skipped), do: gettext("Stopped after two skips")
+  def held_reason(:past), do: gettext("Its time has passed")
+  def held_reason(:duplicate), do: gettext("Already covered by another reminder")
+  def held_reason(:low_confidence), do: gettext("The date is not certain yet")
+  def held_reason(:no_date), do: gettext("No date yet")
+  def held_reason(:all_day), do: gettext("All-day events do not ring")
+  def held_reason(:cancelled), do: gettext("Cancelled")
+  def held_reason(nil), do: gettext("Held back")
+  def held_reason(_other), do: gettext("Held back")
 
   @doc """
   What a row says when it has no title of its own.

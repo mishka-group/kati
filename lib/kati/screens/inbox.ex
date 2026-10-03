@@ -333,7 +333,12 @@ defmodule Kati.Screens.Inbox do
 
   defp alert(tracked_row, airing, cached) do
     id = alert_id(tracked_row, airing)
-    meta = %{source: tracked_row.source, source_id: tracked_row.source_id, kind: tracked_row.kind}
+    meta = %{
+      source: tracked_row.source,
+      source_id: tracked_row.source_id,
+      kind: tracked_row.kind,
+      tracked_id: tracked_row.id
+    }
 
     case gate(tracked_row, airing, cached) do
       {:ok, at} ->
