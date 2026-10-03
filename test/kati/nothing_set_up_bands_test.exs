@@ -92,29 +92,29 @@ defmodule Kati.NothingSetUpBandsTest do
   end
 
   describe "band 13 — What fits tonight" do
-    test "says the count is by time, above the list rather than instead of it" do
+    test "an empty evening is an empty card, and a full one asks which you can watch" do
       Kati.Repo.query!("DELETE FROM services", [])
-      # `tonight/1` takes MINUTES. This passed `%{}`, which raised inside
-      # `real_tonight/1` and was swallowed by its `rescue` into the drawing — so
-      # the band under test was board 13's, not this reader's, and the type
-      # error was invisible for as long as a fixture stood behind it.
       tonight = Kati.Screens.WhatFits.tonight()
 
-      unset = inspect(Kati.Screens.WhatFits.unfiltered(tonight), limit: :infinity)
+      # Nothing on the shelf: nothing to filter, so no services prompt — the
+      # card says the shelf is empty and how to fill it (#121).
+      empty = inspect(Kati.Screens.WhatFits.unfiltered(tonight), limit: :infinity)
+      assert empty =~ "Nothing on your shelf to measure yet"
+      refute empty =~ "my_services_what_fits"
 
-      # Not `0 you can watch`, and not *nothing fits that window* either: with
-      # nothing on the shelf there is no count to give and no window to blame,
-      # so the band says the shelf is empty. The point this test is making is
-      # unchanged — the band sits ABOVE the list with its own call to action,
-      # rather than replacing it.
-      assert unset =~ "Nothing on your shelf to measure yet"
-      assert unset =~ "size the gap but not fill it"
-      assert unset =~ "my_services_what_fits"
+      # Something fits and no services are set up: the band asks the real
+      # question instead of claiming `0 you can watch` (#121).
+      fits = %{tonight | fits: [%{title: "Dune", reach: :unknown}]}
+      asked = inspect(Kati.Screens.WhatFits.unfiltered(fits), limit: :infinity)
+      assert asked =~ "Which of these can you watch?"
+      assert asked =~ "my_services_what_fits"
+      refute asked =~ "you can watch\""
 
+      # Once a service is set up, the band becomes a count of what is on them.
       Ash.create!(Service, %{name: @prefix <> "Mubi", tier: :subscribed})
-
-      refute inspect(Kati.Screens.WhatFits.unfiltered(tonight), limit: :infinity) =~
-               "size the gap but not fill it"
+      counted = inspect(Kati.Screens.WhatFits.unfiltered(%{fits | watchable: 0}), limit: :infinity)
+      refute counted =~ "my_services_what_fits"
+      assert counted =~ "0 of them are on your services"
     end
   end
 

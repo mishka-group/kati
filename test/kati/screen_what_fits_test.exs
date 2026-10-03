@@ -23,7 +23,7 @@ defmodule Kati.ScreenWhatFitsTest do
 
   use Mob.ScreenCase, async: false
 
-  doctest Kati.Screens.WhatFits, only: [window_label: 1, hours: 1, row_tap: 2]
+  doctest Kati.Screens.WhatFits, only: [window_label: 1, hours: 1, row_tap: 2, span: 2, streaming_elsewhere: 1]
 
   alias Kati.Media.CachedEpisode
   alias Kati.Media.CachedTitle
@@ -304,6 +304,64 @@ defmodule Kati.ScreenWhatFitsTest do
   #   * Let Go — dropped; its next episode would fit.
   #   * Short Walk (41m, not started) fits 45; Quiet Harbour (106m) and The
   #     Long One (180m) do not; Seen It (30m) is finished.
+  describe "an evening that is the reader's own (#121)" do
+    setup do
+      Mob.State.put(:what_fits_window, 45)
+      on_exit(fn -> Mob.State.put(:what_fits_window, 45) end)
+    end
+
+    test "the window chosen is the window the page opens on next time" do
+      mount_screen(WhatFits) |> render_info({:tap, :window_1h})
+
+      assert WhatFits.stored_window() == 60
+      assert assigns(mount_screen(WhatFits)).window == 60
+    end
+
+    test "a show of short episodes fills the window with as many as fit, back to back" do
+      show = track!("binge", "Short Ones", :anime, %{s: 1, e: 1})
+      episode!(show, %{s: 1, n: 2, runtime: 24, days: -30})
+      episode!(show, %{s: 1, n: 3, runtime: 24, days: -23})
+      episode!(show, %{s: 1, n: 4, runtime: 24, days: -16})
+      episode!(show, %{s: 1, n: 5, runtime: 24, days: 3})
+
+      [row] = WhatFits.fitting(60)
+      assert row.meta == "S1 · E2–3 · 2 EPISODES"
+      assert row.run == "48m"
+      assert row.minutes == 48
+
+      # An unaired episode ends the run however long the window is.
+      [row] = WhatFits.fitting(600)
+      assert row.meta == "S1 · E2–4 · 3 EPISODES"
+    end
+
+    test "each row says where it can be watched, in green when it is on a service you pay for" do
+      film!("streamed", "Streamed", 90, :not_started)
+      offer!("streamed", %{"flatrate" => ["Mubi"]})
+
+      [row] = WhatFits.fitting(600)
+      assert row.where == "On Mubi"
+      assert row.reach == :unavailable
+
+      Ash.create!(Kati.Services.Service, %{name: "Mubi", tier: :subscribed})
+      [row] = WhatFits.fitting(600)
+      assert row.where == "On Mubi"
+      assert row.reach == :available
+
+      words = inspect(WhatFits.where_line(row))
+      assert words =~ Integer.to_string(Kati.Theme.Palette.green_text())
+    end
+
+    test "back from somewhere else, the evening is measured again" do
+      view = mount_screen(WhatFits)
+      assert assigns(view).tonight.fits == []
+
+      film!("arrived", "Arrived", 30, :not_started)
+      view = render_info(view, {:kati, :resumed, nil})
+
+      assert [%{title: "Arrived"}] = assigns(view).tonight.fits
+    end
+  end
+
   defp seed_shelf(_context) do
     hollow = track!("hollow", "The Long Hollow", :tv, %{s: 2, e: 3})
     ticked = episode!(hollow, %{s: 2, n: 3, runtime: 40, days: -12})
@@ -414,5 +472,6 @@ defmodule Kati.ScreenWhatFitsTest do
     Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
     Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
     Kati.Repo.query!("DELETE FROM services WHERE name LIKE ?1", [@prefix <> "%"])
+    Kati.Repo.query!("DELETE FROM services WHERE name = 'Mubi'", [])
   end
 end

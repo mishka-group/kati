@@ -93,12 +93,42 @@ defmodule Kati.Screens.WhatFits do
   # is exactly what the second half of this screen is about.
   @series_kinds [:tv, :anime]
 
+  @window_key :what_fits_window
+
   @impl true
   def load(socket) do
+    minutes = Kati.Screens.WhatFits.stored_window()
+
     socket
-    |> Mob.Socket.assign(:window, @default_window)
-    |> Mob.Socket.assign(:tonight, Kati.Screens.WhatFits.tonight(@default_window))
+    |> Mob.Socket.assign(:window, minutes)
+    |> Mob.Socket.assign(:tonight, Kati.Screens.WhatFits.tonight(minutes))
   end
+
+  @doc """
+  The window the reader last chose, or 45 minutes before they ever chose one.
+
+  Kept in `Mob.State`, because an evening's length is a habit: a reader who
+  always has an hour should not have to say so every time (#121).
+  """
+  @spec stored_window() :: pos_integer()
+  def stored_window do
+    minutes = Mob.State.get(@window_key, @default_window)
+    if Enum.any?(@windows, fn {_key, m} -> m == minutes end), do: minutes, else: @default_window
+  rescue
+    _error -> @default_window
+  catch
+    :exit, _reason -> @default_window
+  end
+
+  @doc """
+  Back from a title or from My services: the clock, the shelf and the services
+  may all have moved, so the evening is measured again.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :tonight, Kati.Screens.WhatFits.tonight(socket.assigns.window))}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @impl true
   def handle_tap(tag, socket) do
@@ -171,6 +201,7 @@ defmodule Kati.Screens.WhatFits do
         end),
       moods: [],
       fits_label: Kati.Screens.WhatFits.fits_label([], Kati.Screens.WhatFits.shelf_empty?()),
+      watchable: 0,
       fits: [],
       over_label: nil,
       over: nil
@@ -200,6 +231,7 @@ defmodule Kati.Screens.WhatFits do
         # cannot narrow anything is dropped rather than drawn dead.
         moods: [],
         fits_label: Kati.Screens.WhatFits.fits_label(fits),
+        watchable: Enum.count(fits, &(&1.reach == :available)),
         fits: fits,
         # One msgid with the length in it rather than a sentence glued to a
         # figure: `#{over.length}` put a translated duration at the end of an
@@ -367,19 +399,15 @@ defmodule Kati.Screens.WhatFits do
   @spec fitting(pos_integer()) :: [map()]
   def fitting(minutes) do
     now = Kati.Time.now()
+    reader = Kati.Screens.WhatFits.reader()
 
     episodes =
       Kati.Screens.WhatFits.series()
       |> Enum.reject(fn {tracked, _cached} -> tracked.status == :dropped end)
       |> Enum.flat_map(fn {tracked, cached} ->
-        case Kati.Screens.WhatFits.next_episode(tracked) do
-          %CachedEpisode{runtime_minutes: m} = e when is_integer(m) and m > 0 and m <= minutes ->
-            if Release.airing(Release.air(e), now) == :upcoming,
-              do: [],
-              else: [Kati.Screens.WhatFits.fit_of(e, tracked, cached)]
-
-          _none ->
-            []
+        case Kati.Screens.WhatFits.run(tracked, minutes, now) do
+          [] -> []
+          run -> [Kati.Screens.WhatFits.run_of(run, tracked, cached)]
         end
       end)
 
@@ -395,8 +423,140 @@ defmodule Kati.Screens.WhatFits do
         end
       end)
 
-    Enum.sort_by(episodes ++ films, & &1.minutes, :desc)
+    (episodes ++ films)
+    |> Enum.sort_by(& &1.minutes, :desc)
+    |> Enum.map(&Kati.Screens.WhatFits.reach(&1, reader))
   end
+
+  @doc """
+  The episodes a show could play back to back inside the window: the next one
+  and as many after it as still fit, all aired, none a special (#121).
+
+  An hour and a show of 24-minute episodes is two episodes, not one, and the row
+  says so.
+  """
+  @spec run(TrackedTitle.t(), pos_integer(), DateTime.t()) :: [CachedEpisode.t()]
+  def run(tracked, minutes, now) do
+    case Kati.Media.NextEpisode.of(tracked) do
+      {s, e} ->
+        tracked.source
+        |> CachedEpisode.for_title(tracked.source_id)
+        |> Enum.reject(& &1.special)
+        |> Enum.filter(&(is_integer(&1.season_number) and is_integer(&1.episode_number)))
+        |> Enum.sort_by(&{&1.season_number, &1.episode_number})
+        |> Enum.drop_while(&({&1.season_number, &1.episode_number} < {s, e}))
+        |> Enum.reduce_while({[], 0}, fn episode, {taken, total} ->
+          m = episode.runtime_minutes
+
+          cond do
+            not (is_integer(m) and m > 0) -> {:halt, {taken, total}}
+            Release.airing(Release.air(episode), now) == :upcoming -> {:halt, {taken, total}}
+            total + m > minutes -> {:halt, {taken, total}}
+            true -> {:cont, {[episode | taken], total + m}}
+          end
+        end)
+        |> elem(0)
+        |> Enum.reverse()
+
+      nil ->
+        []
+    end
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  def run_of([episode], tracked, cached), do: Kati.Screens.WhatFits.fit_of(episode, tracked, cached)
+
+  def run_of([first | _] = run, tracked, cached) do
+    last = List.last(run)
+    total = run |> Enum.map(& &1.runtime_minutes) |> Enum.sum()
+
+    first
+    |> Kati.Screens.WhatFits.fit_of(tracked, cached)
+    |> Map.merge(%{
+      meta:
+        Kati.UI.eyebrow_label(
+          ngettext("%{place} · %{n} episode", "%{place} · %{n} episodes", length(run),
+            place: Kati.Screens.WhatFits.span(first, last),
+            n: Kati.Locale.number(length(run))
+          )
+        ),
+      run: Kati.Screens.WhatFits.hours(total),
+      minutes: total
+    })
+  end
+
+  @doc """
+  `S2 · E6–E7`, or `S1 · E12 – S2 · E1` across a season break.
+
+      iex> Kati.Screens.WhatFits.span(%{season_number: 2, episode_number: 6}, %{season_number: 2, episode_number: 7})
+      "S2 · E6–7"
+  """
+  @spec span(map(), map()) :: String.t()
+  def span(%{season_number: s} = first, %{season_number: s} = last) do
+    gettext("S%{s} · E%{from}–%{to}",
+      s: Kati.Locale.number(s),
+      from: Kati.Locale.number(first.episode_number),
+      to: Kati.Locale.number(last.episode_number)
+    )
+  end
+
+  def span(first, last),
+    do: Kati.Screens.WhatFits.place(first) <> " – " <> Kati.Screens.WhatFits.place(last)
+
+  @doc """
+  The reader's services, region and rules, read once per evening.
+  """
+  @spec reader() :: map()
+  def reader do
+    Kati.Services.availability()
+  rescue
+    _error -> %{region: "GB", subscribed: [], rules: %{}}
+  end
+
+  @doc """
+  A row with where it can be watched: `:where` is the line (*On Netflix*), and
+  `:reach` is `:available`, `:unavailable` or `:unknown`.
+  """
+  @spec reach(map(), map()) :: map()
+  def reach(row, reader) do
+    offers =
+      case Map.get(row, :cached) do
+        nil -> nil
+        cached -> Kati.Media.Availability.offers(cached, reader.region)
+      end
+
+    where =
+      Kati.Media.Availability.line(offers, reader.subscribed, reader.rules) ||
+        Kati.Screens.WhatFits.streaming_elsewhere(offers)
+
+    row
+    |> Map.delete(:cached)
+    |> Map.put(:where, where)
+    |> Map.put(:reach, Kati.Media.Availability.state(offers, reader.subscribed, reader.rules))
+  end
+
+  @doc """
+  Where a title streams when none of it is the reader's: still worth saying,
+  drawn quiet rather than green.
+
+      iex> Kati.Screens.WhatFits.streaming_elsewhere(%{"flatrate" => ["Mubi", "Max"]})
+      "On Mubi or Max"
+      iex> Kati.Screens.WhatFits.streaming_elsewhere(%{"rent" => ["Apple TV"]})
+      nil
+  """
+  @spec streaming_elsewhere(map() | nil) :: String.t() | nil
+  def streaming_elsewhere(%{"flatrate" => [_ | _] = names}) do
+    shown = Enum.take(names, 2)
+
+    case shown do
+      [one] -> gettext("On %{service}", service: one)
+      [a, b] -> gettext("On %{a} or %{b}", a: a, b: b)
+    end
+  end
+
+  def streaming_elsewhere(_offers), do: nil
 
   @doc """
   The cached episode `Kati.Media.NextEpisode.of/1` names for a show, or `nil`
@@ -429,7 +589,8 @@ defmodule Kati.Screens.WhatFits do
       meta: UI.eyebrow_label(gettext("Film")),
       run: Kati.Screens.WhatFits.hours(minutes),
       minutes: minutes,
-      tracked_id: tracked.id
+      tracked_id: tracked.id,
+      cached: cached
     }
   end
 
@@ -444,7 +605,8 @@ defmodule Kati.Screens.WhatFits do
       # and Persian writes the word out.
       run: gettext("%{n}m", n: Kati.Locale.number(episode.runtime_minutes)),
       minutes: episode.runtime_minutes,
-      tracked_id: tracked.id
+      tracked_id: tracked.id,
+      cached: cached
     }
   end
 
@@ -639,6 +801,8 @@ defmodule Kati.Screens.WhatFits do
         socket
 
       {_key, minutes} ->
+        Mob.State.put(@window_key, minutes)
+
         socket
         |> Mob.Socket.assign(:window, minutes)
         |> Mob.Socket.assign(:tonight, Kati.Screens.WhatFits.tonight(minutes))
@@ -947,18 +1111,52 @@ defmodule Kati.Screens.WhatFits do
   until #75 took the fixture fallback off `Kati.Screens.MyServices.listed/0`.
   """
   @spec unfiltered(map()) :: map()
+  def unfiltered(%{fits: []} = t) do
+    body =
+      if Kati.Screens.WhatFits.shelf_empty?(),
+        do: gettext("Add a film or a series, and Kati will tell you what fits the time you have."),
+        else: gettext("Nothing you are watching is that short. Try a longer window.")
+
+    [
+      Kati.Screens.Library.nothing_card(t.fits_label, body),
+      ~MOB"<Spacer size={16} />"
+    ]
+  end
+
   def unfiltered(t) do
     if Kati.Screens.NothingSetUpKnockOn.set_up?() do
-      ~MOB"<Spacer size={0} />"
+      Kati.Screens.WhatFits.reachable_line(t)
     else
       Kati.Screens.NothingSetUpKnockOn.prompt(
         Kati.Screens.WhatFits.unfiltered_title(t),
         gettext(
-          "Kati can size the gap but not fill it. Set up your services and this becomes a shortlist instead of a count."
+          "Tell Kati which services you pay for, and each of these will say where you can watch it."
         ),
         :my_services_what_fits
       )
     end
+  end
+
+  @doc """
+  With services set up: how many of the titles that fit are on them.
+  """
+  def reachable_line(t) do
+    line =
+      ngettext(
+        "%{n} of them is on your services",
+        "%{n} of them are on your services",
+        t.watchable,
+        n: Kati.Locale.number(t.watchable)
+      )
+
+    assigns = %{line: line}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text text={@line} text_size={12.5} text_color={Palette.sub()} />
+      <Spacer size={12} />
+    </Column>
+    """
   end
 
   @doc """
@@ -978,12 +1176,7 @@ defmodule Kati.Screens.WhatFits do
   @spec unfiltered_title(map()) :: String.t()
   def unfiltered_title(%{fits: []} = t), do: t.fits_label
 
-  def unfiltered_title(t) do
-    gettext("%{fit} fit tonight — %{watchable} you can watch",
-      fit: Kati.Locale.number(length(t.fits)),
-      watchable: Kati.Locale.number(0)
-    )
-  end
+  def unfiltered_title(_t), do: gettext("Which of these can you watch?")
 
   @doc false
   # Both mono slots ask the STRING rather than the reader which face to take:
@@ -1024,6 +1217,7 @@ defmodule Kati.Screens.WhatFits do
             text_color={Palette.muted()}
             max_lines={1}
           />
+          {Kati.Screens.WhatFits.where_line(row)}
         </Column>
         <Spacer size={12} />
         <Text
@@ -1039,6 +1233,25 @@ defmodule Kati.Screens.WhatFits do
     </Column>
     """
   end
+
+  @doc """
+  Where a row can be watched, in the reader's own terms: *On Netflix* in green
+  when it is on a service they pay for, the plain line otherwise, and nothing
+  when Kati has no provider data for it.
+  """
+  def where_line(%{where: where} = row) when is_binary(where) do
+    color = if Map.get(row, :reach) == :available, do: Palette.green_text(), else: Palette.sub()
+    assigns = %{where: where, color: color}
+
+    ~MOB"""
+    <Column>
+      <Spacer size={4} />
+      <Text text={@where} text_size={11.5} font_weight="medium" text_color={@color} max_lines={1} />
+    </Column>
+    """
+  end
+
+  def where_line(_row), do: ~MOB"<Spacer size={0} />"
 
   @doc """
   The over-budget row, or nothing when everything the reader has fits.
