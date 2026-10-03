@@ -138,11 +138,27 @@ defmodule Kati.Screens.Agenda do
       >
         {Kati.Screens.Agenda.header()}
         {Kati.Screens.Agenda.switcher()}
+        {Kati.Screens.Agenda.earlier()}
         {Kati.Screens.Agenda.body(agenda)}
       </Column>
     </Scroll>
     """
   end
+
+  @doc "The pill that reads further back (#126)."
+  def earlier do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true}>
+        {Kati.UI.SettingsList.action_pill(gettext("Earlier"), {self(), :agenda_earlier})}
+      </Row>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc "The `+` on the agenda adds to the calendar (#126)."
+  def add_sheet, do: Kati.Screens.QuickAdd
 
   @doc false
   def body(%{groups: []}) do
@@ -380,6 +396,14 @@ defmodule Kati.Screens.Agenda do
   @impl true
   def handle_tap(:agenda_more, socket),
     do: {:noreply, show(socket, socket.assigns.date, socket.assigns.days + @horizon_days)}
+
+  # #126: the agenda reads backwards too — thirty days earlier, from a new
+  # start, with the same thirty-day stretch after it.
+  def handle_tap(:agenda_earlier, socket) do
+    date = Date.add(socket.assigns.date, -@horizon_days)
+    Kati.Calendars.SelectedDate.put(date)
+    {:noreply, show(socket, date, socket.assigns.days + @horizon_days)}
+  end
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

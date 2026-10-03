@@ -156,7 +156,9 @@ defmodule Kati.Screens.MonthGrid do
         {Kati.Screens.MonthGrid.header(month)}
         {Kati.Screens.MonthGrid.switcher()}
         {Kati.Screens.MonthGrid.weekday_row(month)}
-        {Kati.Screens.MonthGrid.grid(month)}
+        <Column fill_width={true} on_swipe_left={{self(), :swipe_month_left}} on_swipe_right={{self(), :swipe_month_right}}>
+          {Kati.Screens.MonthGrid.grid(month)}
+        </Column>
         {Kati.Screens.MonthGrid.legend(month.sections)}
         {UI.eyebrow(label)}
         {Kati.Screens.MonthGrid.day_rows(month.rows)}
@@ -555,6 +557,22 @@ defmodule Kati.Screens.MonthGrid do
     do: Mob.Socket.assign(socket, date: date, month: month(date, Kati.Time.today()))
 
   # ── What a tap changes ────────────────────────────────────────────────────
+
+  # #126: a swipe on the grid turns the month, towards the start of the line
+  # going forward — the other way in Persian.
+  @impl true
+  def handle_info({dir, tag}, socket)
+      when dir in [:swipe_left, :swipe_right] and tag in [:swipe_month_left, :swipe_month_right] do
+    case Kati.Screens.Calendar.swipe_step(dir, Kati.Locale.direction(Kati.Locale.current())) do
+      1 -> handle_tap(:month_next, socket)
+      -1 -> handle_tap(:month_previous, socket)
+    end
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc "The `+` on the month adds to the calendar, as it does on the Schedule (#126)."
+  def add_sheet, do: Kati.Screens.QuickAdd
 
   @impl true
   def handle_tap(:month_previous, socket),

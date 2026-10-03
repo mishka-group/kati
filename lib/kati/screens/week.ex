@@ -163,7 +163,9 @@ defmodule Kati.Screens.Week do
       >
         {Kati.Screens.Week.header(week)}
         {Kati.Screens.Week.switcher()}
-        {Kati.Screens.Week.lanes(week)}
+        <Column fill_width={true} on_swipe_left={{self(), :swipe_week_left}} on_swipe_right={{self(), :swipe_week_right}}>
+          {Kati.Screens.Week.lanes(week)}
+        </Column>
         {UI.eyebrow(label)}
         {Kati.Screens.Week.events(week.rows)}
         {Kati.Screens.Week.hint()}
@@ -635,6 +637,21 @@ defmodule Kati.Screens.Week do
     do: Mob.Socket.assign(socket, date: date, week: week(date, Kati.Time.today()))
 
   # ── What a tap changes ────────────────────────────────────────────────────
+
+  # #126: a swipe on the lanes moves a week.
+  @impl true
+  def handle_info({dir, tag}, socket)
+      when dir in [:swipe_left, :swipe_right] and tag in [:swipe_week_left, :swipe_week_right] do
+    case Kati.Screens.Calendar.swipe_step(dir, Kati.Locale.direction(Kati.Locale.current())) do
+      1 -> handle_tap(:week_next, socket)
+      -1 -> handle_tap(:week_previous, socket)
+    end
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc "The `+` on the week adds to the calendar (#126)."
+  def add_sheet, do: Kati.Screens.QuickAdd
 
   @impl true
   def handle_tap(:week_previous, socket),

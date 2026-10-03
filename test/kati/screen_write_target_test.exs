@@ -431,7 +431,13 @@ defmodule Kati.ScreenWriteTargetTest do
     # `Kati.Books.FollowedAuthor`'s own moduledoc argues the same point from
     # the other end — following someone is worth doing precisely for the book
     # you do not have.
-    {Kati.Screens.BookDetail, :toggle_follow_author, {:db, "followed_authors"}}
+    {Kati.Screens.BookDetail, :toggle_follow_author, {:db, "followed_authors"}},
+    # Screen 09's day page moving a day (#126). The day it shows is the
+    # calendar's selected date, which the Schedule, the week and the month
+    # read too, so stepping to the next day writes that date and nothing a
+    # missing row could have named.
+    {Kati.Screens.Day, :day_next, {:state, "calendar:selected_date"}},
+    {Kati.Screens.Day, :day_previous, {:state, "calendar:selected_date"}}
     # (Screen 33's `5★` / `10pt` was briefly here. It writes `Mob.State`'s
     # `:rating_scale` — `Kati.Rating.Scale`, a display preference kept beside
     # the locale and the theme, because how a number is READ is not a fact

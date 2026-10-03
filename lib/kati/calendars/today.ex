@@ -84,8 +84,13 @@ defmodule Kati.Calendars.Today do
   def events_between(%Date{} = from, %Date{} = to, zone) do
     with {:ok, from} <- Kati.Time.to_utc(NaiveDateTime.new!(from, ~T[00:00:00]), zone),
          {:ok, to} <- Kati.Time.to_utc(NaiveDateTime.new!(to, ~T[23:59:59]), zone) do
+      # A calendar switched off on screen 32 keeps its events out of every
+      # view (#126); they used to show regardless.
       Event
-      |> Ash.Query.filter(is_nil(deleted_at) and dtstart_utc >= ^from and dtstart_utc <= ^to)
+      |> Ash.Query.filter(
+        is_nil(deleted_at) and dtstart_utc >= ^from and dtstart_utc <= ^to and
+          calendar.visible == true
+      )
       |> Ash.Query.sort(dtstart_utc: :asc)
       |> Ash.read!()
     else
@@ -93,6 +98,16 @@ defmodule Kati.Calendars.Today do
     end
   rescue
     _ -> []
+  end
+
+  @doc "The day's all-day events: the band above a day's hours (#126)."
+  @spec all_day_events(Date.t() | nil) :: [struct()]
+  def all_day_events(date \\ nil) do
+    zone = Kati.Time.device_zone()
+
+    (date || Kati.Time.today())
+    |> events(zone)
+    |> Enum.filter(& &1.is_all_day)
   end
 
   @doc """
@@ -194,6 +209,10 @@ defmodule Kati.Calendars.Today do
       # and an appointment a rule — so the row keeps the value that can still
       # tell them apart, and the collapsing happens at each point of use.
       kind: event.kind,
+      # #126: an all-day row is the day's band, not an hour's; and a watch a
+      # title page scheduled belongs to the Screen chip.
+      all_day?: event.is_all_day,
+      tracked_id: event.tracked_title_id,
       location: event.location,
       meta: meta(event),
       # Orange means new/now, and only that: within the next hour counts as now.

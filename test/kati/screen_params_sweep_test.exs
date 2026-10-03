@@ -243,7 +243,6 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.Home, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.HomeDark, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.HomeEmpty, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.Agenda, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.HomeEmptyDark, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.HomeOmittedSections, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Library, :fab, Kati.Screens.AddTitle},
@@ -253,9 +252,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # empty inbox has no word to search for. It is an invitation to type rather
     # than a search somebody started.
     {Kati.Screens.Inbox, :add_title, Kati.Screens.AddTitle},
-    {Kati.Screens.MonthGrid, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Stats, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.Week, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.AddTitleMusic, :filter_Everything, Kati.Screens.AddTitle},
     {Kati.Screens.AddTitleMusic, :filter_Films, Kati.Screens.AddTitle},
     {Kati.Screens.AddTitleMusic, :filter_Series, Kati.Screens.AddTitle},
@@ -286,6 +283,11 @@ defmodule Kati.ScreenParamsSweepTest do
     # the whole of what that page is for. Screen 08's *Schedule* row names one
     # — `Watch <title>` — because it knows the film.
     {Kati.Screens.Calendar, :fab, Kati.Screens.QuickAdd},
+    # The agenda's, the month's and the week's `+`, which opened the film
+    # search until #126: the same empty sentence for the same reason.
+    {Kati.Screens.Agenda, :fab, Kati.Screens.QuickAdd},
+    {Kati.Screens.MonthGrid, :fab, Kati.Screens.QuickAdd},
+    {Kati.Screens.Week, :fab, Kati.Screens.QuickAdd},
     {Kati.Screens.ImportSources, :source_trakt, Kati.Screens.Import},
     {Kati.Screens.ImportSources, :source_letterboxd, Kati.Screens.Import},
     {Kati.Screens.ImportSources, :source_anilist, Kati.Screens.Import},

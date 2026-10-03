@@ -136,15 +136,84 @@ defmodule Kati.Screens.Day do
   # independently.
   @impl true
   def load(socket) do
-    {date, occurrences} = Kati.Screens.Day.day(socket.assigns.params)
+    {date, _occurrences} = Kati.Screens.Day.day(socket.assigns.params)
+
+    socket
+    |> Mob.Socket.assign(filter: nil, open_groups: [])
+    |> Kati.Screens.Day.show(date)
+  end
+
+  @doc """
+  Show `date`: its occurrences, with the todos ticked that were ticked, and
+  its all-day band.
+  """
+  @spec show(Mob.Socket.t(), Date.t()) :: Mob.Socket.t()
+  def show(socket, date) do
+    {date, occurrences} = Kati.Screens.Day.day(%{date: date})
+    done = Kati.Screens.Day.done_set()
+
+    occurrences =
+      Enum.map(occurrences, fn o ->
+        if MapSet.member?(done, Kati.Screens.Day.done_key(o, date)), do: Map.put(o, :done, true), else: o
+      end)
 
     Mob.Socket.assign(socket,
       date: date,
-      filter: nil,
-      open_groups: [],
       occurrences: occurrences,
       all_day: Kati.Screens.Day.all_day(date)
     )
+  end
+
+  @doc """
+  Move the page by `days`, keeping the chip and moving the calendar's
+  selected day with it, so the Schedule behind opens on the same day.
+  """
+  @spec step(Mob.Socket.t(), integer()) :: Mob.Socket.t()
+  def step(socket, days) do
+    date = Date.add(socket.assigns.date, days)
+    Kati.Calendars.SelectedDate.put(date)
+
+    socket
+    |> Mob.Socket.assign(:open_groups, [])
+    |> Kati.Screens.Day.show(date)
+  end
+
+  # #126: a swipe across the day's hours moves a day.
+  @impl true
+  def handle_info({dir, tag}, socket)
+      when dir in [:swipe_left, :swipe_right] and tag in [:swipe_day_left, :swipe_day_right] do
+    days = Kati.Screens.Calendar.swipe_step(dir, Kati.Locale.direction(Kati.Locale.current()))
+    {:noreply, Kati.Screens.Day.step(socket, days)}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @done_key :calendar_done
+
+  @doc """
+  The ticked todos, kept (#126): a tick used to live in the screen and vanish
+  with it. One key per item and day, so a repeating todo ticked today is still
+  open tomorrow.
+  """
+  @spec done_set() :: MapSet.t()
+  def done_set do
+    MapSet.new(Mob.State.get(@done_key, []))
+  rescue
+    _error -> MapSet.new()
+  catch
+    :exit, _reason -> MapSet.new()
+  end
+
+  @doc false
+  def done_key(occurrence, date), do: to_string(occurrence.id) <> "@" <> Date.to_iso8601(date)
+
+  @doc false
+  def put_done(key, done?) do
+    set = done_set()
+    set = if done?, do: MapSet.put(set, key), else: MapSet.delete(set, key)
+    Mob.State.put(@done_key, set |> MapSet.to_list() |> Enum.take(-500))
+  rescue
+    _error -> :ok
   end
 
   @doc """
@@ -154,10 +223,19 @@ defmodule Kati.Screens.Day do
   """
   @spec all_day(Date.t()) :: [map()]
   def all_day(%Date{} = date) do
-    date
-    |> Kati.Calendars.Airings.rows()
-    |> Enum.filter(&is_nil(&1.at))
-    |> Enum.map(&Kati.Screens.Calendar.shaped/1)
+    airings =
+      date
+      |> Kati.Calendars.Airings.rows()
+      |> Enum.filter(&is_nil(&1.at))
+
+    # The reader's own all-day events too (#126): a birthday, a trip. The
+    # timeline has no hours to put them on, so they were nowhere.
+    own =
+      date
+      |> Kati.Calendars.Today.rows()
+      |> Enum.filter(&(Map.get(&1, :all_day?) == true))
+
+    Enum.map(own ++ airings, &Kati.Screens.Calendar.shaped/1)
   end
 
   @doc """
@@ -200,7 +278,9 @@ defmodule Kati.Screens.Day do
           {Kati.Screens.Day.chips(filter, Kati.Screens.Day.counts(assigns))}
           {Kati.Screens.Day.all_day_block(all_day)}
         </Column>
-        {Kati.Screens.Day.timeline(clusters)}
+        <Column fill_width={true} on_swipe_left={{self(), :swipe_day_left}} on_swipe_right={{self(), :swipe_day_right}}>
+          {Kati.Screens.Day.timeline(clusters)}
+        </Column>
       </Column>
     </Scroll>
     """
@@ -257,6 +337,10 @@ defmodule Kati.Screens.Day do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
+        {Kati.Screens.Calendar.step_disc(Kati.Locale.pick("chevron_left", "chevron_right"), :day_previous, gettext("Previous day"))}
+        <Spacer size={6} />
+        {Kati.Screens.Calendar.step_disc(Kati.Locale.forward_chevron(), :day_next, gettext("Next day"))}
+        <Spacer size={10} />
         {Kati.Screens.Day.density_disc()}
       </Row>
       <Spacer size={16} />
@@ -1436,12 +1520,27 @@ defmodule Kati.Screens.Day do
       # `term()` in `Layout`, and a tick should not be the thing that decides
       # every occurrence must be numbered.
       "todo_" <> id ->
+        date = socket.assigns.date
+
         occurrences =
           Enum.map(socket.assigns.occurrences, fn o ->
-            if to_string(o.id) == id, do: Map.put(o, :done, Map.get(o, :done) != true), else: o
+            if to_string(o.id) == id do
+              done? = Map.get(o, :done) != true
+              Kati.Screens.Day.put_done(Kati.Screens.Day.done_key(o, date), done?)
+              Map.put(o, :done, done?)
+            else
+              o
+            end
           end)
 
         {:noreply, Mob.Socket.assign(socket, :occurrences, occurrences)}
+
+      # #126: a day either way, by the arrows or a swipe.
+      "day_previous" ->
+        {:noreply, Kati.Screens.Day.step(socket, -1)}
+
+      "day_next" ->
+        {:noreply, Kati.Screens.Day.step(socket, 1)}
 
       _other ->
         Kati.Screens.ViewSwitcher.handle_tap(tag, socket)

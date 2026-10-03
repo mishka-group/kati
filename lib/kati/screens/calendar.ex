@@ -123,6 +123,19 @@ defmodule Kati.Screens.Calendar do
   over this screen may have moved it: picking the 3rd on screen 16 and pressing
   back lands on the 3rd here.
   """
+  @swipes [:swipe_week_left, :swipe_week_right, :swipe_day_left, :swipe_day_right]
+
+  # #126: a swipe on the strip moves a week, a swipe across the rows a day.
+  @impl true
+  def handle_info({dir, tag}, socket)
+      when dir in [:swipe_left, :swipe_right] and tag in @swipes do
+    days = if tag in [:swipe_week_left, :swipe_week_right], do: 7, else: 1
+    step = Kati.Screens.Calendar.swipe_step(dir, Kati.Locale.direction(Kati.Locale.current()))
+    {:noreply, Kati.Screens.Calendar.step(socket, step * days)}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
   @impl true
   def handle_kati(:resumed, _payload, socket) do
     date = Kati.Calendars.SelectedDate.get()
@@ -355,6 +368,17 @@ defmodule Kati.Screens.Calendar do
     )
   end
 
+  @doc false
+  # A stored event (it alone carries `:all_day?`) — a watch a title page
+  # scheduled — is drawn as the event it is (#126); a followed show's airing
+  # as a show; an air date as an airing.
+  def screen_shape(%{all_day?: _, tracked_id: id} = row) when is_binary(id),
+    do: if(row.now?, do: :event, else: :done)
+
+  def screen_shape(%{all_day?: _}), do: :airing
+  def screen_shape(%{tracked_id: _}), do: :show
+  def screen_shape(_row), do: :airing
+
   @doc """
   A real event, given the drawn shape its kind calls for.
 
@@ -372,7 +396,7 @@ defmodule Kati.Screens.Calendar do
     shape =
       case kind do
         "money" -> :money
-        "screen" -> if Map.has_key?(row, :tracked_id), do: :show, else: :airing
+        "screen" -> Kati.Screens.Calendar.screen_shape(row)
         _ -> if row.now?, do: :event, else: :done
       end
 
@@ -401,11 +425,15 @@ defmodule Kati.Screens.Calendar do
       >
         {Kati.Screens.Calendar.header(date, rows, assigns.menu?)}
         {Kati.Screens.Calendar.month_row(date)}
-        {Kati.Screens.Calendar.day_strip(date)}
+        <Column fill_width={true} on_swipe_left={{self(), :swipe_week_left}} on_swipe_right={{self(), :swipe_week_right}}>
+          {Kati.Screens.Calendar.day_strip(date)}
+        </Column>
         {Kati.Screens.Calendar.rule()}
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
-        {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter), reason)}
+        <Column fill_width={true} on_swipe_left={{self(), :swipe_day_left}} on_swipe_right={{self(), :swipe_day_right}}>
+          {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter), reason)}
+        </Column>
         {Kati.Screens.Calendar.calendars_card(Map.get(assigns, :access, :unknown))}
       </Column>
     </Scroll>
@@ -569,6 +597,10 @@ defmodule Kati.Screens.Calendar do
           {Kati.UI.symbol("unfold_more", size: 19, color: Palette.sub())}
         </Row>
         <Spacer weight={1.0} />
+        {Kati.Screens.Calendar.step_disc(Kati.Locale.pick("chevron_left", "chevron_right"), :week_previous, gettext("Previous week"))}
+        <Spacer size={6} />
+        {Kati.Screens.Calendar.step_disc(Kati.Locale.forward_chevron(), :week_next, gettext("Next week"))}
+        <Spacer size={8} />
         <Row
           height={30}
           corner_radius={15}
@@ -615,6 +647,7 @@ defmodule Kati.Screens.Calendar do
   # subtree it is on, so a cap on the Text does not reach its sibling.
   @doc false
   def day_strip(today) do
+    now = Kati.Time.today()
     # The reader's own first day. `Date.day_of_week/1` is 1 = Monday, which is
     # the English week; board 56's strip runs ش ی د س چ پ ج and starts on
     # Saturday. `Kati.Screens.Stats.week_start_on/1` answers both — board 137
@@ -626,7 +659,7 @@ defmodule Kati.Screens.Calendar do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {days |> Enum.map(fn d -> Kati.Screens.Calendar.day_cell(d, d == today) end) |> Enum.intersperse(Kati.Screens.Calendar.cell_gap())}
+        {days |> Enum.map(fn d -> Kati.Screens.Calendar.day_cell(d, d == today, d == now) end) |> Enum.intersperse(Kati.Screens.Calendar.cell_gap())}
       </Row>
       <Spacer size={12} />
     </Column>
@@ -645,6 +678,20 @@ defmodule Kati.Screens.Calendar do
   # design's, running the full width under the day strip. `render: :box`
   # swaps the primitive back to `<Box fill_width height={1} background />`,
   # so every pixel row carries the full 8% ink again.
+  @doc """
+  A 30pt disc that steps the calendar back or forward (#126). The arrow
+  points the reading direction, and TalkBack hears what it does.
+  """
+  def step_disc(glyph, tag, label) do
+    assigns = %{glyph: glyph, tap: {self(), tag}, label: label}
+
+    ~MOB"""
+    <Box width={30} height={30} corner_radius={15} background={Palette.card()} shadow={Theme.shadow_card_soft()} align="center" on_tap={@tap} accessibility_label={@label}>
+      {Kati.UI.symbol(@glyph, size: 18, color: Palette.ink_soft())}
+    </Box>
+    """
+  end
+
   @doc false
   def rule,
     do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
@@ -653,7 +700,7 @@ defmodule Kati.Screens.Calendar do
   def cell_gap, do: ~MOB"<Spacer size={2} />"
 
   @doc false
-  def day_cell(date, today?) do
+  def day_cell(date, today?, now? \\ false) do
     # The tag carries the day, so tapping Thursday shows Thursday. Every cell
     # used to push the same screen, which looked interactive and was not.
     #
@@ -668,7 +715,16 @@ defmodule Kati.Screens.Calendar do
 
     bg = if today?, do: Palette.ink_fill(), else: Palette.card()
     name_color = if today?, do: Palette.on_ink_muted(), else: Palette.muted()
-    num_color = if today?, do: Palette.on_ink(), else: Palette.ink()
+    # The real today keeps its mark when another day is selected (#126): its
+    # number takes the accent, so the week always says where now is. `today?`
+    # here is *selected*, the strip's older name for it.
+    num_color =
+      cond do
+        today? -> Palette.on_ink()
+        now? -> Palette.accent()
+        true -> Palette.ink()
+      end
+
     shadow = if today?, do: Theme.shadow_button(), else: Theme.shadow_card_soft()
     # `Kati.Locale.weekday_initial/1` in Persian — ش — and the Latin
     # three-letter cut in English. Slicing شنبه to three graphemes gives شنب,
@@ -1586,6 +1642,13 @@ defmodule Kati.Screens.Calendar do
   id>` and opens the film page the same way.
   """
   @spec tag(map()) :: atom()
+  # A stored event — a row from `Kati.Calendars.Today`, which alone carries
+  # `:all_day?` — opens its event, scheduled watches included (#126): that is
+  # where it is moved, given another reminder, or deleted, and where its title
+  # opens from.
+  def tag(%{all_day?: _all_day, id: id}) when is_binary(id),
+    do: String.to_atom("row_event_" <> id)
+
   def tag(%{tracked_id: tracked_id, tracked_kind: :film}) when is_binary(tracked_id),
     do: String.to_atom("row_film_" <> tracked_id)
 
@@ -1648,6 +1711,8 @@ defmodule Kati.Screens.Calendar do
   """
   @spec kind(map()) :: String.t()
   def kind(%{kind: kind}) when is_binary(kind), do: kind
+  # A watch scheduled from a film, show or anime page (#124) is a Screen row.
+  def kind(%{tracked_id: id}) when is_binary(id), do: "screen"
   def kind(%{kind: :meal}), do: "meals"
   def kind(%{kind: :air_date}), do: "screen"
   def kind(%{kind: :money}), do: "money"
@@ -1702,6 +1767,11 @@ defmodule Kati.Screens.Calendar do
     date = Kati.Calendars.SelectedDate.reset()
     {:noreply, Mob.Socket.assign(socket, date: date, rows: day_rows(date))}
   end
+
+  # #126: a week either way by the arrows or a swipe on the strip, and a day
+  # either way by a swipe across the day's rows — not only the seven in view.
+  def handle_tap(:week_previous, socket), do: {:noreply, Kati.Screens.Calendar.step(socket, -7)}
+  def handle_tap(:week_next, socket), do: {:noreply, Kati.Screens.Calendar.step(socket, 7)}
 
   @doc """
   Board 306's button. `Kati.Screens.PickSections.ask_for_calendar/1`'s call,
@@ -1825,6 +1895,31 @@ defmodule Kati.Screens.Calendar do
         {:noreply, socket}
     end
   end
+
+  @doc """
+  Move the selected day by `days`, and read that day's rows.
+  """
+  @spec step(Mob.Socket.t(), integer()) :: Mob.Socket.t()
+  def step(socket, days) do
+    date = Date.add(socket.assigns.date, days)
+    Kati.Calendars.SelectedDate.put(date)
+    Mob.Socket.assign(socket, date: date, rows: Kati.Screens.Calendar.day_rows(date))
+  end
+
+  @doc """
+  A swipe as a step: towards the start of the line goes forward, so in
+  Persian, which reads right to left, the same swipe goes back.
+
+      iex> Kati.Screens.Calendar.swipe_step(:swipe_left, :ltr)
+      1
+      iex> Kati.Screens.Calendar.swipe_step(:swipe_left, :rtl)
+      -1
+  """
+  @spec swipe_step(:swipe_left | :swipe_right, :ltr | :rtl) :: 1 | -1
+  def swipe_step(:swipe_left, :ltr), do: 1
+  def swipe_step(:swipe_right, :ltr), do: -1
+  def swipe_step(:swipe_left, :rtl), do: -1
+  def swipe_step(:swipe_right, :rtl), do: 1
 
   # `row_event_9f3c…` → `{"event", "9f3c…"}`, `row_event` → `{"event", nil}`.
   # `parts: 2` so the id is never split further; a UUID has no underscore, and

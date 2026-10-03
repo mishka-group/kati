@@ -1400,11 +1400,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # phantom tiles and the four shortcut rows that used to pad it past the
     # generic floor were the whole of what this round deleted.
     "39" => 12,
-    # 09's empty day is the date heading, the view switcher's four labels and
-    # one "Nothing scheduled" sentence — eleven strings. There is no second
-    # section under it to pad the count with, and inventing one would be
-    # inventing copy this state does not need.
-    "09" => 11,
     # 10's honest empty card is the whole page now — no hero, no rows, no
     # second section beneath it the way Lists keeps its kept rows. An icon,
     # "Nothing queued", one body sentence and the back pill's chrome is
