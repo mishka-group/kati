@@ -58,7 +58,9 @@ defmodule Kati.MyServicesRealTest do
     shelve!("one", [@prefix <> "Mubi", @prefix <> "Max"])
     shelve!("two", [@prefix <> "Mubi"])
 
-    suggestions = Enum.filter(MyServices.suggestions(), fn {n, _} -> String.starts_with?(n, @prefix) end)
+    suggestions =
+      Enum.filter(MyServices.suggestions(), fn {n, _} -> String.starts_with?(n, @prefix) end)
+
     assert suggestions == [{@prefix <> "Mubi", 2}, {@prefix <> "Max", 1}]
 
     view = mount_screen(MyServices)

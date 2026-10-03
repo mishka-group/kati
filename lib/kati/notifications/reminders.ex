@@ -137,6 +137,7 @@ defmodule Kati.Notifications.Reminders do
 
   @doc false
   def body(0), do: gettext("Starting now")
+
   def body(minutes) when rem(minutes, 60) == 0,
     do: gettext("In %{n} hr", n: Kati.Locale.number(div(minutes, 60)))
 
@@ -184,6 +185,7 @@ defmodule Kati.Notifications.Reminders do
   @spec sync_later() :: :ok
   def sync_later do
     Task.Supervisor.start_child(Kati.TaskSupervisor, fn -> Kati.Notifications.Reminders.sync() end)
+
     :ok
   catch
     :exit, _no_supervisor -> :ok

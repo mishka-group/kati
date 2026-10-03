@@ -61,6 +61,7 @@ defmodule Kati.Notifications.History do
   @spec collect(DateTime.t()) :: :ok
   def collect(now \\ Kati.Time.now()) do
     stamp = DateTime.to_unix(now)
+
     {fired, waiting} =
       get(@armed_key, %{})
       |> Map.values()

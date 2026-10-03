@@ -187,7 +187,16 @@ defmodule Kati.Screens.ShelfSelection do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
-        <Box width={44} height={44} corner_radius={22} background={Palette.card()} shadow={Kati.Theme.shadow_button()} align="center" on_tap={{self(), :close}} accessibility_label={gettext("Close")}>
+        <Box
+          width={44}
+          height={44}
+          corner_radius={22}
+          background={Palette.card()}
+          shadow={Kati.Theme.shadow_button()}
+          align="center"
+          on_tap={{self(), :close}}
+          accessibility_label={gettext("Close")}
+        >
           {Kati.UI.symbol("close", size: 21)}
         </Box>
         <Spacer weight={1.0} />
@@ -276,10 +285,23 @@ defmodule Kati.Screens.ShelfSelection do
       >
         {Kati.UI.symbol("delete", size: 19, color: Palette.on_ink())}
         <Spacer size={12} />
-        <Text text={@message} text_size={13} font_weight="semibold" text_color={Palette.on_ink()} weight={1.0} max_lines={2} />
+        <Text
+          text={@message}
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.on_ink()}
+          weight={1.0}
+          max_lines={2}
+        />
         <Spacer size={8} />
         <Row height={44} padding_left={14} padding_right={14} align="center" on_tap={{self(), :undo}}>
-          <Text text={gettext("Undo")} text_size={13} font_weight="bold" text_color={Palette.accent()} max_lines={1} />
+          <Text
+            text={gettext("Undo")}
+            text_size={13}
+            font_weight="bold"
+            text_color={Palette.accent()}
+            max_lines={1}
+          />
         </Row>
       </Row>
     </Column>
@@ -304,8 +326,18 @@ defmodule Kati.Screens.ShelfSelection do
 
     ~MOB"""
     <Column fill_width={true} padding_left={16} padding_right={16} padding_bottom={8}>
-      <Column fill_width={true} background={Palette.card()} corner_radius={20} shadow={Kati.Theme.shadow_card_soft()} padding={12}>
-        <Text text={gettext("Set status for the selected titles")} text_size={11.5} text_color={Palette.sub()} />
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={12}
+      >
+        <Text
+          text={gettext("Set status for the selected titles")}
+          text_size={11.5}
+          text_color={Palette.sub()}
+        />
         <Spacer size={10} />
         <Scroll axis="horizontal">
           <Row align="center">
@@ -336,8 +368,20 @@ defmodule Kati.Screens.ShelfSelection do
       |> Enum.intersperse(~MOB"<Spacer size={8} />")
 
     ~MOB"""
-    <Column fill_width={true} padding_left={16} padding_right={16} padding_top={4} padding_bottom={12}>
-      <Row fill_width={true} background={Palette.card()} corner_radius={24} shadow={Kati.Theme.shadow_card_soft()} padding={8}>
+    <Column
+      fill_width={true}
+      padding_left={16}
+      padding_right={16}
+      padding_top={4}
+      padding_bottom={12}
+    >
+      <Row
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={24}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={8}
+      >
         {buttons}
       </Row>
     </Column>

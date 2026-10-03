@@ -31,7 +31,11 @@ defmodule Kati.Notifications.Fold do
   end
 
   @doc false
-  def foldable?(%Candidate{suppressed: nil, at: {:absolute, %DateTime{}}, meta: %{tracked_id: id}})
+  def foldable?(%Candidate{
+        suppressed: nil,
+        at: {:absolute, %DateTime{}},
+        meta: %{tracked_id: id}
+      })
       when is_binary(id),
       do: true
 

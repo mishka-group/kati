@@ -1039,7 +1039,9 @@ defmodule Kati.Screens.EventDetail do
          {:ok, stored} <- Ash.get(Event, id),
          {:ok, _saved} <-
            stored
-           |> Ash.update(%{alarm_minutes: Kati.Notifications.Reminders.next(stored.alarm_minutes)})
+           |> Ash.update(%{
+             alarm_minutes: Kati.Notifications.Reminders.next(stored.alarm_minutes)
+           })
            |> Kati.Write.note("event reminder") do
       Kati.Notifications.Reminders.sync_later()
       Mob.Socket.assign(socket, :event, Kati.Screens.EventDetail.event(%{id: id}))

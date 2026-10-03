@@ -1634,11 +1634,13 @@ defmodule Kati.Screens.Library do
     # draws them as two different screens, so the grid has to know which. The
     # title comes with it because two films are two nodes: see `poster_tag/1`.
     tap = {self(), Kati.Screens.Library.poster_tag(item)}
+
     hold =
       case Kati.Screens.Library.hold_tag(item) do
         nil -> nil
         tag -> {self(), tag}
       end
+
     ring = if Map.get(item, :picked) == true, do: 2, else: 0
 
     # Weighted rather than 112 wide: three equal shares of the real content

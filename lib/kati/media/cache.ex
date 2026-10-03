@@ -122,7 +122,9 @@ defmodule Kati.Media.Cache do
   """
   @spec ask(pid()) :: :ok
   def ask(pid) when is_pid(pid) do
-    sweep = fn -> send(pid, {:cache_refreshed, Kati.Media.Cache.settle(Kati.Media.Cache.refresh())}) end
+    sweep = fn ->
+      send(pid, {:cache_refreshed, Kati.Media.Cache.settle(Kati.Media.Cache.refresh())})
+    end
 
     try do
       Task.Supervisor.start_child(Kati.TaskSupervisor, sweep)

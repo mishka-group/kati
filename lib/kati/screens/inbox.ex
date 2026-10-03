@@ -333,6 +333,7 @@ defmodule Kati.Screens.Inbox do
 
   defp alert(tracked_row, airing, cached) do
     id = alert_id(tracked_row, airing)
+
     meta = %{
       source: tracked_row.source,
       source_id: tracked_row.source_id,
@@ -452,7 +453,9 @@ defmodule Kati.Screens.Inbox do
   cadence. Gone while a check is already running.
   """
   def check_pill(true), do: ~MOB"<Spacer size={0} />"
-  def check_pill(false), do: Kati.UI.SettingsList.action_pill(gettext("Check now"), {self(), :check_now})
+
+  def check_pill(false),
+    do: Kati.UI.SettingsList.action_pill(gettext("Check now"), {self(), :check_now})
 
   @doc """
   The gear on the watcher card, which opens screen 25.
@@ -493,8 +496,7 @@ defmodule Kati.Screens.Inbox do
   # Look now, whatever the cadence says: the sweep refreshes every followed
   # title from its source, stamps the check and re-arms the alerts.
   def handle_tap(:check_now, socket) do
-    {:noreply,
-     Mob.Socket.assign(socket, :checking?, socket.assigns.checking? or check(self()))}
+    {:noreply, Mob.Socket.assign(socket, :checking?, socket.assigns.checking? or check(self()))}
   end
 
   def handle_tap(:open_data_sources, socket),
@@ -559,7 +561,8 @@ defmodule Kati.Screens.Inbox do
            Enum.at(Map.get(socket.assigns.inbox, :coming_up, []), i) do
       if kind == :movie,
         do: Mob.Socket.push_screen(socket, Kati.Screens.Film, %{id: id, back: "Inbox"}),
-        else: Mob.Socket.push_screen(socket, Kati.Screens.Series, %{tracked_id: id, back: "Inbox"})
+        else:
+          Mob.Socket.push_screen(socket, Kati.Screens.Series, %{tracked_id: id, back: "Inbox"})
     else
       _no_row -> socket
     end
@@ -1352,7 +1355,11 @@ defmodule Kati.Screens.Inbox do
   def out_now(%{out_now: []}) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={gettext("Nothing new in the last week.")} text_size={12.5} text_color={Palette.sub()} />
+      <Text
+        text={gettext("Nothing new in the last week.")}
+        text_size={12.5}
+        text_color={Palette.sub()}
+      />
       <Spacer size={26} />
     </Column>
     """

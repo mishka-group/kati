@@ -29,7 +29,9 @@ defmodule Kati.NotificationsBackgroundTest do
   setup do
     History.clear()
     Mob.State.put(:notification_armed, %{})
-    for key <- [:watcher_scheduled_reminders, :watcher_rewatch_reminders], do: Mob.State.put(key, true)
+
+    for key <- [:watcher_scheduled_reminders, :watcher_rewatch_reminders],
+        do: Mob.State.put(key, true)
 
     on_exit(fn ->
       History.clear()
@@ -222,7 +224,15 @@ defmodule Kati.NotificationsBackgroundTest do
       show = follow!("dark", :tv)
 
       History.add_found(
-        [%{"tracked_id" => show.id, "kind" => "tv", "key" => "S1E2", "title" => "Dark", "body" => "New"}],
+        [
+          %{
+            "tracked_id" => show.id,
+            "kind" => "tv",
+            "key" => "S1E2",
+            "title" => "Dark",
+            "body" => "New"
+          }
+        ],
         Kati.Time.now()
       )
 
@@ -297,10 +307,17 @@ defmodule Kati.NotificationsBackgroundTest do
         rating: 10
       })
 
-      assert Enum.any?(Kati.Notifications.Reminders.candidates(), &(&1.meta.tracked_id == film.id))
+      assert Enum.any?(
+               Kati.Notifications.Reminders.candidates(),
+               &(&1.meta.tracked_id == film.id)
+             )
 
       Watcher.put_reminder(:rewatch, false)
-      refute Enum.any?(Kati.Notifications.Reminders.candidates(), &(&1.meta.tracked_id == film.id))
+
+      refute Enum.any?(
+               Kati.Notifications.Reminders.candidates(),
+               &(&1.meta.tracked_id == film.id)
+             )
     end
   end
 

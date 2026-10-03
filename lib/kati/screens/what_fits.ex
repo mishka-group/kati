@@ -126,7 +126,9 @@ defmodule Kati.Screens.WhatFits do
   """
   @impl true
   def handle_kati(:resumed, _payload, socket),
-    do: {:noreply, Mob.Socket.assign(socket, :tonight, Kati.Screens.WhatFits.tonight(socket.assigns.window))}
+    do:
+      {:noreply,
+       Mob.Socket.assign(socket, :tonight, Kati.Screens.WhatFits.tonight(socket.assigns.window))}
 
   def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
@@ -466,7 +468,8 @@ defmodule Kati.Screens.WhatFits do
   end
 
   @doc false
-  def run_of([episode], tracked, cached), do: Kati.Screens.WhatFits.fit_of(episode, tracked, cached)
+  def run_of([episode], tracked, cached),
+    do: Kati.Screens.WhatFits.fit_of(episode, tracked, cached)
 
   def run_of([first | _] = run, tracked, cached) do
     last = List.last(run)
@@ -1114,7 +1117,8 @@ defmodule Kati.Screens.WhatFits do
   def unfiltered(%{fits: []} = t) do
     body =
       if Kati.Screens.WhatFits.shelf_empty?(),
-        do: gettext("Add a film or a series, and Kati will tell you what fits the time you have."),
+        do:
+          gettext("Add a film or a series, and Kati will tell you what fits the time you have."),
         else: gettext("Nothing you are watching is that short. Try a longer window.")
 
     [

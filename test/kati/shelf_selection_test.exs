@@ -124,7 +124,10 @@ defmodule Kati.ShelfSelectionTest do
       assert Enum.any?(flatten(library), &match?(%{props: %{on_long_press: {_, ^hold}}}, &1))
 
       view = render_info(library, {:long_press, hold})
-      assert {:push, Kati.Screens.ShelfSelection, %{selected: id}} = view.socket.__mob__.nav_action
+
+      assert {:push, Kati.Screens.ShelfSelection, %{selected: id}} =
+               view.socket.__mob__.nav_action
+
       assert id == a.id
 
       assert assigns(mount_screen(ShelfSelection, %{selected: a.id})).selected ==

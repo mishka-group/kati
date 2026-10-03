@@ -112,7 +112,10 @@ defmodule Kati.NothingSetUpBandsTest do
 
       # Once a service is set up, the band becomes a count of what is on them.
       Ash.create!(Service, %{name: @prefix <> "Mubi", tier: :subscribed})
-      counted = inspect(Kati.Screens.WhatFits.unfiltered(%{fits | watchable: 0}), limit: :infinity)
+
+      counted =
+        inspect(Kati.Screens.WhatFits.unfiltered(%{fits | watchable: 0}), limit: :infinity)
+
       refute counted =~ "my_services_what_fits"
       assert counted =~ "0 of them are on your services"
     end

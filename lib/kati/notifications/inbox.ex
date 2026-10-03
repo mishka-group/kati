@@ -136,6 +136,7 @@ defmodule Kati.Notifications.Inbox do
   @spec held_reason(atom() | nil) :: String.t()
   def held_reason(:muted), do: gettext("Muted for this show")
   def held_reason(:quiet_hours), do: gettext("Inside quiet hours — moved to the morning")
+
   def held_reason(reason) when reason in [:budget, :over_budget],
     do: gettext("Beyond this section's share of the phone's alarms")
 

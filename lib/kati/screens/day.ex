@@ -154,7 +154,9 @@ defmodule Kati.Screens.Day do
 
     occurrences =
       Enum.map(occurrences, fn o ->
-        if MapSet.member?(done, Kati.Screens.Day.done_key(o, date)), do: Map.put(o, :done, true), else: o
+        if MapSet.member?(done, Kati.Screens.Day.done_key(o, date)),
+          do: Map.put(o, :done, true),
+          else: o
       end)
 
     Mob.Socket.assign(socket,
@@ -278,7 +280,11 @@ defmodule Kati.Screens.Day do
           {Kati.Screens.Day.chips(filter, Kati.Screens.Day.counts(assigns))}
           {Kati.Screens.Day.all_day_block(all_day)}
         </Column>
-        <Column fill_width={true} on_swipe_left={{self(), :swipe_day_left}} on_swipe_right={{self(), :swipe_day_right}}>
+        <Column
+          fill_width={true}
+          on_swipe_left={{self(), :swipe_day_left}}
+          on_swipe_right={{self(), :swipe_day_right}}
+        >
           {Kati.Screens.Day.timeline(clusters)}
         </Column>
       </Column>

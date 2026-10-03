@@ -93,7 +93,11 @@ defmodule Kati.ScheduleWatchTest do
 
       view = mount_screen(Kati.Screens.Film, %{id: film.id})
       assert :open_schedule in tags(view)
-      assert view |> render_info({:tap, :open_schedule}) |> Map.get(:socket) |> then(& &1.__mob__.nav_action) ==
+
+      assert view
+             |> render_info({:tap, :open_schedule})
+             |> Map.get(:socket)
+             |> then(& &1.__mob__.nav_action) ==
                {:push, Kati.Screens.EventDetail, %{id: event.id}}
     end
   end

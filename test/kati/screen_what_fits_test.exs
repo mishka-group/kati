@@ -23,7 +23,8 @@ defmodule Kati.ScreenWhatFitsTest do
 
   use Mob.ScreenCase, async: false
 
-  doctest Kati.Screens.WhatFits, only: [window_label: 1, hours: 1, row_tap: 2, span: 2, streaming_elsewhere: 1]
+  doctest Kati.Screens.WhatFits,
+    only: [window_label: 1, hours: 1, row_tap: 2, span: 2, streaming_elsewhere: 1]
 
   alias Kati.Media.CachedEpisode
   alias Kati.Media.CachedTitle

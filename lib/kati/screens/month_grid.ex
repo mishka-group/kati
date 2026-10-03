@@ -156,7 +156,11 @@ defmodule Kati.Screens.MonthGrid do
         {Kati.Screens.MonthGrid.header(month)}
         {Kati.Screens.MonthGrid.switcher()}
         {Kati.Screens.MonthGrid.weekday_row(month)}
-        <Column fill_width={true} on_swipe_left={{self(), :swipe_month_left}} on_swipe_right={{self(), :swipe_month_right}}>
+        <Column
+          fill_width={true}
+          on_swipe_left={{self(), :swipe_month_left}}
+          on_swipe_right={{self(), :swipe_month_right}}
+        >
           {Kati.Screens.MonthGrid.grid(month)}
         </Column>
         {Kati.Screens.MonthGrid.legend(month.sections)}

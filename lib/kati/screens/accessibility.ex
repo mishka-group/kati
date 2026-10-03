@@ -98,7 +98,8 @@ defmodule Kati.Screens.Accessibility do
       "Text 115% · less motion · more contrast"
   """
   @spec summary(map()) :: String.t()
-  def summary(%{scale: :system, motion: false, contrast: false}), do: gettext("Follows your phone")
+  def summary(%{scale: :system, motion: false, contrast: false}),
+    do: gettext("Follows your phone")
 
   def summary(%{scale: scale, motion: motion?, contrast: contrast?}) do
     [
@@ -372,9 +373,23 @@ defmodule Kati.Screens.Accessibility do
     }
 
     ~MOB"""
-    <Box weight={1.0} height={64} corner_radius={18} background={@ground} on_tap={@tap} accessibility_label={@spoken}>
+    <Box
+      weight={1.0}
+      height={64}
+      corner_radius={18}
+      background={@ground}
+      on_tap={@tap}
+      accessibility_label={@spoken}
+    >
       <Column fill_width={true} fill_height={true} align="center" padding_top={10}>
-        <Text text="Aa" text_size={@sample} max_font_scale={1.0} font_weight="bold" text_color={@ink} max_lines={1} />
+        <Text
+          text="Aa"
+          text_size={@sample}
+          max_font_scale={1.0}
+          font_weight="bold"
+          text_color={@ink}
+          max_lines={1}
+        />
         <Spacer size={2} />
         <Text text={@label} text_size={11} max_font_scale={1.0} text_color={@quiet} max_lines={1} />
       </Column>
@@ -429,7 +444,10 @@ defmodule Kati.Screens.Accessibility do
     shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_card_soft(), contrast?)
 
     rows =
-      Enum.map(Kati.Screens.Accessibility.always_on(), &Kati.Screens.Accessibility.row(&1, contrast?))
+      Enum.map(
+        Kati.Screens.Accessibility.always_on(),
+        &Kati.Screens.Accessibility.row(&1, contrast?)
+      )
 
     ~MOB"""
     <Column fill_width={true}>
@@ -477,13 +495,28 @@ defmodule Kati.Screens.Accessibility do
   """
   def system_row do
     ~MOB"""
-    <Row fill_width={true} align="center" padding_top={13} padding_bottom={13} on_tap={{self(), :open_system}}>
+    <Row
+      fill_width={true}
+      align="center"
+      padding_top={13}
+      padding_bottom={13}
+      on_tap={{self(), :open_system}}
+    >
       {Kati.Screens.Accessibility.icon_tile("settings")}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text text={gettext("Android accessibility settings")} text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+        <Text
+          text={gettext("Android accessibility settings")}
+          text_size={13.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+        />
         <Spacer size={3} />
-        <Text text={gettext("TalkBack, font size, colour correction")} text_size={11.5} text_color={Palette.sub()} />
+        <Text
+          text={gettext("TalkBack, font size, colour correction")}
+          text_size={11.5}
+          text_color={Palette.sub()}
+        />
       </Column>
       <Spacer size={13} />
       {SettingsList.chevron()}

@@ -163,7 +163,11 @@ defmodule Kati.Screens.Week do
       >
         {Kati.Screens.Week.header(week)}
         {Kati.Screens.Week.switcher()}
-        <Column fill_width={true} on_swipe_left={{self(), :swipe_week_left}} on_swipe_right={{self(), :swipe_week_right}}>
+        <Column
+          fill_width={true}
+          on_swipe_left={{self(), :swipe_week_left}}
+          on_swipe_right={{self(), :swipe_week_right}}
+        >
           {Kati.Screens.Week.lanes(week)}
         </Column>
         {UI.eyebrow(label)}

@@ -425,13 +425,21 @@ defmodule Kati.Screens.Calendar do
       >
         {Kati.Screens.Calendar.header(date, rows, assigns.menu?)}
         {Kati.Screens.Calendar.month_row(date)}
-        <Column fill_width={true} on_swipe_left={{self(), :swipe_week_left}} on_swipe_right={{self(), :swipe_week_right}}>
+        <Column
+          fill_width={true}
+          on_swipe_left={{self(), :swipe_week_left}}
+          on_swipe_right={{self(), :swipe_week_right}}
+        >
           {Kati.Screens.Calendar.day_strip(date)}
         </Column>
         {Kati.Screens.Calendar.rule()}
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
-        <Column fill_width={true} on_swipe_left={{self(), :swipe_day_left}} on_swipe_right={{self(), :swipe_day_right}}>
+        <Column
+          fill_width={true}
+          on_swipe_left={{self(), :swipe_day_left}}
+          on_swipe_right={{self(), :swipe_day_right}}
+        >
           {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter), reason)}
         </Column>
         {Kati.Screens.Calendar.calendars_card(Map.get(assigns, :access, :unknown))}
@@ -686,7 +694,16 @@ defmodule Kati.Screens.Calendar do
     assigns = %{glyph: glyph, tap: {self(), tag}, label: label}
 
     ~MOB"""
-    <Box width={30} height={30} corner_radius={15} background={Palette.card()} shadow={Theme.shadow_card_soft()} align="center" on_tap={@tap} accessibility_label={@label}>
+    <Box
+      width={30}
+      height={30}
+      corner_radius={15}
+      background={Palette.card()}
+      shadow={Theme.shadow_card_soft()}
+      align="center"
+      on_tap={@tap}
+      accessibility_label={@label}
+    >
       {Kati.UI.symbol(@glyph, size: 18, color: Palette.ink_soft())}
     </Box>
     """

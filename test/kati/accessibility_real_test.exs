@@ -72,7 +72,11 @@ defmodule Kati.AccessibilityRealTest do
     test "every size is a tile, and the chosen one says so to TalkBack" do
       view = mount_screen(Accessibility)
 
-      assert Enum.all?([:text_size_system, :text_size_large, :text_size_larger], &(&1 in tags(view)))
+      assert Enum.all?(
+               [:text_size_system, :text_size_large, :text_size_larger],
+               &(&1 in tags(view))
+             )
+
       assert "Phone text, chosen" in heard(view)
       assert "Larger text" in heard(view)
     end
@@ -176,7 +180,7 @@ defmodule Kati.AccessibilityRealTest do
           # An `on_ink_*` token is drawn ON the ink fill, whose ground is dark
           # in light mode and light in dark, so its stronger step runs the
           # other way.
-          dark_ground? = (mode == :dark) != String.starts_with?(Atom.to_string(name), "on_ink")
+          dark_ground? = mode == :dark != String.starts_with?(Atom.to_string(name), "on_ink")
 
           stronger? =
             if opacity.(from) < 0xFF or opacity.(to) < 0xFF,

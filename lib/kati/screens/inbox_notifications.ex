@@ -689,7 +689,10 @@ defmodule Kati.Screens.InboxNotifications do
         Mob.Socket.push_screen(socket, Kati.Screens.Film, %{id: id, back: "Notifications"})
 
       {:ok, _series} ->
-        Mob.Socket.push_screen(socket, Kati.Screens.Series, %{tracked_id: id, back: "Notifications"})
+        Mob.Socket.push_screen(socket, Kati.Screens.Series, %{
+          tracked_id: id,
+          back: "Notifications"
+        })
 
       _gone ->
         socket
