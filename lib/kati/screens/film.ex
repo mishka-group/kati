@@ -462,6 +462,8 @@ defmodule Kati.Screens.Film do
       # whichever the cache says it is, so *This is a film* on an anime series
       # still means the right thing.
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
+      # The page this film has on the web, for Share (#123).
+      link: Kati.Media.Sharing.link(cached || tracked),
       actions: action_row()
     }
   end
@@ -1962,7 +1964,16 @@ defmodule Kati.Screens.Film do
   end
 
   def handle_info({:tap, :share_film}, socket) do
-    {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
+    film = socket.assigns.film
+
+    message =
+      Kati.Media.Sharing.message(
+        Kati.Screens.Film.share_line(Map.delete(film, :where_line)),
+        Map.get(film, :where_line),
+        Map.get(film, :link)
+      )
+
+    {:noreply, Kati.Media.Sharing.share(socket, message, Map.get(film, :seed))}
   end
 
   # Coming back from the log sheet, or from anything else pushed over this

@@ -1534,6 +1534,7 @@ object MobBridge {
         val name = args.optString("name", source.name)
         val mime = args.optString("mime", "application/octet-stream")
         val subject = args.optString("subject", name)
+        val caption = args.optString("text", "")
         if (!source.isFile) { katiFileError(pid, "source_missing"); return }
         pendingKatiFileName = name
 
@@ -1556,6 +1557,10 @@ object MobBridge {
                     type = mime
                     putExtra(Intent.EXTRA_STREAM, uri)
                     putExtra(Intent.EXTRA_SUBJECT, subject)
+                    // A caption beside the file (#123): the title, where it
+                    // streams and its link go with a shared poster.
+                    if (caption.isNotEmpty()) putExtra(Intent.EXTRA_TEXT, caption)
+                    clipData = android.content.ClipData.newRawUri(subject, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 activity.runOnUiThread {

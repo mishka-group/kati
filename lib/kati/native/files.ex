@@ -137,7 +137,8 @@ defmodule Kati.Native.Files do
   Open the system share sheet for `path`.
 
   Takes the same options as `save_as/2`, plus `:subject` — the title the sheet
-  shows and the subject line a mail app pre-fills.
+  shows and the subject line a mail app pre-fills — and `:text`, a caption sent
+  beside the file (a shared poster's title and link).
 
   Read the "Share cannot tell you whether the share happened" section of this
   module's docs before using this as a backup route. It is not one.
@@ -148,6 +149,7 @@ defmodule Kati.Native.Files do
       path
       |> request(opts)
       |> Map.put("subject", Keyword.get(opts, :subject, Path.basename(path)))
+      |> Map.put("text", Keyword.get(opts, :text, ""))
       |> then(&call(:file_share, &1))
     end
   end

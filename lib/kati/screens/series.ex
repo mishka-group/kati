@@ -1060,6 +1060,7 @@ defmodule Kati.Screens.Series do
             {Kati.Screens.Series.season_card(s, pct)}
             {Kati.Screens.Series.refusal(Map.get(assigns, :save_error))}
             {Kati.Screens.Series.actions(s)}
+            {Kati.Screens.Series.title_actions(s)}
             {Kati.Screens.TitlePreview.overview(Map.get(s, :overview))}
             {Kati.Screens.Series.episodes_header(s)}
             {Kati.Screens.Series.episodes(s)}
@@ -1657,6 +1658,24 @@ defmodule Kati.Screens.Series do
     """
   end
 
+  @doc """
+  The film page's own pills, on a show or an anime: *Share* sends its name,
+  where it streams, its link and its poster (#123). Nothing for a page with no
+  tracked title behind it.
+  """
+  def title_actions(%{tracked_id: id}) when is_binary(id) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row fill_width={true}>
+        {Kati.Screens.Film.action("ios_share", gettext("Share"), :share_title)}
+      </Row>
+    </Column>
+    """
+  end
+
+  def title_actions(_drawn), do: ~MOB"<Spacer size={0} />"
+
   # Chelekom's headless Action Icon. `shadow` is the prop that made it usable:
   # these two discs sit beside a 46pt ink button on paper, and with a flat fill
   # they read as holes in the row rather than as buttons next to it. The lift is
@@ -2250,6 +2269,13 @@ defmodule Kati.Screens.Series do
     do: {:noreply, Kati.Screens.Series.follow(socket)}
 
   # Board 334's door, over this page and carrying this show.
+  def handle_info({:tap, :share_title}, socket) do
+    case Kati.Media.Sharing.for_title(Map.get(socket.assigns.series || %{}, :tracked_id)) do
+      {message, seed} -> {:noreply, Kati.Media.Sharing.share(socket, message, seed)}
+      nil -> {:noreply, socket}
+    end
+  end
+
   def handle_info({:tap, :add_to_list}, socket) do
     series = socket.assigns.series || %{}
 
