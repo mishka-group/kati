@@ -1,6 +1,7 @@
 package com.example.kati
 
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -104,6 +105,12 @@ class AddByHandTest {
         kati.compose.waitUntil(20_000) { kati.present("add_by_hand") }
         kati.tap("add_by_hand")
         kati.compose.waitUntil(20_000) { kati.present("add") }
+
+        // The form arrives holding the search word as its title; how soon it
+        // is filled depends on the device, so it is emptied here.
+        kati.compose.waitUntil(10_000) { kati.present("title") }
+        kati.compose.onNodeWithTag("title", useUnmergedTree = true).performTextClearance()
+        kati.device.waitForIdle()
 
         kati.tap("add")
 
