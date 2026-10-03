@@ -145,8 +145,9 @@ defmodule Kati.Native.Links do
       iex> Kati.Native.Links.settings(:nowhere_in_particular)
       {:error, :unknown_destination}
   """
-  @spec settings(:battery | :notification_listener | :app) :: :ok | {:error, reason()}
-  def settings(which) when which in [:battery, :notification_listener, :app] do
+  @spec settings(:battery | :notification_listener | :app | :accessibility) ::
+          :ok | {:error, reason()}
+  def settings(which) when which in [:battery, :notification_listener, :app, :accessibility] do
     case Bridge.reply(:open_settings, [Atom.to_string(which)]) do
       {:ok, "ok"} -> :ok
       {:ok, "error:" <> reason} -> {:error, reason(reason)}

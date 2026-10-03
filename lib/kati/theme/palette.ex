@@ -407,6 +407,31 @@ defmodule Kati.Theme.Palette do
 
   @modes [:light, :dark]
 
+  @stronger %{
+    sub: :ink_soft,
+    meta: :ink_soft,
+    bar_ink: :ink_soft,
+    settled_ink: :ink_soft,
+    eyebrow: :ink_soft,
+    muted: :ink_soft,
+    segment_idle: :ink_soft,
+    tertiary: :ink_soft,
+    cream_sub: :cream_body,
+    cream_meta: :cream_body,
+    on_ink_muted: :on_ink_glyph,
+    on_ink_meta: :on_ink_glyph,
+    star_empty: :bar_ink,
+    bar_neutral: :bar_ink,
+    rail_idle: :bar_ink,
+    hairline: :track_ink,
+    hairline_soft: :track_ink,
+    hairline_strong: :track_ink,
+    border_soft: :track_ink,
+    border: :track_ink,
+    rule_full: :track_ink,
+    card_hairline: :border_strong
+  }
+
   # The page colour in dark, used to infer the mode from the active theme.
   # Stated here rather than read from `Kati.Theme` so this module owns its own
   # answer; `theme_agrees?/0` is the cross-check that they have not drifted.
@@ -566,6 +591,17 @@ defmodule Kati.Theme.Palette do
   # should; `Palette.card(:light)` is for the places that are deliberately one
   # mode, like screen 77's dark chart inside a light sheet.
 
+  @doc """
+  The token a quiet one is drawn as once *Increase contrast* is on.
+
+  Secondary text takes the second ink step, a cream card's quiet lines take
+  its body colour, and a hairline takes the 22% rule. Everything not listed
+  here is unchanged, and with the switch off nothing is: light mode keeps
+  every literal it had.
+  """
+  @spec stronger() :: %{atom() => atom()}
+  def stronger, do: @stronger
+
   for {name, light, dark, _source, meaning} <- @tokens do
     hex = fn value -> "0x" <> String.pad_leading(Integer.to_string(value, 16), 8, "0") end
 
@@ -574,7 +610,15 @@ defmodule Kati.Theme.Palette do
 
     Light `#{hex.(light)}` · dark `#{hex.(dark)}`.
     """
-    def unquote(name)(), do: token(unquote(name), mode())
+    if Map.has_key?(@stronger, name) do
+      def unquote(name)() do
+        if Kati.Accessibility.contrast?(),
+          do: token(unquote(Map.fetch!(@stronger, name)), mode()),
+          else: token(unquote(name), mode())
+      end
+    else
+      def unquote(name)(), do: token(unquote(name), mode())
+    end
 
     @doc false
     def unquote(name)(mode) when mode in unquote(@modes), do: token(unquote(name), mode)

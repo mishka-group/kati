@@ -1939,6 +1939,7 @@ object MobBridge {
             "notification_listener" ->
                 android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
             "app" -> android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            "accessibility" -> android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
             else -> return "error:unknown_destination"
         }
 

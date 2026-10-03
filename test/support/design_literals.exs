@@ -632,6 +632,19 @@ defmodule Kati.DesignLiterals do
       {"41", "episode row"},
       {"41",
        "“episode 6, the undertow. 55 minutes. airs 20 august. not watched. double-tap to mark watched.”"},
+      # #119 made the page the controls it described. The *Built in* legend
+      # of ticks (VoiceOver, Dynamic Type, Reduce motion …) read as settings
+      # and changed nothing; it is a Text size picker, a Reduce motion switch
+      # and an Increase contrast switch now, with three statements under
+      # *Always on*. Android has TalkBack, not VoiceOver, and the largest-sizes
+      # note became the text size's own line.
+      {"41",
+       "at the largest sizes, rows become stacks and icon-only buttons grow labels. nothing truncates — cards get taller instead."},
+      {"41", "built in"},
+      {"41", "voiceover"},
+      {"41", "every control labelled · posters described"},
+      {"41", "dynamic type"},
+      {"41", "cross-fades instead of slides"},
       {"24", "follows system · up to 235%"},
       {"24", "synced 2 min ago"},
       {"24", "1,204 entries · 4 sections"},

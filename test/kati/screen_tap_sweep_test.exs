@@ -148,6 +148,13 @@ defmodule Kati.ScreenTapSweepTest do
             ~w(goals expenses health_readings health_doses health_medications tracked_titles cached_titles music_tracks music_listens music_albums music_artists) do
         Kati.Repo.query!("DELETE FROM " <> table, [])
       end
+
+      # Screen 41's tiles and switches write `Kati.Accessibility` (#119), and
+      # the sweep presses all of them. Left on, *Increase contrast* repaints
+      # every later file's greys one step darker.
+      for key <- [:reduce_motion, :high_contrast], do: Mob.State.put(key, false)
+      Mob.State.put(:text_scale, :system)
+      Kati.Accessibility.forget()
     end)
 
     :ok
@@ -432,6 +439,13 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.OriginalTitlesTest`, which asserts the stored choice moves and the
     # film and series headers follow it.
     {Kati.Screens.Language, :toggle_original_titles},
+    # Screen 41's text size tiles write `Kati.Accessibility` to `Mob.State`
+    # (#119) — the same blind spot. Whichever tile is lit is the size already
+    # chosen, and that depends on what an earlier tap in the sweep stored.
+    # Covered by `Kati.AccessibilityRealTest`.
+    {Kati.Screens.Accessibility, :text_size_system},
+    {Kati.Screens.Accessibility, :text_size_large},
+    {Kati.Screens.Accessibility, :text_size_larger},
     # ── Drawn, reachable, and pushing nothing because the design draws no
     # destination. Screen 66's series row ends in `Next: Low Water` and its
     # ownership row in `Due 27 Aug`; both carry a chevron, and neither a

@@ -313,12 +313,28 @@ defmodule Kati.ScreenSweep do
   """
   @spec rolled_back((-> result)) :: result when result: term()
   def rolled_back(fun) when is_function(fun, 0) do
-    {:error, {:rolled_back, result}} =
-      Kati.Repo.transaction(fn -> Kati.Repo.rollback({:rolled_back, fun.()}) end,
-        timeout: :timer.minutes(5)
-      )
+    display = {
+      Kati.Accessibility.reduce_motion?(),
+      Kati.Accessibility.text_scale(),
+      Kati.Accessibility.contrast?()
+    }
 
-    result
+    try do
+      {:error, {:rolled_back, result}} =
+        Kati.Repo.transaction(fn -> Kati.Repo.rollback({:rolled_back, fun.()}) end,
+          timeout: :timer.minutes(5)
+        )
+
+      result
+    after
+      # Screen 41's switches write `Mob.State`, not a table, so the rollback
+      # does not reach them; a sweep that pressed *Increase contrast* would
+      # otherwise repaint every later file's greys (#119).
+      {motion, scale, contrast} = display
+      :ok = Kati.Accessibility.put_reduce_motion(motion)
+      :ok = Kati.Accessibility.put_text_scale(scale)
+      :ok = Kati.Accessibility.put_contrast(contrast)
+    end
   end
 
   @doc """

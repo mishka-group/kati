@@ -1693,6 +1693,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # (A5); `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is the twin.
     {"41", "play_arrow"},
     {"41", "contrast"},
+    # #119: the `⋯` disc opened nothing, the note's `info` glyph went with the
+    # note, and `format_size` belonged to the Dynamic Type tick row.
+    {"41", "more_horiz"},
+    {"41", "info"},
+    {"41", "format_size"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"},

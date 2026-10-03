@@ -528,6 +528,9 @@ defmodule Kati.Screens.Settings do
       %{id: "reduce_motion"} = row ->
         %{row | control: {:switch, Kati.Accessibility.reduce_motion?()}}
 
+      %{id: "text_size"} = row ->
+        %{row | sub: Kati.Screens.Accessibility.scale_label(Kati.Accessibility.text_scale())}
+
       row ->
         row
     end)
@@ -917,6 +920,16 @@ defmodule Kati.Screens.Settings do
     </Row>
     """
   end
+
+  @doc """
+  Back from a page this one opened: read the rows again. Screen 41 writes the
+  same Reduce motion and text size these rows show, and a pop paints the
+  resident screen, so without this the row would still say what it said
+  before the reader changed it (#119).
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @impl true
   def handle_tap(tag, socket) do

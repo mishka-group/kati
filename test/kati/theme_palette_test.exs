@@ -271,13 +271,13 @@ defmodule Kati.Theme.PaletteTest do
     # ── The table holds this value only as a DARK one ────────────────────
     # `muted`, `segment_idle` and `tertiary` all land on `0xFF6A6560` in dark
     # and none of them is it in light, so no zero-arity token resolves to it on
-    # a light screen. `accessibility.ex` and `widgets.ex` reach for it
-    # deliberately — both draw an INVERTED card inside a light drawing and want
+    # a light screen. `widgets.ex` reaches for it
+    # deliberately — it draws an INVERTED card inside a light drawing and wants
     # a dark-mode neutral on it — and each says so at the call site.
     # `plans.ex` does the same thing on 49's active card and says nothing;
     # that one is a comment away from being the same decision.
     # Answering this properly means a new token, not a substitution.
-    0xFF6A6560 => {:dark_only, ~w(accessibility home_dark plans widgets)},
+    0xFF6A6560 => {:dark_only, ~w(home_dark plans widgets)},
 
     # ── One literal, several meanings ────────────────────────────────────
     # These are the declared `@light_collisions` above: more than one token has

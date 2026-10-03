@@ -148,7 +148,20 @@ defmodule Kati.Theme do
       Mob.Theme.set(Kati.Theme.current())
   """
   @spec current() :: Mob.Theme.t()
-  def current, do: for_mode(mode())
+  def current, do: mode() |> for_mode() |> contrast(Kati.Accessibility.contrast?())
+
+  @doc """
+  The theme with *Increase contrast* applied: the `:muted` slot takes the
+  second ink step, as `Kati.Theme.Palette.stronger/0` does for the tokens.
+  Off, the theme is returned untouched.
+  """
+  @spec contrast(Mob.Theme.t(), boolean()) :: Mob.Theme.t()
+  def contrast(theme, false), do: theme
+
+  def contrast(%{background: @paper_dark} = theme, true),
+    do: %{theme | muted: Kati.Theme.Palette.ink_soft(:dark)}
+
+  def contrast(theme, true), do: %{theme | muted: @ink_soft}
 
   @doc """
   Make the resolved palette the active one.

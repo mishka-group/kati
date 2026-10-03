@@ -351,6 +351,11 @@ defmodule Kati.ScreenDesignLiteralTest do
     # see `retired_lines/0`'s board-41 entry (A5).
     {"41", "play_arrow"},
     {"41", "contrast"},
+    # #119: the `⋯` disc opened nothing, the note's `info` glyph went with the
+    # note, and `format_size` belonged to the Dynamic Type tick row.
+    {"41", "more_horiz"},
+    {"41", "info"},
+    {"41", "format_size"},
     # Board 39's deleted tiles and shortcut rows — see `retired_lines/0`.
     {"39", "add"},
     {"39", "bolt"},

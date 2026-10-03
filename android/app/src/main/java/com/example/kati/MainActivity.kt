@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.LayoutDirection
 // KATI-END(K-12 rtl-imports)
 // KATI-BEGIN(K-72 display-imports) mob_new=0.6.3
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 // KATI-END(K-72 display-imports)
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -776,9 +778,23 @@ private fun MobNavHost(state: RootState) {
                 val face = node.props["font_family"] as? String
                 // KATI-END(K-48 locale-face-root)
 
+                // KATI-BEGIN(K-72 display-text-scale) mob_new=0.6.3
+                // Kati's own text size, multiplied onto the phone's: the root
+                // node's `text_scale` (1.0, 1.15 or 1.3, `Kati.Accessibility`).
+                // A Text's `max_font_scale` still caps the result, so titles
+                // grow less than body text, as they do for the system setting.
+                val baseDensity = LocalDensity.current
+                val textScale = (node.props["text_scale"] as? Number)?.toFloat() ?: 1f
+                val density = if (textScale == 1f) baseDensity
+                    else Density(baseDensity.density, baseDensity.fontScale * textScale)
+                // KATI-END(K-72 display-text-scale)
+
                 CompositionLocalProvider(
                     MobBridge.LocalSlotEpoch provides state.navKey,
                     LocalLayoutDirection provides direction,
+                    // KATI-BEGIN(K-72 display-density) mob_new=0.6.3
+                    LocalDensity provides density,
+                    // KATI-END(K-72 display-density)
                     // KATI-BEGIN(K-48 locale-face-provide) mob_new=0.4.33
                     LocalKatiFace provides face,
                     // KATI-END(K-48 locale-face-provide)

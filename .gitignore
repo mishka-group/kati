@@ -74,3 +74,4 @@ android/*.keystore
 
 # bin/release_android.sh output.
 /dist/
+android/.kotlin/

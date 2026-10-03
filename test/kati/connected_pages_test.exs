@@ -225,9 +225,9 @@ defmodule Kati.ConnectedPagesTest do
       assert {:error, :unknown_destination} = Kati.Native.Links.settings(:anything_at_all)
       assert {:error, :unknown_destination} = Kati.Native.Links.settings("battery")
 
-      # On a host there is no bridge, so the three real destinations refuse
+      # On a host there is no bridge, so the four real destinations refuse
       # with the honest reason rather than the unknown-word one.
-      for which <- [:battery, :notification_listener, :app] do
+      for which <- [:battery, :notification_listener, :app, :accessibility] do
         assert {:error, :no_bridge} = Kati.Native.Links.settings(which)
       end
     end
