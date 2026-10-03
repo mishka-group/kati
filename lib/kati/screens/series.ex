@@ -681,6 +681,8 @@ defmodule Kati.Screens.Series do
       # would say how the row got here rather than where you are in it". One
       # more fact this map used to forget.
       status: Map.get(facts, :status),
+      # The next watch scheduled for this show, if any (#124).
+      scheduled: Kati.Calendars.Scheduled.next(Map.get(facts, :tracked_id)),
       title: facts.title || gettext("Untitled"),
       original: Map.get(facts, :original),
       overview: Map.get(facts, :overview),
@@ -1270,6 +1272,40 @@ defmodule Kati.Screens.Series do
   def season_pill_label(label), do: label
 
   @doc """
+  What Quick Add opens with for a show: *Watch Dark S2E6*, the next episode
+  the reader has not seen, or the show alone when there is none.
+
+      iex> Kati.Screens.Series.schedule_sentence(%{title: "Dark", season: 2, episodes: [%{n: 6, watched: false}]})
+      "Watch Dark S2E6"
+      iex> Kati.Screens.Series.schedule_sentence(%{title: "Dark", episodes: []})
+      "Watch Dark"
+  """
+  @spec schedule_sentence(map()) :: String.t()
+  def schedule_sentence(series) do
+    title = Map.get(series, :title, "")
+
+    with position when is_integer(position) <- Kati.Screens.Series.next_unwatched(series),
+         %{n: n} <- Enum.at(Map.get(series, :episodes, []), position),
+         season when is_integer(season) <- Kati.Screens.Series.season_number(series) do
+      gettext("Watch %{title} S%{s}E%{e}", title: title, s: season, e: n)
+    else
+      _no_episode -> gettext("Watch %{title}", title: title)
+    end
+  end
+
+  @doc false
+  def season_number(%{season: n}) when is_integer(n), do: n
+
+  def season_number(%{current_season: "S" <> digits}) do
+    case Integer.parse(digits) do
+      {n, ""} -> n
+      _other -> nil
+    end
+  end
+
+  def season_number(_series), do: nil
+
+  @doc """
   The primary button's word: the episode it would tick, by number.
 
       iex> Kati.Screens.Series.mark_next_label(%{episodes: []})
@@ -1659,15 +1695,20 @@ defmodule Kati.Screens.Series do
   end
 
   @doc """
-  The film page's own pills, on a show or an anime: *Share* sends its name,
+  The film page's own pills, on a show or an anime: *Schedule* — or, once a
+  watch is scheduled, when it is (#124) — and *Share*, which sends its name,
   where it streams, its link and its poster (#123). Nothing for a page with no
   tracked title behind it.
   """
-  def title_actions(%{tracked_id: id}) when is_binary(id) do
+  def title_actions(%{tracked_id: id} = s) when is_binary(id) do
+    {icon, label, tag} = Kati.Screens.Film.schedule_pill(Map.get(s, :scheduled))
+
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={12} />
       <Row fill_width={true}>
+        {Kati.Screens.Film.action(icon, label, tag)}
+        {Kati.Screens.Film.action_gap()}
         {Kati.Screens.Film.action("ios_share", gettext("Share"), :share_title)}
       </Row>
     </Column>
@@ -2269,6 +2310,31 @@ defmodule Kati.Screens.Series do
     do: {:noreply, Kati.Screens.Series.follow(socket)}
 
   # Board 334's door, over this page and carrying this show.
+  def handle_info({:tap, :schedule_watch}, socket) do
+    s = socket.assigns.series || %{}
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.QuickAdd, %{
+       sentence: Kati.Screens.Series.schedule_sentence(s) <> " ",
+       tracked_id: Map.get(s, :tracked_id)
+     })}
+  end
+
+  def handle_info({:tap, :open_schedule}, socket) do
+    case Kati.Calendars.Scheduled.next(Map.get(socket.assigns.series || %{}, :tracked_id)) do
+      nil ->
+        {:noreply, socket}
+
+      event ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:menu?, false)
+         |> Mob.Socket.push_screen(Kati.Screens.EventDetail, %{id: event.id})}
+    end
+  end
+
   def handle_info({:tap, :share_title}, socket) do
     case Kati.Media.Sharing.for_title(Map.get(socket.assigns.series || %{}, :tracked_id)) do
       {message, seed} -> {:noreply, Kati.Media.Sharing.share(socket, message, seed)}

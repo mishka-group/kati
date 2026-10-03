@@ -431,9 +431,11 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   def handle_info({:tap, :commit}, socket) do
-    case Kati.Screens.QuickAdd.commit(socket.assigns.draft, socket.assigns.filed_as) do
-      {:ok, _event} ->
-        {:noreply, Kati.Screens.Resume.pop(socket)}
+    tracked_id = Map.get(socket.assigns.params || %{}, :tracked_id)
+
+    case Kati.Screens.QuickAdd.commit(socket.assigns.draft, socket.assigns.filed_as, tracked_id) do
+      {:ok, event} ->
+        {:noreply, socket |> Kati.Screens.QuickAdd.arm(event) |> Kati.Screens.Resume.pop()}
 
       {:error, reason} ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
@@ -509,10 +511,10 @@ defmodule Kati.Screens.QuickAdd do
   place it is enforced. The drawing is refused for the same reason it refuses
   everything: there is no sentence behind it.
   """
-  @spec commit(map()) :: {:ok, struct()} | {:error, term()}
-  def commit(draft, filed_as \\ :event)
+  @spec commit(map(), atom(), String.t() | nil) :: {:ok, struct()} | {:error, term()}
+  def commit(draft, filed_as \\ :event, tracked_id \\ nil)
 
-  def commit(%{read: read}, filed_as) do
+  def commit(%{read: read}, filed_as, tracked_id) do
     if Kati.QuickAdd.Parse.committable?(read) do
       zone = Kati.Time.device_zone()
       time = read.time || ~T[00:00:00]
@@ -532,7 +534,13 @@ defmodule Kati.Screens.QuickAdd do
         tzid: zone,
         is_all_day: read.time == nil,
         dtend_utc: read.minutes && DateTime.add(starts, read.minutes * 60, :second),
-        duration_iso: read.minutes && "PT#{read.minutes}M"
+        duration_iso: read.minutes && "PT#{read.minutes}M",
+        # #124: a Schedule from a title page names its title, and reminds at
+        # the start unless the sentence asked for another time. A sentence's
+        # own *remind 1h before* is kept for any event — it used to be read
+        # and dropped.
+        tracked_title_id: tracked_id,
+        alarm_minutes: read.remind || if(tracked_id && read.time, do: 0)
       }
       |> then(&Ash.create(Kati.Calendars.Event, &1))
       |> Kati.Write.note("quick add")
@@ -541,7 +549,25 @@ defmodule Kati.Screens.QuickAdd do
     end
   end
 
-  def commit(_drawn, _filed_as), do: Kati.Write.note({:error, :nothing_to_save}, "quick add")
+  def commit(_drawn, _filed_as, _tracked_id),
+    do: Kati.Write.note({:error, :nothing_to_save}, "quick add")
+
+  @doc """
+  After a save with a reminder: arm it, and ask for the permission a
+  notification needs if it has never been asked (#124).
+  """
+  @spec arm(Mob.Socket.t(), struct()) :: Mob.Socket.t()
+  def arm(socket, %{alarm_minutes: minutes}) when is_integer(minutes) do
+    Kati.Notifications.Reminders.sync_later()
+
+    if Kati.Permissions.status(:notifications) == :unasked,
+      do: Mob.Permissions.request(socket, :notifications),
+      else: socket
+  rescue
+    _no_bridge -> socket
+  end
+
+  def arm(socket, _no_reminder), do: socket
 
   @doc """
   The calendar a quick-added event goes on: the reader's own local one.

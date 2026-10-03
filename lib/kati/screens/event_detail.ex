@@ -190,6 +190,8 @@ defmodule Kati.Screens.EventDetail do
     %{
       id: event.id,
       title: event.summary || gettext("Untitled"),
+      tracked_id: event.tracked_title_id,
+      alarm_minutes: event.alarm_minutes,
       sections: [],
       fields: stored_fields(event, zone),
       clash: nil
@@ -200,8 +202,61 @@ defmodule Kati.Screens.EventDetail do
   # is a row the reader can see is not there; a row kept and filled with the
   # drawing's words is one they cannot.
   defp stored_fields(event, zone) do
-    Enum.reject([when_field(event, zone), zone_field(event), place_field(event)], &is_nil/1)
+    Enum.reject(
+      [
+        title_field(event),
+        when_field(event, zone),
+        reminder_field(event),
+        zone_field(event),
+        place_field(event)
+      ],
+      &is_nil/1
+    )
   end
+
+  # #124: the title a scheduled watch was made for, opening it.
+  defp title_field(%Event{tracked_title_id: id}) when is_binary(id) do
+    case Ash.get(Kati.Media.TrackedTitle, id) do
+      {:ok, tracked} ->
+        cached = Kati.Media.Release.cached_for(tracked)
+
+        name =
+          case cached do
+            %{title: title} when is_binary(title) and title != "" -> title
+            _none -> tracked.source_id
+          end
+
+        %{
+          icon: if(tracked.kind == :movie, do: "movie", else: "live_tv"),
+          title: name,
+          sub: gettext("Open its page"),
+          trailing: nil,
+          tap: :open_title
+        }
+
+      _gone ->
+        nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  defp title_field(_event), do: nil
+
+  # #124: when to be reminded. A tap moves to the next choice and writes it.
+  defp reminder_field(%Event{is_all_day: true}), do: nil
+
+  defp reminder_field(%Event{dtstart_utc: %DateTime{}} = event) do
+    %{
+      icon: "notifications",
+      title: gettext("Reminder"),
+      sub: Kati.Notifications.Reminders.label(event.alarm_minutes),
+      trailing: {:value, gettext("Change")},
+      tap: :cycle_reminder
+    }
+  end
+
+  defp reminder_field(_event), do: nil
 
   # An all-day event is date-valued and has no clock — `dtstart_date` is the
   # column, and reading `dtstart_utc` for it would be reading a nil.
@@ -686,6 +741,7 @@ defmodule Kati.Screens.EventDetail do
   def field_tap(%{trailing: {:switch, _on?}, title: title}),
     do: {self(), String.to_atom("switch_" <> title)}
 
+  def field_tap(%{tap: tag}) when is_atom(tag), do: {self(), tag}
   def field_tap(_row), do: nil
 
   # No trailing at all — an all-day event has no length to put on the right of
@@ -884,6 +940,20 @@ defmodule Kati.Screens.EventDetail do
   def handle_info({:tap, :delete_event}, socket),
     do: {:noreply, Kati.Screens.EventDetail.delete_event(socket)}
 
+  def handle_info({:tap, :cycle_reminder}, socket),
+    do: {:noreply, Kati.Screens.EventDetail.cycle_reminder(socket)}
+
+  def handle_info({:tap, :open_title}, socket) do
+    with id when is_binary(id) <- Map.get(socket.assigns.event, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id) do
+      module = if tracked.kind == :movie, do: Kati.Screens.Film, else: Kati.Screens.Series
+      key = if tracked.kind == :movie, do: :id, else: :tracked_id
+      {:noreply, Mob.Socket.push_screen(socket, module, %{key => id})}
+    else
+      _gone -> {:noreply, socket}
+    end
+  end
+
   # One clause for every chip and every switch on the screen: the tag carries
   # the label, so a third section or a second switch is a change to the event
   # rather than to this file.
@@ -960,6 +1030,29 @@ defmodule Kati.Screens.EventDetail do
   end
 
   @doc """
+  Move the reminder to the next choice — none, at the start, 10 minutes, an
+  hour — write it, and arm what the platform should now hold (#124).
+  """
+  @spec cycle_reminder(Mob.Socket.t()) :: Mob.Socket.t()
+  def cycle_reminder(socket) do
+    with id when is_binary(id) <- Map.get(socket.assigns.event, :id),
+         {:ok, stored} <- Ash.get(Event, id),
+         {:ok, _saved} <-
+           stored
+           |> Ash.update(%{alarm_minutes: Kati.Notifications.Reminders.next(stored.alarm_minutes)})
+           |> Kati.Write.note("event reminder") do
+      Kati.Notifications.Reminders.sync_later()
+      Mob.Socket.assign(socket, :event, Kati.Screens.EventDetail.event(%{id: id}))
+    else
+      _no_write -> socket
+    end
+  rescue
+    error ->
+      Kati.Write.note({:error, error}, "event reminder")
+      socket
+  end
+
+  @doc """
   Tombstone this event and leave.
 
   `:soft_delete` rather than `:destroy`, which is the resource's own decision
@@ -976,6 +1069,7 @@ defmodule Kati.Screens.EventDetail do
          {:ok, stored} <- Ash.get(Event, id),
          {:ok, _tombstone} <-
            Kati.Write.note(Ash.update(stored, %{}, action: :soft_delete), "event delete") do
+      Kati.Notifications.Reminders.sync_later()
       Kati.Screens.Resume.pop(socket)
     else
       _no_write -> socket

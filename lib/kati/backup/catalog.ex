@@ -118,7 +118,11 @@ defmodule Kati.Backup.Catalog do
   #     show's episodes counted (screens 34 and 153). Nothing moves, for 10's
   #     reason — a version-18 row takes `NULL`, *I have not said*, and inherits
   #     `Kati.Media.Numbering.default/1`, which is what that device showed.
-  @schema_version 19
+  #   * **20** — `events` gained `tracked_title_id` and `alarm_minutes` (#124):
+  #     the title a scheduled watch is for, and its reminder. Nothing moves —
+  #     a version-19 row takes `NULL` for both, an event with no title and no
+  #     reminder, which is what every event was on that device.
+  @schema_version 20
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

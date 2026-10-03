@@ -139,6 +139,12 @@ defmodule Kati.Calendars.Event do
     attribute :remote_etag, :string, public?: true
     attribute :deleted_at, :utc_datetime_usec, public?: true
 
+    # #124. The title a Schedule on a film, show or anime page was made for,
+    # and how many minutes before the start to remind (0 at the start, nil for
+    # no reminder). Both nil on every event that is not a scheduled watch.
+    attribute :tracked_title_id, :string, public?: true
+    attribute :alarm_minutes, :integer, public?: true
+
     attribute :sync_state, :atom,
       allow_nil?: false,
       default: :local_only,

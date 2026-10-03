@@ -139,7 +139,10 @@ defmodule Kati.Backup.Upgrade do
       # `tracked_titles` gained `numbering`. Nothing moves: a version-18 row
       # takes `NULL` — no choice made — and follows the default numbering,
       # which is what the device it came off showed.
-      {18, 19, &unchanged/1}
+      {18, 19, &unchanged/1},
+      # `events` gained `tracked_title_id` and `alarm_minutes`. Nothing moves:
+      # a version-19 row takes `NULL` for both — no title, no reminder.
+      {19, 20, &unchanged/1}
     ]
 
   @doc """

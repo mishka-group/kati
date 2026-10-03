@@ -220,6 +220,12 @@ defmodule Kati.App do
         end
       end)
 
+    # What the reader scheduled, armed again from the stored events (#124).
+    _reminded =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        Kati.Notifications.Reminders.sync()
+      end)
+
     # A shelf Remove whose undo window the app closed inside (#120).
     _removed =
       Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->

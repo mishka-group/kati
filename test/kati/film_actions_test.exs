@@ -52,8 +52,12 @@ defmodule Kati.FilmActionsTest do
 
       {:noreply, pushed} = Film.handle_info({:tap, :schedule_watch}, socket)
 
-      assert {:push, Kati.Screens.QuickAdd, %{sentence: "Watch Dune"}} =
+      # A trailing space so the reader types the WHEN straight after, and the
+      # title, so the saved event knows what it is for (#124).
+      assert {:push, Kati.Screens.QuickAdd, %{sentence: "Watch Dune ", tracked_id: id}} =
                Map.get(pushed.__mob__, :nav_action)
+
+      assert id == tracked.id
     end
 
     test "and closes the menu on the way, so it is not open on the way back" do

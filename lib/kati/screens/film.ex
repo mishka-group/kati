@@ -109,13 +109,23 @@ defmodule Kati.Screens.Film do
   # — and `Kati.Screens.MedicationDetail` holds a third under a context of its
   # own. This one is the VERB: pressing it schedules a watch, and Persian does
   # not say the two with one word. One word, three jobs, three entries.
-  defp action_row do
+  @doc false
+  def action_row(scheduled \\ nil) do
     [
       {"bookmarks", gettext("Add to list"), :add_to_list},
-      {"event", pgettext("film action pill", "Schedule"), :schedule_watch},
+      Kati.Screens.Film.schedule_pill(scheduled),
       {"ios_share", gettext("Share"), :share_film}
     ]
   end
+
+  @doc """
+  *Schedule*, or — once a watch is scheduled — when it is, opening that event
+  so it can be moved, given another reminder, or deleted (#124).
+  """
+  def schedule_pill(nil), do: {"event", pgettext("film action pill", "Schedule"), :schedule_watch}
+
+  def schedule_pill(event),
+    do: {"event_available", Kati.Calendars.Scheduled.label(event), :open_schedule}
 
   @doc """
   What the first pill says, which depends on whether you have seen it.
@@ -464,7 +474,7 @@ defmodule Kati.Screens.Film do
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       # The page this film has on the web, for Share (#123).
       link: Kati.Media.Sharing.link(cached || tracked),
-      actions: action_row()
+      actions: Kati.Screens.Film.action_row(Kati.Calendars.Scheduled.next(tracked.id))
     }
   end
 
@@ -1865,8 +1875,22 @@ defmodule Kati.Screens.Film do
      socket
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.push_screen(Kati.Screens.QuickAdd, %{
-       sentence: gettext("Watch %{title}", title: socket.assigns.film.title)
+       sentence: gettext("Watch %{title}", title: socket.assigns.film.title) <> " ",
+       tracked_id: Map.get(socket.assigns.film, :tracked_id)
      })}
+  end
+
+  def handle_info({:tap, :open_schedule}, socket) do
+    case Kati.Calendars.Scheduled.next(Map.get(socket.assigns.film, :tracked_id)) do
+      nil ->
+        {:noreply, socket}
+
+      event ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:menu?, false)
+         |> Mob.Socket.push_screen(Kati.Screens.EventDetail, %{id: event.id})}
+    end
   end
 
   # Mark this film private, or unmark it — the one write behind screen 98's
