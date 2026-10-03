@@ -1213,6 +1213,33 @@ defmodule Kati.DesignLiterals do
       # library, and no real shelf answers them. Board 145 retired the same
       # numbers one line above.
       {"146", "41 of 418 \u00b7 recently added"},
+      # #120 rebuilt 146 as the selection it is: the Library's own chips and
+      # grid, a header with the count, and an action bar. The board's stills
+      # around the live bar — the resting header, the frozen ONE SELECTED bar,
+      # the Removed 4 titles pill and the two notes about the board — are not
+      # drawn, and a tile's line is the Library's own (`watching`, `finished`)
+      # rather than the board's `S2 · 5/7` and `done`.
+      {"146", "resting header \u{2014} sort persists and says so"},
+      {"146", "library"},
+      {"146", "sort"},
+      {"146", "persists"},
+      {"146", "between visits \u{2014} resetting it every time is annoying \u{2014} so the mono line names it. a silent persistent sort is the confusing option; a named one is not."},
+      {"146", "one selected"},
+      {"146", "1 selected"},
+      {"146", "four selected"},
+      {"146", "actions apply to all four"},
+      {"146", "s2 \u00b7 5/7"},
+      {"146", "s1 \u00b7 3/8"},
+      {"146", "done"},
+      {"146", "removed 4 titles"},
+      {"146", "undo"},
+      {"146", "selection survives a filter change."},
+      {"146", "filter four selected titles out of view and the header keeps reading"},
+      {"146", "with a \u{201C}2 hidden by filters\u{201D} note \u{2014} silently dropping a selection loses work the user already did. gesture rule: long press a"},
+      {"146", "tile"},
+      {"146", "selects; long press an"},
+      {"146", "episode row"},
+      {"146", "rates. also on"},
       {"145", "ranges are"},
       {"145", "chip buckets"},
       {"145",

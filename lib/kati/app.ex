@@ -220,6 +220,12 @@ defmodule Kati.App do
         end
       end)
 
+    # A shelf Remove whose undo window the app closed inside (#120).
+    _removed =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        Kati.Screens.ShelfSelection.finalize_pending()
+      end)
+
     case Kati.Background.Handoff.drain() do
       [] -> :ok
       runs -> :mob_nif.log("Kati: drained #{length(runs)} background refresh runs")

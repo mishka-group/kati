@@ -156,11 +156,19 @@ defmodule Kati.Screens.Library do
   wholesale would do exactly that. Screen 01 has no such state and reloads
   whole.
   """
+  # A long press arrives as `{:long_press, tag}`, which `Kati.Screens.Root`
+  # does not route; a tile's is `select_<id>` and opens selection (#120).
   @impl true
-  def handle_kati(topic, _payload, socket) when topic in [:resumed, :title_filled],
-    do:
-      {:noreply,
-       Mob.Socket.assign(socket, titles: titles(), queued: queued(), lists: lists_kept())}
+  def handle_info({:long_press, tag}, socket) when is_atom(tag), do: handle_tap(tag, socket)
+  def handle_info(message, socket), do: super(message, socket)
+
+  @impl true
+  def handle_kati(topic, _payload, socket) when topic in [:resumed, :title_filled] do
+    # Back from selection: a Remove whose Undo was never pressed is final now.
+    if topic == :resumed, do: Kati.Screens.ShelfSelection.finalize_pending()
+
+    {:noreply, Mob.Socket.assign(socket, titles: titles(), queued: queued(), lists: lists_kept())}
+  end
 
   # The title `Kati.Screens.AddByHand` just wrote, opened. Through
   # `handle_kati/3` — the topic-addressed hook `Kati.Screens.Root` already
@@ -1623,18 +1631,26 @@ defmodule Kati.Screens.Library do
     # draws them as two different screens, so the grid has to know which. The
     # title comes with it because two films are two nodes: see `poster_tag/1`.
     tap = {self(), Kati.Screens.Library.poster_tag(item)}
+    hold =
+      case Kati.Screens.Library.hold_tag(item) do
+        nil -> nil
+        tag -> {self(), tag}
+      end
+    ring = if Map.get(item, :picked) == true, do: 2, else: 0
 
     # Weighted rather than 112 wide: three equal shares of the real content
     # width fill the row on any device, where a fixed 112 only fills the
     # drawing's frame.
     ~MOB"""
-    <Column weight={1.0} on_tap={tap}>
+    <Column weight={1.0} on_tap={tap} on_long_press={hold}>
       <Box
         fill_width={true}
         height={158}
         corner_radius={13}
         background={Palette.placeholder()}
         shadow={Kati.Theme.shadow_card_soft()}
+        border_width={ring}
+        border_color={Palette.ink()}
       >
         {Kati.Screens.Library.artwork(item)}
         <Box fill_width={true} fill_height={true} align="bottom">
@@ -1697,7 +1713,60 @@ defmodule Kati.Screens.Library do
     """
   end
 
+  def pick_mark(%{picked: picked?}) when is_boolean(picked?) do
+    {fill, glyph} =
+      if picked?,
+        do: {Palette.ink_fill(), "check"},
+        else: {Palette.scrim_soft(), nil}
+
+    assigns = %{fill: fill, glyph: glyph}
+
+    ~MOB"""
+    <Box fill_width={true} fill_height={true} align="top_trailing" padding={7}>
+      <Box
+        width={26}
+        height={26}
+        corner_radius={13}
+        background={@fill}
+        border_width={2}
+        border_color={Palette.on_ink()}
+        shadow={Kati.Theme.shadow_button()}
+        align="center"
+      >
+        {Kati.Screens.Library.pick_glyph(@glyph)}
+      </Box>
+    </Box>
+    """
+  end
+
   def pick_mark(_shelf_tile), do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  def pick_glyph(nil), do: ~MOB"<Spacer size={0} />"
+  def pick_glyph(glyph), do: Kati.UI.symbol(glyph, size: 15, color: Palette.on_ink())
+
+  @doc """
+  The long-press tag a shelf tile carries: select this title (#120).
+
+  Only the shelf's own tiles, with a real id: a picker's tile (`:in_list`,
+  `:picked`) already answers a tap with a toggle, and a drawn tile has no row
+  to select.
+
+      iex> Kati.Screens.Library.hold_tag(%{id: "abc"})
+      :select_abc
+      iex> Kati.Screens.Library.hold_tag(%{id: "abc", picked: false})
+      nil
+      iex> Kati.Screens.Library.hold_tag(%{title: "Low Water"})
+      nil
+  """
+  @spec hold_tag(map()) :: atom() | nil
+  def hold_tag(%{in_list: _}), do: nil
+  def hold_tag(%{picked: _}), do: nil
+
+  def hold_tag(%{id: id}) when is_binary(id) and id != "",
+    do: String.to_atom("select_" <> id)
+
+  def hold_tag(_item), do: nil
 
   @doc """
   The mono line under a grid title.
@@ -1942,6 +2011,13 @@ defmodule Kati.Screens.Library do
 
       "open_series_" <> _title ->
         {:noreply, Kati.Screens.Library.open_tile(socket, tag, Kati.Screens.Series)}
+
+      # A long press on a tile opens selection with that title selected (#120).
+      "select_" <> id ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:menu?, false)
+         |> Mob.Socket.push_screen(Kati.Screens.ShelfSelection, %{selected: id})}
 
       _ ->
         {:noreply, socket}

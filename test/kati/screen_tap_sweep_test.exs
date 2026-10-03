@@ -785,6 +785,8 @@ defmodule Kati.ScreenTapSweepTest do
     # #114's drawer draws screen 03's own chip row, and its lit chip re-selects
     # what is already selected for the same reason as 03's and 20's.
     {Kati.Screens.ListAddTitles, :filter_all},
+    # Screen 146 lends the same chips (#120), with the same lit All.
+    {Kati.Screens.ShelfSelection, :filter_all},
     # Screen 82's `key_kati` was here until mishka-group/kati#103 folded the
     # mirror away, and N53 then removed screen 80's key chips altogether: the
     # reader's own token is the only TMDB key, so there is nothing to choose.

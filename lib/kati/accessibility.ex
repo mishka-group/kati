@@ -112,23 +112,30 @@ defmodule Kati.Accessibility do
 
   defp store(key, value) do
     Mob.State.put(key, value)
-    :persistent_term.put({__MODULE__, key}, value)
+    :persistent_term.put({__MODULE__, key}, {Process.whereis(Mob.State), value})
     :ok
   end
 
+  # Each cached value carries the `Mob.State` process it was read from. A
+  # different process is a different store — a restart, or a test's fresh
+  # throwaway one — and the value is read again rather than trusted.
   defp cached(key, default) do
+    owner = Process.whereis(Mob.State)
+
     case :persistent_term.get({__MODULE__, key}, :unread) do
-      :unread -> read(key, default)
-      value -> value
+      {^owner, value} when owner != nil -> value
+      _unread_or_stale -> read(key, default, owner)
     end
   end
 
   # Before `Mob.State` is up — a design board rendered on the host, a palette
   # test — there is no stored choice to read, and the default is the truthful
   # answer. It is not cached, so the first read once the store is up wins.
-  defp read(key, default) do
+  defp read(_key, default, nil), do: default
+
+  defp read(key, default, owner) do
     value = Mob.State.get(key, default)
-    :persistent_term.put({__MODULE__, key}, value)
+    :persistent_term.put({__MODULE__, key}, {owner, value})
     value
   rescue
     _error -> default

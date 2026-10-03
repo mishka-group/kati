@@ -468,6 +468,7 @@ msgstr ""
 #: lib/kati/screens/anime_filter.ex:283
 #: lib/kati/screens/drop_states.ex:200
 #: lib/kati/screens/library.ex:1180
+#: lib/kati/screens/shelf_selection.ex:130
 #, elixir-autogen, elixir-format
 msgid "Finished"
 msgstr ""
@@ -640,13 +641,12 @@ msgstr ""
 #: lib/kati/screens/library.ex:786
 #: lib/kati/screens/library.ex:1610
 #: lib/kati/screens/library.ex:1611
-#: lib/kati/screens/library.ex:1807
-#: lib/kati/screens/library.ex:1834
+#: lib/kati/screens/library.ex:1868
+#: lib/kati/screens/library.ex:1895
 #: lib/kati/screens/music.ex:573
 #: lib/kati/screens/pushed.ex:196
 #: lib/kati/screens/series.ex:913
 #: lib/kati/screens/series.ex:1351
-#: lib/kati/screens/shelf_selection.ex:378
 #: lib/kati/shell.ex:78
 #, elixir-autogen, elixir-format
 msgid "Library"
@@ -824,6 +824,7 @@ msgstr ""
 #: lib/kati/screens/add_by_hand_states.ex:89
 #: lib/kati/screens/add_by_hand_states.ex:288
 #: lib/kati/screens/library.ex:1179
+#: lib/kati/screens/shelf_selection.ex:127
 #: lib/kati/screens/up_next.ex:828
 #, elixir-autogen, elixir-format
 msgid "Not started"
@@ -932,7 +933,7 @@ msgstr ""
 
 #: lib/kati/screens/list_detail.ex:597
 #: lib/kati/screens/shelf_large.ex:360
-#: lib/kati/screens/shelf_selection.ex:832
+#: lib/kati/screens/shelf_selection.ex:330
 #, elixir-autogen, elixir-format
 msgid "Remove"
 msgstr ""
@@ -1080,7 +1081,7 @@ msgstr ""
 #: lib/kati/screens/book_detail_dark.ex:115
 #: lib/kati/screens/series_settings.ex:175
 #: lib/kati/screens/series_settings.ex:209
-#: lib/kati/screens/shelf_selection.ex:778
+#: lib/kati/screens/shelf_selection.ex:329
 #, elixir-autogen, elixir-format
 msgid "Status"
 msgstr ""
@@ -1206,6 +1207,7 @@ msgstr ""
 #: lib/kati/screens/home.ex:289
 #: lib/kati/screens/library.ex:1178
 #: lib/kati/screens/settings.ex:575
+#: lib/kati/screens/shelf_selection.ex:128
 #, elixir-autogen, elixir-format
 msgid "Watching"
 msgstr ""
@@ -2803,6 +2805,7 @@ msgstr ""
 #: lib/kati/screens/data_sources.ex:316
 #: lib/kati/screens/data_sources.ex:838
 #: lib/kati/screens/search_idle.ex:255
+#: lib/kati/screens/shelf_selection.ex:180
 #, elixir-autogen, elixir-format
 msgid "Clear"
 msgstr ""
@@ -3633,8 +3636,7 @@ msgstr ""
 #: lib/kati/screens/book_detail.ex:1224
 #: lib/kati/screens/film.ex:114
 #: lib/kati/screens/shelf_large.ex:358
-#: lib/kati/screens/shelf_selection.ex:778
-#: lib/kati/screens/shelf_selection.ex:790
+#: lib/kati/screens/shelf_selection.ex:328
 #, elixir-autogen, elixir-format
 msgid "Add to list"
 msgstr ""
@@ -4104,7 +4106,7 @@ msgstr ""
 
 #: lib/kati/books/book.ex:191
 #: lib/kati/books/sample.ex:59
-#: lib/kati/screens/library.ex:1722
+#: lib/kati/screens/library.ex:1783
 #, elixir-autogen, elixir-format
 msgid "finished"
 msgstr ""
@@ -5107,6 +5109,7 @@ msgid "S%{s} · E%{e}"
 msgstr ""
 
 #: lib/kati/screens/library.ex:869
+#: lib/kati/screens/shelf_selection.ex:186
 #, elixir-autogen, elixir-format
 msgid "Select titles"
 msgstr ""
@@ -5131,29 +5134,29 @@ msgid "Watched · %{runtime}"
 msgstr ""
 
 #: lib/kati/screens/auto_detect.ex:397
-#: lib/kati/screens/library.ex:1725
+#: lib/kati/screens/library.ex:1786
 #, elixir-autogen, elixir-format
 msgid "%{n}% watched"
 msgstr ""
 
-#: lib/kati/screens/library.ex:1728
+#: lib/kati/screens/library.ex:1789
 #: lib/kati/settings/drop_states_sample.ex:292
 #, elixir-autogen, elixir-format
 msgid "dropped"
 msgstr ""
 
 #: lib/kati/library/sample.ex:128
-#: lib/kati/screens/library.ex:1721
+#: lib/kati/screens/library.ex:1782
 #, elixir-autogen, elixir-format
 msgid "not started"
 msgstr ""
 
-#: lib/kati/screens/library.ex:1727
+#: lib/kati/screens/library.ex:1788
 #, elixir-autogen, elixir-format
 msgid "paused"
 msgstr ""
 
-#: lib/kati/screens/library.ex:1729
+#: lib/kati/screens/library.ex:1790
 #, elixir-autogen, elixir-format
 msgid "watching"
 msgstr ""
@@ -8610,8 +8613,7 @@ msgstr ""
 #: lib/kati/screens/drop_sheet.ex:1447
 #: lib/kati/screens/log_progress_states.ex:604
 #: lib/kati/screens/my_services_states.ex:705
-#: lib/kati/screens/shelf_selection.ex:1132
-#: lib/kati/screens/shelf_selection.ex:1146
+#: lib/kati/screens/shelf_selection.ex:264
 #: lib/kati/settings/states_sample.ex:187
 #: lib/kati/ui/destructive.ex:132
 #, elixir-autogen, elixir-format
@@ -9381,11 +9383,6 @@ msgstr ""
 msgid "%{n} held — %{reasons}"
 msgstr ""
 
-#: lib/kati/screens/shelf_selection.ex:1205
-#, elixir-autogen, elixir-format
-msgid "%{n} hidden by filters"
-msgstr ""
-
 #: lib/kati/calendar/sample_meal_day.ex:79
 #: lib/kati/money/day_sample.ex:87
 #: lib/kati/screens/meals_day.ex:176
@@ -9402,11 +9399,6 @@ msgid "%{n} reminder is armed."
 msgid_plural "%{n} reminders are armed."
 msgstr[0] ""
 msgstr[1] ""
-
-#: lib/kati/screens/shelf_selection.ex:445
-#, elixir-autogen, elixir-format
-msgid "%{shown} of %{total} · %{sort}"
-msgstr ""
 
 #: lib/kati/screens/year_cards_states.ex:469
 #, elixir-autogen, elixir-format
@@ -9431,11 +9423,6 @@ msgstr ""
 #: lib/kati/screens/accessibility.ex:219
 #, elixir-autogen, elixir-format
 msgid "Accessibility"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:691
-#, elixir-autogen, elixir-format
-msgid "Actions apply to all %{word}"
 msgstr ""
 
 #: lib/kati/language/page.ex:121
@@ -9530,19 +9517,9 @@ msgstr ""
 msgid "FIVE THINGS, THREE OF THEM SILENT"
 msgstr ""
 
-#: lib/kati/screens/shelf_selection.ex:1198
-#, elixir-autogen, elixir-format
-msgid "Filter four selected titles out of view and the header keeps reading"
-msgstr ""
-
 #: lib/kati/screens/shelf_filters.ex:740
 #, elixir-autogen, elixir-format
 msgid "Genres and release years come from the provider, so these are the ones your own shelf carries. Streaming service is not offered: nothing in Kati holds a catalogue."
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:1207
-#, elixir-autogen, elixir-format
-msgid "Gesture rule: long press a"
 msgstr ""
 
 #: lib/kati/screens/medication_empty.ex:257
@@ -9671,11 +9648,6 @@ msgstr ""
 msgid "Nothing on this day"
 msgstr ""
 
-#: lib/kati/screens/shelf_selection.ex:595
-#, elixir-autogen, elixir-format
-msgid "Nothing selected"
-msgstr ""
-
 #: lib/kati/screens/accessibility.ex:141
 #, elixir-autogen, elixir-format
 msgid "Nothing under %{w}×%{h}"
@@ -9739,7 +9711,7 @@ msgstr ""
 msgid "Ranges — buckets, not sliders"
 msgstr ""
 
-#: lib/kati/screens/shelf_selection.ex:1101
+#: lib/kati/screens/shelf_selection.ex:258
 #, elixir-autogen, elixir-format
 msgid "Removed %{n} title"
 msgid_plural "Removed %{n} titles"
@@ -9770,11 +9742,6 @@ msgstr ""
 #: lib/kati/screens/new_goal.ex:285
 #, elixir-autogen, elixir-format
 msgid "Restarts the day after it ends"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:348
-#, elixir-autogen, elixir-format
-msgid "Resting header — sort persists and says so"
 msgstr ""
 
 #: lib/kati/screens/year_cards_states.ex:365
@@ -9813,11 +9780,6 @@ msgstr ""
 msgid "Saving images does not work here yet."
 msgstr ""
 
-#: lib/kati/screens/shelf_selection.ex:1197
-#, elixir-autogen, elixir-format
-msgid "Selection survives a filter change."
-msgstr ""
-
 #: lib/kati/screens/medication_empty.ex:351
 #, elixir-autogen, elixir-format
 msgid "Set on each medication · %{armed} of %{total} clock times armed"
@@ -9848,11 +9810,6 @@ msgstr ""
 #: lib/kati/screens/up_next_filters.ex:125
 #, elixir-autogen, elixir-format
 msgid "Sort & filter"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:500
-#, elixir-autogen, elixir-format
-msgid "Sort persists between visits"
 msgstr ""
 
 #: lib/kati/screens/currency.ex:423
@@ -9938,8 +9895,6 @@ msgstr ""
 msgid "Touch targets"
 msgstr ""
 
-#: lib/kati/screens/shelf_selection.ex:1070
-#: lib/kati/screens/shelf_selection.ex:1080
 #: lib/kati/screens/states.ex:186
 #, elixir-autogen, elixir-format
 msgid "Undo — every destructive action"
@@ -10016,21 +9971,6 @@ msgstr ""
 msgid "last sync %{ago}"
 msgstr ""
 
-#: lib/kati/screens/shelf_selection.ex:1211
-#, elixir-autogen, elixir-format
-msgid "rates. Also on %{board}."
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:502
-#, elixir-autogen, elixir-format
-msgid "resetting it every time is annoying — so the mono line names it. A silent persistent sort is the confusing option; a named one is not."
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:1209
-#, elixir-autogen, elixir-format
-msgid "selects; long press an"
-msgstr ""
-
 #: lib/kati/screens/shelf_filters.ex:535
 #, elixir-autogen, elixir-format
 msgid "showing %{showing} of %{total}"
@@ -10044,11 +9984,6 @@ msgstr ""
 #: lib/kati/screens/currency.ex:416
 #, elixir-autogen, elixir-format
 msgid "the symbol and the number formatting, everywhere."
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:1202
-#, elixir-autogen, elixir-format
-msgid "with a %{note} note — silently dropping a selection loses work the user already did."
 msgstr ""
 
 #: lib/kati/screens/currency.ex:459
@@ -10141,70 +10076,9 @@ msgid "Runtime"
 msgstr ""
 
 #: lib/kati/library/sample.ex:108
-#: lib/kati/screens/shelf_selection.ex:1052
 #, elixir-autogen, elixir-format
 msgctxt "a shelf tile's mono line once Status has marked it complete"
 msgid "done"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:760
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "eight"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:757
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "five"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:756
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "four"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:761
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "nine"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:753
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "one"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:759
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "seven"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:758
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "six"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:762
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "ten"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:755
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "three"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:754
-#, elixir-autogen, elixir-format
-msgctxt "a small count written out as a word"
-msgid "two"
 msgstr ""
 
 #: lib/kati/screens/notifications_help.ex:166
@@ -10534,7 +10408,6 @@ msgid "DESC"
 msgstr ""
 
 #: lib/kati/screens/shelf_large.ex:262
-#: lib/kati/screens/shelf_selection.ex:731
 #, elixir-autogen, elixir-format
 msgctxt "the count on a selection header"
 msgid "%{n} selected"
@@ -10544,24 +10417,6 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgctxt "the derived value on the writing-direction row"
 msgid "auto"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:599
-#, elixir-autogen, elixir-format
-msgctxt "the eyebrow over a selection header"
-msgid "%{word} selected"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:1210
-#, elixir-autogen, elixir-format
-msgctxt "the thing a long press in a season rates"
-msgid "episode row"
-msgstr ""
-
-#: lib/kati/screens/shelf_selection.ex:1208
-#, elixir-autogen, elixir-format
-msgctxt "the thing a long press on a shelf selects"
-msgid "tile"
 msgstr ""
 
 #: lib/kati/language/page.ex:233
@@ -16989,6 +16844,7 @@ msgid "Add to %{list}"
 msgstr ""
 
 #: lib/kati/screens/list_add_titles.ex:157
+#: lib/kati/screens/shelf_selection.ex:222
 #, elixir-autogen, elixir-format
 msgid "Nothing on your shelf yet"
 msgstr ""
@@ -17139,4 +16995,46 @@ msgstr ""
 #: lib/kati/screens/accessibility.ex:108
 #, elixir-autogen, elixir-format
 msgid "more contrast"
+msgstr ""
+
+#: lib/kati/screens/shelf_selection.ex:123
+#, elixir-autogen, elixir-format
+msgid "%{n} selected"
+msgid_plural "%{n} selected"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/shelf_selection.ex:186
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr ""
+
+#: lib/kati/screens/shelf_selection.ex:131
+#, elixir-autogen, elixir-format
+msgid "Dropped"
+msgstr ""
+
+#: lib/kati/screens/shelf_selection.ex:129
+#, elixir-autogen, elixir-format
+msgid "Paused"
+msgstr ""
+
+#: lib/kati/screens/shelf_selection.ex:223
+#, elixir-autogen, elixir-format
+msgid "Search for a film or a series and add it, and you can select it here."
+msgstr ""
+
+#: lib/kati/screens/shelf_selection.ex:181
+#, elixir-autogen, elixir-format
+msgid "Select all"
+msgstr ""
+
+#: lib/kati/screens/shelf_selection.ex:304
+#, elixir-autogen, elixir-format
+msgid "Set status for the selected titles"
+msgstr ""
+
+#: lib/kati/screens/shelf_selection.ex:120
+#, elixir-autogen, elixir-format
+msgid "Tap titles to select them"
 msgstr ""

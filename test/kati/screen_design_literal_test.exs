@@ -356,6 +356,12 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"41", "more_horiz"},
     {"41", "info"},
     {"41", "format_size"},
+    # #120: board 146's stills — the resting header's search disc, the notes'
+    # info and call_split glyphs, the frozen undo pill — are not drawn.
+    {"146", "call_split"},
+    {"146", "info"},
+    {"146", "search"},
+    {"146", "undo"},
     # Board 39's deleted tiles and shortcut rows — see `retired_lines/0`.
     {"39", "add"},
     {"39", "bolt"},
@@ -1722,7 +1728,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # from the list rather than written into it.
       {"146", Kati.Screens.ShelfSelection,
        fn assigns ->
-         titles = Kati.Library.Sample.selection_shelf()
+         titles =
+           Enum.map(Kati.Library.Sample.selection_shelf(), fn t ->
+             t
+             |> Map.put_new(:status, if(t[:done?], do: :finished, else: :watching))
+             |> Map.put_new(:kind, :series)
+           end)
+
          selected = titles |> Enum.filter(& &1.selected?) |> Enum.map(& &1.id) |> MapSet.new()
          Map.merge(assigns, %{titles: titles, selected: selected})
        end},

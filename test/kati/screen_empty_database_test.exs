@@ -1698,6 +1698,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"41", "more_horiz"},
     {"41", "info"},
     {"41", "format_size"},
+    # #120: board 146's stills — the resting header's search disc, the notes'
+    # info and call_split glyphs, the frozen undo pill — are not drawn.
+    {"146", "call_split"},
+    {"146", "info"},
+    {"146", "search"},
+    {"146", "undo"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"},

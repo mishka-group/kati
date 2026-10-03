@@ -236,6 +236,14 @@ defmodule Kati.Media.TrackedTitle do
       accept [:numbering]
     end
 
+    # Screen 146's Remove and its Undo (#120). Archiving takes a title off the
+    # shelf while the undo bar is up, and restoring puts it back where it was,
+    # so neither may bump the shelf.
+    update :set_archived do
+      require_atomic? false
+      accept [:archived]
+    end
+
     # Bumping the shelf without claiming anything else changed.
     update :touch do
       require_atomic? false
