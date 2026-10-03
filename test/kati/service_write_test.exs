@@ -232,12 +232,12 @@ defmodule Kati.ServiceWriteTest do
              "the row was written and the page went on drawing the list it had at mount"
     end
 
-    test "and the Not mine row counts it" do
+    test "and it is listed, with no frozen catalogue count beside it" do
       view = mount_screen(MyServices)
       view = render_info(view, {:change, :service_query, "svcwrite-Cinepop"})
       view = render_info(view, {:tap, :add_service})
 
-      assert find(tree(view), :text, text: "Kati lists 1 service") != nil
+      assert text(view) =~ "svcwrite-Cinepop"
       assert find(tree(view), :text, text: "Show all 47") == nil
     end
   end
@@ -386,8 +386,13 @@ defmodule Kati.ServiceWriteTest do
       assert stored(@prefix <> "Mubi").tier == :not_mine,
              "a service you cancelled is not one you never had"
 
-      refute text(dropped) =~ @prefix <> "Mubi",
-             "the row is still on the page it was taken off"
+      taps = for %{props: %{on_tap: {_pid, tag}}} <- flatten(dropped), do: tag
+
+      refute MyServices.drop_tag(%{id: service.id}) in taps,
+             "the row is still on the list it was taken off"
+
+      assert String.to_atom("restore_service_" <> service.id) in taps,
+             "Not mine lists it, with a way back"
     end
 
     test "and typing its name again puts it back" do

@@ -117,9 +117,41 @@ defmodule Kati.Screens.MyServices do
     |> Mob.Socket.assign(:chosen_region, Services.chosen_region())
     |> Mob.Socket.assign(:rules, Services.rules())
     |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
+    |> Mob.Socket.assign(:suggestions, Kati.Screens.MyServices.suggestions())
+    |> Mob.Socket.assign(:not_mine, Kati.Screens.MyServices.not_mine())
     |> Mob.Socket.assign(:query, "")
     |> Mob.Socket.assign(:save_error, nil)
   end
+
+  @doc """
+  The services your own titles are on, in your region, that you have not told
+  Kati about yet (#127): `[{name, titles}]`, most titles first.
+
+  The list a reader picks from, instead of having to know and type every
+  service's name. It is read from the providers TMDB reported for the titles
+  on the shelf, so it is real for this reader and this country, and it grows
+  as the shelf does.
+  """
+  @spec suggestions() :: [{String.t(), pos_integer()}]
+  def suggestions do
+    region = Services.region()
+    listed = MapSet.new(all_stored(), &String.downcase(String.trim(&1.name)))
+
+    Kati.Media.TrackedTitle
+    |> Ash.read!()
+    |> Enum.reject(& &1.archived)
+    |> Enum.map(&Kati.Media.Release.cached_for/1)
+    |> Enum.reject(&is_nil/1)
+    |> Kati.Media.Availability.suggestions(region)
+    |> Enum.reject(fn {name, _n} -> MapSet.member?(listed, String.downcase(name)) end)
+    |> Enum.take(12)
+  rescue
+    _error -> []
+  end
+
+  @doc "The services marked *not mine*, so they can be added back (#127)."
+  @spec not_mine() :: [map()]
+  def not_mine, do: stored(:not_mine) |> Enum.map(&shape/1)
 
   @doc """
   Coming back from the country picker, or from anything else pushed over this.
@@ -140,7 +172,9 @@ defmodule Kati.Screens.MyServices do
      |> Mob.Socket.assign(:region, Services.region())
      |> Mob.Socket.assign(:chosen_region, Services.chosen_region())
      |> Mob.Socket.assign(:rules, Services.rules())
-     |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())}
+     |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
+     |> Mob.Socket.assign(:suggestions, Kati.Screens.MyServices.suggestions())
+     |> Mob.Socket.assign(:not_mine, Kati.Screens.MyServices.not_mine())}
   end
 
   @doc """
@@ -475,7 +509,7 @@ defmodule Kati.Screens.MyServices do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title(gettext("My services"), gettext("So Kati only shows you what you can actually watch."), nil, :name)}
+        {SettingsList.title(gettext("My services"), gettext("Tell Kati what you pay for. Where to watch, What fits and Up next then point you to what you can actually watch, and Subscriptions adds up what it costs."), nil, :name)}
         {UI.eyebrow(gettext("Region"))}
         {Kati.Screens.MyServices.region_group(assigns.region, Map.get(assigns, :chosen_region) != nil)}
         {Kati.Screens.MyServices.search_field(query, services.set_up?, Map.get(assigns, :query_epoch, 0))}
@@ -483,7 +517,8 @@ defmodule Kati.Screens.MyServices do
         {Kati.Screens.MyServices.service_group(services.subscribed, true, query)}
         {Kati.Screens.MyServices.free_band(services.free)}
         {Kati.Screens.MyServices.no_match(services, query)}
-        {Kati.Screens.MyServices.catalogue_group(services, save_error)}
+        {Kati.Screens.MyServices.suggestions_group(Map.get(assigns, :suggestions, []))}
+        {Kati.Screens.MyServices.catalogue_group(services, save_error, Map.get(assigns, :not_mine, []))}
         {UI.eyebrow(gettext("Rules"))}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
         {UI.eyebrow(gettext("Money"))}
@@ -522,7 +557,7 @@ defmodule Kati.Screens.MyServices do
         )
       ])}
       <Spacer size={10} />
-      {Kati.UI.SettingsList.note("info", gettext("Availability is per country. Telling you a film is on Lumen+ when it is only on Lumen+ in Canada is worse than telling you nothing at all."))}
+      {Kati.UI.SettingsList.note("info", gettext("Availability is per country: a title on a service in one country is often not on it in another, so Kati only uses the country you pick."))}
       <Spacer size={24} />
     </Column>
     """
@@ -994,7 +1029,9 @@ defmodule Kati.Screens.MyServices do
   it could not keep.
   """
   @spec catalogue_group(map(), String.t() | nil) :: map()
-  def catalogue_group(services, save_error \\ nil) do
+  def catalogue_group(services, save_error \\ nil, not_mine \\ []) do
+    _services = services
+
     # `Netflix 10.99` stays in Latin letters AND Latin digits, and it is the one
     # figure on this page that does not go through `Kati.Locale.number/1`. It is
     # not a number the page is telling the reader — it is a specimen of what to
@@ -1009,7 +1046,7 @@ defmodule Kati.Screens.MyServices do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.eyebrow_muted(gettext("Not mine"))}
       {Kati.UI.SettingsList.card(
-        Kati.Screens.MyServices.count_row(services) ++
+        Enum.map(not_mine, &Kati.Screens.MyServices.not_mine_row/1) ++
         [
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("add"),
@@ -1030,6 +1067,69 @@ defmodule Kati.Screens.MyServices do
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc """
+  The services on the reader's own titles, each with the two ways to have it
+  (#127): *I pay* puts it under Subscribed, *Free* under Free with ads.
+  Nothing at all when there is nothing to suggest.
+  """
+  def suggestions_group([]), do: []
+
+  def suggestions_group(suggestions) do
+    rows =
+      suggestions
+      |> Enum.with_index()
+      |> Enum.map(fn {{name, n}, i} -> Kati.Screens.MyServices.suggestion_row(name, n, i) end)
+
+    assigns = %{rows: rows}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow(gettext("On your titles"))}
+      {Kati.UI.SettingsList.card(@rows)}
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def suggestion_row(name, n, index) do
+    i = Integer.to_string(index)
+
+    sub =
+      ngettext("On %{n} of your titles", "On %{n} of your titles", n, n: Kati.Locale.number(n))
+
+    Kati.UI.SettingsList.row(
+      Kati.Screens.MyServices.badge_tile(String.first(name)),
+      Kati.UI.SettingsList.body(name, sub),
+      Kati.Screens.MyServices.suggestion_pills(i)
+    )
+  end
+
+  @doc false
+  def suggestion_pills(i) do
+    assigns = %{i: i}
+
+    ~MOB"""
+    <Row align="center">
+      {Kati.UI.SettingsList.action_pill(gettext("I pay"), {self(), String.to_atom("suggest_sub_" <> @i)})}
+      <Spacer size={6} />
+      {Kati.UI.SettingsList.action_pill(gettext("Free"), {self(), String.to_atom("suggest_free_" <> @i)})}
+    </Row>
+    """
+  end
+
+  @doc "A service marked not mine, with the way back (#127)."
+  def not_mine_row(service) do
+    Kati.UI.SettingsList.row(
+      Kati.Screens.MyServices.badge_tile(service.badge),
+      Kati.UI.SettingsList.body(service.name, gettext("You said this is not yours")),
+      Kati.UI.SettingsList.action_pill(
+        gettext("Add back"),
+        {self(), String.to_atom("restore_service_" <> service.id)}
+      )
+    )
   end
 
   @doc """
@@ -1255,6 +1355,15 @@ defmodule Kati.Screens.MyServices do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
+      "suggest_sub_" <> i ->
+        {:noreply, Kati.Screens.MyServices.add_suggestion(socket, i, :subscribed)}
+
+      "suggest_free_" <> i ->
+        {:noreply, Kati.Screens.MyServices.add_suggestion(socket, i, :free_with_ads)}
+
+      "restore_service_" <> id ->
+        {:noreply, Kati.Screens.MyServices.restore_service(socket, id)}
+
       "rule_" <> rule ->
         key = String.to_existing_atom(rule)
         Services.toggle_rule(key)
@@ -1344,8 +1453,7 @@ defmodule Kati.Screens.MyServices do
         socket
         |> Mob.Socket.assign(:query, "")
         |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
-        |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
-        |> Mob.Socket.assign(:save_error, nil)
+        |> Kati.Screens.MyServices.reread()
 
       {:error, _reason} = error ->
         Mob.Socket.assign(socket, :save_error, Write.message(error))
@@ -1365,9 +1473,7 @@ defmodule Kati.Screens.MyServices do
     with {:ok, service} <- Ash.get(Service, id),
          {:ok, _updated} <-
            service |> Ash.Changeset.for_update(:update, %{tier: :not_mine}) |> Ash.update() do
-      socket
-      |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
-      |> Mob.Socket.assign(:save_error, nil)
+      Kati.Screens.MyServices.reread(socket)
     else
       error -> Mob.Socket.assign(socket, :save_error, Write.message(error))
     end
@@ -1562,15 +1668,55 @@ defmodule Kati.Screens.MyServices do
   what a nil `provider_id` means — and a promise resting on somebody else's
   default is a promise nobody would think to check before changing it.
   """
-  @spec create_service(String.t(), non_neg_integer() | nil) ::
+  @spec create_service(String.t(), non_neg_integer() | nil, atom()) ::
           {:ok, Service.t()} | {:error, term()}
-  def create_service(name, pence \\ nil) do
+  def create_service(name, pence \\ nil, tier \\ :subscribed) do
     Ash.create(Service, %{
       name: name,
-      tier: :subscribed,
+      tier: tier,
       provider_id: nil,
       monthly_pence: pence
     })
+  end
+
+  @doc """
+  Add a suggested service under `tier`, by its exact provider name, so it
+  matches what TMDB says the titles are on (#127).
+  """
+  @spec add_suggestion(Mob.Socket.t(), String.t(), atom()) :: Mob.Socket.t()
+  def add_suggestion(socket, index, tier) do
+    with {i, ""} <- Integer.parse(index),
+         {name, _n} <- Enum.at(socket.assigns.suggestions, i),
+         {:ok, _service} <-
+           name
+           |> Kati.Screens.MyServices.create_service(nil, tier)
+           |> Write.note("add service #{name}") do
+      Kati.Screens.MyServices.reread(socket)
+    else
+      {:error, reason} -> Mob.Socket.assign(socket, :save_error, Write.message({:error, reason}))
+      _no_suggestion -> socket
+    end
+  end
+
+  @doc "Put a *not mine* service back under Subscribed (#127)."
+  @spec restore_service(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def restore_service(socket, id) do
+    with {:ok, service} <- Ash.get(Service, id),
+         {:ok, _restored} <-
+           service |> Ash.update(%{tier: :subscribed}) |> Write.note("restore service") do
+      Kati.Screens.MyServices.reread(socket)
+    else
+      {:error, reason} -> Mob.Socket.assign(socket, :save_error, Write.message({:error, reason}))
+    end
+  end
+
+  @doc false
+  def reread(socket) do
+    socket
+    |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
+    |> Mob.Socket.assign(:suggestions, Kati.Screens.MyServices.suggestions())
+    |> Mob.Socket.assign(:not_mine, Kati.Screens.MyServices.not_mine())
+    |> Mob.Socket.assign(:save_error, nil)
   end
 
   @doc """

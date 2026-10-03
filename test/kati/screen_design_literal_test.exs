@@ -358,6 +358,9 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"41", "format_size"},
     # #122: screen 25's ⋯ disc opened nothing; it is not drawn.
     {"25", "more_horiz"},
+    # #127: 92's and 97's Show all row, and its glyph, are gone.
+    {"92", "more_horiz"},
+    {"97", "more_horiz"},
     # #120: board 146's stills — the resting header's search disc, the notes'
     # info and call_split glyphs, the frozen undo pill — are not drawn.
     {"146", "call_split"},
@@ -1125,14 +1128,6 @@ defmodule Kati.ScreenDesignLiteralTest do
       # got. A device with nothing stored still draws the board's own words,
       # which is the state the board was captured in, so the patterns accept
       # both.
-      {"92", "show all 47",
-       "the number of services Kati lists for this reader, which board 92 froze at " <>
-         "JustWatch's 47 and `Kati.Screens.MyServices.catalogue_line/1` now counts",
-       ~r/^(show all 47|kati lists \d+ services?)$/u},
-      {"92", "everything justwatch lists for the uk",
-       "the sub-line under it, which now says where the list comes from rather than naming " <>
-         "a provider this app has never integrated",
-       ~r/^(everything justwatch lists for the uk|the ones you have told it about\..*)$/u},
       # 24's and 42's *My services* row. Both boards froze `United Kingdom · 3
       # subscribed` and the line counts `Kati.Screens.MyServices.subscribed/0`
       # now — the same count Home has always drawn, which is what let one

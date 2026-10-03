@@ -484,6 +484,7 @@ msgid "For something Kati could not find. The title is the only thing it needs."
 msgstr "برای چیزی که کاتی پیدا نکرد. عنوان تنها چیز لازم است."
 
 #: lib/kati/meals/sample_plan.ex:114
+#: lib/kati/screens/my_services.ex:1114
 #, elixir-autogen, elixir-format
 msgid "Free"
 msgstr "آزاد"
@@ -732,7 +733,7 @@ msgstr "سالمون میسو، سبزیجات، برنج"
 #: lib/kati/screens/day.ex:485
 #: lib/kati/screens/home.ex:534
 #: lib/kati/screens/money_day.ex:363
-#: lib/kati/screens/my_services.ex:468
+#: lib/kati/screens/my_services.ex:502
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/pick_sections/sample.ex:50
 #: lib/kati/settings/sample.ex:232
@@ -1100,7 +1101,7 @@ msgstr "استوری"
 msgid "Streaks"
 msgstr "رشته‌ها"
 
-#: lib/kati/screens/my_services.ex:1186
+#: lib/kati/screens/my_services.ex:1286
 #: lib/kati/screens/my_services_empty.ex:397
 #: lib/kati/screens/pick_sections/sample.ex:59
 #: lib/kati/screens/stats.ex:882
@@ -1484,7 +1485,7 @@ msgstr "دارو"
 
 #: lib/kati/screens/home.ex:1220
 #: lib/kati/screens/money_states.ex:293
-#: lib/kati/screens/my_services.ex:468
+#: lib/kati/screens/my_services.ex:502
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/my_services_states.ex:223
 #: lib/kati/screens/nothing_set_up_knock_on.ex:390
@@ -2329,7 +2330,7 @@ msgstr[1] "%{n} هزینه این ماه"
 
 #: lib/kati/money/sample.ex:18
 #: lib/kati/screens/money.ex:158
-#: lib/kati/screens/my_services.ex:273
+#: lib/kati/screens/my_services.ex:307
 #, elixir-autogen, elixir-format
 msgid "%{n} service"
 msgid_plural "%{n} services"
@@ -2541,7 +2542,7 @@ msgctxt "unheard card"
 msgid "Dismiss"
 msgstr "رد کن"
 
-#: lib/kati/screens/my_services.ex:274
+#: lib/kati/screens/my_services.ex:308
 #: lib/kati/screens/service.ex:277
 #: lib/kati/screens/stats.ex:1025
 #, elixir-autogen, elixir-format
@@ -2549,7 +2550,7 @@ msgid "%{total} a month"
 msgstr "%{total} در ماه"
 
 #: lib/kati/screens/auto_detect.ex:451
-#: lib/kati/screens/my_services.ex:711
+#: lib/kati/screens/my_services.ex:746
 #, elixir-autogen, elixir-format
 msgid "Add it"
 msgstr "اضافه کن"
@@ -2564,37 +2565,37 @@ msgstr "خرید را در دسترس بشمار"
 msgid "Count rentals as available"
 msgstr "کرایه را در دسترس بشمار"
 
-#: lib/kati/screens/my_services.ex:539
+#: lib/kati/screens/my_services.ex:574
 #, elixir-autogen, elixir-format
 msgid "Decides what “available” means"
 msgstr "معنای «در دسترس» را تعیین می‌کند"
 
-#: lib/kati/screens/my_services.ex:755
+#: lib/kati/screens/my_services.ex:790
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/service.ex:212
 #, elixir-autogen, elixir-format
 msgid "Free with ads"
 msgstr "رایگان با تبلیغ"
 
-#: lib/kati/screens/my_services.ex:1072
+#: lib/kati/screens/my_services.ex:1172
 #, elixir-autogen, elixir-format
 msgid "Kati lists %{n} service"
 msgid_plural "Kati lists %{n} services"
 msgstr[0] "کاتی %{n} سرویس را فهرست کرده"
 msgstr[1] "کاتی %{n} سرویس را فهرست کرده"
 
-#: lib/kati/screens/my_services.ex:902
+#: lib/kati/screens/my_services.ex:937
 #, elixir-autogen, elixir-format
 msgid "Mine"
 msgstr "مال من"
 
-#: lib/kati/screens/my_services.ex:638
+#: lib/kati/screens/my_services.ex:673
 #, elixir-autogen, elixir-format
 msgid "Name a service, and what it costs"
 msgstr "نام سرویس و قیمتش را بنویسید"
 
 #: lib/kati/screens/auto_detect.ex:452
-#: lib/kati/screens/my_services.ex:1008
+#: lib/kati/screens/my_services.ex:1045
 #: lib/kati/screens/my_services_empty.ex:366
 #: lib/kati/screens/service.ex:213
 #, elixir-autogen, elixir-format
@@ -2602,7 +2603,7 @@ msgid "Not mine"
 msgstr "مال من نیست"
 
 #: lib/kati/screens/money_states.ex:293
-#: lib/kati/screens/my_services.ex:268
+#: lib/kati/screens/my_services.ex:302
 #: lib/kati/screens/my_services_empty.ex:397
 #: lib/kati/screens/my_services_states.ex:283
 #: lib/kati/screens/stats.ex:1035
@@ -2632,7 +2633,7 @@ msgstr "برای فهرست دقیق اول کشور را انتخاب کنید"
 msgid "Pick your country"
 msgstr "کشورتان را انتخاب کنید"
 
-#: lib/kati/screens/my_services.ex:468
+#: lib/kati/screens/my_services.ex:502
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/series_settings.ex:550
 #, elixir-autogen, elixir-format
@@ -2641,48 +2642,46 @@ msgstr "کشور"
 
 #: lib/kati/screens/auto_detect.ex:474
 #: lib/kati/screens/auto_detect_music.ex:186
-#: lib/kati/screens/my_services.ex:468
+#: lib/kati/screens/my_services.ex:502
 #: lib/kati/screens/my_services_empty.ex:134
 #, elixir-autogen, elixir-format
 msgid "Rules"
 msgstr "قواعد"
 
-#: lib/kati/screens/my_services.ex:591
-#: lib/kati/screens/my_services.ex:637
+#: lib/kati/screens/my_services.ex:626
+#: lib/kati/screens/my_services.ex:672
 #, elixir-autogen, elixir-format
 msgid "Search services"
 msgstr "جست‌وجوی سرویس‌ها"
 
-#: lib/kati/screens/my_services.ex:468
 #: lib/kati/screens/my_services_empty.ex:134
 #, elixir-autogen, elixir-format
 msgid "So Kati only shows you what you can actually watch."
 msgstr "تا کاتی فقط چیزی را نشان دهد که می‌توانید ببینید."
 
-#: lib/kati/screens/my_services.ex:1014
+#: lib/kati/screens/my_services.ex:1051
 #: lib/kati/screens/my_services_states.ex:433
 #, elixir-autogen, elixir-format
 msgid "Something else"
 msgstr "چیز دیگری"
 
-#: lib/kati/screens/my_services.ex:682
-#: lib/kati/screens/my_services.ex:689
+#: lib/kati/screens/my_services.ex:717
+#: lib/kati/screens/my_services.ex:724
 #, elixir-autogen, elixir-format
 msgid "Subscribed · %{count}"
 msgstr "مشترک هستم · %{count}"
 
-#: lib/kati/screens/my_services.ex:685
+#: lib/kati/screens/my_services.ex:720
 #: lib/kati/screens/my_services_empty.ex:134
 #, elixir-autogen, elixir-format
 msgid "Subscribed · none yet"
 msgstr "مشترک هستم · هنوز هیچ‌کدام"
 
-#: lib/kati/screens/my_services.ex:1075
+#: lib/kati/screens/my_services.ex:1175
 #, elixir-autogen, elixir-format
 msgid "The ones you have told it about. A fuller list needs a source Kati has not got yet."
 msgstr "آن‌هایی که به کاتی گفته‌اید."
 
-#: lib/kati/screens/my_services.ex:514
 #: lib/kati/screens/my_services_empty.ex:185
 #, elixir-autogen, elixir-format
 msgid "Availability is per country. Telling you a film is on Lumen+ when it is only on Lumen+ in Canada is worse than telling you nothing at all."
@@ -5564,7 +5563,7 @@ msgstr "هنوز قیمتی ندارد"
 msgid "No renewal day yet"
 msgstr "هنوز روز تمدیدی ندارد"
 
-#: lib/kati/screens/my_services.ex:431
+#: lib/kati/screens/my_services.ex:465
 #, elixir-autogen, elixir-format
 msgid "No service called that. Kati uses JustWatch’s list through TMDB. If it is a real service they do not track, add it as Something else."
 msgstr "سرویسی با این نام نیست. کاتی فهرست سرویس‌ها را از JustWatch و از طریق TMDB می‌گیرد. اگر سرویسی واقعی است که آن‌ها فهرست نکرده‌اند، آن را با «چیز دیگری» اضافه کنید."
@@ -5757,7 +5756,7 @@ msgstr "برای شروع دو نویسه — و در فارسی، العربي�
 msgid "Type a film or a show and Kati looks it up."
 msgstr "نام یک فیلم یا سریال را بنویسید تا کاتی پیدایش کند."
 
-#: lib/kati/screens/my_services.ex:1015
+#: lib/kati/screens/my_services.ex:1052
 #, elixir-autogen, elixir-format
 msgid "Type its name, and its price after it — %{example}. Kati remembers both for your subscription total."
 msgstr "نامش را بنویسید و قیمتش را بعد از آن — %{example}. کاتی هر دو را برای جمع اشتراک‌هایتان به یاد می‌سپارد."
@@ -16326,7 +16325,7 @@ msgstr "چطور اجازه بدهم"
 msgid "Kati cannot see what you play yet"
 msgstr "کاتی هنوز نمی‌بیند چه پخش می‌کنید"
 
-#: lib/kati/screens/my_services.ex:540
+#: lib/kati/screens/my_services.ex:575
 #, elixir-autogen, elixir-format
 msgid "Not picked yet — Kati assumes this until you choose"
 msgstr "هنوز انتخاب نشده — کاتی تا انتخاب شما همین را فرض می‌کند"
@@ -16587,12 +16586,12 @@ msgstr "%{rated} از %{total} امتیاز گرفته"
 msgid "No films in your library yet"
 msgstr "هنوز فیلمی در کتابخانهٔ شما نیست"
 
-#: lib/kati/screens/my_services.ex:978
+#: lib/kati/screens/my_services.ex:1013
 #, elixir-autogen, elixir-format
 msgid "This screen owns these prices. Subscriptions reads them — edit here, and cost per watched hour follows."
 msgstr "قیمت‌ها اینجا نگه داشته می‌شوند و «اشتراک‌ها» آن‌ها را می‌خواند. اینجا ویرایش کنید تا هزینه به ازای هر ساعت تماشا هم به‌روز شود."
 
-#: lib/kati/screens/my_services.ex:1236
+#: lib/kati/screens/my_services.ex:1336
 #, elixir-autogen, elixir-format
 msgid "Which service carries what comes from JustWatch, through TMDB. Both are credited in Settings, under Where this comes from."
 msgstr "اینکه هر عنوان روی کدام سرویس است از JustWatch و از طریق TMDB می‌آید. اعتبار هر دو در تنظیمات، زیر «این‌ها از کجا می‌آیند» آمده است."
@@ -17336,3 +17335,40 @@ msgstr "روز قبل"
 #, elixir-autogen, elixir-format
 msgid "Previous week"
 msgstr "هفتهٔ قبل"
+
+#: lib/kati/screens/my_services.ex:1129
+#, elixir-autogen, elixir-format
+msgid "Add back"
+msgstr "برگرداندن"
+
+#: lib/kati/screens/my_services.ex:549
+#, elixir-autogen, elixir-format
+msgid "Availability is per country: a title on a service in one country is often not on it in another, so Kati only uses the country you pick."
+msgstr "دسترسی به کشور بستگی دارد: عنوانی که در یک کشور روی سرویسی هست، در کشور دیگر اغلب نیست؛ برای همین کاتی فقط کشوری را که انتخاب می‌کنید به کار می‌برد."
+
+#: lib/kati/screens/my_services.ex:1114
+#, elixir-autogen, elixir-format
+msgid "I pay"
+msgstr "می‌پردازم"
+
+#: lib/kati/screens/my_services.ex:1101
+#, elixir-autogen, elixir-format
+msgid "On %{n} of your titles"
+msgid_plural "On %{n} of your titles"
+msgstr[0] "روی %{n} عنوان از عنوان‌های شما"
+msgstr[1] "روی %{n} عنوان از عنوان‌های شما"
+
+#: lib/kati/screens/my_services.ex:1087
+#, elixir-autogen, elixir-format
+msgid "On your titles"
+msgstr "روی عنوان‌های شما"
+
+#: lib/kati/screens/my_services.ex:502
+#, elixir-autogen, elixir-format
+msgid "Tell Kati what you pay for. Where to watch, What fits and Up next then point you to what you can actually watch, and Subscriptions adds up what it costs."
+msgstr "به کاتی بگویید برای چه چیزهایی پول می‌دهید. آن‌وقت «کجا ببینم»، «چه جا می‌شود» و «بعدی» شما را به آنچه واقعاً می‌توانید ببینید می‌رسانند و «اشتراک‌ها» هزینه‌اش را جمع می‌زند."
+
+#: lib/kati/screens/my_services.ex:1127
+#, elixir-autogen, elixir-format
+msgid "You said this is not yours"
+msgstr "گفتید این مال شما نیست"

@@ -1213,6 +1213,16 @@ defmodule Kati.DesignLiterals do
       # library, and no real shelf answers them. Board 145 retired the same
       # numbers one line above.
       {"146", "41 of 418 \u00b7 recently added"},
+      # #127 gave 92 and 97 a purpose line that says what the page is for, and
+      # took the fake Lumen+ out of the country note. The Show all row with the
+      # board's 47 is gone: the page lists the services on the reader's own
+      # titles instead.
+      {"92", "show all 47"},
+      {"92", "everything justwatch lists for the uk"},
+      {"92", "availability is per country. telling you a film is on lumen+ when it is only on lumen+ in canada is worse than telling you nothing at all."},
+      {"92", "so kati only shows you what you can actually watch."},
+      {"97", "\u{62A}\u{627} \u{6A9}\u{627}\u{62A}\u{6CC} \u{641}\u{642}\u{637} \u{686}\u{6CC}\u{632}\u{6CC} \u{631}\u{627} \u{646}\u{634}\u{627}\u{646} \u{62F}\u{647}\u{62F} \u{6A9}\u{647} \u{645}\u{6CC}\u200C\u{62A}\u{648}\u{627}\u{646}\u{6CC}\u{62F} \u{628}\u{628}\u{6CC}\u{646}\u{6CC}\u{62F}."},
+      {"97", "\u{62F}\u{633}\u{62A}\u{631}\u{633}\u{6CC} \u{628}\u{647} \u{645}\u{62D}\u{62A}\u{648}\u{627} \u{6A9}\u{634}\u{648}\u{631} \u{628}\u{647} \u{6A9}\u{634}\u{648}\u{631} \u{645}\u{62A}\u{641}\u{627}\u{648}\u{62A} \u{627}\u{633}\u{62A}. \u{6AF}\u{641}\u{62A}\u{646} \u{627}\u{6CC}\u{646}\u{6A9}\u{647} \u{641}\u{6CC}\u{644}\u{645}\u{6CC} \u{62F}\u{631} \u{62F}\u{633}\u{62A}\u{631}\u{633} \u{627}\u{633}\u{62A} \u{648}\u{642}\u{62A}\u{6CC} \u{641}\u{642}\u{637} \u{62F}\u{631} \u{6A9}\u{634}\u{648}\u{631} \u{62F}\u{6CC}\u{6AF}\u{631}\u{6CC} \u{67E}\u{62E}\u{634} \u{645}\u{6CC}\u200C\u{634}\u{648}\u{62F}\u{60C} \u{627}\u{632} \u{646}\u{6AF}\u{641}\u{62A}\u{646} \u{628}\u{62F}\u{62A}\u{631} \u{627}\u{633}\u{62A}."},
       # #120 rebuilt 146 as the selection it is: the Library's own chips and
       # grid, a header with the count, and an action bar. The board's stills
       # around the live bar — the resting header, the frozen ONE SELECTED bar,
