@@ -129,6 +129,35 @@ defmodule Kati.CalendarNavigationTest do
       assert "Shown lunch" in titles
       refute "Hidden lunch" in titles
     end
+
+    test "a quick add never lands in a calendar that is switched off" do
+      # Every local calendar off for the length of this test, so the answer
+      # does not depend on what earlier tests left switched on.
+      before = Kati.Repo.query!("SELECT id, visible FROM calendars", []).rows
+      Kati.Repo.query!("UPDATE calendars SET visible = 0 WHERE kind = 'local'", [])
+
+      on_exit(fn ->
+        known = Enum.map(before, &hd/1)
+
+        for [id, visible] <- before,
+            do: Kati.Repo.query!("UPDATE calendars SET visible = ?1 WHERE id = ?2", [visible, id])
+
+        for [id] <- Kati.Repo.query!("SELECT id FROM calendars", []).rows,
+            id not in known,
+            do: Kati.Repo.query!("DELETE FROM calendars WHERE id = ?1", [id])
+      end)
+
+      hidden =
+        Ash.create!(Kati.Calendars.Calendar, %{
+          display_name: "Hidden calendar",
+          kind: :local,
+          visible: false
+        })
+
+      chosen = Kati.Screens.QuickAdd.personal_calendar()
+      refute chosen.id == hidden.id
+      assert chosen.visible
+    end
   end
 
   describe "the month, the week and the agenda" do
