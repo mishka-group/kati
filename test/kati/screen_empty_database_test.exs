@@ -795,20 +795,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # visible, which is a state a user reaches and not the one the screen opens
     # in, so the resting comparison is 155's first band rather than 154 whole.
     "154" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
-    # 92 → 93's own empty card, and 92's chrome besides.
-    #
-    # This is screen 03's arrangement, one screen over: the page keeps its own
-    # board's header, region row, search field, *Something else*, rules and
-    # money row — every one of them live and unchanged with nothing stored —
-    # and what goes is the list of services, which becomes board 93's `No
-    # services yet` card. So board 92 cannot be compared whole here (its three
-    # subscriptions are a state a reader reaches), and the band that replaces
-    # them is 93's.
-    #
-    # 93 as a WHOLE is not the answer, and reading it is what says so: it has
-    # no way to add a service — 92's *Something else* row is not on it — and
-    # its *Free with ads* group lists two services the reader has not got.
-    "92" => [{"93", {"Subscribed · none yet", "Free with ads"}}],
+    # 92 → no board. With nothing stored the page draws its own add card and a
+    # one-line note pointing at it where the services would be; board 93's
+    # `No services yet` card asked the reader to turn on services that had
+    # no switch, so it is not drawn here any more and there is no band left
+    # for an empty database to be held to.
+    "92" => [],
     # 23 → board 96's fourth band, which is what that sheet was drawn FOR.
     #
     # This page fell back to `Kati.Subscriptions.Sample` when the store held

@@ -50,7 +50,7 @@ defmodule Kati.MyServicesRealTest do
   test "the page says what it is for, and there is no invented service on it" do
     words = text(mount_screen(MyServices))
 
-    assert words =~ "Tell Kati what you pay for"
+    assert words =~ "The streaming services you have"
     refute words =~ "Lumen+"
   end
 

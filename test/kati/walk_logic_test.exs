@@ -10,7 +10,7 @@ defmodule Kati.WalkLogicTest do
 
   V26, V30's keystroke half and V31 are not repeated: `Kati.SearchRunTest`'s
   *the history the field keeps* and `Kati.ServiceWriteTest`'s *a save that
-  cannot land* and *the row that changed* already pin them.
+  cannot land* and *a listed service* already pin them.
   """
 
   use Mob.ScreenCase, async: false
@@ -266,19 +266,19 @@ defmodule Kati.WalkLogicTest do
     end
   end
 
-  describe "V30 — the refusal under Something else" do
-    test "is red, and sits under the row that refused" do
+  describe "V30 — the refusal in the add card" do
+    test "is red, and sits under the button that refused" do
       view = mount_screen(MyServices) |> render_info({:tap, :add_service})
-      error = assigns(view).save_error
+      {:error, error} = assigns(view).notice
 
-      assert error == "Nothing to save yet."
+      assert error == "Type the service’s name first."
 
       texts = texts(view)
-      row = Enum.find_index(texts, &(&1.props.text == "Something else"))
+      button = Enum.find_index(texts, &(&1.props.text == "Add service"))
       notice = Enum.find_index(texts, &(&1.props.text == error))
 
-      assert row != nil and notice != nil
-      assert row < notice, "the notice is drawn above the row it is about"
+      assert button != nil and notice != nil
+      assert button < notice, "the notice is drawn above the button it is about"
       assert Enum.at(texts, notice).props.text_color == Palette.red()
     end
   end

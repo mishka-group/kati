@@ -361,6 +361,12 @@ defmodule Kati.ScreenDesignLiteralTest do
     # #127: 92's and 97's Show all row, and its glyph, are gone.
     {"92", "more_horiz"},
     {"97", "more_horiz"},
+    # 92's add card replaced the search field and the *Something else* row,
+    # and with them the search and add glyphs.
+    {"92", "search"},
+    {"92", "add"},
+    {"97", "search"},
+    {"97", "add"},
     # #120: board 146's stills — the resting header's search disc, the notes'
     # info and call_split glyphs, the frozen undo pill — are not drawn.
     {"146", "call_split"},
@@ -1155,18 +1161,6 @@ defmodule Kati.ScreenDesignLiteralTest do
       # into the page is screen 92's Money row.
       {"23", "stats", "where the reader actually came from, which for this page is My services",
        ~r/^(my services|stats)$/u},
-      # 92's *Something else* sub-line. The board promises *Kati will remember
-      # it for your subscription total* and nothing could enter a price:
-      # `Kati.Services.Service.monthly_pence` has existed since the resource
-      # was written and every writer left it `nil`, so screen 23's *Every
-      # month* read `—` however many services somebody added.
-      # The field takes both now — `Netflix 10.99` —
-      # and the row says so. The pattern insists the sentence still promises
-      # the total, which is the half of it that was true.
-      {"92",
-       "kati will remember it for your subscription total, but cannot tell you what is on it",
-       "the row explains how to enter a price, now that entering one does something",
-       ~r/subscription total/u},
       {"01", "good evening",
        "the greeting is picked from the device clock's hour by the same function. Which of " <>
          "the three it is belongs to `Kati.Screens.Home.today/0`; restating its thresholds " <>

@@ -1222,6 +1222,18 @@ defmodule Kati.DesignLiterals do
       {"92",
        "availability is per country. telling you a film is on lumen+ when it is only on lumen+ in canada is worse than telling you nothing at all."},
       {"92", "so kati only shows you what you can actually watch."},
+      # The add card replaced the search field (`Search services`) and the
+      # *Something else* row at the foot of the page, and *Not mine* is drawn
+      # only when something has been set aside.
+      {"92", "search services"},
+      {"92", "something else"},
+      {"92", "not mine"},
+      {"92",
+       "kati will remember it for your subscription total, but cannot tell you what is on it"},
+      # 97 is 92 in Persian and lost the same lines.
+      {"97",
+       "\u{62C}\u{633}\u{62A}\u200C\u{648}\u{62C}\u{648}\u{6CC} \u{633}\u{631}\u{648}\u{6CC}\u{633}\u200C\u{647}\u{627}"},
+      {"97", "\u{645}\u{627}\u{644} \u{645}\u{646} \u{646}\u{6CC}\u{633}\u{62A}"},
       {"97",
        "\u{62A}\u{627} \u{6A9}\u{627}\u{62A}\u{6CC} \u{641}\u{642}\u{637} \u{686}\u{6CC}\u{632}\u{6CC} \u{631}\u{627} \u{646}\u{634}\u{627}\u{646} \u{62F}\u{647}\u{62F} \u{6A9}\u{647} \u{645}\u{6CC}\u200C\u{62A}\u{648}\u{627}\u{646}\u{6CC}\u{62F} \u{628}\u{628}\u{6CC}\u{646}\u{6CC}\u{62F}."},
       {"97",

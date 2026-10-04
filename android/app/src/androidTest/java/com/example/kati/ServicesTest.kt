@@ -54,13 +54,13 @@ class ServicesTest {
         val before = kati.count("services")
 
         kati.tap("open_services")
-        kati.compose.waitUntil(20_000) { kati.present("service_query") }
+        kati.compose.waitUntil(20_000) { kati.present("service_name") }
 
         // #95's fix, on the device. Save with nothing typed refuses in words:
         // this is the app admitting a failure it used to swallow.
         kati.tap("add_service")
         kati.device.waitForIdle()
-        kati.compose.waitUntil(10_000) { textPresent("Nothing to save yet") }
+        kati.compose.waitUntil(10_000) { textPresent("Type the service’s name first") }
 
         // Not decoration, and not the row count. A tap that never reaches the
         // BEAM at all ALSO leaves the count unchanged, so asserting the count
@@ -70,20 +70,16 @@ class ServicesTest {
         assertTrue(
             "Save with an empty field showed no refusal, so the tap never reached the " +
                 "BEAM — nothing below this line would mean anything",
-            textPresent("Nothing to save yet")
+            textPresent("Type the service’s name first")
         )
 
         assertEquals("an empty save wrote a row", before, kati.count("services"))
 
-        // The bug the review caught: the refusal outlived the field it was
-        // about. Typing a name left "Nothing to save yet." sitting under a
-        // field that now held one, because the change handler assigned :query
-        // without clearing :save_error.
-        kati.compose.onNodeWithTag("service_query", useUnmergedTree = true)
+        kati.compose.onNodeWithTag("service_name", useUnmergedTree = true)
             .performTextInput(name)
         kati.device.waitForIdle()
 
-        val fieldHolds = kati.textOf("service_query")
+        val fieldHolds = kati.textOf("service_name")
 
         kati.tap("add_service")
         kati.device.waitForIdle()
@@ -96,24 +92,20 @@ class ServicesTest {
 
         val addStillThere = kati.present("add_service")
         val rows = kati.count("services")
-        // A successful save assigns :query to "" — so a cleared field is the
-        // BEAM telling us it took the {:ok, _} branch and wrote nothing.
-        val fieldAfter = kati.textOf("service_query")
+        // A successful save empties the card.
+        val fieldAfter = kati.textOf("service_name")
 
-        // THE discriminator. `localValue` in MobTextField is Compose-local, so
-        // text on screen proves only that Compose has it — never that the BEAM
-        // does. The two failures are told apart by which sentence the screen
-        // shows: "Nothing to save yet." means `assigns[:query]` was empty when
-        // Save ran, so the change never crossed the bridge; the generic
-        // "did not save" sentence means it crossed and the write itself failed.
-        val saysNothingToSave = textPresent("Nothing to save yet")
+        // The two failures are told apart by the sentence: "Type the service’s
+        // name first" means the typed name never crossed the bridge; "did not
+        // save" means it crossed and the write itself failed.
+        val saysNothingToSave = textPresent("Type the service’s name first")
         val saysDidNotSave = textPresent("did not save")
 
         assertEquals(
             "the name was typed and Save was tapped, but no row arrived. " +
                 "field held: [" + fieldHolds + "] typed: [" + name + "] " +
                 "add_service present: " + addStillThere + " / rows: " + rows +
-                " / says-nothing-to-save: " + saysNothingToSave +
+                " / says-type-a-name: " + saysNothingToSave +
                 " / says-did-not-save: " + saysDidNotSave +
                 " / field after save: [" + fieldAfter + "]",
             before + 1,
@@ -127,11 +119,12 @@ class ServicesTest {
             kati.scalar("select name from services where name = '$name'")
         )
 
-        // Same name again. `save_service/1` answers {:ok, existing} rather than
-        // writing a second row, and the count is the only place that shows.
-        kati.tap("add_service")
+        // Same name again is refused: a second row would be a second charge.
+        kati.compose.onNodeWithTag("service_name", useUnmergedTree = true)
+            .performTextInput(name)
         kati.device.waitForIdle()
-        kati.compose.waitUntil(5_000) { true }
+        kati.tap("add_service")
+        kati.compose.waitUntil(10_000) { textPresent("already on your list") }
 
         assertEquals(
             "the same name was saved twice and made two rows",
