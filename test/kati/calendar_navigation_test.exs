@@ -85,7 +85,9 @@ defmodule Kati.CalendarNavigationTest do
 
     test "today keeps its mark when another day is selected" do
       today = Kati.Time.today()
-      SelectedDate.put(Date.add(today, 1))
+      # Another day of the same week, so today is still on the strip.
+      other = if Date.day_of_week(today) == 7, do: Date.add(today, -1), else: Date.add(today, 1)
+      SelectedDate.put(other)
       words = inspect(mount_screen(Calendar) |> tree(), limit: :infinity)
 
       assert words =~ Integer.to_string(Kati.Theme.Palette.accent())

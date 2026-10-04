@@ -580,8 +580,9 @@ defmodule Kati.Screens.QuickAdd do
   Made if it is not there. A phone that has synced nothing has no calendar at
   all, and refusing the first quick add because of that would be refusing it
   for a reason the reader cannot act on — there is no *make a calendar* screen
-  in this app. The first local calendar wins if one exists, so somebody who
-  has synced keeps their own.
+  in this app. The oldest local calendar that is switched on wins, so somebody
+  who has synced keeps their own and a quick add never lands in a calendar the
+  Schedule hides; a hidden one is used only when it is the only one.
 
   **`display_name` is written in English and is not a `gettext/1` call**, even
   under `:fa`. It is a row in the database, not a string on a screen: a name
@@ -593,10 +594,13 @@ defmodule Kati.Screens.QuickAdd do
   """
   @spec personal_calendar() :: struct()
   def personal_calendar do
-    Kati.Calendars.Calendar
-    |> Ash.read!()
-    |> Enum.filter(&(&1.kind == :local))
-    |> List.first()
+    local =
+      Kati.Calendars.Calendar
+      |> Ash.read!()
+      |> Enum.filter(&(&1.kind == :local))
+      |> Enum.sort_by(& &1.inserted_at, DateTime)
+
+    (Enum.find(local, & &1.visible) || List.first(local))
     |> case do
       nil -> Ash.create!(Kati.Calendars.Calendar, %{display_name: "Personal", kind: :local})
       calendar -> calendar
