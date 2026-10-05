@@ -16,6 +16,7 @@ defmodule Kati.AddByHandTest do
       Kati.Repo.query!("DELETE FROM tracked_titles", [])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source = 'manual'", [])
     end)
+
     :ok
   end
 
