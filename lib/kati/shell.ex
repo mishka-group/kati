@@ -209,9 +209,9 @@ defmodule Kati.Shell do
   # is where the icons end up, and this is the version that matches.
   @doc """
   The `+` beside the dock. Your year is a dashboard with nothing to add, so it
-  draws none.
+  draws none, and holds its room so the tabs stay where they are on every root.
   """
-  def fab(:stats, _fab, _glyph, _add), do: ~MOB"<Spacer size={0} />"
+  def fab(:stats, _fab, _glyph, _add), do: ~MOB"<Spacer size={75} />"
 
   def fab(_active, fab, glyph, add) do
     assigns = %{fab: fab, glyph: glyph, add: add}

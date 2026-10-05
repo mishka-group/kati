@@ -934,6 +934,8 @@ defmodule Kati.Screens.QuickAdd do
     """
   end
 
+  def field(%{query: []}), do: ~MOB"<Spacer size={0} />"
+
   def field(draft) do
     ~MOB"""
     <Column fill_width={true}>

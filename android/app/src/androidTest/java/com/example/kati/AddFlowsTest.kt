@@ -22,12 +22,11 @@ class AddFlowsTest {
     fun a_music_plus_opens_the_search_on_music_and_its_panel_opens_the_album_form() {
         kati.launch()
         kati.firstRun()
-        kati.tap("root_library")
-        kati.awaitScreen("library")
-        kati.compose.waitUntil(20_000) { kati.present("shelf_music") }
-        kati.device.waitForIdle()
-        kati.tap("shelf_music")
-        kati.compose.waitUntil(20_000) { !kati.present("shelf_music") || kati.present("fab") }
+        kati.tap("root_home")
+        kati.awaitScreen("home")
+        kati.compose.waitUntil(20_000) { kati.present("open_music") }
+        kati.tap("open_music")
+        kati.compose.waitUntil(20_000) { !kati.present("open_music") && kati.present("fab") }
         kati.device.waitForIdle()
         kati.tap("fab")
         kati.awaitScreen("search")
