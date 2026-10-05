@@ -36,7 +36,7 @@ object ByHand {
     }
 
     /** Adds `title` as `kind` (`kind_tv` or `kind_movie`) and lands on its page. */
-    fun add(kati: KatiRule, title: String, kind: String) {
+    fun add(kati: KatiRule, title: String, kind: String, status: String? = null) {
         val before = kati.count("tracked_titles")
         toTabs(kati)
         kati.tap("fab")
@@ -48,6 +48,10 @@ object ByHand {
         kati.awaitScreen("add_by_hand")
         kati.tap(kind)
         kati.device.waitForIdle()
+        if (status != null) {
+            kati.tap(status)
+            kati.device.waitForIdle()
+        }
         kati.compose.onNodeWithTag("title", useUnmergedTree = true).performTextClearance()
         kati.compose.onNodeWithTag("title", useUnmergedTree = true).performTextInput(title)
         kati.device.waitForIdle()

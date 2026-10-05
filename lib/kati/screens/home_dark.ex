@@ -727,13 +727,35 @@ defmodule Kati.Screens.HomeDark do
 
   @doc false
   def continue(rows) do
+    assigns = %{
+      pages: rows |> Enum.chunk_every(2) |> Enum.map(&Kati.Screens.HomeDark.card_page/1),
+      gap: 13
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        {Kati.Screens.HomeDark.cards_in_row(rows)}
-      </Row>
+      <Scroll
+        axis="horizontal"
+        pager={true}
+        page={0}
+        page_spacing={@gap}
+        fill_width={true}
+        accessibility_id="continue_cards"
+      >
+        {@pages}
+      </Scroll>
       <Spacer size={26} />
     </Column>
+    """
+  end
+
+  # Two cards to a page, and the reader slides to the next two.
+  @doc false
+  def card_page(rows) do
+    ~MOB"""
+    <Row fill_width={true} align="top" padding_bottom={8}>
+      {Kati.Screens.HomeDark.cards_in_row(rows)}
+    </Row>
     """
   end
 

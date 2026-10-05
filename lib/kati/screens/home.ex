@@ -171,9 +171,9 @@ defmodule Kati.Screens.Home do
   # nowhere to sit. See `poster_stack/1` for the arithmetic the count feeds.
   @hero_posters 3
 
-  # Screen 01 draws two continue-watching cards side by side and no second row.
-  # See `continue_watching_rows/0`.
-  @continue_cards 2
+  # Two continue-watching cards to a page, and up to five titles to slide
+  # through. See `continue_watching_rows/0`.
+  @continue_cards 5
 
   # The design's own three posters, in the order it stacks them.
   @hero_seeds ~w(ashfall42 marram15 harbour86)
@@ -373,9 +373,9 @@ defmodule Kati.Screens.Home do
   whose episode total was evicted. Somebody who marked a show as being watched
   and has ticked nothing yet is in the middle of it.
 
-  At most two, because the board draws two side by side and Mob has no wrap
-  primitive — the same kind of display bound `Kati.Screens.Inbox` argues for its
-  seven-day window, and stated here rather than left to the layout to enforce.
+  At most five, two to a page: the card row is a pager the reader slides
+  through with a finger, so the titles past the second are a slide away rather
+  than gone.
   """
   @spec continue_watching_rows() :: [map()]
   def continue_watching_rows do
@@ -1044,13 +1044,35 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def watch_cards(rows) do
+    assigns = %{
+      pages: rows |> Enum.chunk_every(2) |> Enum.map(&Kati.Screens.Home.card_page/1),
+      gap: 13
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        {Kati.Screens.Home.cards_in_row(rows)}
-      </Row>
+      <Scroll
+        axis="horizontal"
+        pager={true}
+        page={0}
+        page_spacing={@gap}
+        fill_width={true}
+        accessibility_id="continue_cards"
+      >
+        {@pages}
+      </Scroll>
       <Spacer size={26} />
     </Column>
+    """
+  end
+
+  # Two cards to a page, and the reader slides to the next two.
+  @doc false
+  def card_page(rows) do
+    ~MOB"""
+    <Row fill_width={true} align="top" padding_bottom={8}>
+      {Kati.Screens.Home.cards_in_row(rows)}
+    </Row>
     """
   end
 
