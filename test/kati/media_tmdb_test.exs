@@ -38,6 +38,12 @@ defmodule Kati.MediaTmdbTest do
     real = :persistent_term.get({__MODULE__, :real_token}, nil)
     Application.put_env(:kati, :tmdb_test_token, "test-token")
 
+    # Empty on the way in too: the store assertions below count rows, and a
+    # file that ran before this one may have left a title behind.
+    for table <- ~w(cached_episodes cached_seasons cached_titles) do
+      Kati.Repo.query!("DELETE FROM " <> table, [])
+    end
+
     on_exit(fn ->
       Application.delete_env(:kati, :tmdb_test_token)
       Application.delete_env(:kati, :tmdb_req_options)
