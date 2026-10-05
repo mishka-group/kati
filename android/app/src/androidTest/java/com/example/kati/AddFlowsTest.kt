@@ -21,7 +21,11 @@ class AddFlowsTest {
     @Test
     fun a_music_plus_opens_the_search_on_music_and_its_panel_opens_the_album_form() {
         kati.launch()
-        kati.firstRun()
+        // Music is offered only to a reader who picked it at first run.
+        kati.toSections()
+        kati.tapAny("section_music")
+        kati.device.waitForIdle()
+        kati.finishRun()
         kati.tap("root_home")
         kati.awaitScreen("home")
         kati.compose.waitUntil(20_000) { kati.present("open_music") }
