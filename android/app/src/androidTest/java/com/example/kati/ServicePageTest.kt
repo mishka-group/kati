@@ -42,6 +42,8 @@ class ServicePageTest {
         ByHand.add(kati, show, "kind_tv")
         val showId = kati.scalar("select id from tracked_titles where source_id = '$show'") ?: ""
         ByHand.toTabs(kati)
+        kati.tap("root_home")
+        kati.awaitScreen("home")
 
         kati.tap("open_services")
         kati.compose.waitUntil(20_000) { kati.present("service_name") }
@@ -63,12 +65,14 @@ class ServicePageTest {
         type("service_price", "12.50")
         kati.tap("save_price")
         kati.compose.waitUntil(20_000) { column("monthly_pence") == "1250" }
+        kati.compose.waitUntil(10_000) { !kati.present("save_price") }
 
         // The renewal day, picked from the grid.
         kati.tap("pick_day")
         kati.compose.waitUntil(10_000) { kati.present("day_15") }
         kati.tap("day_15")
         kati.compose.waitUntil(20_000) { (column("renews_on") ?: "").endsWith("-15") }
+        kati.compose.waitUntil(10_000) { !kati.present("day_15") }
 
         // A title from the library, placed on this service.
         kati.tap("pick_title")

@@ -19,7 +19,16 @@ object ByHand {
     fun toTabs(kati: KatiRule) {
         repeat(5) {
             if (kati.present("root_library")) return
-            if (kati.present("back")) kati.tap("back") else kati.device.pressBack()
+            // The pill can go between seeing it and tapping it, when the page
+            // under it finishes loading; the next round looks again.
+            if (kati.present("back")) {
+                try {
+                    kati.tap("back")
+                } catch (_: AssertionError) {
+                }
+            } else {
+                kati.device.pressBack()
+            }
             kati.device.waitForIdle()
             kati.compose.waitUntil(5_000) { true }
         }

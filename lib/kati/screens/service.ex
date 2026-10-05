@@ -654,8 +654,7 @@ defmodule Kati.Screens.Service do
             SettingsList.action_pill(
               gettext("Add"),
               {self(), String.to_atom("place_" <> title.id)}
-            ),
-            on_tap: {self(), String.to_atom("place_" <> title.id)}
+            )
           )
         end)
     end
