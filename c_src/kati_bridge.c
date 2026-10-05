@@ -90,6 +90,21 @@ static ERL_NIF_TERM kb_file_share(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return reply;
 }
 
+/* ── Dictation: the system's speech recognizer ──────────────────────────── */
+
+static ERL_NIF_TERM kb_speech_listen(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *json;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    json = kati_take_cstr(env, argv[0]);
+    if (json == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call_pid(env, "katiListen", "(JLjava/lang/String;)V", json);
+    kati_free_cstr(json);
+    return reply;
+}
+
 /* ── #58: arming a real alarm ────────────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_notify_arm(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -304,6 +319,12 @@ static ERL_NIF_TERM kb_file_share(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return kb_unavailable(env);
 }
 
+static ERL_NIF_TERM kb_speech_listen(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
 static ERL_NIF_TERM kb_notify_arm(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     (void)argc;
     (void)argv;
@@ -394,6 +415,7 @@ static ErlNifFunc nif_funcs[] = {
     {"available", 0, kb_available, 0},
     {"file_save_as", 1, kb_file_save_as, 0},
     {"file_share", 1, kb_file_share, 0},
+    {"speech_listen", 1, kb_speech_listen, 0},
     {"notify_arm", 1, kb_notify_arm, 0},
     {"notify_cancel", 1, kb_notify_cancel, 0},
     {"notify_status", 0, kb_notify_status, 0},

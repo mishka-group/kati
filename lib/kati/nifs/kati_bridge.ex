@@ -89,6 +89,11 @@ defmodule Kati.Nifs.KatiBridge do
   @spec file_share(binary()) :: binary()
   def file_share(_json), do: :erlang.nif_error(:nif_not_loaded)
 
+  @doc false
+  # Asynchronous: the answer is `{:kati_speech, …}` to the caller, see
+  # `Kati.Native.Speech`.
+  def speech_listen(_json), do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: notification arming ────────────────────────────────────────────
 
   @doc """

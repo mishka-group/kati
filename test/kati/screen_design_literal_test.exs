@@ -1841,6 +1841,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # The ledger joins the two it already set: 23 answers an empty ledger with
       # nothing subscribed now, so the board's own bill has to be installed to
       # compare the frame against its capture.
+      # 18 is drawn mid-typing; its sentence, parse and clash are the board's.
+      {"18", Kati.Screens.QuickAdd, &Map.put(&1, :draft, Kati.Screens.QuickAdd.Sample.draft())},
       {"23", Kati.Screens.Subscriptions,
        &(&1
          |> Map.put(:params, %{back: "Stats"})

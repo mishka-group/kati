@@ -1404,7 +1404,7 @@ msgid "Artist"
 msgstr "هنرمند"
 
 #: lib/kati/screens/auto_detect.ex:474
-#: lib/kati/screens/auto_detect.ex:1198
+#: lib/kati/screens/auto_detect.ex:1199
 #: lib/kati/screens/auto_detect_music.ex:186
 #: lib/kati/screens/pushed.ex:184
 #: lib/kati/settings/sample.ex:386
@@ -4854,7 +4854,7 @@ msgstr "%{date} · %{items}"
 #: lib/kati/calendar/sample_meal_day.ex:169
 #: lib/kati/screens/calendar.ex:291
 #: lib/kati/screens/event_detail.ex:352
-#: lib/kati/screens/quick_add.ex:242
+#: lib/kati/screens/quick_add.ex:268
 #: lib/kati/screens/quick_add/sample.ex:183
 #: lib/kati/screens/week.ex:91
 #, elixir-autogen, elixir-format
@@ -4993,7 +4993,7 @@ msgid "Personal"
 msgstr "شخصی"
 
 #: lib/kati/screens/calendar.ex:537
-#: lib/kati/screens/quick_add.ex:621
+#: lib/kati/screens/quick_add.ex:801
 #, elixir-autogen, elixir-format
 msgid "Quick add"
 msgstr "افزودن سریع"
@@ -11140,23 +11140,23 @@ msgstr "یک حساب تقویم"
 msgid "A service removed while history references it"
 msgstr "سرویسی که حذف شده و تاریخچه هنوز نامش را می‌برد"
 
-#: lib/kati/screens/quick_add.ex:200
+#: lib/kati/screens/quick_add.ex:226
 #, elixir-autogen, elixir-format
 msgid "ALL-DAY EVENT"
 msgstr "رویداد تمام‌روز"
 
-#: lib/kati/screens/quick_add.ex:277
+#: lib/kati/screens/quick_add.ex:303
 #: lib/kati/screens/quick_add/sample.ex:94
 #, elixir-autogen, elixir-format
 msgid "Add to %{day}"
 msgstr "افزودن به %{day}"
 
-#: lib/kati/screens/quick_add.ex:271
+#: lib/kati/screens/quick_add.ex:297
 #, elixir-autogen, elixir-format
 msgid "Add to today"
 msgstr "افزودن به امروز"
 
-#: lib/kati/screens/quick_add.ex:272
+#: lib/kati/screens/quick_add.ex:298
 #, elixir-autogen, elixir-format
 msgid "Add to tomorrow"
 msgstr "افزودن به فردا"
@@ -11257,7 +11257,7 @@ msgstr "کاتی نسخه‌ای را که هر ویرایش از آن شروع 
 msgid "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
 msgstr "کاتی می‌داند این فیلم وجود دارد. تا نداند بابت چه چیزهایی پول می‌دهید، نمی‌تواند بگوید امشب می‌توانید ببینیدش یا نه."
 
-#: lib/kati/screens/quick_add.ex:305
+#: lib/kati/screens/quick_add.ex:331
 #: lib/kati/screens/quick_add_expense.ex:76
 #, elixir-autogen, elixir-format
 msgid "Kati read that as"
@@ -11278,7 +11278,7 @@ msgstr "نگه داشته، فرستاده‌نشده"
 msgid "Listening time"
 msgstr "زمان شنیدن"
 
-#: lib/kati/screens/quick_add.ex:199
+#: lib/kati/screens/quick_add.ex:225
 #, elixir-autogen, elixir-format
 msgid "NEEDS A DAY"
 msgstr "یک روز لازم دارد"
@@ -11338,7 +11338,7 @@ msgstr "چیزی منتظر شما نیست"
 msgid "Nothing set up"
 msgstr "چیزی راه‌اندازی نشده"
 
-#: lib/kati/screens/quick_add.ex:141
+#: lib/kati/screens/quick_add.ex:167
 #, elixir-autogen, elixir-format
 msgid "Nothing to add yet"
 msgstr "هنوز چیزی برای افزودن نیست"
@@ -11353,13 +11353,13 @@ msgstr "آفلاین — کتابخانه همچنان کار می‌کند"
 msgid "On repeat this week"
 msgstr "پرتکرار این هفته"
 
-#: lib/kati/screens/quick_add.ex:305
+#: lib/kati/screens/quick_add.ex:331
 #: lib/kati/screens/quick_add_expense.ex:76
 #, elixir-autogen, elixir-format
 msgid "Or file it as"
 msgstr "یا این‌طور ثبتش کنید"
 
-#: lib/kati/screens/quick_add.ex:201
+#: lib/kati/screens/quick_add.ex:227
 #: lib/kati/screens/quick_add/sample.ex:76
 #, elixir-autogen, elixir-format
 msgid "PERSONAL EVENT"
@@ -11395,7 +11395,7 @@ msgstr "کشور حالا %{region} است"
 msgid "Region set, no services — a legitimate middle"
 msgstr "کشور تعیین شده، سرویسی نه — یک میانهٔ درست"
 
-#: lib/kati/screens/quick_add.ex:267
+#: lib/kati/screens/quick_add.ex:293
 #, elixir-autogen, elixir-format
 msgid "Say when, and Kati will add it"
 msgstr "روزش را بگویید تا کاتی اضافه‌اش کند"
@@ -11732,69 +11732,69 @@ msgctxt "eyebrow"
 msgid "Needs you"
 msgstr "نیاز به شما"
 
-#: lib/kati/screens/quick_add.ex:254
+#: lib/kati/screens/quick_add.ex:280
 #: lib/kati/screens/quick_add/sample.ex:187
 #, elixir-autogen, elixir-format
 msgctxt "quick add alert chip"
 msgid "%{at} alert"
 msgstr "هشدار %{at}"
 
-#: lib/kati/screens/quick_add.ex:251
+#: lib/kati/screens/quick_add.ex:277
 #, elixir-autogen, elixir-format
 msgctxt "quick add alert chip"
 msgid "%{n}m before"
 msgstr "%{n} دقیقه قبل"
 
-#: lib/kati/screens/quick_add.ex:398
+#: lib/kati/screens/quick_add.ex:425
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Event"
 msgstr "رویداد"
 
-#: lib/kati/screens/quick_add.ex:403
+#: lib/kati/screens/quick_add.ex:430
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Expense"
 msgstr "هزینه"
 
-#: lib/kati/screens/quick_add.ex:401
+#: lib/kati/screens/quick_add.ex:428
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Habit"
 msgstr "عادت"
 
-#: lib/kati/screens/quick_add.ex:402
+#: lib/kati/screens/quick_add.ex:429
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Note"
 msgstr "یادداشت"
 
-#: lib/kati/screens/quick_add.ex:399
+#: lib/kati/screens/quick_add.ex:426
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Reminder"
 msgstr "یادآور"
 
-#: lib/kati/screens/quick_add.ex:400
+#: lib/kati/screens/quick_add.ex:427
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Title"
 msgstr "عنوان"
 
-#: lib/kati/screens/quick_add.ex:1035
+#: lib/kati/screens/quick_add.ex:1217
 #: lib/kati/screens/quick_add/sample.ex:85
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "Clashes with"
 msgstr "تداخل دارد با"
 
-#: lib/kati/screens/quick_add.ex:1036
+#: lib/kati/screens/quick_add.ex:1218
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "another event"
 msgstr "رویداد دیگری"
 
-#: lib/kati/screens/quick_add.ex:1037
+#: lib/kati/screens/quick_add.ex:1219
 #: lib/kati/screens/quick_add/sample.ex:86
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
@@ -17406,3 +17406,35 @@ msgstr "جست‌وجوی کتاب به‌زودی می‌آید. تا آن مو
 #, elixir-autogen, elixir-format
 msgid "Searching for music is coming. Until then, add an album with its artist."
 msgstr "جست‌وجوی موسیقی به‌زودی می‌آید. تا آن موقع، آلبوم را با نام هنرمندش اضافه کنید."
+
+#: lib/kati/screens/quick_add.ex:149
+#, elixir-autogen, elixir-format
+msgid "LIKE: DENTIST TOMORROW 3PM FOR 45M"
+msgstr "مثلاً: دندانپزشک فردا ساعت ۳ بعدازظهر به مدت ۴۵ دقیقه"
+
+#: lib/kati/screens/quick_add.ex:671
+#, elixir-autogen, elixir-format
+msgid "Not on your shelf? Find it"
+msgstr "در قفسه‌تان نیست؟ پیدایش کنید"
+
+#: lib/kati/screens/quick_add.ex:1435
+#, elixir-autogen, elixir-format
+msgid "Say it"
+msgstr "بگویید"
+
+#: lib/kati/screens/quick_add.ex:153
+#: lib/kati/screens/quick_add.ex:490
+#, elixir-autogen, elixir-format
+msgid "Say what and when"
+msgstr "بگویید چه چیزی و چه زمانی"
+
+#: lib/kati/screens/quick_add.ex:499
+#: lib/kati/screens/quick_add.ex:572
+#, elixir-autogen, elixir-format
+msgid "This phone has no speech recognizer. Type the sentence instead."
+msgstr "این گوشی تشخیص گفتار ندارد. جمله را تایپ کنید."
+
+#: lib/kati/screens/quick_add.ex:148
+#, elixir-autogen, elixir-format
+msgid "Type what and when"
+msgstr "چه چیزی و چه زمانی را بنویسید"

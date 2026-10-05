@@ -1401,7 +1401,7 @@ msgid "Artist"
 msgstr ""
 
 #: lib/kati/screens/auto_detect.ex:474
-#: lib/kati/screens/auto_detect.ex:1198
+#: lib/kati/screens/auto_detect.ex:1199
 #: lib/kati/screens/auto_detect_music.ex:186
 #: lib/kati/screens/pushed.ex:184
 #: lib/kati/settings/sample.ex:386
@@ -4851,7 +4851,7 @@ msgstr ""
 #: lib/kati/calendar/sample_meal_day.ex:169
 #: lib/kati/screens/calendar.ex:291
 #: lib/kati/screens/event_detail.ex:352
-#: lib/kati/screens/quick_add.ex:242
+#: lib/kati/screens/quick_add.ex:268
 #: lib/kati/screens/quick_add/sample.ex:183
 #: lib/kati/screens/week.ex:91
 #, elixir-autogen, elixir-format
@@ -4990,7 +4990,7 @@ msgid "Personal"
 msgstr ""
 
 #: lib/kati/screens/calendar.ex:537
-#: lib/kati/screens/quick_add.ex:621
+#: lib/kati/screens/quick_add.ex:801
 #, elixir-autogen, elixir-format
 msgid "Quick add"
 msgstr ""
@@ -11137,23 +11137,23 @@ msgstr ""
 msgid "A service removed while history references it"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:200
+#: lib/kati/screens/quick_add.ex:226
 #, elixir-autogen, elixir-format
 msgid "ALL-DAY EVENT"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:277
+#: lib/kati/screens/quick_add.ex:303
 #: lib/kati/screens/quick_add/sample.ex:94
 #, elixir-autogen, elixir-format
 msgid "Add to %{day}"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:271
+#: lib/kati/screens/quick_add.ex:297
 #, elixir-autogen, elixir-format
 msgid "Add to today"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:272
+#: lib/kati/screens/quick_add.ex:298
 #, elixir-autogen, elixir-format
 msgid "Add to tomorrow"
 msgstr ""
@@ -11254,7 +11254,7 @@ msgstr ""
 msgid "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:305
+#: lib/kati/screens/quick_add.ex:331
 #: lib/kati/screens/quick_add_expense.ex:76
 #, elixir-autogen, elixir-format
 msgid "Kati read that as"
@@ -11275,7 +11275,7 @@ msgstr ""
 msgid "Listening time"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:199
+#: lib/kati/screens/quick_add.ex:225
 #, elixir-autogen, elixir-format
 msgid "NEEDS A DAY"
 msgstr ""
@@ -11335,7 +11335,7 @@ msgstr ""
 msgid "Nothing set up"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:141
+#: lib/kati/screens/quick_add.ex:167
 #, elixir-autogen, elixir-format
 msgid "Nothing to add yet"
 msgstr ""
@@ -11350,13 +11350,13 @@ msgstr ""
 msgid "On repeat this week"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:305
+#: lib/kati/screens/quick_add.ex:331
 #: lib/kati/screens/quick_add_expense.ex:76
 #, elixir-autogen, elixir-format
 msgid "Or file it as"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:201
+#: lib/kati/screens/quick_add.ex:227
 #: lib/kati/screens/quick_add/sample.ex:76
 #, elixir-autogen, elixir-format
 msgid "PERSONAL EVENT"
@@ -11392,7 +11392,7 @@ msgstr ""
 msgid "Region set, no services — a legitimate middle"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:267
+#: lib/kati/screens/quick_add.ex:293
 #, elixir-autogen, elixir-format
 msgid "Say when, and Kati will add it"
 msgstr ""
@@ -11729,69 +11729,69 @@ msgctxt "eyebrow"
 msgid "Needs you"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:254
+#: lib/kati/screens/quick_add.ex:280
 #: lib/kati/screens/quick_add/sample.ex:187
 #, elixir-autogen, elixir-format
 msgctxt "quick add alert chip"
 msgid "%{at} alert"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:251
+#: lib/kati/screens/quick_add.ex:277
 #, elixir-autogen, elixir-format
 msgctxt "quick add alert chip"
 msgid "%{n}m before"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:398
+#: lib/kati/screens/quick_add.ex:425
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Event"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:403
+#: lib/kati/screens/quick_add.ex:430
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Expense"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:401
+#: lib/kati/screens/quick_add.ex:428
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Habit"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:402
+#: lib/kati/screens/quick_add.ex:429
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Note"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:399
+#: lib/kati/screens/quick_add.ex:426
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Reminder"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:400
+#: lib/kati/screens/quick_add.ex:427
 #, elixir-autogen, elixir-format
 msgctxt "quick add chip"
 msgid "Title"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:1035
+#: lib/kati/screens/quick_add.ex:1217
 #: lib/kati/screens/quick_add/sample.ex:85
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "Clashes with"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:1036
+#: lib/kati/screens/quick_add.ex:1218
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "another event"
 msgstr ""
 
-#: lib/kati/screens/quick_add.ex:1037
+#: lib/kati/screens/quick_add.ex:1219
 #: lib/kati/screens/quick_add/sample.ex:86
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
@@ -17402,4 +17402,36 @@ msgstr ""
 #: lib/kati/screens/search.ex:1352
 #, elixir-autogen, elixir-format
 msgid "Searching for music is coming. Until then, add an album with its artist."
+msgstr ""
+
+#: lib/kati/screens/quick_add.ex:149
+#, elixir-autogen, elixir-format
+msgid "LIKE: DENTIST TOMORROW 3PM FOR 45M"
+msgstr ""
+
+#: lib/kati/screens/quick_add.ex:671
+#, elixir-autogen, elixir-format
+msgid "Not on your shelf? Find it"
+msgstr ""
+
+#: lib/kati/screens/quick_add.ex:1435
+#, elixir-autogen, elixir-format
+msgid "Say it"
+msgstr ""
+
+#: lib/kati/screens/quick_add.ex:153
+#: lib/kati/screens/quick_add.ex:490
+#, elixir-autogen, elixir-format
+msgid "Say what and when"
+msgstr ""
+
+#: lib/kati/screens/quick_add.ex:499
+#: lib/kati/screens/quick_add.ex:572
+#, elixir-autogen, elixir-format
+msgid "This phone has no speech recognizer. Type the sentence instead."
+msgstr ""
+
+#: lib/kati/screens/quick_add.ex:148
+#, elixir-autogen, elixir-format
+msgid "Type what and when"
 msgstr ""

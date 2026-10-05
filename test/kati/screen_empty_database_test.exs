@@ -939,17 +939,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
      "87 IS the idle page with nothing typed, so its own empty state is the one it draws; " <>
        "what it cannot draw on a fresh device is 86's Recent shelf and its two derived " <>
        "suggestions", Kati.SearchSuggestionsTest},
-    # 06 is drawn MID-QUERY: the four results, the `4 results` caption and the
-    # availability lines under them all belong to a search somebody has run.
-    # The sheet used to open on them, so a reader who had typed nothing was
-    # shown four invented films with real poster images and one of them ticked
-    # as already in their library — and typing one or
-    # two letters put them back (#44).
-    #
-    # It opens empty now, and no board draws that state. `Kati.AddTitleStatesTest`
-    # holds the three cards it draws instead, and `Kati.ScreenDesignLiteralTest`
-    # renders 06 in the state its own board WAS captured in — a query typed and
-    # four results — which is where board 06's literals are still compared.
+    # 18 is drawn MID-TYPING: a dentist appointment, its alert and a clash
+    # with *Design review*. A reader who has typed nothing has none of them, so
+    # the empty field draws a card that says what to type instead.
+    {"18",
+     "board 18 is a sentence somebody typed, with its parse and a clash. An empty field " <>
+       "draws what to type and a button that says what is missing", Kati.QuickAddTest},
 
     # 19 and 89 are results pages and no board draws one with nothing typed,
     # for a reason that was true until this round: until the field was real the
@@ -1121,15 +1116,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # `All` is board 19's own — it is the chip that reads as selected on every
     # one of the four boards — and it is the one literal here that says the
     # scope row survived.
-    # 06 with nothing typed. What constrains it is the chrome that survives
-    # whatever a search answered — the sheet's own heading, its three scope
-    # chips, and the row that is the only way to add a title the catalogue
-    # cannot find. A sheet that quietly lost its chips would still have looked
-    # like a sheet.
-    #
-    # All five are board 06's own; the four RESULTS are the part that belongs
-    # to a query, and `Kati.ScreenDesignLiteralTest` compares those in the
-    # state the board was captured in.
     # 86 and 87 with nothing stored: the field's own placeholder, the chip row
     # that survives whatever the history held, and the note under it. A page
     # that quietly lost its chips would still have looked like a page.
@@ -1140,6 +1126,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # their two doors, and the absence of the meta line the board's note is
     # about.
     {"05", "05", "New releases"},
+    # 18 with nothing typed: the page's own headings survive the empty field.
+    {"18", "18", "Kati read that as"},
+    {"18", "18", "Or file it as"},
     # N54: the placeholder all four quoted from board 87 is
     # `Kati.Search.placeholder/0`'s *Search your library* now — the board's
     # words were cut short on a phone — so none of them quotes it any more.
@@ -2318,9 +2307,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # advice card arrive together or the board's do.
       # 18 gates on the whole draft: the sentence, the title, the chips, the
       # clash and the button's word arrive together or the board's do. An
-      # untyped field is the board.
+      # untyped field is the empty card, never the board's sentence.
       {"18", Kati.Screens.QuickAdd, fn -> Kati.Screens.QuickAdd.draft("") end,
-       &Kati.Screens.QuickAdd.Sample.draft/0},
+       &Kati.Screens.QuickAdd.empty_draft/0},
       # 11 gates on the seed rather than on the feed: `Kati.Media.Recommendations.seed/0`
       # is the title the picks would be drawn FROM, and an empty store has
       # none. One pair covers the subtitle, the four chips, the heading, the

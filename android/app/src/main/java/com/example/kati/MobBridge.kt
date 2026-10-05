@@ -1637,6 +1637,49 @@ object MobBridge {
     }
     // KATI-END(K-20 file-transport)
 
+    // KATI-BEGIN(K-76 speech-listen) mob_new=0.6.3
+    // Dictation: the system's own speech recognizer, put in front of the user
+    // by RecognizerIntent, so Kati needs no microphone permission and sends no
+    // audio anywhere itself. The words come back through the same
+    // nativeDeliverFileResult hook as the file transport:
+    //   {:kati_speech, :heard, [%{text: "..."}]}
+    //   {:kati_speech, :cancelled}
+    //   {:kati_speech, :error, [%{reason: "unavailable" | "no_activity"}]}
+    private var pendingKatiListenPid: Long = 0
+
+    @JvmStatic
+    fun katiListen(pid: Long, argsJson: String) {
+        pendingKatiListenPid = pid
+        val activity = activityRef?.get() as? MainActivity
+        if (activity == null) { katiListenError(pid, "no_activity"); return }
+        val args = try { org.json.JSONObject(argsJson) } catch (e: Exception) { org.json.JSONObject() }
+        val language = args.optString("language", "")
+        val prompt = args.optString("prompt", "")
+        activity.runOnUiThread { activity.launchKatiListen(language, prompt) }
+    }
+
+    /** Called from MainActivity's RecognizerIntent launcher. */
+    @JvmStatic
+    fun handleKatiListenResult(text: String?, unavailable: Boolean) {
+        val pid = pendingKatiListenPid
+        when {
+            unavailable -> katiListenError(pid, "unavailable")
+            text.isNullOrBlank() -> nativeDeliverFileResult(pid, "kati_speech", "cancelled", null)
+            else -> nativeDeliverFileResult(
+                pid, "kati_speech", "heard",
+                org.json.JSONArray().put(org.json.JSONObject().put("text", text)).toString()
+            )
+        }
+    }
+
+    private fun katiListenError(pid: Long, reason: String) {
+        nativeDeliverFileResult(
+            pid, "kati_speech", "error",
+            org.json.JSONArray().put(org.json.JSONObject().put("reason", reason)).toString()
+        )
+    }
+    // KATI-END(K-76 speech-listen)
+
     // KATI-BEGIN(K-22 notify-and-periodic-bridge) mob_new=0.4.20
     // WHY: `notify_schedule`/`notify_cancel` above (K-01 notify-persist) are
     // correct, persist across reboot, and have never had a caller. `:mob_nif`

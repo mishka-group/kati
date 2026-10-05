@@ -215,6 +215,37 @@ class MainActivity : ComponentActivity() {
         filePickerLauncher.launch(arrayOf("*/*"))
     }
 
+    // KATI-BEGIN(K-76 speech-launcher) mob_new=0.6.3
+    // The system speech recognizer for Quick add's microphone. Registered here
+    // because a launcher can only be registered on the Activity before it
+    // starts; MobBridge's K-76 speech-listen owns the rest.
+    private val katiListenLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val heard = if (result.resultCode == Activity.RESULT_OK) {
+                result.data
+                    ?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+                    ?.firstOrNull()
+            } else null
+            MobBridge.handleKatiListenResult(heard, false)
+        }
+
+    fun launchKatiListen(language: String, prompt: String) {
+        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            if (language.isNotEmpty()) putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, language)
+            if (prompt.isNotEmpty()) putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, prompt)
+        }
+        try {
+            katiListenLauncher.launch(intent)
+        } catch (e: android.content.ActivityNotFoundException) {
+            MobBridge.handleKatiListenResult(null, true)
+        }
+    }
+    // KATI-END(K-76 speech-launcher)
+
     // KATI-BEGIN(K-20 file-transport-launcher) mob_new=0.4.20
     // WHY: the two halves of #64's "get the backup off the device". MobBridge
     // owns the policy (see K-20 file-transport); an ActivityResultLauncher can

@@ -72,6 +72,7 @@ defmodule Kati.Screens.QuickAdd do
   use Mob.Screen
   use Gettext, backend: Kati.Gettext
   import Mob.Sigil
+  require Ash.Query
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaCloseButton
@@ -94,6 +95,7 @@ defmodule Kati.Screens.QuickAdd do
     Kati.Screens.Resume.watch()
 
     sentence = Map.get(params || %{}, :sentence, "")
+    tracked_id = Kati.Screens.QuickAdd.shelved_id(Map.get(params || %{}, :tracked_id))
 
     {:ok,
      socket
@@ -104,30 +106,54 @@ defmodule Kati.Screens.QuickAdd do
      # assign rather than a key on the draft: `read_draft/1` rebuilds the draft
      # on every keystroke, so a choice held there would be un-made by the next
      # character typed.
-     |> Mob.Socket.assign(:filed_as, :event)
+     |> Mob.Socket.assign(:filed_as, if(tracked_id, do: :title, else: :event))
+     |> Mob.Socket.assign(:tracked_id, tracked_id)
+     |> Mob.Socket.assign(:sentence_epoch, if(sentence == "", do: 0, else: 1))
      |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(sentence))}
   end
 
   @doc """
-  What the page draws for a typed sentence: the board's own until one is typed.
+  What the page draws for a typed sentence, read through `Kati.QuickAdd.Parse`.
 
-  The field, the parse card, the clash warning and the
-  commit button were all `Kati.Screens.QuickAdd.Sample.draft/0`, which is one
-  sentence somebody typed into a design tool. Every one of them is read from
-  what the reader typed now, through `Kati.QuickAdd.Parse`.
-
-  An empty field keeps the board, and that is not a fallback for want of
-  anything better: board 18 is drawn MID-TYPING, and its sentence is the
-  clearest statement of the syntax this screen has. Somebody who opens the
-  page and types nothing is looking at an example, which is exactly what they
-  need.
+  An empty field draws an empty card that says what to type, and a commit
+  button that says what is missing — never board 18's own sentence, which
+  showed a dentist appointment and a clash nobody had.
   """
   @spec draft(String.t()) :: map()
   def draft(sentence) when is_binary(sentence) do
     case String.trim(sentence) do
-      "" -> Sample.draft()
+      "" -> Kati.Screens.QuickAdd.empty_draft()
       typed -> Kati.Screens.QuickAdd.read_draft(typed)
     end
+  end
+
+  @doc false
+  # A title a push named, if it is still on the shelf.
+  def shelved_id(id) when is_binary(id) do
+    case Ash.get(Kati.Media.TrackedTitle, id) do
+      {:ok, _tracked} -> id
+      _gone -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  def shelved_id(_none), do: nil
+
+  @doc false
+  @spec empty_draft() :: map()
+  def empty_draft do
+    %{
+      query: [],
+      title: gettext("Type what and when"),
+      kind: gettext("LIKE: DENTIST TOMORROW 3PM FOR 45M"),
+      facts: [],
+      clash: nil,
+      kinds: Sample.kinds(),
+      cta: gettext("Say what and when"),
+      read: nil,
+      on_commit: nil
+    }
   end
 
   @doc false
@@ -322,14 +348,15 @@ defmodule Kati.Screens.QuickAdd do
           padding_bottom={40}
         >
           {Kati.Screens.QuickAdd.header()}
-          {Kati.Screens.QuickAdd.input(sentence)}
+          {Kati.Screens.QuickAdd.input(sentence, Map.get(assigns, :sentence_epoch, 0))}
           {Kati.Screens.QuickAdd.field(draft)}
           {Kati.Screens.QuickAdd.refusal(save_error)}
           {UI.eyebrow(gettext("Kati read that as"))}
           {Kati.Screens.QuickAdd.parsed(draft)}
           {UI.eyebrow(gettext("Or file it as"))}
           {Kati.Screens.QuickAdd.kinds(draft, Map.get(assigns, :filed_as, :event))}
-          {Kati.Screens.QuickAdd.actions(draft)}
+          {Kati.Screens.QuickAdd.title_picker(assigns)}
+          {Kati.Screens.QuickAdd.actions(draft, {self(), :dictate})}
         </Column>
       </Scroll>
     </Box>
@@ -412,7 +439,7 @@ defmodule Kati.Screens.QuickAdd do
       iex> Kati.Screens.QuickAdd.filing("Note")
       :note
 
-      iex> Kati.Screens.QuickAdd.filing("Title")
+      iex> Kati.Screens.QuickAdd.filing("Expense")
       nil
   """
   @spec filing(String.t()) :: atom() | nil
@@ -420,6 +447,7 @@ defmodule Kati.Screens.QuickAdd do
   def filing("Reminder"), do: :reminder
   def filing("Habit"), do: :habit
   def filing("Note"), do: :note
+  def filing("Title"), do: :title
   def filing(_elsewhere), do: nil
 
   def handle_info({:change, :sentence, typed}, socket) when is_binary(typed) do
@@ -431,7 +459,7 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   def handle_info({:tap, :commit}, socket) do
-    tracked_id = Map.get(socket.assigns.params || %{}, :tracked_id)
+    tracked_id = Map.get(socket.assigns, :tracked_id)
 
     case Kati.Screens.QuickAdd.commit(socket.assigns.draft, socket.assigns.filed_as, tracked_id) do
       {:ok, event} ->
@@ -447,14 +475,8 @@ defmodule Kati.Screens.QuickAdd do
   def handle_info({:tap, :file_as_expense}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.QuickAddExpense)}
 
-  # A film is not an event, so this chip is a door rather than a setting. The
-  # handover is what screen 19's *Look it up* makes, so the add sheet opens
-  # already searching for what was typed rather than asking for it again.
-  def handle_info({:tap, :file_as_title}, socket) do
-    # In the PUSH, not through `Kati.Search.hand_over/1`. That key is screen
-    # 19's, and screen 06 has never read it — handing over there would have
-    # opened this sheet blank while quietly changing what the Library's search
-    # disc opens next.
+  # Not on the shelf yet: the search, already looking for what was typed.
+  def handle_info({:tap, :find_title}, socket) do
     {:noreply,
      Mob.Socket.push_screen(socket, Kati.Screens.Search, %{
        query: Kati.Screens.QuickAdd.typed_title(socket),
@@ -462,10 +484,40 @@ defmodule Kati.Screens.QuickAdd do
      })}
   end
 
+  # The microphone: the phone's own recognizer, and the words it heard become
+  # the sentence, parsed like typing.
+  def handle_info({:tap, :dictate}, socket) do
+    case Kati.Native.Speech.listen(gettext("Say what and when")) do
+      :ok ->
+        {:noreply, socket}
+
+      {:error, _no_recognizer} ->
+        {:noreply,
+         Mob.Socket.assign(
+           socket,
+           :save_error,
+           gettext("This phone has no speech recognizer. Type the sentence instead.")
+         )}
+    end
+  end
+
+  def handle_info({:kati_speech, _sub} = message, socket),
+    do: {:noreply, Kati.Screens.QuickAdd.heard(socket, message)}
+
+  def handle_info({:kati_speech, _sub, _items} = message, socket),
+    do: {:noreply, Kati.Screens.QuickAdd.heard(socket, message)}
+
+  # Back from the search, where the title may have just been shelved.
+  def handle_info({:kati, :resumed, _payload}, socket), do: {:noreply, socket}
+
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
       "file_as_" <> label ->
         {:noreply, Kati.Screens.QuickAdd.file_as(socket, label)}
+
+      "pick_title_" <> id ->
+        picked = if socket.assigns[:tracked_id] == id, do: nil, else: id
+        {:noreply, Mob.Socket.assign(socket, :tracked_id, picked)}
 
       _other ->
         {:noreply, socket}
@@ -495,8 +547,136 @@ defmodule Kati.Screens.QuickAdd do
   def file_as(socket, label) do
     case Kati.Screens.QuickAdd.filing(String.capitalize(label)) do
       nil -> socket
-      kind -> Mob.Socket.assign(socket, :filed_as, kind)
+      :title -> Mob.Socket.assign(socket, :filed_as, :title)
+      kind -> Mob.Socket.assign(socket, filed_as: kind, tracked_id: nil)
     end
+  end
+
+  @doc """
+  What the recognizer heard, put in the field as if it had been typed.
+  """
+  @spec heard(Mob.Socket.t(), term()) :: Mob.Socket.t()
+  def heard(socket, message) do
+    case Kati.Native.Speech.decode(message) do
+      {:heard, text} when text != "" ->
+        socket
+        |> Mob.Socket.assign(:sentence, text)
+        |> Mob.Socket.assign(:sentence_epoch, Map.get(socket.assigns, :sentence_epoch, 0) + 1)
+        |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(text))
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, _} ->
+        Mob.Socket.assign(
+          socket,
+          :save_error,
+          gettext("This phone has no speech recognizer. Type the sentence instead.")
+        )
+
+      _cancelled ->
+        socket
+    end
+  end
+
+  @doc """
+  The library titles a scheduled watch can be for: the shelf's titles whose
+  name holds what was typed, newest first, five at most.
+
+  Every kind on the shelf — films and series today, and books and albums
+  already live in the same table — so a sentence can be filed against any of
+  them.
+  """
+  @spec title_matches(String.t()) :: [%{id: String.t(), name: String.t()}]
+  def title_matches(typed) do
+    wanted = typed |> String.trim() |> String.downcase()
+
+    Kati.Media.TrackedTitle
+    |> Ash.Query.filter(archived == false)
+    |> Ash.Query.sort(last_touched_at: :desc)
+    |> Ash.read!()
+    |> Enum.map(&Kati.Screens.Service.named/1)
+    |> Enum.filter(&(wanted == "" or String.contains?(String.downcase(&1.name), wanted)))
+    |> Enum.take(5)
+  rescue
+    _error -> []
+  end
+
+  @doc """
+  Under the chips while **Title** is lit: the shelf's titles that match, one
+  to tap, and the search for a title that is not on the shelf yet.
+  """
+  def title_picker(%{filed_as: :title} = assigns) do
+    typed =
+      case get_in(assigns, [:draft, :read]) do
+        %{title: title} when is_binary(title) -> title
+        _ -> ""
+      end
+
+    picked = Map.get(assigns, :tracked_id)
+
+    rows =
+      typed
+      |> Kati.Screens.QuickAdd.title_matches()
+      |> Enum.map(&Kati.Screens.QuickAdd.title_choice(&1, &1.id == picked))
+
+    assigns = %{
+      rows: rows,
+      find: Kati.Screens.QuickAdd.find_title_row()
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@rows}
+      {@find}
+      <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  def title_picker(_assigns), do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  def title_choice(title, picked?) do
+    assigns = %{
+      name: title.name,
+      tap: {self(), String.to_atom("pick_title_" <> title.id)},
+      bg: if(picked?, do: Palette.ink_fill(), else: Palette.card()),
+      fg: if(picked?, do: Palette.on_ink(), else: Palette.ink()),
+      icon: if(picked?, do: "check_circle", else: "movie")
+    }
+
+    ~MOB"""
+    <Column fill_width={true} padding_bottom={8}>
+      <Row
+        fill_width={true}
+        corner_radius={16}
+        background={@bg}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_top={12}
+        padding_bottom={12}
+        padding_left={14}
+        padding_right={14}
+        align="center"
+        on_tap={@tap}
+      >
+        {UI.symbol(@icon, size: 18, color: @fg)}
+        <Spacer size={9} />
+        <Text text={@name} text_size={13.5} font_weight="semibold" text_color={@fg} max_lines={1} />
+      </Row>
+    </Column>
+    """
+  end
+
+  @doc false
+  def find_title_row do
+    assigns = %{label: gettext("Not on your shelf? Find it"), tap: {self(), :find_title}}
+
+    ~MOB"""
+    <Row fill_width={true} padding_top={4} padding_bottom={4} align="center" on_tap={@tap}>
+      {UI.symbol("search", size: 17, color: Palette.sub())}
+      <Spacer size={7} />
+      <Text text={@label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} />
+    </Row>
+    """
   end
 
   @doc """
@@ -529,7 +709,7 @@ defmodule Kati.Screens.QuickAdd do
         # What the lit chip says this is. Four of the six chips are this one
         # attribute — see `filing/1` — so the sentence is parsed once and filed
         # under whichever the reader picked.
-        kind: filed_as,
+        kind: if(filed_as == :title, do: :event, else: filed_as),
         dtstart_utc: starts,
         dtstart_date: read.date,
         tzid: zone,
@@ -700,10 +880,11 @@ defmodule Kati.Screens.QuickAdd do
   # field would lay it out at the left edge — the failure `Kati.Locale.ltr/1`'s
   # own doc names on screen 83's licence notices. The day the parser learns
   # Persian, this becomes a `gettext/1` and the two land together.
-  @spec input(String.t()) :: map()
-  def input(sentence) do
+  @spec input(String.t(), non_neg_integer()) :: map()
+  def input(sentence, epoch \\ 0) do
     assigns = %{
       sentence: sentence,
+      epoch: epoch,
       example: Kati.Locale.ltr("dentist thu 11am for 45m, remind 1h before"),
       on_change: {self(), :sentence}
     }
@@ -731,6 +912,7 @@ defmodule Kati.Screens.QuickAdd do
           weight={1.0}
           accessibility_id="quick_add_sentence"
           on_change={@on_change}
+          value_epoch={@epoch}
         />
       </Row>
       <Spacer size={12} />
@@ -1198,7 +1380,7 @@ defmodule Kati.Screens.QuickAdd do
   # a picture of a parse, and there is no parser behind it to commit. Screen
   # 124 does, because its sentence has already become an expense.
   @doc false
-  def actions(draft) do
+  def actions(draft, mic_tap \\ nil) do
     tap = Map.get(draft, :on_commit)
 
     ~MOB"""
@@ -1221,7 +1403,7 @@ defmodule Kati.Screens.QuickAdd do
         />
       </Box>
       <Spacer size={10} />
-      {Kati.Screens.QuickAdd.mic()}
+      {Kati.Screens.QuickAdd.mic(mic_tap)}
     </Row>
     """
   end
@@ -1234,17 +1416,15 @@ defmodule Kati.Screens.QuickAdd do
   prop: this one wears `Kati.Theme.shadow_card_soft()` rather than the button
   shadow, and without `shadow` the port could only have drawn it flat.
 
-  It is wired to nothing, and that is the drawing's position rather than an
-  omission — dictation is not built, and the export gives the microphone no
-  destination. `on_tap` is simply not passed, so the port leaves the key off
-  the node entirely; the disc renders exactly as the hand-rolled `Box` did,
-  which also carried no handler.
+  Quick add passes a tap: the phone's speech recognizer (`Kati.Native.Speech`)
+  hears the sentence and it lands in the field. A screen that lends this row
+  and passes none gets the disc with no handler.
 
   **The pixels are the same node**: `<Box width={52} height={52}
   align={:center} corner_radius={26.0} background shadow>` plus the port's
   `<Row>` around the glyph, which hugs it and is centred by that Box.
   """
-  def mic do
+  def mic(tap \\ nil) do
     MishkaActionIcon.action_icon(
       [
         size: 52,
@@ -1252,7 +1432,7 @@ defmodule Kati.Screens.QuickAdd do
         variant: :filled,
         background: Palette.card(),
         shadow: Kati.Theme.shadow_card_soft()
-      ],
+      ] ++ if(tap, do: [on_tap: tap, accessibility_label: gettext("Say it")], else: []),
       [UI.symbol("mic", size: 21)]
     )
   end

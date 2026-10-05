@@ -25,9 +25,14 @@ defmodule Kati.QuickAddTest do
   end
 
   describe "an untyped field" do
-    test "draws the board, whole" do
-      assert QuickAdd.draft("") == Kati.Screens.QuickAdd.Sample.draft()
-      assert QuickAdd.draft("   ") == Kati.Screens.QuickAdd.Sample.draft()
+    test "draws what to type, and nothing invented" do
+      assert QuickAdd.draft("") == QuickAdd.empty_draft()
+      assert QuickAdd.draft("   ") == QuickAdd.empty_draft()
+      assert QuickAdd.empty_draft().on_commit == nil
+
+      words = inspect(QuickAdd.empty_draft(), limit: :infinity)
+      refute words =~ "Dentist"
+      refute words =~ "Design review"
     end
 
     test "and the field offers the board's sentence as the example" do
@@ -141,9 +146,9 @@ defmodule Kati.QuickAddTest do
       assert filed == [:event, :reminder, :habit, :note]
       assert Enum.all?(filed, &(&1 in Event.kinds()))
 
-      # The two that are doors rather than settings: a film is not an event,
-      # and an amount is a parse this screen does not do.
-      assert QuickAdd.filing("Title") == nil
+      # Title files the sentence against a title on the shelf; an amount is a
+      # parse this screen does not do.
+      assert QuickAdd.filing("Title") == :title
       assert QuickAdd.filing("Expense") == nil
     end
 
@@ -176,25 +181,49 @@ defmodule Kati.QuickAddTest do
       assert after_tap.assigns.filed_as == :event
     end
 
-    test "Title hands the parsed title to screen 06 and opens it" do
+    test "Title lists the shelf's matching titles, and one picked is the event's title" do
+      tracked =
+        Ash.create!(Kati.Media.TrackedTitle, %{
+          source: :manual,
+          source_id: "The Long Hollow",
+          kind: :tv
+        })
+
+      on_exit(fn ->
+        Kati.Repo.query!("DELETE FROM tracked_titles WHERE id = ?1", [tracked.id])
+      end)
+
+      socket = typed("the long hollow tomorrow 9pm")
+      {:noreply, lit} = QuickAdd.handle_info({:tap, :file_as_title}, socket)
+      assert lit.assigns.filed_as == :title
+
+      pick = String.to_atom("pick_title_" <> tracked.id)
+      assert inspect(QuickAdd.title_picker(lit.assigns), limit: :infinity) =~ Atom.to_string(pick)
+
+      {:noreply, picked} = QuickAdd.handle_info({:tap, pick}, lit)
+      assert picked.assigns.tracked_id == tracked.id
+
+      {:noreply, _saved} = QuickAdd.handle_info({:tap, :commit}, picked)
+      assert [%{tracked_title_id: id, kind: :event}] = quick_events()
+      assert id == tracked.id
+    end
+
+    test "a title not on the shelf is found through the search" do
       socket = typed("the long hollow tomorrow 9pm")
 
-      {:noreply, pushed} = QuickAdd.handle_info({:tap, :file_as_title}, socket)
+      {:noreply, pushed} = QuickAdd.handle_info({:tap, :find_title}, socket)
 
       assert {:push, Kati.Screens.Search, %{query: "The long hollow", scope: :screen}} =
                Map.get(pushed.__mob__, :nav_action)
     end
 
-    test "and hands the whole sentence over when it could parse no title" do
-      # Every token consumed and nothing left to be a title. The raw sentence
-      # is still a better search term than an empty one.
-      socket = typed("tomorrow 9pm")
-      assert socket.assigns.draft.read.title == nil
+    test "what the recognizer heard becomes the sentence" do
+      socket = typed("")
+      heard = QuickAdd.heard(socket, {:kati_speech, :heard, [%{text: "bin day tomorrow"}]})
 
-      {:noreply, pushed} = QuickAdd.handle_info({:tap, :file_as_title}, socket)
-
-      assert {:push, Kati.Screens.Search, %{query: "tomorrow 9pm", scope: :screen}} =
-               Map.get(pushed.__mob__, :nav_action)
+      assert heard.assigns.sentence == "bin day tomorrow"
+      assert heard.assigns.sentence_epoch == socket.assigns.sentence_epoch + 1
+      assert heard.assigns.draft.on_commit
     end
 
     test "screen 124 draws the same row as a picture, having no handler for it" do
