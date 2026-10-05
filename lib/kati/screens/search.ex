@@ -129,6 +129,9 @@ defmodule Kati.Screens.Search do
     # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
     # and a screen is its own process — see `Kati.Locale.activate/0`.
     Kati.Locale.activate()
+    # A gesture back as well as the pill: the shelf underneath re-reads what
+    # was added here (`Kati.Screens.Resume.watch/0`).
+    Kati.Screens.Resume.watch()
     params = params || %{}
     query = Kati.Screens.Search.opening_query(params)
     results = Kati.Search.Query.run(query)
