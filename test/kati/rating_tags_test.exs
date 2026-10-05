@@ -200,15 +200,11 @@ defmodule Kati.RatingTagsTest do
       assert only_watch!().watched_on == yesterday
     end
 
-    test "and offers tonight and the three nights before it" do
+    test "and offers tonight and the thirteen nights before it" do
       today = Kati.Time.today()
 
-      assert Rating.recent_days() |> Enum.map(&elem(&1, 1)) == [
-               today,
-               Date.add(today, -1),
-               Date.add(today, -2),
-               Date.add(today, -3)
-             ]
+      assert Rating.recent_days() |> Enum.map(&elem(&1, 1)) ==
+               Enum.map(0..13, &Date.add(today, -&1))
 
       assert Rating.recent_days() |> Enum.map(&elem(&1, 0)) |> Enum.take(2) ==
                ["Today", "Yesterday"]

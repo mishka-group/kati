@@ -2159,10 +2159,8 @@ defmodule Kati.Screens.Rating do
     }
 
     ~MOB"""
-    <Column fill_width={true} padding_bottom={13}>
-      <Wrap fill_width={true} spacing={7} run_spacing={7}>
-        {@chips}
-      </Wrap>
+    <Column fill_width={true} padding_top={4} padding_bottom={14}>
+      {Kati.Screens.Rating.chip_slide(@chips, "day_chips")}
     </Column>
     """
   end
@@ -2176,10 +2174,8 @@ defmodule Kati.Screens.Rating do
     }
 
     ~MOB"""
-    <Column fill_width={true} padding_bottom={13}>
-      <Wrap fill_width={true} spacing={7} run_spacing={7}>
-        {@chips}
-      </Wrap>
+    <Column fill_width={true} padding_top={4} padding_bottom={14}>
+      {Kati.Screens.Rating.chip_slide(@chips, "where_chips")}
       {Kati.Screens.Rating.where_note(@empty?)}
       {Kati.Screens.Rating.place_editor(w)}
     </Column>
@@ -2194,19 +2190,9 @@ defmodule Kati.Screens.Rating do
     }
 
     ~MOB"""
-    <Column fill_width={true} padding_bottom={13}>
+    <Column fill_width={true} padding_top={4} padding_bottom={14}>
       <Row fill_width={true} align="center">
-        <Box weight={1.0}>
-          <TextField
-            value={@draft}
-            placeholder={gettext("Who watched with you")}
-            return_key="done"
-            fill_width={true}
-            text_size={13}
-            accessibility_id="with_draft"
-            on_change={@change}
-          />
-        </Box>
+        {Kati.Screens.Rating.field_pill(Kati.Screens.Rating.with_field(@draft, @change))}
         <Spacer size={8} />
         {@commit}
       </Row>
@@ -2214,11 +2200,82 @@ defmodule Kati.Screens.Rating do
     """
   end
 
-  @doc """
-  Tonight and the three before it, which is every day a watch is logged on.
+  @doc false
+  def with_field(draft, change) do
+    assigns = %{draft: draft, change: change}
 
-  Not a calendar. A person logging a watch is logging tonight's, or last
-  night's if they went to bed first, and a month grid to answer that is a
+    ~MOB"""
+    <TextField
+      value={@draft}
+      placeholder={gettext("Who watched with you")}
+      return_key="done"
+      fill_width={true}
+      text_size={13}
+      accessibility_id="with_draft"
+      on_change={@change}
+    />
+    """
+  end
+
+  @doc false
+  def place_field(draft, change) do
+    assigns = %{draft: draft, change: change}
+
+    ~MOB"""
+    <TextField
+      value={@draft}
+      placeholder={pgettext("an example of a room a film was watched in", "living room")}
+      return_key="done"
+      fill_width={true}
+      text_size={13}
+      accessibility_id="place_draft"
+      on_change={@change}
+    />
+    """
+  end
+
+  @doc """
+  A row of chips the reader slides sideways, so a long list of services or
+  days stays one line instead of stacking down the card.
+  """
+  def chip_slide(chips, id) do
+    assigns = %{chips: Enum.intersperse(chips, ~MOB"<Spacer size={7} />"), id: id}
+
+    ~MOB"""
+    <Scroll axis="horizontal" fill_width={true} accessibility_id={@id}>
+      <Row align="center">
+        {@chips}
+      </Row>
+    </Scroll>
+    """
+  end
+
+  @doc """
+  A text field drawn as a pill on the card, the height of the `Done` beside it.
+  """
+  def field_pill(field) do
+    assigns = %{field: field}
+
+    ~MOB"""
+    <Box
+      weight={1.0}
+      height={36}
+      corner_radius={18}
+      background={Palette.paper()}
+      padding_left={14}
+      padding_right={14}
+      align="leading"
+    >
+      {@field}
+    </Box>
+    """
+  end
+
+  @doc """
+  Tonight and the thirteen days before it, slid through sideways.
+
+  Not a calendar. A person logging a watch is logging tonight's, or one from
+  the last fortnight they forgot to log, and a month grid to answer that is a
   screen for a question nobody asked. A watch further back than this is one
   the sheet cannot date, and it says so by leaving the row as it found it.
   """
@@ -2226,7 +2283,7 @@ defmodule Kati.Screens.Rating do
   def recent_days do
     today = Kati.Time.today()
 
-    for offset <- 0..3 do
+    for offset <- 0..13 do
       date = Date.add(today, -offset)
 
       # The chip a day further back than *yesterday* is dated in the reader's
@@ -2275,7 +2332,6 @@ defmodule Kati.Screens.Rating do
     |> Enum.map(&String.trim/1)
     |> Enum.reject(&(&1 == ""))
     |> Enum.uniq()
-    |> Enum.take(6)
   rescue
     _error -> []
   end
@@ -2811,17 +2867,7 @@ defmodule Kati.Screens.Rating do
       />
       <Spacer size={8} />
       <Row fill_width={true} align="center">
-        <Box weight={1.0}>
-          <TextField
-            value={@draft}
-            placeholder={pgettext("an example of a room a film was watched in", "living room")}
-            return_key="done"
-            fill_width={true}
-            text_size={13}
-            accessibility_id="place_draft"
-            on_change={@change}
-          />
-        </Box>
+        {Kati.Screens.Rating.field_pill(Kati.Screens.Rating.place_field(@draft, @change))}
         <Spacer size={8} />
         {@commit}
       </Row>
