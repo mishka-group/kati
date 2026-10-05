@@ -424,6 +424,18 @@ defmodule Kati.CalendarDayRouteTest do
 
   defp tapped(view, tag), do: render_info(view, {:tap, tag})
 
+  # The week on screen. The strip is a pager holding last week and next week
+  # either side of it, ready for the finger, and only the resting page is the
+  # week the reader sees.
+  defp resting(view_or_tree) do
+    pager = Enum.find(flatten(view_or_tree), &(&1.type == :scroll and &1.props[:pager] == true))
+
+    case pager do
+      %{props: %{page: page}, children: children} -> Enum.at(children, page)
+      nil -> view_or_tree
+    end
+  end
+
   defp day_tag(date), do: String.to_atom("day_" <> Date.to_iso8601(date))
 
   # `{tag, date}` for every day cell the tree draws, read off `on_tap` rather
@@ -431,6 +443,7 @@ defmodule Kati.CalendarDayRouteTest do
   # agree with a broken `day_strip/1` about which days exist.
   defp day_cells(view_or_tree) do
     view_or_tree
+    |> resting()
     |> flatten()
     |> Enum.flat_map(fn node ->
       case Map.get(Map.get(node, :props) || %{}, :on_tap) do
@@ -462,7 +475,7 @@ defmodule Kati.CalendarDayRouteTest do
   # selected one in ink and the rest on card white, and that is the only thing
   # on this screen that says which day the next tap will open.
   defp cell_fill(view_or_tree, tag) do
-    cell = find(view_or_tree, :box, on_tap: {self(), tag})
+    cell = find(resting(view_or_tree), :box, on_tap: {self(), tag})
     assert cell, "no day cell is tagged #{inspect(tag)}"
 
     column = find(cell, :column)

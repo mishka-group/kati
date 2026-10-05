@@ -344,6 +344,8 @@ defmodule Kati.DesignLiterals do
       :accessibility_label,
       :gradient,
       :axis,
+      # `K-75`'s pager: the key that rebuilds it on its resting page, a date.
+      :page_key,
       # An identifier, never copy. `Mob.Renderer` emits it for every atom-tagged
       # control and `K-35 test-tag` turns it into a Compose `testTag` so a device
       # test can address the control by the name Elixir gave it. It is

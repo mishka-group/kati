@@ -15,7 +15,7 @@ defmodule Kati.CalendarNavigationTest do
   alias Kati.Calendars.SelectedDate
   alias Kati.Screens.Calendar
 
-  doctest Kati.Screens.Calendar, only: [swipe_step: 2]
+  doctest Kati.Screens.Calendar, only: [swipe_step: 2, week_turn: 1]
 
   setup do
     SelectedDate.reset()
@@ -58,7 +58,7 @@ defmodule Kati.CalendarNavigationTest do
   end
 
   describe "the Schedule" do
-    test "the arrows move a week, and a swipe on the strip does too" do
+    test "the arrows move a week, and the strip turns a week under the finger" do
       today = Kati.Time.today()
       view = mount_screen(Calendar)
       assert :week_previous in tags(view)
@@ -68,8 +68,12 @@ defmodule Kati.CalendarNavigationTest do
       assert assigns(view).date == Date.add(today, 7)
       assert SelectedDate.get() == Date.add(today, 7)
 
-      assert :swipe_week_left in swipes(view, :on_swipe_left)
-      view = render_info(view, {:swipe_right, :swipe_week_right})
+      assert [%{props: pager}] =
+               for(%{type: :scroll, props: %{pager: true}} = n <- flatten(view), do: n)
+
+      assert {_pid, :week_page} = pager.on_change
+      assert pager.page == 1
+      view = render_info(view, {:change, :week_page, "0"})
       assert assigns(view).date == today
     end
 

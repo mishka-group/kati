@@ -123,15 +123,20 @@ defmodule Kati.Screens.Calendar do
   over this screen may have moved it: picking the 3rd on screen 16 and pressing
   back lands on the 3rd here.
   """
-  @swipes [:swipe_week_left, :swipe_week_right, :swipe_day_left, :swipe_day_right]
+  @swipes [:swipe_day_left, :swipe_day_right]
 
-  # #126: a swipe on the strip moves a week, a swipe across the rows a day.
+  # #126: a swipe across the rows moves a day.
   @impl true
   def handle_info({dir, tag}, socket)
       when dir in [:swipe_left, :swipe_right] and tag in @swipes do
-    days = if tag in [:swipe_week_left, :swipe_week_right], do: 7, else: 1
     step = Kati.Screens.Calendar.swipe_step(dir, Kati.Locale.direction(Kati.Locale.current()))
-    {:noreply, Kati.Screens.Calendar.step(socket, step * days)}
+    {:noreply, Kati.Screens.Calendar.step(socket, step)}
+  end
+
+  # The week strip is a pager: the week follows the finger, and the page it
+  # settles on is the week before (0) or after (2) the one at rest (1).
+  def handle_info({:change, :week_page, page}, socket) do
+    {:noreply, Kati.Screens.Calendar.step(socket, Kati.Screens.Calendar.week_turn(page))}
   end
 
   def handle_info(message, socket), do: super(message, socket)
@@ -425,13 +430,7 @@ defmodule Kati.Screens.Calendar do
       >
         {Kati.Screens.Calendar.header(date, rows, assigns.menu?)}
         {Kati.Screens.Calendar.month_row(date)}
-        <Column
-          fill_width={true}
-          on_swipe_left={{self(), :swipe_week_left}}
-          on_swipe_right={{self(), :swipe_week_right}}
-        >
-          {Kati.Screens.Calendar.day_strip(date)}
-        </Column>
+        {Kati.Screens.Calendar.week_pager(date)}
         {Kati.Screens.Calendar.rule()}
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
@@ -708,6 +707,49 @@ defmodule Kati.Screens.Calendar do
     </Box>
     """
   end
+
+  @doc """
+  The strip as three pages — last week, this week, next week — resting on the
+  middle one. `page_key` is the selected day, so once a turn lands and the date
+  moves, the pager is rebuilt on the middle page showing the week it had
+  already slid to.
+  """
+  def week_pager(date) do
+    assigns = %{
+      pages: Enum.map([-7, 0, 7], &Kati.Screens.Calendar.day_strip(Date.add(date, &1))),
+      key: Date.to_iso8601(date),
+      change: {self(), :week_page}
+    }
+
+    ~MOB"""
+    <Scroll
+      axis="horizontal"
+      pager={true}
+      page={1}
+      page_key={@key}
+      fill_width={true}
+      accessibility_id="week_strip"
+      on_change={@change}
+    >
+      {@pages}
+    </Scroll>
+    """
+  end
+
+  @doc """
+  The days a settled week page moves the calendar.
+
+      iex> Kati.Screens.Calendar.week_turn("2")
+      7
+      iex> Kati.Screens.Calendar.week_turn("0")
+      -7
+      iex> Kati.Screens.Calendar.week_turn("1")
+      0
+  """
+  @spec week_turn(String.t()) :: integer()
+  def week_turn("0"), do: -7
+  def week_turn("2"), do: 7
+  def week_turn(_rest), do: 0
 
   @doc false
   def rule,

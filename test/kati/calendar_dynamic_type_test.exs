@@ -32,7 +32,7 @@ defmodule Kati.CalendarDynamicTypeTest do
   describe "content grows" do
     test "no day number is capped — the digits are why the cell flexes", %{tree: tree} do
       numbers =
-        for node <- flatten(tree),
+        for node <- flatten(resting(tree)),
             node.type == :text,
             String.match?(to_string(node.props[:text] || ""), ~r/^\d{1,2}$/),
             node.props[:font_weight] == "bold",
@@ -51,7 +51,7 @@ defmodule Kati.CalendarDynamicTypeTest do
       # not grow, so at 235% the digits were clipped out of it entirely,
       # leaving weekday abbreviations above empty space.
       cells =
-        for node <- flatten(tree),
+        for node <- flatten(resting(tree)),
             node.type == :box,
             match?({_pid, tag} when is_atom(tag), node.props[:on_tap]),
             {_pid, tag} = node.props[:on_tap],
@@ -70,7 +70,7 @@ defmodule Kati.CalendarDynamicTypeTest do
   describe "chrome caps" do
     test "every weekday abbreviation caps, so it stays inside its cell", %{tree: tree} do
       names =
-        for node <- flatten(tree),
+        for node <- flatten(resting(tree)),
             node.type == :text,
             to_string(node.props[:text] || "") in ~w(Mon Tue Wed Thu Fri Sat Sun),
             do: node.props
@@ -125,6 +125,18 @@ defmodule Kati.CalendarDynamicTypeTest do
             do: node
 
       refute scrolls == [], "the chip row must scroll or the last filter cannot be tapped"
+    end
+  end
+
+  # The week on screen. The strip is a pager holding last week and next week
+  # either side of it, ready for the finger, and only the resting page is the
+  # week the reader sees.
+  defp resting(view_or_tree) do
+    pager = Enum.find(flatten(view_or_tree), &(&1.type == :scroll and &1.props[:pager] == true))
+
+    case pager do
+      %{props: %{page: page}, children: children} -> Enum.at(children, page)
+      nil -> view_or_tree
     end
   end
 end

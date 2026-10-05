@@ -99,6 +99,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
+// KATI-BEGIN(K-75 pager-import) mob_new=0.6.3
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+// KATI-END(K-75 pager-import)
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -4382,6 +4386,42 @@ private data class MobScrollHandlers(
  * Returns immediately when the node declares no scroll handler, so the common
  * scroll node pays nothing beyond six null prop reads.
  */
+
+// KATI-BEGIN(K-75 pager-file) mob_new=0.6.3
+// A horizontal `scroll` with `pager: true`: each child is one page, and the
+// page follows the finger instead of moving once the finger lifts. `page` is
+// the page shown at rest; `page_key` re-creates the pager at `page` when it
+// changes, so a screen that recentres after a turn lands without a jump.
+// `page_spacing` is the gap between pages, in dp, seen only mid-turn.
+// `on_change` hears the settled page's index as a string.
+@Composable
+private fun KatiPager(node: MobNode, modifier: Modifier) {
+    val count = node.children.size
+    val start = (intProp(node.props, "page") ?: 0).coerceIn(0, maxOf(count - 1, 0))
+    val pageKey = node.props["page_key"]?.toString() ?: ""
+    val spacing = (floatProp(node.props, "page_spacing") ?: 0f).dp
+    val changeH by rememberUpdatedState(intProp(node.props, "on_change"))
+    key(MobBridge.LocalSlotEpoch.current, pageKey) {
+        val state = rememberPagerState(initialPage = start) { count }
+        LaunchedEffect(state) {
+            snapshotFlow { state.settledPage }.drop(1).collect { page ->
+                if (page != start) changeH?.let { MobBridge.nativeSendChangeStr(it, page.toString()) }
+            }
+        }
+        HorizontalPager(
+            state = state,
+            modifier = modifier,
+            pageSpacing = spacing,
+            verticalAlignment = Alignment.Top,
+            beyondViewportPageCount = 1,
+            key = { it }
+        ) { page ->
+            RenderNode(node.children[page])
+        }
+    }
+}
+// KATI-END(K-75 pager-file)
+
 @Composable
 private fun MobScrollEvents(node: MobNode, scrollState: ScrollState, horizontal: Boolean) {
     val scrollH   = intProp(node.props, "on_scroll")
@@ -4931,6 +4971,11 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
             }
         }
         "scroll" -> {
+            // KATI-BEGIN(K-75 pager) mob_new=0.6.3
+            if (node.props["axis"] == "horizontal" && boolProp(node.props, "pager") == true) {
+                KatiPager(node, m)
+            } else {
+            // KATI-END(K-75 pager)
             // Re-created per navigation, for the same reason MobLazyList's state
             // is: `rememberScrollState()` is keyless, so with the composition
             // preserved across navigation (MOB-146) a scroll view landing in the
@@ -5052,6 +5097,9 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
                     }
                 }
             }
+            // KATI-BEGIN(K-75 pager-close) mob_new=0.6.3
+            }
+            // KATI-END(K-75 pager-close)
         }
         "text"       -> MobText(node, m)
         "button"     -> MobButton(node, m)
