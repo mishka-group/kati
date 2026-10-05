@@ -269,7 +269,7 @@ msgstr "تقویم"
 #: lib/kati/screens/data_sources.ex:317
 #: lib/kati/screens/data_sources.ex:541
 #: lib/kati/screens/list_detail.ex:302
-#: lib/kati/screens/my_services.ex:721
+#: lib/kati/screens/my_services.ex:753
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr "انصراف"
@@ -485,7 +485,7 @@ msgid "For something Kati could not find. The title is the only thing it needs."
 msgstr "برای چیزی که کاتی پیدا نکرد. عنوان تنها چیز لازم است."
 
 #: lib/kati/meals/sample_plan.ex:114
-#: lib/kati/screens/my_services.ex:1072
+#: lib/kati/screens/my_services.ex:1141
 #, elixir-autogen, elixir-format
 msgid "Free"
 msgstr "آزاد"
@@ -1102,7 +1102,7 @@ msgstr "استوری"
 msgid "Streaks"
 msgstr "رشته‌ها"
 
-#: lib/kati/screens/my_services.ex:1141
+#: lib/kati/screens/my_services.ex:1215
 #: lib/kati/screens/my_services_empty.ex:397
 #: lib/kati/screens/pick_sections/sample.ex:59
 #: lib/kati/screens/stats.ex:882
@@ -1486,7 +1486,7 @@ msgstr "دارو"
 
 #: lib/kati/screens/home.ex:1220
 #: lib/kati/screens/money_states.ex:293
-#: lib/kati/screens/my_services.ex:399
+#: lib/kati/screens/my_services.ex:398
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/my_services_states.ex:223
 #: lib/kati/screens/nothing_set_up_knock_on.ex:390
@@ -2565,26 +2565,26 @@ msgstr "خرید را در دسترس بشمار"
 msgid "Count rentals as available"
 msgstr "کرایه را در دسترس بشمار"
 
-#: lib/kati/screens/my_services.ex:456
+#: lib/kati/screens/my_services.ex:455
 #, elixir-autogen, elixir-format
 msgid "Decides what “available” means"
 msgstr "معنای «در دسترس» را تعیین می‌کند"
 
-#: lib/kati/screens/my_services.ex:667
-#: lib/kati/screens/my_services.ex:800
+#: lib/kati/screens/my_services.ex:698
+#: lib/kati/screens/my_services.ex:853
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/service.ex:212
 #, elixir-autogen, elixir-format
 msgid "Free with ads"
 msgstr "رایگان با تبلیغ"
 
-#: lib/kati/screens/my_services.ex:927
+#: lib/kati/screens/my_services.ex:989
 #, elixir-autogen, elixir-format
 msgid "Mine"
 msgstr "مال من"
 
 #: lib/kati/screens/auto_detect.ex:452
-#: lib/kati/screens/my_services.ex:1021
+#: lib/kati/screens/my_services.ex:1090
 #: lib/kati/screens/my_services_empty.ex:366
 #: lib/kati/screens/service.ex:213
 #, elixir-autogen, elixir-format
@@ -2637,7 +2637,7 @@ msgstr "کشور"
 msgid "Rules"
 msgstr "قواعد"
 
-#: lib/kati/screens/my_services.ex:487
+#: lib/kati/screens/my_services.ex:486
 #, elixir-autogen, elixir-format
 msgid "Search services"
 msgstr "جست‌وجوی سرویس‌ها"
@@ -2652,12 +2652,12 @@ msgstr "تا کاتی فقط چیزی را نشان دهد که می‌توان�
 msgid "Something else"
 msgstr "چیز دیگری"
 
-#: lib/kati/screens/my_services.ex:526
+#: lib/kati/screens/my_services.ex:525
 #, elixir-autogen, elixir-format
 msgid "Subscribed · %{count}"
 msgstr "مشترک هستم · %{count}"
 
-#: lib/kati/screens/my_services.ex:522
+#: lib/kati/screens/my_services.ex:521
 #: lib/kati/screens/my_services_empty.ex:134
 #, elixir-autogen, elixir-format
 msgid "Subscribed · none yet"
@@ -2959,7 +2959,7 @@ msgstr "در حال تازه‌سازی…"
 #: lib/kati/screens/data_sources.ex:170
 #: lib/kati/screens/event_detail.ex:499
 #: lib/kati/screens/meal_edit.ex:430
-#: lib/kati/screens/my_services.ex:719
+#: lib/kati/screens/my_services.ex:750
 #: lib/kati/screens/rate_album.ex:276
 #: lib/kati/screens/rate_episode.ex:938
 #: lib/kati/screens/rating.ex:1266
@@ -4993,7 +4993,7 @@ msgid "Personal"
 msgstr "شخصی"
 
 #: lib/kati/screens/calendar.ex:537
-#: lib/kati/screens/quick_add.ex:618
+#: lib/kati/screens/quick_add.ex:620
 #, elixir-autogen, elixir-format
 msgid "Quick add"
 msgstr "افزودن سریع"
@@ -11907,20 +11907,20 @@ msgctxt "quick add chip"
 msgid "Title"
 msgstr "عنوان"
 
-#: lib/kati/screens/quick_add.ex:1032
+#: lib/kati/screens/quick_add.ex:1034
 #: lib/kati/screens/quick_add/sample.ex:85
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "Clashes with"
 msgstr "تداخل دارد با"
 
-#: lib/kati/screens/quick_add.ex:1033
+#: lib/kati/screens/quick_add.ex:1035
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
 msgid "another event"
 msgstr "رویداد دیگری"
 
-#: lib/kati/screens/quick_add.ex:1034
+#: lib/kati/screens/quick_add.ex:1036
 #: lib/kati/screens/quick_add/sample.ex:86
 #, elixir-autogen, elixir-format
 msgctxt "quick add clash"
@@ -16297,7 +16297,7 @@ msgstr "چطور اجازه بدهم"
 msgid "Kati cannot see what you play yet"
 msgstr "کاتی هنوز نمی‌بیند چه پخش می‌کنید"
 
-#: lib/kati/screens/my_services.ex:457
+#: lib/kati/screens/my_services.ex:456
 #, elixir-autogen, elixir-format
 msgid "Not picked yet — Kati assumes this until you choose"
 msgstr "هنوز انتخاب نشده — کاتی تا انتخاب شما همین را فرض می‌کند"
@@ -16558,12 +16558,12 @@ msgstr "%{rated} از %{total} امتیاز گرفته"
 msgid "No films in your library yet"
 msgstr "هنوز فیلمی در کتابخانهٔ شما نیست"
 
-#: lib/kati/screens/my_services.ex:1003
+#: lib/kati/screens/my_services.ex:1065
 #, elixir-autogen, elixir-format
 msgid "This screen owns these prices. Subscriptions reads them — edit here, and cost per watched hour follows."
 msgstr "قیمت‌ها اینجا نگه داشته می‌شوند و «اشتراک‌ها» آن‌ها را می‌خواند. اینجا ویرایش کنید تا هزینه به ازای هر ساعت تماشا هم به‌روز شود."
 
-#: lib/kati/screens/my_services.ex:1191
+#: lib/kati/screens/my_services.ex:1265
 #, elixir-autogen, elixir-format
 msgid "Which service carries what comes from JustWatch, through TMDB. Both are credited in Settings, under Where this comes from."
 msgstr "اینکه هر عنوان روی کدام سرویس است از JustWatch و از طریق TMDB می‌آید. اعتبار هر دو در تنظیمات، زیر «این‌ها از کجا می‌آیند» آمده است."
@@ -17308,109 +17308,104 @@ msgstr "روز قبل"
 msgid "Previous week"
 msgstr "هفتهٔ قبل"
 
-#: lib/kati/screens/my_services.ex:1087
+#: lib/kati/screens/my_services.ex:1159
 #, elixir-autogen, elixir-format
 msgid "Add back"
 msgstr "برگرداندن"
 
-#: lib/kati/screens/my_services.ex:431
+#: lib/kati/screens/my_services.ex:430
 #, elixir-autogen, elixir-format
 msgid "Availability is per country: a title on a service in one country is often not on it in another, so Kati only uses the country you pick."
 msgstr "دسترسی به کشور بستگی دارد: عنوانی که در یک کشور روی سرویسی هست، در کشور دیگر اغلب نیست؛ برای همین کاتی فقط کشوری را که انتخاب می‌کنید به کار می‌برد."
 
-#: lib/kati/screens/my_services.ex:1072
+#: lib/kati/screens/my_services.ex:1141
 #, elixir-autogen, elixir-format
 msgid "I pay"
 msgstr "می‌پردازم"
 
-#: lib/kati/screens/my_services.ex:1059
+#: lib/kati/screens/my_services.ex:1128
 #, elixir-autogen, elixir-format
 msgid "On %{n} of your titles"
 msgid_plural "On %{n} of your titles"
 msgstr[0] "روی %{n} عنوان از عنوان‌های شما"
 msgstr[1] "روی %{n} عنوان از عنوان‌های شما"
 
-#: lib/kati/screens/my_services.ex:1045
+#: lib/kati/screens/my_services.ex:1114
 #, elixir-autogen, elixir-format
 msgid "On your titles"
 msgstr "روی عنوان‌های شما"
 
-#: lib/kati/screens/my_services.ex:1085
+#: lib/kati/screens/my_services.ex:1157
 #, elixir-autogen, elixir-format
 msgid "You said this is not yours"
 msgstr "گفتید این مال شما نیست"
 
-#: lib/kati/screens/my_services.ex:1331
+#: lib/kati/screens/my_services.ex:1408
 #, elixir-autogen, elixir-format
 msgid "%{name} is already on your list. Tap it below to change it."
 msgstr "%{name} از قبل در فهرست شماست. برای تغییرش، در پایین روی آن بزنید."
 
-#: lib/kati/screens/my_services.ex:540
+#: lib/kati/screens/my_services.ex:537
 #, elixir-autogen, elixir-format
 msgid "Add a service"
 msgstr "افزودن سرویس"
 
-#: lib/kati/screens/my_services.ex:708
+#: lib/kati/screens/my_services.ex:739
 #, elixir-autogen, elixir-format
 msgid "Add service"
 msgstr "افزودن سرویس"
 
-#: lib/kati/screens/my_services.ex:1305
+#: lib/kati/screens/my_services.ex:1382
 #, elixir-autogen, elixir-format
 msgid "Added %{name}."
 msgstr "%{name} اضافه شد."
 
-#: lib/kati/screens/my_services.ex:720
+#: lib/kati/screens/my_services.ex:752
 #, elixir-autogen, elixir-format
 msgid "Delete"
 msgstr "حذف"
 
-#: lib/kati/screens/my_services.ex:1385
+#: lib/kati/screens/my_services.ex:1462
 #, elixir-autogen, elixir-format
 msgid "Deleted %{name}."
 msgstr "%{name} حذف شد."
 
-#: lib/kati/screens/my_services.ex:541
-#, elixir-autogen, elixir-format
-msgid "Edit service"
-msgstr "ویرایش سرویس"
-
-#: lib/kati/screens/my_services.ex:661
+#: lib/kati/screens/my_services.ex:692
 #, elixir-autogen, elixir-format
 msgid "I pay for it"
 msgstr "پولش را می‌دهم"
 
-#: lib/kati/screens/my_services.ex:632
+#: lib/kati/screens/my_services.ex:663
 #, elixir-autogen, elixir-format
 msgid "Price a month, like 10.99 (optional)"
 msgstr "قیمت ماهانه، مثلاً 10.99 (اختیاری)"
 
-#: lib/kati/screens/my_services.ex:1304
+#: lib/kati/screens/my_services.ex:1381
 #, elixir-autogen, elixir-format
 msgid "Saved %{name}."
 msgstr "%{name} ذخیره شد."
 
-#: lib/kati/screens/my_services.ex:609
+#: lib/kati/screens/my_services.ex:640
 #, elixir-autogen, elixir-format
 msgid "Service name — Netflix, or any other"
 msgstr "نام سرویس — نتفلیکس یا هر سرویس دیگری"
 
-#: lib/kati/screens/my_services.ex:1328
+#: lib/kati/screens/my_services.ex:1405
 #, elixir-autogen, elixir-format
 msgid "The price has to be a number, like 10.99."
 msgstr "قیمت باید عدد باشد، مثلاً 10.99."
 
-#: lib/kati/screens/my_services.ex:399
+#: lib/kati/screens/my_services.ex:398
 #, elixir-autogen, elixir-format
 msgid "The streaming services you have. Kati uses them to show where you can watch each title, and adds up what you pay each month."
 msgstr "سرویس‌های پخشی که دارید. کاتی با آن‌ها نشان می‌دهد هر عنوان را کجا می‌توانید ببینید و هزینهٔ ماهانه‌تان را جمع می‌زند."
 
-#: lib/kati/screens/my_services.ex:1327
+#: lib/kati/screens/my_services.ex:1404
 #, elixir-autogen, elixir-format
 msgid "Type the service’s name first."
 msgstr "اول نام سرویس را بنویسید."
 
-#: lib/kati/screens/my_services.ex:817
+#: lib/kati/screens/my_services.ex:872
 #, elixir-autogen, elixir-format
 msgid "Nothing here yet. Add the services you pay for above."
 msgstr "هنوز چیزی اینجا نیست. سرویس‌هایی را که پولشان را می‌دهید در بالا اضافه کنید."

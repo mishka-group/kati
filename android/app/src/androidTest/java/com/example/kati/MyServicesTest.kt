@@ -62,12 +62,13 @@ class MyServicesTest {
         assertEquals("999", column("monthly_pence"))
         kati.compose.waitUntil(10_000) { ByHand.shown(kati, "Added $name.") }
 
-        // Tapping the row puts it in the card; Save changes the price in place.
+        // Tapping the row opens its editor under it; Save changes the price in place.
         kati.tap("edit_service_${id()}")
         kati.compose.waitUntil(10_000) { kati.present("delete_service") }
         type("service_price", "12.50")
         kati.tap("add_service")
         kati.compose.waitUntil(20_000) { column("monthly_pence") == "1250" }
+        kati.compose.waitUntil(10_000) { ByHand.shown(kati, "Saved $name.") }
         assertEquals("1", kati.scalar("select count(*) from services where name = '$name'"))
 
         // Delete from the card.

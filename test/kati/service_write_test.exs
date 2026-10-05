@@ -231,7 +231,12 @@ defmodule Kati.ServiceWriteTest do
       assert assigns(editing).editing == s.id
       assert assigns(editing).field_name == @prefix <> "Mubi"
       assert assigns(editing).field_price == "10.99"
-      assert text(editing) =~ "EDIT SERVICE"
+      # The editor opens under the row, and the add card is not drawn meanwhile.
+      refute text(editing) =~ "ADD A SERVICE"
+      texts = text(editing)
+      {row_at, _} = :binary.match(texts, @prefix <> "Mubi")
+      {save_at, _} = :binary.match(texts, "Save")
+      assert row_at < save_at
 
       saved =
         editing
@@ -271,6 +276,16 @@ defmodule Kati.ServiceWriteTest do
       assert assigns(view).editing == nil
     end
 
+    test "a long press opens the same editor as a tap", %{service: s} do
+      view =
+        MyServices
+        |> mount_screen()
+        |> render_info({:long_press, String.to_atom("edit_service_" <> s.id)})
+
+      assert assigns(view).editing == s.id
+      assert :delete_service in taps(view)
+    end
+
     test "Cancel empties the card and changes nothing", %{service: s} do
       view =
         MyServices
@@ -290,6 +305,22 @@ defmodule Kati.ServiceWriteTest do
       assert stored(@prefix <> "Mubi").tier == :not_mine
       refute MyServices.drop_tag(s) in taps(dropped)
       assert String.to_atom("restore_service_" <> s.id) in taps(dropped)
+    end
+  end
+
+  describe "a service under Not mine" do
+    test "opens the editor too, and can be deleted for good" do
+      s = Ash.create!(Service, %{name: @prefix <> "Digikala", tier: :not_mine})
+      tag = String.to_atom("edit_service_" <> s.id)
+
+      view = mount_screen(MyServices)
+      assert tag in taps(view)
+
+      view = view |> render_info({:tap, tag}) |> render_info({:tap, :delete_service})
+
+      assert mine() == []
+      assert notice(view) == {:ok, "Deleted #{@prefix}Digikala."}
+      refute String.to_atom("restore_service_" <> s.id) in taps(view)
     end
   end
 

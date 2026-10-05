@@ -371,13 +371,12 @@ defmodule Kati.Screens.MyServices do
         {Kati.Screens.MyServices.heading()}
         {UI.eyebrow(gettext("Region"))}
         {Kati.Screens.MyServices.region_group(assigns.region, Map.get(assigns, :chosen_region) != nil)}
-        {UI.eyebrow(Kati.Screens.MyServices.card_label(Map.get(assigns, :editing)))}
-        {Kati.Screens.MyServices.add_card(assigns)}
+        {Kati.Screens.MyServices.add_section(assigns)}
         {Kati.Screens.MyServices.suggestions_group(Map.get(assigns, :suggestions, []))}
         {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services))}
-        {Kati.Screens.MyServices.service_group(services.subscribed, true)}
-        {Kati.Screens.MyServices.free_band(services.free)}
-        {Kati.Screens.MyServices.not_mine_group(Map.get(assigns, :not_mine, []))}
+        {Kati.Screens.MyServices.service_group(services.subscribed, true, assigns)}
+        {Kati.Screens.MyServices.free_band(services.free, assigns)}
+        {Kati.Screens.MyServices.not_mine_group(Map.get(assigns, :not_mine, []), assigns)}
         {UI.eyebrow(gettext("Rules"))}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
         {UI.eyebrow(gettext("Money"))}
@@ -528,17 +527,37 @@ defmodule Kati.Screens.MyServices do
       )
 
   @doc """
-  The eyebrow over the add card, which is also the edit card.
-
-      iex> Kati.Screens.MyServices.card_label(nil)
-      "Add a service"
-
-      iex> Kati.Screens.MyServices.card_label("an-id")
-      "Edit service"
+  *Add a service* and its card — or nothing while a listed service is being
+  edited, because the same fields are then open under that service's row and
+  one page cannot hold two fields with one tag.
   """
-  @spec card_label(String.t() | nil) :: String.t()
-  def card_label(nil), do: gettext("Add a service")
-  def card_label(_editing), do: gettext("Edit service")
+  @spec add_section(map()) :: map() | []
+  def add_section(assigns) do
+    case Map.get(assigns, :editing) do
+      nil -> [UI.eyebrow(gettext("Add a service")), Kati.Screens.MyServices.add_card(assigns)]
+      _editing -> []
+    end
+  end
+
+  @doc """
+  The editor, opened under the row that was tapped or held, so the change is
+  made where the service is rather than in a card a scroll away. Nothing for
+  every other row.
+  """
+  @spec editor_for(map(), map()) :: [map()]
+  def editor_for(%{id: id}, %{editing: id} = assigns) when is_binary(id) do
+    assigns = %{form: Kati.Screens.MyServices.form(assigns)}
+
+    [
+      ~MOB"""
+      <Column fill_width={true} padding_top={6} padding_bottom={14}>
+        {@form}
+      </Column>
+      """
+    ]
+  end
+
+  def editor_for(_service, _assigns), do: []
 
   @doc """
   The add card: a name, whether it is paid or free, a price for a paid one,
@@ -549,6 +568,19 @@ defmodule Kati.Screens.MyServices do
   """
   @spec add_card(map()) :: map()
   def add_card(assigns) do
+    assigns = %{form: Kati.Screens.MyServices.form(assigns)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@form}
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc false
+  @spec form(map()) :: map()
+  def form(assigns) do
     kind = Map.get(assigns, :kind, :subscribed)
     epoch = Map.get(assigns, :field_epoch, 0)
 
@@ -569,7 +601,6 @@ defmodule Kati.Screens.MyServices do
       <Spacer size={16} />
       {@buttons}
       {@notice}
-      <Spacer size={24} />
     </Column>
     """
   end
@@ -812,11 +843,12 @@ defmodule Kati.Screens.MyServices do
   what a device with nothing showed under this heading, which is a good part
   of the fallback defect in one band.
   """
-  @spec free_band([map()]) :: map()
-  def free_band([]), do: ~MOB"<Spacer size={0} />"
+  @spec free_band([map()], map()) :: map()
+  def free_band(free, page \\ %{})
+  def free_band([], _page), do: ~MOB"<Spacer size={0} />"
 
-  def free_band(free) do
-    assigns = %{group: Kati.Screens.MyServices.service_group(free, false)}
+  def free_band(free, page) do
+    assigns = %{group: Kati.Screens.MyServices.service_group(free, false, page)}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -833,8 +865,10 @@ defmodule Kati.Screens.MyServices do
   does not, because nothing on it has a price to own. An empty subscribed group
   is one line pointing at the card above it, not a card of its own.
   """
-  @spec service_group([map()], boolean()) :: map()
-  def service_group([], true) do
+  @spec service_group([map()], boolean(), map()) :: map()
+  def service_group(services, owner_note?, page \\ %{})
+
+  def service_group([], true, _page) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.note("info", gettext("Nothing here yet. Add the services you pay for above."))}
@@ -843,8 +877,14 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  def service_group(services, owner_note?) do
-    rows = Enum.map(services, &Kati.Screens.MyServices.service_row/1)
+  def service_group(services, owner_note?, page) do
+    rows =
+      Enum.flat_map(services, fn service ->
+        [
+          Kati.Screens.MyServices.service_row(service)
+          | Kati.Screens.MyServices.editor_for(service, page)
+        ]
+      end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -896,8 +936,8 @@ defmodule Kati.Screens.MyServices do
   deleted — a service you cancelled is not a service you never had, and the
   *Not mine* group offers it back.
 
-  The row's own tap puts the service in the add card (`edit_service/2`), where
-  its name, price and kind can be corrected, or the service deleted.
+  A tap or a long press opens the editor under the row (`edit_service/2`),
+  where its name, price and kind can be corrected, or the service deleted.
   """
   @spec service_row(map()) :: map()
   def service_row(service) do
@@ -905,7 +945,8 @@ defmodule Kati.Screens.MyServices do
       Kati.Screens.MyServices.badge_tile(service.badge),
       SettingsList.body(service.name, nil),
       SettingsList.trailing(Kati.Screens.MyServices.row_trailing(service)),
-      on_tap: {self(), Kati.Screens.MyServices.edit_tag(service)}
+      on_tap: {self(), Kati.Screens.MyServices.edit_tag(service)},
+      on_long_press: {self(), Kati.Screens.MyServices.edit_tag(service)}
     )
   end
 
@@ -1033,11 +1074,18 @@ defmodule Kati.Screens.MyServices do
   The services you said are not yours, each with *Add back* — or nothing when
   there are none.
   """
-  @spec not_mine_group([map()]) :: map() | []
-  def not_mine_group([]), do: []
+  @spec not_mine_group([map()], map()) :: map() | []
+  def not_mine_group(not_mine, page \\ %{})
+  def not_mine_group([], _page), do: []
 
-  def not_mine_group(not_mine) do
-    rows = Enum.map(not_mine, &Kati.Screens.MyServices.not_mine_row/1)
+  def not_mine_group(not_mine, page) do
+    rows =
+      Enum.flat_map(not_mine, fn service ->
+        [
+          Kati.Screens.MyServices.not_mine_row(service)
+          | Kati.Screens.MyServices.editor_for(service, page)
+        ]
+      end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -1099,7 +1147,10 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  @doc "A service marked not mine, with the way back (#127)."
+  @doc """
+  A service marked not mine, with the way back (#127). A tap or a long press
+  opens the same editor as a listed service, where it can be deleted.
+  """
   def not_mine_row(service) do
     Kati.UI.SettingsList.row(
       Kati.Screens.MyServices.badge_tile(service.badge),
@@ -1107,7 +1158,9 @@ defmodule Kati.Screens.MyServices do
       Kati.UI.SettingsList.action_pill(
         gettext("Add back"),
         {self(), String.to_atom("restore_service_" <> service.id)}
-      )
+      ),
+      on_tap: {self(), Kati.Screens.MyServices.edit_tag(service)},
+      on_long_press: {self(), Kati.Screens.MyServices.edit_tag(service)}
     )
   end
 
@@ -1277,6 +1330,9 @@ defmodule Kati.Screens.MyServices do
 
   def handle_info({:change, :service_price, typed}, socket) when is_binary(typed),
     do: {:noreply, socket |> Mob.Socket.assign(:draft_price, typed) |> clear_notice()}
+
+  # A long press on a row is the same as a tap on it: open its editor.
+  def handle_info({:long_press, tag}, socket) when is_atom(tag), do: handle_tap(tag, socket)
 
   # `super/2` for everything else, because the macro's `handle_info/2` clauses
   # are `defoverridable` and an override replaces the WHOLE set — dropping this
