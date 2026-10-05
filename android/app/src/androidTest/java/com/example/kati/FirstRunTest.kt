@@ -79,27 +79,24 @@ class FirstRunTest {
             textPresent("too many")
 
     /**
-     * The first `add_<title>` row of the catalogue, never the escape hatch.
-     *
-     * `Kati.Screens.AddTitle` tags each result `add_<title>` and board 308's
-     * by-hand row is `add_by_hand`, so a bare prefix search matches both and
-     * the hatch is usually first on screen.
+     * The first result row's add disc on the search: `add_<n>` for TMDB,
+     * `anilist_add_<n>` and `tvmaze_add_<n>` without a token. Never the
+     * by-hand row, and never the Library's own `add_title` underneath.
      */
     private fun catalogueRow(): String? =
-        kati.tagStartingWith("add_")?.takeIf { it != "add_by_hand" }
-            ?: kati.compose
-                .onAllNodes(
-                    androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(
-                        androidx.compose.ui.semantics.SemanticsProperties.TestTag
-                    ),
-                    useUnmergedTree = true
-                )
-                .fetchSemanticsNodes()
-                .firstNotNullOfOrNull { node ->
-                    node.config
-                        .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)
-                        ?.takeIf { it.startsWith("add_") && it != "add_by_hand" }
-                }
+        kati.compose
+            .onAllNodes(
+                androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(
+                    androidx.compose.ui.semantics.SemanticsProperties.TestTag
+                ),
+                useUnmergedTree = true
+            )
+            .fetchSemanticsNodes()
+            .firstNotNullOfOrNull { node ->
+                node.config
+                    .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)
+                    ?.takeIf { Regex("^(add|anilist_add|tvmaze_add)_\\d+$").matches(it) }
+            }
 
     @Test
     fun a_a_clean_install_hands_over_a_usable_app() {
