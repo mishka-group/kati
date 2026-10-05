@@ -12,7 +12,10 @@ defmodule Kati.AddByHandTest do
   alias Kati.Screens.AddByHand
 
   setup do
-    on_exit(fn -> Kati.Repo.query!("DELETE FROM tracked_titles", []) end)
+    on_exit(fn ->
+      Kati.Repo.query!("DELETE FROM tracked_titles", [])
+      Kati.Repo.query!("DELETE FROM cached_titles WHERE source = 'manual'", [])
+    end)
     :ok
   end
 
