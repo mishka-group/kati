@@ -65,8 +65,9 @@ defmodule Kati.CalendarNavigationTest do
       assert :week_next in tags(view)
 
       view = render_info(view, {:tap, :week_next})
-      assert assigns(view).date == Date.add(today, 7)
-      assert SelectedDate.get() == Date.add(today, 7)
+      assert assigns(view).week == Date.add(today, 7)
+      assert assigns(view).date == today
+      assert SelectedDate.get() == today
 
       assert [%{props: pager}] =
                for(%{type: :scroll, props: %{pager: true}} = n <- flatten(view), do: n)
@@ -74,7 +75,26 @@ defmodule Kati.CalendarNavigationTest do
       assert {_pid, :week_page} = pager.on_change
       assert pager.page == 1
       view = render_info(view, {:change, :week_page, "0"})
+      assert assigns(view).week == today
+    end
+
+    test "sliding the strip shows another week and leaves the selected day alone" do
+      today = Kati.Time.today()
+      view = mount_screen(Calendar) |> render_info({:change, :week_page, "2"})
+
       assert assigns(view).date == today
+      assert SelectedDate.get() == today
+      assert assigns(view).week == Date.add(today, 7)
+      assert String.to_atom("day_" <> Date.to_iso8601(Date.add(today, 7))) in tags(view)
+
+      next = Date.add(today, 8)
+      view = render_info(view, {:tap, String.to_atom("day_" <> Date.to_iso8601(next))})
+      assert assigns(view).date == next
+      assert assigns(view).week == nil
+
+      view = render_info(view, {:change, :week_page, "0"}) |> render_info({:tap, :today})
+      assert assigns(view).date == today
+      assert assigns(view).week == nil
     end
 
     test "a swipe across the day moves a day, the other way round in Persian" do

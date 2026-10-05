@@ -136,7 +136,7 @@ defmodule Kati.Screens.Calendar do
   # The week strip is a pager: the week follows the finger, and the page it
   # settles on is the week before (0) or after (2) the one at rest (1).
   def handle_info({:change, :week_page, page}, socket) do
-    {:noreply, Kati.Screens.Calendar.step(socket, Kati.Screens.Calendar.week_turn(page))}
+    {:noreply, Kati.Screens.Calendar.browse(socket, Kati.Screens.Calendar.week_turn(page))}
   end
 
   def handle_info(message, socket), do: super(message, socket)
@@ -144,7 +144,7 @@ defmodule Kati.Screens.Calendar do
   @impl true
   def handle_kati(:resumed, _payload, socket) do
     date = Kati.Calendars.SelectedDate.get()
-    {:noreply, Mob.Socket.assign(socket, date: date, rows: day_rows(date))}
+    {:noreply, Mob.Socket.assign(socket, date: date, week: nil, rows: day_rows(date))}
   end
 
   @doc """
@@ -158,6 +158,7 @@ defmodule Kati.Screens.Calendar do
 
     Mob.Socket.assign(socket,
       date: date,
+      week: nil,
       rows: day_rows(date),
       filter: :all,
       menu?: false,
@@ -429,8 +430,8 @@ defmodule Kati.Screens.Calendar do
         padding_bottom={132}
       >
         {Kati.Screens.Calendar.header(date, rows, assigns.menu?)}
-        {Kati.Screens.Calendar.month_row(date)}
-        {Kati.Screens.Calendar.week_pager(date)}
+        {Kati.Screens.Calendar.month_row(date, Map.get(assigns, :week) || date)}
+        {Kati.Screens.Calendar.week_pager(Map.get(assigns, :week) || date, date)}
         {Kati.Screens.Calendar.rule()}
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
@@ -573,20 +574,24 @@ defmodule Kati.Screens.Calendar do
   # The app-wide sweep that capped every display title missed this one: it
   # keyed on `text_size={28}` and this is 20.
   @doc false
-  def month_row(date) do
+  def month_row(date, shown \\ nil) do
+    shown = shown || date
     # The reader's own calendar: board 56 heads its month strip in Shamsi, and
     # `date.month`/`date.year` are Gregorian numbers that no amount of
-    # translation turns into مرداد ۱۴۰۵.
+    # translation turns into مرداد ۱۴۰۵. The month is the week on show, which a
+    # slide of the strip can carry away from the selected day.
     label =
       gettext("%{month} %{year}",
-        month: Kati.Locale.month_name(date),
-        year: Kati.Locale.year_of(date)
+        month: Kati.Locale.month_name(shown),
+        year: Kati.Locale.year_of(shown)
       )
 
     # An unfold chevron beside a month name means one thing, and the design
     # already drew screen 16 as the thing it means.
     month_tap = {self(), :open_month}
-    today_tap = if date == Kati.Time.today(), do: nil, else: {self(), :today}
+
+    today_tap =
+      if date == Kati.Time.today() and shown == date, do: nil, else: {self(), :today}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -653,14 +658,16 @@ defmodule Kati.Screens.Calendar do
   # full size: `max_font_scale` provides a clamped `LocalDensity` for the
   # subtree it is on, so a cap on the Text does not reach its sibling.
   @doc false
-  def day_strip(today) do
+  def day_strip(today), do: Kati.Screens.Calendar.day_strip(today, today)
+
+  def day_strip(shown, today) do
     now = Kati.Time.today()
     # The reader's own first day. `Date.day_of_week/1` is 1 = Monday, which is
     # the English week; board 56's strip runs ش ی د س چ پ ج and starts on
     # Saturday. `Kati.Screens.Stats.week_start_on/1` answers both — board 137
     # rules that the week's first day follows the language choice rather than a
     # setting of its own, and this is that ruling applied to the strip.
-    start = Kati.Screens.Stats.week_start_on(today)
+    start = Kati.Screens.Stats.week_start_on(shown)
     days = Enum.map(0..6, &Date.add(start, &1))
 
     ~MOB"""
@@ -709,15 +716,19 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc """
-  The strip as three pages — last week, this week, next week — resting on the
-  middle one. `page_key` is the selected day, so once a turn lands and the date
-  moves, the pager is rebuilt on the middle page showing the week it had
-  already slid to.
+  The strip as three pages — the week before the one on show, that week, and
+  the week after — resting on the middle one. Only `selected` is drawn in
+  ink, wherever it falls. `page_key` is the week on show, so once a turn lands
+  the pager is rebuilt on the middle page showing the week it had already
+  slid to.
   """
-  def week_pager(date) do
+  def week_pager(shown, selected \\ nil) do
+    selected = selected || shown
+
     assigns = %{
-      pages: Enum.map([-7, 0, 7], &Kati.Screens.Calendar.day_strip(Date.add(date, &1))),
-      key: Date.to_iso8601(date),
+      pages:
+        Enum.map([-7, 0, 7], &Kati.Screens.Calendar.day_strip(Date.add(shown, &1), selected)),
+      key: Date.to_iso8601(shown),
       change: {self(), :week_page}
     }
 
@@ -1824,13 +1835,13 @@ defmodule Kati.Screens.Calendar do
   # already in is not a destination.
   def handle_tap(:today, socket) do
     date = Kati.Calendars.SelectedDate.reset()
-    {:noreply, Mob.Socket.assign(socket, date: date, rows: day_rows(date))}
+    {:noreply, Mob.Socket.assign(socket, date: date, week: nil, rows: day_rows(date))}
   end
 
   # #126: a week either way by the arrows or a swipe on the strip, and a day
   # either way by a swipe across the day's rows — not only the seven in view.
-  def handle_tap(:week_previous, socket), do: {:noreply, Kati.Screens.Calendar.step(socket, -7)}
-  def handle_tap(:week_next, socket), do: {:noreply, Kati.Screens.Calendar.step(socket, 7)}
+  def handle_tap(:week_previous, socket), do: {:noreply, Kati.Screens.Calendar.browse(socket, -7)}
+  def handle_tap(:week_next, socket), do: {:noreply, Kati.Screens.Calendar.browse(socket, 7)}
 
   @doc """
   Board 306's button. `Kati.Screens.PickSections.ask_for_calendar/1`'s call,
@@ -1946,6 +1957,7 @@ defmodule Kati.Screens.Calendar do
           {:noreply,
            Mob.Socket.assign(socket,
              date: date,
+             week: nil,
              rows: Kati.Screens.Calendar.day_rows(date)
            )}
         end
@@ -1956,13 +1968,23 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc """
+  Show the week `days` away from the one on show. Browsing selects nothing:
+  the selected day and its rows stay until a day is tapped.
+  """
+  @spec browse(Mob.Socket.t(), integer()) :: Mob.Socket.t()
+  def browse(socket, days) do
+    week = Map.get(socket.assigns, :week) || socket.assigns.date
+    Mob.Socket.assign(socket, :week, Date.add(week, days))
+  end
+
+  @doc """
   Move the selected day by `days`, and read that day's rows.
   """
   @spec step(Mob.Socket.t(), integer()) :: Mob.Socket.t()
   def step(socket, days) do
     date = Date.add(socket.assigns.date, days)
     Kati.Calendars.SelectedDate.put(date)
-    Mob.Socket.assign(socket, date: date, rows: Kati.Screens.Calendar.day_rows(date))
+    Mob.Socket.assign(socket, date: date, week: nil, rows: Kati.Screens.Calendar.day_rows(date))
   end
 
   @doc """
