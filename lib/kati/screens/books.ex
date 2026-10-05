@@ -102,7 +102,7 @@ defmodule Kati.Screens.Books do
   is the only way in the app to put a book on the shelf, which is exactly what
   the `+` on a shelf of books is for.
   """
-  def add_sheet, do: Kati.Screens.AddByHandBook
+  def add_sheet, do: {Kati.Screens.Search, %{query: "", scope: :books, back: gettext("Books")}}
 
   @doc """
   Everything this screen reads, in one map: the shelf, the hero, the header's

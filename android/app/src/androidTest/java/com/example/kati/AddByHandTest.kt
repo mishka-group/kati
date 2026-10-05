@@ -51,8 +51,8 @@ class AddByHandTest {
         // none", and present "from the first keystroke". This test used to tap
         // it straight after the `+` and had been waiting twenty seconds for a
         // control the design says should not be there.
-        kati.compose.waitUntil(20_000) { kati.present("title_query") }
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+        kati.compose.waitUntil(20_000) { kati.present("search_query") }
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput("the salt almanac")
         kati.device.waitForIdle()
 
@@ -97,8 +97,8 @@ class AddByHandTest {
         kati.tap("fab")
 
         // Board 308 again: no query, no by-hand row. See the test above.
-        kati.compose.waitUntil(20_000) { kati.present("title_query") }
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+        kati.compose.waitUntil(20_000) { kati.present("search_query") }
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput("nothing in particular")
         kati.device.waitForIdle()
 

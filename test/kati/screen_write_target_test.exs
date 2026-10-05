@@ -394,7 +394,6 @@ defmodule Kati.ScreenWriteTargetTest do
     # the row quotes the typed words back at the reader, and 154 opened on its
     # placeholder until this carried them (N26). The query is the page's own
     # field, not a row it failed to resolve.
-    {Kati.Screens.AddTitle, :add_by_hand, {:state, "add_by_hand:title"}},
     # ── Board 169's sheet, and the nine controls on it.
     #
     # Every one writes `Mob.State`'s `"discover:filters"`, which is a VIEW

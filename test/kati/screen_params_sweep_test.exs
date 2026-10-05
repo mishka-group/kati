@@ -240,22 +240,10 @@ defmodule Kati.ScreenParamsSweepTest do
     # file, with conflicts and a merge, which is the page 120 was drawn as.
     # `%{}` is the right argument here, not a missing one.
     {Kati.Screens.Plans, :import_plan, Kati.Screens.PlanImport},
-    {Kati.Screens.Home, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeDark, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeEmpty, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeEmptyDark, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.HomeOmittedSections, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.Library, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.Library, :add_title, Kati.Screens.AddTitle},
     # Board 260's ink action, and it hands nothing for the same reason screen
     # 03's empty card does one line up: the sheet's argument is a QUERY, and an
     # empty inbox has no word to search for. It is an invitation to type rather
     # than a search somebody started.
-    {Kati.Screens.Inbox, :add_title, Kati.Screens.AddTitle},
-    {Kati.Screens.Stats, :fab, Kati.Screens.AddTitle},
-    {Kati.Screens.AddTitleMusic, :filter_Everything, Kati.Screens.AddTitle},
-    {Kati.Screens.AddTitleMusic, :filter_Films, Kati.Screens.AddTitle},
-    {Kati.Screens.AddTitleMusic, :filter_Series, Kati.Screens.AddTitle},
     # ── The agenda's `Day` segment. N51 moved 16, 17 and 30 onto the reader's
     # calendar: the month and the week hold a selected date and the switcher
     # carries it, so their two entries left this list. The agenda is a list
@@ -733,7 +721,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # A push naming no sentence opens on board 18, which is drawn mid-typing.
     # Both are right; they are not the same render, and they must not be:
     # a value, not a reference.
-    {Kati.Screens.QuickAdd, :sentence},
+    {Kati.Screens.QuickAdd, :sentence}
     # The words in the field, one sheet over. Screen 06 takes a `:query`,
     # because screen 18's *Title* chip opens it after the reader
     # has already typed the film's name and a blank sheet is an invitation to
@@ -741,7 +729,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # nothing found; a push naming no query opens the resting sheet, which is
     # what a reader who has typed nothing should see. Both are right and they
     # are not the same render — a value, not a reference.
-    {Kati.Screens.AddTitle, :query}
   ]
 
   # Readers whose named-but-missing row draws a page that SAYS so, rather than

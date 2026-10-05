@@ -215,11 +215,14 @@ defmodule Kati.Screens.Root do
       # read nothing at all and were suddenly demanded to prove an empty state
       # they do not have. A module named in a `def` body is an atom and not a
       # call, so this answer costs no edge.
-      def add_sheet, do: Kati.Screens.AddTitle
+      # The search, opened on this root's section: one place to find or add
+      # anything, whichever shelf the `+` was pressed on.
+      def add_sheet, do: {Kati.Screens.Search, %{query: ""}}
       defoverridable add_sheet: 0
 
       def handle_info({:tap, :fab}, socket) do
-        {:noreply, Mob.Socket.push_screen(socket, add_sheet())}
+        {screen, params} = add_sheet()
+        {:noreply, Mob.Socket.push_screen(socket, screen, params)}
       end
 
       def handle_info({:tap, tag}, socket) do

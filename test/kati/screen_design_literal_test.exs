@@ -270,6 +270,10 @@ defmodule Kati.ScreenDesignLiteralTest do
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
   @retired_symbols [
+    # Your year is a dashboard with nothing to add, so the dock draws no `+`
+    # on it (5 October).
+    {"07", "add"},
+    {"61", "add"},
     # N52-B: board 13's and board 36's overflow discs had no tap and nothing
     # behind them. Board 36's `cast`, `computer`, `tv`, `help` and
     # `do_not_disturb_on` are the Chromecast, browser-extension, Apple TV,
@@ -560,8 +564,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 170 since 25 September, when boards 29, 63 and 64 moved OUT the same
       # way: the lock screen and two launchers, which no app can navigate to.
       # Their screens are deleted and the retired README says why.
-      assert length(on_disk) == 170,
-             "expected 170 drawings under test/design/screens, found #{length(on_disk)} — " <>
+      #
+      # 168 since 5 October: boards 06 and 179, the add-a-title page and its
+      # music state, moved OUT when the `+` started opening the search.
+      assert length(on_disk) == 168,
+             "expected 168 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -1839,15 +1846,6 @@ defmodule Kati.ScreenDesignLiteralTest do
          |> Map.put(:params, %{back: "Stats"})
          |> Map.put(:set_up?, true)
          |> Map.put(:ledger, Kati.Screens.Subscriptions.drawn_ledger()))},
-      # 06 is drawn MID-QUERY. The sheet opens empty now — its four results and
-      # its `4 results` caption belong to a search somebody has run, and
-      # opening on them showed a reader who had typed nothing four invented
-      # films. This is the arrival the board is a
-      # drawing OF: a query in the field and the answer under it.
-      {"06", Kati.Screens.AddTitle,
-       &(&1
-         |> Map.put(:results, Kati.Library.Sample.search_results())
-         |> Map.put(:query, "hollow"))},
       # 92 is drawn with three subscriptions on it, which is a state a reader
       # reaches by telling Kati about three services. A device that has told it
       # nothing gets board 93 — see `Kati.Screens.MyServices.content/1` and

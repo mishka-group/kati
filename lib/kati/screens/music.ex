@@ -1226,6 +1226,6 @@ defmodule Kati.Screens.Music do
   new control — a second add control on this screen would be a second door to a
   sheet that already has one.
   """
-  @spec add_sheet() :: module()
-  def add_sheet, do: Kati.Screens.AddTitleMusic
+  @spec add_sheet() :: {module(), map()}
+  def add_sheet, do: {Kati.Screens.Search, %{query: "", scope: :music, back: gettext("Music")}}
 end

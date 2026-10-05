@@ -158,7 +158,7 @@ defmodule Kati.Screens.Agenda do
   end
 
   @doc "The `+` on the agenda adds to the calendar (#126)."
-  def add_sheet, do: Kati.Screens.QuickAdd
+  def add_sheet, do: {Kati.Screens.QuickAdd, %{}}
 
   @doc false
   def body(%{groups: []}) do

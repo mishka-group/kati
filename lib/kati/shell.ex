@@ -208,6 +208,25 @@ defmodule Kati.Shell do
   # then the browser's own optical rounding differs; the number that matters
   # is where the icons end up, and this is the version that matches.
   @doc """
+  The `+` beside the dock. Your year is a dashboard with nothing to add, so it
+  draws none.
+  """
+  def fab(:stats, _fab, _glyph, _add), do: ~MOB"<Spacer size={0} />"
+
+  def fab(_active, fab, glyph, add) do
+    assigns = %{fab: fab, glyph: glyph, add: add}
+
+    ~MOB"""
+    <Row align="center">
+      <Spacer size={11} />
+      <Box width={64} height={64} background={@fab} corner_radius={32} align="center" on_tap={@add}>
+        {Kati.UI.symbol("add", size: 27, color: @glyph)}
+      </Box>
+    </Row>
+    """
+  end
+
+  @doc """
   The four-tab bar and the FAB, for a page that builds its own frame.
 
   Public because two screens draw the shell's chrome under a root node of their
@@ -241,10 +260,7 @@ defmodule Kati.Shell do
             {Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)}
           </Row>
         </Box>
-        <Spacer size={11} />
-        <Box width={64} height={64} background={fab} corner_radius={32} align="center" on_tap={add}>
-          {Kati.UI.symbol("add", size: 27, color: glyph)}
-        </Box>
+        {Kati.Shell.fab(active, fab, glyph, add)}
       </Row>
     </Box>
     """

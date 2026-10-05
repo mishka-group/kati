@@ -468,8 +468,6 @@ defmodule Kati.ScreenTapSweepTest do
     # a bare `Kati.UI.symbol("cancel", …)` with no `on_tap`, so a tap fell
     # through to the `<TextField>` under it and the next thing typed was
     # appended to the query somebody was trying to delete. Found on a device.
-    {Kati.Screens.AddTitle, :clear_query},
-    {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_all},
     # (`{Kati.Screens.Discover, :"filter_For you"}` was here. Screen 11 answers
     # an empty feed on a bare mount now — a recommendation is an answer to
@@ -508,7 +506,6 @@ defmodule Kati.ScreenTapSweepTest do
     # `:filter_Albums` is that row's settled member; `:filter_Artists` narrows
     # and the other three push screen 06.
     {Kati.Screens.AddByHandRecord, :kind_album},
-    {Kati.Screens.AddTitleMusic, :filter_Albums},
     # (Screen 83's six link rows were here, and screen 85's four below them.
     # `K-43 open-url` was built and they all open the site they name now —
     # `Kati.Screens.Attribution.site_for/1` is the table and

@@ -51,20 +51,20 @@ class TypingTest {
         kati.compose.waitUntil(30_000) { kati.present("fab") }
         kati.tap("fab")
 
-        kati.compose.waitUntil(20_000) { kati.present("title_query") }
+        kati.compose.waitUntil(20_000) { kati.present("search_query") }
 
         val typed = "the long hollow"
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput(typed)
 
         // The field must show what went into it. Before this ticket the field
         // was a picture and this input had nowhere to land at all.
-        kati.compose.waitUntil(10_000) { kati.textOf("title_query")?.contains(typed) == true }
+        kati.compose.waitUntil(10_000) { kati.textOf("search_query")?.contains(typed) == true }
 
         assertTrue(
             "the field did not hold what was typed — it read " +
-                "'${kati.textOf("title_query")}'",
-            kati.textOf("title_query")?.contains(typed) == true
+                "'${kati.textOf("search_query")}'",
+            kati.textOf("search_query")?.contains(typed) == true
         )
     }
 
@@ -89,7 +89,7 @@ class TypingTest {
 
         kati.compose.waitUntil(30_000) { kati.present("fab") }
         kati.tap("fab")
-        kati.compose.waitUntil(20_000) { kati.present("title_query") }
+        kati.compose.waitUntil(20_000) { kati.present("search_query") }
 
         // This used to tap `add_The Quiet Coast` — a row out of
         // `Kati.Library.Sample`, which screen 06 drew at rest. Board 308 ended
@@ -104,7 +104,7 @@ class TypingTest {
         // there from the first keystroke, and saves.
         val typed = "the salt almanac"
 
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput(typed)
         kati.device.waitForIdle()
 

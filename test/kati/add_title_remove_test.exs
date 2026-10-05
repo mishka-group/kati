@@ -90,30 +90,6 @@ defmodule Kati.AddTitleRemoveTest do
     end
   end
 
-  describe "a write the screen refused" do
-    test "is drawn rather than swallowed" do
-      assigns = %{
-        results: [],
-        filter: "Everything",
-        query: "",
-        query_epoch: 0,
-        save_error: "That did not save. Your text is still here — try again.",
-        search_error: nil
-      }
-
-      drawn = inspect(AddTitle.render(assigns), limit: :infinity, printable_limit: :infinity)
-
-      assert drawn =~ "That did not save."
-    end
-
-    test "and a page with nothing wrong draws no band" do
-      {:ok, socket} = AddTitle.mount(%{}, %{}, Mob.Socket.new(AddTitle))
-
-      assert socket.assigns.save_error == nil
-      assert AddTitle.save_notice(nil) == []
-    end
-  end
-
   defp tracked_ids do
     TrackedTitle
     |> Ash.read!()

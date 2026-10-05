@@ -43,3 +43,13 @@ nowhere and drew the same invented evening on every device.
 `Kati.Screens.MarkIos` and `Kati.Screens.MarkAndroid` are deleted with 29,
 whose wallpaper, scrim and widgets they borrowed. Screen 65, the launch
 screen, stays: it is the frame the app itself puts up.
+
+## 06 — Add a title, and 179 — its music state
+
+The `+` used to open a page of its own for finding a film. It now opens the
+search (screen 19) on the section it was pressed in, and each section's chip
+there carries its own way to add: On TMDB for films and series, the by-hand
+forms for books and albums, the meal, expense and calendar sheets for theirs.
+The page's search-and-add functions stay in `Kati.Screens.AddTitle`, which the
+search and onboarding's first title use; the page is gone. 179 opened on three
+invented albums that a tap really saved, and is deleted with it.

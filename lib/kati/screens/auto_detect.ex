@@ -1185,7 +1185,8 @@ defmodule Kati.Screens.AutoDetect do
     heard = Kati.Screens.AutoDetect.asked_title(socket)
     Kati.Media.Detect.resolve(heard)
 
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle, %{query: heard})}
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: heard, scope: :screen})}
   end
 
   def handle_tap(:answer_not_mine, socket) do

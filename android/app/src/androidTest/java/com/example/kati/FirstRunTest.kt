@@ -121,7 +121,7 @@ class FirstRunTest {
         assertNothingInvented("the Library, straight after the first run,")
 
         kati.tap("add_title")
-        kati.compose.waitUntil(20_000) { kati.present("title_query") }
+        kati.compose.waitUntil(20_000) { kati.present("search_query") }
 
         // Deliberately more than two characters: `Kati.Screens.AddTitle` runs
         // its search under a THREE-character floor, so a single letter searches
@@ -130,7 +130,7 @@ class FirstRunTest {
         // query-shaped label, is `add_by_hand` itself. It tapped the by-hand
         // row, landed on the form and waited twenty seconds for a row only a
         // Save would write.
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput("quiet")
         kati.device.waitForIdle()
 

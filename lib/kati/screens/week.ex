@@ -655,7 +655,7 @@ defmodule Kati.Screens.Week do
   def handle_info(message, socket), do: super(message, socket)
 
   @doc "The `+` on the week adds to the calendar (#126)."
-  def add_sheet, do: Kati.Screens.QuickAdd
+  def add_sheet, do: {Kati.Screens.QuickAdd, %{}}
 
   @impl true
   def handle_tap(:week_previous, socket),

@@ -210,7 +210,7 @@ defmodule Kati.CalendarNavigationTest do
 
     test "every view's + adds to the calendar, not a film" do
       for module <- [Calendar, Kati.Screens.MonthGrid, Kati.Screens.Week, Kati.Screens.Agenda] do
-        assert module.add_sheet() == Kati.Screens.QuickAdd,
+        assert {Kati.Screens.QuickAdd, _} = module.add_sheet(),
                "#{inspect(module)}'s + opens the wrong sheet"
       end
     end

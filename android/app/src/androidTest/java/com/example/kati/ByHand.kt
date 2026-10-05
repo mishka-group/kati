@@ -40,8 +40,8 @@ object ByHand {
         val before = kati.count("tracked_titles")
         toTabs(kati)
         kati.tap("fab")
-        kati.awaitScreen("add_title")
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true).performTextInput(title)
+        kati.awaitScreen("search")
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true).performTextInput(title)
         kati.device.waitForIdle()
         kati.compose.waitUntil(20_000) { kati.present("add_by_hand") }
         kati.tap("add_by_hand")

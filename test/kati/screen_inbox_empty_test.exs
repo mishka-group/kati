@@ -101,7 +101,7 @@ defmodule Kati.ScreenInboxEmptyTest do
       # Screen 06, not the shelf: it is the only door that puts anything into
       # the followed set, which is what this page is the output of.
       {:noreply, added} = Inbox.handle_tap(:add_title, socket)
-      assert {:push, Kati.Screens.AddTitle, _} = Map.get(added.__mob__, :nav_action)
+      assert {:push, Kati.Screens.Search, _} = Map.get(added.__mob__, :nav_action)
 
       {:noreply, shelf} = Inbox.handle_tap(:open_shelf, socket)
       assert {:push, Kati.Screens.Library, _} = Map.get(shelf.__mob__, :nav_action)

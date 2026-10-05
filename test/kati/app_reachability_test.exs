@@ -390,7 +390,6 @@ defmodule Kati.AppReachabilityTest do
   # rather than swept for.
   @locale_forks [
     {Screens.LanguagePick, :continue},
-    {Screens.AddTitle, :add_by_hand},
     {Screens.Search, :add_by_hand},
     # mishka-group/kati#103 moved three forks rather than removing them. 164,
     # 165 and 166 are the English steps rendered under `:fa` now, so screen 53's

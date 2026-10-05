@@ -64,8 +64,8 @@ class SearchTest {
         // Board 308: the by-hand row NAMES the query, so it is absent before a
         // keystroke and present from the first one. This walk used to tap it
         // straight after opening screen 06.
-        kati.compose.waitUntil(20_000) { kati.present("title_query") }
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+        kati.compose.waitUntil(20_000) { kati.present("search_query") }
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput(title)
         kati.device.waitForIdle()
 

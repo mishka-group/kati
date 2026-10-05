@@ -212,7 +212,7 @@ defmodule Kati.Widgets.SnapshotTest do
                  Mob.Socket.new(Kati.Screens.Home)
                )
 
-      assert {:push, Kati.Screens.AddTitle, _params} = socket.__mob__.nav_action
+      assert {:push, Kati.Screens.Search, _params} = socket.__mob__.nav_action
     end
 
     test "a notification that is not the widget's navigates nowhere" do

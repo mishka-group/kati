@@ -576,7 +576,7 @@ defmodule Kati.Screens.MonthGrid do
   def handle_info(message, socket), do: super(message, socket)
 
   @doc "The `+` on the month adds to the calendar, as it does on the Schedule (#126)."
-  def add_sheet, do: Kati.Screens.QuickAdd
+  def add_sheet, do: {Kati.Screens.QuickAdd, %{}}
 
   @impl true
   def handle_tap(:month_previous, socket),

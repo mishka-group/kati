@@ -233,7 +233,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     test "both controls on the card go somewhere" do
       view = mount_screen(Library)
 
-      assert navigated_to(render_info(view, {:tap, :add_title})) == Kati.Screens.AddTitle,
+      assert navigated_to(render_info(view, {:tap, :add_title})) == Kati.Screens.Search,
              "the one thing that ends this state has to be the thing the ink pill opens"
 
       assert navigated_to(render_info(view, {:tap, :import_backup})) == Kati.Screens.Restore

@@ -216,7 +216,7 @@ class FilmSeriesFlowTest {
 
     private fun addBoth() {
         kati.tap("fab")
-        kati.awaitScreen("add_title")
+        kati.awaitScreen("search")
         noInvented("screen 06 before a query")
 
         addFromCatalogue(film, filmYear, "FILM")
@@ -228,7 +228,7 @@ class FilmSeriesFlowTest {
             )
         )
 
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true).performTextClearance()
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true).performTextClearance()
         kati.device.waitForIdle()
 
         addFromCatalogue(series, seriesYear, "SERIES")
@@ -248,7 +248,7 @@ class FilmSeriesFlowTest {
     private fun addFromCatalogue(title: String, year: String, kind: String) {
         val before = kati.count("tracked_titles")
 
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true).performTextInput(title)
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true).performTextInput(title)
         kati.device.waitForIdle()
 
         val found = waitFor(45_000) { resultRow(title, year, kind) != null || providerRefused() }

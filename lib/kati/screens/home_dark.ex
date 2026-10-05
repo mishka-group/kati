@@ -329,7 +329,7 @@ defmodule Kati.Screens.HomeDark do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   def handle_info({:tap, :fab}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   # The header's `calendar_month` disc, which drew the dock's own
   # `:root_calendar` until #97 — so the disc and the Calendar tab were one

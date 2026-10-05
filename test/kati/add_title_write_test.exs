@@ -34,13 +34,12 @@ defmodule Kati.AddTitleWriteTest do
   end
 
   describe "adding a title" do
-    test "writes both rows, and they are there after the screen is gone" do
-      view = drawn_results(mount_screen(AddTitle))
+    test "writes both rows" do
       title = "The Quiet Coast"
 
       assert Ash.read!(Kati.Media.TrackedTitle) == []
 
-      _ = render_info(view, {:tap, tag_for(title)})
+      {:ok, _} = AddTitle.track(title, row_for(title))
 
       # The receipt is the store, not the socket. A boolean on an assign is
       # exactly what this ticket replaced.
@@ -67,17 +66,12 @@ defmodule Kati.AddTitleWriteTest do
     end
 
     test "untracking removes what you decided and keeps what the title is" do
-      view = drawn_results(mount_screen(AddTitle))
       title = "The Quiet Coast"
 
-      view = render_info(view, {:tap, tag_for(title)})
+      {:ok, _} = AddTitle.track(title, row_for(title))
       assert length(Ash.read!(Kati.Media.TrackedTitle)) == 1
 
-      _twice = render_info(view, {:tap, tag_for(title)})
-      assert length(Ash.read!(Kati.Media.TrackedTitle)) == 1, "a double tap took the add back"
-
-      view = %{view | socket: Mob.Socket.assign(view.socket, :last_add, nil)}
-      _ = render_info(view, {:tap, tag_for(title)})
+      {:ok, _} = AddTitle.untrack(title, row_for(title))
 
       assert Ash.read!(Kati.Media.TrackedTitle) == [],
              "untracking left the decision behind"
@@ -87,12 +81,9 @@ defmodule Kati.AddTitleWriteTest do
     end
 
     test "adding the same title twice does not write a second pair" do
-      view = drawn_results(mount_screen(AddTitle))
       title = "Quiet Earth"
 
-      view = render_info(view, {:tap, tag_for(title)})
-      view = render_info(view, {:tap, tag_for(title)})
-      _ = render_info(view, {:tap, tag_for(title)})
+      for _ <- 1..3, do: AddTitle.track(title, row_for(title))
 
       assert length(Ash.read!(Kati.Media.TrackedTitle)) == 1
     end
@@ -100,7 +91,7 @@ defmodule Kati.AddTitleWriteTest do
 
   describe "the field" do
     test "holds what was typed" do
-      view = mount_screen(AddTitle)
+      view = mount_screen(Kati.Screens.OnboardingFirstTitle)
 
       view = render_info(view, {:change, :title_query, "hollow"})
 
@@ -109,18 +100,5 @@ defmodule Kati.AddTitleWriteTest do
     end
   end
 
-  # The sheet opens EMPTY since 6 September — board 06 is drawn mid-query and
-  # its four results belong to that query. These tests
-  # are about the write behind a result row, so they put the board's rows on
-  # the socket the way a search would.
-  # The tag names the row's position in the full list — see
-  # `Kati.Screens.AddTitle.add_at/2`.
-  defp tag_for(title) do
-    index = Enum.find_index(Kati.Library.Sample.search_results(), &(&1.title == title))
-    String.to_atom("add_#{index}")
-  end
-
-  defp drawn_results(view) do
-    render_info(view, {:results_for_test, Kati.Library.Sample.search_results()})
-  end
+  defp row_for(title), do: Enum.find(Kati.Library.Sample.search_results(), &(&1.title == title))
 end

@@ -51,7 +51,6 @@ defmodule Kati.Screens.Gallery do
     {"03", "Library", Kati.Screens.Library, :root},
     {"04", "Series detail", Kati.Screens.Series, :push},
     {"05", "New releases", Kati.Screens.Inbox, :push},
-    {"06", "Add a title", Kati.Screens.AddTitle, :push},
     {"07", "Your year", Kati.Screens.Stats, :root},
     {"08", "Film detail", Kati.Screens.Film, :push},
     {"09", "A heavy day", Kati.Screens.Day, :push},
@@ -292,7 +291,6 @@ defmodule Kati.Screens.Gallery do
     # fixture. 180 is the album rating sheet screen 74's Rate row had been
     # pushing screen 33's film sheet for.
     {"178", "Add by hand — a record", Kati.Screens.AddByHandRecord, :push},
-    {"179", "Add a title — the music state", Kati.Screens.AddTitleMusic, :push},
     {"180", "Rate an album", Kati.Screens.RateAlbum, :push},
     # D-46 — the sort disc on screen 10 stopped opening screen 03's sheet.
     # Board 167 is 145's chrome with Up next's vocabulary; 168 stays in

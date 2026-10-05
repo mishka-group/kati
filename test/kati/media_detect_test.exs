@@ -279,7 +279,7 @@ defmodule Kati.MediaDetectTest do
 
       {:noreply, pushed} = AutoDetect.handle_tap(:answer_add_it, screen())
 
-      assert {:push, Kati.Screens.AddTitle, %{query: "Some Film"}} =
+      assert {:push, Kati.Screens.Search, %{query: "Some Film", scope: :screen}} =
                Map.get(pushed.__mob__, :nav_action)
 
       assert Detect.unsure() == []

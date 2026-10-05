@@ -584,7 +584,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 06 joined on 26 August with #87, when adding a title stopped toggling a
     # boolean on a socket and started writing a `CachedTitle` and a
     # `TrackedTitle`. It is the first writer the film and TV spine has ever had.
-    {"06", Kati.Screens.AddTitle},
     # 19 and 89 joined on 4 September with #92, when screen 19 stopped mounting
     # `Kati.Screens.Search.Sample` unconditionally and started running the
     # query screen 86 hands it. With no query it still draws the board — no
@@ -652,7 +651,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # aimed at a different album from the screen that opened it would rate the
     # wrong record.
     {"178", Kati.Screens.AddByHandRecord},
-    {"179", Kati.Screens.AddTitleMusic},
     {"180", Kati.Screens.RateAlbum}
   ]
 
@@ -952,11 +950,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # holds the three cards it draws instead, and `Kati.ScreenDesignLiteralTest`
     # renders 06 in the state its own board WAS captured in — a query typed and
     # four results — which is where board 06's literals are still compared.
-    {"06",
-     "board 06 is drawn mid-query and its four results belong to that query. The sheet " <>
-       "opens empty, and the three states it can be in with nothing typed — resting, under " <>
-       "the minimum, and no match — have no board of their own; `D-31` is the brief that " <>
-       "would settle it", Kati.AddTitleStatesTest},
+
     # 19 and 89 are results pages and no board draws one with nothing typed,
     # for a reason that was true until this round: until the field was real the
     # design never put a person on 19 without a query. A person can clear the
@@ -1152,10 +1146,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"86", "86", "Screen"},
     {"86", "86", "Try"},
     {"87", "87", "Nothing searched yet"},
-    {"06", "06", "Add a title"},
-    {"06", "06", "Everything"},
-    {"06", "06", "Films"},
-    {"06", "06", "Series"},
     # `Can't find it? Add it by hand` was a fifth row here until board 308 made
     # the control absent before a keystroke — it NAMES the query now, and an
     # untouched sheet has none to name. There is no replacement quotation:
@@ -2947,16 +2937,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"26", Kati.Screens.PickSections,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"06", Kati.Screens.AddTitle,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
-       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"154", Kati.Screens.AddByHand,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"178", Kati.Screens.AddByHandRecord,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
-       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"179", Kati.Screens.AddTitleMusic,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"177", Kati.Screens.AddByHandBook,

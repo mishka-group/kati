@@ -39,8 +39,6 @@ defmodule Kati.MusicAddByHandTest do
   alias Kati.Music.Artist
   alias Kati.Music.Track
   alias Kati.Screens.AddByHandRecord
-  alias Kati.Screens.AddTitle
-  alias Kati.Screens.AddTitleMusic
   alias Kati.Screens.AlbumDetail
   alias Kati.Screens.Music
   alias Kati.Screens.RateAlbum
@@ -322,68 +320,6 @@ defmodule Kati.MusicAddByHandTest do
 
   # ── screen 179, the sheet the FAB opens ─────────────────────────────────────
 
-  describe "screen 179" do
-    test "screen 21's FAB opens it, and the other roots' FAB does not" do
-      # `Kati.Screens.Root` gives every shelf `add_sheet/0` and marks it
-      # overridable; this shelf is the only one that overrides it. Asserted on
-      # a second root as well, because an override that leaked into the macro
-      # would open the music sheet from the Library's `+` too.
-      assert Music.add_sheet() == AddTitleMusic
-      assert Kati.Screens.Library.add_sheet() == AddTitle
-
-      view = render_info(mount_screen(Music), {:tap, :fab})
-
-      assert {:push, AddTitleMusic, _params} = view.socket.__mob__.nav_action
-    end
-
-    test "it opens with Albums lit and the board's three rows under it" do
-      view = mount_screen(AddTitleMusic)
-
-      assert assigns(view).filter == "Albums"
-      assert length(AddTitleMusic.visible(assigns(view).results, "Albums")) == 3
-    end
-
-    test "the add disc shelves the row it drew, and only that row" do
-      view =
-        AddTitleMusic
-        |> mount_screen()
-        |> render_info({:tap, String.to_atom("add_Estuary Tapes")})
-
-      assert [album] = Album |> Ash.read!() |> Enum.filter(&(&1.title == "Estuary Tapes"))
-      assert album.released_year == 2026
-
-      assert length(Track |> Ash.Query.for_read(:for_album, %{album_id: album.id}) |> Ash.read!()) ==
-               8
-
-      # The row the page drew is marked, and no other row is.
-      added = for r <- assigns(view).results, r.added, do: r.title
-      assert added == ["Estuary Tapes", "Nine Rooms"]
-    end
-
-    test "both doors into the form by hand are the form by hand" do
-      for tag <- [:add_by_hand, :add_by_hand_empty] do
-        view = render_info(mount_screen(AddTitleMusic), {:tap, tag})
-
-        assert {:push, AddByHandRecord, _params} = view.socket.__mob__.nav_action
-      end
-    end
-
-    test "a query past the floor answers nothing, and the card says why" do
-      # Kati has no music catalogue to look in, and the board's own empty card
-      # is that sentence. A screen that performed a query it cannot run would
-      # read as a query that works.
-      view = render_info(mount_screen(AddTitleMusic), {:change, :album_query, "ostrand"})
-
-      assert assigns(view).results == []
-      assert AddTitleMusic.named("ostrand") == "ostrand"
-
-      # Below the floor it is the board again — screen 06's arrangement, and
-      # for the reason written there.
-      back = render_info(view, {:change, :album_query, "os"})
-      assert length(assigns(back).results) == 3
-    end
-  end
-
   # ── screen 180, and the record it rates ─────────────────────────────────────
 
   describe "screen 180" do
@@ -468,17 +404,6 @@ defmodule Kati.MusicAddByHandTest do
 
       assert assigns(saved).save_error == "Nothing to save yet."
       assert albums() == []
-    end
-
-    test "179's Artists scope is empty, and the card that rescues it is drawn" do
-      view = render_info(mount_screen(AddTitleMusic), {:tap, :filter_Artists})
-
-      assert AddTitleMusic.visible(assigns(view).results, "Artists") == []
-
-      # With nothing typed the card still names a query, because the board's
-      # own is what it is drawn from — the same rule screen 178's Artist inset
-      # follows for the state it is not in.
-      assert AddTitleMusic.named("") == AddTitleMusic.drawn_query()
     end
 
     test "178 opens on Album with nothing assumed" do

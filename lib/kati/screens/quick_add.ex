@@ -456,8 +456,9 @@ defmodule Kati.Screens.QuickAdd do
     # opened this sheet blank while quietly changing what the Library's search
     # disc opens next.
     {:noreply,
-     Mob.Socket.push_screen(socket, Kati.Screens.AddTitle, %{
-       query: Kati.Screens.QuickAdd.typed_title(socket)
+     Mob.Socket.push_screen(socket, Kati.Screens.Search, %{
+       query: Kati.Screens.QuickAdd.typed_title(socket),
+       scope: :screen
      })}
   end
 

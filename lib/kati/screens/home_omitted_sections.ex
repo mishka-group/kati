@@ -310,7 +310,7 @@ defmodule Kati.Screens.HomeOmittedSections do
   # tabs are answered through `Kati.Shell.screen_for/1`, which reads the
   # reader's own locale. mishka-group/kati#103.
   def handle_info({:tap, :fab}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do

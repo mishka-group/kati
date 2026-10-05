@@ -143,7 +143,7 @@ defmodule Kati.Screens.Search do
      Mob.Socket.assign(socket,
        query: query,
        results: results,
-       filter: Kati.Search.narrowable(Map.get(params, :scope, :all)),
+       filter: Kati.Screens.Search.opening_filter(params),
        recent: nil,
        # Screen 06's counter, for the reason `handle_info({:tap, :clear}, …)`
        # gives. It starts at 1 when a push HANDED a query, so the field draws
@@ -360,6 +360,7 @@ defmodule Kati.Screens.Search do
           {Kati.Screens.Search.back(back)}
           {Kati.Screens.Search.field(query, true, Map.get(assigns, :query_epoch, 0))}
           {Kati.Screens.Search.chips(filter, results)}
+          {Kati.Screens.Search.section_panel(filter, query)}
           {Kati.Screens.Search.state_or_groups(results, filter, history)}
           {Kati.Screens.Search.on_tmdb(results, filter, tmdb, save_error)}
           {Kati.Screens.Search.keyless(results, filter, keyless, save_error)}
@@ -551,6 +552,24 @@ defmodule Kati.Screens.Search do
      |> Mob.Socket.assign(:results, Kati.Search.Query.run(""))
      |> Kati.Screens.Search.ask_tmdb("", :now)
      |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
+  end
+
+  # A section's own way in, from its panel under the chips.
+  def handle_info({:tap, :add_book}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHandBook)}
+
+  def handle_info({:tap, :add_album}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHandRecord)}
+
+  def handle_info({:tap, :add_meal}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealEdit)}
+
+  def handle_info({:tap, :add_expense}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.QuickAddExpense)}
+
+  def handle_info({:tap, :add_event}, socket) do
+    sentence = socket.assigns |> Map.get(:query, "") |> String.trim()
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.QuickAdd, %{sentence: sentence})}
   end
 
   # One clause per PREFIX rather than per control: the tag carries the label,
@@ -1295,6 +1314,108 @@ defmodule Kati.Screens.Search do
       text_color={color}
       max_lines={1}
     />
+    """
+  end
+
+  @doc """
+  The chip a push opens on: any section the chips offer, else All.
+
+      iex> Kati.Screens.Search.opening_filter(%{scope: :music})
+      :music
+      iex> Kati.Screens.Search.opening_filter(%{scope: :nowhere})
+      :all
+  """
+  @spec opening_filter(map()) :: atom()
+  def opening_filter(params) do
+    scope = Map.get(params, :scope, :all)
+    if scope in Kati.Search.chip_keys(), do: scope, else: :all
+  end
+
+  @doc """
+  What a section's chip adds under the chips: the way to put something new in
+  that section. Films and series have theirs in the On TMDB rows below.
+  """
+  @spec section_panel(atom(), String.t()) :: map() | [map()]
+  def section_panel(:books, _query),
+    do:
+      Kati.Screens.Search.panel(
+        gettext("Add a book by hand"),
+        :add_book,
+        gettext("Searching for books is coming. Until then, add one with its title and author.")
+      )
+
+  def section_panel(:music, _query),
+    do:
+      Kati.Screens.Search.panel(
+        gettext("Add an album by hand"),
+        :add_album,
+        gettext("Searching for music is coming. Until then, add an album with its artist.")
+      )
+
+  def section_panel(:meals, _query),
+    do: Kati.Screens.Search.panel(gettext("Add a meal"), :add_meal, nil)
+
+  def section_panel(:money, _query),
+    do: Kati.Screens.Search.panel(gettext("Add an expense"), :add_expense, nil)
+
+  def section_panel(:calendar, query) do
+    label =
+      case String.trim(query) do
+        "" -> gettext("Add to your calendar")
+        typed -> gettext("Add “%{sentence}” to your calendar", sentence: typed)
+      end
+
+    Kati.Screens.Search.panel(label, :add_event, nil)
+  end
+
+  def section_panel(_section, _query), do: []
+
+  @doc false
+  def panel(label, tag, note) do
+    assigns = %{label: label, tap: {self(), tag}, note: note}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row
+        fill_width={true}
+        corner_radius={18}
+        background={Palette.card()}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_top={14}
+        padding_bottom={14}
+        padding_left={15}
+        padding_right={15}
+        align="center"
+        on_tap={@tap}
+      >
+        {Kati.UI.symbol("add", size: 19, color: Palette.ink())}
+        <Spacer size={9} />
+        <Text
+          text={@label}
+          text_size={13.5}
+          font_weight="semibold"
+          text_color={Palette.ink()}
+          max_lines={1}
+          weight={1.0}
+        />
+        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.sub())}
+      </Row>
+      {Kati.Screens.Search.panel_note(@note)}
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def panel_note(nil), do: ~MOB"<Spacer size={0} />"
+
+  def panel_note(note) do
+    assigns = %{note: note}
+
+    ~MOB"""
+    <Column fill_width={true} padding_top={8} padding_left={4} padding_right={4}>
+      <Text text={@note} text_size={11.5} text_color={Palette.sub()} />
+    </Column>
     """
   end
 

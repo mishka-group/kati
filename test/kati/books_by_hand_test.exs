@@ -95,17 +95,19 @@ defmodule Kati.BooksByHandTest do
       assert {:push, Kati.Screens.BookDetail, _params} = pushed(view)
     end
 
-    test "176's + opens the book form, not the film search screen 06's + opens" do
-      # `Kati.Screens.Fa.dock_tap/3` answers `:fab` with `Kati.Screens.AddTitle`
-      # for every other Persian root, and that sheet cannot find a book. The
-      # board settles it in its own empty card: اولین کتاب را با دکمه + اضافه
-      # کنید.
+    test "176's + opens the search on Books, whose panel opens the book form" do
       view =
         Books
         |> mount_screen()
         |> render_info({:tap, :fab})
 
-      assert pushed(view) == {:push, AddByHandBook, %{}}
+      assert {:push, Kati.Screens.Search, %{scope: :books}} = pushed(view)
+
+      search = mount_screen(Kati.Screens.Search, %{query: "", scope: :books})
+      assert assigns(search).filter == :books
+
+      assert {:push, AddByHandBook, _} =
+               search |> render_info({:tap, :add_book}) |> pushed()
     end
 
     test "the Kind chips that are another kind of the same form navigate to it" do

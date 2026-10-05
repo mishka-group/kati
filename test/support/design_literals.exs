@@ -1077,7 +1077,6 @@ defmodule Kati.DesignLiterals do
       # pattern in `device_values/0` — and this is that entry's Persian twin,
       # which is why it is a pattern there rather than a retirement here.
       {"80", "community book ratings"},
-      {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},
       {"25", "manual"},
       # Board 141's sentence names the file it was captured from — a nine-column

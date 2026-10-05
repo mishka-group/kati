@@ -181,7 +181,7 @@ defmodule Kati.QuickAddTest do
 
       {:noreply, pushed} = QuickAdd.handle_info({:tap, :file_as_title}, socket)
 
-      assert {:push, Kati.Screens.AddTitle, %{query: "The long hollow"}} =
+      assert {:push, Kati.Screens.Search, %{query: "The long hollow", scope: :screen}} =
                Map.get(pushed.__mob__, :nav_action)
     end
 
@@ -193,7 +193,7 @@ defmodule Kati.QuickAddTest do
 
       {:noreply, pushed} = QuickAdd.handle_info({:tap, :file_as_title}, socket)
 
-      assert {:push, Kati.Screens.AddTitle, %{query: "tomorrow 9pm"}} =
+      assert {:push, Kati.Screens.Search, %{query: "tomorrow 9pm", scope: :screen}} =
                Map.get(pushed.__mob__, :nav_action)
     end
 

@@ -511,7 +511,7 @@ defmodule Kati.Screens.Inbox do
   # is the watcher's output, so a shelf link alone would offer the wrong verb.
   # The shelf is the quiet alternative underneath, in the board's own words.
   def handle_tap(:add_title, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   def handle_tap(:open_shelf, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Library)}

@@ -75,22 +75,6 @@ defmodule Kati.TitlePreviewTest do
 
       assert Ash.read!(TrackedTitle) == [], "opening a preview put the title on the shelf"
     end
-
-    test "a series row on screen 06 pushes screen 04's preview" do
-      view =
-        Kati.Screens.AddTitle
-        |> mount_screen(%{})
-        |> render_info({:results_for_test, [tmdb_row("n55-show", "Low Tide", :tv)]})
-
-      assert :preview_0 in tap_tags(view)
-      assert :add_0 in tap_tags(view)
-
-      opened = render_info(view, {:tap, :preview_0})
-      assert navigated_to(opened) == Series
-
-      assert {:push, Series, %{preview: %{source_id: "n55-show", kind: :tv}, back: "Add title"}} =
-               opened.socket.__mob__.nav_action
-    end
   end
 
   describe "a film nobody keeps" do

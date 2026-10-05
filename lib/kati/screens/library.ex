@@ -110,6 +110,9 @@ defmodule Kati.Screens.Library do
   # queried and thrown away.
   @screen_kinds [:movie, :tv, :anime]
 
+  # The `+` opens the search on films and series, the shelf this page is.
+  def add_sheet, do: {Kati.Screens.Search, %{query: "", scope: :screen, back: gettext("Library")}}
+
   @impl true
   def load(socket) do
     # The baton `Kati.Screens.AddByHand.opened/2` leaves: a title just written
@@ -2117,7 +2120,7 @@ defmodule Kati.Screens.Library do
   # The two controls on screen 27's empty card. Both only exist while the shelf
   # is empty, which is the only time either has anything to do.
   def handle_tap(:add_title, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, add_sheet() |> elem(1))}
 
   def handle_tap(:import_backup, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}

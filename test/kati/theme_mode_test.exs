@@ -364,10 +364,10 @@ defmodule Kati.ThemeModeTest do
       {Kati.Screens.Settings, "use Kati.Screens.Pushed", :macro, "screen 24, pushed over a root"},
       {Kati.Screens.Search, "use Mob.Screen", :own, "screen 08, a plain use Mob.Screen"},
       # The fourth was `Kati.Screens.TodayFa`, a mirror, and mishka-group/kati#103
-      # folded it away. `Kati.Screens.AddTitle` is the same shape — its own
-      # `mount/3` over a plain `use Mob.Screen` — so the path is still covered
-      # by a screen that is not a duplicate of the three above it.
-      {Kati.Screens.AddTitle, "use Mob.Screen", :own, "screen 06, a plain use Mob.Screen"}
+      # folded it away; then `Kati.Screens.AddTitle`, until it stopped being a
+      # page. `Kati.Screens.CountryPicker` is the same shape — its own `mount/3`
+      # over a plain `use Mob.Screen`.
+      {Kati.Screens.CountryPicker, "use Mob.Screen", :own, "a plain use Mob.Screen, pushed"}
     ]
 
     for {module, _use, _mount, why} <- @paths do

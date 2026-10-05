@@ -75,27 +75,6 @@ defmodule Kati.GroupCRealTest do
   end
 
   describe "a title added from screen 06 is not started" do
-    test "a film added from a result row is not started, and not watching" do
-      row = %{title: "Groupc Film", kind: :movie, meta: "", note: nil, added: false}
-
-      view =
-        mount_screen(AddTitle, %{})
-        |> render_info({:results_for_test, [row]})
-        |> render_info({:tap, :add_0})
-
-      assert [%{added: true}] = assigns(view).results
-      assert %TrackedTitle{status: :not_started, kind: :movie} = tracked("Groupc Film")
-
-      shelf = shelf_row("Groupc Film")
-      assert shelf.status == :not_started
-      assert Library.tile_meta(shelf) == "not started"
-
-      counts = Map.new(Library.chip_counts([shelf]), fn {key, _label, n} -> {key, n} end)
-      assert counts[:not_started] == 1
-      assert counts[:watching] == 0
-      assert Library.queued() == 0
-    end
-
     test "a series added is not started until an episode is ticked" do
       {:ok, _cached} = AddTitle.create_cache("Groupc Series", :tv, %{episode_count: 3})
       assert {:ok, series} = AddTitle.track("Groupc Series", %{kind: :tv})
@@ -199,10 +178,6 @@ defmodule Kati.GroupCRealTest do
       end)
     end
 
-    test "screen 06: one Persian letter waits for TMDB and then shows what it found" do
-      with_tmdb(fn -> persian_letter_searches() end)
-    end
-
     defp persian_letter_searches do
       stub_tmdb("شهر")
 
@@ -212,10 +187,6 @@ defmodule Kati.GroupCRealTest do
       found = render_info(typed, {:search_ready, "ش"})
       assert Enum.map(assigns(found).results, & &1.title) == ["شهر"]
       refute assigns(found).searching?
-    end
-
-    test "screen 06: one CJK character searches, one Latin letter does not" do
-      with_tmdb(fn -> cjk_searches_latin_does_not() end)
     end
 
     defp cjk_searches_latin_does_not do
@@ -251,11 +222,6 @@ defmodule Kati.GroupCRealTest do
 
       assert Kati.Search.minimum("a") == 2
       refute Kati.Search.long_enough?(" a ")
-    end
-
-    test "screen 06 handed one letter opens searching only when that letter is enough" do
-      assert assigns(mount_screen(AddTitle, %{query: "ك"})).searching?
-      refute assigns(mount_screen(AddTitle, %{query: "a"})).searching?
     end
 
     test "screen 19: one CJK character runs the query" do

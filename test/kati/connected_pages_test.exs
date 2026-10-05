@@ -24,7 +24,6 @@ defmodule Kati.ConnectedPagesTest do
   use Mob.ScreenCase, async: false
 
   alias Kati.Music.Album
-  alias Kati.Screens.AddTitle
   alias Kati.Screens.AlbumDetail
 
   @prefix "connected-test-"
@@ -46,44 +45,6 @@ defmodule Kati.ConnectedPagesTest do
     end)
 
     :ok
-  end
-
-  describe "screen 06 says why a search found nothing" do
-    test "the reason reaches the tree, and the tree is what a device draws" do
-      # The bug was not in `search/1` — it assigned `:search_error` correctly
-      # from the day it was written. It was that `render/1` never read the key,
-      # so the sentence existed on the socket and nowhere a person could see.
-      # Asserted on the RENDERED tree rather than on the assign, because the
-      # assign was already right while the page was already silent.
-      message = Kati.Media.Tmdb.message(:no_api_key)
-
-      assert message =~ "Data sources"
-
-      drawn =
-        AddTitle
-        |> mount_screen()
-        |> assigns()
-        |> Map.put(:search_error, message)
-        |> AddTitle.render()
-        |> Mob.ScreenCase.flatten()
-        |> Enum.map(&Map.get(&1.props || %{}, :text))
-
-      assert message in drawn,
-             "screen 06 held the reason its search failed and drew nothing"
-    end
-
-    test "and draws no notice when there is nothing to explain" do
-      quiet =
-        AddTitle
-        |> mount_screen()
-        |> assigns()
-        |> AddTitle.render()
-        |> Mob.ScreenCase.flatten()
-        |> Enum.map(&Map.get(&1.props || %{}, :text))
-
-      refute Kati.Media.Tmdb.message(:no_api_key) in quiet
-      assert AddTitle.search_notice(nil) == []
-    end
   end
 
   # Board 57 is screen 03 read under `:fa` since mishka-group/kati#103, and the

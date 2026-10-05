@@ -1,28 +1,9 @@
 defmodule Kati.Screens.AddTitle do
   @moduledoc """
-  Screen 06 — Add a title, reached from the `+` button.
-
-  Built to `test/design/screens/06.html`, drawn mid-query on "quiet": the
-  field carries a 2px ink ring and an orange caret, because the design shows
-  the focused state rather than the resting one, and a screen that only draws
-  its resting state is untested where it matters.
-
-  The design's note says this is one sheet that will later add a book, an
-  album or an event — "the type is inferred from what you pick". So the search
-  and the result row are the parts to keep general; the chips are the part
-  that will grow.
-
-  Two controls, and the drawing settles the default state of both:
-  `Everything` is the chip in ink and all four results are drawn under it, so
-  `filter: "Everything"` reproduces the frame exactly while `Films` and
-  `Series` narrow the list *and* the `4 RESULTS` eyebrow above it. The third
-  result is drawn already added — a grey check where the others carry an ink
-  `+` — so `added` is per-result state that the disc toggles both ways.
-
-  **This should eventually be a native bottom sheet**, not a pushed screen:
-  #45 settled that screens 06, 18 and 46 become Android sheets via a new
-  `:sheet` node type. Until that lands it pushes, which is the same
-  information in a different container.
+  Finding a film or series on TMDB (or AniList and TVmaze without a token) and
+  putting it on the shelf. There is no page of its own any more: the `+` opens
+  `Kati.Screens.Search`, which asks these functions for its On TMDB rows and
+  its Add, and onboarding's first title draws the same field and rows.
 
   ## Where the results come from
 
@@ -42,10 +23,6 @@ defmodule Kati.Screens.AddTitle do
   Board 06's four drawn rows are what `Kati.ScreenDesignLiteralTest` puts on
   the socket to compare the board against; nothing on a device does.
   """
-  # Not `Kati.Screens.Pushed`: this screen has its own close button in the
-  # header, and the pushed chrome would draw a second back affordance over the
-  # title. The drawing has one dismissal, so the build has one.
-  use Mob.Screen
   use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
@@ -54,55 +31,6 @@ defmodule Kati.Screens.AddTitle do
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
-
-  # `results` is the whole answer to the query and never shrinks — the chip
-  # narrows the VIEW, so a title added under `Films` is still added when the
-  # user goes back to `Everything`.
-  def mount(params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.current())
-    # Resolves the stored locale into THIS process. `Gettext.put_locale/2`
-    # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
-    # and a screen is its own process — see `Kati.Locale.activate/0`.
-    Kati.Locale.activate()
-    # What the caller wanted looked up, if it named one.
-    # Screen 18's *Title* chip is a door onto this sheet, and a sheet that
-    # opened blank after the reader had already typed the film's name is an
-    # invitation to type it a second time.
-    #
-    # `query_epoch` starts at 1 rather than 0 when there is one, and that is
-    # the whole of what makes the text appear: the bridge remembers the last
-    # epoch it saw per field, so a `value` handed to a field it has already
-    # drawn is ignored unless the epoch moves. See `K-46` in `native/LEDGER.md`.
-    handed = Kati.Screens.AddTitle.opening_query(params)
-
-    searching? = Kati.Search.long_enough?(handed)
-    if searching?, do: Kati.Media.SearchDebounce.ask(self(), handed)
-
-    {:ok,
-     Mob.Socket.assign(socket,
-       # EMPTY, not the drawing's four. Board 06 is drawn mid-query and its
-       # four results belong to that query; opening the sheet on them meant a
-       # reader who had typed nothing was shown four invented films with real
-       # poster images, a `4 results` caption, fabricated availability lines,
-       # and one of them ticked as already in their library.
-       # `resting_card/2` is what a sheet nobody has
-       # typed into draws instead.
-       results: [],
-       filter: "Everything",
-       query: handed,
-       # Bumped when this screen REPLACES the field rather than echoing it —
-       # see `clear_disc/0` and the `K-46 text-field-epoch` fence. It starts at
-       # zero and the bridge remembers the last one it saw, so a mount is not
-       # itself a replacement.
-       query_epoch: if(handed == "", do: 0, else: 1),
-       # Board 308's second band, from the first frame: a sheet handed a query
-       # by screen 19's *Look it up* has a request in flight before it draws, so
-       # it opens on the skeletons rather than on the empty card and then them.
-       searching?: searching?,
-       save_error: nil,
-       search_error: nil
-     )}
-  end
 
   @doc """
   The query a push named, trimmed, or `""`.
@@ -123,60 +51,6 @@ defmodule Kati.Screens.AddTitle do
       typed when is_binary(typed) -> String.trim(typed)
       _none -> ""
     end
-  end
-
-  def render(assigns) do
-    filter = assigns.filter
-    shown = assigns.results |> Kati.Screens.AddTitle.positioned() |> visible(filter)
-    # Board 308's first band draws no count before a keystroke: `0 results` over
-    # a sheet nobody has asked anything of is a report on a search that has not
-    # happened. `Kati.Search.long_enough?/1` is the same seam the search itself
-    # gates on, so the eyebrow and the query cannot disagree.
-    count =
-      if Kati.Search.long_enough?(assigns.query) do
-        found = length(shown)
-        ngettext("%{n} result", "%{n} results", found, n: Kati.Locale.number(found))
-      else
-        # Sentence case, and the drawing's `SEARCH` still comes out of it:
-        # `Kati.UI.eyebrow/2` upcases through `Kati.UI.eyebrow_label/1`, which
-        # upcases in Latin and leaves Persian alone because Persian has no
-        # case. The msgid is therefore the word the catalogue already carries —
-        # `Kati.Screens.Pushed`'s back-pill table is the other caller — rather
-        # than a shouted second copy of it needing an entry of its own.
-        gettext("Search")
-      end
-
-    ~MOB"""
-    <Box
-      fill_width={true}
-      fill_height={true}
-      background={:background}
-      layout_direction={Kati.Locale.direction_prop()}
-      reduce_motion={Kati.Accessibility.motion_prop()}
-      text_scale={Kati.Accessibility.scale_prop()}
-      font_family={Kati.Locale.face_prop()}
-      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
-    >
-      <Scroll>
-        <Column
-          fill_width={true}
-          padding_left={21}
-          padding_right={21}
-          padding_top={64}
-          padding_bottom={40}
-        >
-          {Kati.Screens.AddTitle.header()}
-          {Kati.Screens.AddTitle.field(assigns.query, assigns[:query_epoch] || 0)}
-          {Kati.Screens.AddTitle.chips(filter)}
-          {Kati.Screens.AddTitle.search_notice(assigns[:search_error], assigns[:search_reason])}
-          {Kati.Screens.AddTitle.save_notice(assigns[:save_error])}
-          {UI.eyebrow(count)}
-          {Kati.Screens.AddTitle.body(shown, assigns)}
-          {Kati.Screens.AddTitle.by_hand(assigns.query)}
-        </Column>
-      </Scroll>
-    </Box>
-    """
   end
 
   @doc """
@@ -253,8 +127,6 @@ defmodule Kati.Screens.AddTitle do
   def save_notice(nil), do: []
 
   def save_notice(message), do: Kati.UI.notice(message)
-
-  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :open_data_sources}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.DataSources, %{back: "Back"})}

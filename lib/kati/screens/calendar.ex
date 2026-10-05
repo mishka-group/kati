@@ -99,7 +99,7 @@ defmodule Kati.Screens.Calendar do
   landed together, which is why the door could be moved: a `+` that opened a
   page of fixtures would have been a worse answer than the wrong page.
   """
-  def add_sheet, do: Kati.Screens.QuickAdd
+  def add_sheet, do: {Kati.Screens.QuickAdd, %{}}
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip

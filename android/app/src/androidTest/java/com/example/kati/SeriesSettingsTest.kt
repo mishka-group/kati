@@ -101,7 +101,7 @@ class SeriesSettingsTest {
         kati.tap("root_home")
         kati.awaitScreen("home")
         kati.tap("fab")
-        kati.awaitScreen("add_title")
+        kati.awaitScreen("search")
 
         // Screen 06's by-hand row is `Add "<what you typed>" by hand`, and
         // `Kati.Screens.AddTitle.by_hand_label/1` answers `nil` for an empty
@@ -109,7 +109,7 @@ class SeriesSettingsTest {
         // typing starts is expected to come back empty: `Kati.Media.Tmdb.key/0`
         // answers `{:error, :no_api_key}` on a device nobody has given a token
         // to, which is the state this test wants and the reason it adds by hand.
-        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput(title)
         kati.device.waitForIdle()
 
