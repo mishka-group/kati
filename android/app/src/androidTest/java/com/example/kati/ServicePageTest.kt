@@ -13,7 +13,7 @@ import org.junit.runner.RunWith
  * One service's page, reached the way a person reaches it — My services, the
  * Money row, the service's row on Subscriptions — and every control on it:
  * the price changed under its row, the renewal day picked from the grid, and
- * a title from the library placed on the service. Every step ends in kati.db.
+ * a title from the library found by its search and placed on the service. Every step ends in kati.db.
  */
 @RunWith(AndroidJUnit4::class)
 class ServicePageTest {
@@ -76,6 +76,12 @@ class ServicePageTest {
 
         // A title from the library, placed on this service.
         kati.tap("pick_title")
+        kati.compose.waitUntil(10_000) { kati.present("place_$showId") }
+
+        // The picker's search narrows the library as the reader types.
+        type("title_search", "zzz-$stamp")
+        kati.compose.waitUntil(10_000) { !kati.present("place_$showId") }
+        type("title_search", "page show")
         kati.compose.waitUntil(10_000) { kati.present("place_$showId") }
         kati.tap("place_$showId")
         kati.compose.waitUntil(20_000) {

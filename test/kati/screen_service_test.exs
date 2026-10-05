@@ -202,6 +202,33 @@ defmodule Kati.ScreenServiceTest do
       assert text(view) =~ "Nothing watched here this month"
     end
 
+    test "the title picker searches the library as the reader types" do
+      service = service!("Digimoviez")
+      tracked = shelve!()
+      place = String.to_atom("place_" <> tracked.id)
+
+      view = mount_screen(Page, %{name: service.name}) |> render_info({:tap, :pick_title})
+      assert "title_search" in Enum.map(flatten(view), &get_in(&1, [:props, :accessibility_id]))
+
+      view =
+        view
+        |> render_info({:change, :title_search, "zzz"})
+        |> render_info({:search_ready, "zzz"})
+
+      refute place in taps(view)
+      assert text(view) =~ "No film or show in your library matches that."
+
+      view =
+        view
+        |> render_info({:change, :title_search, "ESTUARY"})
+        |> render_info({:search_ready, "zzz"})
+
+      refute place in taps(view), "a stale pause must not narrow the list"
+
+      view = render_info(view, {:search_ready, "ESTUARY"})
+      assert place in taps(view)
+    end
+
     test "and drops the three groups no column can answer" do
       service = service!("Alpha", monthly_pence: 899)
       words = text(mount_screen(Page, %{name: service.name}))

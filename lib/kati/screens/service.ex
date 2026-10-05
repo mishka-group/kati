@@ -68,6 +68,8 @@ defmodule Kati.Screens.Service do
     |> Mob.Socket.assign(:open, nil)
     |> Mob.Socket.assign(:draft_price, "")
     |> Mob.Socket.assign(:field_epoch, 0)
+    |> Mob.Socket.assign(:title_typed, "")
+    |> Mob.Socket.assign(:title_query, "")
     |> Mob.Socket.assign(:notice, nil)
   end
 
@@ -627,7 +629,9 @@ defmodule Kati.Screens.Service do
   The library titles not yet placed here, to tap one in. Archived titles are
   left out; a title placed on another service moves here.
   """
-  def title_picker(service, %{open: :titles}) do
+  def title_picker(service, %{open: :titles} = page) do
+    query = Map.get(page, :title_query, "")
+
     candidates =
       Kati.Media.TrackedTitle
       |> Ash.read!()
@@ -636,6 +640,8 @@ defmodule Kati.Screens.Service do
       )
       |> Enum.map(&Kati.Screens.Service.named/1)
       |> Enum.sort_by(&String.downcase(&1.name))
+
+    search = Kati.Screens.Service.title_search(query, Map.get(page, :field_epoch, 0))
 
     case candidates do
       [] ->
@@ -647,22 +653,86 @@ defmodule Kati.Screens.Service do
         ]
 
       titles ->
-        Enum.map(titles, fn title ->
-          SettingsList.row(
-            nil,
-            SettingsList.body(title.name, nil),
-            SettingsList.action_pill(
-              gettext("Add"),
-              {self(), String.to_atom("place_" <> title.id)}
-            )
-          )
-        end)
+        [search | Kati.Screens.Service.matching_rows(titles, query)]
     end
   rescue
     _error -> []
   end
 
   def title_picker(_service, _page), do: []
+
+  @picker_rows 30
+
+  @doc """
+  The search over the reader's library, above the titles it narrows.
+  """
+  def title_search(query, epoch) do
+    assigns = %{value: query, epoch: epoch, on_change: {self(), :title_search}}
+
+    field =
+      ~MOB"""
+      <TextField
+        value={@value}
+        placeholder={gettext("Search your films and shows")}
+        return_key="search"
+        weight={1.0}
+        accessibility_id="title_search"
+        on_change={@on_change}
+        value_epoch={@epoch}
+      />
+      """
+
+    assigns = Map.put(assigns, :row, Kati.Screens.MyServices.field_row("search", field))
+
+    ~MOB"""
+    <Column fill_width={true} padding_top={4} padding_bottom={10}>
+      {@row}
+    </Column>
+    """
+  end
+
+  @doc """
+  The titles whose name holds `query`, case aside, each with its Add — at most
+  thirty, and a line saying to narrow the search when there are more.
+  """
+  def matching_rows(titles, query) do
+    wanted = query |> String.trim() |> String.downcase()
+    found = Enum.filter(titles, &String.contains?(String.downcase(&1.name), wanted))
+
+    rows =
+      found
+      |> Enum.take(@picker_rows)
+      |> Enum.map(fn title ->
+        SettingsList.row(
+          nil,
+          SettingsList.body(title.name, nil),
+          SettingsList.action_pill(
+            gettext("Add"),
+            {self(), String.to_atom("place_" <> title.id)}
+          )
+        )
+      end)
+
+    cond do
+      found == [] ->
+        [SettingsList.note("info", gettext("No film or show in your library matches that."))]
+
+      length(found) > @picker_rows ->
+        rows ++
+          [
+            SettingsList.note(
+              "info",
+              gettext("Showing %{n} of %{total}. Type more of the name to find the rest.",
+                n: Kati.Locale.number(@picker_rows),
+                total: Kati.Locale.number(length(found))
+              )
+            )
+          ]
+
+      true ->
+        rows
+    end
+  end
 
   @doc """
   Off the shelf, and what that does not take with it.
@@ -788,6 +858,19 @@ defmodule Kati.Screens.Service do
   def handle_info({:change, :service_price, typed}, socket) when is_binary(typed),
     do: {:noreply, Mob.Socket.assign(socket, :draft_price, typed)}
 
+  # The search's text, held and not drawn; the list narrows once the typing
+  # pauses, so each keystroke does not repaint the page.
+  def handle_info({:change, :title_search, typed}, socket) when is_binary(typed) do
+    Kati.Media.SearchDebounce.ask(self(), typed)
+    {:noreply, Mob.Socket.assign(socket, :title_typed, typed)}
+  end
+
+  def handle_info({:search_ready, typed}, socket) do
+    if typed == socket.assigns.title_typed and typed != socket.assigns.title_query,
+      do: {:noreply, Mob.Socket.assign(socket, :title_query, typed)},
+      else: {:noreply, socket}
+  end
+
   def handle_info(message, socket), do: super(message, socket)
 
   # One thing open under a row at a time; opening the price starts its draft
@@ -803,6 +886,8 @@ defmodule Kati.Screens.Service do
       (service && Kati.Screens.MyServices.price_text(service)) || ""
     )
     |> Mob.Socket.assign(:field_epoch, socket.assigns.field_epoch + 1)
+    |> Mob.Socket.assign(:title_typed, "")
+    |> Mob.Socket.assign(:title_query, "")
   end
 
   defp place(socket, id, name) do
