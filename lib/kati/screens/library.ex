@@ -128,9 +128,14 @@ defmodule Kati.Screens.Library do
       nil -> :ok
     end
 
+    choice = Kati.Library.ShelfFilters.current()
+    {rows, more?} = Kati.Screens.Library.page(choice, :all, 0)
+
     Mob.Socket.assign(socket,
       filter: :all,
-      titles: titles(),
+      titles: rows,
+      more?: more?,
+      counts: Kati.Screens.Library.counts(choice),
       # The WHOLE shelf's watching count, not the narrowed one. The badge
       # labels a door onto screen 10, and screen 10 shows the queue whole — a
       # genre filter that made the tile read `4` over a page of eight would be
@@ -170,7 +175,10 @@ defmodule Kati.Screens.Library do
       Kati.Background.Watchlist.write_later()
     end
 
-    {:noreply, Mob.Socket.assign(socket, titles: titles(), queued: queued(), lists: lists_kept())}
+    {:noreply,
+     socket
+     |> Kati.Screens.Library.reload()
+     |> Mob.Socket.assign(queued: queued(), lists: lists_kept())}
   end
 
   # The title `Kati.Screens.AddByHand` just wrote, opened. Through
@@ -258,6 +266,125 @@ defmodule Kati.Screens.Library do
       end)
       |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
 
+    tracked
+    |> Kati.Screens.Library.shape_all()
+    |> Kati.Library.ShelfFilters.apply(choice)
+  rescue
+    # Same degradation `Kati.Calendars.Today` makes: a screen that cannot reach
+    # its store draws the drawing rather than taking the activity down.
+    _ -> []
+  end
+
+  @page_size 30
+
+  @doc """
+  The shelf a page at a time: `{rows, more?}` from `offset`, for the grid's
+  infinite scroll.
+
+  In the shelf's own order — newest touch first, or its reverse — and with no
+  genre or decade picked, the page is read by `Kati.Media.TrackedTitle`'s
+  paged `:screen_shelf` action and only its rows are shaped. Any other sort or
+  filter needs the whole shelf to order it, so the shelf is read whole and
+  sliced; the grid still draws a page at a time.
+  """
+  @spec page(map(), atom(), non_neg_integer(), pos_integer()) :: {[map()], boolean()}
+  def page(choice, filter, offset, limit \\ @page_size) do
+    if Kati.Screens.Library.paged?(choice) do
+      result =
+        TrackedTitle
+        |> Ash.Query.for_read(:screen_shelf, Kati.Screens.Library.narrowed(filter))
+        |> Ash.Query.sort(last_touched_at: Map.get(choice, :direction, :desc), id: :asc)
+        |> Ash.read!(page: [limit: limit, offset: offset])
+
+      {Kati.Screens.Library.shape_all(result.results), result.more?}
+    else
+      all = Kati.Screens.Library.visible(shelf(choice), filter)
+      {Enum.slice(all, offset, limit), length(all) > offset + limit}
+    end
+  rescue
+    _ -> {[], false}
+  end
+
+  @doc false
+  def paged?(choice) do
+    Map.get(choice, :sort, :recently_added) == :recently_added and
+      Kati.Screens.Library.unfiltered?(choice)
+  end
+
+  @doc false
+  def unfiltered?(choice),
+    do: Map.get(choice, :genres, []) == [] and is_nil(Map.get(choice, :decade))
+
+  @doc false
+  def narrowed(:watching), do: %{statuses: [:watching]}
+  def narrowed(:not_started), do: %{statuses: [:not_started]}
+  def narrowed(:finished), do: %{statuses: [:finished]}
+  def narrowed(:anime), do: %{kinds: [:anime]}
+  def narrowed(_all), do: %{}
+
+  @doc """
+  How many titles each chip and the header count — the whole shelf, not the
+  pages drawn so far. Counted by the store when no genre or decade is picked.
+  """
+  @spec counts(map()) :: map()
+  def counts(choice) do
+    if Kati.Screens.Library.unfiltered?(choice) do
+      Map.new([:all, :watching, :not_started, :finished, :anime], fn key ->
+        n =
+          TrackedTitle
+          |> Ash.Query.for_read(:screen_shelf, Kati.Screens.Library.narrowed(key))
+          |> Ash.count!()
+
+        {key, n}
+      end)
+    else
+      Kati.Screens.Library.counts_of(shelf(choice))
+    end
+  rescue
+    _ -> Kati.Screens.Library.counts_of([])
+  end
+
+  @doc false
+  def counts_of(titles) do
+    %{
+      all: length(titles),
+      watching: Enum.count(titles, &(&1.status == :watching)),
+      not_started: Enum.count(titles, &(&1.status == :not_started)),
+      finished: Enum.count(titles, &(&1.status == :finished)),
+      anime: Enum.count(titles, &(Map.get(&1, :media_kind) == :anime))
+    }
+  end
+
+  @doc """
+  The next page under the ones already drawn, once the grid's end is reached.
+  """
+  @spec more(Mob.Socket.t()) :: Mob.Socket.t()
+  def more(socket) do
+    if Map.get(socket.assigns, :more?, false) do
+      have = socket.assigns.titles
+      choice = Kati.Library.ShelfFilters.current()
+      {rows, more?} = Kati.Screens.Library.page(choice, socket.assigns.filter, length(have))
+      Mob.Socket.assign(socket, titles: have ++ rows, more?: more?)
+    else
+      socket
+    end
+  end
+
+  @doc """
+  The pages read again from the top, as many as were drawn, so a write made
+  elsewhere shows without losing the reader's place.
+  """
+  @spec reload(Mob.Socket.t()) :: Mob.Socket.t()
+  def reload(socket) do
+    choice = Kati.Library.ShelfFilters.current()
+    filter = Map.get(socket.assigns, :filter, :all)
+    drawn = max(length(Map.get(socket.assigns, :titles, [])), @page_size)
+    {rows, more?} = Kati.Screens.Library.page(choice, filter, 0, drawn)
+    Mob.Socket.assign(socket, titles: rows, more?: more?, counts: counts(choice))
+  end
+
+  @doc false
+  def shape_all(tracked) do
     cached = cached_by_reference(tracked)
     ticks = ticks_by_title(tracked)
     seen = watches_by_title(tracked)
@@ -273,11 +400,6 @@ defmodule Kati.Screens.Library do
         Map.get(rated, &1.id)
       )
     )
-    |> Kati.Library.ShelfFilters.apply(choice)
-  rescue
-    # Same degradation `Kati.Calendars.Today` makes: a screen that cannot reach
-    # its store draws the drawing rather than taking the activity down.
-    _ -> []
   end
 
   # One query for every cache row the shelf names, keyed the way the tracked
@@ -565,25 +687,91 @@ defmodule Kati.Screens.Library do
   def content(assigns) do
     filter = assigns.filter
     titles = assigns.titles
+    counts = Map.get(assigns, :counts) || Kati.Screens.Library.counts_of(titles)
 
-    ~MOB"""
-    <Scroll>
-      <Column
-        fill_width={true}
-        padding_left={21}
-        padding_right={21}
-        padding_top={64}
-        padding_bottom={132}
-      >
-        {Kati.Screens.Library.header(titles, assigns.menu?)}
-        {Kati.Screens.Library.segments(:screen)}
-        {Kati.Screens.Library.quick_tiles(
+    # A lazy list: only the rows on screen are composed, and reaching the end
+    # asks for the next page of the shelf.
+    items =
+      [
+        ~MOB"<Spacer size={64} />",
+        Kati.Screens.Library.header(counts, assigns.menu?),
+        Kati.Screens.Library.segments(:screen),
+        Kati.Screens.Library.quick_tiles(
           Map.get(assigns, :queued, 0),
           Map.get(assigns, :lists, 0)
-        )}
-        {Kati.Screens.Library.shelf_body(filter, titles)}
+        )
+      ] ++
+        Kati.Screens.Library.shelf_items(filter, titles, counts) ++
+        [
+          Kati.Screens.Library.more_row(Map.get(assigns, :more?, false)),
+          ~MOB"<Spacer size={132} />"
+        ]
+
+    assigns = %{items: Enum.map(items, &Kati.Screens.Library.gutter/1)}
+
+    ~MOB"""
+    <Scroll lazy={true} on_end_reached={{self(), :more_titles}}>
+      <Column fill_width={true}>
+        {@items}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc false
+  def gutter(item) do
+    assigns = %{item: item}
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={21} padding_right={21}>
+      {@item}
+    </Column>
+    """
+  end
+
+  @doc """
+  The chips, then the grid one row of three per list item, so the lazy list
+  composes only the rows on screen. An empty shelf is screen 27's card.
+  """
+  def shelf_items(_filter, _titles, %{all: 0}), do: [Kati.Screens.Library.empty_state()]
+
+  def shelf_items(filter, titles, counts) do
+    rows =
+      case Kati.Screens.Library.visible(titles, filter) do
+        [] -> [Kati.Screens.Library.nothing_here(filter)]
+        shown -> shown |> Enum.chunk_every(3) |> Enum.map(&Kati.Screens.Library.grid_row/1)
+      end
+
+    [Kati.Screens.Library.chips(filter, counts) | rows]
+  end
+
+  @doc """
+  Under the last row while the shelf has more: the next page comes when the
+  list's end is reached, and this is the same request for a reader who would
+  rather tap.
+  """
+  def more_row(false), do: ~MOB"<Spacer size={0} />"
+
+  def more_row(true) do
+    assigns = %{label: gettext("Show more")}
+
+    ~MOB"""
+    <Row fill_width={true} align="center" padding_bottom={12}>
+      <Spacer weight={1.0} />
+      <Box
+        height={34}
+        corner_radius={17}
+        background={Palette.card()}
+        shadow={Theme.shadow_card_soft()}
+        padding_left={16}
+        padding_right={16}
+        align="center"
+        on_tap={{self(), :more_titles}}
+      >
+        <Text text={@label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} />
+      </Box>
+      <Spacer weight={1.0} />
+    </Row>
     """
   end
 
@@ -744,16 +932,13 @@ defmodule Kati.Screens.Library do
   the grid under it can never disagree about how many titles there are.
   """
   @spec subtitle([map()]) :: String.t()
-  def subtitle(titles) do
+  def subtitle(titles) when is_list(titles),
+    do: Kati.Screens.Library.subtitle(Kati.Screens.Library.counts_of(titles))
+
+  def subtitle(%{all: all, watching: watching}) do
     gettext("%{titles} · %{watching}",
-      titles:
-        ngettext("%{n} title", "%{n} titles", length(titles),
-          n: Kati.Locale.number(length(titles))
-        ),
-      watching:
-        gettext("%{n} in progress",
-          n: Kati.Locale.number(Enum.count(titles, &(&1.status == :watching)))
-        )
+      titles: ngettext("%{n} title", "%{n} titles", all, n: Kati.Locale.number(all)),
+      watching: gettext("%{n} in progress", n: Kati.Locale.number(watching))
     )
   end
 
@@ -1175,8 +1360,11 @@ defmodule Kati.Screens.Library do
   are in the library and in none of the three named states.
   """
   @spec chip_counts([map()]) :: [{String.t(), non_neg_integer()}]
-  def chip_counts(titles) do
-    anime = Enum.count(titles, &(Map.get(&1, :media_kind) == :anime))
+  def chip_counts(titles) when is_list(titles),
+    do: Kati.Screens.Library.chip_counts(Kati.Screens.Library.counts_of(titles))
+
+  def chip_counts(%{} = counts) do
+    anime = counts.anime
 
     # `{key, label, count}`. The KEY is what the chip's tap is named after and
     # what `matching/2` filters on; the label is a translation. They were one
@@ -1185,10 +1373,10 @@ defmodule Kati.Screens.Library do
     # right, and tapping any of the four showed the whole shelf.
     # The label-as-key defect, a fourth time.
     [
-      {:all, gettext("All"), length(titles)},
-      {:watching, gettext("Watching"), Enum.count(titles, &(&1.status == :watching))},
-      {:not_started, gettext("Not started"), Enum.count(titles, &(&1.status == :not_started))},
-      {:finished, gettext("Finished"), Enum.count(titles, &(&1.status == :finished))}
+      {:all, gettext("All"), counts.all},
+      {:watching, gettext("Watching"), counts.watching},
+      {:not_started, gettext("Not started"), counts.not_started},
+      {:finished, gettext("Finished"), counts.finished}
     ] ++ Kati.Screens.Library.anime_chip(anime)
   end
 
@@ -1231,13 +1419,19 @@ defmodule Kati.Screens.Library do
   """
   @spec pick_filter(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def pick_filter(socket, key) do
-    titles = Map.get(socket.assigns, :titles, [])
+    counts =
+      Map.get(socket.assigns, :counts) ||
+        Kati.Screens.Library.counts_of(Map.get(socket.assigns, :titles, []))
 
-    case Enum.find(Kati.Screens.Library.chip_counts(titles), fn {k, _l, _c} ->
+    case Enum.find(Kati.Screens.Library.chip_counts(counts), fn {k, _l, _c} ->
            Atom.to_string(k) == key
          end) do
-      {filter, _label, _count} -> Mob.Socket.assign(socket, :filter, filter)
-      nil -> socket
+      {filter, _label, _count} ->
+        {rows, more?} = Kati.Screens.Library.page(Kati.Library.ShelfFilters.current(), filter, 0)
+        Mob.Socket.assign(socket, filter: filter, titles: rows, more?: more?)
+
+      nil ->
+        socket
     end
   end
 
@@ -1978,6 +2172,8 @@ defmodule Kati.Screens.Library do
 
   def handle_tap(:shelf_Music, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+
+  def handle_tap(:more_titles, socket), do: {:noreply, Kati.Screens.Library.more(socket)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

@@ -275,6 +275,23 @@ defmodule Kati.Media.TrackedTitle do
       prepare build(sort: [last_touched_at: :desc])
     end
 
+    # The Screen shelf as one list, read a page at a time for the Library's
+    # infinite scroll. `statuses` and `kinds` narrow it to a chip; `nil` is
+    # every one. The caller sorts, because the reader picks the direction.
+    read :screen_shelf do
+      description "Films, series and anime on the shelf, paged."
+      argument :statuses, {:array, :atom}, allow_nil?: true
+      argument :kinds, {:array, :atom}, allow_nil?: true
+
+      filter expr(
+               archived == false and kind in [:movie, :tv, :anime] and
+                 (is_nil(^arg(:statuses)) or status in ^arg(:statuses)) and
+                 (is_nil(^arg(:kinds)) or kind in ^arg(:kinds))
+             )
+
+      pagination offset?: true, countable: true, required?: false, default_limit: 30
+    end
+
     # Finished and dropped titles are excluded: an announcement about a show the
     # user abandoned is noise, and the watcher's cost is one request per row.
     read :followed do
