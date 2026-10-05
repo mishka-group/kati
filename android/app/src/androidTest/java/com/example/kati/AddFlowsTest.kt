@@ -24,6 +24,8 @@ class AddFlowsTest {
         kati.firstRun()
         kati.tap("root_library")
         kati.awaitScreen("library")
+        kati.compose.waitUntil(20_000) { kati.present("shelf_music") }
+        kati.device.waitForIdle()
         kati.tap("shelf_music")
         kati.compose.waitUntil(20_000) { !kati.present("shelf_music") || kati.present("fab") }
         kati.device.waitForIdle()
