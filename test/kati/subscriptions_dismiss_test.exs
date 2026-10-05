@@ -54,23 +54,11 @@ defmodule Kati.SubscriptionsDismissTest do
   end
 
   describe "the overflow disc" do
-    test "draws, and takes no tap" do
-      # M18. It lit under the finger and did nothing, kept on the argument that
-      # stripping `on_tap` would take its press feedback away. Press feedback
-      # was the defect: a disc that answers a press by doing nothing is worse
-      # than one that was never offered.
-      disc = Screen.disc()
-      drawn = inspect(disc, limit: :infinity)
-
-      # The glyph reaches the tree as a resolved codepoint, not as the ligature
-      # name — `Kati.UI.symbol/2` does that lookup — so the disc is checked by
-      # the face it is set in.
-      assert drawn =~ "symbols", "the board's own disc stopped being drawn"
-
-      refute drawn =~ "open_menu", "the dead tag is still on it"
-
-      refute drawn =~ "on_tap",
-             "it still answers a press, which is the whole of what was wrong with it"
+    test "is not drawn, because there is nothing for it to open" do
+      # M18, then the owner on a device: a disc that answers a press by doing
+      # nothing reads as broken. The board's disc opens no menu anywhere in
+      # the export, so the page draws none.
+      refute inspect(Screen.back_row(), limit: :infinity) =~ "symbols"
     end
   end
 end

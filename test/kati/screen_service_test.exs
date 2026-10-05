@@ -104,47 +104,55 @@ defmodule Kati.ScreenServiceTest do
       assert row.paused, "screen 23 reads `paused` off the row and the row never carried it"
     end
 
-    test "a renewal day can be set, and it is a day rather than an instant" do
+    test "the renewal day is picked from a grid of days, and can be cleared" do
       service = service!("Alpha")
-      refute service.renews_on
-
       view = mount_screen(Page, %{name: service.name})
-      {:noreply, set} = Page.handle_tap(:cycle_day, view.socket)
+      refute :day_15 in taps(view)
 
-      assert %Date{} = set.assigns.service.renews_on
-      assert Ash.get!(Service, service.id).renews_on
-    end
+      view = render_info(view, {:tap, :pick_day})
+      assert :day_1 in taps(view) and :day_31 in taps(view)
 
-    test "and it wraps at 28, because nobody is billed on the 30th of February" do
-      service = service!("Alpha")
+      view = render_info(view, {:tap, :day_15})
+      stored = Ash.get!(Service, service.id).renews_on
+      assert stored.day == 15
+      assert Date.compare(stored, Kati.Time.today()) != :lt
+      refute :day_15 in taps(view), "the grid closes once a day is picked"
+      assert text(view) =~ "Renews 15th"
 
-      on_28 =
-        Ash.update!(Ash.Changeset.for_update(service, :update, %{renews_on: ~D[2026-01-28]}))
-
-      view =
-        Page
-        |> Mob.Socket.new()
-        |> Mob.Socket.assign(:service, on_28)
-
-      {:noreply, wrapped} = Page.handle_tap(:cycle_day, view)
-
-      assert wrapped.assigns.service.renews_on.day == 1
+      view = view |> render_info({:tap, :pick_day}) |> render_info({:tap, :clear_day})
+      assert Ash.get!(Service, service.id).renews_on == nil
     end
   end
 
   describe "the page" do
-    test "shows the price and points at the screen that owns the editor" do
+    test "the price is changed under its own row" do
       service = service!("Alpha", monthly_pence: 899)
-
       assert Page.price_line(service) == "£8.99 a month"
 
-      words = text(mount_screen(Page, %{name: service.name}))
+      view = mount_screen(Page, %{name: service.name}) |> render_info({:tap, :edit_price})
+      assert :save_price in taps(view)
 
-      assert words =~ "£8.99 a month"
-      assert words =~ "Edit it where you typed it"
+      saved =
+        view
+        |> render_info({:change, :service_price, "12.50"})
+        |> render_info({:tap, :save_price})
 
-      {:noreply, pushed} = Page.handle_tap(:edit_price, Mob.Socket.new(Page))
-      assert {:push, Kati.Screens.MyServices, _} = Map.get(pushed.__mob__, :nav_action)
+      assert Ash.get!(Service, service.id).monthly_pence == 1250
+      assert text(saved) =~ "£12.50 a month"
+      refute :save_price in taps(saved)
+    end
+
+    test "a price that is not a number is refused and nothing changes" do
+      service = service!("Alpha", monthly_pence: 899)
+
+      view =
+        mount_screen(Page, %{name: service.name})
+        |> render_info({:tap, :edit_price})
+        |> render_info({:change, :service_price, "ten"})
+        |> render_info({:tap, :save_price})
+
+      assert text(view) =~ "The price has to be a number"
+      assert Ash.get!(Service, service.id).monthly_pence == 899
     end
 
     test "says so when nobody has given it a price" do
@@ -153,7 +161,7 @@ defmodule Kati.ScreenServiceTest do
       assert Page.price_line(service) == "No price yet"
     end
 
-    test "counts what was watched here, and never in hours" do
+    test "counts this month's watches here, and never in hours" do
       service = service!("Alpha")
       tracked = shelve!()
 
@@ -161,17 +169,37 @@ defmodule Kati.ScreenServiceTest do
       log!(tracked, %{service: service.name})
       log!(tracked, %{service: "Somewhere else"})
 
-      assert Page.watched(service) == %{logs: 2, titles: 1}
+      assert Page.usage(service).watches == 2
 
       words = text(mount_screen(Page, %{name: service.name}))
-
-      assert words =~ "1 title on this service"
-      assert words =~ "2 watches"
-
-      # Board 252 argues its own hero figure away: a watch records that an
-      # episode was watched, not for how long.
+      assert words =~ "2 watches this month"
       refute words =~ "/h"
       refute words =~ "hours watched"
+    end
+
+    test "a title placed here counts its watches here, so a custom service is used" do
+      service = service!("Digimoviez")
+      tracked = shelve!()
+      log!(tracked, %{})
+
+      view = mount_screen(Page, %{name: service.name})
+      assert text(view) =~ "Nothing watched here this month"
+
+      view = render_info(view, {:tap, :pick_title})
+      place = String.to_atom("place_" <> tracked.id)
+      assert place in taps(view)
+
+      view = render_info(view, {:tap, place})
+      assert Ash.get!(TrackedTitle, tracked.id).watch_on == service.name
+      assert text(view) =~ "Estuary Nights"
+      assert text(view) =~ "1 watch this month"
+
+      row = Enum.find(Kati.Subscriptions.ledger().services, &(&1.name == service.name))
+      refute row.rate == "Not used yet"
+
+      view = render_info(view, {:tap, String.to_atom("unplace_" <> tracked.id)})
+      assert Ash.get!(TrackedTitle, tracked.id).watch_on == nil
+      assert text(view) =~ "Nothing watched here this month"
     end
 
     test "and drops the three groups no column can answer" do
@@ -216,6 +244,8 @@ defmodule Kati.ScreenServiceTest do
                Map.get(pushed.__mob__, :nav_action)
     end
   end
+
+  defp taps(view), do: for(%{props: %{on_tap: {_pid, tag}}} <- flatten(view), do: tag)
 
   defp service!(name, attrs \\ []) do
     Ash.create!(

@@ -84,6 +84,7 @@ msgstr ""
 #: lib/kati/screens/add_title_music.ex:332
 #: lib/kati/screens/inbox.ex:1065
 #: lib/kati/screens/library.ex:700
+#: lib/kati/screens/service.ex:564
 #: lib/kati/settings/states_sample.ex:104
 #: lib/kati/widgets/snapshot.ex:124
 #, elixir-autogen, elixir-format
@@ -267,6 +268,7 @@ msgstr ""
 #: lib/kati/screens/data_sources.ex:541
 #: lib/kati/screens/list_detail.ex:302
 #: lib/kati/screens/my_services.ex:753
+#: lib/kati/screens/service.ex:262
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr ""
@@ -934,6 +936,7 @@ msgid "Reading"
 msgstr ""
 
 #: lib/kati/screens/list_detail.ex:597
+#: lib/kati/screens/service.ex:620
 #: lib/kati/screens/shelf_large.ex:360
 #: lib/kati/screens/shelf_selection.ex:363
 #, elixir-autogen, elixir-format
@@ -1103,7 +1106,7 @@ msgstr ""
 #: lib/kati/screens/my_services_empty.ex:397
 #: lib/kati/screens/pick_sections/sample.ex:59
 #: lib/kati/screens/stats.ex:882
-#: lib/kati/screens/subscriptions.ex:326
+#: lib/kati/screens/subscriptions.ex:291
 #, elixir-autogen, elixir-format
 msgid "Subscriptions"
 msgstr ""
@@ -1489,7 +1492,7 @@ msgstr ""
 #: lib/kati/screens/nothing_set_up_knock_on.ex:390
 #: lib/kati/screens/pushed.ex:202
 #: lib/kati/screens/series_settings.ex:557
-#: lib/kati/screens/service.ex:121
+#: lib/kati/screens/service.ex:128
 #: lib/kati/settings/sample.ex:116
 #, elixir-autogen, elixir-format
 msgid "My services"
@@ -1566,7 +1569,7 @@ msgid "Albums · %{count}"
 msgstr ""
 
 #: lib/kati/screens/money.ex:487
-#: lib/kati/subscriptions.ex:221
+#: lib/kati/subscriptions.ex:271
 #, elixir-autogen, elixir-format
 msgid "Dismiss"
 msgstr ""
@@ -1610,7 +1613,7 @@ msgstr ""
 #: lib/kati/screens/medication_detail.ex:494
 #: lib/kati/screens/medication_detail.ex:619
 #: lib/kati/screens/medication_detail.ex:901
-#: lib/kati/subscriptions.ex:220
+#: lib/kati/subscriptions.ex:270
 #, elixir-autogen, elixir-format
 msgid "Remind me"
 msgstr ""
@@ -2495,7 +2498,7 @@ msgstr ""
 
 #: lib/kati/money/sample.ex:151
 #: lib/kati/screens/money_states.ex:642
-#: lib/kati/subscriptions.ex:287
+#: lib/kati/subscriptions.ex:337
 #, elixir-autogen, elixir-format
 msgid "%{n} hour"
 msgid_plural "%{n} hours"
@@ -2541,7 +2544,7 @@ msgid "Dismiss"
 msgstr ""
 
 #: lib/kati/screens/my_services.ex:325
-#: lib/kati/screens/service.ex:277
+#: lib/kati/screens/service.ex:331
 #: lib/kati/screens/stats.ex:1025
 #, elixir-autogen, elixir-format
 msgid "%{total} a month"
@@ -2570,7 +2573,7 @@ msgstr ""
 #: lib/kati/screens/my_services.ex:698
 #: lib/kati/screens/my_services.ex:853
 #: lib/kati/screens/my_services_empty.ex:134
-#: lib/kati/screens/service.ex:212
+#: lib/kati/screens/service.ex:219
 #, elixir-autogen, elixir-format
 msgid "Free with ads"
 msgstr ""
@@ -2583,7 +2586,7 @@ msgstr ""
 #: lib/kati/screens/auto_detect.ex:452
 #: lib/kati/screens/my_services.ex:1090
 #: lib/kati/screens/my_services_empty.ex:366
-#: lib/kati/screens/service.ex:213
+#: lib/kati/screens/service.ex:220
 #, elixir-autogen, elixir-format
 msgid "Not mine"
 msgstr ""
@@ -2960,6 +2963,7 @@ msgstr ""
 #: lib/kati/screens/rate_album.ex:276
 #: lib/kati/screens/rate_episode.ex:938
 #: lib/kati/screens/rating.ex:1266
+#: lib/kati/screens/service.ex:261
 #, elixir-autogen, elixir-format
 msgid "Save"
 msgstr ""
@@ -5396,26 +5400,12 @@ msgid_plural "%{n} results"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/service.ex:439
-#, elixir-autogen, elixir-format
-msgid "%{n} title on this service"
-msgid_plural "%{n} titles on this service"
-msgstr[0] ""
-msgstr[1] ""
-
-#: lib/kati/screens/service.ex:448
-#, elixir-autogen, elixir-format
-msgid "%{n} watch"
-msgid_plural "%{n} watches"
-msgstr[0] ""
-msgstr[1] ""
-
 #: lib/kati/screens/inbox.ex:1229
 #, elixir-autogen, elixir-format
 msgid "%{out} out now · %{up} coming up"
 msgstr ""
 
-#: lib/kati/screens/service.ex:220
+#: lib/kati/screens/service.ex:227
 #, elixir-autogen, elixir-format
 msgid "%{tier} · paused"
 msgstr ""
@@ -5428,11 +5418,6 @@ msgstr ""
 #: lib/kati/screens/lists.ex:258
 #, elixir-autogen, elixir-format
 msgid "A list is yours to name — press + and call it something. Titles go in from your shelf."
-msgstr ""
-
-#: lib/kati/screens/service.ex:446
-#, elixir-autogen, elixir-format
-msgid "A watch says where it was watched — that is what counts one here"
 msgstr ""
 
 #: lib/kati/screens/year_share_books.ex:216
@@ -5457,17 +5442,7 @@ msgstr ""
 msgid "Coming up"
 msgstr ""
 
-#: lib/kati/screens/service.ex:239
-#, elixir-autogen, elixir-format
-msgid "Edit it where you typed it — My services"
-msgstr ""
-
-#: lib/kati/screens/service.ex:328
-#, elixir-autogen, elixir-format
-msgid "Every month, on that day"
-msgstr ""
-
-#: lib/kati/screens/service.ex:122
+#: lib/kati/screens/service.ex:129
 #, elixir-autogen, elixir-format
 msgid "Every service you have told Kati about"
 msgstr ""
@@ -5502,7 +5477,7 @@ msgstr ""
 msgid "Keep typing"
 msgstr ""
 
-#: lib/kati/screens/service.ex:311
+#: lib/kati/screens/service.ex:365
 #, elixir-autogen, elixir-format
 msgid "Keeps its row, leaves the monthly total"
 msgstr ""
@@ -5532,17 +5507,17 @@ msgstr ""
 msgid "No change"
 msgstr ""
 
-#: lib/kati/screens/service.ex:258
+#: lib/kati/screens/service.ex:312
 #, elixir-autogen, elixir-format
 msgid "No price yet"
 msgstr ""
 
-#: lib/kati/screens/service.ex:321
+#: lib/kati/screens/service.ex:473
 #, elixir-autogen, elixir-format
 msgid "No renewal day yet"
 msgstr ""
 
-#: lib/kati/screens/service.ex:131
+#: lib/kati/screens/service.ex:138
 #, elixir-autogen, elixir-format
 msgid "No service named"
 msgstr ""
@@ -5559,17 +5534,12 @@ msgstr ""
 msgid "Nothing here for “%{query}”"
 msgstr ""
 
-#: lib/kati/screens/service.ex:436
-#, elixir-autogen, elixir-format
-msgid "Nothing logged here yet"
-msgstr ""
-
 #: lib/kati/screens/inbox.ex:1065
 #, elixir-autogen, elixir-format
 msgid "Nothing new, because nothing is followed"
 msgstr ""
 
-#: lib/kati/screens/service.ex:131
+#: lib/kati/screens/service.ex:138
 #, elixir-autogen, elixir-format
 msgid "Nothing to show"
 msgstr ""
@@ -5589,7 +5559,7 @@ msgstr ""
 msgid "One more character. %{latin} minimum in Latin, %{other} in فارسی, العربية, 中文, 日本語."
 msgstr ""
 
-#: lib/kati/screens/service.ex:133
+#: lib/kati/screens/service.ex:140
 #, elixir-autogen, elixir-format
 msgid "Open a service from there and this page is about that one — its price, the day it renews, whether it is paused, and what you have watched on it."
 msgstr ""
@@ -5614,22 +5584,22 @@ msgstr ""
 msgid "Picking فارسی flips the whole interface, not just the words — navigation, progress bars, charts and the week all run right to left."
 msgstr ""
 
-#: lib/kati/screens/service.ex:501
+#: lib/kati/screens/service.ex:719
 #, elixir-autogen, elixir-format
 msgid "Remove %{service}"
 msgstr ""
 
-#: lib/kati/screens/service.ex:478
+#: lib/kati/screens/service.ex:696
 #, elixir-autogen, elixir-format
 msgid "Removing it leaves the monthly total and stops it counting as somewhere you can watch. Every watch you logged here stays."
 msgstr ""
 
-#: lib/kati/screens/service.ex:176
+#: lib/kati/screens/service.ex:183
 #, elixir-autogen, elixir-format
 msgid "Renewal"
 msgstr ""
 
-#: lib/kati/screens/service.ex:324
+#: lib/kati/screens/service.ex:476
 #, elixir-autogen, elixir-format
 msgid "Renews %{day}"
 msgstr ""
@@ -5665,14 +5635,9 @@ msgstr ""
 msgid "Specials"
 msgstr ""
 
-#: lib/kati/screens/service.ex:211
+#: lib/kati/screens/service.ex:218
 #, elixir-autogen, elixir-format
 msgid "Subscribed"
-msgstr ""
-
-#: lib/kati/screens/service.ex:327
-#, elixir-autogen, elixir-format
-msgid "Tap to set the day it comes out"
 msgstr ""
 
 #: lib/kati/screens/year_share_books.ex:413
@@ -5690,7 +5655,7 @@ msgstr ""
 msgid "There is no date for it"
 msgstr ""
 
-#: lib/kati/screens/service.ex:133
+#: lib/kati/screens/service.ex:140
 #, elixir-autogen, elixir-format
 msgid "This page is about one service, and the push that opened it named none. It does not pick one: a page that pauses a subscription and takes it off your shelf must be told which."
 msgstr ""
@@ -5730,11 +5695,6 @@ msgstr ""
 msgid "Type a film or a show and Kati looks it up."
 msgstr ""
 
-#: lib/kati/screens/service.ex:176
-#, elixir-autogen, elixir-format
-msgid "Watched here"
-msgstr ""
-
 #: lib/kati/screens/inbox.ex:436
 #, elixir-autogen, elixir-format
 msgid "Watching for %{n} title"
@@ -5747,17 +5707,17 @@ msgstr[1] ""
 msgid "What Kati can do today"
 msgstr ""
 
-#: lib/kati/screens/service.ex:176
+#: lib/kati/screens/service.ex:183
 #, elixir-autogen, elixir-format
 msgid "What you pay"
 msgstr ""
 
-#: lib/kati/screens/service.ex:131
+#: lib/kati/screens/service.ex:138
 #, elixir-autogen, elixir-format
 msgid "Where they are"
 msgstr ""
 
-#: lib/kati/screens/subscriptions.ex:651
+#: lib/kati/screens/subscriptions.ex:616
 #, elixir-autogen, elixir-format
 msgid "Worth a look"
 msgstr ""
@@ -5877,7 +5837,7 @@ msgctxt "out now row"
 msgid "aired %{time}"
 msgstr ""
 
-#: lib/kati/screens/service.ex:310
+#: lib/kati/screens/service.ex:364
 #, elixir-autogen, elixir-format
 msgctxt "service switch"
 msgid "Paused"
@@ -15896,17 +15856,17 @@ msgstr ""
 msgid "Hidden from this list"
 msgstr ""
 
-#: lib/kati/screens/subscriptions.ex:746
+#: lib/kati/screens/subscriptions.ex:711
 #, elixir-autogen, elixir-format
 msgid "Reminder set · %{date}"
 msgstr ""
 
-#: lib/kati/subscriptions.ex:214
+#: lib/kati/subscriptions.ex:264
 #, elixir-autogen, elixir-format
 msgid "You have watched %{hours} on %{name} this month. Pausing it saves %{price} a month."
 msgstr ""
 
-#: lib/kati/subscriptions.ex:282
+#: lib/kati/subscriptions.ex:332
 #, elixir-autogen, elixir-format
 msgctxt "hours watched on a service, when it is under an hour"
 msgid "nothing"
@@ -17405,4 +17365,71 @@ msgstr ""
 #: lib/kati/screens/my_services.ex:872
 #, elixir-autogen, elixir-format
 msgid "Nothing here yet. Add the services you pay for above."
+msgstr ""
+
+#: lib/kati/screens/service.ex:585
+#, elixir-autogen, elixir-format
+msgid "%{n} watch this month"
+msgid_plural "%{n} watches this month"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/service.ex:655
+#, elixir-autogen, elixir-format
+msgid "Add"
+msgstr ""
+
+#: lib/kati/screens/service.ex:589
+#, elixir-autogen, elixir-format
+msgid "Add the titles you watch here, and their watches count for this service"
+msgstr ""
+
+#: lib/kati/screens/service.ex:645
+#, elixir-autogen, elixir-format
+msgid "Every film and show in your library is already here."
+msgstr ""
+
+#: lib/kati/screens/service.ex:480
+#, elixir-autogen, elixir-format
+msgid "Every month, on that day — tap to change it"
+msgstr ""
+
+#: lib/kati/screens/service.ex:564
+#, elixir-autogen, elixir-format
+msgid "From your library"
+msgstr ""
+
+#: lib/kati/screens/service.ex:404
+#, elixir-autogen, elixir-format
+msgid "No renewal day"
+msgstr ""
+
+#: lib/kati/screens/service.ex:582
+#, elixir-autogen, elixir-format
+msgid "Nothing watched here this month"
+msgstr ""
+
+#: lib/kati/screens/service.ex:267
+#, elixir-autogen, elixir-format
+msgid "Price a month, like 10.99"
+msgstr ""
+
+#: lib/kati/screens/service.ex:245
+#, elixir-autogen, elixir-format
+msgid "Tap to change it"
+msgstr ""
+
+#: lib/kati/screens/service.ex:479
+#, elixir-autogen, elixir-format
+msgid "Tap to pick the day it comes out"
+msgstr ""
+
+#: lib/kati/screens/service.ex:592
+#, elixir-autogen, elixir-format
+msgid "Watches of the titles below count here"
+msgstr ""
+
+#: lib/kati/screens/service.ex:183
+#, elixir-autogen, elixir-format
+msgid "What you watch here"
 msgstr ""

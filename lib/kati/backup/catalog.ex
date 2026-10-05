@@ -122,7 +122,9 @@ defmodule Kati.Backup.Catalog do
   #     the title a scheduled watch is for, and its reminder. Nothing moves —
   #     a version-19 row takes `NULL` for both, an event with no title and no
   #     reminder, which is what every event was on that device.
-  @schema_version 20
+  #   * **21** — `tracked_titles` gained `watch_on`: the service a title is
+  #     watched on. A version-20 row takes `NULL`, a title nobody placed.
+  @schema_version 21
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

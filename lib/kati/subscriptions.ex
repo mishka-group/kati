@@ -65,9 +65,12 @@ defmodule Kati.Subscriptions do
         nil
 
       services ->
-        hours = hours_by_service()
+        usage = usage_by_service()
 
-        rows = Enum.map(services, &row(&1, Map.get(hours, fold(&1.name), 0)))
+        rows =
+          Enum.map(services, fn service ->
+            row(service, Map.get(usage, fold(service.name), %{minutes: 0, watches: 0}))
+          end)
 
         %{
           active_line: active_line(services),
@@ -99,31 +102,76 @@ defmodule Kati.Subscriptions do
   def active_line(services), do: "#{length(services)} active"
 
   @doc """
-  Minutes watched, by service name folded for comparison.
+  Minutes watched this month, by service name folded for comparison.
 
-  One pass over the reader's watches, one over the titles they name, and one
-  provider lookup each — see the moduledoc for why a watch lands on exactly
-  one service.
+  Only services with minutes on them: a watch whose title has no runtime is
+  counted by `usage_by_service/0` and not here.
   """
   @spec hours_by_service() :: %{String.t() => non_neg_integer()}
   def hours_by_service do
+    for {name, %{minutes: minutes}} <- usage_by_service(),
+        minutes > 0,
+        into: %{},
+        do: {name, minutes}
+  end
+
+  @doc """
+  This month's watches and minutes, by service name folded for comparison.
+
+  A watch lands on exactly one service, and the first answer wins:
+
+    1. the service the watch itself names (`Kati.Media.Watch.service`);
+    2. the service its title is placed on (`TrackedTitle.watch_on`, set on
+       the service's own page) — the only way a service TMDB does not list is
+       ever used;
+    3. the first subscribed TMDB provider for the title, `billed_to/3`.
+
+  Only a service the reader has counts. A watch with no runtime still counts
+  as a watch, so a service used for titles Kati has no length for is *used*
+  rather than *Not used yet*.
+  """
+  @spec usage_by_service() :: %{
+          String.t() => %{minutes: non_neg_integer(), watches: pos_integer()}
+        }
+  def usage_by_service do
     reader = Kati.Services.availability()
     mine = MapSet.new(reader.subscribed, &fold/1)
-    watches = Ash.read!(Watch)
-    titles = titles_for(watches)
+    watches = Watch |> Ash.read!() |> Enum.filter(&this_month?/1)
+    {tracked, titles} = titles_for(watches)
     runtimes = episode_runtimes(watches)
 
     Enum.reduce(watches, %{}, fn watch, acc ->
-      with %CachedTitle{} = cached <- Map.get(titles, watch.tracked_title_id),
-           name when is_binary(name) <- billed_to(cached, reader.region, mine),
-           minutes when is_integer(minutes) and minutes > 0 <- minutes(watch, cached, runtimes) do
-        Map.update(acc, fold(name), minutes, &(&1 + minutes))
-      else
-        _not_attributable -> acc
+      cached = Map.get(titles, watch.tracked_title_id)
+
+      name =
+        placed(watch, Map.get(tracked, watch.tracked_title_id), mine) ||
+          (cached && billed_to(cached, reader.region, mine))
+
+      case name do
+        name when is_binary(name) ->
+          minutes = (cached && minutes(watch, cached, runtimes)) || 0
+
+          Map.update(acc, fold(name), %{minutes: minutes, watches: 1}, fn usage ->
+            %{minutes: usage.minutes + minutes, watches: usage.watches + 1}
+          end)
+
+        _nobody ->
+          acc
       end
     end)
   rescue
     _error -> %{}
+  end
+
+  defp placed(watch, tracked, mine) do
+    [watch.service, tracked && tracked.watch_on]
+    |> Enum.find(&(is_binary(&1) and MapSet.member?(mine, fold(&1))))
+  end
+
+  defp this_month?(watch) do
+    date = watch.watched_on || (watch.watched_at && DateTime.to_date(watch.watched_at))
+    today = Kati.Time.today()
+    match?(%Date{}, date) and date.year == today.year and date.month == today.month
   end
 
   @doc """
@@ -200,6 +248,8 @@ defmodule Kati.Subscriptions do
   def suggestion(rows) do
     rows
     |> Enum.filter(&(&1.pence != nil and &1.minutes < @quiet_hours * 60))
+    # Used, with no runtime to measure it by, is not *watched nothing*.
+    |> Enum.reject(&(&1.minutes == 0 and Map.get(&1, :watches, 0) > 0))
     |> Enum.max_by(& &1.pence, fn -> nil end)
     |> case do
       nil ->
@@ -287,16 +337,20 @@ defmodule Kati.Subscriptions do
     ngettext("%{n} hour", "%{n} hours", hours, n: Kati.Locale.number(hours))
   end
 
-  defp row(%Service{} = service, minutes) do
-    {rate, tone} = rate(service.monthly_pence, minutes)
+  defp row(%Service{} = service, %{minutes: minutes, watches: watches}) do
+    {rate, tone} =
+      if minutes == 0 and watches > 0,
+        do: {nil, :fair},
+        else: rate(service.monthly_pence, minutes)
 
     %{
       badge: Service.badge(service),
       name: service.name,
-      line: line(service, minutes),
+      line: line(service, minutes, watches),
       price: Service.price(service),
       pence: service.monthly_pence,
       minutes: minutes,
+      watches: watches,
       rate: rate,
       rate_tone: colour(tone),
       # Screen 23 greys a paused row and drops its rate — `service_row/2` reads
@@ -319,8 +373,8 @@ defmodule Kati.Subscriptions do
   # `renews 18 Aug · 41h watched`, minus whichever half is unknown. A service
   # with no renewal date and no hours has nothing to put here and gets nothing,
   # rather than a bullet with air on both sides of it.
-  defp line(service, minutes) do
-    [renewal(service.renews_on), watched(minutes)]
+  defp line(service, minutes, watches) do
+    [renewal(service.renews_on), watched(minutes, watches)]
     |> Enum.reject(&is_nil/1)
     |> Enum.join(" · ")
     |> case do
@@ -332,8 +386,10 @@ defmodule Kati.Subscriptions do
   defp renewal(%Date{} = date), do: "renews " <> Calendar.strftime(date, "%-d %b")
   defp renewal(_none), do: nil
 
-  defp watched(minutes) when minutes >= 60, do: "#{div(minutes, 60)}h watched"
-  defp watched(_minutes), do: nil
+  defp watched(minutes, _watches) when minutes >= 60, do: "#{div(minutes, 60)}h watched"
+  defp watched(_minutes, 0), do: nil
+  defp watched(_minutes, 1), do: "1 watch this month"
+  defp watched(_minutes, watches), do: "#{watches} watches this month"
 
   defp colour(:good), do: Kati.Theme.Palette.green()
   defp colour(:dear), do: Kati.Theme.Palette.red()
@@ -345,8 +401,9 @@ defmodule Kati.Subscriptions do
     |> Ash.read!()
   end
 
-  # `%{tracked_title_id => CachedTitle}` for every title the history names, by
-  # the `{source, source_id}` pair a tracked row references its cache with.
+  # `{%{tracked_title_id => TrackedTitle}, %{tracked_title_id => CachedTitle}}`
+  # for every title the history names, the cache by the `{source, source_id}`
+  # pair a tracked row references it with.
   defp titles_for(watches) do
     ids = watches |> Enum.map(& &1.tracked_title_id) |> Enum.uniq()
 
@@ -361,7 +418,8 @@ defmodule Kati.Subscriptions do
       |> Ash.read!()
       |> Map.new(&{{&1.source, &1.source_id}, &1})
 
-    Map.new(tracked, &{&1.id, Map.get(cached, {&1.source, &1.source_id})})
+    {Map.new(tracked, &{&1.id, &1}),
+     Map.new(tracked, &{&1.id, Map.get(cached, {&1.source, &1.source_id})})}
   end
 
   # The same read `Kati.Screens.Stats.runtimes_for/1` makes, for the same

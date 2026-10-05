@@ -15,15 +15,16 @@ defmodule Kati.Screens.Service do
 
   This page is the writer for both.
 
-  ## It displays the price and does not own the editor
+  ## Everything on it is edited where it is shown
 
-  Board 252's own note, and it is followed rather than reinterpreted: *"92's
-  caption already says 'this screen owns these prices' and the editable-price
-  field is its own ticket — this board is annotated as waiting on it rather
-  than quietly answering it."* Screen 92's row-tap does own it (#119: tapping a
-  service puts `Netflix 10.99` back in the field it was typed into), so the
-  price here is a line and a pointer to the page that changes it. Two editors
-  for one number is how two screens come to disagree about it.
+  The price opens a field under its row, the renewal day a grid of days under
+  its row, and *What you watch here* a list of the reader's titles to place on
+  this service. A page that only pointed at another page to change a number,
+  or stepped a day forward one tap at a time, was a page nobody could use.
+
+  Placing a title (`TrackedTitle.watch_on`) is what makes a service *used*:
+  `Kati.Subscriptions.usage_by_service/0` counts that title's watches here.
+  For a service TMDB does not list it is the only way.
 
   ## Three groups the boards draw and this page does not
 
@@ -54,7 +55,6 @@ defmodule Kati.Screens.Service do
   use Kati.Screens.Pushed, back: "My services"
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Media.Watch
   alias Kati.Services.Service
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
@@ -63,7 +63,12 @@ defmodule Kati.Screens.Service do
   def load(socket) do
     params = socket.assigns.params || %{}
 
-    Mob.Socket.assign(socket, :service, Kati.Screens.Service.find(Map.get(params, :name)))
+    socket
+    |> Mob.Socket.assign(:service, Kati.Screens.Service.find(Map.get(params, :name)))
+    |> Mob.Socket.assign(:open, nil)
+    |> Mob.Socket.assign(:draft_price, "")
+    |> Mob.Socket.assign(:field_epoch, 0)
+    |> Mob.Socket.assign(:notice, nil)
   end
 
   @doc """
@@ -88,7 +93,7 @@ defmodule Kati.Screens.Service do
 
   @doc false
   def content(assigns) do
-    inner = %{body: Kati.Screens.Service.body(assigns.service)}
+    inner = %{body: Kati.Screens.Service.body(assigns.service, assigns)}
     assigns = inner
 
     ~MOB"""
@@ -108,8 +113,10 @@ defmodule Kati.Screens.Service do
   end
 
   @doc false
-  @spec body(Service.t() | nil) :: term()
-  def body(nil) do
+  @spec body(Service.t() | nil, map()) :: term()
+  def body(service, page \\ %{})
+
+  def body(nil, _page) do
     assigns = %{
       card:
         SettingsList.card([
@@ -151,7 +158,7 @@ defmodule Kati.Screens.Service do
     """
   end
 
-  def body(service) do
+  def body(service, page) do
     assigns = %{
       title:
         SettingsList.title(
@@ -167,9 +174,9 @@ defmodule Kati.Screens.Service do
           nil,
           :name
         ),
-      pay: Kati.Screens.Service.pay_group(service),
-      renewal: Kati.Screens.Service.renewal_group(service),
-      watched: Kati.Screens.Service.watched_group(service),
+      pay: Kati.Screens.Service.pay_group(service, page),
+      renewal: Kati.Screens.Service.renewal_group(service, page),
+      watched: Kati.Screens.Service.watched_group(service, page),
       danger: Kati.Screens.Service.danger_group(service)
     }
 
@@ -182,7 +189,7 @@ defmodule Kati.Screens.Service do
       {SettingsList.eyebrow_muted(gettext("Renewal"))}
       {@renewal}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted(gettext("Watched here"))}
+      {SettingsList.eyebrow_muted(gettext("What you watch here"))}
       {@watched}
       <Spacer size={16} />
       {@danger}
@@ -221,29 +228,76 @@ defmodule Kati.Screens.Service do
   end
 
   @doc """
-  The price, and a pointer to the page that owns it.
+  The price, and a field under it to change it.
 
-  Board 302's note about the field is kept even though the field is elsewhere:
-  *"Price is stored in pence, so the field takes 899 and the card prints
-  £8.99 — a decimal field would let a mis-typed dot cost a hundredfold."* The
-  editor that takes it is screen 92's row, so the row here says so rather than
-  drawing a second one.
+  Typed as money (`10.99`), read by `Kati.Screens.MyServices.parse_price/1`,
+  the same reader screen 92's card uses, so the two pages agree on what a
+  price is.
   """
-  @spec pay_group(Service.t()) :: map()
-  def pay_group(service) do
-    SettingsList.card([
-      SettingsList.row(
-        SettingsList.icon_tile("payments"),
-        SettingsList.body(
-          Kati.Screens.Service.price_line(service),
-          gettext("Edit it where you typed it — My services")
-        ),
-        SettingsList.trailing(SettingsList.chevron()),
-        rule: false,
-        on_tap: {self(), :edit_price}
-      )
-    ])
+  @spec pay_group(Service.t(), map()) :: map()
+  def pay_group(service, page \\ %{}) do
+    SettingsList.card(
+      [
+        SettingsList.row(
+          SettingsList.icon_tile("payments"),
+          SettingsList.body(
+            Kati.Screens.Service.price_line(service),
+            gettext("Tap to change it")
+          ),
+          SettingsList.trailing(SettingsList.chevron()),
+          rule: false,
+          on_tap: {self(), :edit_price}
+        )
+      ] ++ Kati.Screens.Service.price_editor(service, page)
+    )
   end
+
+  @doc false
+  def price_editor(service, %{open: :price} = page) do
+    assigns = %{
+      value: Kati.Screens.MyServices.price_text(service),
+      epoch: Map.get(page, :field_epoch, 0),
+      on_change: {self(), :service_price},
+      save: Kati.Screens.MyServices.primary_button(gettext("Save"), :save_price),
+      cancel: Kati.Screens.MyServices.quiet_button(gettext("Cancel"), :close, :on_surface),
+      notice: Kati.Screens.MyServices.card_notice(Map.get(page, :notice))
+    }
+
+    field =
+      ~MOB"""
+      <TextField
+        value={@value}
+        placeholder={gettext("Price a month, like 10.99")}
+        keyboard="decimal"
+        return_key="done"
+        weight={1.0}
+        accessibility_id="service_price"
+        on_change={@on_change}
+        value_epoch={@epoch}
+      />
+      """
+
+    assigns = Map.put(assigns, :row, Kati.Screens.MyServices.field_row("payments", field))
+
+    [
+      ~MOB"""
+      <Column fill_width={true} padding_top={4} padding_bottom={14}>
+        {@row}
+        <Spacer size={12} />
+        <Row fill_width={true} align="center">
+          <Column weight={1.0}>
+            {@save}
+          </Column>
+          <Spacer size={10} />
+          {@cancel}
+        </Row>
+        {@notice}
+      </Column>
+      """
+    ]
+  end
+
+  def price_editor(_service, _page), do: []
 
   @doc """
   What this costs a month, or that nobody has said.
@@ -285,37 +339,135 @@ defmodule Kati.Screens.Service do
   notification source both read it as. So the control is the day, and the month
   moves with the calendar rather than being stored twice.
   """
-  @spec renewal_group(Service.t()) :: map()
-  def renewal_group(service) do
-    SettingsList.card([
-      SettingsList.row(
-        SettingsList.icon_tile("event_repeat"),
-        SettingsList.body(
-          Kati.Screens.Service.renewal_line(service),
-          Kati.Screens.Service.renewal_sub(service)
-        ),
-        SettingsList.trailing(SettingsList.chevron()),
-        on_tap: {self(), :cycle_day}
-      ),
-      SettingsList.row(
-        SettingsList.icon_tile("pause_circle"),
-        SettingsList.body(
-          # `pgettext/2`, because the catalogue already holds two other
-          # `Paused`es — `book status` and `shelf status`, both of them a shelf
-          # a title is sitting on — and this one is the label on a SWITCH that
-          # stops a subscription. They happen to be the same word in Persian
-          # today; a context is what keeps that a coincidence rather than a
-          # constraint, and stops `mix gettext.merge` fuzzy-matching a one-word
-          # msgid onto whichever of the three it met first.
-          pgettext("service switch", "Paused"),
-          gettext("Keeps its row, leaves the monthly total")
-        ),
-        SettingsList.trailing(SettingsList.switch(service.paused)),
-        rule: false,
-        on_tap: {self(), :toggle_paused}
-      )
-    ])
+  @spec renewal_group(Service.t(), map()) :: map()
+  def renewal_group(service, page \\ %{}) do
+    SettingsList.card(
+      [
+        SettingsList.row(
+          SettingsList.icon_tile("event_repeat"),
+          SettingsList.body(
+            Kati.Screens.Service.renewal_line(service),
+            Kati.Screens.Service.renewal_sub(service)
+          ),
+          SettingsList.trailing(SettingsList.chevron()),
+          on_tap: {self(), :pick_day}
+        )
+      ] ++
+        Kati.Screens.Service.day_picker(service, page) ++
+        [
+          SettingsList.row(
+            SettingsList.icon_tile("pause_circle"),
+            SettingsList.body(
+              # `pgettext/2`, because the catalogue already holds two other
+              # `Paused`es — `book status` and `shelf status` — and this one is
+              # the label on a SWITCH that stops a subscription.
+              pgettext("service switch", "Paused"),
+              gettext("Keeps its row, leaves the monthly total"),
+              lines: 2
+            ),
+            SettingsList.trailing(SettingsList.switch(service.paused)),
+            rule: false,
+            on_tap: {self(), :toggle_paused}
+          )
+        ]
+    )
   end
+
+  @doc """
+  Every day a month can renew on, as a grid under the renewal row, and a way
+  to have none. The chosen day is filled.
+  """
+  def day_picker(service, %{open: :day}) do
+    chosen = service.renews_on && service.renews_on.day
+
+    weeks =
+      1..31
+      |> Enum.chunk_every(7)
+      |> Enum.map(fn days ->
+        cells = Enum.map(days, &Kati.Screens.Service.day_cell(&1, &1 == chosen))
+        pad = List.duplicate(~MOB"<Spacer weight={1.0} />", 7 - length(days))
+        assigns = %{cells: Enum.intersperse(cells ++ pad, ~MOB"<Spacer size={6} />")}
+
+        ~MOB"""
+        <Column fill_width={true}>
+          <Row fill_width={true}>
+            {@cells}
+          </Row>
+          <Spacer size={6} />
+        </Column>
+        """
+      end)
+
+    assigns = %{
+      weeks: weeks,
+      clear:
+        Kati.Screens.MyServices.quiet_button(gettext("No renewal day"), :clear_day, :on_surface)
+    }
+
+    [
+      ~MOB"""
+      <Column fill_width={true} padding_top={4} padding_bottom={12}>
+        {@weeks}
+        <Spacer size={4} />
+        <Row fill_width={true}>
+          {@clear}
+        </Row>
+      </Column>
+      """
+    ]
+  end
+
+  def day_picker(_service, _page), do: []
+
+  @doc false
+  def day_cell(day, chosen?) do
+    assigns = %{
+      label: Kati.Locale.number(day),
+      tag: {self(), String.to_atom("day_#{day}")},
+      fill: if(chosen?, do: Palette.ink_fill(), else: Palette.paper()),
+      ink: if(chosen?, do: Palette.on_ink(), else: :on_surface)
+    }
+
+    ~MOB"""
+    <Box weight={1.0} height={36} corner_radius={10} background={@fill} align="center" on_tap={@tag}>
+      <Text
+        text={@label}
+        text_size={13}
+        font_weight="semibold"
+        text_color={@ink}
+        text_align="center"
+      />
+    </Box>
+    """
+  end
+
+  @doc """
+  The next date that falls on `day`: this month if it is still to come, the
+  next month otherwise, and the month's last day for a month that is short.
+
+      iex> Kati.Screens.Service.next_on(31, ~D[2026-02-10])
+      ~D[2026-02-28]
+
+      iex> Kati.Screens.Service.next_on(5, ~D[2026-10-20])
+      ~D[2026-11-05]
+
+      iex> Kati.Screens.Service.next_on(20, ~D[2026-10-20])
+      ~D[2026-10-20]
+  """
+  @spec next_on(1..31, Date.t()) :: Date.t()
+  def next_on(day, today) do
+    this_month = on_day(today.year, today.month, day)
+
+    if Date.compare(this_month, today) == :lt do
+      next = Date.add(Date.end_of_month(today), 1)
+      on_day(next.year, next.month, day)
+    else
+      this_month
+    end
+  end
+
+  defp on_day(year, month, day),
+    do: Date.new!(year, month, min(day, Calendar.ISO.days_in_month(year, month)))
 
   @doc false
   def renewal_line(%Service{renews_on: nil}), do: gettext("No renewal day yet")
@@ -324,8 +476,8 @@ defmodule Kati.Screens.Service do
     do: gettext("Renews %{day}", day: Kati.Screens.Service.ordinal(date.day))
 
   @doc false
-  def renewal_sub(%Service{renews_on: nil}), do: gettext("Tap to set the day it comes out")
-  def renewal_sub(%Service{}), do: gettext("Every month, on that day")
+  def renewal_sub(%Service{renews_on: nil}), do: gettext("Tap to pick the day it comes out")
+  def renewal_sub(%Service{}), do: gettext("Every month, on that day — tap to change it")
 
   @doc """
   `1st`, `2nd`, `3rd`, `18th` — the form board 302 prints, in the reader's own
@@ -356,7 +508,8 @@ defmodule Kati.Screens.Service do
   same shape. `renews_on` is read everywhere as *the day of the month the money
   comes out* — `Kati.Subscriptions.renewal/1` prints it, screen 47 puts it on
   the money day, `Kati.Notifications.Sources.Money` fires on it, and
-  `next_day/1` below wraps it at 28 — and that recurrence is a Gregorian one.
+  `next_on/2` below lands it on a short month's last day — and that recurrence
+  is a Gregorian one.
   `Kati.Locale.day_of_month/1` would answer the Shamsi day this month's
   renewal happens to land on, which is a different number next month: right
   once and wrong eleven times, and wrong in the way this fold keeps meeting,
@@ -381,71 +534,136 @@ defmodule Kati.Screens.Service do
   end
 
   @doc """
-  What has been watched on this service.
+  What is watched on this service: how much this month, the titles placed
+  here, and *Add a title* to place another.
 
-  A count of logs and of titles, and **not hours**: board 252 says why in its
-  own words — *a watch records that an episode was watched, not for how long*.
-  `Kati.Media.Watch.service` is the reader's own answer to *Where*, which is
-  the one thing that does connect a night to a service.
+  A count of watches and not hours: a watch records that an episode was
+  watched, not for how long, and a title Kati has no runtime for still counts.
   """
-  @spec watched_group(Service.t()) :: map()
-  def watched_group(service) do
-    %{logs: logs, titles: titles} = Kati.Screens.Service.watched(service)
+  @spec watched_group(Service.t(), map()) :: map()
+  def watched_group(service, page \\ %{}) do
+    usage = Kati.Screens.Service.usage(service)
+    placed = Kati.Screens.Service.placed_titles(service)
 
-    SettingsList.card([
-      SettingsList.row(
-        SettingsList.icon_tile("movie"),
-        SettingsList.body(
-          Kati.Screens.Service.watched_line(titles),
-          Kati.Screens.Service.watched_sub(logs)
-        ),
-        nil,
-        rule: false
-      )
-    ])
-  end
-
-  @doc false
-  @spec watched(Service.t()) :: %{logs: non_neg_integer(), titles: non_neg_integer()}
-  def watched(%Service{name: name}) do
     rows =
-      Watch
-      |> Ash.read!()
-      |> Enum.filter(&(&1.service == name))
+      [
+        SettingsList.row(
+          SettingsList.icon_tile("movie"),
+          SettingsList.body(
+            Kati.Screens.Service.usage_line(usage),
+            Kati.Screens.Service.usage_sub(placed),
+            lines: 2
+          ),
+          nil
+        )
+      ] ++
+        Enum.map(placed, &Kati.Screens.Service.placed_row/1) ++
+        [
+          SettingsList.row(
+            SettingsList.icon_tile("add"),
+            SettingsList.body(gettext("Add a title"), gettext("From your library")),
+            SettingsList.trailing(SettingsList.chevron()),
+            rule: false,
+            on_tap: {self(), :pick_title}
+          )
+        ] ++ Kati.Screens.Service.title_picker(service, page)
 
-    %{
-      logs: length(rows),
-      titles: rows |> Enum.map(& &1.tracked_title_id) |> Enum.uniq() |> length()
-    }
-  rescue
-    _error -> %{logs: 0, titles: 0}
+    SettingsList.card(rows)
   end
 
-  # The nought clause stays its own sentence: `0 titles on this service` is a
-  # measurement and *Nothing logged here yet* is the answer board 302 wants at
-  # that end, which is screen 93's argument about a total of zero — a figure
-  # reads as an account that was added up and came to nothing.
-  #
-  # The other two fold into `ngettext/4`, which is not the same thing as the
-  # two clauses they were: Persian does not inflect a noun after a numeral, so
-  # its singular and plural are one string, and a language with three forms
-  # gets three. The count goes in twice on purpose — as the integer gettext
-  # picks the form with, and as `Kati.Locale.number/1` for the digits that are
-  # actually drawn.
   @doc false
-  def watched_line(0), do: gettext("Nothing logged here yet")
+  @spec usage(Service.t()) :: %{minutes: non_neg_integer(), watches: non_neg_integer()}
+  def usage(%Service{name: name}) do
+    folded = name |> String.trim() |> String.downcase()
+    Map.get(Kati.Subscriptions.usage_by_service(), folded, %{minutes: 0, watches: 0})
+  end
 
-  def watched_line(n) do
-    ngettext("%{n} title on this service", "%{n} titles on this service", n,
-      n: Kati.Locale.number(n)
+  @doc false
+  def usage_line(%{watches: 0}), do: gettext("Nothing watched here this month")
+
+  def usage_line(%{watches: n}),
+    do: ngettext("%{n} watch this month", "%{n} watches this month", n, n: Kati.Locale.number(n))
+
+  @doc false
+  def usage_sub([]),
+    do: gettext("Add the titles you watch here, and their watches count for this service")
+
+  def usage_sub(_placed),
+    do: gettext("Watches of the titles below count here")
+
+  @doc """
+  The reader's titles placed on this service, as `%{id, name}`, by name.
+  """
+  @spec placed_titles(Service.t()) :: [%{id: String.t(), name: String.t()}]
+  def placed_titles(%Service{name: name}) do
+    Kati.Media.TrackedTitle
+    |> Ash.read!()
+    |> Enum.filter(&(&1.watch_on == name))
+    |> Enum.map(&Kati.Screens.Service.named/1)
+    |> Enum.sort_by(&String.downcase(&1.name))
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  def named(tracked) do
+    cached = Kati.Media.Release.cached_for(tracked)
+    %{id: tracked.id, name: Kati.Screens.Library.name_of(cached || %{title: tracked.source_id})}
+  end
+
+  @doc false
+  def placed_row(title) do
+    SettingsList.row(
+      nil,
+      SettingsList.body(title.name, nil),
+      SettingsList.action_pill(
+        gettext("Remove"),
+        {self(), String.to_atom("unplace_" <> title.id)}
+      )
     )
   end
 
-  @doc false
-  def watched_sub(0),
-    do: gettext("A watch says where it was watched — that is what counts one here")
+  @doc """
+  The library titles not yet placed here, to tap one in. Archived titles are
+  left out; a title placed on another service moves here.
+  """
+  def title_picker(service, %{open: :titles}) do
+    candidates =
+      Kati.Media.TrackedTitle
+      |> Ash.read!()
+      |> Enum.reject(
+        &(&1.archived or &1.watch_on == service.name or &1.kind not in [:movie, :tv])
+      )
+      |> Enum.map(&Kati.Screens.Service.named/1)
+      |> Enum.sort_by(&String.downcase(&1.name))
 
-  def watched_sub(n), do: ngettext("%{n} watch", "%{n} watches", n, n: Kati.Locale.number(n))
+    case candidates do
+      [] ->
+        [
+          SettingsList.note(
+            "info",
+            gettext("Every film and show in your library is already here.")
+          )
+        ]
+
+      titles ->
+        Enum.map(titles, fn title ->
+          SettingsList.row(
+            nil,
+            SettingsList.body(title.name, nil),
+            SettingsList.action_pill(
+              gettext("Add"),
+              {self(), String.to_atom("place_" <> title.id)}
+            ),
+            on_tap: {self(), String.to_atom("place_" <> title.id)}
+          )
+        end)
+    end
+  rescue
+    _error -> []
+  end
+
+  def title_picker(_service, _page), do: []
 
   @doc """
   Off the shelf, and what that does not take with it.
@@ -512,14 +730,24 @@ defmodule Kati.Screens.Service do
   end
 
   @impl true
-  def handle_tap(:edit_price, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+  def handle_tap(:edit_price, socket), do: {:noreply, open(socket, :price)}
+  def handle_tap(:pick_day, socket), do: {:noreply, open(socket, :day)}
+  def handle_tap(:pick_title, socket), do: {:noreply, open(socket, :titles)}
+  def handle_tap(:close, socket), do: {:noreply, open(socket, nil)}
 
-  # The day of the month, one tap at a time through the days a month can have.
-  # A picker is what a date wants and Kati has no date picker; a day is one
-  # integer, and `Kati.Subscriptions` and the notification source both read
-  # `renews_on` as *the day it comes out* rather than as an instant.
-  def handle_tap(:cycle_day, socket), do: {:noreply, write(socket, &next_day/1)}
+  def handle_tap(:save_price, socket) do
+    case Kati.Screens.MyServices.parse_price(socket.assigns.draft_price) do
+      {:ok, pence} ->
+        {:noreply, socket |> write(fn _ -> %{monthly_pence: pence} end) |> open(nil)}
+
+      {:error, reason} ->
+        {:noreply,
+         Mob.Socket.assign(socket, :notice, {:error, Kati.Screens.MyServices.refusal(reason)})}
+    end
+  end
+
+  def handle_tap(:clear_day, socket),
+    do: {:noreply, socket |> write(fn _ -> %{renews_on: nil} end) |> open(nil)}
 
   def handle_tap(:toggle_paused, socket),
     do: {:noreply, write(socket, fn s -> %{paused: not s.paused} end)}
@@ -538,18 +766,57 @@ defmodule Kati.Screens.Service do
     end
   end
 
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "day_" <> day ->
+        day = String.to_integer(day)
+        next = Kati.Screens.Service.next_on(day, Kati.Time.today())
+        {:noreply, socket |> write(fn _ -> %{renews_on: next} end) |> open(nil)}
 
-  defp next_day(%Service{renews_on: nil}) do
-    today = Kati.Time.today()
-    %{renews_on: today}
+      "place_" <> id ->
+        {:noreply, place(socket, id, socket.assigns.service && socket.assigns.service.name)}
+
+      "unplace_" <> id ->
+        {:noreply, place(socket, id, nil)}
+
+      _other ->
+        {:noreply, socket}
+    end
   end
 
-  defp next_day(%Service{renews_on: date}) do
-    # Wraps at 28 rather than at 31: a renewal on the 30th does not happen in
-    # February, and a day nobody can be billed on is not a day to offer.
-    day = if date.day >= 28, do: 1, else: date.day + 1
-    %{renews_on: %{date | day: day}}
+  # The price field's text, held and not drawn, so typing does not repaint.
+  @impl true
+  def handle_info({:change, :service_price, typed}, socket) when is_binary(typed),
+    do: {:noreply, Mob.Socket.assign(socket, :draft_price, typed)}
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  # One thing open under a row at a time; opening the price starts its draft
+  # from the stored price.
+  defp open(socket, what) do
+    service = socket.assigns.service
+
+    socket
+    |> Mob.Socket.assign(:open, if(socket.assigns.open == what, do: nil, else: what))
+    |> Mob.Socket.assign(:notice, nil)
+    |> Mob.Socket.assign(
+      :draft_price,
+      (service && Kati.Screens.MyServices.price_text(service)) || ""
+    )
+    |> Mob.Socket.assign(:field_epoch, socket.assigns.field_epoch + 1)
+  end
+
+  defp place(socket, id, name) do
+    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {:ok, _placed} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{watch_on: name})
+           |> Ash.update()
+           |> Kati.Write.note("place a title on a service") do
+      Mob.Socket.assign(socket, :service, Kati.Screens.Service.find(socket.assigns.service.name))
+    else
+      _refused -> socket
+    end
   end
 
   defp write(socket, change) do

@@ -158,6 +158,11 @@ defmodule Kati.Media.TrackedTitle do
     # ── What the user thought ──────────────────────────────────────────────
     attribute :rating, :integer, public?: true, constraints: [min: 1, max: 10]
 
+    # ── Where the user watches it ──────────────────────────────────────────
+    # The name of one of their services (`Kati.Services.Service.name`), set
+    # from that service's page. Screen 23 counts this title's watches there.
+    attribute :watch_on, :string, public?: true
+
     # ── The date the user asserts, which beats every source (#74) ──────────
     # A date, not an instant: this is someone typing "it's out on the third",
     # and inventing an hour to go with it is the same class of lie as inventing

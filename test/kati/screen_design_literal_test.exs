@@ -367,6 +367,8 @@ defmodule Kati.ScreenDesignLiteralTest do
     {"92", "add"},
     {"97", "search"},
     {"97", "add"},
+    # 23's overflow disc opened nothing and is not drawn.
+    {"23", "more_horiz"},
     # #120: board 146's stills — the resting header's search disc, the notes'
     # info and call_split glyphs, the frozen undo pill — are not drawn.
     {"146", "call_split"},

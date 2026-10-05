@@ -1316,7 +1316,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # everybody to fit one screen the design drew small would stop it catching
   # that. Named, with a number, so a page that shrinks further still fails.
   @small_empty_boards %{
-    "23" => 9,
+    # Eight since the `more_horiz` disc, which opened nothing, stopped being
+    # drawn.
+    "23" => 8,
     # 31 over no stored event is its close disc, the chrome's title, and the
     # title and sentence of `missing/0` — four strings (N51). Everything else
     # on board 31 is one event's, and there is none.

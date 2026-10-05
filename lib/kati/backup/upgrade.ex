@@ -142,7 +142,10 @@ defmodule Kati.Backup.Upgrade do
       {18, 19, &unchanged/1},
       # `events` gained `tracked_title_id` and `alarm_minutes`. Nothing moves:
       # a version-19 row takes `NULL` for both — no title, no reminder.
-      {19, 20, &unchanged/1}
+      {19, 20, &unchanged/1},
+      # `tracked_titles` gained `watch_on`. Nothing moves: a version-20 row
+      # takes `NULL`, a title nobody has placed on a service.
+      {20, 21, &unchanged/1}
     ]
 
   @doc """

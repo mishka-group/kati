@@ -255,52 +255,17 @@ defmodule Kati.Screens.Subscriptions do
   end
 
   # The back pill itself is drawn by Kati.Screens.Pushed as floating chrome;
-  # this row reserves its height and carries the overflow disc opposite it.
+  # this row reserves its height. The board's `more_horiz` disc opposite it is
+  # not drawn: it opened nothing, and a button that does nothing when pressed
+  # is worse than no button.
   @doc false
   def back_row do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center">
-        <Spacer weight={1.0} />
-        {Kati.Screens.Subscriptions.disc()}
-      </Row>
+      <Spacer size={44} />
       <Spacer size={16} />
     </Column>
     """
-  end
-
-  @doc """
-  The 44pt `more_horiz` disc that shares the back pill's row.
-
-  `Kati.Components.MishkaActionIcon`, which is what a round tap target holding
-  one glyph is. It could not be until the port grew a `shadow` prop: this disc
-  floats off paper on `Kati.Theme.shadow_button()`, and a disc without its
-  shadow is a flat patch rather than a control sitting above the page.
-
-  **The pixels are the same node.** The port builds
-
-      <Box width={44} height={44} align={:center} corner_radius={22.0}
-           background=… shadow=… on_tap=…><Row>{glyph}</Row></Box>
-
-  against the `<Box width={44} height={44} background corner_radius={22} shadow
-  align="center" on_tap>` this was, prop for prop: `shape: :circle` resolves to
-  an exact `size / 2` and 44 gives the drawing's 22, `variant: :filled` is what
-  lets `background` through (the port paints `:transparent` on the default
-  `:plain`), and `align={:center}` serialises to the same `"center"` string.
-  The added `Row` carries no props, so it takes no modifier and hugs its one
-  child — the glyph measures and centres exactly where it did.
-  """
-  def disc do
-    Kati.Components.MishkaActionIcon.action_icon(
-      [
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Kati.Theme.shadow_button()
-      ],
-      [Kati.UI.symbol("more_horiz", size: 21)]
-    )
   end
 
   @doc """
