@@ -189,7 +189,7 @@ defmodule Kati.Screens.Stats do
   def figures do
     case entries() do
       [] ->
-        [year: nil, grid: [], week: [], recent: [], range: range(Kati.Time.today())]
+        [year: nil, grid: [], week: [], recent: [], dash: nil, range: range(Kati.Time.today())]
 
       entries ->
         year = year(entries)
@@ -199,6 +199,7 @@ defmodule Kati.Screens.Stats do
           grid: contributions(entries),
           week: this_week(entries),
           recent: recent(entries),
+          dash: Kati.Screens.Stats.dashboard(entries, Kati.Time.today()),
           range: year.range
         ]
     end
@@ -207,8 +208,18 @@ defmodule Kati.Screens.Stats do
   @doc false
   def content(assigns) do
     case assigns.year do
-      nil -> nothing_counted(assigns.range)
-      year -> counted(year, assigns.range, assigns.grid, assigns.week, assigns.recent)
+      nil ->
+        nothing_counted(assigns.range)
+
+      year ->
+        counted(
+          year,
+          assigns.range,
+          assigns.grid,
+          assigns.week,
+          assigns.recent,
+          Map.get(assigns, :dash)
+        )
     end
   end
 
@@ -216,7 +227,7 @@ defmodule Kati.Screens.Stats do
   # a hole in it, because they share only the header: the counted page is the
   # drawing, node for node, and the empty page is a card and a list.
   @doc false
-  def counted(year, range, grid, week, recent) do
+  def counted(year, range, grid, week, recent, dash \\ nil) do
     ~MOB"""
     <Scroll>
       <Column
@@ -235,6 +246,7 @@ defmodule Kati.Screens.Stats do
         {UI.eyebrow(gettext("This week"), dash: Palette.rail_idle())}
         {Kati.Screens.Stats.week_card(week)}
         <Spacer size={26} />
+        {Kati.Screens.Stats.year_charts(dash)}
         {UI.eyebrow(gettext("More numbers"))}
         {Kati.Screens.Stats.more_numbers()}
         <Spacer size={26} />
@@ -703,6 +715,285 @@ defmodule Kati.Screens.Stats do
         max_lines={1}
       />
     </Box>
+    """
+  end
+
+  @doc """
+  The year in charts, from the same watches as everything above: watches per
+  month, what kind of thing was watched, the busiest day of the week, and the
+  titles watched most. All of it this calendar year.
+  """
+  @spec dashboard([map()], Date.t()) :: map()
+  def dashboard(entries, today) do
+    this = Enum.filter(entries, &(match?(%Date{}, &1.on) and &1.on.year == today.year))
+
+    by_month = Enum.frequencies_by(this, & &1.on.month)
+
+    films = Enum.count(this, & &1.film?)
+    anime = Enum.count(this, &(&1.kind == :anime and not &1.film?))
+
+    %{
+      months: Enum.map(1..12, &{&1, Map.get(by_month, &1, 0)}),
+      this_month: today.month,
+      split: [
+        {gettext("Films"), films, Palette.ink()},
+        {gettext("Series"), length(this) - films - anime, Palette.accent()},
+        {gettext("Anime"), anime, Palette.green()}
+      ],
+      weekdays:
+        Enum.map(1..7, fn day ->
+          {day, Enum.count(this, &(Date.day_of_week(&1.on) == day))}
+        end),
+      top:
+        this
+        |> Enum.group_by(& &1.tracked_id)
+        |> Enum.map(fn {_id, watched} ->
+          {hd(watched).title || gettext("Untitled"), length(watched)}
+        end)
+        |> Enum.sort_by(fn {title, n} -> {-n, title} end)
+        |> Enum.take(5)
+    }
+  end
+
+  @doc false
+  def year_charts(nil), do: ~MOB"<Spacer size={0} />"
+
+  def year_charts(dash) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow(gettext("Month by month"))}
+      {Kati.Screens.Stats.month_chart(dash.months, dash.this_month)}
+      <Spacer size={26} />
+      {UI.eyebrow(gettext("What you watched"), dash: Palette.rail_idle())}
+      {Kati.Screens.Stats.split_card(dash.split)}
+      <Spacer size={26} />
+      {UI.eyebrow(gettext("Your busiest day"))}
+      {Kati.Screens.Stats.weekday_card(dash.weekdays)}
+      <Spacer size={26} />
+      {Kati.Screens.Stats.top_titles(dash.top)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def chart_card(content) do
+    assigns = %{content: content}
+
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding={17}
+    >
+      {@content}
+    </Column>
+    """
+  end
+
+  @doc """
+  Twelve bars, one a month, the current month in ink, each with its count.
+  """
+  def month_chart(months, this_month) do
+    most = months |> Enum.map(&elem(&1, 1)) |> Enum.max(fn -> 0 end)
+
+    columns =
+      months
+      |> Enum.map(fn {month, count} ->
+        Kati.Screens.Stats.month_column(
+          month,
+          count,
+          Kati.Screens.Stats.bar_height(count, most) * 80 / 56,
+          month == this_month
+        )
+      end)
+      |> Enum.intersperse(~MOB"<Spacer size={4} />")
+
+    Kati.Screens.Stats.chart_card(~MOB"""
+    <Row fill_width={true} align="bottom">
+      {columns}
+    </Row>
+    """)
+  end
+
+  @doc false
+  def month_column(month, count, height, now?) do
+    assigns = %{
+      n: if(count > 0, do: Kati.Locale.number(count), else: " "),
+      height: round(height),
+      color: if(now?, do: Palette.ink(), else: Palette.placeholder()),
+      label: Kati.Screens.Stats.month_label(month)
+    }
+
+    ~MOB"""
+    <Column weight={1.0} align="center">
+      <Text text={@n} text_size={9.5} text_color={Palette.muted()} max_lines={1} />
+      <Spacer size={3} />
+      <Box fill_width={true} height={@height} corner_radius={4} background={@color} />
+      <Spacer size={6} />
+      <Text text={@label} text_size={9.5} text_color={Palette.tertiary()} max_lines={1} />
+    </Column>
+    """
+  end
+
+  @doc """
+  A month's label under its bar: its number in the reader's own digits, which
+  stays true in a script whose month names belong to another calendar.
+
+      iex> Kati.Screens.Stats.month_label(3)
+      "3"
+  """
+  @spec month_label(1..12) :: String.t()
+  def month_label(month), do: Kati.Locale.number(month)
+
+  @doc """
+  Films, series and anime as one bar split by share, with the counts beside
+  their names.
+  """
+  def split_card(split) do
+    total = split |> Enum.map(&elem(&1, 1)) |> Enum.sum()
+
+    segments =
+      for {_label, n, color} <- split, n > 0 do
+        assigns = %{weight: n / max(total, 1), color: color}
+        ~MOB"<Box weight={@weight} height={12} background={@color} />"
+      end
+
+    legend =
+      split
+      |> Enum.map(fn {label, n, color} -> Kati.Screens.Stats.legend(label, n, color) end)
+      |> Enum.intersperse(~MOB"<Spacer size={14} />")
+
+    Kati.Screens.Stats.chart_card(~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} height={12} corner_radius={6} background={Palette.track()}>
+        {segments}
+      </Row>
+      <Spacer size={14} />
+      <Row fill_width={true} align="center">
+        {legend}
+      </Row>
+    </Column>
+    """)
+  end
+
+  @doc false
+  def legend(label, n, color) do
+    assigns = %{label: label, n: Kati.Locale.number(n), color: color}
+
+    ~MOB"""
+    <Row align="center">
+      <Box width={9} height={9} corner_radius={5} background={@color} />
+      <Spacer size={6} />
+      <Text text={@label} text_size={12} text_color={Palette.ink_soft()} max_lines={1} />
+      <Spacer size={5} />
+      <Text text={@n} text_size={12} font_weight="bold" text_color={:on_surface} max_lines={1} />
+    </Row>
+    """
+  end
+
+  @doc """
+  Watches by day of the week, Monday first, the busiest in ink and named.
+  """
+  def weekday_card(weekdays) do
+    most = weekdays |> Enum.map(&elem(&1, 1)) |> Enum.max(fn -> 0 end)
+    monday = Date.beginning_of_week(Kati.Time.today())
+
+    bars =
+      weekdays
+      |> Enum.map(fn {_day, n} ->
+        Kati.Screens.Stats.week_bar(
+          Kati.Screens.Stats.bar_height(n, most),
+          n == most and most > 0
+        )
+      end)
+      |> Enum.intersperse(~MOB"<Spacer size={6} />")
+
+    labels = Enum.map(1..7, &Kati.Screens.Stats.week_label(Date.add(monday, &1 - 1)))
+
+    busiest =
+      case Enum.max_by(weekdays, &elem(&1, 1), fn -> {1, 0} end) do
+        {_day, 0} ->
+          gettext("No day stands out yet")
+
+        {day, n} ->
+          gettext("%{day} — %{n} watches",
+            day: Kati.Screens.QuickAdd.weekday(Date.add(monday, day - 1)),
+            n: Kati.Locale.number(n)
+          )
+      end
+
+    assigns = %{bars: bars, labels: labels, busiest: busiest}
+
+    Kati.Screens.Stats.chart_card(~MOB"""
+    <Column fill_width={true}>
+      <Text text={@busiest} text_size={13} font_weight="semibold" text_color={:on_surface} />
+      <Spacer size={12} />
+      <Row fill_width={true} height={56} align="bottom">
+        {@bars}
+      </Row>
+      <Spacer size={10} />
+      <Row fill_width={true} align="center">
+        {@labels}
+      </Row>
+    </Column>
+    """)
+  end
+
+  @doc """
+  The titles watched most this year, with how many times.
+  """
+  def top_titles([]), do: ~MOB"<Spacer size={0} />"
+
+  def top_titles(top) do
+    most = top |> Enum.map(&elem(&1, 1)) |> Enum.max(fn -> 1 end)
+
+    rows =
+      top
+      |> Enum.with_index(1)
+      |> Enum.map(fn {{title, n}, rank} -> Kati.Screens.Stats.top_row(rank, title, n, most) end)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow(gettext("Watched most"), dash: Palette.rail_idle())}
+      {Kati.Screens.Stats.chart_card(rows)}
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def top_row(rank, title, n, most) do
+    assigns = %{
+      rank: Kati.Locale.number(rank),
+      title: title,
+      n: Kati.Locale.number(n),
+      fill: n / most,
+      rest: 1 - n / most
+    }
+
+    ~MOB"""
+    <Column fill_width={true} padding_top={5} padding_bottom={5}>
+      <Row fill_width={true} align="center">
+        <Text text={@rank} text_size={12} font_weight="bold" text_color={Palette.muted()} />
+        <Spacer size={10} />
+        <Text
+          text={@title}
+          text_size={13.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+          weight={1.0}
+        />
+        <Text text={@n} text_size={12.5} font_weight="bold" text_color={Palette.ink_soft()} />
+      </Row>
+      <Spacer size={6} />
+      <Row fill_width={true} height={5} corner_radius={3} background={Palette.track()}>
+        <Box weight={@fill} height={5} corner_radius={3} background={Palette.accent()} />
+        <Spacer weight={@rest} />
+      </Row>
+    </Column>
     """
   end
 

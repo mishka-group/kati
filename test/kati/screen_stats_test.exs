@@ -110,7 +110,7 @@ defmodule Kati.ScreenStatsTest do
       # *این هفته* card over seven days and board 07 did not, so the card was
       # built rather than retired — the data was already here, because the
       # contribution grid above it counts the same watches over 182 days.
-      assert Enum.sort(Keyword.keys(figures)) == [:grid, :range, :recent, :week, :year]
+      assert Enum.sort(Keyword.keys(figures)) == [:dash, :grid, :range, :recent, :week, :year]
 
       # The drawing's own field list, plus the pill's arrow — a state
       # `Kati.Stats.Sample` has no field for and the screen has to derive. A line
@@ -497,5 +497,32 @@ defmodule Kati.ScreenStatsTest do
       Map.merge(%{tracked_title_id: tracked.id}, attrs)
     )
     |> Ash.create!()
+  end
+
+  describe "the year in charts" do
+    test "counts each month, each kind, each weekday and the most watched" do
+      today = ~D[2026-10-05]
+
+      entries = [
+        %{on: ~D[2026-01-05], kind: :movie, film?: true, tracked_id: "a", title: "Arrival"},
+        %{on: ~D[2026-10-05], kind: :tv, film?: false, tracked_id: "b", title: "Dark"},
+        %{on: ~D[2026-10-06], kind: :tv, film?: false, tracked_id: "b", title: "Dark"},
+        %{on: ~D[2026-10-07], kind: :anime, film?: false, tracked_id: "c", title: "Mushishi"},
+        %{on: ~D[2025-10-05], kind: :tv, film?: false, tracked_id: "b", title: "Dark"}
+      ]
+
+      dash = Kati.Screens.Stats.dashboard(entries, today)
+
+      assert Enum.at(dash.months, 0) == {1, 1}
+      assert Enum.at(dash.months, 9) == {10, 3}
+      assert dash.this_month == 10
+      assert Enum.map(dash.split, &elem(&1, 1)) == [1, 2, 1]
+      assert {1, 2} in dash.weekdays
+      assert hd(dash.top) == {"Dark", 2}
+
+      words = inspect(Kati.Screens.Stats.year_charts(dash), limit: :infinity)
+      assert words =~ "MONTH BY MONTH"
+      assert words =~ "WATCHED MOST"
+    end
   end
 end
