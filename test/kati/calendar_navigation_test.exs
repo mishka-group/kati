@@ -73,14 +73,14 @@ defmodule Kati.CalendarNavigationTest do
                for(%{type: :scroll, props: %{pager: true}} = n <- flatten(view), do: n)
 
       assert {_pid, :week_page} = pager.on_change
-      assert pager.page == 1
-      view = render_info(view, {:change, :week_page, "0"})
+      assert pager.page == 2
+      view = render_info(view, {:change, :week_page, "-1"})
       assert assigns(view).week == today
     end
 
     test "sliding the strip shows another week and leaves the selected day alone" do
       today = Kati.Time.today()
-      view = mount_screen(Calendar) |> render_info({:change, :week_page, "2"})
+      view = mount_screen(Calendar) |> render_info({:change, :week_page, "1"})
 
       assert assigns(view).date == today
       assert SelectedDate.get() == today
@@ -92,7 +92,7 @@ defmodule Kati.CalendarNavigationTest do
       assert assigns(view).date == next
       assert assigns(view).week == nil
 
-      view = render_info(view, {:change, :week_page, "0"}) |> render_info({:tap, :today})
+      view = render_info(view, {:change, :week_page, "-1"}) |> render_info({:tap, :today})
       assert assigns(view).date == today
       assert assigns(view).week == nil
     end

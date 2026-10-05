@@ -133,8 +133,8 @@ defmodule Kati.Screens.Calendar do
     {:noreply, Kati.Screens.Calendar.step(socket, step)}
   end
 
-  # The week strip is a pager: the week follows the finger, and the page it
-  # settles on is the week before (0) or after (2) the one at rest (1).
+  # The week strip is a pager: the week follows the finger, and each settle
+  # says how many weeks it moved.
   def handle_info({:change, :week_page, page}, socket) do
     {:noreply, Kati.Screens.Calendar.browse(socket, Kati.Screens.Calendar.week_turn(page))}
   end
@@ -716,18 +716,17 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc """
-  The strip as three pages — the week before the one on show, that week, and
-  the week after — resting on the middle one. Only `selected` is drawn in
-  ink, wherever it falls. `page_key` is the week on show, so once a turn lands
-  the pager is rebuilt on the middle page showing the week it had already
-  slid to.
+  The strip as five pages — two weeks either side of the one on show — resting
+  on the middle one, so a second quick slide still has a week to land on
+  before the strip is redrawn. Only `selected` is drawn in ink, wherever it
+  falls. `page_key` is the week on show, so once a turn lands the pager is
+  rebuilt on the middle page showing the week it had already slid to.
   """
   def week_pager(shown, selected \\ nil) do
     selected = selected || shown
 
     assigns = %{
-      pages:
-        Enum.map([-7, 0, 7], &Kati.Screens.Calendar.day_strip(Date.add(shown, &1), selected)),
+      pages: Enum.map(-2..2, &Kati.Screens.Calendar.day_strip(Date.add(shown, &1 * 7), selected)),
       key: Date.to_iso8601(shown),
       change: {self(), :week_page}
     }
@@ -736,7 +735,7 @@ defmodule Kati.Screens.Calendar do
     <Scroll
       axis="horizontal"
       pager={true}
-      page={1}
+      page={2}
       page_key={@key}
       fill_width={true}
       accessibility_id="week_strip"
@@ -748,19 +747,25 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc """
-  The days a settled week page moves the calendar.
+  The days a settle of the week strip moves the calendar: the pager sends how
+  many pages it moved, either way.
 
-      iex> Kati.Screens.Calendar.week_turn("2")
-      7
-      iex> Kati.Screens.Calendar.week_turn("0")
-      -7
       iex> Kati.Screens.Calendar.week_turn("1")
+      7
+      iex> Kati.Screens.Calendar.week_turn("-2")
+      -14
+      iex> Kati.Screens.Calendar.week_turn("0")
+      0
+      iex> Kati.Screens.Calendar.week_turn("x")
       0
   """
   @spec week_turn(String.t()) :: integer()
-  def week_turn("0"), do: -7
-  def week_turn("2"), do: 7
-  def week_turn(_rest), do: 0
+  def week_turn(pages) do
+    case Integer.parse(pages) do
+      {n, ""} when n in -4..4 -> n * 7
+      _other -> 0
+    end
+  end
 
   @doc false
   def rule,

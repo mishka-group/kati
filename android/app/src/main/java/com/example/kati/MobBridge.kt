@@ -102,6 +102,7 @@ import androidx.compose.foundation.horizontalScroll
 // KATI-BEGIN(K-75 pager-import) mob_new=0.6.3
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import kotlinx.coroutines.flow.first
 // KATI-END(K-75 pager-import)
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -4393,30 +4394,50 @@ private data class MobScrollHandlers(
 // the page shown at rest; `page_key` re-creates the pager at `page` when it
 // changes, so a screen that recentres after a turn lands without a jump.
 // `page_spacing` is the gap between pages, in dp, seen only mid-turn.
-// `on_change` hears the settled page's index as a string.
+// `on_change` hears how many pages each settle moved, as a signed string.
+//
+// A new tree is taken only once the pager is at rest. A screen that recentres
+// after a turn would otherwise rebuild the pager under a second slide that had
+// already begun, and the slide would be lost. Pages counted from the last
+// settle add up across slides made before the redraw, so the screen's sum
+// matches the page the finger left the pager on.
 @Composable
 private fun KatiPager(node: MobNode, modifier: Modifier) {
-    val count = node.children.size
-    val start = (intProp(node.props, "page") ?: 0).coerceIn(0, maxOf(count - 1, 0))
-    val pageKey = node.props["page_key"]?.toString() ?: ""
-    val spacing = (floatProp(node.props, "page_spacing") ?: 0f).dp
-    val changeH by rememberUpdatedState(intProp(node.props, "on_change"))
-    key(MobBridge.LocalSlotEpoch.current, pageKey) {
-        val state = rememberPagerState(initialPage = start) { count }
-        LaunchedEffect(state) {
-            snapshotFlow { state.settledPage }.drop(1).collect { page ->
-                if (page != start) changeH?.let { MobBridge.nativeSendChangeStr(it, page.toString()) }
+    key(MobBridge.LocalSlotEpoch.current) {
+        var shown by remember { mutableStateOf(node) }
+        val latest by rememberUpdatedState(node)
+        val count = shown.children.size
+        val start = (intProp(shown.props, "page") ?: 0).coerceIn(0, maxOf(count - 1, 0))
+        val pageKey = shown.props["page_key"]?.toString() ?: ""
+        val spacing = (floatProp(shown.props, "page_spacing") ?: 0f).dp
+        val changeH by rememberUpdatedState(intProp(node.props, "on_change"))
+        key(pageKey) {
+            val state = rememberPagerState(initialPage = start) { count }
+            LaunchedEffect(state) {
+                var last = start
+                snapshotFlow { state.settledPage }.drop(1).collect { page ->
+                    if (page != last) {
+                        changeH?.let { MobBridge.nativeSendChangeStr(it, (page - last).toString()) }
+                        last = page
+                    }
+                }
             }
-        }
-        HorizontalPager(
-            state = state,
-            modifier = modifier,
-            pageSpacing = spacing,
-            verticalAlignment = Alignment.Top,
-            beyondViewportPageCount = 1,
-            key = { it }
-        ) { page ->
-            RenderNode(node.children[page])
+            LaunchedEffect(state, node) {
+                if (latest !== shown) {
+                    snapshotFlow { state.isScrollInProgress }.first { !it }
+                    shown = latest
+                }
+            }
+            HorizontalPager(
+                state = state,
+                modifier = modifier,
+                pageSpacing = spacing,
+                verticalAlignment = Alignment.Top,
+                beyondViewportPageCount = 1,
+                key = { it }
+            ) { page ->
+                shown.children.getOrNull(page)?.let { RenderNode(it) }
+            }
         }
     }
 }
