@@ -201,7 +201,8 @@ defmodule Kati.Calendars.Today do
       # both scripts — the design's own choice — and what changes is the
       # numerals. Board 56's gutter reads ۰۸:۰۰, which is why its mirror
       # digited this by hand on the way past.
-      time: Kati.Locale.time(local),
+      # An all-day event has no hour to show; midnight would be a false one.
+      time: if(event.is_all_day, do: gettext("All day"), else: Kati.Locale.time(local)),
       at: event.dtstart_utc,
       title: event.summary || gettext("Untitled"),
       # The event's own kind, uncollapsed. `:reminder` and `:event` share a
