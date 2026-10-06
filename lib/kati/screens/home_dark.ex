@@ -148,7 +148,6 @@ defmodule Kati.Screens.HomeDark do
   use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
-  alias Kati.Calendars.Today
   alias Kati.Components.MishkaProgress
   alias Kati.Screens.HomeDark.Sample
 
@@ -167,7 +166,7 @@ defmodule Kati.Screens.HomeDark do
 
     # The spine first, the gate after — `Kati.Screens.Home.mount/3`'s order and
     # its moduledoc's warning about doing the second half alone.
-    timeline = Today.rows()
+    timeline = Kati.Screens.Home.rest_of_today_rows()
 
     socket
     |> Mob.Socket.assign(:moment, Sample.moment())

@@ -180,7 +180,7 @@ defmodule Kati.Screens.Home do
 
   @impl true
   def load(socket) do
-    timeline = Kati.Calendars.Today.rows()
+    timeline = Kati.Screens.Home.rest_of_today_rows()
 
     socket
     |> Mob.Socket.assign(:timeline, timeline)
@@ -1550,9 +1550,27 @@ defmodule Kati.Screens.Home do
     """
   end
 
+  @doc """
+  Today on the calendar: the day's events, episode airings, film releases and
+  money, shaped and ordered as screen 02 shapes them, so Home and the Schedule
+  never disagree about what is on today.
+  """
+  @spec rest_of_today_rows() :: [map()]
+  def rest_of_today_rows do
+    Kati.Screens.Calendar.day_rows(Kati.Time.today())
+  rescue
+    _error -> []
+  end
+
   @doc false
   def timeline_row(row, rule?) do
-    accent = if row.now?, do: Palette.accent(), else: Palette.rail_idle()
+    # The rail says what the row is — Screen, Personal or Money — in screen
+    # 02's colours, and turns orange for what is on now.
+    accent =
+      if row.now?,
+        do: Palette.accent(),
+        else: row |> Kati.Screens.Calendar.section() |> Kati.Screens.Calendar.section_color()
+
     icon = if row.now?, do: "notifications_active", else: "radio_button_unchecked"
 
     # Screen 02 draws these rows and opens them, off the same

@@ -2171,10 +2171,10 @@ defmodule Kati.Screens.Library do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
 
   def handle_tap(:shelf_Books, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Books)}
 
   def handle_tap(:shelf_Music, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Music)}
 
   def handle_tap(:more_titles, socket), do: {:noreply, Kati.Screens.Library.more(socket)}
 
@@ -2194,10 +2194,10 @@ defmodule Kati.Screens.Library do
       # the shelf the reader is already looking at, which is what
       # `Kati.ScreenTapSweepTest` files it as.
       "shelf_books" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+        {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Books)}
 
       "shelf_music" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+        {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Music)}
 
       "shelf_" <> _screen ->
         {:noreply, socket}

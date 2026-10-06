@@ -83,7 +83,7 @@ defmodule Kati.BooksByHandTest do
           |> render_info({:tap, :shelf_books})
         end)
 
-      assert pushed(view) == {:push, Books, %{}}
+      assert {:reset, Books, _params, _transition} = pushed(view)
     end
 
     test "69 is still reachable — from the shelf's covers, where a detail is reached from" do

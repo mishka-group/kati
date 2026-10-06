@@ -1134,12 +1134,9 @@ defmodule Kati.Screens.Books do
   all, so a reader who came Screen → Books was stuck with one way back and no
   way across. That is the shape of a tab that does not work.
 
-  **Push, and `:open_screen` above still resets** — the asymmetry is the
-  difference between a peer and a root. `Kati.Screens.Library` is a dock root
-  and these two are pushed from it, so returning to Screen has to reset the
-  stack or the dock would sit under a pushed page; crossing to Music pushes,
-  which is exactly what 03's own `shelf_Music` does. One rule read off the
-  screen that already had it, rather than a second rule invented here.
+  **Every segment resets**: Screen, Books and Music are three tabs of one
+  shelf, so moving between them swaps the page in place, with the root's
+  quick fade, rather than pushing one over another with a slide.
 
   Search is `Kati.Screens.Search` — the same screen 03's disc opens — and sort
   is `Kati.Screens.ShelfFilters`, whose board is 145 and whose caption is *one
@@ -1171,7 +1168,7 @@ defmodule Kati.Screens.Books do
   moves to it and comes out of this menu*, and 03 has had the disc all along.
   """
   def handle_tap(:open_music, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Music)}
 
   def handle_tap(:open_books, socket), do: {:noreply, socket}
 

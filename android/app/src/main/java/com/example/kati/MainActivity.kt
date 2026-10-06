@@ -21,6 +21,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+// KATI-BEGIN(K-77 nav-motion-import) mob_new=0.6.3
+import androidx.compose.animation.core.FastOutSlowInEasing
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+// KATI-END(K-77 nav-motion-import)
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -657,7 +662,23 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MobNavHost(state: RootState) {
     var containerWidth by remember { mutableIntStateOf(0) }
-    val offset = remember { Animatable(0f) }
+    // KATI-BEGIN(K-77 nav-motion) mob_new=0.6.3
+    // The page starts where its animation starts, in the very frame it is
+    // first drawn. `remember(navKey)` builds the animatables during the
+    // composition that swaps the tree in, so the new page is never painted at
+    // rest for one frame before the effect moves it — the flash of a page
+    // "jumping" on every push and pop. A push or pop is a short fade with a
+    // small slide (the incoming page cannot be laid over the outgoing one, see
+    // above, so a full-width slide crossed an empty background); a root
+    // switch is a quicker fade.
+    val navDirection = when (state.transition) {
+        "push" -> 1f
+        "pop" -> -1f
+        else -> 0f
+    }
+    val offset = remember(state.navKey) { Animatable(navDirection) }
+    val enter = remember(state.navKey) { Animatable(if (state.navKey == 0) 1f else 0f) }
+    // KATI-END(K-77 nav-motion)
     // KATI-BEGIN(K-72 display-fade) mob_new=0.6.3
     // Reduce motion: a page change fades in where it would slide. The root
     // node's `reduce_motion` is Kati's own switch (`Kati.Accessibility`);
@@ -686,15 +707,13 @@ private fun MobNavHost(state: RootState) {
         // known yet.
         if (containerWidth <= 0) {
             offset.snapTo(0f)
+            // KATI-BEGIN(K-77 nav-motion-rest) mob_new=0.6.3
+            enter.snapTo(1f)
+            // KATI-END(K-77 nav-motion-rest)
             return@LaunchedEffect
         }
 
-        val width = containerWidth.toFloat()
-        val from = when (state.transition) {
-            "push" -> width
-            "pop" -> -width
-            else -> 0f
-        }
+        val from = navDirection
 
         // KATI-BEGIN(K-72 display-fade-run) mob_new=0.6.3
         val reduce = (state.node?.props?.get("reduce_motion") as? String) == "reduce" ||
@@ -709,15 +728,25 @@ private fun MobNavHost(state: RootState) {
             // No slide for a reset or a first mount, but the offset still has
             // to be returned to rest in case a previous slide was interrupted.
             offset.snapTo(0f)
+            // KATI-BEGIN(K-77 nav-motion-reset) mob_new=0.6.3
+            enter.animateTo(1f, tween(durationMillis = 140))
+            // KATI-END(K-77 nav-motion-reset)
         // KATI-BEGIN(K-72 display-fade-swap) mob_new=0.6.3
         } else if (reduce) {
             offset.snapTo(0f)
             fade.snapTo(0f)
+            // KATI-BEGIN(K-77 nav-motion-reduce) mob_new=0.6.3
+            enter.snapTo(1f)
+            // KATI-END(K-77 nav-motion-reduce)
             fade.animateTo(1f, tween(durationMillis = 180))
         // KATI-END(K-72 display-fade-swap)
         } else {
-            offset.snapTo(from)
-            offset.animateTo(0f, tween(durationMillis = 300))
+            // KATI-BEGIN(K-77 nav-motion-run) mob_new=0.6.3
+            coroutineScope {
+                launch { offset.animateTo(0f, tween(durationMillis = 240, easing = FastOutSlowInEasing)) }
+                launch { enter.animateTo(1f, tween(durationMillis = 200)) }
+            }
+            // KATI-END(K-77 nav-motion-run)
         }
     }
 
@@ -743,7 +772,13 @@ private fun MobNavHost(state: RootState) {
         // layout invalidation at all, which on a performance ticket is the
         // difference worth having.
         // KATI-BEGIN(K-72 display-fade-layer) mob_new=0.6.3
-        Box(Modifier.fillMaxSize().graphicsLayer { translationX = offset.value; alpha = fade.value }) {
+        // KATI-BEGIN(K-77 nav-motion-layer) mob_new=0.6.3
+        // A sixth of the width: enough to say which way the page came from.
+        Box(Modifier.fillMaxSize().graphicsLayer {
+            translationX = offset.value * containerWidth * 0.16f
+            alpha = fade.value * enter.value
+        }) {
+        // KATI-END(K-77 nav-motion-layer)
         // KATI-END(K-72 display-fade-layer)
             // Rendered straight from `state`, exactly as the AnimatedContent
             // version was. Routing it through a state variable set by a

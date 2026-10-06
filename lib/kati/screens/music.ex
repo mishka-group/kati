@@ -1093,13 +1093,11 @@ defmodule Kati.Screens.Music do
   times, and only 03 answered all of it. From here **Books** did nothing, so
   Screen → Music → Books was not a journey a reader could make.
 
-  Push, while `:segment_screen` above resets: `Kati.Screens.Library` is a dock
-  root and this screen is pushed from it, so returning to Screen has to reset
-  the stack while crossing to Books pushes — which is what 03's own
-  `shelf_Books` does.
+  Every segment resets, as on `Kati.Screens.Books`: the three shelves are
+  tabs, so a switch swaps the page in place rather than pushing.
   """
   def handle_tap(:segment_books, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Books)}
 
   def handle_tap(:segment_music, socket), do: {:noreply, socket}
 
