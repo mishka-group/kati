@@ -234,6 +234,60 @@ defmodule Kati.QuickAddTest do
     end
   end
 
+  describe "picking when, and what each chip saves" do
+    test "a day and an hour picked from the chips make the sentence saveable" do
+      socket = typed("watch silo s1e2")
+      assert socket.assigns.draft.on_commit == nil
+
+      tomorrow = Date.add(Kati.Time.today(), 1)
+
+      {:noreply, socket} =
+        QuickAdd.handle_info(
+          {:tap, String.to_atom("pick_day_" <> Date.to_iso8601(tomorrow))},
+          socket
+        )
+
+      {:noreply, socket} = QuickAdd.handle_info({:tap, :pick_time_2000}, socket)
+
+      assert socket.assigns.draft.read.date == tomorrow
+      assert socket.assigns.draft.read.time == ~T[20:00:00]
+      assert socket.assigns.draft.on_commit
+
+      {:noreply, _} = QuickAdd.handle_info({:tap, :commit}, socket)
+
+      assert [%{summary: "Watch silo s1e2", dtstart_date: ^tomorrow, is_all_day: false}] =
+               quick_events()
+    end
+
+    test "Reminder rings at its time" do
+      socket = typed("call mum tomorrow 6pm")
+      {:noreply, socket} = QuickAdd.handle_info({:tap, :file_as_reminder}, socket)
+      {:noreply, _} = QuickAdd.handle_info({:tap, :commit}, socket)
+
+      assert [%{kind: :reminder, alarm_minutes: 0}] = quick_events()
+    end
+
+    test "Habit repeats every day" do
+      socket = typed("stretch tomorrow 7am")
+      {:noreply, socket} = QuickAdd.handle_info({:tap, :file_as_habit}, socket)
+      {:noreply, _} = QuickAdd.handle_info({:tap, :commit}, socket)
+
+      assert [%{kind: :habit, rrule: "FREQ=DAILY"}] = quick_events()
+    end
+
+    test "Note needs no day and is kept on today" do
+      socket = typed("idea for the weekend")
+      assert socket.assigns.draft.on_commit == nil
+
+      {:noreply, socket} = QuickAdd.handle_info({:tap, :file_as_note}, socket)
+      assert socket.assigns.draft.on_commit
+
+      {:noreply, _} = QuickAdd.handle_info({:tap, :commit}, socket)
+      today = Kati.Time.today()
+      assert [%{kind: :note, dtstart_date: ^today}] = quick_events()
+    end
+  end
+
   defp typed(sentence) do
     {:ok, socket} = QuickAdd.mount(%{}, %{}, Mob.Socket.new(QuickAdd))
 

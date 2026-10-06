@@ -109,7 +109,9 @@ defmodule Kati.Screens.QuickAdd do
      |> Mob.Socket.assign(:filed_as, if(tracked_id, do: :title, else: :event))
      |> Mob.Socket.assign(:tracked_id, tracked_id)
      |> Mob.Socket.assign(:sentence_epoch, if(sentence == "", do: 0, else: 1))
-     |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(sentence))}
+     |> Mob.Socket.assign(:picked_date, nil)
+     |> Mob.Socket.assign(:picked_time, nil)
+     |> Kati.Screens.QuickAdd.redraft()}
   end
 
   @doc """
@@ -119,11 +121,11 @@ defmodule Kati.Screens.QuickAdd do
   button that says what is missing — never board 18's own sentence, which
   showed a dentist appointment and a clash nobody had.
   """
-  @spec draft(String.t()) :: map()
-  def draft(sentence) when is_binary(sentence) do
+  @spec draft(String.t(), map()) :: map()
+  def draft(sentence, picks \\ %{}) when is_binary(sentence) do
     case String.trim(sentence) do
       "" -> Kati.Screens.QuickAdd.empty_draft()
-      typed -> Kati.Screens.QuickAdd.read_draft(typed)
+      typed -> Kati.Screens.QuickAdd.read_draft(typed, picks)
     end
   end
 
@@ -156,11 +158,32 @@ defmodule Kati.Screens.QuickAdd do
     }
   end
 
+  @doc """
+  The draft again from what is on the socket: the sentence, the day and hour
+  picked from the chips, and the chip the sentence is filed as.
+  """
+  @spec redraft(Mob.Socket.t()) :: Mob.Socket.t()
+  def redraft(socket) do
+    a = socket.assigns
+
+    picks = %{
+      date: Map.get(a, :picked_date),
+      time: Map.get(a, :picked_time),
+      filed_as: Map.get(a, :filed_as, :event)
+    }
+
+    Mob.Socket.assign(
+      socket,
+      :draft,
+      Kati.Screens.QuickAdd.draft(Map.get(a, :sentence, ""), picks)
+    )
+  end
+
   @doc false
-  @spec read_draft(String.t()) :: map()
-  def read_draft(typed) do
+  @spec read_draft(String.t(), map()) :: map()
+  def read_draft(typed, picks \\ %{}) do
     today = Kati.Time.today()
-    read = Kati.QuickAdd.Parse.read(typed, today)
+    read = Kati.Screens.QuickAdd.picked(Kati.QuickAdd.Parse.read(typed, today), picks, today)
 
     %{
       query: Kati.Screens.QuickAdd.echo(typed, read.spans),
@@ -177,6 +200,30 @@ defmodule Kati.Screens.QuickAdd do
       # rather than broken — and the button says what is missing.
       on_commit: if(Kati.QuickAdd.Parse.committable?(read), do: {self(), :commit})
     }
+  end
+
+  @doc """
+  The parse with the day and hour chosen from the chips laid over it, and a
+  Note — which needs no day — filed on today.
+
+      iex> read = %{title: "Call mum", date: nil, time: nil}
+      iex> Kati.Screens.QuickAdd.picked(read, %{date: ~D[2026-10-07], time: ~T[20:00:00]}, ~D[2026-10-06])
+      %{title: "Call mum", date: ~D[2026-10-07], time: ~T[20:00:00]}
+      iex> Kati.Screens.QuickAdd.picked(read, %{filed_as: :note}, ~D[2026-10-06]).date
+      ~D[2026-10-06]
+  """
+  @spec picked(map(), map(), Date.t()) :: map()
+  def picked(read, picks, today) do
+    read = %{
+      read
+      | date: Map.get(picks, :date) || read.date,
+        time:
+          if(Map.get(picks, :time) == :all_day, do: nil, else: Map.get(picks, :time) || read.time)
+    }
+
+    if Map.get(picks, :filed_as) == :note and is_nil(read.date),
+      do: %{read | date: today},
+      else: read
   end
 
   @doc """
@@ -349,10 +396,10 @@ defmodule Kati.Screens.QuickAdd do
         >
           {Kati.Screens.QuickAdd.header()}
           {Kati.Screens.QuickAdd.input(sentence, Map.get(assigns, :sentence_epoch, 0))}
-          {Kati.Screens.QuickAdd.field(draft)}
           {Kati.Screens.QuickAdd.refusal(save_error)}
           {UI.eyebrow(gettext("Kati read that as"))}
           {Kati.Screens.QuickAdd.parsed(draft)}
+          {Kati.Screens.QuickAdd.when_picker(assigns)}
           {UI.eyebrow(gettext("Or file it as"))}
           {Kati.Screens.QuickAdd.kinds(draft, Map.get(assigns, :filed_as, :event))}
           {Kati.Screens.QuickAdd.title_picker(assigns)}
@@ -454,7 +501,7 @@ defmodule Kati.Screens.QuickAdd do
     {:noreply,
      socket
      |> Mob.Socket.assign(:sentence, typed)
-     |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(typed))
+     |> Kati.Screens.QuickAdd.redraft()
      |> Mob.Socket.assign(:save_error, nil)}
   end
 
@@ -515,6 +562,25 @@ defmodule Kati.Screens.QuickAdd do
       "file_as_" <> label ->
         {:noreply, Kati.Screens.QuickAdd.file_as(socket, label)}
 
+      "pick_day_" <> iso ->
+        date = Date.from_iso8601!(iso)
+        picked = if socket.assigns[:picked_date] == date, do: nil, else: date
+
+        {:noreply,
+         socket |> Mob.Socket.assign(:picked_date, picked) |> Kati.Screens.QuickAdd.redraft()}
+
+      "pick_time_allday" ->
+        {:noreply,
+         socket |> Mob.Socket.assign(:picked_time, :all_day) |> Kati.Screens.QuickAdd.redraft()}
+
+      "pick_time_" <> hhmm ->
+        {hour, ""} = Integer.parse(String.slice(hhmm, 0, 2))
+
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:picked_time, Time.new!(hour, 0, 0))
+         |> Kati.Screens.QuickAdd.redraft()}
+
       "pick_title_" <> id ->
         picked = if socket.assigns[:tracked_id] == id, do: nil, else: id
         {:noreply, Mob.Socket.assign(socket, :tracked_id, picked)}
@@ -546,9 +612,16 @@ defmodule Kati.Screens.QuickAdd do
   @spec file_as(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def file_as(socket, label) do
     case Kati.Screens.QuickAdd.filing(String.capitalize(label)) do
-      nil -> socket
-      :title -> Mob.Socket.assign(socket, :filed_as, :title)
-      kind -> Mob.Socket.assign(socket, filed_as: kind, tracked_id: nil)
+      nil ->
+        socket
+
+      :title ->
+        socket |> Mob.Socket.assign(:filed_as, :title) |> Kati.Screens.QuickAdd.redraft()
+
+      kind ->
+        socket
+        |> Mob.Socket.assign(filed_as: kind, tracked_id: nil)
+        |> Kati.Screens.QuickAdd.redraft()
     end
   end
 
@@ -562,7 +635,7 @@ defmodule Kati.Screens.QuickAdd do
         socket
         |> Mob.Socket.assign(:sentence, text)
         |> Mob.Socket.assign(:sentence_epoch, Map.get(socket.assigns, :sentence_epoch, 0) + 1)
-        |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(text))
+        |> Kati.Screens.QuickAdd.redraft()
         |> Mob.Socket.assign(:save_error, nil)
 
       {:error, _} ->
@@ -599,6 +672,73 @@ defmodule Kati.Screens.QuickAdd do
   rescue
     _error -> []
   end
+
+  @doc """
+  The day and the hour, picked rather than typed: the next week as chips, and
+  the usual hours. What is picked lies over what the sentence said, and a
+  sentence that already named both still shows which ones it named.
+  """
+  def when_picker(%{draft: %{read: %{} = read}} = assigns) do
+    if Map.get(assigns, :filed_as) == :note do
+      ~MOB"<Spacer size={0} />"
+    else
+      today = Kati.Time.today()
+
+      days =
+        for offset <- 0..6 do
+          date = Date.add(today, offset)
+
+          label =
+            case offset do
+              0 -> gettext("Today")
+              1 -> gettext("Tomorrow")
+              _ -> Kati.Screens.QuickAdd.weekday(date)
+            end
+
+          Kati.Screens.Rating.choice(
+            label,
+            "pick_day_" <> Date.to_iso8601(date),
+            read.date == date
+          )
+        end
+
+      times =
+        [
+          Kati.Screens.Rating.choice(
+            pgettext("quick add hour chip", "All day"),
+            "pick_time_allday",
+            read.date != nil and read.time == nil
+          )
+        ] ++
+          for hour <- [9, 12, 15, 18, 20, 21] do
+            time = Time.new!(hour, 0, 0)
+            hhmm = String.pad_leading(Integer.to_string(hour), 2, "0") <> "00"
+
+            Kati.Screens.Rating.choice(
+              Kati.Locale.time(time),
+              "pick_time_" <> hhmm,
+              read.time == time
+            )
+          end
+
+      assigns = %{
+        days: Kati.Screens.Rating.chip_slide(days, "when_days"),
+        times: Kati.Screens.Rating.chip_slide(times, "when_times")
+      }
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {UI.eyebrow(gettext("When"))}
+        {@days}
+        <Spacer size={10} />
+        {@times}
+        <Spacer size={22} />
+      </Column>
+      """
+    end
+  end
+
+  def when_picker(_assigns), do: ~MOB"<Spacer size={0} />"
 
   @doc """
   Under the chips while **Title** is lit: the shelf's titles that match, one
@@ -710,6 +850,8 @@ defmodule Kati.Screens.QuickAdd do
         # attribute — see `filing/1` — so the sentence is parsed once and filed
         # under whichever the reader picked.
         kind: if(filed_as == :title, do: :event, else: filed_as),
+        # A habit is every day from the day it starts.
+        rrule: if(filed_as == :habit, do: "FREQ=DAILY"),
         dtstart_utc: starts,
         dtstart_date: read.date,
         tzid: zone,
@@ -721,7 +863,8 @@ defmodule Kati.Screens.QuickAdd do
         # own *remind 1h before* is kept for any event — it used to be read
         # and dropped.
         tracked_title_id: tracked_id,
-        alarm_minutes: read.remind || if(tracked_id && read.time, do: 0)
+        alarm_minutes:
+          read.remind || if((tracked_id || filed_as == :reminder) && read.time, do: 0)
       }
       |> then(&Ash.create(Kati.Calendars.Event, &1))
       |> Kati.Write.note("quick add")

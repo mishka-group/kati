@@ -123,4 +123,34 @@ class ScheduleTest {
         kati.compose.waitUntil(20_000) { kati.present("schedule_watch") }
         assertEquals(null, eventColumn(id, "id"))
     }
+
+    @Test
+    fun c_a_day_and_an_hour_picked_from_the_chips_schedule_without_typing() {
+        val show = "Chips Show $stamp"
+        kati.launch()
+        kati.firstRun()
+        ByHand.add(kati, show, "kind_tv")
+        kati.awaitScreen("series")
+        val id = idOf(show)
+
+        kati.tap("schedule_watch")
+        kati.awaitScreen("quick_add")
+        kati.compose.waitUntil(10_000) { kati.present("when_days") }
+
+        val tomorrow = java.time.LocalDate.now().plusDays(1)
+        kati.tap("pick_day_$tomorrow")
+        kati.compose.waitUntil(10_000) { kati.present("pick_time_2000") }
+        kati.tap("pick_time_2000")
+        kati.compose.waitUntil(10_000) { kati.present("commit") }
+        Thread.sleep(1_000)
+        kati.device.waitForIdle()
+        kati.tap("commit")
+        kati.systemDialog("Allow")
+        kati.awaitScreen("series")
+
+        kati.compose.waitUntil(20_000) { eventColumn(id, "id") != null }
+        assertEquals(tomorrow.toString(), eventColumn(id, "dtstart_date"))
+        assertEquals("0", eventColumn(id, "is_all_day"))
+        assertEquals("0", eventColumn(id, "alarm_minutes"))
+    }
 }
