@@ -319,6 +319,7 @@ defmodule Kati.Screens.Day do
     <Column fill_width={true} padding_top={18}>
       {Kati.UI.eyebrow(gettext("All day"))}
       {Kati.Screens.MonthGrid.day_rows(rows)}
+      <Spacer size={18} />
     </Column>
     """
   end
@@ -662,7 +663,7 @@ defmodule Kati.Screens.Day do
         {Kati.Screens.Day.gutter(cluster)}
         {Kati.Screens.Day.lanes(cluster)}
       </Row>
-      <Spacer size={9} />
+      <Spacer size={14} />
     </Column>
     """
   end
