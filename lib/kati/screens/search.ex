@@ -613,6 +613,12 @@ defmodule Kati.Screens.Search do
          |> Kati.Screens.Search.commit()
          |> Kati.Screens.Search.open_hit(tag, Kati.Screens.Series)}
 
+      "open_album_" <> id ->
+        {:noreply,
+         socket
+         |> Kati.Screens.Search.commit()
+         |> Mob.Socket.push_screen(Kati.Screens.AlbumDetail, %{album_id: id})}
+
       # An episode hit opens the SERIES it belongs to, because that is where an
       # episode lives — screen 04's list is the running order, and Kati has no
       # episode page. `open_hit/2` needs no change: it re-runs `hit_tag/1` over
@@ -1561,7 +1567,15 @@ defmodule Kati.Screens.Search do
   """
   @spec visible_groups(map(), atom()) :: [{atom(), atom()}]
   def visible_groups(results, filter) do
-    [{:screen, :titles}, {:books, :books}, {:calendar, :calendar}, {:notes, :notes}]
+    [
+      {:screen, :titles},
+      {:books, :books},
+      {:music, :music},
+      {:calendar, :calendar},
+      {:meals, :meals},
+      {:money, :money},
+      {:notes, :notes}
+    ]
     |> Enum.filter(fn {scope, _key} -> filter == :all or filter == scope end)
     |> Enum.reject(fn {_scope, key} -> Kati.Screens.Search.blank?(results, key) end)
   end
@@ -1573,8 +1587,10 @@ defmodule Kati.Screens.Search do
   @doc "Whether a result set matched nothing at all."
   @spec empty?(map()) :: boolean()
   def empty?(results) do
-    (results.titles || []) == [] and (Map.get(results, :books) || []) == [] and
-      (results.calendar || []) == [] and (Map.get(results, :notes) || []) == []
+    Enum.all?(
+      [:titles, :books, :calendar, :notes, :music, :meals, :money],
+      &((Map.get(results, &1) || []) == [])
+    )
   end
 
   @doc """
@@ -2142,6 +2158,19 @@ defmodule Kati.Screens.Search do
   def body(results, :books), do: Kati.Screens.Search.books(results)
   def body(results, :calendar), do: Kati.Screens.Search.calendar(results)
   def body(results, :notes), do: Kati.Screens.Search.notes(results)
+  def body(results, key), do: Kati.Screens.Search.rows(Map.get(results, key) || [])
+
+  @doc "A group of plain hits: music, meals, money."
+  def rows(rows) do
+    assigns = %{rows: rows}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(@rows, fn row -> Kati.Screens.Search.title_row(row) end)}
+      <Spacer size={13} />
+    </Column>
+    """
+  end
 
   # `Kati.UI.eyebrow/2` with the accent dash marks the first, strongest group;
   # every group after it takes the drawing's muted #C4BDB3 dash.
@@ -2240,6 +2269,9 @@ defmodule Kati.Screens.Search do
 
       {kind, id} when kind in [:film, :series] and is_binary(id) ->
         Kati.Screens.Library.poster_tag(row)
+
+      {:album, id} when is_binary(id) ->
+        String.to_atom("open_album_" <> id)
 
       _no_door ->
         nil

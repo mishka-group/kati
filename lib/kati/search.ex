@@ -102,7 +102,7 @@ defmodule Kati.Search do
   # The scopes `Kati.Search.Query.run/1` actually builds a group for. Written
   # as labels rather than derived from `@narrowable`, because that list also
   # holds `All` — which is every group rather than a scope of its own.
-  @built [:screen, :books, :calendar, :notes]
+  @built [:screen, :books, :calendar, :notes, :music, :meals, :money]
 
   # Scripts where a single character is a word, and the minimum is therefore 1.
   # Ranges rather than a language list, because what matters is what was typed
@@ -409,7 +409,7 @@ defmodule Kati.Search do
   # `Books` joined on 6 September. A book used to be concatenated into the
   # Screen group, drawn under that heading, counted by that chip and given a
   # chevron that opened nothing.
-  @narrowable [:all, :screen, :books, :calendar, :notes]
+  @narrowable [:all, :screen, :books, :calendar, :notes, :music, :meals, :money]
 
   @doc """
   The scope screen 19 can narrow to, given one of the eight screen 86 offers.

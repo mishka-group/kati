@@ -72,19 +72,12 @@ defmodule Kati.SearchSuggestionsTest do
 
   describe "the scopes screens 86 and 88 draw" do
     test "say which of them a search actually looks in" do
-      # `@scopes` is the design's contract and is wider than the executor —
-      # Music, Meals and Money are searched by nothing. The list stays as the
-      # design's, and this is what lets a board say *not yet* instead of
-      # offering a choice `narrowable/1` silently turns into `All`.
-      assert Kati.Search.built?(:screen)
-      assert Kati.Search.built?(:books)
-      assert Kati.Search.built?(:calendar)
-      assert Kati.Search.built?(:notes)
-      assert Kati.Search.built?(:all)
-
-      refute Kati.Search.built?(:music)
-      refute Kati.Search.built?(:meals)
-      refute Kati.Search.built?(:money)
+      # Every scope the design draws is searched now: Music (albums and
+      # artists), Meals (recipes and logged meals) and Money (expenses) joined
+      # Screen, Books, Calendar and Notes.
+      for key <- [:all, :screen, :books, :calendar, :notes, :music, :meals, :money] do
+        assert Kati.Search.built?(key), "#{key} is not searched"
+      end
     end
 
     test "and a scope cannot be marked built without a group behind it" do
@@ -107,19 +100,15 @@ defmodule Kati.SearchSuggestionsTest do
       drawn =
         inspect(Kati.Screens.SearchSpec.scopes(), limit: :infinity, printable_limit: :infinity)
 
-      assert drawn =~ "NOT YET"
-
-      # Three of the seven, and no more: a `not yet` against a scope that IS
-      # built would be the same lie pointing the other way.
-      assert drawn |> String.split("NOT YET") |> length() == 4
+      # Every scope is searched, so none is marked *not yet*: a pill against a
+      # scope that IS built would be a lie.
+      refute drawn =~ "NOT YET"
     end
 
     test "and a built scope carries no pill" do
-      built = inspect(Kati.Screens.SearchSpec.state_pill(:screen), limit: :infinity)
-      unbuilt = inspect(Kati.Screens.SearchSpec.state_pill(:music), limit: :infinity)
-
-      refute built =~ "NOT YET"
-      assert unbuilt =~ "NOT YET"
+      for key <- [:screen, :music, :meals, :money] do
+        refute inspect(Kati.Screens.SearchSpec.state_pill(key), limit: :infinity) =~ "NOT YET"
+      end
     end
 
     test "screen 86 offers no chip it will then discard" do
@@ -132,13 +121,8 @@ defmodule Kati.SearchSuggestionsTest do
         assert drawn =~ label
       end
 
-      for built <- [:screen, :books, :calendar, :notes] do
+      for built <- [:screen, :books, :calendar, :notes, :music, :meals, :money] do
         assert drawn =~ "scope_#{built}", "#{built} has a group and lost its tap"
-      end
-
-      for unbuilt <- [:music, :meals, :money] do
-        refute drawn =~ "scope_#{unbuilt}",
-               "#{unbuilt} is still tappable and `narrowable/1` will turn it into All"
       end
     end
   end

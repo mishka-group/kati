@@ -65,10 +65,24 @@ defmodule Kati.Search.Query do
         books: books_for(query),
         calendar: calendar_for(query),
         notes: notes_for(query),
+        music: music_for(query),
+        meals: meals_for(query),
+        money: money_for(query),
         recent: []
       }
     else
-      %{query: query, idle?: true, titles: [], books: [], calendar: [], notes: [], recent: []}
+      %{
+        query: query,
+        idle?: true,
+        titles: [],
+        books: [],
+        calendar: [],
+        notes: [],
+        music: [],
+        meals: [],
+        money: [],
+        recent: []
+      }
     end
   end
 
@@ -111,7 +125,10 @@ defmodule Kati.Search.Query do
       screen: length(titles),
       books: length(books),
       calendar: length(calendar),
-      notes: length(notes)
+      notes: length(notes),
+      music: length(Map.get(results, :music) || []),
+      meals: length(Map.get(results, :meals) || []),
+      money: length(Map.get(results, :money) || [])
     }
 
     all = counted |> Map.values() |> Enum.sum()
@@ -382,6 +399,105 @@ defmodule Kati.Search.Query do
     )
     |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
     |> Enum.map(fn {tier, row} -> {tier, Map.get(row, :updated_at), book_row(row)} end)
+    |> Kati.Search.rank()
+  rescue
+    _error -> []
+  end
+
+  # Albums by title or note, and artists by name.
+  defp music_for(query) do
+    albums =
+      Kati.Music.Album
+      |> Ash.read!()
+      |> Enum.map(&{tier(query, &1.title || "", &1.note || ""), Map.get(&1, :updated_at), &1})
+      |> Enum.reject(fn {tier, _at, _row} -> is_nil(tier) end)
+      |> Enum.map(fn {tier, at, row} ->
+        {tier, at,
+         %{
+           title: row.title,
+           sub: pgettext("search hit kind", "Album"),
+           seed: nil,
+           kind: :album,
+           id: row.id
+         }}
+      end)
+
+    artists =
+      Kati.Music.Artist
+      |> Ash.read!()
+      |> Enum.map(&{tier(query, &1.name || "", ""), Map.get(&1, :updated_at), &1})
+      |> Enum.reject(fn {tier, _at, _row} -> is_nil(tier) end)
+      |> Enum.map(fn {tier, at, row} ->
+        {tier, at,
+         %{
+           title: row.name,
+           sub: pgettext("search hit kind", "Artist"),
+           seed: nil,
+           kind: :artist,
+           id: row.id
+         }}
+      end)
+
+    Kati.Search.rank(albums ++ artists)
+  rescue
+    _error -> []
+  end
+
+  # Recipes by title or note, and logged meals by what they were called.
+  defp meals_for(query) do
+    recipes =
+      Kati.Meals.Recipe
+      |> Ash.read!()
+      |> Enum.map(&{tier(query, &1.title || "", &1.note || ""), Map.get(&1, :updated_at), &1})
+      |> Enum.reject(fn {tier, _at, _row} -> is_nil(tier) end)
+      |> Enum.map(fn {tier, at, row} ->
+        {tier, at,
+         %{
+           title: row.title,
+           sub: pgettext("search hit kind", "Recipe"),
+           seed: nil,
+           kind: :recipe,
+           id: row.id
+         }}
+      end)
+
+    logs =
+      Kati.Meals.MealLog
+      |> Ash.read!()
+      |> Enum.map(&{tier(query, &1.title || "", &1.note || ""), Map.get(&1, :updated_at), &1})
+      |> Enum.reject(fn {tier, _at, _row} -> is_nil(tier) end)
+      |> Enum.map(fn {tier, at, row} ->
+        {tier, at,
+         %{
+           title: row.title,
+           sub: pgettext("search hit kind", "Meal"),
+           seed: nil,
+           kind: :meal,
+           id: row.id
+         }}
+      end)
+
+    Kati.Search.rank(recipes ++ logs)
+  rescue
+    _error -> []
+  end
+
+  # Expenses by what they were for.
+  defp money_for(query) do
+    Kati.Money.Expense
+    |> Ash.read!()
+    |> Enum.map(&{tier(query, &1.description || "", ""), Map.get(&1, :updated_at), &1})
+    |> Enum.reject(fn {tier, _at, _row} -> is_nil(tier) end)
+    |> Enum.map(fn {tier, at, row} ->
+      {tier, at,
+       %{
+         title: row.description,
+         sub: Kati.Locale.date(row.spent_on, :long),
+         seed: nil,
+         kind: :expense,
+         id: row.id
+       }}
+    end)
     |> Kati.Search.rank()
   rescue
     _error -> []
