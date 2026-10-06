@@ -695,7 +695,7 @@ defmodule Kati.Screens.QuickAdd do
               _ -> Kati.Screens.QuickAdd.weekday(date)
             end
 
-          Kati.Screens.Rating.choice(
+          Kati.Screens.QuickAdd.when_chip(
             label,
             "pick_day_" <> Date.to_iso8601(date),
             read.date == date
@@ -704,7 +704,7 @@ defmodule Kati.Screens.QuickAdd do
 
       times =
         [
-          Kati.Screens.Rating.choice(
+          Kati.Screens.QuickAdd.when_chip(
             pgettext("quick add hour chip", "All day"),
             "pick_time_allday",
             read.date != nil and read.time == nil
@@ -714,7 +714,7 @@ defmodule Kati.Screens.QuickAdd do
             time = Time.new!(hour, 0, 0)
             hhmm = String.pad_leading(Integer.to_string(hour), 2, "0") <> "00"
 
-            Kati.Screens.Rating.choice(
+            Kati.Screens.QuickAdd.when_chip(
               Kati.Locale.time(time),
               "pick_time_" <> hhmm,
               read.time == time
@@ -739,6 +739,30 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   def when_picker(_assigns), do: ~MOB"<Spacer size={0} />"
+
+  # A day or an hour. On this page the chips sit on the page itself rather
+  # than on a card, so an unpicked one is a card-white pill with a soft lift.
+  @doc false
+  def when_chip(label, tag, on?) do
+    lift = if(on?, do: [], else: [shadow: Kati.Theme.shadow_card_soft()])
+
+    Kati.Components.MishkaPill.pill(
+      [
+        label: label,
+        background: if(on?, do: Palette.ink_fill(), else: Palette.card()),
+        color: if(on?, do: Palette.on_ink(), else: Palette.ink_soft()),
+        height: 32,
+        corner_radius: 16,
+        padding: 0,
+        padding_left: 13,
+        padding_right: 13,
+        text_size: 12,
+        font_weight: :semibold,
+        align: :center,
+        on_tap: {self(), String.to_atom(tag)}
+      ] ++ lift
+    )
+  end
 
   @doc """
   Under the chips while **Title** is lit: the shelf's titles that match, one
