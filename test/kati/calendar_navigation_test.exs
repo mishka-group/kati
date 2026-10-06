@@ -248,4 +248,27 @@ defmodule Kati.CalendarNavigationTest do
       end
     end
   end
+
+  describe "the day page's chips" do
+    test "the whole day lights All, and an all-day row counts under its own kind" do
+      date = Kati.Time.today()
+
+      assigns = %{
+        occurrences: [%{kind: :event}],
+        all_day: [%{kind: "event"}, %{kind: "screen"}]
+      }
+
+      counts = Kati.Screens.Day.counts(assigns)
+      assert {"All", 3} in counts
+      assert {"Personal", 2} in counts
+      assert {"Screen", 1} in counts
+      assert Kati.Screens.Day.lit(counts, nil) == "All"
+
+      view = mount_screen(Kati.Screens.Day, %{date: date})
+      view = render_info(view, {:tap, :filter_Personal})
+      assert assigns(view).filter == "Personal"
+      view = render_info(view, {:tap, :filter_All})
+      assert assigns(view).filter == nil
+    end
+  end
 end

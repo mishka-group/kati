@@ -854,6 +854,8 @@ defmodule Kati.ScreenTapSweepTest do
     # something to narrow.
     {Kati.Screens.Weight, :range_month},
     {Kati.Screens.Library, :shelf_screen},
+    # The day page's All chip, lit while the whole day is showing.
+    {Kati.Screens.Day, :filter_All},
     # The same segment on the other two shelves. Screens 03, 20 and 21 draw one
     # control three times, and on each of them one segment is the shelf you are
     # already looking at. The other two now move — see

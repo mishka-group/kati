@@ -74,6 +74,7 @@ class DayPageTest {
 
         assertTrue("the timed row is only ${gap}dp below the all-day row", gap >= 40f)
         assertTrue("an all-day row reads All day, not a clock", ByHand.shown(kati, "All day"))
+        assertTrue("the whole day has an All chip", kati.present("filter_All"))
         assertTrue("an all-day row shows a midnight it does not have", !ByHand.shown(kati, "00:00"))
     }
 }

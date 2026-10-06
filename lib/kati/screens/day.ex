@@ -270,7 +270,7 @@ defmodule Kati.Screens.Day do
     # between a meeting and a renewal is not a clash once the renewals are
     # gone, and the lanes have to be recomputed to say so.
     clusters = clusters(visible(assigns.occurrences, filter), assigns.open_groups)
-    all_day = if filter in [nil, "Screen"], do: Map.get(assigns, :all_day, []), else: []
+    all_day = visible(Map.get(assigns, :all_day, []), filter)
 
     ~MOB"""
     <Scroll>
@@ -299,16 +299,10 @@ defmodule Kati.Screens.Day do
   """
   @spec counts(map()) :: [{String.t(), non_neg_integer()}]
   def counts(%{occurrences: occurrences} = assigns) do
-    tally =
-      occurrences
-      |> Enum.frequencies_by(&Kati.Screens.Day.bucket/1)
-      |> Map.update(
-        "Screen",
-        length(Map.get(assigns, :all_day, [])),
-        &(&1 + length(Map.get(assigns, :all_day, [])))
-      )
+    rows = occurrences ++ Map.get(assigns, :all_day, [])
+    tally = Enum.frequencies_by(rows, &Kati.Screens.Day.bucket/1)
 
-    for label <- @chips, do: {label, Map.get(tally, label, 0)}
+    [{"All", length(rows)} | for(label <- @chips, do: {label, Map.get(tally, label, 0)})]
   end
 
   @doc "The *All day* group above the timeline, or nothing when the day has none."
@@ -402,13 +396,7 @@ defmodule Kati.Screens.Day do
   `i == 0` did.
   """
   @spec lit([{String.t(), non_neg_integer()}], String.t() | nil) :: String.t() | nil
-  def lit(chips, nil) do
-    case chips do
-      [{first, _count} | _rest] -> first
-      [] -> nil
-    end
-  end
-
+  def lit(_chips, nil), do: "All"
   def lit(_chips, filter), do: filter
 
   @doc false
@@ -487,6 +475,7 @@ defmodule Kati.Screens.Day do
   anyway.
   """
   @spec chip_label(String.t()) :: String.t()
+  def chip_label("All"), do: gettext("All")
   def chip_label("Screen"), do: gettext("Screen")
   def chip_label("Personal"), do: gettext("Personal")
   def chip_label("Money"), do: gettext("Money")
@@ -557,10 +546,12 @@ defmodule Kati.Screens.Day do
   """
   @spec bucket(map()) :: String.t()
   def bucket(occurrence) do
+    tracked = Map.get(occurrence, :tracked_id) || Map.get(occurrence, :tracked_title_id)
+
     case Map.get(occurrence, :kind) do
-      :air_date -> "Screen"
-      :episode -> "Screen"
-      :money -> "Money"
+      _ when is_binary(tracked) -> "Screen"
+      kind when kind in [:air_date, :episode, "screen", "series", "film"] -> "Screen"
+      kind when kind in [:money, "money"] -> "Money"
       _ -> "Personal"
     end
   end
@@ -1512,7 +1503,7 @@ defmodule Kati.Screens.Day do
         {:noreply, Kati.Screens.Calendar.open_timeline_row(socket, tag, socket.assigns.date)}
 
       "filter_" <> label ->
-        filter = if socket.assigns.filter == label, do: nil, else: label
+        filter = if label == "All" or socket.assigns.filter == label, do: nil, else: label
         {:noreply, Mob.Socket.assign(socket, :filter, filter)}
 
       # Toggled by the tag itself, not by an index into the clusters: the

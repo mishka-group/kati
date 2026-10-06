@@ -135,6 +135,7 @@ msgstr "اطلاعات آلبوم و هنرمند، و تصویر جلد جای�
 #: lib/kati/library/sample.ex:192
 #: lib/kati/screens/anime_filter.ex:281
 #: lib/kati/screens/calendar.ex:861
+#: lib/kati/screens/day.ex:478
 #: lib/kati/screens/library.ex:1379
 #: lib/kati/screens/meal_library.ex:278
 #: lib/kati/screens/meals_day.ex:564
@@ -259,7 +260,7 @@ msgstr "صبحانه"
 msgid "Brunch"
 msgstr "صبحانه"
 
-#: lib/kati/calendars/today.ex:276
+#: lib/kati/calendars/today.ex:277
 #: lib/kati/language/page.ex:145
 #: lib/kati/notifications/inbox.ex:112
 #: lib/kati/screens/pushed.ex:187
@@ -699,7 +700,7 @@ msgstr "بساز و اضافه کن"
 msgid "Marram"
 msgstr "مرام"
 
-#: lib/kati/calendars/today.ex:273
+#: lib/kati/calendars/today.ex:274
 #: lib/kati/notifications/inbox.ex:115
 #: lib/kati/screens/home.ex:618
 #: lib/kati/screens/home_omitted_sections.ex:207
@@ -731,11 +732,11 @@ msgstr "سالمون میسو"
 msgid "Miso salmon, greens, rice"
 msgstr "سالمون میسو، سبزیجات، برنج"
 
-#: lib/kati/calendars/today.ex:275
+#: lib/kati/calendars/today.ex:276
 #: lib/kati/notifications/inbox.ex:117
 #: lib/kati/screens/calendar.ex:256
 #: lib/kati/screens/calendar.ex:864
-#: lib/kati/screens/day.ex:491
+#: lib/kati/screens/day.ex:481
 #: lib/kati/screens/home.ex:534
 #: lib/kati/screens/money_day.ex:363
 #: lib/kati/screens/my_services.ex:361
@@ -996,7 +997,7 @@ msgstr "ذخیره تصویر"
 #: lib/kati/screens/books.ex:539
 #: lib/kati/screens/calendar.ex:255
 #: lib/kati/screens/calendar.ex:862
-#: lib/kati/screens/day.ex:489
+#: lib/kati/screens/day.ex:479
 #: lib/kati/screens/home.ex:530
 #: lib/kati/screens/library.ex:1180
 #: lib/kati/screens/meals_day.ex:566
@@ -4278,12 +4279,12 @@ msgstr "تنظیمات سریال"
 
 #: lib/kati/calendars/airings.ex:218
 #: lib/kati/calendars/airings.ex:296
-#: lib/kati/calendars/today.ex:206
+#: lib/kati/calendars/today.ex:207
 #: lib/kati/screens/activity.ex:1293
 #: lib/kati/screens/activity.ex:1375
-#: lib/kati/screens/day.ex:1109
-#: lib/kati/screens/day.ex:1366
-#: lib/kati/screens/day.ex:1375
+#: lib/kati/screens/day.ex:1101
+#: lib/kati/screens/day.ex:1358
+#: lib/kati/screens/day.ex:1367
 #: lib/kati/screens/drop_sheet.ex:482
 #: lib/kati/screens/drop_sheet.ex:483
 #: lib/kati/screens/event_detail.ex:192
@@ -4868,7 +4869,7 @@ msgstr "%{from} – %{to}"
 
 #: lib/kati/screens/agenda.ex:96
 #: lib/kati/screens/calendar.ex:469
-#: lib/kati/screens/day.ex:608
+#: lib/kati/screens/day.ex:600
 #: lib/kati/screens/month_grid.ex:139
 #: lib/kati/screens/shopping.ex:154
 #: lib/kati/screens/shopping.ex:351
@@ -4901,7 +4902,7 @@ msgstr "هر چیزی را با + اضافه کنید"
 msgid "Agenda"
 msgstr "فهرست"
 
-#: lib/kati/calendars/today.ex:272
+#: lib/kati/calendars/today.ex:273
 #, elixir-autogen, elixir-format
 msgid "Airs today"
 msgstr "پخش امروز"
@@ -4933,7 +4934,7 @@ msgstr "نقشه‌کشان"
 msgid "Dentist — Marlow Clinic"
 msgstr "دندان‌پزشک — کلینیک مارلو"
 
-#: lib/kati/calendars/today.ex:274
+#: lib/kati/calendars/today.ex:275
 #, elixir-autogen, elixir-format
 msgid "Habit"
 msgstr "عادت"
@@ -4977,7 +4978,7 @@ msgstr "دویدن صبحگاهی"
 
 #: lib/kati/screens/agenda.ex:165
 #: lib/kati/screens/calendar.ex:990
-#: lib/kati/screens/day.ex:585
+#: lib/kati/screens/day.ex:577
 #: lib/kati/screens/month_grid.ex:133
 #: lib/kati/screens/month_grid.ex:462
 #: lib/kati/screens/week.ex:379
@@ -4989,7 +4990,7 @@ msgstr "چیزی برنامه‌ریزی نشده"
 #: lib/kati/screens/calendar.ex:863
 #: lib/kati/screens/calendars.ex:573
 #: lib/kati/screens/calendars.ex:590
-#: lib/kati/screens/day.ex:490
+#: lib/kati/screens/day.ex:480
 #: lib/kati/screens/meals_day.ex:567
 #: lib/kati/screens/money_day.ex:365
 #: lib/kati/screens/quick_add/sample.ex:193
@@ -7957,7 +7958,7 @@ msgstr[1] "%{n} ناهار"
 #: lib/kati/calendar/sample_meal_day.ex:78
 #: lib/kati/calendar/sample_meal_day.ex:254
 #: lib/kati/meals/sample_library.ex:167
-#: lib/kati/screens/day.ex:1400
+#: lib/kati/screens/day.ex:1392
 #: lib/kati/screens/meal_library.ex:389
 #: lib/kati/screens/meals_day.ex:173
 #: lib/kati/screens/search_result_states.ex:254
@@ -8076,8 +8077,9 @@ msgstr "فعال‌سازی"
 
 #: lib/kati/calendars/airings.ex:221
 #: lib/kati/calendars/airings.ex:299
+#: lib/kati/calendars/today.ex:205
 #: lib/kati/money/day_sample.ex:156
-#: lib/kati/screens/day.ex:318
+#: lib/kati/screens/day.ex:312
 #: lib/kati/screens/event_detail.ex:264
 #: lib/kati/screens/money_day.ex:442
 #: lib/kati/screens/week.ex:417
@@ -11014,7 +11016,7 @@ msgstr "%{kcal} کالری · %{protein}پ %{carbs}ک %{fat}چ"
 msgid "%{n} albums"
 msgstr "%{n} آلبوم"
 
-#: lib/kati/screens/day.ex:636
+#: lib/kati/screens/day.ex:628
 #, elixir-autogen, elixir-format
 msgid "%{n} at once"
 msgstr "%{n} هم‌زمان"
@@ -11033,7 +11035,7 @@ msgid_plural "%{n} changes"
 msgstr[0] "%{n} تغییر"
 msgstr[1] "%{n} تغییر"
 
-#: lib/kati/screens/day.ex:610
+#: lib/kati/screens/day.ex:602
 #, elixir-autogen, elixir-format
 msgid "%{n} clash"
 msgid_plural "%{n} clashes"
@@ -11048,7 +11050,7 @@ msgstr[0] "%{n} ویرایش"
 msgstr[1] "%{n} ویرایش"
 
 #: lib/kati/calendars/airings.ex:155
-#: lib/kati/screens/day.ex:1403
+#: lib/kati/screens/day.ex:1395
 #: lib/kati/screens/series.ex:832
 #: lib/kati/settings/detect_music_sample.ex:137
 #, elixir-autogen, elixir-format
@@ -11057,14 +11059,14 @@ msgid_plural "%{n} episodes"
 msgstr[0] "%{n} قسمت"
 msgstr[1] "%{n} قسمت"
 
-#: lib/kati/screens/day.ex:1412
+#: lib/kati/screens/day.ex:1404
 #, elixir-autogen, elixir-format
 msgid "%{n} event"
 msgid_plural "%{n} events"
 msgstr[0] "%{n} رویداد"
 msgstr[1] "%{n} رویداد"
 
-#: lib/kati/screens/day.ex:1406
+#: lib/kati/screens/day.ex:1398
 #, elixir-autogen, elixir-format
 msgid "%{n} habit"
 msgid_plural "%{n} habits"
@@ -11080,7 +11082,7 @@ msgstr[1] "%{n} پرسش"
 
 #: lib/kati/money/day_sample.ex:86
 #: lib/kati/money/day_sample.ex:180
-#: lib/kati/screens/day.ex:1409
+#: lib/kati/screens/day.ex:1401
 #: lib/kati/screens/money_day.ex:302
 #, elixir-autogen, elixir-format
 msgid "%{n} renewal"
@@ -11909,7 +11911,7 @@ msgctxt "sync tally"
 msgid "WAITING"
 msgstr "در انتظار"
 
-#: lib/kati/screens/day.ex:779
+#: lib/kati/screens/day.ex:771
 #, elixir-autogen, elixir-format
 msgctxt "the +n MORE tile on a clash row"
 msgid "MORE"
@@ -17169,7 +17171,7 @@ msgstr "یادآورها"
 msgid "Earlier"
 msgstr "قبل‌تر"
 
-#: lib/kati/screens/day.ex:342
+#: lib/kati/screens/day.ex:337
 #, elixir-autogen, elixir-format
 msgid "Next day"
 msgstr "روز بعد"
@@ -17179,7 +17181,7 @@ msgstr "روز بعد"
 msgid "Next week"
 msgstr "هفتهٔ بعد"
 
-#: lib/kati/screens/day.ex:342
+#: lib/kati/screens/day.ex:337
 #, elixir-autogen, elixir-format
 msgid "Previous day"
 msgstr "روز قبل"
