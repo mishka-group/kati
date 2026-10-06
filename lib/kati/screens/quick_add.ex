@@ -188,7 +188,7 @@ defmodule Kati.Screens.QuickAdd do
     %{
       query: Kati.Screens.QuickAdd.echo(typed, read.spans),
       title: read.title || gettext("Nothing to add yet"),
-      kind: Kati.Screens.QuickAdd.kind_line(read),
+      kind: Kati.Screens.QuickAdd.kind_line(read, Map.get(picks, :filed_as, :event)),
       facts: Kati.Screens.QuickAdd.facts(read),
       clash: Kati.Screens.QuickAdd.clash_for(read),
       kinds: Sample.kinds(),
@@ -268,10 +268,15 @@ defmodule Kati.Screens.QuickAdd do
   ordinary case is upcased for display and the upcasing is a no-op in Persian
   that reads as one.
   """
-  @spec kind_line(map()) :: String.t()
-  def kind_line(%{date: nil}), do: gettext("NEEDS A DAY")
-  def kind_line(%{time: nil}), do: gettext("ALL-DAY EVENT")
-  def kind_line(_read), do: gettext("PERSONAL EVENT")
+  @spec kind_line(map(), atom()) :: String.t()
+  def kind_line(read, filed_as \\ :event)
+  def kind_line(%{date: nil}, _filed_as), do: gettext("NEEDS A DAY")
+  def kind_line(_read, :reminder), do: gettext("REMINDER")
+  def kind_line(_read, :habit), do: gettext("EVERY DAY, FROM THIS DAY")
+  def kind_line(_read, :note), do: gettext("NOTE")
+  def kind_line(_read, :title), do: gettext("A WATCH, ON THE CALENDAR")
+  def kind_line(%{time: nil}, _filed_as), do: gettext("ALL-DAY EVENT")
+  def kind_line(_read, _filed_as), do: gettext("PERSONAL EVENT")
 
   @doc """
   The chips: the day, the hours, the alert. Each one dropped when it is not

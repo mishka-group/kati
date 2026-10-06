@@ -170,7 +170,9 @@ defmodule Kati.QuickAddTest do
       {:noreply, filed} = QuickAdd.handle_info({:tap, :file_as_note}, socket)
 
       assert filed.assigns.filed_as == :note
-      assert filed.assigns.draft == socket.assigns.draft
+      assert filed.assigns.draft.title == socket.assigns.draft.title
+      assert filed.assigns.draft.read == socket.assigns.draft.read
+      assert filed.assigns.draft.kind == "NOTE"
     end
 
     test "and a chip that names no filing leaves the screen alone" do
