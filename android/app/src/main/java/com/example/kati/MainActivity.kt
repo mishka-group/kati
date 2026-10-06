@@ -670,14 +670,15 @@ private fun MobNavHost(state: RootState) {
     // "jumping" on every push and pop. A push or pop is a short fade with a
     // small slide (the incoming page cannot be laid over the outgoing one, see
     // above, so a full-width slide crossed an empty background); a root
-    // switch is a quicker fade.
+    // switch is a quicker fade. Both fade from 0.6, never 0: a heavy first
+    // frame stalls the clock, and from 0 that stall is a bare background.
     val navDirection = when (state.transition) {
         "push" -> 1f
         "pop" -> -1f
         else -> 0f
     }
     val offset = remember(state.navKey) { Animatable(navDirection) }
-    val enter = remember(state.navKey) { Animatable(if (state.navKey == 0) 1f else 0f) }
+    val enter = remember(state.navKey) { Animatable(if (state.navKey == 0) 1f else 0.6f) }
     // KATI-END(K-77 nav-motion)
     // KATI-BEGIN(K-72 display-fade) mob_new=0.6.3
     // Reduce motion: a page change fades in where it would slide. The root
