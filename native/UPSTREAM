@@ -12,14 +12,17 @@
 # redirects to pkg.hexops.org) and was unpacked into ~/.asdf/installs/zig by
 # hand. See .tool-versions.
 #
-# mob 0.9.10 with mob_dev 0.7.9, which admits `mob ~> 0.9.0`, so the override
-# 0.9.3 needed is gone. mob 0.9.8 and later need mob_dev 0.7.7 or later (the
-# per-app distribution cookie). mob_new 0.6.3 is the template that goes with
-# them (#110, 2 October).
+# mob 0.9.12 with mob_dev 0.7.16 (7 October), which admits `mob ~> 0.9.0`, so
+# the override 0.9.3 needed is gone. mob 0.9.8 and later need mob_dev 0.7.7 or
+# later (the per-app distribution cookie). mob_new 0.6.3 is still the template:
+# what 0.6.4 to 0.6.7 add natively is for deep links (mob 0.9.11), held presses
+# on Android (0.9.12) and iPad, none of which Kati uses yet — the Elixir side
+# runs on the 0.6.3 shell. `bin/mob_bridge_diff.sh` lists the six files that
+# merge would touch.
 
 mob_new=0.6.3
-mob=0.9.10
-mob_dev=0.7.9
+mob=0.9.12
+mob_dev=0.7.16
 ndk=27.2.12479018
 zig=0.17.0-dev.269+ebff43698
 erts=17.0
