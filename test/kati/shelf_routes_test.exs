@@ -9,16 +9,13 @@ defmodule Kati.ShelfRoutesTest do
   one way back and no way across, which is what a tab that does not work looks
   like from the outside.
 
-  ## Why crossing pushes and returning to Screen resets
+  ## Why every move resets
 
-  `Kati.Screens.Library` is a dock root and the other two are pushed from it.
-  So returning to Screen has to RESET the stack — otherwise the dock would sit
-  underneath a pushed page — while crossing between Books and Music PUSHES,
-  which is exactly what 03's own `shelf_Books` and `shelf_Music` already did.
-
-  One rule, read off the screen that already had it. The alternative was
-  inventing a second rule here and having the three shelves disagree about what
-  the back gesture means.
+  Screen, Books and Music are three tabs of one shelf, so moving between them
+  swaps the page in place with the root's quick fade rather than pushing one
+  over another with a slide — the rule `Kati.Screens.Books` states. A push
+  would also leave the dock under a pushed page, and give the back gesture a
+  meaning the tabs do not have.
   """
   use Mob.ScreenCase, async: false
 
@@ -26,12 +23,12 @@ defmodule Kati.ShelfRoutesTest do
   # `{from, tag, to, action}` — every segment on every shelf that moves, and
   # which kind of move it is.
   @moves [
-    {Kati.Screens.Library, :shelf_Books, Kati.Screens.Books, :push},
-    {Kati.Screens.Library, :shelf_Music, Kati.Screens.Music, :push},
+    {Kati.Screens.Library, :shelf_Books, Kati.Screens.Books, :reset},
+    {Kati.Screens.Library, :shelf_Music, Kati.Screens.Music, :reset},
     {Kati.Screens.Books, :open_screen, Kati.Screens.Library, :reset},
-    {Kati.Screens.Books, :open_music, Kati.Screens.Music, :push},
+    {Kati.Screens.Books, :open_music, Kati.Screens.Music, :reset},
     {Kati.Screens.Music, :segment_screen, Kati.Screens.Library, :reset},
-    {Kati.Screens.Music, :segment_books, Kati.Screens.Books, :push}
+    {Kati.Screens.Music, :segment_books, Kati.Screens.Books, :reset}
   ]
 
   for {from, tag, to, action} <- @moves do
