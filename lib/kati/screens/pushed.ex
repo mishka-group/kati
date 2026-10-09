@@ -39,6 +39,7 @@ defmodule Kati.Screens.Pushed do
     # be `nil`, which means "this board draws its own back control in the flow".
     # See `back_pill/1`.
     back_label = Keyword.fetch!(opts, :back)
+    later = Keyword.get(opts, :later, false)
 
     quote do
       use Mob.Screen
@@ -60,7 +61,7 @@ defmodule Kati.Screens.Pushed do
 
         socket
         |> Mob.Socket.assign(:params, params)
-        |> load()
+        |> Kati.Screens.Later.first(unquote(later), &load/1)
         |> then(&{:ok, &1})
       end
 
@@ -70,7 +71,7 @@ defmodule Kati.Screens.Pushed do
         Kati.Screens.Pushed.chrome(
           @back_label &&
             Kati.Screens.Pushed.back_label(Map.get(assigns, :params), @back_label),
-          content(assigns),
+          Kati.Screens.Later.content(assigns, &content/1),
           Kati.Screens.Pushed.screen_name(__MODULE__)
         )
       end

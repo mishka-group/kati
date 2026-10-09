@@ -164,6 +164,11 @@ defmodule Kati.Media.Provider do
   def message(source, {:network, _reason}),
     do: gettext("Could not reach %{source}. Hand-typed titles still work.", source: name(source))
 
+  # A write that failed on the device, rather than a catalogue that answered
+  # badly: a page showing it must say something, not crash on a clause.
+  def message(source, error) when is_exception(error),
+    do: gettext("Could not save what %{source} sent. Try again.", source: name(source))
+
   def message(source, :blocked),
     do:
       gettext(
@@ -227,11 +232,27 @@ defmodule Kati.Media.Provider do
       |> List.first()
 
     case existing do
-      nil -> resource |> Ash.Changeset.for_create(:create, attrs) |> Ash.create()
+      nil -> create_or_catch_up(resource, filter, attrs)
       row -> row |> Ash.Changeset.for_update(:update, attrs) |> Ash.update()
     end
   rescue
     error -> {:error, error}
+  end
+
+  # Two fetches of one title can both read nothing and both create — a preview
+  # and a background refresh do — and the second loses to the unique index.
+  # The row it wanted to write is there by then, so it updates that instead.
+  defp create_or_catch_up(resource, filter, attrs) do
+    case resource |> Ash.Changeset.for_create(:create, attrs) |> Ash.create() do
+      {:error, %Ash.Error.Invalid{}} = refused ->
+        case resource |> Ash.Query.do_filter(filter) |> Ash.read!() |> List.first() do
+          nil -> refused
+          row -> row |> Ash.Changeset.for_update(:update, attrs) |> Ash.update()
+        end
+
+      created ->
+        created
+    end
   end
 
   @doc """

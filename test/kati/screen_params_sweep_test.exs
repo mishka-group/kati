@@ -749,6 +749,9 @@ defmodule Kati.ScreenParamsSweepTest do
   @gone_pages [
     {Kati.Screens.Film, :id},
     {Kati.Screens.Series, :id},
+    # Inbox, Notifications, What fits and Stats push `:tracked_id` (#128): the
+    # same row, so the same *it has gone* page.
+    {Kati.Screens.Series, :tracked_id},
     # Screen 14 reads `:id` and says the show has gone for one that has; with
     # no id and no series on the shelf it says there is none.
     {Kati.Screens.SeriesMeta, :id},

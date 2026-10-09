@@ -165,8 +165,26 @@ defmodule Kati.Screens.Stats do
 
   @impl true
   def load(socket) do
-    Mob.Socket.assign(socket, figures())
+    if Kati.Screens.Later.enabled?() do
+      # Every watch of the year is read and folded into a dozen figures; the
+      # page opens on its header and skeleton cards — or on the figures it
+      # already drew, when this is a re-read — and they land after (#128).
+      socket = Mob.Socket.start_async(socket, :figures, &Kati.Screens.Stats.figures/0)
+
+      if Map.has_key?(socket.assigns, :year),
+        do: socket,
+        else: Mob.Socket.assign(socket, loading?: true, range: range(Kati.Time.today()))
+    else
+      Mob.Socket.assign(socket, figures())
+    end
   end
+
+  @impl true
+  def handle_async(:figures, {:ok, figures}, socket),
+    do: {:noreply, socket |> Mob.Socket.assign(figures) |> Mob.Socket.assign(:loading?, false)}
+
+  def handle_async(:figures, {:exit, _reason}, socket),
+    do: {:noreply, socket |> Mob.Socket.assign(figures()) |> Mob.Socket.assign(:loading?, false)}
 
   @doc """
   Everything this screen draws that is not a fixed label.
@@ -206,6 +224,23 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc false
+  def content(%{loading?: true} = assigns) do
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
+        {Kati.Screens.Stats.header(assigns.range)}
+        {Kati.Screens.Later.blocks([230, 92, 18, 190, 120, 160])}
+      </Column>
+    </Scroll>
+    """
+  end
+
   def content(assigns) do
     case assigns.year do
       nil ->
@@ -719,26 +754,31 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc """
-  The year in charts, from the same watches as everything above: watches per
-  month, what kind of thing was watched, the busiest day of the week, and the
-  titles watched most. All of it this calendar year.
+  The year in charts, from the same watches as everything above: hours per
+  month, the hours each kind of thing took, the busiest day of the week, and
+  the titles watched most. All of it this calendar year, and in hours wherever
+  the hero above is, so the page adds up.
   """
   @spec dashboard([map()], Date.t()) :: map()
   def dashboard(entries, today) do
     this = Enum.filter(entries, &(match?(%Date{}, &1.on) and &1.on.year == today.year))
 
-    by_month = Enum.frequencies_by(this, & &1.on.month)
+    by_month =
+      this
+      |> Enum.group_by(& &1.on.month)
+      |> Map.new(fn {month, watched} -> {month, minutes(watched)} end)
 
-    films = Enum.count(this, & &1.film?)
-    anime = Enum.count(this, &(&1.kind == :anime and not &1.film?))
+    films = Enum.filter(this, & &1.film?)
+    anime = Enum.filter(this, &(&1.kind == :anime and not &1.film?))
+    series = Enum.reject(this, &(&1.film? or &1.kind == :anime))
 
     %{
       months: Enum.map(1..12, &{&1, Map.get(by_month, &1, 0)}),
       this_month: today.month,
       split: [
-        {gettext("Films"), films, Palette.ink()},
-        {gettext("Series"), length(this) - films - anime, Palette.accent()},
-        {gettext("Anime"), anime, Palette.green()}
+        {gettext("Films"), minutes(films), Palette.ink()},
+        {gettext("Series"), minutes(series), Palette.accent()},
+        {gettext("Anime"), minutes(anime), Palette.green()}
       ],
       weekdays:
         Enum.map(1..7, fn day ->
@@ -747,13 +787,31 @@ defmodule Kati.Screens.Stats do
       top:
         this
         |> Enum.group_by(& &1.tracked_id)
-        |> Enum.map(fn {_id, watched} ->
-          {hd(watched).title || gettext("Untitled"), length(watched)}
+        |> Enum.map(fn {id, watched} ->
+          {hd(watched).title || gettext("Untitled"), length(watched), id}
         end)
-        |> Enum.sort_by(fn {title, n} -> {-n, title} end)
+        |> Enum.sort_by(fn {title, n, _id} -> {-n, title} end)
         |> Enum.take(5)
     }
   end
+
+  defp minutes(watched), do: watched |> Enum.map(&(&1.minutes || 0)) |> Enum.sum()
+
+  @doc """
+  Minutes as the whole hours a chart labels them with; under an hour is `<1h`
+  rather than a `0h` that reads as nothing watched.
+
+      iex> Kati.Screens.Stats.hours_label(0)
+      " "
+      iex> Kati.Screens.Stats.hours_label(25)
+      "<1h"
+      iex> Kati.Screens.Stats.hours_label(2719)
+      "45h"
+  """
+  @spec hours_label(non_neg_integer()) :: String.t()
+  def hours_label(0), do: " "
+  def hours_label(minutes) when minutes < 60, do: gettext("<1h")
+  def hours_label(minutes), do: gettext("%{n}h", n: Kati.Locale.number(div(minutes, 60)))
 
   @doc false
   def year_charts(nil), do: ~MOB"<Spacer size={0} />"
@@ -793,7 +851,7 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc """
-  Twelve bars, one a month, the current month in ink, each with its count.
+  Twelve bars, one a month, the current month in ink, each with its hours.
   """
   def month_chart(months, this_month) do
     most = months |> Enum.map(&elem(&1, 1)) |> Enum.max(fn -> 0 end)
@@ -820,7 +878,7 @@ defmodule Kati.Screens.Stats do
   @doc false
   def month_column(month, count, height, now?) do
     assigns = %{
-      n: if(count > 0, do: Kati.Locale.number(count), else: " "),
+      n: Kati.Screens.Stats.hours_label(count),
       height: round(height),
       color: if(now?, do: Palette.ink(), else: Palette.placeholder()),
       label: Kati.Screens.Stats.month_label(month)
@@ -848,8 +906,8 @@ defmodule Kati.Screens.Stats do
   def month_label(month), do: Kati.Locale.number(month)
 
   @doc """
-  Films, series and anime as one bar split by share, with the counts beside
-  their names.
+  Films, series and anime as one bar split by the hours each took, with the
+  hours beside their names.
   """
   def split_card(split) do
     total = split |> Enum.map(&elem(&1, 1)) |> Enum.sum()
@@ -879,8 +937,12 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc false
-  def legend(label, n, color) do
-    assigns = %{label: label, n: Kati.Locale.number(n), color: color}
+  def legend(label, minutes, color) do
+    assigns = %{
+      label: label,
+      n: Kati.Screens.Stats.hours_label(minutes) |> String.trim() |> zero(),
+      color: color
+    }
 
     ~MOB"""
     <Row align="center">
@@ -892,6 +954,9 @@ defmodule Kati.Screens.Stats do
     </Row>
     """
   end
+
+  defp zero(""), do: gettext("%{n}h", n: Kati.Locale.number(0))
+  defp zero(label), do: label
 
   @doc """
   Watches by day of the week, Monday first, the busiest in ink and named.
@@ -952,7 +1017,9 @@ defmodule Kati.Screens.Stats do
     rows =
       top
       |> Enum.with_index(1)
-      |> Enum.map(fn {{title, n}, rank} -> Kati.Screens.Stats.top_row(rank, title, n, most) end)
+      |> Enum.map(fn {{title, n, id}, rank} ->
+        Kati.Screens.Stats.top_row(rank, title, n, most, id)
+      end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -964,17 +1031,18 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc false
-  def top_row(rank, title, n, most) do
+  def top_row(rank, title, n, most, id) do
     assigns = %{
       rank: Kati.Locale.number(rank),
       title: title,
       n: Kati.Locale.number(n),
       fill: n / most,
-      rest: 1 - n / most
+      rest: 1 - n / most,
+      tap: {self(), String.to_atom("open_top_" <> to_string(id))}
     }
 
     ~MOB"""
-    <Column fill_width={true} padding_top={5} padding_bottom={5}>
+    <Column fill_width={true} padding_top={5} padding_bottom={5} on_tap={@tap}>
       <Row fill_width={true} align="center">
         <Text text={@rank} text_size={12} font_weight="bold" text_color={Palette.muted()} />
         <Spacer size={10} />
@@ -1728,14 +1796,11 @@ defmodule Kati.Screens.Stats do
   # it, `", "`-separated, and screens 04 and 14 both read it back that way. So
   # the separator is defined, by the only writer there is.
   #
-  # What is still true is that a title has SEVERAL genres and one duration, and
-  # there is no honest way to divide ninety minutes between *Drama* and
-  # *Mystery*. So a watch counts in full towards each genre it names — the
-  # question the band asks is *where did the hours go*, and an hour of a
-  # drama-mystery went to both — and the bars are scaled against the largest
-  # rather than against a total that would then exceed the year. The value
-  # under each is the hours themselves, so the arithmetic is visible rather
-  # than implied.
+  # A title has several genres and one duration, so a watch's minutes are
+  # shared evenly between the genres it names. Counting them in full towards
+  # each made the bars add up to more than the year: 106 hours of genres under
+  # a hero that said 45h 19m (#128). Shared, the bars add up to the hours
+  # watched, which is what *where did the hours go* promises.
   #
   # Five bars, because the drawing has five: the top four by hours and
   # `Everything else` for the rest, which is exactly what board 07 draws.
@@ -1754,11 +1819,13 @@ defmodule Kati.Screens.Stats do
     by_genre =
       entries
       |> Enum.flat_map(fn entry ->
-        Enum.map(genres_of(entry), &{&1, entry.minutes || 0})
+        genres = genres_of(entry)
+        Enum.map(genres, &{&1, (entry.minutes || 0) / length(genres)})
       end)
       |> Enum.reduce(%{}, fn {genre, minutes}, acc ->
         Map.update(acc, genre, minutes, &(&1 + minutes))
       end)
+      |> Enum.map(fn {genre, minutes} -> {genre, round(minutes)} end)
       |> Enum.sort_by(fn {genre, minutes} -> {-minutes, genre} end)
 
     case by_genre do
@@ -2157,11 +2224,14 @@ defmodule Kati.Screens.Stats do
   }
 
   @impl true
-  def handle_tap(:share_year, socket),
+  def handle_tap(tag, socket) when tag in [:share_year, :share_fab],
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.YearShare)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
+      "open_top_" <> id ->
+        {:noreply, Kati.Screens.Stats.open_title(socket, id)}
+
       "go_" <> id ->
         case Map.fetch(@destinations, id) do
           {:ok, module} -> {:noreply, Mob.Socket.push_screen(socket, module)}
@@ -2171,5 +2241,24 @@ defmodule Kati.Screens.Stats do
       _ ->
         {:noreply, socket}
     end
+  end
+
+  @doc false
+  def open_title(socket, id) do
+    case Ash.get(Kati.Media.TrackedTitle, id) do
+      {:ok, %{kind: :movie}} ->
+        Mob.Socket.push_screen(socket, Kati.Screens.Film, %{id: id, back: gettext("Stats")})
+
+      {:ok, _series} ->
+        Mob.Socket.push_screen(socket, Kati.Screens.Series, %{
+          tracked_id: id,
+          back: gettext("Stats")
+        })
+
+      _gone ->
+        socket
+    end
+  rescue
+    _error -> socket
   end
 end

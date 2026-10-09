@@ -36,7 +36,7 @@ defmodule Kati.Screens.EpisodeRatings do
   nothing: there is no opinion to have yet.
   """
 
-  use Kati.Screens.Pushed, back: "Library"
+  use Kati.Screens.Pushed, back: "Library", later: true
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme

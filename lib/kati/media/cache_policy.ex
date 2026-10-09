@@ -57,6 +57,17 @@ defmodule Kati.Media.CachePolicy do
     wikidata: {90, :never}
   }
 
+  @doc """
+  Days a region's streaming catalogue (`Kati.Services.Catalogue`) is kept
+  before it is asked for again. Services come and go rarely; a week keeps the
+  list current without a request on every visit to My services (#106).
+
+      iex> Kati.Media.CachePolicy.catalogue_refresh_days()
+      7
+  """
+  @spec catalogue_refresh_days() :: pos_integer()
+  def catalogue_refresh_days, do: 7
+
   @doc "Every source Kati knows how to cache."
   @spec sources() :: [source()]
   def sources, do: Map.keys(@policies)

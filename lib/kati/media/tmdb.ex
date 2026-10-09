@@ -200,7 +200,10 @@ defmodule Kati.Media.Tmdb do
           source_id: to_string(id),
           year: year_of(row["release_date"] || row["first_air_date"]),
           overview: blank_to_nil(row["overview"]),
-          poster_path: row["poster_path"]
+          poster_path: row["poster_path"],
+          genre_ids: List.wrap(row["genre_ids"]),
+          language: row["original_language"],
+          votes: row["vote_count"] || 0
         }
       ]
     else
@@ -326,6 +329,55 @@ defmodule Kati.Media.Tmdb do
           {seasons, episodes}
       end
     end)
+  end
+
+  @doc """
+  Every streaming service TMDB knows in a region (#106): its id, name, logo and
+  the order TMDB ranks them in, from `/watch/providers/tv` and `/movie` merged.
+
+  The provider id is kept this time — it is what `with_watch_providers` takes
+  on `/discover`, and `Kati.Services.Service.provider_id` is where it lands.
+  The same token Kati already uses; no new host and no new credential.
+  """
+  @spec watch_provider_catalogue(String.t()) :: {:ok, [map()]} | {:error, term()}
+  def watch_provider_catalogue(region) when is_binary(region) do
+    with {:ok, key} <- key(),
+         {:ok, tv} <- get(key, "/watch/providers/tv", watch_region: region),
+         {:ok, movie} <- get(key, "/watch/providers/movie", watch_region: region) do
+      {:ok, catalogue(Map.get(tv, "results", []) ++ Map.get(movie, "results", []), region)}
+    end
+  end
+
+  @doc """
+  TMDB's provider rows as the catalogue keeps them: one per id, in the region's
+  own display order.
+
+      iex> Kati.Media.Tmdb.catalogue([
+      ...>   %{"provider_id" => 8, "provider_name" => "Netflix", "logo_path" => "/n.jpg",
+      ...>     "display_priorities" => %{"GB" => 2}},
+      ...>   %{"provider_id" => 337, "provider_name" => "Disney Plus", "logo_path" => "/d.jpg",
+      ...>     "display_priority" => 1},
+      ...>   %{"provider_id" => 8, "provider_name" => "Netflix", "logo_path" => "/n.jpg"}
+      ...> ], "GB")
+      [
+        %{id: "337", name: "Disney Plus", logo: "/d.jpg", priority: 1},
+        %{id: "8", name: "Netflix", logo: "/n.jpg", priority: 2}
+      ]
+  """
+  @spec catalogue([map()], String.t()) :: [map()]
+  def catalogue(rows, region) do
+    rows
+    |> Enum.filter(&(is_integer(&1["provider_id"]) and is_binary(&1["provider_name"])))
+    |> Enum.uniq_by(& &1["provider_id"])
+    |> Enum.map(fn row ->
+      %{
+        id: Integer.to_string(row["provider_id"]),
+        name: row["provider_name"],
+        logo: row["logo_path"],
+        priority: get_in(row, ["display_priorities", region]) || row["display_priority"] || 999
+      }
+    end)
+    |> Enum.sort_by(&{&1.priority, &1.name})
   end
 
   @doc """

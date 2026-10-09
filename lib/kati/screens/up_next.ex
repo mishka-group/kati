@@ -119,7 +119,19 @@ defmodule Kati.Screens.UpNext do
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :queue, queue())
+  def load(socket) do
+    if Kati.Screens.Later.enabled?() do
+      # The queue reads every show, its cache and its episodes; the page opens
+      # on its title and skeleton rows, or on the queue it already drew when
+      # this is a re-read on the way back, and `handle_async(:queue, …)` puts
+      # the fresh one in (#128).
+      socket
+      |> Mob.Socket.start_async(:queue, &Kati.Screens.UpNext.queue/0)
+      |> Mob.Socket.assign(:queue, Map.get(socket.assigns, :queue) || :loading)
+    else
+      Mob.Socket.assign(socket, :queue, queue())
+    end
+  end
 
   @doc """
   Coming back to the queue after something was ticked above it.
@@ -131,6 +143,13 @@ defmodule Kati.Screens.UpNext do
   """
   @impl true
   def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
+  @impl true
+  def handle_async(:queue, {:ok, queue}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :queue, queue)}
+
+  def handle_async(:queue, {:exit, _reason}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :queue, queue())}
 
   @doc """
   Every control this screen draws, and it drew none until 6 September.
@@ -162,6 +181,9 @@ defmodule Kati.Screens.UpNext do
     case Atom.to_string(tag) do
       "open_" <> _id ->
         {:noreply, Kati.Screens.UpNext.open(socket, tag)}
+
+      "row_" <> id ->
+        {:noreply, Kati.Screens.UpNext.open(socket, String.to_atom("open_" <> id))}
 
       "drop_" <> id ->
         {:noreply,
@@ -356,6 +378,11 @@ defmodule Kati.Screens.UpNext do
   # bands on the sheet this page's `tune` disc opens — and `Gone cold` takes
   # `Kati.Screens.ShelfFilters.facet_label/2`'s `shelf status` wording, so the
   # header and the chips cannot come to spell one state two ways.
+  # No band at all when nothing has gone cold: `GONE COLD · 0` over nothing
+  # read as a section that failed to load (#128).
+  defp cold_label([]), do: nil
+  defp cold_label(cold), do: gettext("Gone cold · %{n}", n: Kati.Locale.number(length(cold)))
+
   defp assemble(hero, rest, cold) do
     cache = cache_for([hero | rest] ++ cold)
 
@@ -365,8 +392,11 @@ defmodule Kati.Screens.UpNext do
           ready: Kati.Locale.number(length(rest) + 1),
           soon: Kati.Locale.number(airing_soon([hero | rest], cache))
         ),
-      ready_label: gettext("Ready to watch · %{n}", n: Kati.Locale.number(length(rest))),
-      cold_label: gettext("Gone cold · %{n}", n: Kati.Locale.number(length(cold))),
+      ready_label:
+        if(rest != [],
+          do: gettext("Ready to watch · %{n}", n: Kati.Locale.number(length(rest)))
+        ),
+      cold_label: cold_label(cold),
       hero: hero_row(hero, cache),
       ready: Enum.map(rest, &ready_data(&1, cache)),
       cold: Enum.map(cold, &cold_data(&1, cache))
@@ -560,13 +590,29 @@ defmodule Kati.Screens.UpNext do
   #
   # Only ever called with the hero in the list, so `ids` cannot be empty and
   # there is no `IN ()` to guard against.
+  #
+  # A series' length lives on its episodes, not on its title row, so the
+  # episodes ride in the same map under `{:episodes, source, id}`: without them
+  # every show was `No runtime` to the filter sheet and *Time left* and
+  # *Closest to finishing* moved nothing (#128).
   defp cache_for(rows) do
     ids = rows |> Enum.map(& &1.source_id) |> Enum.uniq()
 
-    CachedTitle
-    |> Ash.Query.filter(source_id in ^ids)
+    titles =
+      CachedTitle
+      |> Ash.Query.filter(source_id in ^ids)
+      |> Ash.read!()
+      |> Map.new(&{{&1.source, &1.source_id}, &1})
+
+    Kati.Media.CachedEpisode
+    |> Ash.Query.filter(title_source_id in ^ids and special == false)
     |> Ash.read!()
-    |> Map.new(&{{&1.source, &1.source_id}, &1})
+    |> Enum.filter(&(is_integer(&1.season_number) and is_integer(&1.episode_number)))
+    |> Enum.group_by(&{:episodes, &1.source, &1.title_source_id})
+    |> Map.new(fn {key, episodes} ->
+      {key, Enum.sort_by(episodes, &{&1.season_number, &1.episode_number})}
+    end)
+    |> Map.merge(titles)
   rescue
     _ -> %{}
   end
@@ -897,6 +943,33 @@ defmodule Kati.Screens.UpNext do
   defp ahead?(_resolution), do: false
 
   @doc false
+  def content(%{queue: :loading}) do
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
+        {Kati.Screens.UpNext.tune_row()}
+        <Text
+          text={gettext("Up next")}
+          text_size={28}
+          max_font_scale={1.6}
+          font_weight="bold"
+          letter_spacing={Kati.Locale.tracking(-0.03)}
+          max_lines={1}
+          text_color={:on_surface}
+        />
+        <Spacer size={22} />
+        {Kati.Screens.Later.blocks([196, 18, 66, 66, 66])}
+      </Column>
+    </Scroll>
+    """
+  end
+
   def content(assigns) do
     q = assigns.queue
 
@@ -1236,6 +1309,7 @@ defmodule Kati.Screens.UpNext do
     <Column fill_width={true}>
       <Row
         fill_width={true}
+        on_tap={Kati.Screens.UpNext.row_tap(row)}
         background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1296,6 +1370,18 @@ defmodule Kati.Screens.UpNext do
       tag -> {self(), tag}
     end
   end
+
+  @doc """
+  The whole row's tap: the same title the play disc opens, so the card is not
+  a picture with one live dot on it (#128). Its own tag, because two nodes
+  answering to one name is what the tap sweep forbids.
+
+      iex> Kati.Screens.UpNext.row_tap(%{id: nil})
+      nil
+  """
+  @spec row_tap(map()) :: {pid(), atom()} | nil
+  def row_tap(%{id: id}) when is_binary(id), do: {self(), String.to_atom("row_" <> id)}
+  def row_tap(_drawn), do: nil
 
   @doc false
   @spec open_tag(map()) :: atom() | nil

@@ -158,7 +158,7 @@ defmodule Kati.Screens.Home do
   The *Watching* row counts services through `Kati.Services.subscribed_count/0`
   — see `services/0`.
   """
-  use Kati.Screens.Root, root: :home
+  use Kati.Screens.Root, root: :home, later: true
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaProgress

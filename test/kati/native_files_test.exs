@@ -64,17 +64,20 @@ defmodule Kati.NativeFilesTest do
       # loaded yet, so under the full suite this assertion failed depending on
       # what had already run. Caught on 8 September in a run where it was the
       # only failure and passed alone.
+      #
+      # Since #128 the share card shares the card, not the screen, so the join
+      # it calls is `share_node/3` — the same intent, fed a picture of one node.
       assert Code.ensure_loaded?(Files)
-      assert function_exported?(Files, :share_screen, 1)
+      assert function_exported?(Files, :share_node, 3)
 
       callers =
         "lib"
         |> Path.join("**/*.ex")
         |> Path.wildcard()
-        |> Enum.filter(&(File.read!(&1) =~ "Files.share_screen("))
+        |> Enum.filter(&(File.read!(&1) =~ "Files.share_node("))
 
       refute callers == [],
-             "`share_screen/1` has no caller in lib/, which is the defect one layer up"
+             "`share_node/3` has no caller in lib/, which is the defect one layer up"
     end
 
     test "a missing source file is refused before the bridge is consulted", %{dir: dir} do

@@ -175,7 +175,7 @@ defmodule Kati.Screens.Season do
       thing a catalogue cannot do.
 
   """
-  use Kati.Screens.Pushed, back: "Series"
+  use Kati.Screens.Pushed, back: "Series", later: true
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill

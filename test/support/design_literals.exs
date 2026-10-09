@@ -359,7 +359,10 @@ defmodule Kati.DesignLiterals do
       # the copy in a field is its `placeholder`, which `content_props/0`
       # already covers.
       :keyboard,
-      :return_key
+      :return_key,
+      # A node's own name for the frame registry and `K-78 capture-node`
+      # (`capture_year_card`). Never read by anybody.
+      :id
     ]
   end
 
@@ -1309,6 +1312,19 @@ defmodule Kati.DesignLiterals do
       # ended. `share_screen/1` is the join, and the badge is not reworded —
       # a marker naming no fence is a marker the next reader believes.
       {"98", "when file sharing lands"},
+      # #128: the share page's scope chips. Only the screen year is counted,
+      # so Books, Music, Meals and Habits re-labelled a card that still showed
+      # the screen's hours, grid and genres. The rail went with them.
+      {"98", "all"},
+      {"98", "screen"},
+      {"98", "books"},
+      {"98", "music"},
+      {"98", "meals"},
+      {"98", "habits"},
+      {"103", "نمایش"},
+      {"103", "کتاب"},
+      {"103", "موسیقی"},
+      {"103", "وعده"},
       # Board 129 is drawn mid-preview over a file on the designer's desk, and
       # every figure on it is a claim about somebody's data: the filename, the
       # `384 / 28 / 6` dry run, the `Blue Hour` conflict at `1 of 6`, `Merge

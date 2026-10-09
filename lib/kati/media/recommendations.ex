@@ -70,7 +70,7 @@ defmodule Kati.Media.Recommendations do
   # Three, because the drawing's rail is three columns wide. Asking for more
   # and slicing here rather than at the screen keeps the network cost of this
   # feature at three pictures.
-  @picks 3
+  @picks 9
 
   @kinds [:movie, :tv, :anime]
 
@@ -105,17 +105,7 @@ defmodule Kati.Media.Recommendations do
   end
 
   def seed(_newest) do
-    Enum.find_value(newest(), fn tracked ->
-      case cached_for(tracked) do
-        %CachedTitle{source: source, source_id: id, title: title} = cached
-        when source not in [:anilist, :tvmaze] and is_binary(id) and is_binary(title) and
-               title != "" ->
-          {tracked, cached}
-
-        _no_cache ->
-          nil
-      end
-    end)
+    List.first(Kati.Media.Recommendations.seedable())
   rescue
     _error -> nil
   end
@@ -123,8 +113,9 @@ defmodule Kati.Media.Recommendations do
   @doc """
   Ask for recommendations, and be sent them when they arrive.
 
-  Sends `{:recommendations, source_id, result}` to `pid`, where `result` is
-  `{:ok, picks}` or `{:error, reason}`. The reason travels because the three
+  Sends `{:recommendations, source_id, result, used}` to `pid`, where `result`
+  is `{:ok, picks}` or `{:error, reason}` and `used` is the title the picks
+  came from — `picks_or_next/1` may have moved on from `source_id`. The reason travels because the three
   ways this comes back empty are three different things to say: a token nobody
   has entered is a thing the reader can fix in Settings, a request that could
   not be made is a thing to try again, and a provider that knows of nothing
@@ -135,7 +126,10 @@ defmodule Kati.Media.Recommendations do
   """
   @spec ask(pid(), CachedTitle.t()) :: :ok
   def ask(pid, %CachedTitle{} = cached) when is_pid(pid) do
-    work = fn -> send(pid, {:recommendations, cached.source_id, picks_for(cached)}) end
+    work = fn ->
+      {used, result} = Kati.Media.Recommendations.picks_or_next(cached)
+      send(pid, {:recommendations, cached.source_id, result, used})
+    end
 
     try do
       Task.Supervisor.start_child(Kati.TaskSupervisor, work)
@@ -220,7 +214,7 @@ defmodule Kati.Media.Recommendations do
     rows
     |> Enum.reject(&tracked?/1)
     |> Enum.take(@picks)
-    |> Enum.map(&pick/1)
+    |> picks()
   end
 
   @doc """
@@ -237,15 +231,16 @@ defmodule Kati.Media.Recommendations do
   that says it could not look.
   """
   @spec picks_for(CachedTitle.t()) :: {:ok, [map()]} | {:error, term()}
-  def picks_for(%CachedTitle{source_id: source_id, kind: kind}) do
+  def picks_for(%CachedTitle{source_id: source_id, kind: kind} = cached) do
     case Tmdb.recommendations(source_id, provider_kind(kind)) do
       {:ok, rows} ->
         {:ok,
          rows
          |> Enum.reject(&tracked?/1)
+         |> Kati.Media.Recommendations.ranked(cached)
          |> Kati.Media.Recommendations.watchable()
          |> Enum.take(@picks)
-         |> Enum.map(&pick/1)}
+         |> picks()}
 
       {:error, reason} ->
         {:error, reason}
@@ -255,6 +250,116 @@ defmodule Kati.Media.Recommendations do
   end
 
   # How many candidates are looked up when the switch is on. See `watchable/1`.
+  @genre_ids %{
+    "Action" => [28, 10759],
+    "Adventure" => [12, 10759],
+    "Action & Adventure" => [28, 12, 10759],
+    "Animation" => [16],
+    "Comedy" => [35],
+    "Crime" => [80],
+    "Documentary" => [99],
+    "Drama" => [18],
+    "Family" => [10751],
+    "Fantasy" => [14, 10765],
+    "History" => [36],
+    "Horror" => [27],
+    "Kids" => [10762],
+    "Music" => [10402],
+    "Mystery" => [9648],
+    "News" => [10763],
+    "Reality" => [10764],
+    "Romance" => [10749],
+    "Science Fiction" => [878, 10765],
+    "Sci-Fi & Fantasy" => [878, 14, 10765],
+    "Soap" => [10766],
+    "Talk" => [10767],
+    "Thriller" => [53],
+    "War" => [10752, 10768],
+    "War & Politics" => [10752, 10768],
+    "Western" => [37]
+  }
+
+  @doc """
+  TMDB's recommendations, put in the order a person would take them (#128).
+
+  TMDB ranks by co-occurrence across its whole audience, which for a Korean
+  talk show came back as an American aftershow and a Netflix special. So each
+  candidate is scored against the title it was asked about: the same original
+  language counts most, then each genre they share; TMDB's own order breaks
+  ties. A candidate almost nobody has rated (under five votes) is dropped,
+  and one sharing nothing with the seed is kept only when nothing better is
+  left to fill the rail.
+
+      iex> seed = %Kati.Media.CachedTitle{original_language: "ko", genres: "Talk, Comedy"}
+      iex> rows = [
+      ...>   %{source_id: "1", language: "en", genre_ids: [10767], votes: 40},
+      ...>   %{source_id: "2", language: "ko", genre_ids: [10764], votes: 40},
+      ...>   %{source_id: "3", language: "ko", genre_ids: [35], votes: 3},
+      ...>   %{source_id: "4", language: "ja", genre_ids: [16], votes: 90}
+      ...> ]
+      iex> Kati.Media.Recommendations.ranked(rows, seed) |> Enum.map(& &1.source_id)
+      ["2", "1", "4"]
+  """
+  @spec ranked([map()], CachedTitle.t()) :: [map()]
+  def ranked(rows, %CachedTitle{} = seed) do
+    language = seed.original_language
+    wanted = seed_genre_ids(seed.genres)
+
+    scored =
+      rows
+      |> Enum.reject(&(Map.get(&1, :votes, 0) < 5))
+      |> Enum.with_index()
+      |> Enum.map(fn {row, i} ->
+        same = if language && Map.get(row, :language) == language, do: 3, else: 0
+        shared = row |> Map.get(:genre_ids, []) |> Enum.count(&(&1 in wanted)) |> min(3)
+        {row, same + shared, i}
+      end)
+
+    {fitting, rest} = Enum.split_with(scored, fn {_row, score, _i} -> score > 0 end)
+    filler = if length(fitting) >= 3, do: [], else: rest
+
+    (Enum.sort_by(fitting, fn {_row, score, i} -> {-score, i} end) ++ filler)
+    |> Enum.map(fn {row, _score, _i} -> row end)
+  end
+
+  defp seed_genre_ids(genres) when is_binary(genres) do
+    genres
+    |> String.split(",")
+    |> Enum.flat_map(&Map.get(@genre_ids, String.trim(&1), []))
+  end
+
+  defp seed_genre_ids(_none), do: []
+
+  @doc """
+  The picks for `cached`, or — when TMDB has nothing for it — for the next of
+  the reader's titles that has some, and which title they came from.
+
+  A seed TMDB knows nothing like left the whole page empty on opening (#128),
+  though the shelf held a dozen titles that would have answered. Up to three
+  more are tried, in `seedable/0`'s order, and the heading names the one used.
+  """
+  @spec picks_or_next(CachedTitle.t()) :: {CachedTitle.t(), {:ok, [map()]} | {:error, term()}}
+  def picks_or_next(%CachedTitle{} = cached) do
+    first = picks_for(cached)
+
+    case first do
+      {:ok, [_ | _]} ->
+        {cached, first}
+
+      _empty_or_failed ->
+        Kati.Media.Recommendations.seedable()
+        |> Enum.map(&elem(&1, 1))
+        |> Enum.reject(&(&1.source_id == cached.source_id))
+        |> Enum.take(3)
+        |> Enum.find_value({cached, first}, fn other ->
+          case picks_for(other) do
+            {:ok, [_ | _]} = found -> {other, found}
+            _nothing -> nil
+          end
+        end)
+    end
+  end
+
   @lookups 8
 
   @doc """
@@ -346,13 +451,24 @@ defmodule Kati.Media.Recommendations do
   # One pick, with its poster already on disk. `match: nil` — see the
   # moduledoc. `seed` is the provider path, which `Kati.Design.Images.path/2`
   # resolves through `Kati.Media.Artwork` exactly as a shelf poster is.
-  defp pick(row) do
-    # A picture that will not download is a pick without a picture, not a lost
-    # pick — `Kati.Design.Images.path/2` already answers `nil` for a poster
-    # this device has not fetched, and screen 11 already draws the placeholder
-    # rectangle behind it.
-    _ = safely(fn -> Artwork.cache(row.poster_path) end)
+  # A picture that will not download is a pick without a picture, not a lost
+  # pick — `Kati.Design.Images.path/2` already answers `nil` for a poster this
+  # device has not fetched, and screen 11 already draws the placeholder
+  # rectangle behind it. Fetched side by side: one after another, nine of them
+  # held the rail on *Looking for something* for most of a minute (#128).
+  defp picks(rows) do
+    rows
+    |> Task.async_stream(fn row -> safely(fn -> Artwork.cache(row.poster_path) end) end,
+      max_concurrency: 9,
+      timeout: 15_000,
+      on_timeout: :kill_task
+    )
+    |> Stream.run()
 
+    Enum.map(rows, &pick/1)
+  end
+
+  defp pick(row) do
     # `source_id` and `kind` ride along because a recommendation you cannot act
     # on is half a feature — screen 11 was *the only page in the app that shows
     # films you cannot open*, and these
@@ -384,7 +500,9 @@ defmodule Kati.Media.Recommendations do
   defp provider_kind(_series), do: :tv
 
   @doc """
-  Every title the picks could be seeded on, newest first.
+  Every title the picks could be seeded on: the ones being watched or finished
+  first, newest first within each — *because you watched* has to be about
+  something watched, not a title added a minute ago and never started (#128).
 
   What screen 11's `tune` disc offers. The same `:shelf` reads `newest/0`
   makes, without its per-kind `limit(1)`: that limit is right for *what am I
@@ -404,6 +522,7 @@ defmodule Kati.Media.Recommendations do
       |> Ash.read!()
     end)
     |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
+    |> Enum.sort_by(&(&1.status not in [:watching, :finished]))
     |> Enum.flat_map(fn tracked ->
       case cached_for(tracked) do
         %CachedTitle{source: source, source_id: id, title: title} = cached
@@ -417,17 +536,6 @@ defmodule Kati.Media.Recommendations do
     end)
   rescue
     _error -> []
-  end
-
-  defp newest do
-    @kinds
-    |> Enum.flat_map(fn kind ->
-      TrackedTitle
-      |> Ash.Query.for_read(:shelf, %{kind: kind})
-      |> Ash.Query.limit(1)
-      |> Ash.read!()
-    end)
-    |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
   end
 
   defp cached_for(%TrackedTitle{source: source, source_id: source_id}) do

@@ -110,13 +110,21 @@ defmodule Kati.Screens.Film do
   # own. This one is the VERB: pressing it schedules a watch, and Persian does
   # not say the two with one word. One word, three jobs, three entries.
   @doc false
-  def action_row(scheduled \\ nil) do
+  def action_row(scheduled \\ nil, listed? \\ false) do
     [
-      {"bookmarks", gettext("Add to list"), :add_to_list},
+      Kati.Screens.Film.list_pill(listed?),
       Kati.Screens.Film.schedule_pill(scheduled),
       {"ios_share", gettext("Share"), :share_film}
     ]
   end
+
+  @doc """
+  *Add to list*, or once the film is in a list, the same pill with its glyph
+  gold and filled and saying so — the page did not show that it had been kept
+  anywhere (#128). Still the same tap: the sheet is where a list is left.
+  """
+  def list_pill(false), do: {"bookmarks", gettext("Add to list"), :add_to_list}
+  def list_pill(true), do: {"bookmarks", gettext("In a list"), :add_to_list, Palette.gold_icon()}
 
   @doc """
   *Schedule*, or — once a watch is scheduled — when it is, opening that event
@@ -175,7 +183,19 @@ defmodule Kati.Screens.Film do
 
     Kati.Screens.Resume.watch()
     Kati.LiveScreens.join()
-    {id, preview, film} = Kati.Screens.Film.opening(params)
+
+    {id, preview, film, later?} =
+      case Kati.Screens.Film.glimpse_for(params) do
+        {id, glimpse} -> {id, nil, glimpse, true}
+        nil -> Tuple.insert_at(Kati.Screens.Film.opening(params), 3, false)
+      end
+
+    Kati.Media.Cache.refresh_stale(id)
+
+    socket =
+      if later?,
+        do: Mob.Socket.start_async(socket, :film, fn -> Kati.Screens.Film.film(id) end),
+        else: socket
 
     {:ok,
      socket
@@ -192,6 +212,74 @@ defmodule Kati.Screens.Film do
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.assign(:confirm_remove?, false)
      |> Mob.Socket.assign(:remove_error, nil)}
+  end
+
+  @doc """
+  The first frame for a film the reader keeps: its poster and title from two
+  rows, and a `start_async/3` task reads the rest — watches, rating, where to
+  watch, the schedule — after it (#128). `nil` for a preview, a push naming
+  nothing, a row that has gone, or background loading switched off.
+  """
+  @spec glimpse_for(map() | nil) :: {String.t(), map()} | nil
+  def glimpse_for(params) do
+    id =
+      case Kati.Screens.TitlePreview.open(params) do
+        {:tracked, id} -> id
+        :none -> Map.get(params || %{}, :id)
+        {:preview, _state} -> nil
+      end
+
+    with true <- Kati.Screens.Later.enabled?(),
+         true <- is_binary(id),
+         {:ok, %TrackedTitle{} = tracked} <- Ash.get(TrackedTitle, id) do
+      cached = Kati.Media.Release.cached_for(tracked)
+
+      {id,
+       Map.merge(empty_film(), %{
+         tracked_id: id,
+         none?: false,
+         loading?: true,
+         title: (cached && cached.title) || gettext("Untitled"),
+         original: cached && Kati.Locale.original_title(cached),
+         seed: cached && cached.poster_path
+       })}
+    else
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc """
+  The first frame: the real hero and quiet blocks where the rating card, the
+  overview and the buttons land.
+  """
+  @spec loading_page(map(), String.t()) :: map()
+  def loading_page(f, back) do
+    assigns = %{f: f, back: back, blocks: Kati.Screens.Later.blocks([86, 18, 18, 18, 56])}
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      reduce_motion={Kati.Accessibility.motion_prop()}
+      text_scale={Kati.Accessibility.scale_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
+      <Scroll>
+        <Column fill_width={true}>
+          {Kati.Screens.Film.artwork(@f)}
+          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16}>
+            {@blocks}
+          </Column>
+        </Column>
+      </Scroll>
+      {Kati.Screens.Film.chrome(false, @back, @f)}
+    </Box>
+    """
   end
 
   @doc """
@@ -474,7 +562,11 @@ defmodule Kati.Screens.Film do
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       # The page this film has on the web, for Share (#123).
       link: Kati.Media.Sharing.link(cached || tracked),
-      actions: Kati.Screens.Film.action_row(Kati.Calendars.Scheduled.next(tracked.id))
+      actions:
+        Kati.Screens.Film.action_row(
+          Kati.Calendars.Scheduled.next(tracked.id),
+          Kati.Lists.Shelf.listed?(tracked.id)
+        )
     }
   end
 
@@ -670,6 +762,9 @@ defmodule Kati.Screens.Film do
 
       Kati.Screens.Film.gone?(f) ->
         Kati.Screens.Film.gone(__MODULE__, back)
+
+      Map.get(f, :loading?, false) ->
+        Kati.Screens.Film.loading_page(f, back)
 
       Map.get(f, :none?, false) ->
         Kati.Screens.Film.none(back)
@@ -1685,7 +1780,7 @@ defmodule Kati.Screens.Film do
     <Column fill_width={true}>
       <Spacer size={14} />
       <Row fill_width={true} align="top">
-        {f.actions |> Enum.map(fn {icon, label, tag} -> Kati.Screens.Film.action(icon, label, tag, Map.get(f, :seen_count, 0)) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
+        {f.actions |> Enum.map(fn pill -> Kati.Screens.Film.action_pill(pill, Map.get(f, :seen_count, 0)) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
       </Row>
     </Column>
     """
@@ -1699,7 +1794,11 @@ defmodule Kati.Screens.Film do
   # to the left edge — the icons and labels sat against the button's left side.
   # A Box centres its content in both axes when given `align`.
   @doc false
-  def action(icon, drawn_label, tag, seen \\ 0) do
+  def action_pill({icon, label, tag}, seen), do: action(icon, label, tag, seen)
+  def action_pill({icon, label, tag, ink}, seen), do: action(icon, label, tag, seen, ink)
+
+  @doc false
+  def action(icon, drawn_label, tag, seen \\ 0, ink \\ nil) do
     label = Kati.Screens.Film.action_label(drawn_label, tag, seen)
     # `nil` for the two pills with nowhere to go — a `<Box>` with a nil
     # `on_tap` draws no tap at all, which is what they did before and is the
@@ -1719,7 +1818,7 @@ defmodule Kati.Screens.Film do
         <Column>
           <Row align="center">
             <Spacer weight={1.0} />
-            {Kati.UI.symbol(icon, size: 19)}
+            {Kati.UI.symbol(icon, size: 19, color: ink, fill: ink != nil)}
             <Spacer weight={1.0} />
           </Row>
           <Spacer size={3} />
@@ -1736,6 +1835,12 @@ defmodule Kati.Screens.Film do
     </Box>
     """
   end
+
+  def handle_async(:film, {:ok, film}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :film, film)}
+
+  def handle_async(:film, {:exit, _reason}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :film, film(socket.assigns.id))}
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 

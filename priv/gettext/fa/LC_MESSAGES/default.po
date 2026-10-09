@@ -13,7 +13,7 @@ msgstr ""
 "Language: fa\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: lib/kati/screens/year_share.ex:614
+#: lib/kati/screens/year_share.ex:615
 #, elixir-autogen, elixir-format
 msgid "%{count} WEEKS"
 msgstr "%{count} هفته"
@@ -73,7 +73,7 @@ msgstr "یک اعلان وقتی چیزی می‌رسد."
 msgid "A title you add and have not watched yet waits in this one."
 msgstr "عنوانی که اضافه کنید و هنوز ندیده‌اید در این یکی می‌ماند."
 
-#: lib/kati/lists/shelf.ex:594
+#: lib/kati/lists/shelf.ex:611
 #, elixir-autogen, elixir-format
 msgid "ALBUM"
 msgstr "آلبوم"
@@ -157,9 +157,9 @@ msgstr "پشتیبان دارید؟ بازگردانی کنید"
 #: lib/kati/screens/home.ex:472
 #: lib/kati/screens/library.ex:1412
 #: lib/kati/screens/shelf_filters.ex:399
-#: lib/kati/screens/stats.ex:741
-#: lib/kati/screens/stats.ex:2086
-#: lib/kati/screens/up_next.ex:625
+#: lib/kati/screens/stats.ex:781
+#: lib/kati/screens/stats.ex:2153
+#: lib/kati/screens/up_next.ex:671
 #, elixir-autogen, elixir-format
 msgid "Anime"
 msgstr "انیمه"
@@ -194,7 +194,7 @@ msgstr "نسبت تصویر"
 msgid "Availability is per country. Changing this changes what Kati shows as watchable — it never touches your library, ratings or history."
 msgstr "دسترسی به محتوا کشور به کشور فرق می‌کند. تغییر این گزینه آنچه را که «در دسترس» شمرده می‌شود عوض می‌کند و به کتابخانه، امتیازها و تاریخچهٔ شما دست نمی‌زند."
 
-#: lib/kati/lists/shelf.ex:593
+#: lib/kati/lists/shelf.ex:610
 #, elixir-autogen, elixir-format
 msgid "BOOK"
 msgstr "کتاب"
@@ -234,7 +234,7 @@ msgstr "جلد کتاب‌ها، نسخه‌ها و شماره شابک."
 #: lib/kati/screens/library.ex:1181
 #: lib/kati/screens/music.ex:681
 #: lib/kati/screens/pick_sections/sample.ex:47
-#: lib/kati/screens/pushed.ex:186
+#: lib/kati/screens/pushed.ex:187
 #: lib/kati/settings/sample.ex:211
 #: lib/kati/stats/share_sample.ex:32
 #, elixir-autogen, elixir-format
@@ -263,7 +263,7 @@ msgstr "صبحانه"
 #: lib/kati/calendars/today.ex:277
 #: lib/kati/language/page.ex:145
 #: lib/kati/notifications/inbox.ex:112
-#: lib/kati/screens/pushed.ex:187
+#: lib/kati/screens/pushed.ex:188
 #: lib/kati/shell.ex:77
 #, elixir-autogen, elixir-format
 msgid "Calendar"
@@ -272,7 +272,7 @@ msgstr "تقویم"
 #: lib/kati/screens/data_sources.ex:317
 #: lib/kati/screens/data_sources.ex:541
 #: lib/kati/screens/list_detail.ex:302
-#: lib/kati/screens/my_services.ex:753
+#: lib/kati/screens/my_services.ex:789
 #: lib/kati/screens/service.ex:264
 #, elixir-autogen, elixir-format
 msgid "Cancel"
@@ -400,7 +400,7 @@ msgstr "تخم‌مرغ"
 msgid "Eggs, sourdough, avocado"
 msgstr "تخم‌مرغ، نان خمیرمایه، آووکادو"
 
-#: lib/kati/screens/year_share.ex:965
+#: lib/kati/screens/year_share.ex:966
 #, elixir-autogen, elixir-format
 msgid "Every card is drawn on this device. Nothing about your year is uploaded to make it — Kati has no server that could receive it."
 msgstr "همه کارت‌ها روی همین دستگاه ساخته می‌شوند. هیچ چیزی از سال شما جایی فرستاده نمی‌شود — کاتی سروری ندارد که آن را دریافت کند."
@@ -417,7 +417,7 @@ msgid "Every week, indefinitely"
 msgstr "هر هفته، بی‌پایان"
 
 #: lib/kati/screens/auto_detect_music.ex:531
-#: lib/kati/screens/stats.ex:1784
+#: lib/kati/screens/stats.ex:1851
 #: lib/kati/settings/detect_music_sample.ex:258
 #: lib/kati/stats/sample.ex:39
 #, elixir-autogen, elixir-format
@@ -431,19 +431,19 @@ msgstr "همه‌چیز اینجا شروع شده"
 
 #: lib/kati/library/sample.ex:449
 #: lib/kati/library/sample.ex:466
-#: lib/kati/lists/shelf.ex:596
+#: lib/kati/lists/shelf.ex:613
 #: lib/kati/screens/add_title.ex:432
 #, elixir-autogen, elixir-format
 msgid "FILM"
 msgstr "فیلم"
 
-#: lib/kati/discover/filters.ex:336
+#: lib/kati/discover/filters.ex:386
 #: lib/kati/screens/add_by_hand.ex:360
 #: lib/kati/screens/add_by_hand_states.ex:260
 #: lib/kati/screens/home.ex:471
-#: lib/kati/screens/stats.ex:2085
-#: lib/kati/screens/up_next.ex:624
-#: lib/kati/screens/what_fits.ex:592
+#: lib/kati/screens/stats.ex:2152
+#: lib/kati/screens/up_next.ex:670
+#: lib/kati/screens/what_fits.ex:593
 #, elixir-autogen, elixir-format
 msgid "Film"
 msgstr "فیلم"
@@ -489,7 +489,8 @@ msgid "For something Kati could not find. The title is the only thing it needs."
 msgstr "برای چیزی که کاتی پیدا نکرد. عنوان تنها چیز لازم است."
 
 #: lib/kati/meals/sample_plan.ex:114
-#: lib/kati/screens/my_services.ex:1141
+#: lib/kati/screens/my_services.ex:1177
+#: lib/kati/screens/my_services.ex:1256
 #, elixir-autogen, elixir-format
 msgid "Free"
 msgstr "آزاد"
@@ -526,12 +527,12 @@ msgstr "حذف شده — خالی نیست"
 msgid "Habits"
 msgstr "عادت‌ها"
 
-#: lib/kati/screens/year_share.ex:904
+#: lib/kati/screens/year_share.ex:905
 #, elixir-autogen, elixir-format
 msgid "Hide titles I marked private"
 msgstr "عنوان‌های خصوصی پنهان شوند"
 
-#: lib/kati/screens/pushed.ex:192
+#: lib/kati/screens/pushed.ex:193
 #: lib/kati/screens/search.ex:157
 #: lib/kati/screens/search.ex:339
 #: lib/kati/screens/search.ex:989
@@ -619,7 +620,7 @@ msgid "Kati, and Mob"
 msgstr "Kati, Mob"
 
 #: lib/kati/screens/clear_history.ex:440
-#: lib/kati/screens/film.ex:2303
+#: lib/kati/screens/film.ex:2408
 #: lib/kati/screens/list_detail.ex:247
 #, elixir-autogen, elixir-format
 msgid "Keep it"
@@ -641,11 +642,11 @@ msgstr "نوع"
 
 #: lib/kati/meals/sample_today.ex:104
 #: lib/kati/screens/books.ex:441
-#: lib/kati/screens/film.ex:665
-#: lib/kati/screens/film.ex:856
-#: lib/kati/screens/film.ex:1052
-#: lib/kati/screens/film.ex:1093
-#: lib/kati/screens/film.ex:1111
+#: lib/kati/screens/film.ex:757
+#: lib/kati/screens/film.ex:951
+#: lib/kati/screens/film.ex:1147
+#: lib/kati/screens/film.ex:1188
+#: lib/kati/screens/film.ex:1206
 #: lib/kati/screens/library.ex:114
 #: lib/kati/screens/library.ex:193
 #: lib/kati/screens/library.ex:985
@@ -654,9 +655,9 @@ msgstr "نوع"
 #: lib/kati/screens/library.ex:2078
 #: lib/kati/screens/library.ex:2105
 #: lib/kati/screens/music.ex:573
-#: lib/kati/screens/pushed.ex:196
-#: lib/kati/screens/series.ex:915
-#: lib/kati/screens/series.ex:1388
+#: lib/kati/screens/pushed.ex:197
+#: lib/kati/screens/series.ex:1007
+#: lib/kati/screens/series.ex:1563
 #: lib/kati/shell.ex:78
 #, elixir-autogen, elixir-format
 msgid "Library"
@@ -706,7 +707,7 @@ msgstr "مرام"
 #: lib/kati/screens/home_omitted_sections.ex:207
 #: lib/kati/screens/meal.ex:659
 #: lib/kati/screens/meals_day.ex:565
-#: lib/kati/screens/pushed.ex:199
+#: lib/kati/screens/pushed.ex:200
 #: lib/kati/screens/retired_tile.ex:292
 #: lib/kati/stats/share_sample.ex:34
 #, elixir-autogen, elixir-format
@@ -739,7 +740,7 @@ msgstr "سالمون میسو، سبزیجات، برنج"
 #: lib/kati/screens/day.ex:481
 #: lib/kati/screens/home.ex:534
 #: lib/kati/screens/money_day.ex:363
-#: lib/kati/screens/my_services.ex:361
+#: lib/kati/screens/my_services.ex:396
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/pick_sections/sample.ex:50
 #: lib/kati/settings/sample.ex:232
@@ -756,14 +757,14 @@ msgstr "مالی"
 #: lib/kati/screens/music.ex:1120
 #: lib/kati/screens/music.ex:1228
 #: lib/kati/screens/pick_sections/sample.ex:48
-#: lib/kati/screens/pushed.ex:201
+#: lib/kati/screens/pushed.ex:202
 #: lib/kati/settings/sample.ex:218
 #: lib/kati/stats/share_sample.ex:33
 #, elixir-autogen, elixir-format
 msgid "Music"
 msgstr "موسیقی"
 
-#: lib/kati/lists/shelf.ex:576
+#: lib/kati/lists/shelf.ex:593
 #, elixir-autogen, elixir-format
 msgid "NO DETAILS YET"
 msgstr "هنوز جزئیاتی نیست"
@@ -836,7 +837,7 @@ msgstr "هنوز عنوانی نیست"
 #: lib/kati/screens/add_by_hand_states.ex:288
 #: lib/kati/screens/library.ex:1381
 #: lib/kati/screens/shelf_selection.ex:128
-#: lib/kati/screens/up_next.ex:828
+#: lib/kati/screens/up_next.ex:874
 #, elixir-autogen, elixir-format
 msgid "Not started"
 msgstr "شروع نشده"
@@ -979,14 +980,14 @@ msgstr "بازتماشا"
 
 #: lib/kati/library/sample.ex:441
 #: lib/kati/library/sample.ex:476
-#: lib/kati/lists/shelf.ex:595
+#: lib/kati/lists/shelf.ex:612
 #: lib/kati/screens/add_title.ex:432
 #, elixir-autogen, elixir-format
 msgid "SERIES"
 msgstr "سریال"
 
 #: lib/kati/screens/week_image.ex:971
-#: lib/kati/screens/year_share.ex:925
+#: lib/kati/screens/year_share.ex:926
 #, elixir-autogen, elixir-format
 msgid "Save image"
 msgstr "ذخیره تصویر"
@@ -1015,19 +1016,19 @@ msgstr "نمایش"
 msgid "Search %{count} countries"
 msgstr "جست‌وجو در %{count} کشور"
 
-#: lib/kati/discover/filters.ex:335
+#: lib/kati/discover/filters.ex:385
 #: lib/kati/screens/add_by_hand.ex:356
 #: lib/kati/screens/add_by_hand_states.ex:260
 #: lib/kati/screens/home.ex:473
-#: lib/kati/screens/pushed.ex:207
+#: lib/kati/screens/pushed.ex:208
 #: lib/kati/screens/series_meta.ex:393
 #: lib/kati/screens/series_meta.ex:560
 #: lib/kati/screens/series_meta.ex:608
 #: lib/kati/screens/series_meta.ex:626
-#: lib/kati/screens/stats.ex:740
-#: lib/kati/screens/stats.ex:1870
-#: lib/kati/screens/stats.ex:2089
-#: lib/kati/screens/up_next.ex:626
+#: lib/kati/screens/stats.ex:780
+#: lib/kati/screens/stats.ex:1937
+#: lib/kati/screens/stats.ex:2156
+#: lib/kati/screens/up_next.ex:672
 #: lib/kati/stats/sample.ex:31
 #, elixir-autogen, elixir-format
 msgid "Series"
@@ -1038,12 +1039,12 @@ msgstr "سریال"
 #: lib/kati/screens/film.ex:117
 #: lib/kati/screens/list_detail.ex:116
 #: lib/kati/screens/plan_share.ex:405
-#: lib/kati/screens/series.ex:1706
+#: lib/kati/screens/series.ex:1881
 #, elixir-autogen, elixir-format
 msgid "Share"
 msgstr "هم‌رسانی"
 
-#: lib/kati/screens/year_share.ex:925
+#: lib/kati/screens/year_share.ex:926
 #, elixir-autogen, elixir-format
 msgid "Share…"
 msgstr "هم‌رسانی…"
@@ -1071,7 +1072,7 @@ msgstr "رد کن — بعداً اضافه می‌کنم"
 msgid "Snack"
 msgstr "میان‌وعده"
 
-#: lib/kati/screens/year_share.ex:398
+#: lib/kati/screens/year_share.ex:397
 #, elixir-autogen, elixir-format
 msgid "Square"
 msgstr "مربع"
@@ -1082,7 +1083,9 @@ msgstr "مربع"
 msgid "Started"
 msgstr "شروع"
 
-#: lib/kati/screens/pushed.ex:211
+#: lib/kati/screens/pushed.ex:212
+#: lib/kati/screens/stats.ex:2250
+#: lib/kati/screens/stats.ex:2255
 #: lib/kati/shell.ex:79
 #, elixir-autogen, elixir-format
 msgid "Stats"
@@ -1100,7 +1103,7 @@ msgstr "آمار"
 msgid "Status"
 msgstr "وضعیت"
 
-#: lib/kati/screens/year_share.ex:397
+#: lib/kati/screens/year_share.ex:396
 #, elixir-autogen, elixir-format
 msgid "Story"
 msgstr "استوری"
@@ -1110,10 +1113,10 @@ msgstr "استوری"
 msgid "Streaks"
 msgstr "رشته‌ها"
 
-#: lib/kati/screens/my_services.ex:1215
+#: lib/kati/screens/my_services.ex:1367
 #: lib/kati/screens/my_services_empty.ex:397
 #: lib/kati/screens/pick_sections/sample.ex:59
-#: lib/kati/screens/stats.ex:1173
+#: lib/kati/screens/stats.ex:1241
 #: lib/kati/screens/subscriptions.ex:291
 #, elixir-autogen, elixir-format
 msgid "Subscriptions"
@@ -1170,7 +1173,7 @@ msgstr "همین پیوند شرط پروانه است."
 msgid "Thriller"
 msgstr "هیجان‌انگیز"
 
-#: lib/kati/screens/stats.ex:434
+#: lib/kati/screens/stats.ex:469
 #: lib/kati/screens/year_share.ex:231
 #: lib/kati/stats/share_sample.ex:43
 #, elixir-autogen, elixir-format
@@ -1197,14 +1200,14 @@ msgstr "عنوان"
 #: lib/kati/screens/quick_add.ex:698
 #: lib/kati/screens/rate_episode.ex:739
 #: lib/kati/screens/rating.ex:2300
-#: lib/kati/screens/up_next.ex:834
+#: lib/kati/screens/up_next.ex:880
 #, elixir-autogen, elixir-format
 msgid "Today"
 msgstr "امروز"
 
 #: lib/kati/screens/year_cards.ex:333
 #: lib/kati/screens/year_cards_states.ex:491
-#: lib/kati/screens/year_share.ex:575
+#: lib/kati/screens/year_share.ex:576
 #, elixir-autogen, elixir-format
 msgid "Top titles"
 msgstr "عنوان‌های برتر"
@@ -1253,9 +1256,9 @@ msgstr "خلاصه هفتگی"
 msgid "What should\nKati keep?"
 msgstr "کاتی چه چیزی را\nبرای شما نگه دارد؟"
 
-#: lib/kati/screens/stats.ex:231
+#: lib/kati/screens/stats.ex:266
 #: lib/kati/screens/year_cards.ex:365
-#: lib/kati/screens/year_share.ex:759
+#: lib/kati/screens/year_share.ex:760
 #, elixir-autogen, elixir-format
 msgid "Where the hours went"
 msgstr "ساعت‌ها کجا رفتند"
@@ -1294,8 +1297,8 @@ msgstr "کشور شما"
 msgid "Your lists"
 msgstr "فهرست‌های شما"
 
-#: lib/kati/screens/stats.ex:288
-#: lib/kati/screens/year_share.ex:623
+#: lib/kati/screens/stats.ex:323
+#: lib/kati/screens/year_share.ex:624
 #, elixir-autogen, elixir-format
 msgid "Your year"
 msgstr "سال شما"
@@ -1381,20 +1384,20 @@ msgid "won’t ask"
 msgstr "اجازه نمی‌خواهد"
 
 #: lib/kati/screens/activity.ex:602
-#: lib/kati/screens/pushed.ex:180
+#: lib/kati/screens/pushed.ex:181
 #, elixir-autogen, elixir-format
 msgid "Activity"
 msgstr "فعالیت"
 
-#: lib/kati/screens/pushed.ex:181
+#: lib/kati/screens/pushed.ex:182
 #, elixir-autogen, elixir-format
 msgid "Add title"
 msgstr "افزودن عنوان"
 
 #: lib/kati/screens/add_by_hand.ex:358
 #: lib/kati/screens/add_by_hand_record.ex:232
-#: lib/kati/screens/pushed.ex:182
-#: lib/kati/screens/stats.ex:2088
+#: lib/kati/screens/pushed.ex:183
+#: lib/kati/screens/stats.ex:2155
 #: lib/kati/settings/drop_states_sample.ex:95
 #, elixir-autogen, elixir-format
 msgid "Album"
@@ -1402,7 +1405,7 @@ msgstr "آلبوم"
 
 #: lib/kati/screens/add_by_hand.ex:359
 #: lib/kati/screens/add_by_hand_record.ex:367
-#: lib/kati/screens/pushed.ex:183
+#: lib/kati/screens/pushed.ex:184
 #, elixir-autogen, elixir-format
 msgid "Artist"
 msgstr "هنرمند"
@@ -1410,13 +1413,13 @@ msgstr "هنرمند"
 #: lib/kati/screens/auto_detect.ex:474
 #: lib/kati/screens/auto_detect.ex:1199
 #: lib/kati/screens/auto_detect_music.ex:186
-#: lib/kati/screens/pushed.ex:184
+#: lib/kati/screens/pushed.ex:185
 #: lib/kati/settings/sample.ex:386
 #, elixir-autogen, elixir-format
 msgid "Auto-detect"
 msgstr "تشخیص خودکار"
 
-#: lib/kati/screens/pushed.ex:185
+#: lib/kati/screens/pushed.ex:186
 #, elixir-autogen, elixir-format
 msgid "Back"
 msgstr "بازگشت"
@@ -1424,21 +1427,21 @@ msgstr "بازگشت"
 #: lib/kati/screens/data_sources.ex:98
 #: lib/kati/screens/data_sources_states.ex:211
 #: lib/kati/screens/inbox.ex:1309
-#: lib/kati/screens/pushed.ex:188
+#: lib/kati/screens/pushed.ex:189
 #: lib/kati/settings/sample.ex:318
 #, elixir-autogen, elixir-format
 msgid "Data sources"
 msgstr "منابع داده"
 
-#: lib/kati/screens/pushed.ex:189
-#: lib/kati/screens/series.ex:1468
+#: lib/kati/screens/pushed.ex:190
+#: lib/kati/screens/series.ex:1643
 #, elixir-autogen, elixir-format
 msgid "Episode order"
 msgstr "ترتیب قسمت‌ها"
 
 #: lib/kati/screens/episode_ratings.ex:166
-#: lib/kati/screens/pushed.ex:190
-#: lib/kati/screens/series.ex:1352
+#: lib/kati/screens/pushed.ex:191
+#: lib/kati/screens/series.ex:1527
 #: lib/kati/screens/series_meta.ex:708
 #, elixir-autogen, elixir-format
 msgid "Episodes"
@@ -1447,7 +1450,7 @@ msgstr "قسمت‌ها"
 #: lib/kati/notifications/inbox.ex:116
 #: lib/kati/screens/health.ex:509
 #: lib/kati/screens/health_empty_states.ex:209
-#: lib/kati/screens/pushed.ex:191
+#: lib/kati/screens/pushed.ex:192
 #: lib/kati/stats/sample.ex:112
 #, elixir-autogen, elixir-format
 msgid "Health"
@@ -1455,39 +1458,39 @@ msgstr "سلامت"
 
 #: lib/kati/screens/import.ex:451
 #: lib/kati/screens/import_states.ex:163
-#: lib/kati/screens/pushed.ex:193
+#: lib/kati/screens/pushed.ex:194
 #: lib/kati/settings/sample.ex:297
 #, elixir-autogen, elixir-format
 msgid "Import"
 msgstr "درون‌ریزی"
 
-#: lib/kati/screens/pushed.ex:194
+#: lib/kati/screens/pushed.ex:195
 #, elixir-autogen, elixir-format
 msgid "Inbox"
 msgstr "صندوق"
 
 #: lib/kati/language/page.ex:80
-#: lib/kati/screens/pushed.ex:195
+#: lib/kati/screens/pushed.ex:196
 #: lib/kati/settings/sample.ex:88
 #, elixir-autogen, elixir-format
 msgid "Language"
 msgstr "زبان"
 
-#: lib/kati/screens/pushed.ex:197
+#: lib/kati/screens/pushed.ex:198
 #, elixir-autogen, elixir-format
 msgid "List"
 msgstr "فهرست"
 
 #: lib/kati/screens/library.ex:1218
 #: lib/kati/screens/lists.ex:202
-#: lib/kati/screens/pushed.ex:198
+#: lib/kati/screens/pushed.ex:199
 #, elixir-autogen, elixir-format
 msgid "Lists"
 msgstr "فهرست‌ها"
 
 #: lib/kati/screens/medication.ex:506
 #: lib/kati/screens/medication_empty.ex:106
-#: lib/kati/screens/pushed.ex:200
+#: lib/kati/screens/pushed.ex:201
 #: lib/kati/screens/retired_tile.ex:295
 #, elixir-autogen, elixir-format
 msgid "Medication"
@@ -1495,11 +1498,11 @@ msgstr "دارو"
 
 #: lib/kati/screens/home.ex:1242
 #: lib/kati/screens/money_states.ex:293
-#: lib/kati/screens/my_services.ex:398
+#: lib/kati/screens/my_services.ex:434
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/my_services_states.ex:223
 #: lib/kati/screens/nothing_set_up_knock_on.ex:390
-#: lib/kati/screens/pushed.ex:202
+#: lib/kati/screens/pushed.ex:203
 #: lib/kati/screens/series_settings.ex:557
 #: lib/kati/screens/service.ex:130
 #: lib/kati/settings/sample.ex:116
@@ -1509,24 +1512,24 @@ msgstr "سرویس‌های من"
 
 #: lib/kati/account/sample.ex:162
 #: lib/kati/screens/inbox_notifications.ex:198
-#: lib/kati/screens/pushed.ex:203
+#: lib/kati/screens/pushed.ex:204
 #, elixir-autogen, elixir-format
 msgid "Notifications"
 msgstr "اعلان‌ها"
 
 #: lib/kati/screens/plans.ex:97
-#: lib/kati/screens/pushed.ex:204
+#: lib/kati/screens/pushed.ex:205
 #, elixir-autogen, elixir-format
 msgid "Plans"
 msgstr "برنامه‌ها"
 
-#: lib/kati/screens/pushed.ex:205
+#: lib/kati/screens/pushed.ex:206
 #, elixir-autogen, elixir-format
 msgid "Recognised"
 msgstr "شناسایی‌شده"
 
 #: lib/kati/screens/onboarding_first_title.ex:157
-#: lib/kati/screens/pushed.ex:206
+#: lib/kati/screens/pushed.ex:207
 #, elixir-autogen, elixir-format
 msgid "Search"
 msgstr "جست‌وجو"
@@ -1537,7 +1540,7 @@ msgstr "جست‌وجو"
 #: lib/kati/screens/home.ex:522
 #: lib/kati/screens/home.ex:634
 #: lib/kati/screens/home_omitted_sections.ex:207
-#: lib/kati/screens/pushed.ex:208
+#: lib/kati/screens/pushed.ex:209
 #: lib/kati/screens/settings.ex:575
 #, elixir-autogen, elixir-format
 msgid "Settings"
@@ -1545,27 +1548,28 @@ msgstr "تنظیمات"
 
 #: lib/kati/screens/accessibility.ex:275
 #: lib/kati/screens/library.ex:1218
-#: lib/kati/screens/pushed.ex:212
-#: lib/kati/screens/up_next.ex:996
+#: lib/kati/screens/pushed.ex:213
+#: lib/kati/screens/up_next.ex:947
+#: lib/kati/screens/up_next.ex:1069
 #, elixir-autogen, elixir-format
 msgid "Up next"
 msgstr "بعدی"
 
 #: lib/kati/screens/library.ex:1067
-#: lib/kati/screens/pushed.ex:213
-#: lib/kati/screens/what_fits.ex:903
+#: lib/kati/screens/pushed.ex:214
+#: lib/kati/screens/what_fits.ex:904
 #, elixir-autogen, elixir-format
 msgid "What fits?"
 msgstr "چه چیزی جا می‌شود؟"
 
-#: lib/kati/screens/pushed.ex:214
+#: lib/kati/screens/pushed.ex:215
 #: lib/kati/screens/year_cards.ex:134
 #: lib/kati/screens/year_cards_states.ex:283
 #, elixir-autogen, elixir-format
 msgid "Year cards"
 msgstr "کارت‌های سال"
 
-#: lib/kati/screens/pushed.ex:220
+#: lib/kati/screens/pushed.ex:221
 #, elixir-autogen, elixir-format
 msgctxt "back pill"
 msgid "Meals"
@@ -1945,7 +1949,7 @@ msgstr "تغذیه"
 msgid "On pace"
 msgstr "طبق برنامه"
 
-#: lib/kati/screens/stats.ex:231
+#: lib/kati/screens/stats.ex:266
 #: lib/kati/stats/sample.ex:118
 #, elixir-autogen, elixir-format
 msgid "Recently watched"
@@ -2335,7 +2339,7 @@ msgstr[1] "%{n} هزینه این ماه"
 
 #: lib/kati/money/sample.ex:18
 #: lib/kati/screens/money.ex:158
-#: lib/kati/screens/my_services.ex:324
+#: lib/kati/screens/my_services.ex:359
 #, elixir-autogen, elixir-format
 msgid "%{n} service"
 msgid_plural "%{n} services"
@@ -2513,7 +2517,7 @@ msgstr[1] "%{n} ساعت"
 #: lib/kati/money/sample.ex:153
 #: lib/kati/screens/activity.ex:1269
 #: lib/kati/screens/backup_states.ex:375
-#: lib/kati/screens/discover_filters.ex:354
+#: lib/kati/screens/discover_filters.ex:385
 #: lib/kati/screens/library.ex:943
 #, elixir-autogen, elixir-format
 msgid "%{n} title"
@@ -2547,9 +2551,9 @@ msgctxt "unheard card"
 msgid "Dismiss"
 msgstr "رد کن"
 
-#: lib/kati/screens/my_services.ex:325
+#: lib/kati/screens/my_services.ex:360
 #: lib/kati/screens/service.ex:333
-#: lib/kati/screens/stats.ex:1316
+#: lib/kati/screens/stats.ex:1384
 #, elixir-autogen, elixir-format
 msgid "%{total} a month"
 msgstr "%{total} در ماه"
@@ -2569,26 +2573,26 @@ msgstr "خرید را در دسترس بشمار"
 msgid "Count rentals as available"
 msgstr "کرایه را در دسترس بشمار"
 
-#: lib/kati/screens/my_services.ex:455
+#: lib/kati/screens/my_services.ex:491
 #, elixir-autogen, elixir-format
 msgid "Decides what “available” means"
 msgstr "معنای «در دسترس» را تعیین می‌کند"
 
-#: lib/kati/screens/my_services.ex:698
-#: lib/kati/screens/my_services.ex:853
+#: lib/kati/screens/my_services.ex:734
+#: lib/kati/screens/my_services.ex:889
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/service.ex:221
 #, elixir-autogen, elixir-format
 msgid "Free with ads"
 msgstr "رایگان با تبلیغ"
 
-#: lib/kati/screens/my_services.ex:989
+#: lib/kati/screens/my_services.ex:1025
 #, elixir-autogen, elixir-format
 msgid "Mine"
 msgstr "مال من"
 
 #: lib/kati/screens/auto_detect.ex:452
-#: lib/kati/screens/my_services.ex:1090
+#: lib/kati/screens/my_services.ex:1126
 #: lib/kati/screens/my_services_empty.ex:366
 #: lib/kati/screens/service.ex:222
 #, elixir-autogen, elixir-format
@@ -2596,10 +2600,10 @@ msgid "Not mine"
 msgstr "مال من نیست"
 
 #: lib/kati/screens/money_states.ex:293
-#: lib/kati/screens/my_services.ex:319
+#: lib/kati/screens/my_services.ex:354
 #: lib/kati/screens/my_services_empty.ex:397
 #: lib/kati/screens/my_services_states.ex:283
-#: lib/kati/screens/stats.ex:1326
+#: lib/kati/screens/stats.ex:1394
 #, elixir-autogen, elixir-format
 msgid "Nothing to add up yet"
 msgstr "هنوز چیزی برای جمع‌زدن نیست"
@@ -2626,7 +2630,7 @@ msgstr "برای فهرست دقیق اول کشور را انتخاب کنید"
 msgid "Pick your country"
 msgstr "کشورتان را انتخاب کنید"
 
-#: lib/kati/screens/my_services.ex:361
+#: lib/kati/screens/my_services.ex:396
 #: lib/kati/screens/my_services_empty.ex:134
 #: lib/kati/screens/series_settings.ex:550
 #, elixir-autogen, elixir-format
@@ -2635,13 +2639,13 @@ msgstr "کشور"
 
 #: lib/kati/screens/auto_detect.ex:474
 #: lib/kati/screens/auto_detect_music.ex:186
-#: lib/kati/screens/my_services.ex:361
+#: lib/kati/screens/my_services.ex:396
 #: lib/kati/screens/my_services_empty.ex:134
 #, elixir-autogen, elixir-format
 msgid "Rules"
 msgstr "قواعد"
 
-#: lib/kati/screens/my_services.ex:486
+#: lib/kati/screens/my_services.ex:522
 #, elixir-autogen, elixir-format
 msgid "Search services"
 msgstr "جست‌وجوی سرویس‌ها"
@@ -2656,12 +2660,12 @@ msgstr "تا کاتی فقط چیزی را نشان دهد که می‌توان�
 msgid "Something else"
 msgstr "چیز دیگری"
 
-#: lib/kati/screens/my_services.ex:525
+#: lib/kati/screens/my_services.ex:561
 #, elixir-autogen, elixir-format
 msgid "Subscribed · %{count}"
 msgstr "مشترک هستم · %{count}"
 
-#: lib/kati/screens/my_services.ex:521
+#: lib/kati/screens/my_services.ex:557
 #: lib/kati/screens/my_services_empty.ex:134
 #, elixir-autogen, elixir-format
 msgid "Subscribed · none yet"
@@ -2711,8 +2715,8 @@ msgstr[0] "%{n} مورد در دسترس نبود."
 msgstr[1] "%{n} مورد در دسترس نبود."
 
 #: lib/kati/screens/log_weight.ex:593
-#: lib/kati/screens/stats.ex:2124
-#: lib/kati/screens/up_next.ex:840
+#: lib/kati/screens/stats.ex:2191
+#: lib/kati/screens/up_next.ex:886
 #: lib/kati/settings/watcher.ex:248
 #, elixir-autogen, elixir-format
 msgid "%{n} day ago"
@@ -2963,7 +2967,7 @@ msgstr "در حال تازه‌سازی…"
 #: lib/kati/screens/data_sources.ex:170
 #: lib/kati/screens/event_detail.ex:499
 #: lib/kati/screens/meal_edit.ex:430
-#: lib/kati/screens/my_services.ex:750
+#: lib/kati/screens/my_services.ex:786
 #: lib/kati/screens/rate_album.ex:276
 #: lib/kati/screens/rate_episode.ex:938
 #: lib/kati/screens/rating.ex:1266
@@ -3509,31 +3513,31 @@ msgctxt "closes a projected count"
 msgid "."
 msgstr "می‌رسید."
 
-#: lib/kati/screens/stats.ex:1277
+#: lib/kati/screens/stats.ex:1345
 #, elixir-autogen, elixir-format
 msgid "%{figure} %{unit}"
 msgstr "%{figure} %{unit}"
 
-#: lib/kati/screens/stats.ex:1320
+#: lib/kati/screens/stats.ex:1388
 #, elixir-autogen, elixir-format
 msgid "%{n} expense"
 msgid_plural "%{n} expenses"
 msgstr[0] "%{n} هزینه"
 msgstr[1] "%{n} هزینه"
 
-#: lib/kati/screens/stats.ex:1256
+#: lib/kati/screens/stats.ex:1324
 #, elixir-autogen, elixir-format
 msgid "%{n} goal"
 msgid_plural "%{n} goals"
 msgstr[0] "%{n} هدف"
 msgstr[1] "%{n} هدف"
 
-#: lib/kati/screens/stats.ex:1255
+#: lib/kati/screens/stats.ex:1323
 #, elixir-autogen, elixir-format
 msgid "No goals set — Kati counts anyway"
 msgstr "هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد"
 
-#: lib/kati/screens/stats.ex:1259
+#: lib/kati/screens/stats.ex:1327
 #, elixir-autogen, elixir-format
 msgid "None set"
 msgstr "تعیین نشده"
@@ -3541,9 +3545,9 @@ msgstr "تعیین نشده"
 #: lib/kati/health/sample.ex:241
 #: lib/kati/health/sample.ex:269
 #: lib/kati/screens/health_empty_states.ex:256
-#: lib/kati/screens/stats.ex:1240
-#: lib/kati/screens/stats.ex:1291
-#: lib/kati/screens/stats.ex:1294
+#: lib/kati/screens/stats.ex:1308
+#: lib/kati/screens/stats.ex:1359
+#: lib/kati/screens/stats.ex:1362
 #: lib/kati/settings/states_sample.ex:90
 #, elixir-autogen, elixir-format
 msgid "Not set up"
@@ -3560,15 +3564,15 @@ msgstr "#%{n} از %{total} — %{series}"
 #: lib/kati/screens/book_detail.ex:373
 #: lib/kati/screens/book_detail.ex:391
 #: lib/kati/screens/event_detail.ex:380
-#: lib/kati/screens/film.ex:524
+#: lib/kati/screens/film.ex:616
 #: lib/kati/screens/goals_empty.ex:198
 #: lib/kati/screens/library.ex:647
 #: lib/kati/screens/music.ex:402
 #: lib/kati/screens/rating.ex:834
-#: lib/kati/screens/stats.ex:1845
-#: lib/kati/screens/up_next.ex:762
+#: lib/kati/screens/stats.ex:1912
+#: lib/kati/screens/up_next.ex:808
 #: lib/kati/screens/week.ex:431
-#: lib/kati/screens/what_fits.ex:718
+#: lib/kati/screens/what_fits.ex:719
 #: lib/kati/stats/sample.ex:45
 #, elixir-autogen, elixir-format
 msgid "%{h}h %{m}m"
@@ -3592,18 +3596,18 @@ msgstr[1] "%{n} صفحه"
 #: lib/kati/books/reading_session.ex:142
 #: lib/kati/books/sample.ex:227
 #: lib/kati/screens/event_detail.ex:376
-#: lib/kati/screens/film.ex:517
+#: lib/kati/screens/film.ex:609
 #: lib/kati/screens/library.ex:654
 #: lib/kati/screens/rating.ex:828
 #: lib/kati/screens/season.ex:1019
 #: lib/kati/screens/series_meta.ex:786
-#: lib/kati/screens/up_next.ex:756
+#: lib/kati/screens/up_next.ex:802
 #: lib/kati/screens/week.ex:424
-#: lib/kati/screens/what_fits.ex:331
 #: lib/kati/screens/what_fits.ex:332
 #: lib/kati/screens/what_fits.ex:333
-#: lib/kati/screens/what_fits.ex:609
-#: lib/kati/screens/what_fits.ex:712
+#: lib/kati/screens/what_fits.ex:334
+#: lib/kati/screens/what_fits.ex:610
+#: lib/kati/screens/what_fits.ex:713
 #, elixir-autogen, elixir-format
 msgid "%{n}m"
 msgstr "%{n} دقیقه"
@@ -3626,7 +3630,7 @@ msgstr "افزودن تعداد صفحه"
 
 #: lib/kati/screens/album_detail.ex:883
 #: lib/kati/screens/book_detail.ex:1224
-#: lib/kati/screens/film.ex:115
+#: lib/kati/screens/film.ex:126
 #: lib/kati/screens/shelf_large.ex:358
 #: lib/kati/screens/shelf_selection.ex:361
 #, elixir-autogen, elixir-format
@@ -3916,17 +3920,19 @@ msgstr[1] "%{n} آهنگ"
 #: lib/kati/music/sample.ex:40
 #: lib/kati/music/sample.ex:206
 #: lib/kati/screens/event_detail.ex:377
-#: lib/kati/screens/film.ex:520
+#: lib/kati/screens/film.ex:612
 #: lib/kati/screens/goals_empty.ex:203
 #: lib/kati/screens/library.ex:644
 #: lib/kati/screens/music.ex:347
 #: lib/kati/screens/rating.ex:831
 #: lib/kati/screens/series_meta.ex:783
-#: lib/kati/screens/stats.ex:1790
-#: lib/kati/screens/up_next.ex:759
+#: lib/kati/screens/stats.ex:814
+#: lib/kati/screens/stats.ex:958
+#: lib/kati/screens/stats.ex:1857
+#: lib/kati/screens/up_next.ex:805
 #: lib/kati/screens/week.ex:427
-#: lib/kati/screens/what_fits.ex:334
-#: lib/kati/screens/what_fits.ex:715
+#: lib/kati/screens/what_fits.ex:335
+#: lib/kati/screens/what_fits.ex:716
 #: lib/kati/stats/sample.ex:51
 #, elixir-autogen, elixir-format
 msgid "%{n}h"
@@ -4041,7 +4047,7 @@ msgstr "یادداشت شما"
 
 #: lib/kati/meals/sample_recipe.ex:246
 #: lib/kati/screens/album_detail.ex:444
-#: lib/kati/screens/film.ex:1261
+#: lib/kati/screens/film.ex:1356
 #: lib/kati/screens/meal.ex:463
 #: lib/kati/screens/shelf_filters.ex:234
 #, elixir-autogen, elixir-format
@@ -4051,7 +4057,7 @@ msgstr "امتیاز شما"
 #: lib/kati/music/sample.ex:208
 #: lib/kati/screens/album_detail.ex:378
 #: lib/kati/screens/log_weight.ex:570
-#: lib/kati/screens/stats.ex:2121
+#: lib/kati/screens/stats.ex:2188
 #, elixir-autogen, elixir-format
 msgid "yesterday"
 msgstr "دیروز"
@@ -4163,21 +4169,21 @@ msgid "To read"
 msgstr "شروع نشده"
 
 #: lib/kati/library/sample.ex:229
-#: lib/kati/screens/series.ex:856
+#: lib/kati/screens/series.ex:948
 #, elixir-autogen, elixir-format
 msgid "%{date}, %{time}"
 msgstr "%{date}، ساعت %{time}"
 
 #: lib/kati/screens/calendar.ex:584
 #: lib/kati/screens/month_grid.ex:108
-#: lib/kati/screens/series.ex:885
+#: lib/kati/screens/series.ex:977
 #, elixir-autogen, elixir-format
 msgid "%{month} %{year}"
 msgstr "%{month} %{year}"
 
 #: lib/kati/library/sample.ex:218
 #: lib/kati/library/sample.ex:595
-#: lib/kati/screens/series.ex:846
+#: lib/kati/screens/series.ex:938
 #: lib/kati/screens/series_meta.ex:378
 #, elixir-autogen, elixir-format
 msgid "%{n} season"
@@ -4185,72 +4191,72 @@ msgid_plural "%{n} seasons"
 msgstr[0] "%{n} فصل"
 msgstr[1] "%{n} فصل"
 
-#: lib/kati/screens/series.ex:1255
+#: lib/kati/screens/series.ex:1430
 #, elixir-autogen, elixir-format
 msgid "%{watched} of %{total} watched"
 msgstr "%{watched} از %{total} دیده شده"
 
 #: lib/kati/library/sample.ex:312
-#: lib/kati/screens/series.ex:791
+#: lib/kati/screens/series.ex:883
 #, elixir-autogen, elixir-format
 msgid "Airs %{date}"
 msgstr "پخش %{date}"
 
 #: lib/kati/screens/drop_sheet.ex:948
-#: lib/kati/screens/series.ex:1485
-#: lib/kati/screens/series.ex:2086
+#: lib/kati/screens/series.ex:1660
+#: lib/kati/screens/series.ex:2363
 #, elixir-autogen, elixir-format
 msgid "Drop this show"
 msgstr "رهاکردن این سریال"
 
 #: lib/kati/screens/rate_episode.ex:562
-#: lib/kati/screens/series.ex:775
-#: lib/kati/screens/series.ex:780
+#: lib/kati/screens/series.ex:867
+#: lib/kati/screens/series.ex:872
 #, elixir-autogen, elixir-format
 msgid "Episode %{n}"
 msgstr "قسمت %{n}"
 
-#: lib/kati/screens/series.ex:2086
+#: lib/kati/screens/series.ex:2363
 #, elixir-autogen, elixir-format
 msgid "Keeps where you stopped"
 msgstr "جایی که ایستادید نگه داشته می‌شود"
 
-#: lib/kati/screens/film.ex:156
-#: lib/kati/screens/film.ex:1207
+#: lib/kati/screens/film.ex:164
+#: lib/kati/screens/film.ex:1302
 #: lib/kati/screens/rating.ex:1114
-#: lib/kati/screens/series.ex:2078
+#: lib/kati/screens/series.ex:2355
 #, elixir-autogen, elixir-format
 msgid "Log a watch"
 msgstr "ثبت یک تماشا"
 
-#: lib/kati/screens/series.ex:1332
-#: lib/kati/screens/series.ex:1337
+#: lib/kati/screens/series.ex:1507
+#: lib/kati/screens/series.ex:1512
 #, elixir-autogen, elixir-format
 msgid "Mark next watched"
 msgstr "قسمت بعدی را دیده‌ام"
 
-#: lib/kati/screens/series.ex:1362
+#: lib/kati/screens/series.ex:1537
 #, elixir-autogen, elixir-format
 msgid "Next episode airs "
 msgstr "قسمت بعد "
 
-#: lib/kati/screens/series.ex:1344
+#: lib/kati/screens/series.ex:1519
 #, elixir-autogen, elixir-format
 msgid "No episode list yet."
 msgstr "هنوز فهرست قسمت‌ها نیست."
 
-#: lib/kati/screens/series.ex:1348
+#: lib/kati/screens/series.ex:1523
 #, elixir-autogen, elixir-format
 msgid "No poster"
 msgstr "بدون پوستر"
 
-#: lib/kati/screens/series.ex:893
+#: lib/kati/screens/series.ex:985
 #, elixir-autogen, elixir-format
 msgid "Q%{q} %{year}"
 msgstr "فصل %{q} %{year}"
 
-#: lib/kati/screens/film.ex:2268
-#: lib/kati/screens/series.ex:2092
+#: lib/kati/screens/film.ex:2373
+#: lib/kati/screens/series.ex:2369
 #, elixir-autogen, elixir-format
 msgid "Remove from library"
 msgstr "حذف از کتابخانه"
@@ -4260,19 +4266,19 @@ msgstr "حذف از کتابخانه"
 #: lib/kati/screens/activity.ex:1336
 #: lib/kati/screens/inbox.ex:887
 #: lib/kati/screens/season.ex:904
-#: lib/kati/screens/series.ex:713
+#: lib/kati/screens/series.ex:805
 #, elixir-autogen, elixir-format
 msgid "Season %{n}"
 msgstr "فصل %{n}"
 
-#: lib/kati/screens/pushed.ex:209
-#: lib/kati/screens/series.ex:1467
+#: lib/kati/screens/pushed.ex:210
+#: lib/kati/screens/series.ex:1642
 #, elixir-autogen, elixir-format
 msgid "Show details"
 msgstr "جزئیات سریال"
 
-#: lib/kati/screens/pushed.ex:210
-#: lib/kati/screens/series.ex:1470
+#: lib/kati/screens/pushed.ex:211
+#: lib/kati/screens/series.ex:1645
 #, elixir-autogen, elixir-format
 msgid "Show settings"
 msgstr "تنظیمات سریال"
@@ -4288,7 +4294,8 @@ msgstr "تنظیمات سریال"
 #: lib/kati/screens/drop_sheet.ex:482
 #: lib/kati/screens/drop_sheet.ex:483
 #: lib/kati/screens/event_detail.ex:192
-#: lib/kati/screens/film.ex:486
+#: lib/kati/screens/film.ex:242
+#: lib/kati/screens/film.ex:578
 #: lib/kati/screens/inbox.ex:932
 #: lib/kati/screens/library.ex:493
 #: lib/kati/screens/numbering_scheme.ex:106
@@ -4296,38 +4303,39 @@ msgstr "تنظیمات سریال"
 #: lib/kati/screens/rate_episode.ex:551
 #: lib/kati/screens/rating.ex:798
 #: lib/kati/screens/season.ex:1004
-#: lib/kati/screens/series.ex:686
-#: lib/kati/screens/series.ex:782
+#: lib/kati/screens/series.ex:208
+#: lib/kati/screens/series.ex:777
+#: lib/kati/screens/series.ex:874
 #: lib/kati/screens/series_meta.ex:231
 #: lib/kati/screens/series_settings.ex:231
 #: lib/kati/screens/series_settings.ex:234
-#: lib/kati/screens/stats.ex:751
-#: lib/kati/screens/stats.ex:2056
+#: lib/kati/screens/stats.ex:791
+#: lib/kati/screens/stats.ex:2123
 #: lib/kati/screens/title_preview.ex:462
-#: lib/kati/screens/up_next.ex:674
-#: lib/kati/screens/up_next.ex:675
-#: lib/kati/screens/what_fits.ex:724
+#: lib/kati/screens/up_next.ex:720
+#: lib/kati/screens/up_next.ex:721
+#: lib/kati/screens/what_fits.ex:725
 #, elixir-autogen, elixir-format
 msgid "Untitled"
 msgstr "بی‌عنوان"
 
-#: lib/kati/screens/series.ex:2004
+#: lib/kati/screens/series.ex:2185
 #, elixir-autogen, elixir-format
 msgid "What still works"
 msgstr "کارهایی که می‌شود کرد"
 
-#: lib/kati/screens/series.ex:2079
+#: lib/kati/screens/series.ex:2356
 #, elixir-autogen, elixir-format
 msgid "Works without an episode list"
 msgstr "بدون فهرست قسمت‌ها هم کار می‌کند"
 
-#: lib/kati/screens/series.ex:1270
+#: lib/kati/screens/series.ex:1445
 #, elixir-autogen, elixir-format
 msgctxt "season pill"
 msgid "S"
 msgstr "ف"
 
-#: lib/kati/screens/series.ex:1382
+#: lib/kati/screens/series.ex:1557
 #: lib/kati/screens/series_settings.ex:300
 #: lib/kati/screens/shelf_filters.ex:403
 #, elixir-autogen, elixir-format
@@ -4335,26 +4343,26 @@ msgctxt "shelf status"
 msgid "Dropped"
 msgstr "رهاشده"
 
-#: lib/kati/screens/series.ex:1381
+#: lib/kati/screens/series.ex:1556
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
 msgid "Finished"
 msgstr "تمام‌شده"
 
-#: lib/kati/screens/series.ex:1378
+#: lib/kati/screens/series.ex:1553
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
 msgid "Not started"
 msgstr "شروع نشده"
 
-#: lib/kati/screens/series.ex:1380
+#: lib/kati/screens/series.ex:1555
 #: lib/kati/screens/series_settings.ex:297
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
 msgid "Paused"
 msgstr "متوقف"
 
-#: lib/kati/screens/series.ex:1379
+#: lib/kati/screens/series.ex:1554
 #: lib/kati/screens/series_settings.ex:296
 #, elixir-autogen, elixir-format
 msgctxt "shelf status"
@@ -4389,8 +4397,8 @@ msgstr "این سریال هنوز در کتابخانه‌ی شما نیست."
 #: lib/kati/screens/inbox.ex:764
 #: lib/kati/screens/meal.ex:421
 #: lib/kati/screens/meal_edit.ex:233
-#: lib/kati/screens/series.ex:802
-#: lib/kati/screens/what_fits.ex:311
+#: lib/kati/screens/series.ex:894
+#: lib/kati/screens/what_fits.ex:312
 #: lib/kati/settings/detect_music_sample.ex:207
 #, elixir-autogen, elixir-format
 msgid "%{n} min"
@@ -4468,7 +4476,7 @@ msgid "Episode · S%{s}E%{e} · watched %{date}"
 msgstr "قسمت %{e} فصل %{s} · %{date} دیده شد"
 
 #: lib/kati/screens/search.ex:277
-#: lib/kati/search/query.ex:750
+#: lib/kati/search/query.ex:778
 #, elixir-autogen, elixir-format
 msgid "Note · %{date} · %{title}"
 msgstr "یادداشت · %{date} · %{title}"
@@ -4666,17 +4674,17 @@ msgid "Recent"
 msgstr "اخیر"
 
 #: lib/kati/meals/sample_recipe.ex:264
-#: lib/kati/screens/film.ex:639
+#: lib/kati/screens/film.ex:731
 #: lib/kati/screens/log_weight.ex:316
 #: lib/kati/screens/meal.ex:470
-#: lib/kati/search/query.ex:745
+#: lib/kati/search/query.ex:773
 #, elixir-autogen, elixir-format
 msgid "Note"
 msgstr "یادداشت"
 
 #: lib/kati/library/sample.ex:521
-#: lib/kati/screens/film.ex:640
-#: lib/kati/search/query.ex:749
+#: lib/kati/screens/film.ex:732
+#: lib/kati/search/query.ex:777
 #, elixir-autogen, elixir-format
 msgid "Note · %{date}"
 msgstr "یادداشت · %{date}"
@@ -4701,14 +4709,14 @@ msgstr "اخیر · %{n} تای آخر"
 msgid "Your last %{n} queries will sit here."
 msgstr "%{n} جست‌وجوی آخر شما اینجا می‌نشیند."
 
-#: lib/kati/screens/stats.ex:1832
+#: lib/kati/screens/stats.ex:1899
 #, elixir-autogen, elixir-format
 msgid "%{from} – %{to} %{year}"
 msgstr "%{from} تا %{to} %{year}"
 
-#: lib/kati/screens/stats.ex:2132
-#: lib/kati/screens/up_next.ex:851
-#: lib/kati/screens/up_next.ex:854
+#: lib/kati/screens/stats.ex:2199
+#: lib/kati/screens/up_next.ex:897
+#: lib/kati/screens/up_next.ex:900
 #, elixir-autogen, elixir-format
 msgid "%{n} month ago"
 msgid_plural "%{n} months ago"
@@ -4717,9 +4725,9 @@ msgstr[1] "%{n} ماه پیش"
 
 #: lib/kati/screens/backup_states.ex:301
 #: lib/kati/screens/backup_states.ex:391
-#: lib/kati/screens/stats.ex:2128
-#: lib/kati/screens/up_next.ex:845
-#: lib/kati/screens/up_next.ex:848
+#: lib/kati/screens/stats.ex:2195
+#: lib/kati/screens/up_next.ex:891
+#: lib/kati/screens/up_next.ex:894
 #, elixir-autogen, elixir-format
 msgid "%{n} week ago"
 msgid_plural "%{n} weeks ago"
@@ -4734,91 +4742,91 @@ msgstr[0] "%{n} هفته تا امروز"
 msgstr[1] "%{n} هفته تا امروز"
 
 #: lib/kati/screens/calendars.ex:565
-#: lib/kati/screens/stats.ex:2118
+#: lib/kati/screens/stats.ex:2185
 #: lib/kati/screens/sync.ex:907
 #, elixir-autogen, elixir-format
 msgid "%{n}h ago"
 msgstr "%{n} ساعت پیش"
 
-#: lib/kati/screens/stats.ex:2115
+#: lib/kati/screens/stats.ex:2182
 #: lib/kati/screens/sync.ex:906
 #, elixir-autogen, elixir-format
 msgid "%{n}m ago"
 msgstr "%{n} دقیقه پیش"
 
 #: lib/kati/music/sample.ex:179
-#: lib/kati/screens/stats.ex:2062
+#: lib/kati/screens/stats.ex:2129
 #, elixir-autogen, elixir-format
 msgid "%{what} · %{when}"
 msgstr "%{what} · %{when}"
 
-#: lib/kati/screens/stats.ex:1871
+#: lib/kati/screens/stats.ex:1938
 #: lib/kati/stats/sample.ex:32
 #, elixir-autogen, elixir-format
 msgid "Avg ★"
 msgstr "میانگین ★"
 
 #: lib/kati/screens/add_by_hand.ex:357
-#: lib/kati/screens/stats.ex:2087
+#: lib/kati/screens/stats.ex:2154
 #: lib/kati/settings/drop_states_sample.ex:94
 #, elixir-autogen, elixir-format
 msgid "Book"
 msgstr "کتاب"
 
-#: lib/kati/screens/stats.ex:2083
+#: lib/kati/screens/stats.ex:2150
 #, elixir-autogen, elixir-format
 msgid "E%{e}"
 msgstr "ق%{e}"
 
-#: lib/kati/screens/stats.ex:739
-#: lib/kati/screens/stats.ex:1869
+#: lib/kati/screens/stats.ex:779
+#: lib/kati/screens/stats.ex:1936
 #: lib/kati/stats/sample.ex:30
 #, elixir-autogen, elixir-format
 msgid "Films"
 msgstr "فیلم"
 
-#: lib/kati/screens/stats.ex:231
-#: lib/kati/screens/stats.ex:268
+#: lib/kati/screens/stats.ex:266
+#: lib/kati/screens/stats.ex:303
 #, elixir-autogen, elixir-format
 msgid "More numbers"
 msgstr "اعداد بیشتر"
 
-#: lib/kati/screens/stats.ex:366
+#: lib/kati/screens/stats.ex:401
 #: lib/kati/screens/year_cards_states.ex:328
 #: lib/kati/screens/year_share.ex:535
 #, elixir-autogen, elixir-format
 msgid "Not much to show yet"
 msgstr "هنوز چیز زیادی برای نشان دادن نیست"
 
-#: lib/kati/screens/stats.ex:1330
+#: lib/kati/screens/stats.ex:1398
 #, elixir-autogen, elixir-format
 msgid "Nothing added yet"
 msgstr "هنوز چیزی اضافه نشده"
 
 #: lib/kati/screens/drop_sheet.ex:980
-#: lib/kati/screens/stats.ex:2077
+#: lib/kati/screens/stats.ex:2144
 #, elixir-autogen, elixir-format
 msgid "S%{s} E%{e}"
 msgstr "ف%{s} ق%{e}"
 
-#: lib/kati/screens/stats.ex:231
+#: lib/kati/screens/stats.ex:266
 #, elixir-autogen, elixir-format
 msgid "This week"
 msgstr "این هفته"
 
-#: lib/kati/screens/stats.ex:366
+#: lib/kati/screens/stats.ex:401
 #: lib/kati/screens/year_share.ex:535
 #, elixir-autogen, elixir-format
 msgid "Your year is counted from what you tick off. Mark one thing watched and this page starts filling itself."
 msgstr "سال شما از چیزهایی شمرده می‌شود که علامت می‌زنید. یک چیز را دیده‌شده علامت بزنید تا این صفحه خودش پر شود."
 
-#: lib/kati/screens/stats.ex:2112
+#: lib/kati/screens/stats.ex:2179
 #: lib/kati/screens/sync.ex:905
 #, elixir-autogen, elixir-format
 msgid "just now"
 msgstr "همین الان"
 
-#: lib/kati/screens/stats.ex:1935
+#: lib/kati/screens/stats.ex:2002
 #: lib/kati/stats/sample.ex:26
 #, elixir-autogen, elixir-format
 msgid "longest streak — %{n} night"
@@ -4826,7 +4834,7 @@ msgid_plural "longest streak — %{n} nights"
 msgstr[0] "بلندترین رشته — %{n} شب"
 msgstr[1] "بلندترین رشته — %{n} شب"
 
-#: lib/kati/screens/stats.ex:1932
+#: lib/kati/screens/stats.ex:1999
 #, elixir-autogen, elixir-format
 msgid "no streak yet"
 msgstr "هنوز رشته‌ای نیست"
@@ -4834,7 +4842,7 @@ msgstr "هنوز رشته‌ای نیست"
 #: lib/kati/screens/accessibility.ex:89
 #: lib/kati/screens/book_detail_states.ex:217
 #: lib/kati/screens/nutrition.ex:365
-#: lib/kati/screens/stats.ex:1713
+#: lib/kati/screens/stats.ex:1781
 #: lib/kati/screens/year_share_books.ex:214
 #: lib/kati/settings/drop_states_sample.ex:255
 #: lib/kati/stats/sample.ex:23
@@ -5061,7 +5069,7 @@ msgstr "%{n} در حال تماشا"
 
 #: lib/kati/screens/home.ex:607
 #: lib/kati/screens/library.ex:602
-#: lib/kati/screens/up_next.ex:735
+#: lib/kati/screens/up_next.ex:781
 #, elixir-autogen, elixir-format
 msgid "%{n}m left"
 msgstr "%{n} دقیقه مانده"
@@ -5071,7 +5079,7 @@ msgstr "%{n} دقیقه مانده"
 msgid "%{titles} · %{watching}"
 msgstr "%{titles} · %{watching}"
 
-#: lib/kati/screens/discover.ex:446
+#: lib/kati/screens/discover.ex:483
 #: lib/kati/screens/library.ex:1218
 #, elixir-autogen, elixir-format
 msgid "Discover"
@@ -5094,9 +5102,9 @@ msgstr "انتشارهای تازه"
 #: lib/kati/screens/home.ex:426
 #: lib/kati/screens/library.ex:621
 #: lib/kati/screens/numbering_scheme.ex:348
-#: lib/kati/screens/up_next.ex:609
-#: lib/kati/screens/up_next.ex:703
-#: lib/kati/screens/what_fits.ex:635
+#: lib/kati/screens/up_next.ex:655
+#: lib/kati/screens/up_next.ex:749
+#: lib/kati/screens/what_fits.ex:636
 #, elixir-autogen, elixir-format
 msgid "S%{s} · E%{e}"
 msgstr "ف%{s} · ق%{e}"
@@ -5264,8 +5272,8 @@ msgstr "تازه‌های این هفته"
 #: lib/kati/screens/home.ex:1270
 #: lib/kati/screens/nothing_set_up_knock_on.ex:325
 #: lib/kati/screens/series_settings.ex:590
-#: lib/kati/screens/stats.ex:1190
-#: lib/kati/screens/stats.ex:1193
+#: lib/kati/screens/stats.ex:1258
+#: lib/kati/screens/stats.ex:1261
 #, elixir-autogen, elixir-format
 msgid "No subscriptions yet"
 msgstr "هنوز اشتراکی نیست"
@@ -5777,8 +5785,8 @@ msgstr "%{n} میلی‌ثانیه"
 #: lib/kati/screens/numbering_scheme.ex:342
 #: lib/kati/screens/rate_episode.ex:591
 #: lib/kati/screens/season.ex:1001
-#: lib/kati/screens/up_next.ex:709
-#: lib/kati/screens/what_fits.ex:641
+#: lib/kati/screens/up_next.ex:755
+#: lib/kati/screens/what_fits.ex:642
 #, elixir-autogen, elixir-format
 msgctxt "episode number"
 msgid "E%{e}"
@@ -8117,12 +8125,12 @@ msgstr "سقف‌ها، تأکید، نگه‌داری"
 msgid "Cast"
 msgstr "بازیگران"
 
-#: lib/kati/screens/discover.ex:548
+#: lib/kati/screens/discover.ex:585
 #, elixir-autogen, elixir-format
 msgid "Checking what goes with what you last watched."
 msgstr "بررسی می‌کند چه چیزی با آخرین چیزی که تماشا کرده‌اید جور است."
 
-#: lib/kati/screens/discover.ex:557
+#: lib/kati/screens/discover.ex:594
 #, elixir-autogen, elixir-format
 msgid "Could not look just now"
 msgstr "الان نشد نگاه کرد"
@@ -8261,7 +8269,7 @@ msgstr "فهرست آنچه آماده‌سازی می‌خواهد"
 msgid "Location"
 msgstr "مکان"
 
-#: lib/kati/screens/discover.ex:547
+#: lib/kati/screens/discover.ex:584
 #, elixir-autogen, elixir-format
 msgid "Looking for something"
 msgstr "دنبال چیزی می‌گردد"
@@ -8307,7 +8315,7 @@ msgstr "اینجا در دسترس نیست"
 msgid "Nothing to leave yet"
 msgstr "هنوز چیزی در حال رفتن نیست"
 
-#: lib/kati/screens/discover.ex:565
+#: lib/kati/screens/discover.ex:602
 #, elixir-autogen, elixir-format
 msgid "Nothing to suggest yet"
 msgstr "هنوز چیزی برای پیشنهاد نیست"
@@ -8343,7 +8351,7 @@ msgstr "روزهای گذشته روی برنامهٔ قبلی خودشان می
 msgid "Persian normalisation"
 msgstr "یکسان‌سازی فارسی"
 
-#: lib/kati/screens/discover.ex:222
+#: lib/kati/screens/discover.ex:234
 #, elixir-autogen, elixir-format
 msgid "Picks from"
 msgstr "پیشنهادها بر اساس"
@@ -8439,7 +8447,7 @@ msgstr "زمان اثرگذاری"
 msgid "TMDB didn’t accept this key. Check you copied the "
 msgstr "TMDB این کلید را نپذیرفت. مطمئن شوید "
 
-#: lib/kati/screens/discover.ex:566
+#: lib/kati/screens/discover.ex:603
 #, elixir-autogen, elixir-format
 msgid "TMDB knows of nothing like it. Watch something else and this fills in."
 msgstr "چیزی شبیه آن در TMDB نیست. چیز دیگری تماشا کنید تا اینجا پر شود."
@@ -8560,8 +8568,8 @@ msgstr "چه چیزی نشانه را می‌گذارد — و کدام برند
 msgid "Where Add to library goes"
 msgstr "«افزودن به کتابخانه» به کجا می‌رود"
 
-#: lib/kati/screens/film.ex:1484
-#: lib/kati/screens/film.ex:1499
+#: lib/kati/screens/film.ex:1579
+#: lib/kati/screens/film.ex:1594
 #: lib/kati/screens/series_meta.ex:404
 #, elixir-autogen, elixir-format
 msgid "Where to watch"
@@ -8828,13 +8836,13 @@ msgctxt "destination note"
 msgid "Straight to"
 msgstr "یک‌راست به"
 
-#: lib/kati/screens/discover.ex:178
+#: lib/kati/screens/discover.ex:180
 #, elixir-autogen, elixir-format
 msgctxt "discover heading"
 msgid "%{sort} %{noun}"
 msgstr "%{sort} %{noun}"
 
-#: lib/kati/screens/discover.ex:181
+#: lib/kati/screens/discover.ex:186
 #, elixir-autogen, elixir-format
 msgctxt "discover heading"
 msgid "%{sort} %{noun}, %{rating}"
@@ -9168,7 +9176,7 @@ msgctxt "what switching numbering affects"
 msgid "What it changes"
 msgstr "چه چیزی را تغییر می‌دهد"
 
-#: lib/kati/screens/film.ex:2095
+#: lib/kati/screens/film.ex:2200
 #: lib/kati/screens/series_meta.ex:289
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
@@ -9194,7 +9202,7 @@ msgctxt "where to watch"
 msgid "included"
 msgstr "با اشتراک"
 
-#: lib/kati/screens/film.ex:2092
+#: lib/kati/screens/film.ex:2197
 #: lib/kati/screens/series_meta.ex:288
 #, elixir-autogen, elixir-format
 msgctxt "where to watch"
@@ -9402,7 +9410,7 @@ msgid "Kati has no server, so it cannot know what yesterday’s rate was — and
 msgstr "کاتی سروری ندارد، پس نمی‌تواند بداند نرخ دیروز چه بوده — و تاریخچه‌ای که بی‌سروصدا با نرخ امروز تبدیل شده باشد، از نبود تبدیل هم بدتر است."
 
 #: lib/kati/screens/week_image.ex:1241
-#: lib/kati/screens/year_share.ex:1068
+#: lib/kati/screens/year_share.ex:1077
 #, elixir-autogen, elixir-format
 msgid "Kati is not on screen. Nothing was saved."
 msgstr "کاتی روی صفحه نیست. چیزی ذخیره نشد."
@@ -9562,7 +9570,7 @@ msgstr "راست‌به‌چپ — آغاز دوبارهٔ هفته از "
 msgid "Ranges are chip buckets, not sliders — the app has no slider in its component table, and a bucket carries a count while a slider cannot. Count badges exist so a chip that would empty the shelf says so before it is tapped: Comedy reads 0 in hairline grey."
 msgstr "بازه‌ها دسته‌های چیپی‌اند، نه لغزنده — برنامه در جدول مؤلفه‌هایش لغزنده‌ای ندارد، و یک دسته می‌تواند شمارش داشته باشد ولی لغزنده نمی‌تواند. نشان‌های شمارش برای همین‌اند: چیپی که قفسه را خالی می‌کند، پیش از آنکه فشرده شود همین را می‌گوید — کمدی ۰ را در خاکستری مویین نشان می‌دهد."
 
-#: lib/kati/screens/discover_filters.ex:88
+#: lib/kati/screens/discover_filters.ex:89
 #: lib/kati/screens/shelf_filters.ex:586
 #: lib/kati/screens/shelf_filters.ex:600
 #: lib/kati/screens/up_next_filters.ex:140
@@ -9634,7 +9642,7 @@ msgid "Saving files needs a platform capability Kati does not have on this versi
 msgstr "ذخیرهٔ فایل به قابلیتی از سیستم نیاز دارد که کاتی در این نسخه ندارد. تا وقتی که بیاید، عکسِ صفحه از این کارت همان تصویر است — "
 
 #: lib/kati/screens/week_image.ex:1244
-#: lib/kati/screens/year_share.ex:1071
+#: lib/kati/screens/year_share.ex:1080
 #, elixir-autogen, elixir-format
 msgid "Saving images does not work here yet."
 msgstr "ذخیرهٔ تصویر هنوز اینجا کار نمی‌کند."
@@ -9664,7 +9672,7 @@ msgstr "نمایش عنوان اصلی در کنار آن"
 msgid "Some phones stop background work in ways an app cannot detect. If reminders are late or missing, this is the first place to look."
 msgstr "بعضی گوشی‌ها کار پس‌زمینه را جوری متوقف می‌کنند که هیچ برنامه‌ای نمی‌تواند بفهمد. اگر یادآورها دیر می‌رسند یا اصلاً نمی‌رسند، اول همین‌جا را ببینید."
 
-#: lib/kati/screens/discover_filters.ex:70
+#: lib/kati/screens/discover_filters.ex:71
 #: lib/kati/screens/shelf_filters.ex:155
 #: lib/kati/screens/up_next_filters.ex:125
 #, elixir-autogen, elixir-format
@@ -9682,7 +9690,7 @@ msgid "Switch to %{code}?"
 msgstr "به %{code} تغییر کند؟"
 
 #: lib/kati/screens/week_image.ex:1245
-#: lib/kati/screens/year_share.ex:1072
+#: lib/kati/screens/year_share.ex:1081
 #, elixir-autogen, elixir-format
 msgid "That did not save. The page is unchanged."
 msgstr "ذخیره نشد. صفحه بدون تغییر است."
@@ -9698,7 +9706,7 @@ msgid "The failure line, where it renders"
 msgstr "خط خطا، و جایی که ظاهر می‌شود"
 
 #: lib/kati/screens/week_image.ex:1243
-#: lib/kati/screens/year_share.ex:1070
+#: lib/kati/screens/year_share.ex:1079
 #, elixir-autogen, elixir-format
 msgid "The page took too long to capture. Nothing was saved."
 msgstr "گرفتن تصویر صفحه بیش از حد طول کشید. چیزی ذخیره نشد."
@@ -9734,7 +9742,7 @@ msgid "The week as an image"
 msgstr "هفته در یک تصویر"
 
 #: lib/kati/screens/week_image.ex:1242
-#: lib/kati/screens/year_share.ex:1069
+#: lib/kati/screens/year_share.ex:1078
 #, elixir-autogen, elixir-format
 msgid "There was nothing to capture. Nothing was saved."
 msgstr "چیزی برای گرفتن نبود. چیزی ذخیره نشد."
@@ -10014,7 +10022,7 @@ msgctxt "calendar name"
 msgid "Work"
 msgstr "کاری"
 
-#: lib/kati/screens/discover_filters.ex:273
+#: lib/kati/screens/discover_filters.ex:304
 #: lib/kati/screens/shelf_filters.ex:541
 #, elixir-autogen, elixir-format
 msgctxt "clears every filter on the sheet"
@@ -10235,7 +10243,7 @@ msgctxt "shelf status"
 msgid "Gone cold"
 msgstr "سردشده"
 
-#: lib/kati/screens/discover_filters.ex:88
+#: lib/kati/screens/discover_filters.ex:89
 #: lib/kati/screens/shelf_filters.ex:670
 #: lib/kati/screens/shelf_filters.ex:684
 #, elixir-autogen, elixir-format
@@ -10243,7 +10251,7 @@ msgctxt "sort & filter sheet section"
 msgid "Filters"
 msgstr "فیلترها"
 
-#: lib/kati/screens/discover_filters.ex:88
+#: lib/kati/screens/discover_filters.ex:89
 #: lib/kati/screens/shelf_filters.ex:166
 #: lib/kati/screens/up_next_filters.ex:140
 #, elixir-autogen, elixir-format
@@ -11051,7 +11059,7 @@ msgstr[1] "%{n} ویرایش"
 
 #: lib/kati/calendars/airings.ex:155
 #: lib/kati/screens/day.ex:1395
-#: lib/kati/screens/series.ex:832
+#: lib/kati/screens/series.ex:924
 #: lib/kati/settings/detect_music_sample.ex:137
 #, elixir-autogen, elixir-format
 msgid "%{n} episode"
@@ -11258,7 +11266,7 @@ msgstr "کاتی آن را نفرستاد: %{reason}."
 msgid "Kati keeps the version an edit started from, so that a disagreement can be a three-way merge rather than a guess. This one has none — the queued change was quarantined, or the edit is older than the queue. Your version and the one on %{calendar} differ, and two versions that differ say nothing about who moved, so Kati will not choose between them for you."
 msgstr "کاتی نسخه‌ای را که هر ویرایش از آن شروع شده نگه می‌دارد تا اختلاف، یک ادغام سه‌طرفه باشد نه یک حدس. این یکی چنین نسخه‌ای ندارد — یا تغییرِ در صف قرنطینه شده، یا ویرایش از خودِ صف قدیمی‌تر است. نسخهٔ شما و نسخهٔ روی %{calendar} با هم فرق دارند، و دو نسخه که فرق دارند چیزی دربارهٔ اینکه کدام جابه‌جا شده نمی‌گویند؛ پس کاتی به‌جای شما میان‌شان انتخاب نمی‌کند."
 
-#: lib/kati/screens/film.ex:1487
+#: lib/kati/screens/film.ex:1582
 #: lib/kati/screens/nothing_set_up_knock_on.ex:154
 #, elixir-autogen, elixir-format
 msgid "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
@@ -11417,7 +11425,7 @@ msgstr "جست‌وجوی بی‌نتیجه"
 msgid "Send your version. Theirs is kept below."
 msgstr "نسخهٔ شما فرستاده می‌شود. نسخهٔ آن‌ها پایین نگه داشته می‌شود."
 
-#: lib/kati/screens/film.ex:1486
+#: lib/kati/screens/film.ex:1581
 #: lib/kati/screens/nothing_set_up_knock_on.ex:153
 #, elixir-autogen, elixir-format
 msgid "Set up your services to see where this is streaming"
@@ -12021,12 +12029,12 @@ msgstr " — این تغییر در ۱۵ می‌آید."
 msgid " — you cannot have an opinion about something you have not seen, and asking twice is a needless tap."
 msgstr " — نمی‌توانید دربارهٔ چیزی که ندیده‌اید نظر داشته باشید، و دوبار پرسیدن یک ضربهٔ بی‌مورد است."
 
-#: lib/kati/screens/what_fits.ex:263
+#: lib/kati/screens/what_fits.ex:264
 #, elixir-autogen, elixir-format
 msgid "%{day}, %{time}"
 msgstr "%{day}، %{time}"
 
-#: lib/kati/screens/what_fits.ex:683
+#: lib/kati/screens/what_fits.ex:684
 #, elixir-autogen, elixir-format
 msgid "%{length} · %{n} min over"
 msgstr "%{length} · %{n} دقیقه بیشتر"
@@ -12038,7 +12046,7 @@ msgid_plural "%{n} books in %{days} days"
 msgstr[0] "%{n} کتاب در %{days} روز"
 msgstr[1] "%{n} کتاب در %{days} روز"
 
-#: lib/kati/screens/what_fits.ex:310
+#: lib/kati/screens/what_fits.ex:311
 #, elixir-autogen, elixir-format
 msgid "%{n} hr"
 msgstr "%{n} ساعت"
@@ -12210,7 +12218,7 @@ msgid "Done on 14 August — 4 months early"
 msgstr "در ۱۴ آبان تمام شد — ۴ ماه زودتر"
 
 #: lib/kati/screens/drop_sheet.ex:947
-#: lib/kati/screens/film.ex:1225
+#: lib/kati/screens/film.ex:1320
 #, elixir-autogen, elixir-format
 msgid "Drop this film"
 msgstr "رهاکردن این فیلم"
@@ -12361,12 +12369,12 @@ msgstr "هیچ نتیجه‌ای، هیچ‌جا"
 msgid "Nothing announced since %{album}, %{year}"
 msgstr "پس از %{album}، %{year} چیزی اعلام نشده"
 
-#: lib/kati/screens/what_fits.ex:244
+#: lib/kati/screens/what_fits.ex:245
 #, elixir-autogen, elixir-format
 msgid "Nothing else fits — nearest film is %{length}"
 msgstr "چیز دیگری جا نمی‌شود — نزدیک‌ترین فیلم %{length} است"
 
-#: lib/kati/screens/what_fits.ex:359
+#: lib/kati/screens/what_fits.ex:360
 #, elixir-autogen, elixir-format
 msgid "Nothing fits that window"
 msgstr "چیزی در این بازه جا نمی‌شود"
@@ -12533,7 +12541,7 @@ msgstr "هدف"
 msgid "The sender’s history, notes and ratings do not travel — "
 msgstr "تاریخچه، یادداشت‌ها و امتیازهای فرستنده منتقل نمی‌شوند — "
 
-#: lib/kati/screens/what_fits.ex:947
+#: lib/kati/screens/what_fits.ex:948
 #, elixir-autogen, elixir-format
 msgid "Time you have"
 msgstr "فرصتی که دارید"
@@ -12812,8 +12820,8 @@ msgctxt "search query"
 msgid "vellichor"
 msgstr "دلتنگی"
 
-#: lib/kati/screens/up_next.ex:706
-#: lib/kati/screens/what_fits.ex:638
+#: lib/kati/screens/up_next.ex:752
+#: lib/kati/screens/what_fits.ex:639
 #, elixir-autogen, elixir-format
 msgctxt "season number"
 msgid "S%{s}"
@@ -12897,13 +12905,13 @@ msgctxt "the keep card, quoting the button beside it"
 msgid "No, I’m still on it"
 msgstr "نه، هنوز دنبالش هستم"
 
-#: lib/kati/screens/what_fits.ex:308
+#: lib/kati/screens/what_fits.ex:309
 #, elixir-autogen, elixir-format
 msgctxt "the largest window, a ceiling"
 msgid "%{n} hr+"
 msgstr "%{n} ساعت+"
 
-#: lib/kati/screens/what_fits.ex:339
+#: lib/kati/screens/what_fits.ex:340
 #, elixir-autogen, elixir-format
 msgctxt "the largest window, a ceiling"
 msgid "%{n}h+"
@@ -13093,7 +13101,7 @@ msgstr[0] "%{n} نویسه"
 msgstr[1] "%{n} نویسه"
 
 #: lib/kati/library/sample.ex:520
-#: lib/kati/screens/film.ex:616
+#: lib/kati/screens/film.ex:708
 #, elixir-autogen, elixir-format
 msgid "%{n} time"
 msgid_plural "%{n} times"
@@ -13175,13 +13183,13 @@ msgstr "اگر نه بگویید، کاتی به نشان صندوق برمی‌
 msgid "Kati is quiet unless you ask it not to be. Turn a reminder on and it will show up here first, before it ever interrupts you."
 msgstr "کاتی ساکت است مگر خودتان بخواهید نباشد. یک یادآور را روشن کنید تا اول همین‌جا نشان داده شود، پیش از آنکه اصلاً کارتان را قطع کند."
 
-#: lib/kati/screens/film.ex:2112
+#: lib/kati/screens/film.ex:2217
 #, elixir-autogen, elixir-format
 msgid "Keep off shared cards"
 msgstr "دور نگه‌داشتن از کارت‌های اشتراکی"
 
 #: lib/kati/library/sample.ex:559
-#: lib/kati/screens/film.ex:154
+#: lib/kati/screens/film.ex:162
 #, elixir-autogen, elixir-format
 msgid "Log rewatch"
 msgstr "ثبت بازتماشا"
@@ -13247,7 +13255,7 @@ msgstr "دسترسی‌ها، زنگ‌ها و باتری"
 msgid "Play counts, ratings and notes still render"
 msgstr "شمار پخش، امتیازها و یادداشت‌ها همچنان نمایش داده می‌شوند"
 
-#: lib/kati/screens/film.ex:2111
+#: lib/kati/screens/film.ex:2216
 #, elixir-autogen, elixir-format
 msgid "Show on shared cards"
 msgstr "نمایش در کارت‌های اشتراکی"
@@ -13257,12 +13265,12 @@ msgstr "نمایش در کارت‌های اشتراکی"
 msgid "Story re-scales rather than crops: the same elements, larger type and looser spacing to fill the taller frame. Nothing is cut, because a cropped chart is a wrong chart. Only the field card carries the wordmark."
 msgstr "استوری به‌جای برش‌خوردن، بزرگ‌نمایی می‌شود: همان عناصر، با قلم درشت‌تر و فاصله‌های بازتر تا قاب بلندتر پر شود. چیزی بریده نمی‌شود، چون نمودار بریده، نمودار غلطی است. فقط کارت میدان نشان‌واره را دارد."
 
-#: lib/kati/screens/discover_filters.ex:124
+#: lib/kati/screens/discover_filters.ex:126
 #, elixir-autogen, elixir-format
 msgid "TMDB's own average out of ten, from everyone who rated it — not a fit to your shelf. Only titles with %{n} or more votes are counted, so one perfect score cannot carry a film."
 msgstr "میانگین خود TMDB از ده، از نظر همهٔ کسانی که به آن امتیاز داده‌اند — نه سنجشی از تناسبش با قفسهٔ شما. فقط عنوان‌هایی شمرده می‌شوند که %{n} رأی یا بیشتر دارند، تا یک نمرهٔ کامل نتواند فیلمی را به‌تنهایی بالا بکشد."
 
-#: lib/kati/screens/discover_filters.ex:143
+#: lib/kati/screens/discover_filters.ex:145
 #, elixir-autogen, elixir-format
 msgid "These go to TMDB rather than to a recommender, so nothing here is scored against your own shelf."
 msgstr "این‌ها به TMDB می‌روند، نه به یک پیشنهاددهنده؛ پس هیچ‌چیز اینجا در برابر قفسهٔ خودتان سنجیده نمی‌شود."
@@ -13272,12 +13280,12 @@ msgstr "این‌ها به TMDB می‌روند، نه به یک پیشنهاد�
 msgid "This is a %{source} export from before %{year}. Everything else maps. "
 msgstr "این یک خروجی %{source} از پیش از %{year} است. بقیه نگاشت می‌شوند. "
 
-#: lib/kati/screens/film.ex:2196
+#: lib/kati/screens/film.ex:2301
 #, elixir-autogen, elixir-format
 msgid "This is a film"
 msgstr "این یک فیلم است"
 
-#: lib/kati/screens/film.ex:2195
+#: lib/kati/screens/film.ex:2300
 #, elixir-autogen, elixir-format
 msgid "This is a series"
 msgstr "این یک سریال است"
@@ -13307,14 +13315,14 @@ msgstr "ناشناخته برای کاشیِ نام‌برده — بگویید 
 msgid "Use %{source} instead"
 msgstr "استفاده از %{source}"
 
-#: lib/kati/screens/film.ex:1878
-#: lib/kati/screens/series.ex:1292
+#: lib/kati/screens/film.ex:1983
+#: lib/kati/screens/series.ex:1467
 #, elixir-autogen, elixir-format
 msgid "Watch %{title}"
 msgstr "تماشای %{title}"
 
 #: lib/kati/library/sample.ex:514
-#: lib/kati/screens/film.ex:561
+#: lib/kati/screens/film.ex:653
 #, elixir-autogen, elixir-format
 msgid "Watched %{date}"
 msgstr "%{date} دیده شد"
@@ -13340,7 +13348,7 @@ msgid "Wrong guess — back at the grid, choice remembered"
 msgstr "حدس اشتباه — بازگشت به شبکه، انتخاب به یاد مانده"
 
 #: lib/kati/screens/rating.ex:2301
-#: lib/kati/screens/up_next.ex:837
+#: lib/kati/screens/up_next.ex:883
 #, elixir-autogen, elixir-format
 msgid "Yesterday"
 msgstr "دیروز"
@@ -13474,31 +13482,31 @@ msgid "Now"
 msgstr "حالا"
 
 #: lib/kati/library/sample.ex:560
-#: lib/kati/screens/film.ex:125
+#: lib/kati/screens/film.ex:133
 #, elixir-autogen, elixir-format
 msgctxt "film action pill"
 msgid "Schedule"
 msgstr "برنامه‌ریزی"
 
-#: lib/kati/screens/film.ex:2096
+#: lib/kati/screens/film.ex:2201
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "Buy from %{name}"
 msgstr "خرید از %{name}"
 
-#: lib/kati/screens/film.ex:2099
+#: lib/kati/screens/film.ex:2204
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "On %{name}"
 msgstr "در %{name}"
 
-#: lib/kati/screens/film.ex:2093
+#: lib/kati/screens/film.ex:2198
 #, elixir-autogen, elixir-format
 msgctxt "how a shared film can be watched"
 msgid "Rent from %{name}"
 msgstr "کرایه از %{name}"
 
-#: lib/kati/screens/film.ex:615
+#: lib/kati/screens/film.ex:707
 #, elixir-autogen, elixir-format
 msgctxt "how many times a film has been seen"
 msgid "never"
@@ -13594,26 +13602,26 @@ msgctxt "the preview band's name for screen 112's today card"
 msgid "Today card"
 msgstr "کارت امروز"
 
-#: lib/kati/screens/film.ex:1261
+#: lib/kati/screens/film.ex:1356
 #, elixir-autogen, elixir-format
 msgctxt "the rating card's count eyebrow"
 msgid "Seen"
 msgstr "دیده‌شده"
 
-#: lib/kati/screens/film.ex:564
-#: lib/kati/screens/film.ex:567
+#: lib/kati/screens/film.ex:656
+#: lib/kati/screens/film.ex:659
 #, elixir-autogen, elixir-format
 msgctxt "the watched pill over a film's artwork"
 msgid "Watched"
 msgstr "دیده شد"
 
-#: lib/kati/screens/film.ex:2154
+#: lib/kati/screens/film.ex:2259
 #, elixir-autogen, elixir-format
 msgctxt "the ⋯ row that tags a title as anime"
 msgid "Mark as anime"
 msgstr "علامت‌زدن به‌عنوان انیمه"
 
-#: lib/kati/screens/film.ex:2152
+#: lib/kati/screens/film.ex:2257
 #, elixir-autogen, elixir-format
 msgctxt "the ⋯ row that tags a title as anime"
 msgid "Not anime"
@@ -13675,8 +13683,8 @@ msgid_plural "%{n} more sources"
 msgstr[0] "%{n} منبع دیگر"
 msgstr[1] "%{n} منبع دیگر"
 
-#: lib/kati/screens/up_next.ex:859
-#: lib/kati/screens/up_next.ex:862
+#: lib/kati/screens/up_next.ex:905
+#: lib/kati/screens/up_next.ex:908
 #, elixir-autogen, elixir-format
 msgid "%{n} year ago"
 msgid_plural "%{n} years ago"
@@ -13688,7 +13696,7 @@ msgstr[1] "%{n} سال پیش"
 msgid "%{n}% of days hit"
 msgstr "%{n}٪ روزها تیک خورده"
 
-#: lib/kati/screens/up_next.ex:364
+#: lib/kati/screens/up_next.ex:391
 #, elixir-autogen, elixir-format
 msgid "%{ready} ready · %{soon} airing soon"
 msgstr "%{ready} آماده · %{soon} به‌زودی پخش"
@@ -13748,7 +13756,7 @@ msgstr "تغییر وضعیت"
 msgid "Choose the file you saved. Sections, settings and everything you logged come with it — you can skip the rest of setup."
 msgstr "فایلی را که ذخیره کرده‌اید انتخاب کنید. بخش‌ها، تنظیمات و هر چه ثبت کرده‌اید با آن می‌آید — بقیهٔ راه‌اندازی را می‌توانید رد کنید."
 
-#: lib/kati/screens/up_next.ex:404
+#: lib/kati/screens/up_next.ex:434
 #, elixir-autogen, elixir-format
 msgid "Clear the filters"
 msgstr "پاک‌کردن فیلترها"
@@ -13758,7 +13766,7 @@ msgstr "پاک‌کردن فیلترها"
 msgid "Drop the %{chip} chip"
 msgstr "برداشتن چیپ %{chip}"
 
-#: lib/kati/screens/up_next.ex:1033
+#: lib/kati/screens/up_next.ex:1106
 #, elixir-autogen, elixir-format
 msgid "Everything on your shelf is paused. Picking one up puts it here."
 msgstr "همهٔ چیزهای قفسه‌تان متوقف‌اند. یکی را از سر بگیرید تا این‌جا بیاید."
@@ -13783,8 +13791,8 @@ msgstr "چهار منبع دیگر"
 msgid "Four things this sheet does not have, and why:"
 msgstr "چهار چیزی که این برگه ندارد، و چرا:"
 
-#: lib/kati/screens/up_next.ex:369
-#: lib/kati/screens/up_next.ex:539
+#: lib/kati/screens/up_next.ex:384
+#: lib/kati/screens/up_next.ex:569
 #, elixir-autogen, elixir-format
 msgid "Gone cold · %{n}"
 msgstr "سردشده · %{n}"
@@ -13829,19 +13837,19 @@ msgstr "بدون صفحه‌نمایش بعد از %{time}"
 msgid "No watch hours yet — the first-week state"
 msgstr "هنوز هیچ ساعت تماشایی ثبت نشده — حالت هفتهٔ اول"
 
-#: lib/kati/screens/up_next.ex:267
-#: lib/kati/screens/up_next.ex:476
+#: lib/kati/screens/up_next.ex:289
+#: lib/kati/screens/up_next.ex:506
 #: lib/kati/widgets/snapshot.ex:124
 #, elixir-autogen, elixir-format
 msgid "Nothing queued"
 msgstr "چیزی در صف نیست"
 
-#: lib/kati/screens/up_next.ex:1033
+#: lib/kati/screens/up_next.ex:1106
 #, elixir-autogen, elixir-format
 msgid "Nothing ready to watch"
 msgstr "چیزی برای تماشا آماده نیست"
 
-#: lib/kati/screens/up_next.ex:537
+#: lib/kati/screens/up_next.ex:567
 #, elixir-autogen, elixir-format
 msgid "Nothing ready · %{n} gone cold"
 msgstr "چیزی آماده نیست · %{n} سردشده"
@@ -13898,7 +13906,7 @@ msgid_plural "Read %{n} pages"
 msgstr[0] "خواندن %{n} صفحه"
 msgstr[1] "خواندن %{n} صفحه"
 
-#: lib/kati/screens/up_next.ex:368
+#: lib/kati/screens/up_next.ex:397
 #, elixir-autogen, elixir-format
 msgid "Ready to watch · %{n}"
 msgstr "آمادهٔ تماشا · %{n}"
@@ -13958,7 +13966,7 @@ msgstr "سه هفته بدون ثبت — با خط دور نشان داده م�
 msgid "Unit switched"
 msgstr "واحد عوض شد"
 
-#: lib/kati/screens/up_next.ex:476
+#: lib/kati/screens/up_next.ex:506
 #, elixir-autogen, elixir-format
 msgid "Up next follows what you are watching. Start something on your shelf and it arrives here."
 msgstr "«بعدی» دنبال چیزی می‌رود که در حال تماشایش هستید. چیزی را در قفسه‌تان شروع کنید تا این‌جا بیاید."
@@ -13990,7 +13998,7 @@ msgstr[1] "قسمت در حال پخش"
 msgid "is what emptied it — you have no comedies on this shelf."
 msgstr "همان است که خالی‌اش کرد — هیچ کمدی‌ای در این قفسه ندارید."
 
-#: lib/kati/screens/up_next.ex:404
+#: lib/kati/screens/up_next.ex:434
 #, elixir-autogen, elixir-format
 msgid "is what emptied it. Nothing you are watching is in every one of those buckets at once."
 msgstr "همین‌ها خالی‌اش کردند. هیچ‌کدام از چیزهایی که در حال تماشایشان هستید، هم‌زمان در همهٔ این دسته‌ها نیست."
@@ -14064,14 +14072,14 @@ msgctxt "the note card's own label"
 msgid "Note"
 msgstr "یادداشت"
 
-#: lib/kati/screens/up_next.ex:668
+#: lib/kati/screens/up_next.ex:714
 #, elixir-autogen, elixir-format
 msgctxt "the offer a cold row makes"
 msgid "Drop"
 msgstr "رهاکردن"
 
-#: lib/kati/screens/up_next.ex:297
-#: lib/kati/screens/up_next.ex:404
+#: lib/kati/screens/up_next.ex:319
+#: lib/kati/screens/up_next.ex:434
 #, elixir-autogen, elixir-format
 msgctxt "the queue's own line when a filter leaves nothing"
 msgid "Nothing matches"
@@ -14519,7 +14527,7 @@ msgstr "اود مارن"
 msgid "Automations"
 msgstr "خودکارسازی‌ها"
 
-#: lib/kati/media/recommendations.ex:344
+#: lib/kati/media/recommendations.ex:449
 #, elixir-autogen, elixir-format
 msgid "Because you watched %{title}"
 msgstr "چون %{title} را دیدید"
@@ -15415,43 +15423,43 @@ msgstr "با آب"
 msgid "you set this · anime default was %{default}"
 msgstr "خودتان تنظیم کردید · پیش‌فرض انیمه %{default} بود"
 
-#: lib/kati/discover/filters.ex:280
+#: lib/kati/discover/filters.ex:330
 #, elixir-autogen, elixir-format
 msgctxt "a discover sort key"
 msgid "Highest rated"
 msgstr "پرامتیازترین"
 
-#: lib/kati/discover/filters.ex:292
+#: lib/kati/discover/filters.ex:342
 #, elixir-autogen, elixir-format
 msgctxt "a discover sort key"
 msgid "Most popular"
 msgstr "محبوب‌ترین"
 
-#: lib/kati/discover/filters.ex:275
+#: lib/kati/discover/filters.ex:325
 #, elixir-autogen, elixir-format
 msgctxt "a discover sort key"
 msgid "Newest"
 msgstr "جدیدترین"
 
-#: lib/kati/discover/filters.ex:281
+#: lib/kati/discover/filters.ex:331
 #, elixir-autogen, elixir-format
 msgctxt "a discover sort key's line"
 msgid "%{n}+ votes, so one perfect score cannot win"
 msgstr "دست‌کم %{n} رأی، تا یک نمرهٔ کامل به‌تنهایی برنده نشود"
 
-#: lib/kati/discover/filters.ex:276
+#: lib/kati/discover/filters.ex:326
 #, elixir-autogen, elixir-format
 msgctxt "a discover sort key's line"
 msgid "Out already, most recent first"
 msgstr "منتشرشده، تازه‌ترین اول"
 
-#: lib/kati/discover/filters.ex:293
+#: lib/kati/discover/filters.ex:343
 #, elixir-autogen, elixir-format
 msgctxt "a discover sort key's line"
 msgid "TMDB's own ordering"
 msgstr "ترتیب خود TMDB"
 
-#: lib/kati/discover/filters.ex:395
+#: lib/kati/discover/filters.ex:445
 #, elixir-autogen, elixir-format
 msgctxt "a rating bucket, out of ten"
 msgid "%{n} and up"
@@ -15656,32 +15664,32 @@ msgctxt "where a film is showing"
 msgid "Cinema"
 msgstr "سینما"
 
-#: lib/kati/media/tmdb.ex:688
+#: lib/kati/media/tmdb.ex:740
 #, elixir-autogen, elixir-format
 msgid "Could not reach TMDB. Hand-typed titles still work."
 msgstr "دسترسی به TMDB ممکن نشد. عنوان‌های واردشده به‌دست همچنان کار می‌کنند."
 
-#: lib/kati/media/tmdb.ex:674
+#: lib/kati/media/tmdb.ex:726
 #, elixir-autogen, elixir-format
 msgid "No TMDB key yet. Add one in Settings → Data sources."
 msgstr "هنوز کلید TMDB ثبت نشده. یکی را در تنظیمات ← منابع داده اضافه کنید."
 
-#: lib/kati/media/tmdb.ex:685
+#: lib/kati/media/tmdb.ex:737
 #, elixir-autogen, elixir-format
 msgid "TMDB answered %{status}. Nothing was saved."
 msgstr "TMDB با %{status} پاسخ داد. چیزی ذخیره نشد."
 
-#: lib/kati/media/tmdb.ex:682
+#: lib/kati/media/tmdb.ex:734
 #, elixir-autogen, elixir-format
 msgid "TMDB has nothing under that id."
 msgstr "TMDB چیزی زیر آن شناسه ندارد."
 
-#: lib/kati/media/tmdb.ex:680
+#: lib/kati/media/tmdb.ex:732
 #, elixir-autogen, elixir-format
 msgid "TMDB is rate-limiting Kati. Try again in a minute."
 msgstr "TMDB سرعت درخواست‌های کاتی را محدود کرده. یک دقیقه دیگر دوباره امتحان کنید."
 
-#: lib/kati/media/tmdb.ex:677
+#: lib/kati/media/tmdb.ex:729
 #, elixir-autogen, elixir-format
 msgid "TMDB refused that key. Check it in Settings → Data sources."
 msgstr "TMDB آن کلید را نپذیرفت. آن را در تنظیمات ← منابع داده بررسی کنید."
@@ -15802,7 +15810,7 @@ msgstr "چیز تازه‌ای نیست"
 msgid "%{matched} matched · %{skipped} skipped"
 msgstr "%{matched} تطبیق‌یافته · %{skipped} ردشده"
 
-#: lib/kati/media/tmdb.ex:692
+#: lib/kati/media/tmdb.ex:744
 #, elixir-autogen, elixir-format
 msgid "This network is blocking TMDB. Try another Wi-Fi or mobile data. Hand-typed titles still work."
 msgstr "این شبکه TMDB را مسدود کرده است. وای‌فای دیگری یا اینترنت همراه را امتحان کنید. عنوان‌هایی که دستی وارد می‌کنید همچنان کار می‌کنند."
@@ -16118,7 +16126,7 @@ msgstr "خاموش شده"
 msgid "A hand-typed title carries no poster and no episode list. If Kati finds it later both arrive, and nothing you typed is overwritten."
 msgstr "عنوان دست‌نویس پوستر و فهرست قسمت ندارد. اگر کاتی بعداً آن را پیدا کند، هر دو می‌آیند و چیزی که نوشته‌اید دست‌نخورده می‌ماند."
 
-#: lib/kati/screens/film.ex:823
+#: lib/kati/screens/film.ex:918
 #: lib/kati/screens/series_settings.ex:361
 #, elixir-autogen, elixir-format
 msgid "This title is no longer in your library"
@@ -16139,27 +16147,27 @@ msgstr "تغییر می‌کند:"
 msgid "Does not change:"
 msgstr "تغییر نمی‌کند:"
 
-#: lib/kati/screens/film.ex:2293
+#: lib/kati/screens/film.ex:2398
 #, elixir-autogen, elixir-format
 msgid "Remove %{title} from your library?"
 msgstr "«%{title}» از کتابخانهٔ شما حذف شود؟"
 
-#: lib/kati/screens/film.ex:2302
+#: lib/kati/screens/film.ex:2407
 #, elixir-autogen, elixir-format
 msgid "Remove it"
 msgstr "حذفش کن"
 
-#: lib/kati/screens/film.ex:2292
+#: lib/kati/screens/film.ex:2397
 #, elixir-autogen, elixir-format
 msgid "Removing it"
 msgstr "حذف عنوان"
 
-#: lib/kati/screens/film.ex:2295
+#: lib/kati/screens/film.ex:2400
 #, elixir-autogen, elixir-format
 msgid "the title leaves your shelf, with every watch, rating and note you logged for it, and its places on your lists."
 msgstr "عنوان از قفسهٔ شما می‌رود، با همهٔ تماشاها، امتیازها و یادداشت‌هایی که برایش ثبت کرده‌اید، و جایش در فهرست‌هایتان."
 
-#: lib/kati/screens/film.ex:2299
+#: lib/kati/screens/film.ex:2404
 #, elixir-autogen, elixir-format
 msgid "your other titles and your lists. Adding it again brings back its details, not its history."
 msgstr "عنوان‌های دیگر و خود فهرست‌هایتان. افزودن دوباره‌اش جزئیاتش را برمی‌گرداند، نه تاریخچه‌اش را."
@@ -16179,7 +16187,7 @@ msgstr "چطور اجازه بدهم"
 msgid "Kati cannot see what you play yet"
 msgstr "کاتی هنوز نمی‌بیند چه پخش می‌کنید"
 
-#: lib/kati/screens/my_services.ex:456
+#: lib/kati/screens/my_services.ex:492
 #, elixir-autogen, elixir-format
 msgid "Not picked yet — Kati assumes this until you choose"
 msgstr "هنوز انتخاب نشده — کاتی تا انتخاب شما همین را فرض می‌کند"
@@ -16225,7 +16233,7 @@ msgstr "قسمت‌های سریال‌هایی که دنبال می‌کنید"
 msgid "Films you follow, on the day they come out"
 msgstr "فیلم‌هایی که دنبال می‌کنید، در روز انتشار"
 
-#: lib/kati/screens/discover.ex:506
+#: lib/kati/screens/discover.ex:543
 #, elixir-autogen, elixir-format
 msgid "Nothing to recommend from yet"
 msgstr "هنوز عنوانی برای پیشنهاد گرفتن نیست"
@@ -16240,7 +16248,7 @@ msgstr "روشن — وقتی چیزی که دنبال می‌کنید منتش�
 msgid "On, but Android is not letting Kati show them"
 msgstr "روشن، اما اندروید اجازه‌ی نمایش اعلان‌های کاتی را نمی‌دهد"
 
-#: lib/kati/screens/discover.ex:507
+#: lib/kati/screens/discover.ex:544
 #, elixir-autogen, elixir-format
 msgid "Picks here are built from the films and series on your shelf. Add one, or browse TMDB with the sort button above."
 msgstr "پیشنهادهای این صفحه از فیلم‌ها و سریال‌های قفسه‌ی شما ساخته می‌شوند. یکی اضافه کنید، یا با دکمه‌ی مرتب‌سازی بالا در TMDB بگردید."
@@ -16279,14 +16287,14 @@ msgctxt "release alert"
 msgid "Out today"
 msgstr "امروز منتشر شد"
 
-#: lib/kati/screens/what_fits.ex:363
+#: lib/kati/screens/what_fits.ex:364
 #, elixir-autogen, elixir-format
 msgid "%{n} fits tonight"
 msgid_plural "%{n} fit tonight"
 msgstr[0] "امشب %{n} مورد جا می‌شود"
 msgstr[1] "امشب %{n} مورد جا می‌شود"
 
-#: lib/kati/screens/what_fits.ex:358
+#: lib/kati/screens/what_fits.ex:359
 #, elixir-autogen, elixir-format
 msgid "Nothing on your shelf to measure yet"
 msgstr "هنوز چیزی در قفسه نیست که اندازه بگیریم"
@@ -16325,7 +16333,7 @@ msgctxt "the import action pill, once written"
 msgid "Imported"
 msgstr "وارد شد"
 
-#: lib/kati/screens/series.ex:2122
+#: lib/kati/screens/series.ex:2399
 #, elixir-autogen, elixir-format
 msgid "Its source has not listed seasons or episodes for this show yet. When it does, they arrive here on their own."
 msgstr "منبعش هنوز فصل یا قسمتی برای این سریال فهرست نکرده است. هر وقت فهرست کند، خودشان به اینجا می‌آیند."
@@ -16337,13 +16345,13 @@ msgstr "«قسمت‌های تازه» در پایش انتشارها خاموش
 
 #: lib/kati/screens/episode_ratings.ex:136
 #: lib/kati/screens/season.ex:1082
-#: lib/kati/screens/series.ex:1001
+#: lib/kati/screens/series.ex:1096
 #: lib/kati/screens/series_settings.ex:385
 #, elixir-autogen, elixir-format
 msgid "No series in your library yet"
 msgstr "هنوز سریالی در کتابخانهٔ شما نیست"
 
-#: lib/kati/screens/series.ex:2109
+#: lib/kati/screens/series.ex:2386
 #, elixir-autogen, elixir-format
 msgid "You added this by hand, so Kati has no seasons or episodes for it."
 msgstr "این را دستی اضافه کرده‌اید، پس کاتی فصل یا قسمتی برایش ندارد."
@@ -16435,17 +16443,17 @@ msgstr "بازتماشا، یکشنبهٔ بارانی…"
 msgid "%{rated} of %{total} rated"
 msgstr "%{rated} از %{total} امتیاز گرفته"
 
-#: lib/kati/screens/film.ex:739
+#: lib/kati/screens/film.ex:834
 #, elixir-autogen, elixir-format
 msgid "No films in your library yet"
 msgstr "هنوز فیلمی در کتابخانهٔ شما نیست"
 
-#: lib/kati/screens/my_services.ex:1065
+#: lib/kati/screens/my_services.ex:1101
 #, elixir-autogen, elixir-format
 msgid "This screen owns these prices. Subscriptions reads them — edit here, and cost per watched hour follows."
 msgstr "قیمت‌ها اینجا نگه داشته می‌شوند و «اشتراک‌ها» آن‌ها را می‌خواند. اینجا ویرایش کنید تا هزینه به ازای هر ساعت تماشا هم به‌روز شود."
 
-#: lib/kati/screens/my_services.ex:1265
+#: lib/kati/screens/my_services.ex:1417
 #, elixir-autogen, elixir-format
 msgid "Which service carries what comes from JustWatch, through TMDB. Both are credited in Settings, under Where this comes from."
 msgstr "اینکه هر عنوان روی کدام سرویس است از JustWatch و از طریق TMDB می‌آید. اعتبار هر دو در تنظیمات، زیر «این‌ها از کجا می‌آیند» آمده است."
@@ -16533,7 +16541,7 @@ msgctxt "screen 33's heading while it edits a saved watch"
 msgid "Edit your log"
 msgstr "ویرایش ثبت تماشا"
 
-#: lib/kati/screens/film.ex:1206
+#: lib/kati/screens/film.ex:1301
 #, elixir-autogen, elixir-format
 msgid "Edit your log"
 msgstr "ویرایش ثبت تماشا"
@@ -16608,7 +16616,7 @@ msgstr "سریال، فصل‌ها، قسمت‌ها، تاریخ پخش"
 msgid "TVmaze lists it as Animation, origin Japanese"
 msgstr "TVmaze آن را پویانمایی با خاستگاه ژاپن ثبت کرده"
 
-#: lib/kati/media/provider.ex:169
+#: lib/kati/media/provider.ex:174
 #, elixir-autogen, elixir-format
 msgid "This network is blocking %{source}. Try another Wi-Fi or mobile data. Hand-typed titles still work."
 msgstr "این شبکه %{source} را مسدود کرده است. وای‌فای دیگری یا اینترنت همراه را امتحان کنید. عنوان‌هایی که دستی وارد می‌کنید همچنان کار می‌کنند."
@@ -16706,7 +16714,7 @@ msgstr "برای افزودن عنوان از قفسه + را بزنید، یا 
 msgid "That did not save. Try again."
 msgstr "ذخیره نشد. دوباره امتحان کنید."
 
-#: lib/kati/screens/series.ex:1336
+#: lib/kati/screens/series.ex:1511
 #, elixir-autogen, elixir-format
 msgid "Mark E%{n} watched"
 msgstr "قسمت %{n} را دیده‌ام"
@@ -16881,51 +16889,51 @@ msgstr "وضعیت عنوان‌های انتخاب‌شده را تعیین ک�
 msgid "Tap titles to select them"
 msgstr "روی عنوان‌ها بزنید تا انتخاب شوند"
 
-#: lib/kati/screens/what_fits.ex:1149
+#: lib/kati/screens/what_fits.ex:1156
 #, elixir-autogen, elixir-format
 msgid "%{n} of them is on your services"
 msgid_plural "%{n} of them are on your services"
 msgstr[0] "%{n} مورد روی سرویس‌های شماست"
 msgstr[1] "%{n} مورد روی سرویس‌های شماست"
 
-#: lib/kati/screens/what_fits.ex:483
+#: lib/kati/screens/what_fits.ex:484
 #, elixir-autogen, elixir-format
 msgid "%{place} · %{n} episode"
 msgid_plural "%{place} · %{n} episodes"
 msgstr[0] "%{place} · %{n} قسمت"
 msgstr[1] "%{place} · %{n} قسمت"
 
-#: lib/kati/screens/what_fits.ex:1121
+#: lib/kati/screens/what_fits.ex:1122
 #, elixir-autogen, elixir-format
 msgid "Add a film or a series, and Kati will tell you what fits the time you have."
 msgstr "یک فیلم یا سریال اضافه کنید تا کاتی بگوید چه چیزی در وقتی که دارید جا می‌شود."
 
-#: lib/kati/screens/what_fits.ex:1122
+#: lib/kati/screens/what_fits.ex:1123
 #, elixir-autogen, elixir-format
 msgid "Nothing you are watching is that short. Try a longer window."
 msgstr "هیچ‌کدام از آنچه می‌بینید این‌قدر کوتاه نیست. زمان بیشتری انتخاب کنید."
 
-#: lib/kati/screens/what_fits.ex:558
+#: lib/kati/screens/what_fits.ex:559
 #, elixir-autogen, elixir-format
 msgid "On %{a} or %{b}"
 msgstr "روی %{a} یا %{b}"
 
-#: lib/kati/screens/what_fits.ex:557
+#: lib/kati/screens/what_fits.ex:558
 #, elixir-autogen, elixir-format
 msgid "On %{service}"
 msgstr "روی %{service}"
 
-#: lib/kati/screens/what_fits.ex:501
+#: lib/kati/screens/what_fits.ex:502
 #, elixir-autogen, elixir-format
 msgid "S%{s} · E%{from}–%{to}"
 msgstr "ف%{s} · ق%{from}–%{to}"
 
-#: lib/kati/screens/what_fits.ex:1136
+#: lib/kati/screens/what_fits.ex:1137
 #, elixir-autogen, elixir-format
 msgid "Tell Kati which services you pay for, and each of these will say where you can watch it."
 msgstr "به کاتی بگویید هزینهٔ کدام سرویس‌ها را می‌پردازید تا هر کدام از این‌ها بگوید کجا می‌توانید ببینیدش."
 
-#: lib/kati/screens/what_fits.ex:1183
+#: lib/kati/screens/what_fits.ex:1190
 #, elixir-autogen, elixir-format
 msgid "Which of these can you watch?"
 msgstr "کدام‌یک از این‌ها را می‌توانید ببینید؟"
@@ -17005,7 +17013,7 @@ msgstr "برنامه‌ای که چیده‌اید"
 msgid "Starting now"
 msgstr "همین حالا شروع می‌شود"
 
-#: lib/kati/screens/series.ex:1290
+#: lib/kati/screens/series.ex:1465
 #, elixir-autogen, elixir-format
 msgid "Watch %{title} S%{s}E%{e}"
 msgstr "تماشای %{title} ف%{s}ق%{e}"
@@ -17191,104 +17199,105 @@ msgstr "روز قبل"
 msgid "Previous week"
 msgstr "هفتهٔ قبل"
 
-#: lib/kati/screens/my_services.ex:1159
+#: lib/kati/screens/my_services.ex:1311
 #, elixir-autogen, elixir-format
 msgid "Add back"
 msgstr "برگرداندن"
 
-#: lib/kati/screens/my_services.ex:430
+#: lib/kati/screens/my_services.ex:466
 #, elixir-autogen, elixir-format
 msgid "Availability is per country: a title on a service in one country is often not on it in another, so Kati only uses the country you pick."
 msgstr "دسترسی به کشور بستگی دارد: عنوانی که در یک کشور روی سرویسی هست، در کشور دیگر اغلب نیست؛ برای همین کاتی فقط کشوری را که انتخاب می‌کنید به کار می‌برد."
 
-#: lib/kati/screens/my_services.ex:1141
+#: lib/kati/screens/my_services.ex:1177
+#: lib/kati/screens/my_services.ex:1256
 #, elixir-autogen, elixir-format
 msgid "I pay"
 msgstr "می‌پردازم"
 
-#: lib/kati/screens/my_services.ex:1128
+#: lib/kati/screens/my_services.ex:1164
 #, elixir-autogen, elixir-format
 msgid "On %{n} of your titles"
 msgid_plural "On %{n} of your titles"
 msgstr[0] "روی %{n} عنوان از عنوان‌های شما"
 msgstr[1] "روی %{n} عنوان از عنوان‌های شما"
 
-#: lib/kati/screens/my_services.ex:1114
+#: lib/kati/screens/my_services.ex:1150
 #, elixir-autogen, elixir-format
 msgid "On your titles"
 msgstr "روی عنوان‌های شما"
 
-#: lib/kati/screens/my_services.ex:1157
+#: lib/kati/screens/my_services.ex:1309
 #, elixir-autogen, elixir-format
 msgid "You said this is not yours"
 msgstr "گفتید این مال شما نیست"
 
-#: lib/kati/screens/my_services.ex:1408
+#: lib/kati/screens/my_services.ex:1569
 #, elixir-autogen, elixir-format
 msgid "%{name} is already on your list. Tap it below to change it."
 msgstr "%{name} از قبل در فهرست شماست. برای تغییرش، در پایین روی آن بزنید."
 
-#: lib/kati/screens/my_services.ex:537
+#: lib/kati/screens/my_services.ex:573
 #, elixir-autogen, elixir-format
 msgid "Add a service"
 msgstr "افزودن سرویس"
 
-#: lib/kati/screens/my_services.ex:739
+#: lib/kati/screens/my_services.ex:775
 #, elixir-autogen, elixir-format
 msgid "Add service"
 msgstr "افزودن سرویس"
 
-#: lib/kati/screens/my_services.ex:1382
+#: lib/kati/screens/my_services.ex:1543
 #, elixir-autogen, elixir-format
 msgid "Added %{name}."
 msgstr "%{name} اضافه شد."
 
-#: lib/kati/screens/my_services.ex:752
+#: lib/kati/screens/my_services.ex:788
 #, elixir-autogen, elixir-format
 msgid "Delete"
 msgstr "حذف"
 
-#: lib/kati/screens/my_services.ex:1462
+#: lib/kati/screens/my_services.ex:1623
 #, elixir-autogen, elixir-format
 msgid "Deleted %{name}."
 msgstr "%{name} حذف شد."
 
-#: lib/kati/screens/my_services.ex:692
+#: lib/kati/screens/my_services.ex:728
 #, elixir-autogen, elixir-format
 msgid "I pay for it"
 msgstr "پولش را می‌دهم"
 
-#: lib/kati/screens/my_services.ex:663
+#: lib/kati/screens/my_services.ex:699
 #, elixir-autogen, elixir-format
 msgid "Price a month, like 10.99 (optional)"
 msgstr "قیمت ماهانه، مثلاً 10.99 (اختیاری)"
 
-#: lib/kati/screens/my_services.ex:1381
+#: lib/kati/screens/my_services.ex:1542
 #, elixir-autogen, elixir-format
 msgid "Saved %{name}."
 msgstr "%{name} ذخیره شد."
 
-#: lib/kati/screens/my_services.ex:640
+#: lib/kati/screens/my_services.ex:676
 #, elixir-autogen, elixir-format
 msgid "Service name — Netflix, or any other"
 msgstr "نام سرویس — نتفلیکس یا هر سرویس دیگری"
 
-#: lib/kati/screens/my_services.ex:1405
+#: lib/kati/screens/my_services.ex:1566
 #, elixir-autogen, elixir-format
 msgid "The price has to be a number, like 10.99."
 msgstr "قیمت باید عدد باشد، مثلاً 10.99."
 
-#: lib/kati/screens/my_services.ex:398
+#: lib/kati/screens/my_services.ex:434
 #, elixir-autogen, elixir-format
 msgid "The streaming services you have. Kati uses them to show where you can watch each title, and adds up what you pay each month."
 msgstr "سرویس‌های پخشی که دارید. کاتی با آن‌ها نشان می‌دهد هر عنوان را کجا می‌توانید ببینید و هزینهٔ ماهانه‌تان را جمع می‌زند."
 
-#: lib/kati/screens/my_services.ex:1404
+#: lib/kati/screens/my_services.ex:1565
 #, elixir-autogen, elixir-format
 msgid "Type the service’s name first."
 msgstr "اول نام سرویس را بنویسید."
 
-#: lib/kati/screens/my_services.ex:872
+#: lib/kati/screens/my_services.ex:908
 #, elixir-autogen, elixir-format
 msgid "Nothing here yet. Add the services you pay for above."
 msgstr "هنوز چیزی اینجا نیست. سرویس‌هایی را که پولشان را می‌دهید در بالا اضافه کنید."
@@ -17447,32 +17456,32 @@ msgstr "این گوشی تشخیص گفتار ندارد. جمله را تایپ
 msgid "Type what and when"
 msgstr "چه چیزی و چه زمانی را بنویسید"
 
-#: lib/kati/screens/stats.ex:921
+#: lib/kati/screens/stats.ex:986
 #, elixir-autogen, elixir-format
 msgid "%{day} — %{n} watches"
 msgstr "%{day} — %{n} تماشا"
 
-#: lib/kati/screens/stats.ex:762
+#: lib/kati/screens/stats.ex:820
 #, elixir-autogen, elixir-format
 msgid "Month by month"
 msgstr "ماه به ماه"
 
-#: lib/kati/screens/stats.ex:918
+#: lib/kati/screens/stats.ex:983
 #, elixir-autogen, elixir-format
 msgid "No day stands out yet"
 msgstr "هنوز روزی برجسته نیست"
 
-#: lib/kati/screens/stats.ex:957
+#: lib/kati/screens/stats.ex:1024
 #, elixir-autogen, elixir-format
 msgid "Watched most"
 msgstr "بیشترین تماشا"
 
-#: lib/kati/screens/stats.ex:762
+#: lib/kati/screens/stats.ex:820
 #, elixir-autogen, elixir-format
 msgid "What you watched"
 msgstr "آنچه تماشا کردید"
 
-#: lib/kati/screens/stats.ex:762
+#: lib/kati/screens/stats.ex:820
 #, elixir-autogen, elixir-format
 msgid "Your busiest day"
 msgstr "شلوغ‌ترین روز شما"
@@ -17508,26 +17517,97 @@ msgstr "یادداشت"
 msgid "REMINDER"
 msgstr "یادآور"
 
-#: lib/kati/search/query.ex:415
+#: lib/kati/search/query.ex:418
 #, elixir-autogen, elixir-format
 msgctxt "search hit kind"
 msgid "Album"
 msgstr "آلبوم"
 
-#: lib/kati/search/query.ex:424
+#: lib/kati/search/query.ex:434
 #, elixir-autogen, elixir-format
 msgctxt "search hit kind"
 msgid "Artist"
 msgstr "هنرمند"
 
-#: lib/kati/search/query.ex:449
+#: lib/kati/search/query.ex:473
 #, elixir-autogen, elixir-format
 msgctxt "search hit kind"
 msgid "Meal"
 msgstr "وعده"
 
-#: lib/kati/search/query.ex:440
+#: lib/kati/search/query.ex:457
 #, elixir-autogen, elixir-format
 msgctxt "search hit kind"
 msgid "Recipe"
 msgstr "دستور پخت"
+
+#: lib/kati/screens/stats.ex:813
+#, elixir-autogen, elixir-format
+msgid "<1h"
+msgstr "کمتر از ۱ ساعت"
+
+#: lib/kati/screens/film.ex:127
+#, elixir-autogen, elixir-format
+msgid "In a list"
+msgstr "در فهرست"
+
+#: lib/kati/screens/series.ex:2272
+#, elixir-autogen, elixir-format
+msgid "Show %{n} more episode"
+msgid_plural "Show %{n} more episodes"
+msgstr[0] "نمایش %{n} قسمت دیگر"
+msgstr[1] "نمایش %{n} قسمت دیگر"
+
+#: lib/kati/screens/series.ex:2270
+#, elixir-autogen, elixir-format
+msgid "Show earlier episodes"
+msgstr "نمایش قسمت‌های قبلی"
+
+#: lib/kati/screens/what_fits.ex:1154
+#, elixir-autogen, elixir-format
+msgid "Where these stream in your region is not known, so none is ruled out"
+msgstr "معلوم نیست این‌ها در منطقهٔ شما کجا پخش می‌شوند، پس هیچ‌کدام کنار گذاشته نشده"
+
+#: lib/kati/screens/my_services.ex:1243
+#, elixir-autogen, elixir-format
+msgid "From TMDB"
+msgstr "از TMDB"
+
+#: lib/kati/screens/discover_filters.ex:241
+#, elixir-autogen, elixir-format
+msgid "On your services"
+msgstr "روی سرویس‌های شما"
+
+#: lib/kati/screens/my_services.ex:1297
+#, elixir-autogen, elixir-format
+msgid "Show all"
+msgstr "نمایش همه"
+
+#: lib/kati/screens/my_services.ex:1294
+#, elixir-autogen, elixir-format
+msgid "Show all · %{n} more"
+msgid_plural "Show all · %{n} more"
+msgstr[0] "نمایش همه · %{n} دیگر"
+msgstr[1] "نمایش همه · %{n} دیگر"
+
+#: lib/kati/screens/my_services.ex:1206
+#, elixir-autogen, elixir-format
+msgid "TMDB lists no streaming services for %{country}. Type yours in above."
+msgstr "TMDB هیچ سرویس پخشی برای %{country} ندارد. سرویس خودتان را بالا بنویسید."
+
+#: lib/kati/screens/discover.ex:183
+#, elixir-autogen, elixir-format
+msgctxt "discover heading"
+msgid "%{sort} %{noun} on your services"
+msgstr "%{sort} %{noun} روی سرویس‌های شما"
+
+#: lib/kati/screens/discover.ex:193
+#, elixir-autogen, elixir-format
+msgctxt "discover heading"
+msgid "%{sort} %{noun} on your services, %{rating}"
+msgstr "%{sort} %{noun} روی سرویس‌های شما، %{rating}"
+
+#: lib/kati/media/provider.ex:170
+#, elixir-autogen, elixir-format
+msgid "Could not save what %{source} sent. Try again."
+msgstr "آنچه %{source} فرستاد ذخیره نشد. دوباره امتحان کنید."

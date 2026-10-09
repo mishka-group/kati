@@ -131,6 +131,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.launch
+// KATI-BEGIN(K-78 capture-node-import) mob_new=0.6.3
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.asAndroidBitmap
+// KATI-END(K-78 capture-node-import)
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 // KATI-BEGIN(K-08 box-shadow-import) mob_new=0.4.20
@@ -1833,6 +1837,9 @@ object MobBridge {
     @JvmStatic
     fun katiCaptureScreen(name: String): String {
         val activity = activityRef?.get() ?: return "error:no_activity"
+        // KATI-BEGIN(K-78 capture-node-route) mob_new=0.6.3
+        if (name.contains("|")) return katiCaptureNode(activity, name)
+        // KATI-END(K-78 capture-node-route)
 
         val result = java.util.concurrent.atomic.AtomicReference<String>("error:timeout")
         val latch = java.util.concurrent.CountDownLatch(1)
@@ -1955,6 +1962,89 @@ object MobBridge {
         }
     }
     // KATI-END(K-45 capture-screen)
+
+    // KATI-BEGIN(K-78 capture-node) mob_new=0.6.3
+    /**
+     * A picture of one node, not of the screen.
+     *
+     * A node whose `:id` starts with `capture_` records its own drawing into a
+     * GraphicsLayer as it draws (`captureModifier`). The share card asks for
+     * that layer by id, so what it saves and sends is the card alone: no back
+     * pill floating over it, nothing scrolled past, no page around it. The
+     * layer renders through the GPU, so posters decoded as hardware bitmaps
+     * come out as they look.
+     *
+     * The request rides on `katiCaptureScreen`'s one string so no new NIF is
+     * needed: `"<id>|<argb>|<corner dp>|<filename>"`. The picture is the
+     * node with its own rounded corners and a soft shadow under it, on a
+     * thin margin of the page colour (the argb) — the card as it sits on the
+     * page, and nothing else of the page.
+     */
+    private val captureLayers =
+        ConcurrentHashMap<String, androidx.compose.ui.graphics.layer.GraphicsLayer>()
+
+    @Composable
+    fun captureModifier(id: String): Modifier {
+        val layer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+        DisposableEffect(id, layer) {
+            captureLayers[id] = layer
+            onDispose { captureLayers.remove(id, layer) }
+        }
+        return Modifier.drawWithContent {
+            layer.record { this@drawWithContent.drawContent() }
+            drawLayer(layer)
+        }
+    }
+
+    @JvmStatic
+    private fun katiCaptureNode(activity: android.app.Activity, request: String): String {
+        val parts = request.split("|", limit = 4)
+        if (parts.size != 4) return "error:bad_request"
+        val layer = captureLayers[parts[0]] ?: return "error:no_node"
+        val ground = parts[1].toLongOrNull()?.toInt() ?: android.graphics.Color.WHITE
+        val corner = parts[2].toFloatOrNull() ?: 0f
+
+        val result = java.util.concurrent.atomic.AtomicReference<String>("error:timeout")
+        val latch = java.util.concurrent.CountDownLatch(1)
+
+        mainScope.launch {
+            try {
+                val drawn = layer.toImageBitmap().asAndroidBitmap()
+                val card = drawn.copy(Bitmap.Config.ARGB_8888, false)
+                val dp = activity.resources.displayMetrics.density
+                val corner = corner * dp
+                val margin = (24 * dp).toInt()
+                val framed = Bitmap.createBitmap(
+                    card.width + 2 * margin, card.height + 2 * margin, Bitmap.Config.ARGB_8888
+                )
+                android.graphics.Canvas(framed).apply {
+                    drawColor(ground)
+                    val shadow = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                        color = card.getPixel(card.width / 2, card.height / 2).let {
+                            if (android.graphics.Color.alpha(it) == 255) it else android.graphics.Color.WHITE
+                        }
+                        setShadowLayer(14 * dp, 0f, 5 * dp, 0x2E1A1917)
+                    }
+                    drawRoundRect(
+                        margin.toFloat(), margin.toFloat(),
+                        (margin + card.width).toFloat(), (margin + card.height).toFloat(),
+                        corner, corner, shadow
+                    )
+                    drawBitmap(card, margin.toFloat(), margin.toFloat(), null)
+                }
+                card.recycle()
+                result.set(katiWriteCapture(activity, framed, parts[3]))
+            } catch (e: Exception) {
+                android.util.Log.e("KatiCapture", "node capture failed", e)
+                result.set("error:" + e.javaClass.simpleName)
+            }
+            latch.countDown()
+        }
+
+        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        return result.get()
+    }
+    // KATI-END(K-78 capture-node)
 
     // KATI-BEGIN(K-44 open-settings) mob_new=0.4.20
     /**
@@ -4906,7 +4996,10 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // Track on-screen frame + set a testTag for any node carrying an :id, so the
     // agent can read positions (Mob.Test.element_frames) without a screenshot.
     val trackId = node.props["id"] as? String
-    val m = if (trackId != null) base.then(MobBridge.frameTrackingModifier(trackId)) else base
+    // KATI-BEGIN(K-78 capture-node-modifier) mob_new=0.6.3
+    val captured = if (trackId?.startsWith("capture_") == true) MobBridge.captureModifier(trackId).then(base) else base
+    val m = if (trackId != null) captured.then(MobBridge.frameTrackingModifier(trackId)) else captured
+    // KATI-END(K-78 capture-node-modifier)
     when (node.type) {
         "column" -> Column(
             modifier = m,
