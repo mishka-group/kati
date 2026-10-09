@@ -330,11 +330,16 @@ defmodule Kati.Screens.Discover do
 
     if Map.get(feed, :seed_id) == seed_id do
       {:noreply,
-       Mob.Socket.assign(
-         socket,
+       socket
+       |> Mob.Socket.assign(
          :feed,
-         %{answered(feed, result) | because: Recommendations.because(used.title)}
-       )}
+         %{
+           answered(feed, result)
+           | because: Recommendations.because(used.title),
+             seed_id: used.source_id
+         }
+       )
+       |> Mob.Socket.assign(:seed_id, used.source_id)}
     else
       {:noreply, socket}
     end
@@ -379,7 +384,8 @@ defmodule Kati.Screens.Discover do
          filters: choice,
          feed: feed,
          seed_id: Map.get(feed, :seed_id),
-         total: nil
+         total: nil,
+         tune?: false
        )
        |> ask()}
     end

@@ -257,6 +257,7 @@ defmodule Kati.Issue128Test do
         )
 
       assert answered.assigns.feed.because == "Because you watched Silo"
+      assert answered.assigns.feed.seed_id == "b", "the lit Picks from chip is the title used"
       assert length(answered.assigns.feed.picks) == 1
     end
 

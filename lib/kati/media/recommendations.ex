@@ -214,7 +214,7 @@ defmodule Kati.Media.Recommendations do
     rows
     |> Enum.reject(&tracked?/1)
     |> Enum.take(@picks)
-    |> Enum.map(&pick/1)
+    |> picks()
   end
 
   @doc """
@@ -240,7 +240,7 @@ defmodule Kati.Media.Recommendations do
          |> Kati.Media.Recommendations.ranked(cached)
          |> Kati.Media.Recommendations.watchable()
          |> Enum.take(@picks)
-         |> Enum.map(&pick/1)}
+         |> picks()}
 
       {:error, reason} ->
         {:error, reason}
@@ -451,13 +451,24 @@ defmodule Kati.Media.Recommendations do
   # One pick, with its poster already on disk. `match: nil` — see the
   # moduledoc. `seed` is the provider path, which `Kati.Design.Images.path/2`
   # resolves through `Kati.Media.Artwork` exactly as a shelf poster is.
-  defp pick(row) do
-    # A picture that will not download is a pick without a picture, not a lost
-    # pick — `Kati.Design.Images.path/2` already answers `nil` for a poster
-    # this device has not fetched, and screen 11 already draws the placeholder
-    # rectangle behind it.
-    _ = safely(fn -> Artwork.cache(row.poster_path) end)
+  # A picture that will not download is a pick without a picture, not a lost
+  # pick — `Kati.Design.Images.path/2` already answers `nil` for a poster this
+  # device has not fetched, and screen 11 already draws the placeholder
+  # rectangle behind it. Fetched side by side: one after another, nine of them
+  # held the rail on *Looking for something* for most of a minute (#128).
+  defp picks(rows) do
+    rows
+    |> Task.async_stream(fn row -> safely(fn -> Artwork.cache(row.poster_path) end) end,
+      max_concurrency: 9,
+      timeout: 15_000,
+      on_timeout: :kill_task
+    )
+    |> Stream.run()
 
+    Enum.map(rows, &pick/1)
+  end
+
+  defp pick(row) do
     # `source_id` and `kind` ride along because a recommendation you cannot act
     # on is half a feature — screen 11 was *the only page in the app that shows
     # films you cannot open*, and these
