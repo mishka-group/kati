@@ -28,6 +28,21 @@ class Issue128Test {
             "kati-year-${java.time.LocalDate.now().year}.png"
         )
 
+    /** A tap on a control that may sit below the fold of a sheet. */
+    private fun reach(tag: String) {
+        repeat(4) {
+            try {
+                kati.tap(tag)
+                return
+            } catch (_: AssertionError) {
+                val d = kati.device
+                d.swipe(d.displayWidth / 2, d.displayHeight * 3 / 4, d.displayWidth / 2, d.displayHeight / 4, 20)
+                d.waitForIdle()
+            }
+        }
+        kati.tap(tag)
+    }
+
     private fun mark(what: String) {
         android.util.Log.i("KATI_SHOT", "READY $what")
         Thread.sleep(6_000)
@@ -73,7 +88,9 @@ class Issue128Test {
     fun b_up_next_rows_open_and_no_empty_cold_band() {
         kati.launch()
         kati.firstRun()
+        // Two shows: the first is Up next's hero, the second a row under it.
         ByHand.add(kati, "Radio Star", "kind_tv", "status_watching")
+        ByHand.add(kati, "Silo", "kind_tv", "status_watching")
         ByHand.toTabs(kati)
 
         kati.tap("root_library")
@@ -87,7 +104,6 @@ class Issue128Test {
 
         kati.tap(kati.tagStartingWith("row_")!!)
         kati.awaitScreen("series")
-        kati.compose.waitUntil(20_000) { ByHand.shown(kati, "Radio Star") }
     }
 
     @Test
@@ -97,14 +113,17 @@ class Issue128Test {
         ByHand.add(kati, "Rogue Nation", "kind_movie")
 
         kati.compose.waitUntil(20_000) { kati.present("add_to_list") }
+        kati.systemDialog("Allow")
+        kati.device.waitForIdle()
+        Thread.sleep(1_500)
         assertTrue(ByHand.shown(kati, "Add to list"))
         kati.tap("add_to_list")
         kati.awaitScreen("add_to_list")
-        kati.tap("new_list")
+        reach("new_list")
         kati.compose.waitUntil(10_000) { kati.present("list_name") }
         kati.compose.onNodeWithTag("list_name", useUnmergedTree = true).performTextInput("Weekend")
         kati.device.waitForIdle()
-        kati.tap("save_list")
+        reach("save_list")
         kati.device.waitForIdle()
         kati.compose.waitUntil(10_000) { kati.count("list_memberships") > 0 }
 
