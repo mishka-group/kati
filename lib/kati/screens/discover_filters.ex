@@ -61,7 +61,8 @@ defmodule Kati.Screens.DiscoverFilters do
        # What the total describes. See the moduledoc: it is dropped the moment
        # the choice moves away from this.
        opened_with: choice,
-       total: total_param(params)
+       total: total_param(params),
+       services: Kati.Services.with_ids()
      )}
   end
 
@@ -98,6 +99,7 @@ defmodule Kati.Screens.DiscoverFilters do
       {SettingsList.eyebrow_muted(pgettext("sort & filter sheet section", "Filters"))}
       {Kati.Screens.DiscoverFilters.kind_chips(choice)}
       <Spacer size={16} />
+      {Kati.Screens.DiscoverFilters.service_chips(choice, Map.get(assigns, :services, []))}
       {Kati.Screens.DiscoverFilters.footer(assigns)}
       <Spacer size={14} />
       {SettingsList.note("info", Kati.Screens.DiscoverFilters.note_text())}
@@ -216,6 +218,35 @@ defmodule Kati.Screens.DiscoverFilters do
        key == Map.get(choice, :kind)}
     end)
     |> Kati.Screens.DiscoverFilters.chip_row()
+  end
+
+  @doc """
+  The reader's own services that came from TMDB's catalogue, one chip each:
+  board 169's two service chips, with the reader's services in place of the
+  drawing's (#106). Nothing at all when no service has a TMDB id.
+  """
+  @spec service_chips(map(), [{String.t(), String.t()}]) :: [map()] | map()
+  def service_chips(_choice, []), do: []
+
+  def service_chips(choice, services) do
+    chosen = Filters.providers(choice)
+
+    chips =
+      Enum.map(services, fn {id, name} ->
+        {String.to_atom("service_" <> id), name, id in chosen}
+      end)
+
+    assigns = %{row: Kati.Screens.DiscoverFilters.chip_row(chips)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.eyebrow_muted(gettext("On your services"))}
+      <Scroll axis="horizontal">
+        {@row}
+      </Scroll>
+      <Spacer size={16} />
+    </Column>
+    """
   end
 
   @doc false
@@ -413,6 +444,7 @@ defmodule Kati.Screens.DiscoverFilters do
         "sort_" <> key -> Filters.with_sort(choice, Kati.Screens.DiscoverFilters.key(key))
         "rate_" <> key -> Filters.with_rating(choice, Kati.Screens.DiscoverFilters.key(key))
         "kind_" <> key -> Filters.with_kind(choice, Kati.Screens.DiscoverFilters.key(key))
+        "service_" <> id -> Filters.with_provider(choice, id)
         _other -> choice
       end
 

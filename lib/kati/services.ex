@@ -230,6 +230,22 @@ defmodule Kati.Services do
     _error -> []
   end
 
+  @doc """
+  The reader's services that came from TMDB's catalogue — `{provider_id,
+  name}` — which are the ones a `/discover` browse can be narrowed to (#106).
+  Typed-in services have no id and are left out.
+  """
+  @spec with_ids() :: [{String.t(), String.t()}]
+  def with_ids do
+    Kati.Services.Service
+    |> Ash.read!()
+    |> Enum.filter(&(&1.tier in [:subscribed, :free_with_ads] and is_binary(&1.provider_id)))
+    |> Enum.map(&{&1.provider_id, &1.name})
+    |> Enum.sort_by(&elem(&1, 1))
+  rescue
+    _error -> []
+  end
+
   @doc "The three availability rules, as a map of booleans."
   @spec rules() :: %{rentals: boolean(), purchases: boolean(), hide_unavailable: boolean()}
   def rules do

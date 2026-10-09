@@ -18,6 +18,12 @@ defmodule Kati.Issue128Test do
   alias Kati.Screens.WhatFits
   alias Kati.Screens.YearShare
 
+  doctest Kati.Screens.Series, only: [window: 1, pushed_id: 1]
+  doctest Kati.Screens.Stats, only: [hours_label: 1]
+  doctest Kati.Screens.UpNext, only: [row_tap: 1]
+  doctest Kati.Media.Recommendations, only: [ranked: 2]
+  doctest Kati.Native.Files, only: [node_request: 4]
+
   @prefix "issue-128-"
 
   setup do

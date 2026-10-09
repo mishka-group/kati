@@ -173,12 +173,24 @@ defmodule Kati.Screens.Discover do
 
     {sort, _sub} = Kati.Discover.Filters.sort_label(Map.get(choice, :sort))
 
-    case Map.get(choice, :rating) do
-      nil ->
+    on_services? = Kati.Discover.Filters.providers(choice) != []
+
+    case {Map.get(choice, :rating), on_services?} do
+      {nil, false} ->
         pgettext("discover heading", "%{sort} %{noun}", sort: sort, noun: noun)
 
-      rating ->
+      {nil, true} ->
+        pgettext("discover heading", "%{sort} %{noun} on your services", sort: sort, noun: noun)
+
+      {rating, false} ->
         pgettext("discover heading", "%{sort} %{noun}, %{rating}",
+          sort: sort,
+          noun: noun,
+          rating: Kati.Discover.Filters.rating_label(rating)
+        )
+
+      {rating, true} ->
+        pgettext("discover heading", "%{sort} %{noun} on your services, %{rating}",
           sort: sort,
           noun: noun,
           rating: Kati.Discover.Filters.rating_label(rating)

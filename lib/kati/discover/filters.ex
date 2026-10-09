@@ -105,6 +105,7 @@ defmodule Kati.Discover.Filters do
           sort: sort,
           rating: sanitise(Map.get(stored, :rating), @ratings)
         }
+        |> with_providers(Map.get(stored, :providers, []))
 
       _absent ->
         resting()
@@ -150,7 +151,43 @@ defmodule Kati.Discover.Filters do
       true
   """
   @spec narrowed?(map()) :: boolean()
-  def narrowed?(choice), do: choice != resting()
+  def narrowed?(choice),
+    do: Map.delete(choice, :providers) != resting() or providers(choice) != []
+
+  @doc """
+  The reader's services the browse is narrowed to — TMDB provider ids (#106).
+  Absent from a choice that names none, so a choice made before services
+  existed compares equal to one made after.
+
+      iex> Kati.Discover.Filters.providers(Kati.Discover.Filters.resting())
+      []
+
+      iex> Kati.Discover.Filters.with_provider(Kati.Discover.Filters.resting(), "8")
+      %{kind: nil, sort: :popular, rating: nil, providers: ["8"]}
+
+      iex> Kati.Discover.Filters.resting()
+      ...> |> Kati.Discover.Filters.with_provider("8")
+      ...> |> Kati.Discover.Filters.with_provider("8")
+      %{kind: nil, sort: :popular, rating: nil}
+  """
+  @spec providers(map()) :: [String.t()]
+  def providers(choice), do: Map.get(choice, :providers, [])
+
+  @spec with_provider(map(), String.t()) :: map()
+  def with_provider(choice, id) when is_binary(id) do
+    chosen = providers(choice)
+
+    if id in chosen,
+      do: with_providers(choice, List.delete(chosen, id)),
+      else: with_providers(choice, chosen ++ [id])
+  end
+
+  defp with_providers(choice, ids) do
+    case Enum.filter(List.wrap(ids), &is_binary/1) do
+      [] -> Map.delete(choice, :providers)
+      kept -> Map.put(choice, :providers, kept)
+    end
+  end
 
   @doc """
   Which endpoint a choice asks: the kind it names, or film when it names none.
@@ -214,7 +251,20 @@ defmodule Kati.Discover.Filters do
     [include_adult: "false", page: "1", sort_by: sort_by(Map.get(choice, :sort), kind)] ++
       [{date_key, Date.to_iso8601(today)}] ++
       vote_floor(Map.get(choice, :sort), Map.get(choice, :rating)) ++
-      rating_param(Map.get(choice, :rating))
+      rating_param(Map.get(choice, :rating)) ++
+      provider_params(providers(choice))
+  end
+
+  # On the reader's own services, in their region, to stream rather than to
+  # rent or buy (#106).
+  defp provider_params([]), do: []
+
+  defp provider_params(ids) do
+    [
+      with_watch_providers: Enum.join(ids, "|"),
+      watch_region: Kati.Services.region(),
+      with_watch_monetization_types: "flatrate|free|ads"
+    ]
   end
 
   @doc """

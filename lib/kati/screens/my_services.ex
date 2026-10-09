@@ -112,7 +112,32 @@ defmodule Kati.Screens.MyServices do
     |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
     |> Mob.Socket.assign(:suggestions, Kati.Screens.MyServices.suggestions())
     |> Mob.Socket.assign(:not_mine, Kati.Screens.MyServices.not_mine())
+    |> Kati.Screens.MyServices.ask_catalogue()
     |> Kati.Screens.MyServices.reset_card()
+  end
+
+  @doc """
+  Ask for the region's TMDB catalogue (#106) off the page's process; it lands
+  through `handle_kati(:loaded, …)`. Not asked at all when pages load in one
+  go (the host tests), so no test reaches for the network.
+  """
+  @spec ask_catalogue(Mob.Socket.t()) :: Mob.Socket.t()
+  def ask_catalogue(socket) do
+    region = Services.region()
+
+    if Kati.Screens.Later.enabled?() do
+      Kati.Screens.Later.run({:catalogue, region}, fn ->
+        Kati.Services.Catalogue.fetch(region)
+      end)
+
+      socket
+      |> Mob.Socket.assign(:catalogue, :loading)
+      |> Mob.Socket.assign(:catalogue_all?, false)
+    else
+      socket
+      |> Mob.Socket.assign(:catalogue, nil)
+      |> Mob.Socket.assign(:catalogue_all?, false)
+    end
   end
 
   @doc """
@@ -183,7 +208,18 @@ defmodule Kati.Screens.MyServices do
   from the picker is no reason to empty it.
   """
   @impl true
+  def handle_kati(:loaded, {{:catalogue, region}, result}, socket) do
+    if region == Map.get(socket.assigns, :region),
+      do: {:noreply, Mob.Socket.assign(socket, :catalogue, result)},
+      else: {:noreply, socket}
+  end
+
   def handle_kati(:resumed, _payload, socket) do
+    socket =
+      if Services.region() != Map.get(socket.assigns, :region),
+        do: Kati.Screens.MyServices.ask_catalogue(socket),
+        else: socket
+
     {:noreply,
      socket
      |> Mob.Socket.assign(:region, Services.region())
@@ -373,6 +409,7 @@ defmodule Kati.Screens.MyServices do
         {Kati.Screens.MyServices.region_group(assigns.region, Map.get(assigns, :chosen_region) != nil)}
         {Kati.Screens.MyServices.add_section(assigns)}
         {Kati.Screens.MyServices.suggestions_group(Map.get(assigns, :suggestions, []))}
+        {Kati.Screens.MyServices.catalogue_group(assigns, services)}
         {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services))}
         {Kati.Screens.MyServices.service_group(services.subscribed, true, assigns)}
         {Kati.Screens.MyServices.free_band(services.free, assigns)}
@@ -1147,6 +1184,122 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
+  @catalogue_shown 12
+
+  @doc """
+  TMDB's services for the region (#106), most watched first, minus the ones
+  already listed: each with *I pay* and *Free*, twelve at a time until *Show
+  all*. While it is on its way, three quiet rows; for a region TMDB has no
+  data for, one sentence saying so — the typed-in card above still works.
+  """
+  def catalogue_group(assigns, services) do
+    case Map.get(assigns, :catalogue) do
+      nil ->
+        []
+
+      :loading ->
+        Kati.Screens.MyServices.catalogue_frame(Kati.Screens.Later.blocks([56, 56, 56]))
+
+      {:ok, []} ->
+        Kati.Screens.MyServices.catalogue_frame(
+          SettingsList.note(
+            "info",
+            gettext("TMDB lists no streaming services for %{country}. Type yours in above.",
+              country: Services.region_name(Map.get(assigns, :region, "GB"))
+            )
+          )
+        )
+
+      {:ok, rows} ->
+        listed =
+          MapSet.new(
+            services.subscribed ++ services.free ++ Map.get(assigns, :not_mine, []),
+            &String.downcase(&1.name)
+          )
+
+        open = Enum.reject(rows, &MapSet.member?(listed, String.downcase(&1.name)))
+
+        shown =
+          if Map.get(assigns, :catalogue_all?, false),
+            do: open,
+            else: Enum.take(open, @catalogue_shown)
+
+        more = length(open) - length(shown)
+
+        rows =
+          Enum.map(shown, &Kati.Screens.MyServices.catalogue_row/1) ++
+            Kati.Screens.MyServices.catalogue_more(more)
+
+        Kati.Screens.MyServices.catalogue_frame(Kati.UI.SettingsList.card(rows))
+
+      {:error, _reason} ->
+        []
+    end
+  end
+
+  @doc false
+  def catalogue_frame(content) do
+    assigns = %{content: content}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow(gettext("From TMDB"))}
+      {@content}
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def catalogue_row(row) do
+    assigns = %{id: row.id}
+
+    pills = ~MOB"""
+    <Row align="center">
+      {Kati.UI.SettingsList.action_pill(gettext("I pay"), {self(), String.to_atom("catalogue_sub_" <> @id)})}
+      <Spacer size={6} />
+      {Kati.UI.SettingsList.action_pill(gettext("Free"), {self(), String.to_atom("catalogue_free_" <> @id)})}
+    </Row>
+    """
+
+    Kati.UI.SettingsList.row(
+      Kati.Screens.MyServices.logo_tile(row),
+      Kati.UI.SettingsList.body(row.name, nil),
+      pills
+    )
+  end
+
+  @doc false
+  def logo_tile(row) do
+    case Kati.Design.Images.poster(row.logo) do
+      nil ->
+        Kati.Screens.MyServices.badge_tile(String.first(row.name))
+
+      src ->
+        assigns = %{src: src}
+
+        ~MOB"""
+        <Image src={@src} width={40} height={40} corner_radius={12} content_mode="fill" />
+        """
+    end
+  end
+
+  @doc false
+  def catalogue_more(0), do: []
+
+  def catalogue_more(n) do
+    [
+      Kati.UI.SettingsList.row(
+        Kati.Screens.MyServices.badge_tile("+"),
+        Kati.UI.SettingsList.body(
+          ngettext("Show all · %{n} more", "Show all · %{n} more", n, n: Kati.Locale.number(n)),
+          nil
+        ),
+        Kati.UI.SettingsList.action_pill(gettext("Show all"), {self(), :catalogue_all})
+      )
+    ]
+  end
+
   @doc """
   A service marked not mine, with the way back (#127). A tap or a long press
   opens the same editor as a listed service, where it can be deleted.
@@ -1290,8 +1443,17 @@ defmodule Kati.Screens.MyServices do
   def handle_tap(:delete_service, socket),
     do: {:noreply, Kati.Screens.MyServices.delete_service(socket)}
 
+  def handle_tap(:catalogue_all, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :catalogue_all?, true)}
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
+      "catalogue_sub_" <> id ->
+        {:noreply, Kati.Screens.MyServices.add_from_catalogue(socket, id, :subscribed)}
+
+      "catalogue_free_" <> id ->
+        {:noreply, Kati.Screens.MyServices.add_from_catalogue(socket, id, :free_with_ads)}
+
       "suggest_sub_" <> i ->
         {:noreply, Kati.Screens.MyServices.add_suggestion(socket, i, :subscribed)}
 
@@ -1627,13 +1789,51 @@ defmodule Kati.Screens.MyServices do
     index && Integer.to_string(index)
   end
 
-  def create_service(name, pence \\ nil, tier \\ :subscribed) do
+  def create_service(name, pence \\ nil, tier \\ :subscribed, provider_id \\ nil) do
     Ash.create(Service, %{
       name: name,
       tier: tier,
-      provider_id: nil,
+      provider_id: provider_id,
       monthly_pence: pence
     })
+  end
+
+  @doc """
+  Add a service from TMDB's catalogue (#106): its exact name, so titles match
+  it, and its provider id, so Discover can narrow to it. No price — the reader
+  types one in if they want it counted; until then it adds nothing to the
+  total.
+  """
+  @spec add_from_catalogue(Mob.Socket.t(), String.t(), atom()) :: Mob.Socket.t()
+  def add_from_catalogue(socket, id, tier) do
+    with {:ok, rows} <- Map.get(socket.assigns, :catalogue),
+         %{name: name} <- Enum.find(rows, &(&1.id == id)),
+         {:ok, _service} <-
+           name
+           |> Kati.Screens.MyServices.create_service(nil, tier, id)
+           |> Write.note("add service #{name}") do
+      Kati.Screens.MyServices.reread(socket)
+    else
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :notice, {:error, Write.message({:error, reason})})
+
+      _not_there ->
+        socket
+    end
+  end
+
+  @doc false
+  def catalogue_id(socket, name) do
+    case Map.get(socket.assigns, :catalogue) do
+      {:ok, rows} ->
+        case Kati.Services.Catalogue.named(rows, name) do
+          %{id: id} -> id
+          nil -> nil
+        end
+
+      _not_loaded ->
+        nil
+    end
   end
 
   @doc """
@@ -1646,7 +1846,11 @@ defmodule Kati.Screens.MyServices do
          {name, _n} <- Enum.at(socket.assigns.suggestions, i),
          {:ok, _service} <-
            name
-           |> Kati.Screens.MyServices.create_service(nil, tier)
+           |> Kati.Screens.MyServices.create_service(
+             nil,
+             tier,
+             Kati.Screens.MyServices.catalogue_id(socket, name)
+           )
            |> Write.note("add service #{name}") do
       Kati.Screens.MyServices.reread(socket)
     else
