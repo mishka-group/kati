@@ -95,6 +95,7 @@ defmodule Kati.Screens.Root do
 
   defmacro __using__(opts) do
     root = Keyword.fetch!(opts, :root)
+    later = Keyword.get(opts, :later, false)
 
     quote do
       use Mob.Screen
@@ -162,7 +163,7 @@ defmodule Kati.Screens.Root do
 
         socket
         |> Mob.Socket.assign(:root, @root)
-        |> load()
+        |> Kati.Screens.Later.first(unquote(later), &load/1)
         |> then(&{:ok, &1})
       end
 
@@ -189,7 +190,10 @@ defmodule Kati.Screens.Root do
         # a paper dock and a paper tab well — over a dark page for every root in
         # the app. The key is still read, so a screen that is deliberately one
         # side can still pin it; a root has no business doing so.
-        Kati.Shell.render(%{root: @root, content: content(assigns)})
+        Kati.Shell.render(%{
+          root: @root,
+          content: Kati.Screens.Later.content(assigns, &content/1)
+        })
       end
 
       # Root switching. `Mob.Socket.switch_tab/2` is inert for a hand-rolled
@@ -445,6 +449,11 @@ defmodule Kati.Screens.Root do
       rescue_kati(module, :resumed, nil, socket)
     end
   end
+
+  # The deferred half of `Kati.Screens.Later.first/3`: the page's own `load/1`,
+  # in its own process, right after the skeleton frame was painted.
+  def rescue_kati(module, :load_now, _payload, socket),
+    do: {:noreply, socket |> module.load() |> Mob.Socket.assign(:first_frame?, false)}
 
   def rescue_kati(module, topic, payload, socket) do
     if exports?(module, :handle_kati, 3) do

@@ -71,7 +71,7 @@ defmodule Kati.Screens.InboxNotifications do
   page ends up stating a number the scheduler does not use.
   """
 
-  use Kati.Screens.Pushed, back: "Home"
+  use Kati.Screens.Pushed, back: "Home", later: true
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Notifications.Candidate

@@ -23,6 +23,7 @@ defmodule Kati.Issue128Test do
   setup do
     on_exit(fn ->
       Kati.Repo.query!("DELETE FROM list_memberships")
+      Kati.Repo.query!("DELETE FROM lists WHERE name = 'Weekend'")
       Kati.Repo.query!("DELETE FROM media_watches")
       Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
@@ -137,7 +138,17 @@ defmodule Kati.Issue128Test do
     end
 
     test "no Ready to watch band over nothing when the hero is the only title" do
+      %{rows: others} =
+        Kati.Repo.query!("SELECT id FROM tracked_titles WHERE status = 'watching'")
+
       Kati.Repo.query!("UPDATE tracked_titles SET status = 'finished' WHERE status = 'watching'")
+
+      on_exit(fn ->
+        for [id] <- others,
+            do:
+              Kati.Repo.query!("UPDATE tracked_titles SET status = 'watching' WHERE id = ?1", [id])
+      end)
+
       shelve!("alone", :tv)
 
       assert UpNext.queue().ready_label == nil
@@ -381,6 +392,23 @@ defmodule Kati.Issue128Test do
       :ok
     end
 
+    test "an opted-in page paints a skeleton, then runs its own load in its own process" do
+      socket = Mob.Socket.new(Kati.Screens.Home)
+      first = Kati.Screens.Later.first(socket, true, &Kati.Screens.Home.load/1)
+
+      assert first.assigns.first_frame?
+      assert_received {:kati, :load_now, nil}
+      assert Kati.Screens.Later.content(first.assigns, fn _ -> :real end) != :real
+
+      {:noreply, loaded} = Kati.Screens.Root.rescue_kati(Kati.Screens.Home, :load_now, nil, first)
+      refute loaded.assigns.first_frame?
+      assert Kati.Screens.Later.content(loaded.assigns, fn _ -> :real end) == :real
+
+      plain = Kati.Screens.Later.first(socket, false, fn s -> Mob.Socket.assign(s, :x, 1) end)
+      assert plain.assigns.x == 1
+      refute_received {:kati, :load_now, nil}
+    end
+
     test "a film opens on its hero and blocks, and the rest arrives as a message" do
       {film, _} = shelve!("film-glimpse", :movie)
 
@@ -409,6 +437,8 @@ defmodule Kati.Issue128Test do
 
       first = UpNext.load(Mob.Socket.new(UpNext))
       assert first.assigns.queue == :loading
+      # The task's own answer, so it is not still reading after the test ends.
+      assert_receive {:kati, :loaded, {:queue, _queue}}, 5_000
       assert inspect(UpNext.content(first.assigns), limit: :infinity) =~ "Up next"
 
       {:noreply, loaded} = UpNext.handle_kati(:loaded, {:queue, UpNext.queue()}, first)
@@ -416,11 +446,13 @@ defmodule Kati.Issue128Test do
 
       again = UpNext.load(loaded)
       assert again.assigns.queue == loaded.assigns.queue
+      assert_receive {:kati, :loaded, {:queue, _queue}}, 5_000
     end
 
     test "Stats opens on its header and skeleton cards, then the figures land" do
       first = Stats.load(Mob.Socket.new(Stats))
       assert first.assigns.loading?
+      assert_receive {:kati, :loaded, {:figures, _figures}}, 5_000
       assert inspect(Stats.content(first.assigns), limit: :infinity) =~ first.assigns.range
 
       {:noreply, loaded} = Stats.handle_kati(:loaded, {:figures, Stats.figures()}, first)

@@ -65,7 +65,7 @@ defmodule Kati.Screens.WhatFits do
   note is the argument for counting rather than remembering: *"Three, counted
   from the filter and not from memory."*
   """
-  use Kati.Screens.Pushed, back: "Library"
+  use Kati.Screens.Pushed, back: "Library", later: true
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaChip

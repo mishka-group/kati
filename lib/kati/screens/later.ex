@@ -40,6 +40,45 @@ defmodule Kati.Screens.Later do
   end
 
   @doc """
+  A page's mount, for a page that opted in with `later: true`
+  (`Kati.Screens.Root`, `Kati.Screens.Pushed`): paint skeleton blocks first and
+  run the page's own `load/1` straight after, in the page's own process — so
+  nothing a `load/1` does with `self()` changes — by sending it
+  `{:kati, :load_now, nil}`, which `Kati.Screens.Root.rescue_kati/4` answers.
+  Pages that load in a few milliseconds do not opt in: a skeleton for one
+  frame is a flicker, not a kindness.
+  """
+  @spec first(Mob.Socket.t(), boolean(), (Mob.Socket.t() -> Mob.Socket.t())) :: Mob.Socket.t()
+  def first(socket, true, load) do
+    if enabled?() do
+      send(self(), {:kati, :load_now, nil})
+      Mob.Socket.assign(socket, :first_frame?, true)
+    else
+      load.(socket)
+    end
+  end
+
+  def first(socket, false, load), do: load.(socket)
+
+  @doc "The page's content, or its skeleton while `first/3` has not loaded it."
+  @spec content(map(), (map() -> term())) :: term()
+  def content(%{first_frame?: true}, _content), do: skeleton()
+  def content(assigns, content), do: content.(assigns)
+
+  @doc false
+  def skeleton do
+    ~MOB"""
+    <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64}>
+      <Column fill_width={true} padding_top={10}>
+        <Box width={170} height={30} corner_radius={10} background={Palette.card()} />
+        <Spacer size={22} />
+      </Column>
+      {Kati.Screens.Later.blocks([150, 64, 64, 64, 64])}
+    </Column>
+    """
+  end
+
+  @doc """
   Quiet card-coloured blocks, one per height, where content is about to land.
   """
   @spec blocks([pos_integer()]) :: map()

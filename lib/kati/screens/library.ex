@@ -91,7 +91,7 @@ defmodule Kati.Screens.Library do
   `Kati.ScreenTitleSubtitleTest` reads that off the board as the spec. See
   `subtitle_line/1`, which records what withholding it actually rendered.
   """
-  use Kati.Screens.Root, root: :library
+  use Kati.Screens.Root, root: :library, later: true
   use Gettext, backend: Kati.Gettext
 
   require Ash.Query
