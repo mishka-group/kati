@@ -92,6 +92,16 @@ defmodule Kati.Issue128Test do
       assert Stats.hours_label(2719) == "45h"
     end
 
+    test "a push naming tracked_id opens that show, not the top of the shelf" do
+      {first, _} = shelve!("pushed-first", :tv, touched: -10)
+      {wanted, _} = shelve!("pushed-wanted", :tv, touched: -86_400)
+
+      assert {id, nil, series} = Series.opening(%{tracked_id: wanted.id, back: "Stats"})
+      assert id == wanted.id
+      assert series.tracked_id == wanted.id
+      refute series.tracked_id == first.id
+    end
+
     test "a Watched most row opens its title, with Stats on the back pill" do
       {tracked, _cached} = shelve!("stats-top", :tv)
       tag = String.to_atom("open_top_" <> tracked.id)
@@ -127,6 +137,13 @@ defmodule Kati.Issue128Test do
 
       assert queue.cold == []
       assert queue.cold_label == nil
+    end
+
+    test "no Ready to watch band over nothing when the hero is the only title" do
+      Kati.Repo.query!("UPDATE tracked_titles SET status = 'finished' WHERE status = 'watching'")
+      shelve!("alone", :tv)
+
+      assert UpNext.queue().ready_label == nil
     end
 
     test "the whole row opens the title, not only the play disc" do
@@ -211,6 +228,36 @@ defmodule Kati.Issue128Test do
                Map.get(pushed.__mob__, :nav_action)
 
       refute Kati.Media.Recommendations.tracked?(%{source_id: "95396"})
+    end
+
+    test "the picks are seeded on something watched, not the newest title never started" do
+      {watching, _} = shelve!("seed-watching", :tv, touched: -86_400)
+      {fresh, _} = shelve!("seed-fresh", :tv, touched: -10)
+
+      Kati.Repo.query!("UPDATE tracked_titles SET status = 'not_started' WHERE id = ?1", [
+        fresh.id
+      ])
+
+      ids = Enum.map(Kati.Media.Recommendations.seedable(), fn {t, _c} -> t.id end)
+      assert Enum.find_index(ids, &(&1 == watching.id)) < Enum.find_index(ids, &(&1 == fresh.id))
+    end
+
+    test "picks that came from another title rename the heading" do
+      asked = %CachedTitle{title: "13 Reasons Why", source_id: "a"}
+      used = %CachedTitle{title: "Silo", source_id: "b"}
+
+      socket =
+        Mob.Socket.new(Discover)
+        |> Mob.Socket.assign(:feed, Discover.real_feed(asked))
+
+      {:noreply, answered} =
+        Discover.handle_info(
+          {:recommendations, "a", {:ok, [%{title: "Dark", source_id: "1"}]}, used},
+          socket
+        )
+
+      assert answered.assigns.feed.because == "Because you watched Silo"
+      assert length(answered.assigns.feed.picks) == 1
     end
 
     test "the Picks from row scrolls, and its pills carry no shadow" do

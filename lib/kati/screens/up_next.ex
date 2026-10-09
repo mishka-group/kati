@@ -373,7 +373,10 @@ defmodule Kati.Screens.UpNext do
           ready: Kati.Locale.number(length(rest) + 1),
           soon: Kati.Locale.number(airing_soon([hero | rest], cache))
         ),
-      ready_label: gettext("Ready to watch · %{n}", n: Kati.Locale.number(length(rest))),
+      ready_label:
+        if(rest != [],
+          do: gettext("Ready to watch · %{n}", n: Kati.Locale.number(length(rest)))
+        ),
       cold_label: cold_label(cold),
       hero: hero_row(hero, cache),
       ready: Enum.map(rest, &ready_data(&1, cache)),

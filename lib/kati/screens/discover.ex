@@ -325,6 +325,21 @@ defmodule Kati.Screens.Discover do
     end
   end
 
+  def handle_info({:recommendations, seed_id, result, used}, socket) do
+    feed = socket.assigns.feed
+
+    if Map.get(feed, :seed_id) == seed_id do
+      {:noreply,
+       Mob.Socket.assign(
+         socket,
+         :feed,
+         %{answered(feed, result) | because: Recommendations.because(used.title)}
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info({:discover, choice, result}, socket) do
     if Map.get(socket.assigns, :filters) == choice do
       {:noreply,

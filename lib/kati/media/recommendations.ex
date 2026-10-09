@@ -105,17 +105,7 @@ defmodule Kati.Media.Recommendations do
   end
 
   def seed(_newest) do
-    Enum.find_value(newest(), fn tracked ->
-      case cached_for(tracked) do
-        %CachedTitle{source: source, source_id: id, title: title} = cached
-        when source not in [:anilist, :tvmaze] and is_binary(id) and is_binary(title) and
-               title != "" ->
-          {tracked, cached}
-
-        _no_cache ->
-          nil
-      end
-    end)
+    List.first(Kati.Media.Recommendations.seedable())
   rescue
     _error -> nil
   end
@@ -123,8 +113,9 @@ defmodule Kati.Media.Recommendations do
   @doc """
   Ask for recommendations, and be sent them when they arrive.
 
-  Sends `{:recommendations, source_id, result}` to `pid`, where `result` is
-  `{:ok, picks}` or `{:error, reason}`. The reason travels because the three
+  Sends `{:recommendations, source_id, result, used}` to `pid`, where `result`
+  is `{:ok, picks}` or `{:error, reason}` and `used` is the title the picks
+  came from — `picks_or_next/1` may have moved on from `source_id`. The reason travels because the three
   ways this comes back empty are three different things to say: a token nobody
   has entered is a thing the reader can fix in Settings, a request that could
   not be made is a thing to try again, and a provider that knows of nothing
@@ -135,7 +126,10 @@ defmodule Kati.Media.Recommendations do
   """
   @spec ask(pid(), CachedTitle.t()) :: :ok
   def ask(pid, %CachedTitle{} = cached) when is_pid(pid) do
-    work = fn -> send(pid, {:recommendations, cached.source_id, picks_for(cached)}) end
+    work = fn ->
+      {used, result} = Kati.Media.Recommendations.picks_or_next(cached)
+      send(pid, {:recommendations, cached.source_id, result, used})
+    end
 
     try do
       Task.Supervisor.start_child(Kati.TaskSupervisor, work)
@@ -336,6 +330,36 @@ defmodule Kati.Media.Recommendations do
 
   defp seed_genre_ids(_none), do: []
 
+  @doc """
+  The picks for `cached`, or — when TMDB has nothing for it — for the next of
+  the reader's titles that has some, and which title they came from.
+
+  A seed TMDB knows nothing like left the whole page empty on opening (#128),
+  though the shelf held a dozen titles that would have answered. Up to three
+  more are tried, in `seedable/0`'s order, and the heading names the one used.
+  """
+  @spec picks_or_next(CachedTitle.t()) :: {CachedTitle.t(), {:ok, [map()]} | {:error, term()}}
+  def picks_or_next(%CachedTitle{} = cached) do
+    first = picks_for(cached)
+
+    case first do
+      {:ok, [_ | _]} ->
+        {cached, first}
+
+      _empty_or_failed ->
+        Kati.Media.Recommendations.seedable()
+        |> Enum.map(&elem(&1, 1))
+        |> Enum.reject(&(&1.source_id == cached.source_id))
+        |> Enum.take(3)
+        |> Enum.find_value({cached, first}, fn other ->
+          case picks_for(other) do
+            {:ok, [_ | _]} = found -> {other, found}
+            _nothing -> nil
+          end
+        end)
+    end
+  end
+
   @lookups 8
 
   @doc """
@@ -465,7 +489,9 @@ defmodule Kati.Media.Recommendations do
   defp provider_kind(_series), do: :tv
 
   @doc """
-  Every title the picks could be seeded on, newest first.
+  Every title the picks could be seeded on: the ones being watched or finished
+  first, newest first within each — *because you watched* has to be about
+  something watched, not a title added a minute ago and never started (#128).
 
   What screen 11's `tune` disc offers. The same `:shelf` reads `newest/0`
   makes, without its per-kind `limit(1)`: that limit is right for *what am I
@@ -485,6 +511,7 @@ defmodule Kati.Media.Recommendations do
       |> Ash.read!()
     end)
     |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
+    |> Enum.sort_by(&(&1.status not in [:watching, :finished]))
     |> Enum.flat_map(fn tracked ->
       case cached_for(tracked) do
         %CachedTitle{source: source, source_id: id, title: title} = cached
@@ -498,17 +525,6 @@ defmodule Kati.Media.Recommendations do
     end)
   rescue
     _error -> []
-  end
-
-  defp newest do
-    @kinds
-    |> Enum.flat_map(fn kind ->
-      TrackedTitle
-      |> Ash.Query.for_read(:shelf, %{kind: kind})
-      |> Ash.Query.limit(1)
-      |> Ash.read!()
-    end)
-    |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
   end
 
   defp cached_for(%TrackedTitle{source: source, source_id: source_id}) do

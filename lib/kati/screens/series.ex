@@ -173,9 +173,28 @@ defmodule Kati.Screens.Series do
         {nil, state, empty_series()}
 
       :none ->
-        id = Map.get(params || %{}, :id)
+        id = Kati.Screens.Series.pushed_id(params)
         {id, nil, series(id)}
     end
+  end
+
+  @doc """
+  The tracked id a push names. Inbox, Notifications, What fits and Stats push
+  `tracked_id:` and the shelf pushes `id:`; this page read only `:id`, so the
+  first four opened whatever topped the shelf instead of the show tapped
+  (#128 — Silo on Stats opened another title).
+
+      iex> Kati.Screens.Series.pushed_id(%{tracked_id: "a"})
+      "a"
+      iex> Kati.Screens.Series.pushed_id(%{id: "b"})
+      "b"
+      iex> Kati.Screens.Series.pushed_id(nil)
+      nil
+  """
+  @spec pushed_id(map() | nil) :: String.t() | nil
+  def pushed_id(params) do
+    params = params || %{}
+    Map.get(params, :id) || Map.get(params, :tracked_id)
   end
 
   @doc """
@@ -2100,7 +2119,9 @@ defmodule Kati.Screens.Series do
           ngettext(
             "Show %{n} more episode",
             "Show %{n} more episodes",
-            min(left, @episode_page * 2), n: Kati.Locale.number(min(left, @episode_page * 2)))
+            min(left, @episode_page * 2),
+            n: Kati.Locale.number(min(left, @episode_page * 2))
+          )
 
     assigns = %{label: label, tap: {self(), tag}}
 
