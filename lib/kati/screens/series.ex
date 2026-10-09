@@ -174,7 +174,7 @@ defmodule Kati.Screens.Series do
   before the first frame kept the push waiting on it (#128 — Radio Star). So
   the page opens on this, with skeleton blocks where the rest goes, and
   `load_later/1` fills it in. `nil` for anything else — a preview, a push
-  naming nothing, a row that has gone, or `:series_in_background` switched off
+  naming nothing, a row that has gone, or `Kati.Screens.Later` switched off
   (the host tests) — which opens the old way, all at once.
   """
   @spec glimpse_for(map() | nil) :: {String.t(), map()} | nil
@@ -186,7 +186,7 @@ defmodule Kati.Screens.Series do
         {:preview, _state} -> nil
       end
 
-    with true <- Application.get_env(:kati, :series_in_background, true),
+    with true <- Kati.Screens.Later.enabled?(),
          true <- is_binary(id),
          %{} = glimpse <- Kati.Screens.Series.glimpse(id) do
       {id, glimpse}
@@ -218,23 +218,10 @@ defmodule Kati.Screens.Series do
     end
   end
 
-  @doc """
-  Read and shape the whole show off the screen's process and send it back as
-  `{:series_loaded, id, series}` — the pattern Mob's author recommends until
-  the framework has its own wrapper: a task, and a message to the screen.
-  """
+  @doc "Read and shape the whole show off the screen's process (`Kati.Screens.Later`)."
   @spec load_later(String.t()) :: :ok
-  def load_later(id) do
-    screen = self()
-    work = fn -> send(screen, {:series_loaded, id, Kati.Screens.Series.series(id)}) end
-
-    case Process.whereis(Kati.TaskSupervisor) do
-      nil -> spawn(work)
-      _sup -> Task.Supervisor.start_child(Kati.TaskSupervisor, work)
-    end
-
-    :ok
-  end
+  def load_later(id),
+    do: Kati.Screens.Later.run({:series, id}, fn -> Kati.Screens.Series.series(id) end)
 
   @doc """
   What a push opens: `{id, preview, series}` — `Kati.Screens.Film.opening/1`
@@ -1229,23 +1216,10 @@ defmodule Kati.Screens.Series do
   """
   @spec loading_page(map(), String.t()) :: map()
   def loading_page(s, back) do
-    block = fn height ->
-      assigns = %{height: height}
-
-      ~MOB"""
-      <Column fill_width={true}>
-        <Box fill_width={true} height={@height} corner_radius={18} background={Palette.card()} />
-        <Spacer size={10} />
-      </Column>
-      """
-    end
-
     assigns = %{
       s: s,
       back: back,
-      blocks:
-        [block.(92), block.(52), block.(18), block.(18)] ++
-          List.duplicate(block.(58), 6)
+      blocks: Kati.Screens.Later.blocks([92, 52, 18, 18] ++ List.duplicate(58, 6))
     }
 
     ~MOB"""
@@ -2862,7 +2836,7 @@ defmodule Kati.Screens.Series do
     handle_info({:kati, :resumed, nil}, socket)
   end
 
-  def handle_info({:series_loaded, id, series}, socket) do
+  def handle_info({:kati, :loaded, {{:series, id}, series}}, socket) do
     if Map.get(socket.assigns, :id) == id and Map.get(socket.assigns.series, :loading?, false),
       do: {:noreply, Mob.Socket.assign(socket, :series, series)},
       else: {:noreply, socket}

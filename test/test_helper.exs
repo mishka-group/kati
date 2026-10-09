@@ -9,7 +9,7 @@ Kati.Runtime.configure()
 # `Kati.AddTitleFillTest` switches it back on to test the background path.
 Application.put_env(:kati, :fill_titles_in_background, false)
 Application.put_env(:kati, :refresh_on_open, false)
-Application.put_env(:kati, :series_in_background, false)
+Application.put_env(:kati, :screens_in_background, false)
 
 # Schema tests run against a real SQLite file in a temp dir — the point is that
 # ecto_sqlite3's actual storage behaviour matches what the range queries assume.

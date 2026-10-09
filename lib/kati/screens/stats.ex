@@ -165,8 +165,25 @@ defmodule Kati.Screens.Stats do
 
   @impl true
   def load(socket) do
-    Mob.Socket.assign(socket, figures())
+    if Kati.Screens.Later.enabled?() do
+      # Every watch of the year is read and folded into a dozen figures; the
+      # page opens on its header and skeleton cards — or on the figures it
+      # already drew, when this is a re-read — and they land after (#128).
+      Kati.Screens.Later.run(:figures, &Kati.Screens.Stats.figures/0)
+
+      if Map.has_key?(socket.assigns, :year),
+        do: socket,
+        else: Mob.Socket.assign(socket, loading?: true, range: range(Kati.Time.today()))
+    else
+      Mob.Socket.assign(socket, figures())
+    end
   end
+
+  @impl true
+  def handle_kati(:loaded, {:figures, figures}, socket),
+    do: {:noreply, socket |> Mob.Socket.assign(figures) |> Mob.Socket.assign(:loading?, false)}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
   @doc """
   Everything this screen draws that is not a fixed label.
@@ -206,6 +223,23 @@ defmodule Kati.Screens.Stats do
   end
 
   @doc false
+  def content(%{loading?: true} = assigns) do
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
+        {Kati.Screens.Stats.header(assigns.range)}
+        {Kati.Screens.Later.blocks([230, 92, 18, 190, 120, 160])}
+      </Column>
+    </Scroll>
+    """
+  end
+
   def content(assigns) do
     case assigns.year do
       nil ->

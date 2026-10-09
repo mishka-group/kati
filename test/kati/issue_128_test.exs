@@ -316,8 +316,8 @@ defmodule Kati.Issue128Test do
     test "the page opens on its hero and skeleton blocks, and the season arrives after" do
       {tracked, _} = shelve!("glimpse", :tv, episodes: List.duplicate(80, 400), at: {1, 1})
 
-      Application.put_env(:kati, :series_in_background, true)
-      on_exit(fn -> Application.put_env(:kati, :series_in_background, false) end)
+      Application.put_env(:kati, :screens_in_background, true)
+      on_exit(fn -> Application.put_env(:kati, :screens_in_background, false) end)
 
       assert {id, glimpse} = Series.glimpse_for(%{id: tracked.id})
       assert id == tracked.id
@@ -337,11 +337,15 @@ defmodule Kati.Issue128Test do
         Mob.Socket.new(Series)
         |> Mob.Socket.assign(id: id, series: glimpse, preview: nil, menu?: false, back: "Home")
 
-      {:noreply, loaded} = Series.handle_info({:series_loaded, id, Series.series(id)}, socket)
+      {:noreply, loaded} =
+        Series.handle_info({:kati, :loaded, {{:series, id}, Series.series(id)}}, socket)
+
       refute Map.get(loaded.assigns.series, :loading?, false)
       assert length(loaded.assigns.series.episodes) == 400
 
-      {:noreply, stale} = Series.handle_info({:series_loaded, "someone-else", %{}}, socket)
+      {:noreply, stale} =
+        Series.handle_info({:kati, :loaded, {{:series, "someone-else"}, %{}}}, socket)
+
       assert stale.assigns.series == glimpse
     end
 
@@ -367,6 +371,61 @@ defmodule Kati.Issue128Test do
     test "opening a title does not reach for the network on the host" do
       {tracked, _} = shelve!("no-net", :tv)
       assert Kati.Media.Cache.refresh_stale(tracked.id) == :ok
+    end
+  end
+
+  describe "first frame, then the rest (Film, Up next, Stats)" do
+    setup do
+      Application.put_env(:kati, :screens_in_background, true)
+      on_exit(fn -> Application.put_env(:kati, :screens_in_background, false) end)
+      :ok
+    end
+
+    test "a film opens on its hero and blocks, and the rest arrives as a message" do
+      {film, _} = shelve!("film-glimpse", :movie)
+
+      assert {id, glimpse} = Film.glimpse_for(%{id: film.id})
+      assert glimpse.loading?
+
+      first =
+        inspect(Film.render(%{film: glimpse, back: "Home", preview: nil, menu?: false}),
+          limit: :infinity
+        )
+
+      assert first =~ "film-glimpse"
+
+      socket =
+        Mob.Socket.new(Film)
+        |> Mob.Socket.assign(id: id, film: glimpse, preview: nil, menu?: false, back: "Home")
+
+      {:noreply, loaded} =
+        Film.handle_info({:kati, :loaded, {{:film, id}, Film.film(id)}}, socket)
+
+      refute Map.get(loaded.assigns.film, :loading?, false)
+    end
+
+    test "Up next opens on skeleton rows and keeps what it drew on the way back" do
+      shelve!("up-next-later", :tv)
+
+      first = UpNext.load(Mob.Socket.new(UpNext))
+      assert first.assigns.queue == :loading
+      assert inspect(UpNext.content(first.assigns), limit: :infinity) =~ "Up next"
+
+      {:noreply, loaded} = UpNext.handle_kati(:loaded, {:queue, UpNext.queue()}, first)
+      assert is_map(loaded.assigns.queue)
+
+      again = UpNext.load(loaded)
+      assert again.assigns.queue == loaded.assigns.queue
+    end
+
+    test "Stats opens on its header and skeleton cards, then the figures land" do
+      first = Stats.load(Mob.Socket.new(Stats))
+      assert first.assigns.loading?
+      assert inspect(Stats.content(first.assigns), limit: :infinity) =~ first.assigns.range
+
+      {:noreply, loaded} = Stats.handle_kati(:loaded, {:figures, Stats.figures()}, first)
+      refute loaded.assigns.loading?
+      assert Keyword.has_key?(Stats.figures(), :year)
     end
   end
 

@@ -119,7 +119,18 @@ defmodule Kati.Screens.UpNext do
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :queue, queue())
+  def load(socket) do
+    if Kati.Screens.Later.enabled?() do
+      # The queue reads every show, its cache and its episodes; the page opens
+      # on its title and skeleton rows, or on the queue it already drew when
+      # this is a re-read on the way back, and `handle_kati(:loaded, …)` puts
+      # the fresh one in (#128).
+      Kati.Screens.Later.run(:queue, &Kati.Screens.UpNext.queue/0)
+      Mob.Socket.assign(socket, :queue, Map.get(socket.assigns, :queue) || :loading)
+    else
+      Mob.Socket.assign(socket, :queue, queue())
+    end
+  end
 
   @doc """
   Coming back to the queue after something was ticked above it.
@@ -131,6 +142,9 @@ defmodule Kati.Screens.UpNext do
   """
   @impl true
   def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
+  def handle_kati(:loaded, {:queue, queue}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :queue, queue)}
 
   @doc """
   Every control this screen draws, and it drew none until 6 September.
@@ -924,6 +938,33 @@ defmodule Kati.Screens.UpNext do
   defp ahead?(_resolution), do: false
 
   @doc false
+  def content(%{queue: :loading}) do
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
+        {Kati.Screens.UpNext.tune_row()}
+        <Text
+          text={gettext("Up next")}
+          text_size={28}
+          max_font_scale={1.6}
+          font_weight="bold"
+          letter_spacing={Kati.Locale.tracking(-0.03)}
+          max_lines={1}
+          text_color={:on_surface}
+        />
+        <Spacer size={22} />
+        {Kati.Screens.Later.blocks([196, 18, 66, 66, 66])}
+      </Column>
+    </Scroll>
+    """
+  end
+
   def content(assigns) do
     q = assigns.queue
 
