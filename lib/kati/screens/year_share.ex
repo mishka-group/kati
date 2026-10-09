@@ -391,18 +391,6 @@ defmodule Kati.Screens.YearShare do
     Enum.map(@aspects, fn {key, tag} -> {Kati.Screens.YearShare.aspect_label(key), tag} end)
   end
 
-  @doc """
-  The picture's height over its width: a square post, or a 9:16 story.
-
-      iex> Kati.Screens.YearShare.ratio(:aspect_square)
-      1.0
-      iex> Kati.Screens.YearShare.ratio(:aspect_story)
-      1.7778
-  """
-  @spec ratio(atom()) :: float()
-  def ratio(:aspect_story), do: 1.7778
-  def ratio(_square), do: 1.0
-
   @doc false
   @spec aspect_label(atom()) :: String.t()
   def aspect_label(:story), do: gettext("Story")
@@ -1008,7 +996,7 @@ defmodule Kati.Screens.YearShare do
     case Kati.Native.Files.save_node(
            "capture_year_card",
            Kati.Screens.YearShare.filename(),
-           Kati.Screens.YearShare.ratio(Map.get(socket.assigns, :aspect))
+           22
          ) do
       :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
       {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}
@@ -1023,7 +1011,7 @@ defmodule Kati.Screens.YearShare do
     case Kati.Native.Files.share_node(
            "capture_year_card",
            Kati.Screens.YearShare.filename(),
-           Kati.Screens.YearShare.ratio(Map.get(socket.assigns, :aspect))
+           22
          ) do
       :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
       {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}

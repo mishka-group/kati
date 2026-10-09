@@ -58,12 +58,9 @@ defmodule Kati.Issue128Test do
       assert is_binary(shared.assigns.save_error)
     end
 
-    test "the request names the node, the page colour, the shape and the file" do
-      assert Kati.Native.Files.node_request("capture_year_card", "kati-year-2026.png", 1.7778, 1) ==
-               "capture_year_card|1|1.7778|kati-year-2026.png"
-
-      assert YearShare.ratio(:aspect_square) == 1.0
-      assert YearShare.ratio(:aspect_story) > 1.7
+    test "the request names the node, the margin colour, the card's corner and the file" do
+      assert Kati.Native.Files.node_request("capture_year_card", "kati-year-2026.png", 22, 1) ==
+               "capture_year_card|1|22|kati-year-2026.png"
     end
 
     test "only a capture_ node can be asked for" do

@@ -1975,11 +1975,10 @@ object MobBridge {
      * come out as they look.
      *
      * The request rides on `katiCaptureScreen`'s one string so no new NIF is
-     * needed: `"<id>|<argb>|<ratio>|<filename>"`. The picture is the node
-     * edge to edge, no page around it. The argb fills what the node does not
-     * draw — its rounded corners, and the room a ratio adds (height over
-     * width; 0 keeps the node's shape) — so a messenger that flattens
-     * transparency to black never shows black corners.
+     * needed: `"<id>|<argb>|<corner dp>|<filename>"`. The picture is the
+     * node with its own rounded corners and a soft shadow under it, on a
+     * thin margin of the page colour (the argb) — the card as it sits on the
+     * page, and nothing else of the page.
      */
     private val captureLayers =
         ConcurrentHashMap<String, androidx.compose.ui.graphics.layer.GraphicsLayer>()
@@ -2003,7 +2002,7 @@ object MobBridge {
         if (parts.size != 4) return "error:bad_request"
         val layer = captureLayers[parts[0]] ?: return "error:no_node"
         val ground = parts[1].toLongOrNull()?.toInt() ?: android.graphics.Color.WHITE
-        val ratio = parts[2].toFloatOrNull() ?: 0f
+        val corner = parts[2].toFloatOrNull() ?: 0f
 
         val result = java.util.concurrent.atomic.AtomicReference<String>("error:timeout")
         val latch = java.util.concurrent.CountDownLatch(1)
@@ -2012,21 +2011,26 @@ object MobBridge {
             try {
                 val drawn = layer.toImageBitmap().asAndroidBitmap()
                 val card = drawn.copy(Bitmap.Config.ARGB_8888, false)
-                var width = card.width
-                var height = card.height
-                if (ratio > 0f) {
-                    if (height < width * ratio) height = (width * ratio).toInt()
-                    else width = (height / ratio).toInt()
-                }
-                val framed = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val dp = activity.resources.displayMetrics.density
+                val corner = corner * dp
+                val margin = (24 * dp).toInt()
+                val framed = Bitmap.createBitmap(
+                    card.width + 2 * margin, card.height + 2 * margin, Bitmap.Config.ARGB_8888
+                )
                 android.graphics.Canvas(framed).apply {
                     drawColor(ground)
-                    drawBitmap(
-                        card,
-                        ((width - card.width) / 2).toFloat(),
-                        ((height - card.height) / 2).toFloat(),
-                        null
+                    val shadow = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                        color = card.getPixel(card.width / 2, card.height / 2).let {
+                            if (android.graphics.Color.alpha(it) == 255) it else android.graphics.Color.WHITE
+                        }
+                        setShadowLayer(14 * dp, 0f, 5 * dp, 0x2E1A1917)
+                    }
+                    drawRoundRect(
+                        margin.toFloat(), margin.toFloat(),
+                        (margin + card.width).toFloat(), (margin + card.height).toFloat(),
+                        corner, corner, shadow
                     )
+                    drawBitmap(card, margin.toFloat(), margin.toFloat(), null)
                 }
                 card.recycle()
                 result.set(katiWriteCapture(activity, framed, parts[3]))
