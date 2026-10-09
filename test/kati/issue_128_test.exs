@@ -313,6 +313,48 @@ defmodule Kati.Issue128Test do
       assert Series.window(earlier) == {58, 148}
     end
 
+    test "the page opens on its hero and skeleton blocks, and the season arrives after" do
+      {tracked, _} = shelve!("glimpse", :tv, episodes: List.duplicate(80, 400), at: {1, 1})
+
+      Application.put_env(:kati, :series_in_background, true)
+      on_exit(fn -> Application.put_env(:kati, :series_in_background, false) end)
+
+      assert {id, glimpse} = Series.glimpse_for(%{id: tracked.id})
+      assert id == tracked.id
+      assert glimpse.loading?
+      assert glimpse.title =~ "glimpse"
+      assert glimpse.episodes == []
+
+      first =
+        inspect(Series.render(%{series: glimpse, back: "Home", preview: nil, menu?: false}),
+          limit: :infinity
+        )
+
+      assert first =~ "glimpse"
+      refute first =~ "episode_"
+
+      socket =
+        Mob.Socket.new(Series)
+        |> Mob.Socket.assign(id: id, series: glimpse, preview: nil, menu?: false, back: "Home")
+
+      {:noreply, loaded} = Series.handle_info({:series_loaded, id, Series.series(id)}, socket)
+      refute Map.get(loaded.assigns.series, :loading?, false)
+      assert length(loaded.assigns.series.episodes) == 400
+
+      {:noreply, stale} = Series.handle_info({:series_loaded, "someone-else", %{}}, socket)
+      assert stale.assigns.series == glimpse
+    end
+
+    test "the page is a lazy list, one item per episode in the window, reaching the end widens it" do
+      {tracked, _} = shelve!("lazy", :tv, episodes: List.duplicate(80, 400), at: {1, 1})
+      s = Series.series(tracked.id)
+
+      tree = inspect(Series.page(s, %{menu?: false, back: "Home"}), limit: :infinity)
+      assert tree =~ "lazy: true"
+      assert tree =~ ":episodes_more"
+      assert length(Series.episode_items(s)) == 30 + 2
+    end
+
     test "a short season is drawn whole" do
       {tracked, _} = shelve!("mini", :tv, episodes: List.duplicate(50, 8), at: {1, 6})
       watched!(tracked, 1..6)

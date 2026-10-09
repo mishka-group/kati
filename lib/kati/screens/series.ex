@@ -141,7 +141,17 @@ defmodule Kati.Screens.Series do
 
     Kati.Screens.Resume.watch()
     Kati.LiveScreens.join()
-    {id, preview, series} = Kati.Screens.Series.opening(params)
+
+    {id, preview, series} =
+      case Kati.Screens.Series.glimpse_for(params) do
+        {id, glimpse} ->
+          Kati.Screens.Series.load_later(id)
+          {id, nil, glimpse}
+
+        nil ->
+          Kati.Screens.Series.opening(params)
+      end
+
     Kati.Media.Cache.refresh_stale(id)
 
     {:ok,
@@ -154,6 +164,76 @@ defmodule Kati.Screens.Series do
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.assign(:confirm_remove?, false)
      |> Mob.Socket.assign(:remove_error, nil)}
+  end
+
+  @doc """
+  The page's first frame for a show the reader keeps: its poster, title and
+  shelf chip from two rows, with every other fact still to come.
+
+  A long season is a few hundred episodes to read and shape, and doing that
+  before the first frame kept the push waiting on it (#128 — Radio Star). So
+  the page opens on this, with skeleton blocks where the rest goes, and
+  `load_later/1` fills it in. `nil` for anything else — a preview, a push
+  naming nothing, a row that has gone, or `:series_in_background` switched off
+  (the host tests) — which opens the old way, all at once.
+  """
+  @spec glimpse_for(map() | nil) :: {String.t(), map()} | nil
+  def glimpse_for(params) do
+    id =
+      case Kati.Screens.TitlePreview.open(params) do
+        {:tracked, id} -> id
+        :none -> Kati.Screens.Series.pushed_id(params)
+        {:preview, _state} -> nil
+      end
+
+    with true <- Application.get_env(:kati, :series_in_background, true),
+         true <- is_binary(id),
+         %{} = glimpse <- Kati.Screens.Series.glimpse(id) do
+      {id, glimpse}
+    else
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc false
+  @spec glimpse(String.t()) :: map() | nil
+  def glimpse(id) do
+    with {:ok, %TrackedTitle{kind: kind} = tracked} when kind in @series_kinds <-
+           Ash.get(TrackedTitle, id) do
+      cached = Release.cached_for(tracked)
+
+      Map.merge(empty_series(), %{
+        tracked_id: id,
+        none?: false,
+        loading?: true,
+        title: (cached && cached.title) || gettext("Untitled"),
+        original: cached && Kati.Locale.original_title(cached),
+        seed: seed_of(tracked, cached),
+        status: tracked.status
+      })
+    else
+      _gone -> nil
+    end
+  end
+
+  @doc """
+  Read and shape the whole show off the screen's process and send it back as
+  `{:series_loaded, id, series}` — the pattern Mob's author recommends until
+  the framework has its own wrapper: a task, and a message to the screen.
+  """
+  @spec load_later(String.t()) :: :ok
+  def load_later(id) do
+    screen = self()
+    work = fn -> send(screen, {:series_loaded, id, Kati.Screens.Series.series(id)}) end
+
+    case Process.whereis(Kati.TaskSupervisor) do
+      nil -> spawn(work)
+      _sup -> Task.Supervisor.start_child(Kati.TaskSupervisor, work)
+    end
+
+    :ok
   end
 
   @doc """
@@ -943,6 +1023,9 @@ defmodule Kati.Screens.Series do
       Kati.Screens.Film.gone?(s) ->
         Kati.Screens.Film.gone(__MODULE__, back)
 
+      Map.get(s, :loading?, false) ->
+        Kati.Screens.Series.loading_page(s, back)
+
       Map.get(s, :none?, false) ->
         Kati.Screens.Series.none(__MODULE__, back)
 
@@ -1055,6 +1138,116 @@ defmodule Kati.Screens.Series do
   def page(s, assigns) do
     pct = Kati.Screens.Series.fraction(s)
 
+    top =
+      Kati.Screens.Series.padded([
+        ~MOB"<Spacer size={16} />",
+        Kati.Screens.Film.remove_confirm(
+          s,
+          Map.get(assigns, :confirm_remove?, false),
+          Map.get(assigns, :remove_error)
+        ),
+        Kati.Screens.Series.season_card(s, pct),
+        Kati.Screens.Series.refusal(Map.get(assigns, :save_error)),
+        Kati.Screens.Series.actions(s),
+        Kati.Screens.Series.title_actions(s),
+        Kati.Screens.TitlePreview.overview(Map.get(s, :overview)),
+        Kati.Screens.Series.episodes_header(s)
+      ])
+
+    # A lazy list (#128): the hero and the top are two items and each episode
+    # is one, so only the rows on screen are composed, and reaching the end
+    # widens the window rather than waiting for a *Show more* tap.
+    assigns = %{
+      items:
+        [Kati.Screens.Series.artwork(s), top] ++
+          Kati.Screens.Series.episode_items(s) ++ [~MOB"<Spacer size={40} />"],
+      chrome: Kati.Screens.Series.chrome(assigns.menu?, Map.get(assigns, :back, "Library"), s)
+    }
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      reduce_motion={Kati.Accessibility.motion_prop()}
+      text_scale={Kati.Accessibility.scale_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
+      <Scroll lazy={true} on_end_reached={{self(), :episodes_more}}>
+        <Column fill_width={true}>
+          {@items}
+        </Column>
+      </Scroll>
+      {@chrome}
+    </Box>
+    """
+  end
+
+  @doc false
+  def padded(content) do
+    assigns = %{content: content}
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={21} padding_right={21}>
+      {@content}
+    </Column>
+    """
+  end
+
+  @doc """
+  The season's episodes as lazy-list items, one each, inside the window
+  `window/1` names, with *Show earlier* above them when the window does not
+  start at the first.
+  """
+  @spec episode_items(map()) :: [map()]
+  def episode_items(%{episodes: []} = s), do: [Kati.Screens.Series.padded(episodes(s))]
+
+  def episode_items(s) do
+    {from, to} = Kati.Screens.Series.window(s)
+
+    rows =
+      s.episodes
+      |> Enum.with_index()
+      |> Enum.slice(from, to - from)
+      |> Enum.map(fn {ep, i} ->
+        Kati.Screens.Series.padded([
+          Kati.Screens.Series.episode(Map.put(ep, :index, i)),
+          Kati.Screens.Series.episode_gap()
+        ])
+      end)
+
+    [Kati.Screens.Series.padded(more_episodes(:episodes_earlier, from))] ++
+      rows ++ [Kati.Screens.Series.padded(more_episodes(:episodes_more, length(s.episodes) - to))]
+  end
+
+  @doc """
+  The first frame while `load_later/1` reads the show: the real hero — poster,
+  title, shelf chip — and quiet blocks where the season card, the buttons and
+  the episodes will land.
+  """
+  @spec loading_page(map(), String.t()) :: map()
+  def loading_page(s, back) do
+    block = fn height ->
+      assigns = %{height: height}
+
+      ~MOB"""
+      <Column fill_width={true}>
+        <Box fill_width={true} height={@height} corner_radius={18} background={Palette.card()} />
+        <Spacer size={10} />
+      </Column>
+      """
+    end
+
+    assigns = %{
+      s: s,
+      back: back,
+      blocks:
+        [block.(92), block.(52), block.(18), block.(18)] ++
+          List.duplicate(block.(58), 6)
+    }
+
     ~MOB"""
     <Box
       fill_width={true}
@@ -1068,30 +1261,13 @@ defmodule Kati.Screens.Series do
     >
       <Scroll>
         <Column fill_width={true}>
-          {Kati.Screens.Series.artwork(s)}
-          <Column
-            fill_width={true}
-            padding_left={21}
-            padding_right={21}
-            padding_top={16}
-            padding_bottom={40}
-          >
-            {Kati.Screens.Film.remove_confirm(
-              s,
-              Map.get(assigns, :confirm_remove?, false),
-              Map.get(assigns, :remove_error)
-            )}
-            {Kati.Screens.Series.season_card(s, pct)}
-            {Kati.Screens.Series.refusal(Map.get(assigns, :save_error))}
-            {Kati.Screens.Series.actions(s)}
-            {Kati.Screens.Series.title_actions(s)}
-            {Kati.Screens.TitlePreview.overview(Map.get(s, :overview))}
-            {Kati.Screens.Series.episodes_header(s)}
-            {Kati.Screens.Series.episodes(s)}
+          {Kati.Screens.Series.artwork(@s)}
+          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16}>
+            {@blocks}
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Series.chrome(assigns.menu?, Map.get(assigns, :back, "Library"), s)}
+      {Kati.Screens.Series.chrome(false, @back, @s)}
     </Box>
     """
   end
@@ -2684,6 +2860,12 @@ defmodule Kati.Screens.Series do
   def handle_info({:kati, :locale_changed, _locale}, socket) do
     Kati.Locale.activate()
     handle_info({:kati, :resumed, nil}, socket)
+  end
+
+  def handle_info({:series_loaded, id, series}, socket) do
+    if Map.get(socket.assigns, :id) == id and Map.get(socket.assigns.series, :loading?, false),
+      do: {:noreply, Mob.Socket.assign(socket, :series, series)},
+      else: {:noreply, socket}
   end
 
   def handle_info({:kati, :title_filled, _id}, socket),
