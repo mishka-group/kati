@@ -1975,11 +1975,11 @@ object MobBridge {
      * come out as they look.
      *
      * The request rides on `katiCaptureScreen`'s one string so no new NIF is
-     * needed: `"<id>|<argb>|<ratio>|<filename>"`. The card is framed with a
-     * margin of the page colour (the argb), so its rounded corners sit on the
-     * page and not on transparency, and the frame is widened or heightened to
-     * the ratio (height over width; 0 keeps the card's shape): 1 for a square
-     * post, 16:9 for a story.
+     * needed: `"<id>|<argb>|<ratio>|<filename>"`. The picture is the node
+     * edge to edge, no page around it. The argb fills what the node does not
+     * draw — its rounded corners, and the room a ratio adds (height over
+     * width; 0 keeps the node's shape) — so a messenger that flattens
+     * transparency to black never shows black corners.
      */
     private val captureLayers =
         ConcurrentHashMap<String, androidx.compose.ui.graphics.layer.GraphicsLayer>()
@@ -2012,9 +2012,8 @@ object MobBridge {
             try {
                 val drawn = layer.toImageBitmap().asAndroidBitmap()
                 val card = drawn.copy(Bitmap.Config.ARGB_8888, false)
-                val margin = (24 * activity.resources.displayMetrics.density).toInt()
-                var width = card.width + 2 * margin
-                var height = card.height + 2 * margin
+                var width = card.width
+                var height = card.height
                 if (ratio > 0f) {
                     if (height < width * ratio) height = (width * ratio).toInt()
                     else width = (height / ratio).toInt()

@@ -306,8 +306,8 @@ defmodule Kati.Native.Files do
   screen.
 
   The id must start with `capture_`: only those nodes record their drawing
-  (`K-78 capture-node`). The picture is the node alone, framed by a margin of
-  the page colour, so a share card saves as the card and not as the phone.
+  (`K-78 capture-node`). The picture is the node alone, edge to edge, so a
+  share card saves as the card and not as the phone (#128).
   """
   @spec save_node(String.t(), String.t(), float()) :: :ok | {:error, term()}
   def save_node("capture_" <> _ = id, name, ratio \\ 0.0) when is_binary(name) do
@@ -331,14 +331,15 @@ defmodule Kati.Native.Files do
 
   @doc """
   The request `K-78 capture-node` reads from the capture string: the node, the
-  page colour it is framed in, the height-over-width the frame is widened or
-  heightened to (`0` keeps the node's own shape), and the file name.
+  colour behind its rounded corners (the card's own, so the picture is just
+  the box), the height-over-width it is widened or heightened to (`0` keeps
+  the node's own shape), and the file name.
 
       iex> Kati.Native.Files.node_request("capture_card", "year.png", 1.0, 0xFFEFECE7)
       "capture_card|4293913831|1.0|year.png"
   """
   @spec node_request(String.t(), String.t(), float(), integer()) :: String.t()
-  def node_request(id, name, ratio, ground \\ Kati.Theme.Palette.paper()) do
+  def node_request(id, name, ratio, ground \\ Kati.Theme.Palette.card()) do
     Enum.join([id, Integer.to_string(ground), Float.to_string(ratio / 1), name], "|")
   end
 
