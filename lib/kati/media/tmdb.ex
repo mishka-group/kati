@@ -200,7 +200,10 @@ defmodule Kati.Media.Tmdb do
           source_id: to_string(id),
           year: year_of(row["release_date"] || row["first_air_date"]),
           overview: blank_to_nil(row["overview"]),
-          poster_path: row["poster_path"]
+          poster_path: row["poster_path"],
+          genre_ids: List.wrap(row["genre_ids"]),
+          language: row["original_language"],
+          votes: row["vote_count"] || 0
         }
       ]
     else

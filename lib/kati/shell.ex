@@ -208,19 +208,23 @@ defmodule Kati.Shell do
   # then the browser's own optical rounding differs; the number that matters
   # is where the icons end up, and this is the version that matches.
   @doc """
-  The `+` beside the dock. Your year is a dashboard with nothing to add, so it
-  draws none, and holds its room so the tabs stay where they are on every root.
+  The round button beside the dock: `+` on every root but Your year, where
+  there is nothing to add and the same place shares the year instead (#128),
+  so the slot is never an empty hole and the tabs stay where they are.
   """
-  def fab(:stats, _fab, _glyph, _add), do: ~MOB"<Spacer size={75} />"
+  def fab(:stats, fab, glyph, _add),
+    do: fab_disc(fab, glyph, "ios_share", 25, {self(), :share_fab})
 
-  def fab(_active, fab, glyph, add) do
-    assigns = %{fab: fab, glyph: glyph, add: add}
+  def fab(_active, fab, glyph, add), do: fab_disc(fab, glyph, "add", 27, add)
+
+  defp fab_disc(fab, glyph, symbol, size, tap) do
+    assigns = %{fab: fab, glyph: glyph, symbol: symbol, size: size, tap: tap}
 
     ~MOB"""
     <Row align="center">
       <Spacer size={11} />
-      <Box width={64} height={64} background={@fab} corner_radius={32} align="center" on_tap={@add}>
-        {Kati.UI.symbol("add", size: 27, color: @glyph)}
+      <Box width={64} height={64} background={@fab} corner_radius={32} align="center" on_tap={@tap}>
+        {Kati.UI.symbol(@symbol, size: @size, color: @glyph)}
       </Box>
     </Row>
     """

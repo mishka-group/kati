@@ -297,8 +297,49 @@ defmodule Kati.Native.Files do
   @spec share_screen(String.t()) :: :ok | {:error, term()}
   def share_screen(name) when is_binary(name) do
     with {:ok, path} <- capture(name) do
-      share(path, subject: name)
+      share(path, subject: name, mime: "image/png")
     end
+  end
+
+  @doc """
+  Save a picture of one node — the one whose `:id` is `id` — rather than of the
+  screen.
+
+  The id must start with `capture_`: only those nodes record their drawing
+  (`K-78 capture-node`). The picture is the node alone, framed by a margin of
+  the page colour, so a share card saves as the card and not as the phone.
+  """
+  @spec save_node(String.t(), String.t(), float()) :: :ok | {:error, term()}
+  def save_node("capture_" <> _ = id, name, ratio \\ 0.0) when is_binary(name) do
+    with {:ok, path} <- capture(node_request(id, name, ratio)) do
+      save_as(path, name: name, mime: "image/png")
+    end
+  end
+
+  @doc """
+  Share a picture of one node through the system sheet, as an image.
+
+  Sent as `image/png`, so a messenger shows it as a picture with a preview
+  rather than as a file to download.
+  """
+  @spec share_node(String.t(), String.t(), float()) :: :ok | {:error, term()}
+  def share_node("capture_" <> _ = id, name, ratio \\ 0.0) when is_binary(name) do
+    with {:ok, path} <- capture(node_request(id, name, ratio)) do
+      share(path, subject: name, mime: "image/png")
+    end
+  end
+
+  @doc """
+  The request `K-78 capture-node` reads from the capture string: the node, the
+  page colour it is framed in, the height-over-width the frame is widened or
+  heightened to (`0` keeps the node's own shape), and the file name.
+
+      iex> Kati.Native.Files.node_request("capture_card", "year.png", 1.0, 0xFFEFECE7)
+      "capture_card|4293913831|1.0|year.png"
+  """
+  @spec node_request(String.t(), String.t(), float(), integer()) :: String.t()
+  def node_request(id, name, ratio, ground \\ Kati.Theme.Palette.paper()) do
+    Enum.join([id, Integer.to_string(ground), Float.to_string(ratio / 1), name], "|")
   end
 
   @doc false

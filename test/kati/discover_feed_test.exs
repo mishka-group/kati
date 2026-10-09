@@ -293,7 +293,7 @@ defmodule Kati.DiscoverFeedTest do
     end
 
     test "carries a tap naming its provider id", %{feed: feed} do
-      assert drawn(feed) =~ "add_82708"
+      assert drawn(feed) =~ "pick_82708"
     end
 
     test "and a pick naming no title carries none" do

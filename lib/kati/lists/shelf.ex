@@ -282,6 +282,23 @@ defmodule Kati.Lists.Shelf do
   end
 
   @doc """
+  Whether a title is in at least one of the reader's lists — what lights the
+  list disc on its page (#128).
+  """
+  @spec listed?(String.t() | nil) :: boolean()
+  def listed?(nil), do: false
+
+  def listed?(tracked_id) do
+    Membership
+    |> Ash.Query.filter(tracked_title_id == ^tracked_id)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> Enum.any?()
+  rescue
+    _error -> false
+  end
+
+  @doc """
   Put a film, a series, a book or an album in a list, at the end of it.
 
   The member arrives as `{kind, id}` — `Kati.Lists.Membership.member/1`'s own

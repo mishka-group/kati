@@ -219,10 +219,12 @@ defmodule Kati.ScreenStatsTest do
       bars = Stats.figures()[:year].breakdown
 
       # Two of the three titles carry genres and the third carries none, which
-      # is the ordinary mixture. A watch counts in full towards each genre it
-      # names — there is no honest way to divide ninety minutes between Drama
-      # and Mystery — so Drama holds both films' and Mystery only one's.
-      assert [{"Drama", _, _, _} | _] = bars
+      # is the ordinary mixture. A watch's minutes are shared between the
+      # genres it names (#128), so the bars add up to the hours watched:
+      # Drama holds Blue Hour's 112 and half of The Long Hollow's 94, which is
+      # 159 minutes and two whole hours, and Mystery the other 47.
+      assert [{"Drama", _, "2h", _} | _] = bars
+      assert {"Mystery", _, "0h", _} = List.keyfind(bars, "Mystery", 0)
 
       names = Enum.map(bars, &elem(&1, 0))
       assert "Mystery" in names
@@ -504,21 +506,58 @@ defmodule Kati.ScreenStatsTest do
       today = ~D[2026-10-05]
 
       entries = [
-        %{on: ~D[2026-01-05], kind: :movie, film?: true, tracked_id: "a", title: "Arrival"},
-        %{on: ~D[2026-10-05], kind: :tv, film?: false, tracked_id: "b", title: "Dark"},
-        %{on: ~D[2026-10-06], kind: :tv, film?: false, tracked_id: "b", title: "Dark"},
-        %{on: ~D[2026-10-07], kind: :anime, film?: false, tracked_id: "c", title: "Mushishi"},
-        %{on: ~D[2025-10-05], kind: :tv, film?: false, tracked_id: "b", title: "Dark"}
+        %{
+          on: ~D[2026-01-05],
+          kind: :movie,
+          film?: true,
+          tracked_id: "a",
+          title: "Arrival",
+          minutes: 116
+        },
+        %{
+          on: ~D[2026-10-05],
+          kind: :tv,
+          film?: false,
+          tracked_id: "b",
+          title: "Dark",
+          minutes: 52
+        },
+        %{
+          on: ~D[2026-10-06],
+          kind: :tv,
+          film?: false,
+          tracked_id: "b",
+          title: "Dark",
+          minutes: 52
+        },
+        %{
+          on: ~D[2026-10-07],
+          kind: :anime,
+          film?: false,
+          tracked_id: "c",
+          title: "Mushishi",
+          minutes: 24
+        },
+        %{
+          on: ~D[2025-10-05],
+          kind: :tv,
+          film?: false,
+          tracked_id: "b",
+          title: "Dark",
+          minutes: 52
+        }
       ]
 
       dash = Kati.Screens.Stats.dashboard(entries, today)
 
-      assert Enum.at(dash.months, 0) == {1, 1}
-      assert Enum.at(dash.months, 9) == {10, 3}
+      # Minutes, not watch counts (#128): the months and the kinds are in the
+      # hero's own unit, so the page adds up.
+      assert Enum.at(dash.months, 0) == {1, 116}
+      assert Enum.at(dash.months, 9) == {10, 128}
       assert dash.this_month == 10
-      assert Enum.map(dash.split, &elem(&1, 1)) == [1, 2, 1]
+      assert Enum.map(dash.split, &elem(&1, 1)) == [116, 104, 24]
       assert {1, 2} in dash.weekdays
-      assert hd(dash.top) == {"Dark", 2}
+      assert hd(dash.top) == {"Dark", 2, "b"}
 
       words = inspect(Kati.Screens.Stats.year_charts(dash), limit: :infinity)
       assert words =~ "MONTH BY MONTH"

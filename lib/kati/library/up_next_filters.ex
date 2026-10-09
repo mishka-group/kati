@@ -268,19 +268,43 @@ defmodule Kati.Library.UpNextFilters do
   defp sorter(:asc), do: &<=/2
   defp sorter(_desc), do: &>=/2
 
-  defp sort_key(row, _cache, :recently_touched), do: row.last_touched_at
+  defp sort_key(%{last_touched_at: %DateTime{} = at}, _cache, :recently_touched),
+    do: DateTime.to_unix(at)
+
+  defp sort_key(_row, _cache, :recently_touched), do: nil
   defp sort_key(row, cache, :closest_to_finishing), do: fraction(row, cache)
   defp sort_key(row, cache, :time_left), do: remaining(row, cache)
   defp sort_key(row, cache, :airing_soonest), do: moment(row, cache)
 
+  defp minutes(%{kind: :movie} = row, cache), do: title_minutes(row, cache)
+
   defp minutes(row, cache) do
+    case unwatched(row, cache) do
+      [%{runtime_minutes: m} | _] when is_integer(m) and m > 0 -> m
+      _unknown -> title_minutes(row, cache)
+    end
+  end
+
+  defp title_minutes(row, cache) do
     case Map.get(cache, {row.source, row.source_id}) do
       %{runtime_minutes: m} when is_integer(m) and m > 0 -> m
       _unknown -> nil
     end
   end
 
-  defp fraction(row, cache) do
+  defp episodes(row, cache), do: Map.get(cache, {:episodes, row.source, row.source_id}, [])
+
+  defp unwatched(row, cache) do
+    case {Map.get(row, :progress_season), Map.get(row, :progress_episode)} do
+      {s, e} when is_integer(s) and is_integer(e) ->
+        Enum.filter(episodes(row, cache), &({&1.season_number, &1.episode_number} > {s, e}))
+
+      _unstarted ->
+        episodes(row, cache)
+    end
+  end
+
+  defp fraction(%{kind: :movie} = row, cache) do
     with m when is_integer(m) <- minutes(row, cache),
          seconds when is_integer(seconds) and seconds > 0 <- row.progress_seconds do
       min(seconds / (m * 60), 1.0)
@@ -289,7 +313,14 @@ defmodule Kati.Library.UpNextFilters do
     end
   end
 
-  defp remaining(row, cache) do
+  defp fraction(row, cache) do
+    case length(episodes(row, cache)) do
+      0 -> nil
+      total -> (total - length(unwatched(row, cache))) / total
+    end
+  end
+
+  defp remaining(%{kind: :movie} = row, cache) do
     with m when is_integer(m) <- minutes(row, cache) do
       max(m * 60 - (row.progress_seconds || 0), 0)
     else
@@ -297,10 +328,17 @@ defmodule Kati.Library.UpNextFilters do
     end
   end
 
+  defp remaining(row, cache) do
+    case unwatched(row, cache) |> Enum.map(& &1.runtime_minutes) |> Enum.filter(&is_integer/1) do
+      [] -> nil
+      runtimes -> Enum.sum(runtimes) * 60
+    end
+  end
+
   defp moment(row, cache) do
     case Release.resolve(row, Map.get(cache, {row.source, row.source_id})) do
       {:exact, at, _origin} -> DateTime.to_unix(at)
-      {:day, date, _origin} -> date |> Date.to_erl() |> :calendar.date_to_gregorian_days()
+      {:day, date, _origin} -> date |> DateTime.new!(~T[00:00:00]) |> DateTime.to_unix()
       _no_date -> nil
     end
   end

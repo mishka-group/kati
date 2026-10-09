@@ -52,11 +52,11 @@ defmodule Kati.Screens.YearShare do
 
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:scope, :all)
+    |> Mob.Socket.assign(:scope, :screen)
     |> Mob.Socket.assign(:aspect, :aspect_square)
     |> Mob.Socket.assign(:hide_private, false)
     |> Mob.Socket.assign(:save_error, nil)
-    |> Mob.Socket.assign(:share, share())
+    |> Mob.Socket.assign(:share, share(:screen))
   end
 
   # Both controls re-read the card, which is the whole of #103: they moved an
@@ -341,7 +341,6 @@ defmodule Kati.Screens.YearShare do
       >
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(gettext("Your year, shared"), Kati.Screens.YearShare.shown(assigns).subtitle)}
-        {Kati.Screens.YearShare.scopes(assigns.scope)}
         {Kati.Screens.YearShare.card(assigns.aspect, Kati.Screens.YearShare.shown(assigns))}
         {UI.eyebrow(gettext("Aspect"))}
         {Kati.UI.Segmented.plain(Kati.Screens.YearShare.aspects(), assigns.aspect)}
@@ -391,6 +390,18 @@ defmodule Kati.Screens.YearShare do
   def aspects do
     Enum.map(@aspects, fn {key, tag} -> {Kati.Screens.YearShare.aspect_label(key), tag} end)
   end
+
+  @doc """
+  The picture's height over its width: a square post, or a 9:16 story.
+
+      iex> Kati.Screens.YearShare.ratio(:aspect_square)
+      1.0
+      iex> Kati.Screens.YearShare.ratio(:aspect_story)
+      1.7778
+  """
+  @spec ratio(atom()) :: float()
+  def ratio(:aspect_story), do: 1.7778
+  def ratio(_square), do: 1.0
 
   @doc false
   @spec aspect_label(atom()) :: String.t()
@@ -485,6 +496,7 @@ defmodule Kati.Screens.YearShare do
     ~MOB"""
     <Column fill_width={true}>
       <Column
+        id="capture_year_card"
         fill_width={true}
         background={Palette.card()}
         corner_radius={22}
@@ -535,6 +547,7 @@ defmodule Kati.Screens.YearShare do
     ~MOB"""
     <Column fill_width={true}>
       <Column
+        id="capture_year_card"
         fill_width={true}
         background={Palette.card()}
         corner_radius={22}
@@ -992,7 +1005,11 @@ defmodule Kati.Screens.YearShare do
   search taught this codebase to stop shipping.
   """
   def handle_tap(:save_image, socket) do
-    case Kati.Native.Files.save_screen(Kati.Screens.YearShare.filename()) do
+    case Kati.Native.Files.save_node(
+           "capture_year_card",
+           Kati.Screens.YearShare.filename(),
+           Kati.Screens.YearShare.ratio(Map.get(socket.assigns, :aspect))
+         ) do
       :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
       {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}
     end
@@ -1003,7 +1020,11 @@ defmodule Kati.Screens.YearShare do
   # moment the system UI is open — the outcome arrives later as a message, and
   # neither control can wait for it.
   def handle_tap(:share_image, socket) do
-    case Kati.Native.Files.share_screen(Kati.Screens.YearShare.filename()) do
+    case Kati.Native.Files.share_node(
+           "capture_year_card",
+           Kati.Screens.YearShare.filename(),
+           Kati.Screens.YearShare.ratio(Map.get(socket.assigns, :aspect))
+         ) do
       :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
       {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}
     end

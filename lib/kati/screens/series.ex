@@ -142,6 +142,7 @@ defmodule Kati.Screens.Series do
     Kati.Screens.Resume.watch()
     Kati.LiveScreens.join()
     {id, preview, series} = Kati.Screens.Series.opening(params)
+    Kati.Media.Cache.refresh_stale(id)
 
     {:ok,
      socket
@@ -675,6 +676,7 @@ defmodule Kati.Screens.Series do
       # film the same way, off the newest watch.
       rated?: Kati.Screens.Series.rated?(Map.get(facts, :tracked_id)),
       seen_count: Kati.Screens.Series.title_logs(Map.get(facts, :tracked_id)),
+      listed?: Kati.Lists.Shelf.listed?(Map.get(facts, :tracked_id)),
       # Board 248 draws the shelf's own chip over the hero — `Not started` on
       # the frame, `Watching` on the second one — and its caption rules that it
       # stays the shelf's chip rather than becoming *Added by hand*, "which
@@ -697,6 +699,7 @@ defmodule Kati.Screens.Series do
       episodes: view.episodes,
       by_season: by_season
     }
+    |> then(&Map.put(&1, :window, Kati.Screens.Series.window(&1)))
   end
 
   # `S2`, which is the strip's label and the tap tag both. ASCII by
@@ -1777,12 +1780,18 @@ defmodule Kati.Screens.Series do
 
   A drawn series has no tracked id and keeps a picture of the disc, which is
   the honest state for a show with no row behind it — `follow_disc/1`'s own rule.
+  Gold and filled once the show is in any list, so the page says it was kept
+  somewhere (#128).
   """
   @spec list_disc(map()) :: map()
   def list_disc(s) do
     case Map.get(s, :tracked_id) do
-      nil -> action_disc("bookmarks")
-      _id -> action_disc("bookmarks", {self(), :add_to_list})
+      nil ->
+        action_disc("bookmarks")
+
+      _id ->
+        ink = if Map.get(s, :listed?, false), do: Palette.gold_icon()
+        action_disc("bookmarks", {self(), :add_to_list}, ink)
     end
   end
 
@@ -2013,12 +2022,106 @@ defmodule Kati.Screens.Series do
 
   def episodes(s) do
     rows = s.episodes |> Enum.with_index() |> Enum.map(fn {ep, i} -> Map.put(ep, :index, i) end)
+    {from, to} = Kati.Screens.Series.window(s)
 
     ~MOB"""
     <Column fill_width={true}>
+      {Kati.Screens.Series.more_episodes(:episodes_earlier, from)}
       {rows
+       |> Enum.slice(from, to - from)
        |> Enum.map(fn ep -> Kati.Screens.Series.episode(ep) end)
        |> Enum.intersperse(Kati.Screens.Series.episode_gap())}
+      {Kati.Screens.Series.more_episodes(:episodes_more, length(rows) - to)}
+    </Column>
+    """
+  end
+
+  @episode_page 30
+
+  @doc """
+  Which of the season's episodes the page draws: `{from, to}`, positions into
+  `episodes`.
+
+  Not all of them. A talk show like Radio Star has hundreds of episodes in one
+  season, and drawing every row made opening it take seconds on a phone and
+  every tick re-send the lot (#128). A season longer than thirty is drawn
+  thirty at a time, starting just before the next episode to watch, and *Show
+  earlier* / *Show more* widen it; a shorter one is drawn whole.
+  The window is kept on the series, so a tick does not slide the list under
+  the reader's finger.
+
+      iex> eps = for n <- 1..100, do: %{watched: n < 50, aired: true}
+      iex> Kati.Screens.Series.window(%{episodes: eps})
+      {47, 77}
+      iex> Kati.Screens.Series.window(%{episodes: eps, window: {0, 200}})
+      {0, 100}
+  """
+  @spec window(map()) :: {non_neg_integer(), non_neg_integer()}
+  def window(s) do
+    total = length(s.episodes)
+
+    case Map.get(s, :window) do
+      _short when total <= @episode_page ->
+        {0, total}
+
+      {from, to} ->
+        {min(from, total), min(to, total)}
+
+      nil ->
+        from =
+          case Kati.Screens.Series.next_unwatched(s) do
+            nil -> 0
+            index -> max(index - 2, 0)
+          end
+
+        {from, min(from + @episode_page, total)}
+    end
+  end
+
+  @doc false
+  def widen(s, :episodes_more) do
+    {from, to} = window(s)
+    Map.put(s, :window, {from, min(to + @episode_page * 2, length(s.episodes))})
+  end
+
+  def widen(s, :episodes_earlier) do
+    {from, to} = window(s)
+    Map.put(s, :window, {max(from - @episode_page * 2, 0), to})
+  end
+
+  @doc false
+  def more_episodes(_tag, 0), do: ~MOB"<Spacer size={0} />"
+
+  def more_episodes(tag, left) do
+    label =
+      if tag == :episodes_earlier,
+        do: gettext("Show earlier episodes"),
+        else:
+          ngettext(
+            "Show %{n} more episode",
+            "Show %{n} more episodes",
+            min(left, @episode_page * 2), n: Kati.Locale.number(min(left, @episode_page * 2)))
+
+    assigns = %{label: label, tap: {self(), tag}}
+
+    ~MOB"""
+    <Column fill_width={true} padding_top={8} padding_bottom={8}>
+      <Row
+        fill_width={true}
+        on_tap={@tap}
+        background={Palette.card()}
+        corner_radius={16}
+        padding={13}
+        align="center"
+      >
+        <Text
+          text={@label}
+          text_size={13}
+          font_weight="semibold"
+          text_color={:on_surface}
+          weight={1.0}
+        />
+      </Row>
     </Column>
     """
   end
@@ -2530,6 +2633,9 @@ defmodule Kati.Screens.Series do
     end
   end
 
+  def handle_info({:tap, tag}, socket) when tag in [:episodes_more, :episodes_earlier],
+    do: {:noreply, Mob.Socket.assign(socket, :series, widen(socket.assigns.series, tag))}
+
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
       "season_" <> label ->
@@ -2671,13 +2777,16 @@ defmodule Kati.Screens.Series do
   defp switch(s, label) do
     case Map.fetch(s.by_season, label) do
       {:ok, view} ->
-        recount(%{
+        %{
           s
           | current_season: label,
             season: view.season,
             total: view.total,
             episodes: view.episodes
-        })
+        }
+        |> Map.delete(:window)
+        |> then(&Map.put(&1, :window, Kati.Screens.Series.window(&1)))
+        |> recount()
 
       :error ->
         s

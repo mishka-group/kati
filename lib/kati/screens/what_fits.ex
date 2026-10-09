@@ -234,6 +234,7 @@ defmodule Kati.Screens.WhatFits do
         moods: [],
         fits_label: Kati.Screens.WhatFits.fits_label(fits),
         watchable: Enum.count(fits, &(&1.reach == :available)),
+        known: Enum.count(fits, &(&1.reach != :unknown)),
         fits: fits,
         # One msgid with the length in it rather than a sentence glued to a
         # figure: `#{over.length}` put a translated duration at the end of an
@@ -1142,16 +1143,22 @@ defmodule Kati.Screens.WhatFits do
   end
 
   @doc """
-  With services set up: how many of the titles that fit are on them.
+  With services set up: how many of the titles that fit are on them. When the
+  provider knows nothing about any of them in the reader's region (Iran, for
+  one, has no streaming data at TMDB), a count of `0` would read as *none of
+  these is yours*, so the line says what is actually known instead (#128).
   """
   def reachable_line(t) do
     line =
-      ngettext(
-        "%{n} of them is on your services",
-        "%{n} of them are on your services",
-        t.watchable,
-        n: Kati.Locale.number(t.watchable)
-      )
+      if Map.get(t, :known, 1) == 0,
+        do: gettext("Where these stream in your region is not known, so none is ruled out"),
+        else:
+          ngettext(
+            "%{n} of them is on your services",
+            "%{n} of them are on your services",
+            t.watchable,
+            n: Kati.Locale.number(t.watchable)
+          )
 
     assigns = %{line: line}
 

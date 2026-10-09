@@ -231,9 +231,11 @@ defmodule Kati.Screens.Discover do
         max_lines={1}
       />
       <Spacer size={9} />
-      <Row fill_width={true} align="center">
-        {@chips}
-      </Row>
+      <Scroll axis="horizontal">
+        <Row align="center" padding_bottom={4}>
+          {@chips}
+        </Row>
+      </Scroll>
       <Spacer size={20} />
     </Column>
     """
@@ -241,7 +243,9 @@ defmodule Kati.Screens.Discover do
 
   @doc """
   One title in the *Picks from* panel. `MishkaPill`, because `MishkaChip`
-  takes no `on_tap`.
+  takes no `on_tap`. No shadow: in a row wider than the screen the last
+  pill's shadow was clipped into a black smudge at the right edge (#128), and
+  the row scrolls now rather than squeezing the last title.
   """
   @spec seed_chip(Kati.Media.CachedTitle.t(), boolean()) :: map()
   def seed_chip(cached, on?) do
@@ -249,7 +253,6 @@ defmodule Kati.Screens.Discover do
       label: cached.title,
       background: if(on?, do: Palette.ink_fill(), else: Palette.card()),
       color: if(on?, do: Palette.on_ink(), else: Palette.ink_soft()),
-      shadow: Kati.Theme.shadow_card_soft(),
       height: 30,
       corner_radius: 15,
       padding: 0,
@@ -350,7 +353,8 @@ defmodule Kati.Screens.Discover do
     choice = Kati.Discover.Filters.current()
 
     if choice == Map.get(socket.assigns, :filters) do
-      {:noreply, socket}
+      {:noreply,
+       Mob.Socket.assign(socket, :feed, Kati.Screens.Discover.reread_added(socket.assigns.feed))}
     else
       feed = Kati.Screens.Discover.feed(choice)
 
@@ -656,12 +660,30 @@ defmodule Kati.Screens.Discover do
 
   @doc false
   def rail(f) do
+    rows =
+      f.picks
+      |> Enum.chunk_every(3)
+      |> Enum.map(&Kati.Screens.Discover.rail_row/1)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {rows}
+      <Spacer size={8} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def rail_row(picks) do
+    cells = Enum.map(picks, &Kati.Screens.Discover.pick/1)
+    room = List.duplicate(~MOB"<Spacer weight={1.0} />", 3 - length(picks))
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {f.picks |> Enum.map(&Kati.Screens.Discover.pick/1) |> Enum.intersperse(Kati.Screens.Discover.rail_gap())}
+        {Enum.intersperse(cells ++ room, Kati.Screens.Discover.rail_gap())}
       </Row>
-      <Spacer size={24} />
+      <Spacer size={16} />
     </Column>
     """
   end
@@ -670,10 +692,11 @@ defmodule Kati.Screens.Discover do
   def rail_gap, do: ~MOB"<Spacer size={12} />"
 
   @doc """
-  One pick: its own poster, its title, and a tap that adds it to the shelf.
+  One pick: its own poster, its title, and a tap that opens its page.
 
-  The tap exists only on a pick that names a title — a real one carries the
-  provider id the write needs (`pick_tag/1`).
+  The tap opens the title rather than adding it: a tap on a poster added it to
+  the shelf at once, with nothing asked (#128). Its page shows what it is and
+  carries the *Add to library* pill, so adding is a choice made on purpose.
   """
   @spec pick(map()) :: map()
   def pick(p) do
@@ -683,7 +706,7 @@ defmodule Kati.Screens.Discover do
     <Column weight={1.0}>
       <Box
         fill_width={true}
-        height={158}
+        height={150}
         corner_radius={13}
         background={Palette.placeholder()}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -708,14 +731,14 @@ defmodule Kati.Screens.Discover do
   The tag a pick answers to, or `nil` for one nothing can add.
 
       iex> Kati.Screens.Discover.pick_tag(%{title: "Emergence", source_id: "82708"})
-      :add_82708
+      :pick_82708
 
       iex> Kati.Screens.Discover.pick_tag(%{title: "Vellum", seed: "vellum97"})
       nil
   """
   @spec pick_tag(map()) :: atom() | nil
   def pick_tag(%{source_id: id}) when is_binary(id) and id != "",
-    do: String.to_atom("add_" <> id)
+    do: String.to_atom("pick_" <> id)
 
   def pick_tag(_pick), do: nil
 
@@ -760,7 +783,7 @@ defmodule Kati.Screens.Discover do
 
       src ->
         ~MOB"""
-        <Image src={src} fill_width={true} height={158} corner_radius={13} content_mode="fill" />
+        <Image src={src} fill_width={true} height={150} corner_radius={13} content_mode="fill" />
         """
     end
   end
@@ -774,8 +797,8 @@ defmodule Kati.Screens.Discover do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "add_" <> source_id ->
-        {:noreply, Kati.Screens.Discover.add(socket, source_id)}
+      "pick_" <> source_id ->
+        {:noreply, Kati.Screens.Discover.open_pick(socket, source_id)}
 
       "open_tune" ->
         {:noreply, Mob.Socket.assign(socket, :tune?, not socket.assigns.tune?)}
@@ -793,6 +816,40 @@ defmodule Kati.Screens.Discover do
         {:noreply, socket}
     end
   end
+
+  @doc """
+  Open the pick that was tapped on its own page, as a preview: the film or
+  series page for a title nobody keeps, with *Add to library* on it.
+  """
+  @spec open_pick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def open_pick(socket, source_id) do
+    case Enum.find(socket.assigns.feed.picks, &(Map.get(&1, :source_id) == source_id)) do
+      nil ->
+        socket
+
+      pick ->
+        Kati.Screens.TitlePreview.push(
+          socket,
+          %{source: :tmdb, source_id: pick.source_id, kind: pick.kind, title: pick.title},
+          "Discover"
+        )
+    end
+  end
+
+  @doc """
+  The picks with whatever the reader added since marked, read back from the
+  shelf: the add happens on the title's own page now, so coming back is when
+  this page learns of it.
+  """
+  @spec reread_added(map()) :: map()
+  def reread_added(%{picks: picks} = feed) when is_list(picks) do
+    %{
+      feed
+      | picks: Enum.map(picks, &Map.put(&1, :added, Kati.Media.Recommendations.tracked?(&1)))
+    }
+  end
+
+  def reread_added(feed), do: feed
 
   @doc """
   Add the pick that was tapped, through `Kati.Screens.AddTitle.track/2` — the

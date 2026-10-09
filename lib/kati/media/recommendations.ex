@@ -70,7 +70,7 @@ defmodule Kati.Media.Recommendations do
   # Three, because the drawing's rail is three columns wide. Asking for more
   # and slicing here rather than at the screen keeps the network cost of this
   # feature at three pictures.
-  @picks 3
+  @picks 9
 
   @kinds [:movie, :tv, :anime]
 
@@ -237,12 +237,13 @@ defmodule Kati.Media.Recommendations do
   that says it could not look.
   """
   @spec picks_for(CachedTitle.t()) :: {:ok, [map()]} | {:error, term()}
-  def picks_for(%CachedTitle{source_id: source_id, kind: kind}) do
+  def picks_for(%CachedTitle{source_id: source_id, kind: kind} = cached) do
     case Tmdb.recommendations(source_id, provider_kind(kind)) do
       {:ok, rows} ->
         {:ok,
          rows
          |> Enum.reject(&tracked?/1)
+         |> Kati.Media.Recommendations.ranked(cached)
          |> Kati.Media.Recommendations.watchable()
          |> Enum.take(@picks)
          |> Enum.map(&pick/1)}
@@ -255,6 +256,86 @@ defmodule Kati.Media.Recommendations do
   end
 
   # How many candidates are looked up when the switch is on. See `watchable/1`.
+  @genre_ids %{
+    "Action" => [28, 10759],
+    "Adventure" => [12, 10759],
+    "Action & Adventure" => [28, 12, 10759],
+    "Animation" => [16],
+    "Comedy" => [35],
+    "Crime" => [80],
+    "Documentary" => [99],
+    "Drama" => [18],
+    "Family" => [10751],
+    "Fantasy" => [14, 10765],
+    "History" => [36],
+    "Horror" => [27],
+    "Kids" => [10762],
+    "Music" => [10402],
+    "Mystery" => [9648],
+    "News" => [10763],
+    "Reality" => [10764],
+    "Romance" => [10749],
+    "Science Fiction" => [878, 10765],
+    "Sci-Fi & Fantasy" => [878, 14, 10765],
+    "Soap" => [10766],
+    "Talk" => [10767],
+    "Thriller" => [53],
+    "War" => [10752, 10768],
+    "War & Politics" => [10752, 10768],
+    "Western" => [37]
+  }
+
+  @doc """
+  TMDB's recommendations, put in the order a person would take them (#128).
+
+  TMDB ranks by co-occurrence across its whole audience, which for a Korean
+  talk show came back as an American aftershow and a Netflix special. So each
+  candidate is scored against the title it was asked about: the same original
+  language counts most, then each genre they share; TMDB's own order breaks
+  ties. A candidate almost nobody has rated (under five votes) is dropped,
+  and one sharing nothing with the seed is kept only when nothing better is
+  left to fill the rail.
+
+      iex> seed = %Kati.Media.CachedTitle{original_language: "ko", genres: "Talk, Comedy"}
+      iex> rows = [
+      ...>   %{source_id: "1", language: "en", genre_ids: [10767], votes: 40},
+      ...>   %{source_id: "2", language: "ko", genre_ids: [10764], votes: 40},
+      ...>   %{source_id: "3", language: "ko", genre_ids: [35], votes: 3},
+      ...>   %{source_id: "4", language: "ja", genre_ids: [16], votes: 90}
+      ...> ]
+      iex> Kati.Media.Recommendations.ranked(rows, seed) |> Enum.map(& &1.source_id)
+      ["2", "1", "4"]
+  """
+  @spec ranked([map()], CachedTitle.t()) :: [map()]
+  def ranked(rows, %CachedTitle{} = seed) do
+    language = seed.original_language
+    wanted = seed_genre_ids(seed.genres)
+
+    scored =
+      rows
+      |> Enum.reject(&(Map.get(&1, :votes, 0) < 5))
+      |> Enum.with_index()
+      |> Enum.map(fn {row, i} ->
+        same = if language && Map.get(row, :language) == language, do: 3, else: 0
+        shared = row |> Map.get(:genre_ids, []) |> Enum.count(&(&1 in wanted)) |> min(3)
+        {row, same + shared, i}
+      end)
+
+    {fitting, rest} = Enum.split_with(scored, fn {_row, score, _i} -> score > 0 end)
+    filler = if length(fitting) >= 3, do: [], else: rest
+
+    (Enum.sort_by(fitting, fn {_row, score, i} -> {-score, i} end) ++ filler)
+    |> Enum.map(fn {row, _score, _i} -> row end)
+  end
+
+  defp seed_genre_ids(genres) when is_binary(genres) do
+    genres
+    |> String.split(",")
+    |> Enum.flat_map(&Map.get(@genre_ids, String.trim(&1), []))
+  end
+
+  defp seed_genre_ids(_none), do: []
+
   @lookups 8
 
   @doc """

@@ -115,6 +115,45 @@ defmodule Kati.Media.Cache do
     end
   end
 
+  @stale_after_hours 12
+
+  @doc """
+  Refresh one tracked title off the screen's process when its cached copy is
+  older than #{@stale_after_hours} hours, then tell the screen that is up
+  (`{:kati, :title_filled, id}`) so it re-reads.
+
+  A title page opens from SQLite and never waits on the network (#128); this
+  is the *refreshed in the background, never left outdated* half. A fresh
+  cache, a missing one, no supervisor, or `:refresh_on_open` switched off
+  (the host tests) and nothing happens. A failed fetch is silent: the page
+  already shows what the cache holds.
+  """
+  @spec refresh_stale(Ash.UUID.t() | nil) :: :ok
+  def refresh_stale(nil), do: :ok
+
+  def refresh_stale(tracked_id) do
+    with true <- Application.get_env(:kati, :refresh_on_open, true),
+         pid when is_pid(pid) <- Process.whereis(Kati.TaskSupervisor),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, tracked_id),
+         %CachedTitle{fetched_at: %DateTime{} = at} = cached <- cached(tracked),
+         true <- DateTime.diff(DateTime.utc_now(), at, :hour) >= @stale_after_hours do
+      kind = Kati.Media.Cache.tmdb_kind(tracked, cached)
+
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        with {:ok, _written} <- Kati.Media.Provider.fetch(tracked.source, tracked.source_id, kind),
+             screen when is_pid(screen) <- Process.whereis(:mob_screen) do
+          send(screen, {:kati, :title_filled, tracked.id})
+        end
+      end)
+
+      :ok
+    else
+      _fresh_or_absent -> :ok
+    end
+  rescue
+    _error -> :ok
+  end
+
   @doc """
   Ask for a refresh, and be sent `{:cache_refreshed, result}` when it is done.
 

@@ -110,13 +110,21 @@ defmodule Kati.Screens.Film do
   # own. This one is the VERB: pressing it schedules a watch, and Persian does
   # not say the two with one word. One word, three jobs, three entries.
   @doc false
-  def action_row(scheduled \\ nil) do
+  def action_row(scheduled \\ nil, listed? \\ false) do
     [
-      {"bookmarks", gettext("Add to list"), :add_to_list},
+      Kati.Screens.Film.list_pill(listed?),
       Kati.Screens.Film.schedule_pill(scheduled),
       {"ios_share", gettext("Share"), :share_film}
     ]
   end
+
+  @doc """
+  *Add to list*, or once the film is in a list, the same pill with its glyph
+  gold and filled and saying so — the page did not show that it had been kept
+  anywhere (#128). Still the same tap: the sheet is where a list is left.
+  """
+  def list_pill(false), do: {"bookmarks", gettext("Add to list"), :add_to_list}
+  def list_pill(true), do: {"bookmarks", gettext("In a list"), :add_to_list, Palette.gold_icon()}
 
   @doc """
   *Schedule*, or — once a watch is scheduled — when it is, opening that event
@@ -176,6 +184,7 @@ defmodule Kati.Screens.Film do
     Kati.Screens.Resume.watch()
     Kati.LiveScreens.join()
     {id, preview, film} = Kati.Screens.Film.opening(params)
+    Kati.Media.Cache.refresh_stale(id)
 
     {:ok,
      socket
@@ -474,7 +483,11 @@ defmodule Kati.Screens.Film do
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       # The page this film has on the web, for Share (#123).
       link: Kati.Media.Sharing.link(cached || tracked),
-      actions: Kati.Screens.Film.action_row(Kati.Calendars.Scheduled.next(tracked.id))
+      actions:
+        Kati.Screens.Film.action_row(
+          Kati.Calendars.Scheduled.next(tracked.id),
+          Kati.Lists.Shelf.listed?(tracked.id)
+        )
     }
   end
 
@@ -1685,7 +1698,7 @@ defmodule Kati.Screens.Film do
     <Column fill_width={true}>
       <Spacer size={14} />
       <Row fill_width={true} align="top">
-        {f.actions |> Enum.map(fn {icon, label, tag} -> Kati.Screens.Film.action(icon, label, tag, Map.get(f, :seen_count, 0)) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
+        {f.actions |> Enum.map(fn pill -> Kati.Screens.Film.action_pill(pill, Map.get(f, :seen_count, 0)) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
       </Row>
     </Column>
     """
@@ -1699,7 +1712,11 @@ defmodule Kati.Screens.Film do
   # to the left edge — the icons and labels sat against the button's left side.
   # A Box centres its content in both axes when given `align`.
   @doc false
-  def action(icon, drawn_label, tag, seen \\ 0) do
+  def action_pill({icon, label, tag}, seen), do: action(icon, label, tag, seen)
+  def action_pill({icon, label, tag, ink}, seen), do: action(icon, label, tag, seen, ink)
+
+  @doc false
+  def action(icon, drawn_label, tag, seen \\ 0, ink \\ nil) do
     label = Kati.Screens.Film.action_label(drawn_label, tag, seen)
     # `nil` for the two pills with nowhere to go — a `<Box>` with a nil
     # `on_tap` draws no tap at all, which is what they did before and is the
@@ -1719,7 +1736,7 @@ defmodule Kati.Screens.Film do
         <Column>
           <Row align="center">
             <Spacer weight={1.0} />
-            {Kati.UI.symbol(icon, size: 19)}
+            {Kati.UI.symbol(icon, size: 19, color: ink, fill: ink != nil)}
             <Spacer weight={1.0} />
           </Row>
           <Spacer size={3} />

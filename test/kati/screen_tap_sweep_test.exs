@@ -669,7 +669,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealEdit, :add_photo},
     # Screen 98's opening scope and ratio, the same already-selected case as
     # every other family above.
-    {Kati.Screens.YearShare, :scope_all},
     {Kati.Screens.YearShare, :aspect_square},
     # The diagnostic's battery row opens the phone's own settings screen, which
     # Kati has no fence for — nothing in `native/LEDGER.md` launches an Android
