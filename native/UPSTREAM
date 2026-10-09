@@ -19,9 +19,14 @@
 # on Android (0.9.12) and iPad, none of which Kati uses yet — the Elixir side
 # runs on the 0.6.3 shell. `bin/mob_bridge_diff.sh` lists the six files that
 # merge would touch.
+#
+# mob 0.9.17 (9 October) for `start_async/3` and `handle_async/3`, which the
+# skeleton-first pages use. 0.9.13's native change is app-written init
+# arguments and 0.9.16's is iOS node naming; Kati uses neither, so the 0.6.3
+# shell and mob_dev 0.7.16 stay.
 
 mob_new=0.6.3
-mob=0.9.12
+mob=0.9.17
 mob_dev=0.7.16
 ndk=27.2.12479018
 zig=0.17.0-dev.269+ebff43698

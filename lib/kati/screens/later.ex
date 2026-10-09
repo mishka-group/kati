@@ -1,18 +1,17 @@
 defmodule Kati.Screens.Later do
   @moduledoc """
-  The slow half of a page, read after its first frame (#128).
+  The first frame of a page, before its slow half (#128).
 
-  Mob has no `assign_async` yet. Its author's advice until the framework grows
-  one: do the work in a task and send the answer to the screen. So a page
-  draws what it can from a cheap read — a title, a header — with `blocks/1`
-  where the rest goes, and `run/2` reads the rest under `Kati.TaskSupervisor`
-  and sends `{:kati, :loaded, {key, value}}` back. `Kati.Screens.Root` and
-  `Kati.Screens.Pushed` already route `{:kati, topic, payload}` to
-  `handle_kati/3`, so a screen answers it there.
+  The slow half itself is `Mob.Socket.start_async/3` and `handle_async/3`
+  (Mob 0.9.17), which a page calls directly: the task belongs to the page,
+  stops with it, and a crash comes back as `{:exit, reason}` rather than a
+  skeleton left up for ever. What lives here is what Mob does not have: the
+  skeleton blocks, and `first/3` — for a page whose own `load/1` is the slow
+  part and has to run in the page's process.
 
   `:screens_in_background` switched off (the host tests set it) makes
-  `enabled?/0` false, and a screen then reads everything in `load/1` the old
-  way, so a test that mounts a screen sees it whole.
+  `enabled?/0` false, and pages then read everything in `load/1` or `mount/3`
+  the old way, so a test that mounts a screen sees it whole.
   """
   import Mob.Sigil
 
@@ -21,23 +20,6 @@ defmodule Kati.Screens.Later do
   @doc "Whether pages load their slow half after the first frame."
   @spec enabled?() :: boolean()
   def enabled?, do: Application.get_env(:kati, :screens_in_background, true)
-
-  @doc """
-  Run `work` off this screen's process and send its answer back as
-  `{:kati, :loaded, {key, answer}}`.
-  """
-  @spec run(term(), (-> term())) :: :ok
-  def run(key, work) when is_function(work, 0) do
-    screen = self()
-    job = fn -> send(screen, {:kati, :loaded, {key, work.()}}) end
-
-    case Process.whereis(Kati.TaskSupervisor) do
-      nil -> spawn(job)
-      _supervisor -> Task.Supervisor.start_child(Kati.TaskSupervisor, job)
-    end
-
-    :ok
-  end
 
   @doc """
   A page's mount, for a page that opted in with `later: true`

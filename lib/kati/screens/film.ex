@@ -184,17 +184,18 @@ defmodule Kati.Screens.Film do
     Kati.Screens.Resume.watch()
     Kati.LiveScreens.join()
 
-    {id, preview, film} =
+    {id, preview, film, later?} =
       case Kati.Screens.Film.glimpse_for(params) do
-        {id, glimpse} ->
-          Kati.Screens.Later.run({:film, id}, fn -> Kati.Screens.Film.film(id) end)
-          {id, nil, glimpse}
-
-        nil ->
-          Kati.Screens.Film.opening(params)
+        {id, glimpse} -> {id, nil, glimpse, true}
+        nil -> Tuple.insert_at(Kati.Screens.Film.opening(params), 3, false)
       end
 
     Kati.Media.Cache.refresh_stale(id)
+
+    socket =
+      if later?,
+        do: Mob.Socket.start_async(socket, :film, fn -> Kati.Screens.Film.film(id) end),
+        else: socket
 
     {:ok,
      socket
@@ -215,7 +216,7 @@ defmodule Kati.Screens.Film do
 
   @doc """
   The first frame for a film the reader keeps: its poster and title from two
-  rows, and `Kati.Screens.Later` reads the rest — watches, rating, where to
+  rows, and a `start_async/3` task reads the rest — watches, rating, where to
   watch, the schedule — after it (#128). `nil` for a preview, a push naming
   nothing, a row that has gone, or background loading switched off.
   """
@@ -1835,6 +1836,12 @@ defmodule Kati.Screens.Film do
     """
   end
 
+  def handle_async(:film, {:ok, film}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :film, film)}
+
+  def handle_async(:film, {:exit, _reason}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :film, film(socket.assigns.id))}
+
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :add_to_library}, socket),
@@ -2130,12 +2137,6 @@ defmodule Kati.Screens.Film do
   def handle_info({:kati, :resumed, _payload}, socket) do
     id = Map.get(socket.assigns.film, :tracked_id) || Map.get(socket.assigns, :id)
     {:noreply, Kati.Screens.Film.resumed(socket, :film, film(id))}
-  end
-
-  def handle_info({:kati, :loaded, {{:film, id}, film}}, socket) do
-    if Map.get(socket.assigns, :id) == id and Map.get(socket.assigns.film, :loading?, false),
-      do: {:noreply, Mob.Socket.assign(socket, :film, film)},
-      else: {:noreply, socket}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}

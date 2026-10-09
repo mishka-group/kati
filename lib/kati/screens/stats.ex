@@ -169,7 +169,7 @@ defmodule Kati.Screens.Stats do
       # Every watch of the year is read and folded into a dozen figures; the
       # page opens on its header and skeleton cards — or on the figures it
       # already drew, when this is a re-read — and they land after (#128).
-      Kati.Screens.Later.run(:figures, &Kati.Screens.Stats.figures/0)
+      socket = Mob.Socket.start_async(socket, :figures, &Kati.Screens.Stats.figures/0)
 
       if Map.has_key?(socket.assigns, :year),
         do: socket,
@@ -180,10 +180,11 @@ defmodule Kati.Screens.Stats do
   end
 
   @impl true
-  def handle_kati(:loaded, {:figures, figures}, socket),
+  def handle_async(:figures, {:ok, figures}, socket),
     do: {:noreply, socket |> Mob.Socket.assign(figures) |> Mob.Socket.assign(:loading?, false)}
 
-  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+  def handle_async(:figures, {:exit, _reason}, socket),
+    do: {:noreply, socket |> Mob.Socket.assign(figures()) |> Mob.Socket.assign(:loading?, false)}
 
   @doc """
   Everything this screen draws that is not a fixed label.

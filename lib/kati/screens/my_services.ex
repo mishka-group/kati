@@ -117,20 +117,18 @@ defmodule Kati.Screens.MyServices do
   end
 
   @doc """
-  Ask for the region's TMDB catalogue (#106) off the page's process; it lands
-  through `handle_kati(:loaded, …)`. Not asked at all when pages load in one
-  go (the host tests), so no test reaches for the network.
+  Ask for the region's TMDB catalogue (#106) in a task; it lands in
+  `handle_async(:catalogue, …)`, and asking again for another country replaces
+  the request still running. Not asked at all when pages load in one go (the
+  host tests), so no test reaches for the network.
   """
   @spec ask_catalogue(Mob.Socket.t()) :: Mob.Socket.t()
   def ask_catalogue(socket) do
     region = Services.region()
 
     if Kati.Screens.Later.enabled?() do
-      Kati.Screens.Later.run({:catalogue, region}, fn ->
-        Kati.Services.Catalogue.fetch(region)
-      end)
-
       socket
+      |> Mob.Socket.start_async(:catalogue, fn -> Kati.Services.Catalogue.fetch(region) end)
       |> Mob.Socket.assign(:catalogue, :loading)
       |> Mob.Socket.assign(:catalogue_all?, false)
     else
@@ -208,12 +206,13 @@ defmodule Kati.Screens.MyServices do
   from the picker is no reason to empty it.
   """
   @impl true
-  def handle_kati(:loaded, {{:catalogue, region}, result}, socket) do
-    if region == Map.get(socket.assigns, :region),
-      do: {:noreply, Mob.Socket.assign(socket, :catalogue, result)},
-      else: {:noreply, socket}
-  end
+  def handle_async(:catalogue, {:ok, result}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :catalogue, result)}
 
+  def handle_async(:catalogue, {:exit, _reason}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :catalogue, {:error, :unavailable})}
+
+  @impl true
   def handle_kati(:resumed, _payload, socket) do
     socket =
       if Services.region() != Map.get(socket.assigns, :region),

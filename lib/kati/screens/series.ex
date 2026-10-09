@@ -142,20 +142,17 @@ defmodule Kati.Screens.Series do
     Kati.Screens.Resume.watch()
     Kati.LiveScreens.join()
 
-    {id, preview, series} =
+    {id, preview, series, later?} =
       case Kati.Screens.Series.glimpse_for(params) do
-        {id, glimpse} ->
-          Kati.Screens.Series.load_later(id)
-          {id, nil, glimpse}
-
-        nil ->
-          Kati.Screens.Series.opening(params)
+        {id, glimpse} -> {id, nil, glimpse, true}
+        nil -> Tuple.insert_at(Kati.Screens.Series.opening(params), 3, false)
       end
 
     Kati.Media.Cache.refresh_stale(id)
 
     {:ok,
      socket
+     |> Kati.Screens.Series.load_later(id, later?)
      |> Mob.Socket.assign(:series, series)
      |> Mob.Socket.assign(:id, id)
      |> Mob.Socket.assign(:preview, preview)
@@ -173,7 +170,7 @@ defmodule Kati.Screens.Series do
   A long season is a few hundred episodes to read and shape, and doing that
   before the first frame kept the push waiting on it (#128 — Radio Star). So
   the page opens on this, with skeleton blocks where the rest goes, and
-  `load_later/1` fills it in. `nil` for anything else — a preview, a push
+  `load_later/3` fills it in. `nil` for anything else — a preview, a push
   naming nothing, a row that has gone, or `Kati.Screens.Later` switched off
   (the host tests) — which opens the old way, all at once.
   """
@@ -218,10 +215,16 @@ defmodule Kati.Screens.Series do
     end
   end
 
-  @doc "Read and shape the whole show off the screen's process (`Kati.Screens.Later`)."
-  @spec load_later(String.t()) :: :ok
-  def load_later(id),
-    do: Kati.Screens.Later.run({:series, id}, fn -> Kati.Screens.Series.series(id) end)
+  @doc """
+  Read and shape the whole show in a task (`Mob.Socket.start_async/3`); it
+  lands in `handle_async(:series, …)`. The task belongs to this page and stops
+  with it.
+  """
+  @spec load_later(Mob.Socket.t(), String.t() | nil, boolean()) :: Mob.Socket.t()
+  def load_later(socket, id, true),
+    do: Mob.Socket.start_async(socket, :series, fn -> Kati.Screens.Series.series(id) end)
+
+  def load_later(socket, _id, false), do: socket
 
   @doc """
   What a push opens: `{id, preview, series}` — `Kati.Screens.Film.opening/1`
@@ -1210,7 +1213,7 @@ defmodule Kati.Screens.Series do
   end
 
   @doc """
-  The first frame while `load_later/1` reads the show: the real hero — poster,
+  The first frame while `load_later/3` reads the show: the real hero — poster,
   title, shelf chip — and quiet blocks where the season card, the buttons and
   the episodes will land.
   """
@@ -2564,6 +2567,14 @@ defmodule Kati.Screens.Series do
   # Not aired yet: no affordance at all, because there is nothing to mark.
   def check(false, false), do: ~MOB"<Spacer size={27} />"
 
+  def handle_async(:series, {:ok, series}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :series, series)}
+
+  # The read crashed in its task: read it here instead, which answers the
+  # empty or gone page rather than leaving the skeleton up for ever.
+  def handle_async(:series, {:exit, _reason}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :series, series(socket.assigns.id))}
+
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :add_to_library}, socket),
@@ -2834,12 +2845,6 @@ defmodule Kati.Screens.Series do
   def handle_info({:kati, :locale_changed, _locale}, socket) do
     Kati.Locale.activate()
     handle_info({:kati, :resumed, nil}, socket)
-  end
-
-  def handle_info({:kati, :loaded, {{:series, id}, series}}, socket) do
-    if Map.get(socket.assigns, :id) == id and Map.get(socket.assigns.series, :loading?, false),
-      do: {:noreply, Mob.Socket.assign(socket, :series, series)},
-      else: {:noreply, socket}
   end
 
   def handle_info({:kati, :title_filled, _id}, socket),

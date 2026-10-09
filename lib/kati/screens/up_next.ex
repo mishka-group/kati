@@ -123,10 +123,11 @@ defmodule Kati.Screens.UpNext do
     if Kati.Screens.Later.enabled?() do
       # The queue reads every show, its cache and its episodes; the page opens
       # on its title and skeleton rows, or on the queue it already drew when
-      # this is a re-read on the way back, and `handle_kati(:loaded, …)` puts
+      # this is a re-read on the way back, and `handle_async(:queue, …)` puts
       # the fresh one in (#128).
-      Kati.Screens.Later.run(:queue, &Kati.Screens.UpNext.queue/0)
-      Mob.Socket.assign(socket, :queue, Map.get(socket.assigns, :queue) || :loading)
+      socket
+      |> Mob.Socket.start_async(:queue, &Kati.Screens.UpNext.queue/0)
+      |> Mob.Socket.assign(:queue, Map.get(socket.assigns, :queue) || :loading)
     else
       Mob.Socket.assign(socket, :queue, queue())
     end
@@ -143,8 +144,12 @@ defmodule Kati.Screens.UpNext do
   @impl true
   def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
 
-  def handle_kati(:loaded, {:queue, queue}, socket),
+  @impl true
+  def handle_async(:queue, {:ok, queue}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :queue, queue)}
+
+  def handle_async(:queue, {:exit, _reason}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :queue, queue())}
 
   @doc """
   Every control this screen draws, and it drew none until 6 September.

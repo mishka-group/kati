@@ -350,20 +350,21 @@ defmodule Kati.Issue128Test do
       assert first =~ "glimpse"
       refute first =~ "episode_"
 
+      # The real page, mounted, with its task awaited (Mob 0.9.17's
+      # `render_async/2`): the hero first, then the whole season.
+      view = mount_screen(Series, %{id: tracked.id})
+      assert assigns(view).series.loading?
+
+      view = render_async(view, 5_000)
+      refute Map.get(assigns(view).series, :loading?, false)
+      assert length(assigns(view).series.episodes) == 400
+
       socket =
         Mob.Socket.new(Series)
         |> Mob.Socket.assign(id: id, series: glimpse, preview: nil, menu?: false, back: "Home")
 
-      {:noreply, loaded} =
-        Series.handle_info({:kati, :loaded, {{:series, id}, Series.series(id)}}, socket)
-
-      refute Map.get(loaded.assigns.series, :loading?, false)
-      assert length(loaded.assigns.series.episodes) == 400
-
-      {:noreply, stale} =
-        Series.handle_info({:kati, :loaded, {{:series, "someone-else"}, %{}}}, socket)
-
-      assert stale.assigns.series == glimpse
+      {:noreply, recovered} = Series.handle_async(:series, {:exit, :boom}, socket)
+      refute Map.get(recovered.assigns.series, :loading?, false)
     end
 
     test "the page is a lazy list, one item per episode in the window, reaching the end widens it" do
@@ -428,41 +429,37 @@ defmodule Kati.Issue128Test do
 
       assert first =~ "film-glimpse"
 
-      socket =
-        Mob.Socket.new(Film)
-        |> Mob.Socket.assign(id: id, film: glimpse, preview: nil, menu?: false, back: "Home")
+      view = mount_screen(Film, %{id: film.id})
+      assert assigns(view).film.loading?
 
-      {:noreply, loaded} =
-        Film.handle_info({:kati, :loaded, {{:film, id}, Film.film(id)}}, socket)
-
-      refute Map.get(loaded.assigns.film, :loading?, false)
+      view = render_async(view, 5_000)
+      refute Map.get(assigns(view).film, :loading?, false)
+      assert assigns(view).film.tracked_id == id
     end
 
-    test "Up next opens on skeleton rows and keeps what it drew on the way back" do
+    test "Up next opens on skeleton rows, fills in, and keeps what it drew on the way back" do
       shelve!("up-next-later", :tv)
 
-      first = UpNext.load(Mob.Socket.new(UpNext))
-      assert first.assigns.queue == :loading
-      # The task's own answer, so it is not still reading after the test ends.
-      assert_receive {:kati, :loaded, {:queue, _queue}}, 5_000
-      assert inspect(UpNext.content(first.assigns), limit: :infinity) =~ "Up next"
+      view = mount_screen(UpNext)
+      assert assigns(view).queue == :loading
+      assert inspect(UpNext.content(assigns(view)), limit: :infinity) =~ "Up next"
 
-      {:noreply, loaded} = UpNext.handle_kati(:loaded, {:queue, UpNext.queue()}, first)
-      assert is_map(loaded.assigns.queue)
+      view = render_async(view, 5_000)
+      queue = assigns(view).queue
+      assert is_map(queue)
 
-      again = UpNext.load(loaded)
-      assert again.assigns.queue == loaded.assigns.queue
-      assert_receive {:kati, :loaded, {:queue, _queue}}, 5_000
+      again = UpNext.load(view.socket)
+      assert again.assigns.queue == queue
+      render_async(%{view | socket: again}, 5_000)
     end
 
     test "Stats opens on its header and skeleton cards, then the figures land" do
-      first = Stats.load(Mob.Socket.new(Stats))
-      assert first.assigns.loading?
-      assert_receive {:kati, :loaded, {:figures, _figures}}, 5_000
-      assert inspect(Stats.content(first.assigns), limit: :infinity) =~ first.assigns.range
+      view = mount_screen(Stats)
+      assert assigns(view).loading?
+      assert inspect(Stats.content(assigns(view)), limit: :infinity) =~ assigns(view).range
 
-      {:noreply, loaded} = Stats.handle_kati(:loaded, {:figures, Stats.figures()}, first)
-      refute loaded.assigns.loading?
+      view = render_async(view, 5_000)
+      refute assigns(view).loading?
       assert Keyword.has_key?(Stats.figures(), :year)
     end
   end
