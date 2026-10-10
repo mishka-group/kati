@@ -74,6 +74,7 @@ defmodule Kati.Calendars.Airings do
           title: String.t(),
           meta: String.t(),
           seed: String.t() | nil,
+          episodes: pos_integer(),
           time: String.t(),
           at: DateTime.t() | nil,
           now?: boolean()
@@ -247,7 +248,8 @@ defmodule Kati.Calendars.Airings do
         location: nil,
         title: row.title,
         meta: row.meta,
-        seed: row.seed
+        seed: row.seed,
+        episodes: Map.get(row, :episodes, 1)
       }
     end
   end
@@ -296,6 +298,7 @@ defmodule Kati.Calendars.Airings do
       title: (cached && cached.title) || gettext("Untitled"),
       meta: episode_line(first, length(aired)),
       seed: cached && cached.poster_path,
+      episodes: length(aired),
       time: if(at, do: Kati.Locale.time(Kati.Time.in_zone(at, zone)), else: gettext("All day")),
       at: at,
       now?: false

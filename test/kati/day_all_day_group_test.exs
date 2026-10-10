@@ -8,8 +8,9 @@ defmodule Kati.DayAllDayGroupTest do
 
   alias Kati.Screens.Day
 
-  defp episode(n) do
+  defp episode(n, episodes \\ 1) do
     %{
+      episodes: episodes,
       id: nil,
       at: nil,
       time: "All day",
@@ -70,6 +71,31 @@ defmodule Kati.DayAllDayGroupTest do
     refute out =~ "group_all_day"
     assert out =~ "Show 1"
     assert out =~ "Show 2"
+  end
+
+  test "shows that each drop a season say how many shows and how many episodes" do
+    out = drawn(Day.all_day_block([episode(1, 8), episode(2, 9), episode(3)]))
+
+    assert out =~ "3 shows · 18 episodes"
+  end
+
+  test "coming back re-reads the day and keeps the chip and the open groups" do
+    socket =
+      Mob.Socket.new(Day)
+      |> Mob.Socket.assign(
+        open_groups: [:group_all_day],
+        filter: "Screen",
+        date: ~D[2021-09-17],
+        occurrences: [:stale],
+        all_day: [:stale]
+      )
+
+    {:noreply, back} = Day.handle_kati(:resumed, nil, socket)
+
+    refute :stale in back.assigns.all_day
+    refute :stale in back.assigns.occurrences
+    assert back.assigns.filter == "Screen"
+    assert back.assigns.open_groups == [:group_all_day]
   end
 
   test "the chevron toggles the group" do

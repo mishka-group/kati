@@ -261,6 +261,16 @@ defmodule Kati.Screens.Day do
     {date, Kati.Calendars.Today.occurrences(date) ++ Kati.Calendars.Airings.occurrences(date)}
   end
 
+  @doc """
+  Coming back from a show or an event opened from here: the day is read again,
+  keeping the chip and the open groups, so a title removed there is gone here.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, Kati.Screens.Day.show(socket, socket.assigns.date)}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+
   @doc false
   def content(assigns) do
     date = assigns.date
@@ -1394,6 +1404,17 @@ defmodule Kati.Screens.Day do
 
   def state_icon(_), do: ~MOB"<Spacer size={0} />"
 
+  # A show that drops a whole season is one member carrying many episodes, so
+  # "3 episodes" would undercount a day of three binge drops.
+  defp collapsed_title(%{collapsed: members, kind: :air_date}) do
+    shows = length(members)
+    episodes = members |> Enum.map(&Map.get(&1, :episodes, 1)) |> Enum.sum()
+
+    if episodes > shows,
+      do: joined(shows_label(shows), kind_label(:air_date, episodes)),
+      else: kind_label(:air_date, shows)
+  end
+
   defp collapsed_title(%{collapsed: members, kind: kind}),
     do: kind_label(kind, length(members))
 
@@ -1412,6 +1433,8 @@ defmodule Kati.Screens.Day do
   end
 
   defp collapsed_meta(_), do: ""
+
+  defp shows_label(n), do: ngettext("%{n} show", "%{n} shows", n, n: Kati.Locale.number(n))
 
   # The label a user reads, not the atom the schema stores. "3 air_date
   # events" is a database row talking to itself.
