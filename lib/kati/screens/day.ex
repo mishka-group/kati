@@ -804,6 +804,10 @@ defmodule Kati.Screens.Day do
   # around a 12.5pt title and a 10pt meta line. There is no way to say "as tall
   # as my siblings" here: `fill_height` inside a Row resolves against the
   # incoming maximum, which is unbounded inside a Scroll.
+  #
+  # The width is fixed, not a minimum: the tile centres its figure with weighted
+  # spacers, and an unweighted child with weighted content takes the whole row,
+  # which left the two lane cards beside it zero wide.
   defp overflow_tile(nil), do: []
 
   defp overflow_tile(tile) do
@@ -821,7 +825,7 @@ defmodule Kati.Screens.Day do
     [
       ~MOB"""
       <Box
-        min_width={44}
+        width={44}
         min_height={55}
         corner_radius={16}
         background={Palette.placeholder()}

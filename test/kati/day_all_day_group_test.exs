@@ -98,6 +98,25 @@ defmodule Kati.DayAllDayGroupTest do
     assert back.assigns.open_groups == [:group_all_day]
   end
 
+  test "a three-way clash keeps two lane cards beside a fixed-width +1 tile" do
+    occurrences =
+      for {id, from, to} <- [{"a", 540, 570}, {"b", 555, 600}, {"c", 560, 590}],
+          do: %{id: id, start_min: from, end_min: to, kind: :event, title: id}
+
+    cluster = hd(Kati.Calendar.Layout.clusters(occurrences))
+
+    cluster =
+      cluster
+      |> Map.put(:placements, Enum.filter(cluster.placements, &(&1.role == :event)))
+      |> Map.merge(%{tag: :group_540, open?: false})
+
+    boxes =
+      for %{type: :box, props: props} <- Day.lanes(cluster).children,
+          do: Map.take(props, [:weight, :width, :min_width])
+
+    assert boxes == [%{weight: 1.0}, %{weight: 1.0}, %{width: 44}]
+  end
+
   test "the chevron toggles the group" do
     socket =
       Mob.Socket.new(Day)
