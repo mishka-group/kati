@@ -278,7 +278,7 @@ defmodule Kati.Screens.Day do
         <Column fill_width={true} padding_left={21} padding_right={21}>
           {Kati.Screens.Day.header(date, clusters, length(all_day))}
           {Kati.Screens.Day.chips(filter, Kati.Screens.Day.counts(assigns))}
-          {Kati.Screens.Day.all_day_block(all_day)}
+          {Kati.Screens.Day.all_day_block(all_day, assigns.open_groups)}
         </Column>
         <Column
           fill_width={true}
@@ -305,15 +305,56 @@ defmodule Kati.Screens.Day do
     [{"All", length(rows)} | for(label <- @chips, do: {label, Map.get(tally, label, 0)})]
   end
 
-  @doc "The *All day* group above the timeline, or nothing when the day has none."
-  def all_day_block([]), do: ~MOB"<Spacer size={0} />"
+  @doc """
+  The *All day* group above the timeline, or nothing when the day has none.
 
-  def all_day_block(rows) do
+  Episodes with a date and no hour fold into one grouped card once there are
+  `Layout.collapse_at/0` of them, the timeline's own rule, and open by the
+  same `group_` tag. Films and the reader's own all-day events stay rows.
+  """
+  @spec all_day_block([map()], [atom()]) :: map()
+  def all_day_block(rows, open \\ [])
+  def all_day_block([], _open), do: ~MOB"<Spacer size={0} />"
+
+  def all_day_block(rows, open) do
+    {episodes, rest} = Enum.split_with(rows, &episode?/1)
+
+    {group, rest} =
+      if length(episodes) >= Layout.collapse_at(),
+        do: {all_day_group(episodes, open), all_day_rows(rest)},
+        else: {~MOB"<Spacer size={0} />", Kati.Screens.MonthGrid.day_rows(rows)}
+
     ~MOB"""
     <Column fill_width={true} padding_top={18}>
       {Kati.UI.eyebrow(gettext("All day"))}
-      {Kati.Screens.MonthGrid.day_rows(rows)}
+      {group}
+      {rest}
       <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  @all_day_group :group_all_day
+
+  defp all_day_group(episodes, open) do
+    placement = %{event: %{collapsed: episodes, kind: :air_date}}
+    cluster = %{tag: @all_day_group, open?: @all_day_group in open}
+
+    ~MOB"""
+    <Row fill_width={true}>
+      {Kati.Screens.Day.grouped_card(placement, cluster)}
+    </Row>
+    """
+  end
+
+  defp episode?(row), do: Map.get(row, :tracked_kind) == :series and is_binary(row[:tracked_id])
+
+  defp all_day_rows([]), do: ~MOB"<Spacer size={0} />"
+
+  defp all_day_rows(rows) do
+    ~MOB"""
+    <Column fill_width={true} padding_top={10}>
+      {Kati.Screens.MonthGrid.day_rows(rows)}
     </Column>
     """
   end
@@ -1099,9 +1140,10 @@ defmodule Kati.Screens.Day do
   @spec member_row(map()) :: map()
   def member_row(member) do
     title = Map.get(member, :title) || gettext("Untitled")
+    tap = Kati.Screens.Day.card_tap(member)
 
     ~MOB"""
-    <Row fill_width={true} align="center" padding_top={9} padding_bottom={9}>
+    <Row fill_width={true} align="center" padding_top={9} padding_bottom={9} on_tap={tap}>
       {Kati.Screens.Day.thumb(member, Palette.placeholder())}
       <Spacer size={11} />
       <Column weight={1.0}>
