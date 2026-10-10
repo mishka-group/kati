@@ -261,6 +261,16 @@ defmodule Kati.Screens.Day do
     {date, Kati.Calendars.Today.occurrences(date) ++ Kati.Calendars.Airings.occurrences(date)}
   end
 
+  @doc """
+  Coming back from a show or an event opened from here: the day is read again,
+  keeping the chip and the open groups, so a title removed there is gone here.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, Kati.Screens.Day.show(socket, socket.assigns.date)}
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+
   @doc false
   def content(assigns) do
     date = assigns.date
@@ -278,7 +288,7 @@ defmodule Kati.Screens.Day do
         <Column fill_width={true} padding_left={21} padding_right={21}>
           {Kati.Screens.Day.header(date, clusters, length(all_day))}
           {Kati.Screens.Day.chips(filter, Kati.Screens.Day.counts(assigns))}
-          {Kati.Screens.Day.all_day_block(all_day)}
+          {Kati.Screens.Day.all_day_block(all_day, assigns.open_groups)}
         </Column>
         <Column
           fill_width={true}
@@ -305,15 +315,56 @@ defmodule Kati.Screens.Day do
     [{"All", length(rows)} | for(label <- @chips, do: {label, Map.get(tally, label, 0)})]
   end
 
-  @doc "The *All day* group above the timeline, or nothing when the day has none."
-  def all_day_block([]), do: ~MOB"<Spacer size={0} />"
+  @doc """
+  The *All day* group above the timeline, or nothing when the day has none.
 
-  def all_day_block(rows) do
+  Episodes with a date and no hour fold into one grouped card once there are
+  `Layout.collapse_at/0` of them, the timeline's own rule, and open by the
+  same `group_` tag. Films and the reader's own all-day events stay rows.
+  """
+  @spec all_day_block([map()], [atom()]) :: map()
+  def all_day_block(rows, open \\ [])
+  def all_day_block([], _open), do: ~MOB"<Spacer size={0} />"
+
+  def all_day_block(rows, open) do
+    {episodes, rest} = Enum.split_with(rows, &episode?/1)
+
+    {group, rest} =
+      if length(episodes) >= Layout.collapse_at(),
+        do: {all_day_group(episodes, open), all_day_rows(rest)},
+        else: {~MOB"<Spacer size={0} />", Kati.Screens.MonthGrid.day_rows(rows)}
+
     ~MOB"""
     <Column fill_width={true} padding_top={18}>
       {Kati.UI.eyebrow(gettext("All day"))}
-      {Kati.Screens.MonthGrid.day_rows(rows)}
+      {group}
+      {rest}
       <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  @all_day_group :group_all_day
+
+  defp all_day_group(episodes, open) do
+    placement = %{event: %{collapsed: episodes, kind: :air_date}}
+    cluster = %{tag: @all_day_group, open?: @all_day_group in open}
+
+    ~MOB"""
+    <Row fill_width={true}>
+      {Kati.Screens.Day.grouped_card(placement, cluster)}
+    </Row>
+    """
+  end
+
+  defp episode?(row), do: Map.get(row, :tracked_kind) == :series and is_binary(row[:tracked_id])
+
+  defp all_day_rows([]), do: ~MOB"<Spacer size={0} />"
+
+  defp all_day_rows(rows) do
+    ~MOB"""
+    <Column fill_width={true} padding_top={10}>
+      {Kati.Screens.MonthGrid.day_rows(rows)}
     </Column>
     """
   end
@@ -753,6 +804,10 @@ defmodule Kati.Screens.Day do
   # around a 12.5pt title and a 10pt meta line. There is no way to say "as tall
   # as my siblings" here: `fill_height` inside a Row resolves against the
   # incoming maximum, which is unbounded inside a Scroll.
+  #
+  # The width is fixed, not a minimum: the tile centres its figure with weighted
+  # spacers, and an unweighted child with weighted content takes the whole row,
+  # which left the two lane cards beside it zero wide.
   defp overflow_tile(nil), do: []
 
   defp overflow_tile(tile) do
@@ -770,7 +825,7 @@ defmodule Kati.Screens.Day do
     [
       ~MOB"""
       <Box
-        min_width={44}
+        width={44}
         min_height={55}
         corner_radius={16}
         background={Palette.placeholder()}
@@ -1099,9 +1154,10 @@ defmodule Kati.Screens.Day do
   @spec member_row(map()) :: map()
   def member_row(member) do
     title = Map.get(member, :title) || gettext("Untitled")
+    tap = Kati.Screens.Day.card_tap(member)
 
     ~MOB"""
-    <Row fill_width={true} align="center" padding_top={9} padding_bottom={9}>
+    <Row fill_width={true} align="center" padding_top={9} padding_bottom={9} on_tap={tap}>
       {Kati.Screens.Day.thumb(member, Palette.placeholder())}
       <Spacer size={11} />
       <Column weight={1.0}>
@@ -1352,6 +1408,17 @@ defmodule Kati.Screens.Day do
 
   def state_icon(_), do: ~MOB"<Spacer size={0} />"
 
+  # A show that drops a whole season is one member carrying many episodes, so
+  # "3 episodes" would undercount a day of three binge drops.
+  defp collapsed_title(%{collapsed: members, kind: :air_date}) do
+    shows = length(members)
+    episodes = members |> Enum.map(&Map.get(&1, :episodes, 1)) |> Enum.sum()
+
+    if episodes > shows,
+      do: joined(shows_label(shows), kind_label(:air_date, episodes)),
+      else: kind_label(:air_date, shows)
+  end
+
   defp collapsed_title(%{collapsed: members, kind: kind}),
     do: kind_label(kind, length(members))
 
@@ -1370,6 +1437,8 @@ defmodule Kati.Screens.Day do
   end
 
   defp collapsed_meta(_), do: ""
+
+  defp shows_label(n), do: ngettext("%{n} show", "%{n} shows", n, n: Kati.Locale.number(n))
 
   # The label a user reads, not the atom the schema stores. "3 air_date
   # events" is a database row talking to itself.
