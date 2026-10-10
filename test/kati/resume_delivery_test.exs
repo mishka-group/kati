@@ -110,9 +110,17 @@ defmodule Kati.ResumeDeliveryTest do
 
   defp resumes(pid), do: Mob.Screen.Server.socket(pid).assigns.resumes
 
+  # The router is linked to the test process, which has exited by the time
+  # `on_exit` runs, so it can die between an `alive?` check and the stop.
+  defp stop(router) do
+    GenServer.stop(router)
+  catch
+    :exit, _gone -> :ok
+  end
+
   test "a pop tells the screen it lands on, and the screen that left hears nothing it can act on" do
     {:ok, router} = Mob.Router.start_link(Bottom, %{})
-    on_exit(fn -> if Process.alive?(router), do: GenServer.stop(router) end)
+    on_exit(fn -> stop(router) end)
 
     bottom = bottom_pid(router)
     assert is_pid(bottom)
@@ -178,7 +186,7 @@ defmodule Kati.ResumeDeliveryTest do
 
     test "a gesture pop over a watched screen tells the screen it lands on" do
       {:ok, router} = Mob.Router.start_link(Bottom, %{})
-      on_exit(fn -> if Process.alive?(router), do: GenServer.stop(router) end)
+      on_exit(fn -> stop(router) end)
 
       bottom = bottom_pid(router)
       send(router, {:go, Watched})
@@ -196,7 +204,7 @@ defmodule Kati.ResumeDeliveryTest do
 
     test "and the pill is still one :resumed, not two" do
       {:ok, router} = Mob.Router.start_link(Bottom, %{})
-      on_exit(fn -> if Process.alive?(router), do: GenServer.stop(router) end)
+      on_exit(fn -> stop(router) end)
 
       bottom = bottom_pid(router)
       send(router, {:go, Watched})
@@ -213,7 +221,7 @@ defmodule Kati.ResumeDeliveryTest do
 
     test "and a watched screen that is only covered, not left, says nothing" do
       {:ok, router} = Mob.Router.start_link(Bottom, %{})
-      on_exit(fn -> if Process.alive?(router), do: GenServer.stop(router) end)
+      on_exit(fn -> stop(router) end)
 
       bottom = bottom_pid(router)
       send(router, {:go, Watched})
