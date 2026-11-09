@@ -145,6 +145,8 @@ defmodule Kati.ScreenLibraryShelfTest do
   # Matching the bare pair was what let the grid collide unseen: every film
   # carried one tag, this helper found them all under it, and nothing here
   # could tell one node from five.
+  defp expanded(view), do: view |> tree() |> Mob.Composite.expand(self())
+
   defp tile_columns(tree) do
     tree
     |> find_all(:column, weight: 1.0)
@@ -270,7 +272,7 @@ defmodule Kati.ScreenLibraryShelfTest do
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Library), extra: [:anchored])
+      assert_renderable(expanded(mount_screen(Library)), extra: [:anchored])
     end
   end
 
@@ -281,14 +283,14 @@ defmodule Kati.ScreenLibraryShelfTest do
   # replaced by the fixture. So this is the whole render path — header,
   # subtitle, chips, grid, tiles and artwork — over a nine-title shelf.
   defp drawn_tree(filter \\ :all) do
-    tree(
-      Library.render(%{
-        filter: filter,
-        shelf: "Screen",
-        titles: Kati.Test.DrawnBoards.library_titles(),
-        menu?: false
-      })
-    )
+    Library.render(%{
+      filter: filter,
+      shelf: "Screen",
+      titles: Kati.Test.DrawnBoards.library_titles(),
+      menu?: false
+    })
+    |> Mob.Composite.expand(self())
+    |> tree()
   end
 
   # The nine titles screen 03 was captured from, rendered from the fixture
@@ -427,7 +429,8 @@ defmodule Kati.ScreenLibraryShelfTest do
           shelf: "Screen",
           titles: Kati.Test.DrawnBoards.library_titles(),
           menu?: false
-        }),
+        })
+        |> Mob.Composite.expand(self()),
         extra: [:anchored]
       )
     end
@@ -591,7 +594,7 @@ defmodule Kati.ScreenLibraryShelfTest do
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Library), extra: [:anchored])
+      assert_renderable(expanded(mount_screen(Library)), extra: [:anchored])
     end
   end
 

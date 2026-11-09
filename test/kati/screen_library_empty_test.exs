@@ -77,6 +77,8 @@ defmodule Kati.ScreenLibraryEmptyTest do
     :ok
   end
 
+  defp expanded(view), do: view |> tree() |> Mob.Composite.expand(self())
+
   defp texts(tree) do
     tree
     |> find_all(:text)
@@ -137,7 +139,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     end
 
     test "the empty state is drawn, word for word" do
-      drawn = texts(tree(mount_screen(Library)))
+      drawn = texts(expanded(mount_screen(Library)))
 
       for literal <- [@title, @body, @action, @secondary] do
         assert Enum.count(drawn, &(&1 == literal)) == 1,
@@ -147,7 +149,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     end
 
     test "the paper tile carries the movie glyph the artboard puts on it" do
-      tree = tree(mount_screen(Library))
+      tree = expanded(mount_screen(Library))
       glyph = Kati.Icons.glyph!(@glyph_name)
 
       tile =
@@ -165,7 +167,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     end
 
     test "not one of the nine invented titles reaches the tree" do
-      drawn = texts(tree(mount_screen(Library)))
+      drawn = texts(expanded(mount_screen(Library)))
 
       for %{title: invented} <- Sample.titles() do
         refute invented in drawn,
@@ -175,7 +177,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     end
 
     test "no poster, no progress rail and no per-title mono line is drawn" do
-      tree = tree(mount_screen(Library))
+      tree = expanded(mount_screen(Library))
 
       assert find_all(tree, :image, height: 158) == [],
              "a poster is drawn on a shelf with nothing on it"
@@ -196,7 +198,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     end
 
     test "the four zero chips are not drawn, and the count line still is" do
-      tree = tree(mount_screen(Library))
+      tree = expanded(mount_screen(Library))
       drawn = texts(tree)
 
       # Screen 96: "hides the delta badge, the per-service rows and the
@@ -222,7 +224,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
       # work, because an empty Home that looks broken sends a new user back
       # out". Books and Music are separate domains, and Discover and Lists do
       # not need a shelf.
-      drawn = texts(tree(mount_screen(Library)))
+      drawn = texts(expanded(mount_screen(Library)))
 
       for literal <- ["Library", "Screen", "Books", "Music", "Up next", "Discover", "Lists"] do
         assert literal in drawn,
@@ -245,14 +247,14 @@ defmodule Kati.ScreenLibraryEmptyTest do
       # twice is a control no device test can address. This is the check
       # `Kati.ScreenTapSweepTest` makes across the app, asked of the two nodes
       # this change added.
-      tree = tree(mount_screen(Library))
+      tree = expanded(mount_screen(Library))
 
-      assert length(find_all(tree, :row, on_tap: {self(), :add_title})) == 1
+      assert length(find_all(tree, :box, on_tap: {self(), :add_title})) == 1
       assert length(find_all(tree, :column, on_tap: {self(), :import_backup})) == 1
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Library), extra: [:anchored])
+      assert_renderable(expanded(mount_screen(Library)), extra: [:anchored])
     end
   end
 
@@ -263,7 +265,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
     end
 
     test "the empty state stands down and the grid comes back" do
-      drawn = texts(tree(mount_screen(Library)))
+      drawn = texts(expanded(mount_screen(Library)))
 
       assert "Northlight Bay" in drawn
 

@@ -27,7 +27,7 @@ defmodule Kati.LibrarySegmentsTest do
 
   defp labels(active) do
     active
-    |> Library.kept_segments()
+    |> Library.segments()
     |> inspect(limit: :infinity)
   end
 

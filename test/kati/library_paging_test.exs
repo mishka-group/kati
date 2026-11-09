@@ -45,7 +45,13 @@ defmodule Kati.LibraryPagingTest do
     assert assigns(view).counts.all == 45
     assert assigns(view).counts.watching == 40
 
-    scroll = Enum.find(flatten(view), &(&1.type == :scroll and &1.props[:lazy] == true))
+    scroll =
+      view
+      |> tree()
+      |> Mob.Composite.expand(self())
+      |> flatten()
+      |> Enum.find(&(&1.type == :scroll and &1.props[:lazy] == true))
+
     assert {_pid, :more_titles} = scroll.props.on_end_reached
 
     view = render_info(view, {:tap, :more_titles})
