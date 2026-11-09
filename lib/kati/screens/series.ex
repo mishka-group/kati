@@ -1104,17 +1104,21 @@ defmodule Kati.Screens.Series do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={@identity}
     >
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
-        {Kati.UI.symbol("live_tv", size: 28, color: Palette.sub())}
-        <Spacer size={14} />
-        <Text
-          text={gettext("No series in your library yet")}
-          text_size={22}
-          font_weight="bold"
-          line_height={1.25}
-          text_color={:on_surface}
-        />
-      </Column>
+      <MishkaEmptyState
+        align="left"
+        padding_left={21}
+        padding_right={21}
+        padding_top={140}
+        title={gettext("No series in your library yet")}
+        title_size={22}
+        title_weight="bold"
+        title_line_height={1.25}
+      >
+        <MishkaEmptyStateIndicator>
+          {Kati.UI.symbol("live_tv", size: 28, color: Palette.sub())}
+          <Spacer size={14} />
+        </MishkaEmptyStateIndicator>
+      </MishkaEmptyState>
       <Box fill_width={true} fill_height={true} align="top">
         <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
           {Kati.Screens.Film.back_control(@back)}
@@ -1397,13 +1401,14 @@ defmodule Kati.Screens.Series do
 
     ~MOB"""
     <Row fill_width={true}>
-      <Row
+      <MishkaPill
         height={24}
         corner_radius={12}
         background={Palette.card()}
-        align="center"
+        padding={0}
         padding_left={10}
         padding_right={10}
+        align="center"
       >
         <Text
           text={@label}
@@ -1412,7 +1417,7 @@ defmodule Kati.Screens.Series do
           text_color={Palette.ink_soft()}
           max_lines={1}
         />
-      </Row>
+      </MishkaPill>
       <Spacer weight={1.0} />
     </Row>
     """
@@ -1631,7 +1636,7 @@ defmodule Kati.Screens.Series do
     #
     # Order is the drawing's own sense of scope: what this show IS, then how
     # its episodes are numbered, then what Kati does about it.
-    Kati.UI.Menu.overflow(
+    Kati.Components.MishkaMenu.dropdown(
       trigger,
       menu?,
       [
@@ -1679,8 +1684,42 @@ defmodule Kati.Screens.Series do
       # `anime_item/1` answers `[]` over the drawing, where there is no row to
       # tag — dropped rather than drawn dead, which is screen 08's own rule for
       # the identical pair.
-      |> Enum.reject(&(&1 == [])),
-      dismiss: :close_menu
+      |> Enum.reject(&(&1 == []))
+      |> Enum.map(&to_mishka/1),
+      width: 250,
+      background: Palette.card(),
+      corner_radius: 18,
+      shadow: Kati.Theme.shadow_card(),
+      side: :bottom,
+      align: :end,
+      side_offset: 8,
+      on_dismiss: {self(), :close_menu},
+      item_height: 46,
+      item_padding_x: 12,
+      item_padding_y: 0,
+      item_icon_gap: 12,
+      item_text_size: 14,
+      item_font_weight: :semibold,
+      item_label_weight: 1.0,
+      item_corner_radius: 0,
+      item_text_color: :on_surface,
+      item_max_lines: 1,
+      separator_color: Palette.hairline(),
+      separator_thickness: 1,
+      separator_padding_y: 5,
+      separator_padding_x: 12
+    )
+  end
+
+  # The item helpers are `Kati.UI.Menu`'s shape (they are shared with screen
+  # 08), and this is the one adapter into the Chelekom menu.
+  defp to_mishka(%{rule: true}), do: Kati.Components.MishkaMenu.separator()
+
+  defp to_mishka(%{glyph: glyph, label: label, tag: tag} = item) do
+    Kati.Components.MishkaMenu.item(tag, label,
+      icon: Kati.UI.symbol(glyph, size: 18, color: Palette.ink_soft()),
+      danger: Map.get(item, :destructive, false),
+      on_tap: {self(), tag}
     )
   end
 
@@ -1688,7 +1727,7 @@ defmodule Kati.Screens.Series do
   def season_card(s, pct) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         fill_width={true}
         background={Palette.card()}
         corner_radius={22}
@@ -1715,7 +1754,7 @@ defmodule Kati.Screens.Series do
         <Spacer size={12} />
         {Kati.Screens.Series.season_bar(pct)}
         {Kati.Screens.Series.next_air(s.next_air)}
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1835,14 +1874,16 @@ defmodule Kati.Screens.Series do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Box weight={1.0}>
-          <Row
+          <MishkaPill
             fill_width={true}
             height={46}
             corner_radius={23}
             background={Palette.ink_fill()}
-            align="center"
+            padding={0}
             padding_left={16}
             padding_right={16}
+            align="center"
+            content_fill_width={true}
             on_tap={mark}
           >
             <Spacer weight={1.0} />
@@ -1856,7 +1897,7 @@ defmodule Kati.Screens.Series do
               max_lines={1}
             />
             <Spacer weight={1.0} />
-          </Row>
+          </MishkaPill>
         </Box>
         <Spacer size={10} />
         {Kati.Screens.Series.list_disc(s)}
@@ -2055,11 +2096,11 @@ defmodule Kati.Screens.Series do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={10} />
-      <Scroll axis="horizontal">
+      <MishkaScrollArea orientation="horizontal">
         <Row padding_left={2} padding_right={2}>
           {@pills}
         </Row>
-      </Scroll>
+      </MishkaScrollArea>
     </Column>
     """
   end
@@ -2099,43 +2140,34 @@ defmodule Kati.Screens.Series do
   @doc false
   def pill_gap, do: ~MOB"<Spacer size={5} />"
 
-  # NOT Chelekom's Chip, though this is a chip in every other respect — S1 / S2
-  # / S3, exactly one checked, tapping replaces the selection. It has the size,
-  # the radius, both fills and both inks now.
-  #
-  # What it lacks is one prop: **`font_family` on the label.** The component
-  # builds its own `<Text text text_size text_color />` and merges only
-  # `font_weight` and `max_lines` onto it, so a label can be sized, weighted and
-  # clipped but not set in another face. These pills are DM Mono at 11.5, and a
-  # season number in Plus Jakarta beside a mono episode list is a visible
-  # change, not a rounding error.
-  #
-  # `trailing` is the escape hatch on screen 03 — its count goes in as a node,
-  # which keeps its own family — but there is no such slot for the LABEL, which
-  # is the only content here. Upstream ask: `font_family`, alongside the
-  # `text_size` / `font_weight` / `max_lines` the label already takes. Kati sets
-  # mono on every count, clock time, season number and meta line in the design,
-  # so this is the prop that decides how many chips the component can draw.
+  # Chelekom's Chip: S1 / S2 / S3, exactly one checked, tapping replaces the
+  # selection. The size, radius, both fills and both inks are the drawing's, and
+  # the label takes `font_family` — this row is DM Mono at 11.5, and a season
+  # number in Plus Jakarta beside a mono episode list is a visible change rather
+  # than a rounding error. That prop is the one the chip was missing when this
+  # was hand-rolled.
   @doc false
   def season_pill(label, on?) do
-    bg = if on?, do: Palette.ink_fill(), else: Palette.placeholder()
-    fg = if on?, do: Palette.on_ink(), else: Palette.meta()
-    tap = {self(), String.to_atom("season_" <> label)}
+    drawn = Kati.Screens.Series.season_pill_label(label)
+    tag = String.to_atom("season_" <> label)
 
-    ~MOB"""
-    <Box width={30} height={28} corner_radius={10} background={bg} align="center" on_tap={tap}>
-      {# The season pill's `S2` is a LABEL and a tap tag at once — ASCII by
-       # construction, which is what `String.to_atom/1` and the accessibility id
-       # need. The reader sees the number in their own digits; the tag does not.}
-      <Text
-        text={Kati.Screens.Series.season_pill_label(label)}
-        font_family={Kati.Locale.mono_face(Kati.Screens.Series.season_pill_label(label))}
-        text_size={11.5}
-        text_color={fg}
-        max_lines={1}
-      />
-    </Box>
-    """
+    Kati.Components.MishkaChip.chip(
+      label: drawn,
+      checked: on?,
+      on_toggle: tag,
+      width: 30,
+      height: 28,
+      corner_radius: 10,
+      padding: 0,
+      text_size: 11.5,
+      font_family: Kati.Locale.mono_face(drawn),
+      max_lines: 1,
+      align: :center,
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.placeholder(),
+      unchecked_text_color: Palette.meta()
+    )
   end
 
   # The tap tag carries the row's POSITION in the list, not its number. An
@@ -2413,7 +2445,8 @@ defmodule Kati.Screens.Series do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
+      <MishkaCard
+        direction="row"
         fill_width={true}
         on_tap={tap}
         background={bg}
@@ -2455,7 +2488,7 @@ defmodule Kati.Screens.Series do
         {Kati.Screens.Series.rating_column(ep)}
         <Spacer size={13} />
         {Kati.Screens.Series.check(ep.watched, tickable?)}
-      </Row>
+      </MishkaCard>
     </Column>
     """
   end
