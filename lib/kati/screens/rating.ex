@@ -1638,15 +1638,19 @@ defmodule Kati.Screens.Rating do
   def stars(nil, tappable?), do: stars(0, tappable?)
 
   def stars(value, tappable?) do
-    Kati.Components.MishkaRating.rating(
-      value: value,
-      max: 5,
-      size: 26,
-      gap: 2,
-      color: Palette.accent(),
-      empty_color: Palette.sub(),
-      tap_tags: if(tappable?, do: star_points())
-    )
+    assigns = %{value: value, tap_tags: if(tappable?, do: star_points())}
+
+    ~MOB"""
+    <MishkaRating
+      value={@value}
+      max={5}
+      size={26}
+      gap={2}
+      color={Palette.accent()}
+      empty_color={Palette.sub()}
+      tap_tags={@tap_tags}
+    />
+    """
   end
 
   defp star_points do
