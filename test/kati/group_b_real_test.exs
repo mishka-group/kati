@@ -130,7 +130,10 @@ defmodule Kati.GroupBRealTest do
       assert find(view, :text, text: "3.5") != nil, "the tapped stars are gone"
 
       assert %{props: %{value: "Typed before the store said no."}} =
-               find(view, :text_field, accessibility_id: "review")
+               view
+               |> tree()
+               |> Mob.Composite.expand(self())
+               |> find(:text_field, accessibility_id: "review")
 
       assert Ash.read!(Watch) == []
     end

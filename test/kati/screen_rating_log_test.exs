@@ -127,6 +127,8 @@ defmodule Kati.ScreenRatingLogTest do
   # so a helper that read `:text` alone would report the user's own words as
   # absent from a tree they are the largest thing in.
   defp texts(tree) do
+    tree = tree |> tree() |> Mob.Composite.expand(self())
+
     (find_all(tree, :text) ++ find_all(tree, :text_field))
     |> Enum.map(&(&1.props[:text] || &1.props[:value] || ""))
   end

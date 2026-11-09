@@ -192,7 +192,10 @@ defmodule Kati.WalkLogicTest do
       assert find(view, :text, text: "3.5") != nil, "the tapped stars are gone from the sheet"
 
       assert %{props: %{value: "Still typed."}} =
-               find(view, :text_field, accessibility_id: "review")
+               view
+               |> tree()
+               |> Mob.Composite.expand(self())
+               |> find(:text_field, accessibility_id: "review")
     end
   end
 
