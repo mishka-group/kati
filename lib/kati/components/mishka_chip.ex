@@ -55,6 +55,7 @@ defmodule Kati.Components.MishkaChip do
   | `corner_radius` | radius token / number | `:radius_pill` | Corner rounding. |
   | `text_size` | text-size token / number | `:base` | Label size. |
   | `font_weight` | `:medium` `:semibold` `:bold` `:light` `:thin` | `nil` — regular | Label weight. |
+  | `font_family` | font family string | `nil` — the inherited face | Label face, for a design whose chips are set in its mono. |
   | `max_lines` | integer | `nil` — unbounded | Caps the label. |
   | `align` | `:center` `:leading` `:trailing` … | `nil`, `:center` when sized | Where content sits in the box. |
   | `trailing` | string, node, or list | `nil` | Content after the label — a count, a ✕, an icon. |
@@ -258,6 +259,7 @@ defmodule Kati.Components.MishkaChip do
     />
     """
     |> put(:font_weight, Map.get(props, :font_weight))
+    |> put(:font_family, Map.get(props, :font_family))
     |> put(:max_lines, Map.get(props, :max_lines))
     |> put(:id, label_tag(Map.get(props, :id)))
   end
