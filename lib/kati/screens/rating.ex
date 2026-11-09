@@ -1676,6 +1676,9 @@ defmodule Kati.Screens.Rating do
   catch-all, which is a dead control the compiler cannot see and
   `Kati.ScreenTapSweepTest` reports as inert. So the taps belong to the screen
   that asks for them, and the shared drawing stays a drawing.
+
+  The row is `Kati.Components.MishkaRating`; `tap_tags` is what makes it
+  interactive, one tag per point of the ten-point scale.
   """
   @spec stars(number() | nil, boolean()) :: map()
   def stars(value, tappable? \\ false)
@@ -1683,94 +1686,21 @@ defmodule Kati.Screens.Rating do
   def stars(nil, tappable?), do: stars(0, tappable?)
 
   def stars(value, tappable?) do
-    full = trunc(value)
-    half? = value - full >= 0.5
-
-    cells =
-      1..5
-      |> Enum.map(fn i ->
-        slot =
-          cond do
-            i <= full -> :full
-            i == full + 1 and half? -> :half
-            true -> :empty
-          end
-
-        Kati.Screens.Rating.star_cell(slot, i, tappable?)
-      end)
-      |> Enum.intersperse(Kati.Screens.Rating.star_gap())
-
-    ~MOB"""
-    <Row align="center">
-      {cells}
-    </Row>
-    """
+    Kati.Components.MishkaRating.rating(
+      value: value,
+      max: 5,
+      size: 26,
+      gap: 2,
+      color: Palette.accent(),
+      empty_color: Palette.sub(),
+      tap_tags: if(tappable?, do: star_points())
+    )
   end
 
-  @doc """
-  One star, with the two tap targets the drawing's own caption promises.
-
-  `HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE` is printed under this row, and
-  until now it described nothing. It describes this: a transparent 13x26 `Box`
-  over each half of the glyph, the left one carrying the odd point and the
-  right one the even, so the five stars address `Kati.Media.Watch.rating`'s
-  **1..10** one target per point. Five targets would have made the ten-point
-  column reachable only at even values and quietly turned every half rating a
-  user had already stored into an unreachable one.
-
-  The targets are stacked over the glyph rather than replacing it, because a
-  half star is already two glyphs in one `Box` (see `star/1`) and the tap
-  geometry is not the paint geometry: the left target covers the left half of
-  the star whether that half is filled, outlined or empty. A `Box` renders its
-  children back to front and Compose hit-tests them front to back, so the
-  targets sit last.
-
-  No `background`, and it is not an oversight: `Modifier.clickable` makes a node
-  hit-testable by its bounds, not by its pixels, so an unpainted target is a
-  target. Painting one would put a rectangle over the star.
-
-  ## `fill_width={false}` on the wrapper, and no width — Dynamic Type
-
-  The obvious wrapper is `<Box width={26} height={26}>`, which is what
-  `star(:half)` already ships. It is also a cap: a `Box` coerces its children
-  into its own constraints, every `Text` in this bridge is built with
-  `TextOverflow.Ellipsis`, and `text_size` is **sp** while `width` is **dp** —
-  so at 235% Dynamic Type a 26sp glyph asks for ~61dp inside a 26dp box and is
-  ellipsised away to nothing. That is the failure `Kati.DynamicTypeTest` is
-  about, one step worse: not a truncated label, an absent star.
-
-  So the wrapper carries no width at all and hugs instead — `fill_width={false}`
-  is what makes a `Box` hug rather than fill (`K-17 box-hugs-when-told`;
-  without it a widthless Box takes the whole row and the rating card's stars
-  become five full-width rows). The glyph is then measured unbounded, exactly
-  as it was before it had a wrapper, and the cell is as wide as the star is at
-  whatever scale the phone is set to.
-
-  What is left is a tap area that does not grow with it: the two 13dp targets
-  stay 13dp, so at 235% they cover the leading half of a 61dp star rather than
-  all of it. Degraded, not broken — the halves are still in the right order and
-  still hit — and it is the honest end of what this bridge can express. Making
-  the targets track the glyph needs Compose's `matchParentSize`, which no Mob
-  prop reaches: `fill_width={true}` on the overlay would measure against the
-  card, not against its sibling, and blow the hugging `Box` out to full width.
-  """
-  @spec star_cell(:full | :half | :empty, 1..5, boolean()) :: map()
-  def star_cell(slot, _index, false), do: Kati.Screens.Rating.star(slot)
-
-  def star_cell(slot, index, true) do
-    glyph = Kati.Screens.Rating.star(slot)
-    left = {self(), Kati.Screens.Rating.star_tag(index * 2 - 1)}
-    right = {self(), Kati.Screens.Rating.star_tag(index * 2)}
-
-    ~MOB"""
-    <Box fill_width={false} align="center">
-      {glyph}
-      <Row width={26} height={26}>
-        <Box width={13} height={26} on_tap={left} />
-        <Box width={13} height={26} on_tap={right} />
-      </Row>
-    </Box>
-    """
+  defp star_points do
+    Enum.flat_map(1..5, fn i ->
+      [Kati.Screens.Rating.star_tag(i * 2 - 1), Kati.Screens.Rating.star_tag(i * 2)]
+    end)
   end
 
   @doc """
@@ -1815,51 +1745,6 @@ defmodule Kati.Screens.Rating do
     else
       _other -> nil
     end
-  end
-
-  @doc false
-  def star_gap, do: ~MOB"<Spacer size={2} />"
-
-  @doc false
-  def star(:full), do: Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)
-  # An outline in `sub`, not a filled `star_empty` (#116): that fill was about
-  # 1.2:1 on the card in dark mode and 1.3:1 in light, so the sheet's one
-  # control read as a blank band. The outline is the film page's own unrated
-  # star, so an empty star means the same thing on both screens.
-  def star(:empty), do: Kati.UI.symbol("star", size: 26, color: Palette.sub())
-
-  # A real half star, drawn the way the design draws one: the empty star, with
-  # a filled star painted over it and CUT at 50%.
-  #
-  # This used to be an outlined accent star, because the icon subset carries no
-  # `star_half` and this bridge could not crop a glyph — a Box narrower than
-  # the text ellipsises it away, since every Text is built with
-  # TextOverflow.Ellipsis, and `corner_radius` clips painting only. Adding
-  # `star_half` to the subset would have meant re-subsetting from a source
-  # variable font that is not in this repo, for a glyph that is another glyph
-  # cut in half.
-  #
-  # Fence K-16 gave the bridge `clip_width` instead, which clips the DRAW and
-  # leaves measurement alone — so the two glyphs occupy one star's width, sit
-  # in the same line box as their four neighbours, and 4.5 reads as four and a
-  # half rather than as five.
-  #
-  # The Box carries the star's WIDTH and no height. A fixed `height` was the
-  # half star's own defect: the glyph's line box is taller than the square
-  # (Material Symbols' ascent + descent at 26 is ~31dp), so a 26dp cell was
-  # centred by the Row while its Text was laid out from the top of a squashed
-  # box — the half star's baseline landed ~2.5dp below its neighbours' and the
-  # glyph visibly dropped. Width is what the 50% crop needs; height must hug
-  # the line box, exactly as a bare star Text does.
-  def star(:half) do
-    ~MOB"""
-    <Box width={26}>
-      {Kati.UI.symbol("star", size: 26, color: Palette.sub())}
-      <Box width={26} clip_width={0.5}>
-        {Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)}
-      </Box>
-    </Box>
-    """
   end
 
   # The one card on cream. Screen 08 does the same for its note, and for the

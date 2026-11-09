@@ -713,11 +713,11 @@ defmodule Kati.Screens.Library do
     assigns = %{items: Enum.map(items, &Kati.Screens.Library.gutter/1)}
 
     ~MOB"""
-    <Scroll lazy={true} on_end_reached={{self(), :more_titles}}>
+    <MishkaScrollArea lazy={true} on_end_reached={{self(), :more_titles}}>
       <Column fill_width={true}>
         {@items}
       </Column>
-    </Scroll>
+    </MishkaScrollArea>
     """
   end
 
@@ -835,7 +835,7 @@ defmodule Kati.Screens.Library do
   def empty_state do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         fill_width={true}
         background={Palette.card()}
         corner_radius={22}
@@ -845,35 +845,38 @@ defmodule Kati.Screens.Library do
         padding_top={30}
         padding_bottom={30}
       >
-        <Row fill_width={true} align="center">
-          <Spacer weight={1.0} />
-          <Box width={64} height={64} corner_radius={20} background={Palette.paper()} align="center">
-            {Kati.UI.symbol("movie", size: 28, color: Palette.rail_idle())}
-          </Box>
-          <Spacer weight={1.0} />
-        </Row>
-        <Spacer size={18} />
-        <Text
-          text={gettext("No titles yet")}
-          text_size={17}
-          font_weight="bold"
-          letter_spacing={-0.02}
-          text_align="center"
-          text_color={:on_surface}
-        />
-        <Spacer size={8} />
-        <Text
-          text={gettext("Add one thing you are watching and the calendar starts filling itself.")}
-          text_size={13}
-          line_height={1.55}
-          text_align="center"
-          text_color={Palette.sub()}
-        />
-        <Spacer size={18} />
-        {Kati.Screens.Library.add_a_title()}
-        <Spacer size={14} />
-        {Kati.Screens.Library.import_link()}
-      </Column>
+        <MishkaEmptyState
+          align="center"
+          padding={0}
+          title={gettext("No titles yet")}
+          title_size={17}
+          title_weight="bold"
+          title_letter_spacing={-0.02}
+        >
+          <MishkaEmptyStateIndicator>
+            <MishkaThemeIcon variant="filled" color={Palette.paper()} size={64} radius={20}>
+              {Kati.UI.symbol("movie", size: 28, color: Palette.rail_idle())}
+            </MishkaThemeIcon>
+            <Spacer size={18} />
+          </MishkaEmptyStateIndicator>
+          <Column fill_width={true}>
+            <Spacer size={8} />
+            <Text
+              text={gettext(
+                "Add one thing you are watching and the calendar starts filling itself."
+              )}
+              text_size={13}
+              line_height={1.55}
+              text_align="center"
+              text_color={Palette.sub()}
+            />
+            <Spacer size={18} />
+            {Kati.Screens.Library.add_a_title()}
+            <Spacer size={14} />
+            {Kati.Screens.Library.import_link()}
+          </Column>
+        </MishkaEmptyState>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -889,12 +892,14 @@ defmodule Kati.Screens.Library do
   @spec add_a_title() :: map()
   def add_a_title do
     ~MOB"""
-    <Row
+    <MishkaPill
       fill_width={true}
       height={44}
       corner_radius={22}
       background={Palette.ink_fill()}
+      padding={0}
       align="center"
+      content_fill_width={true}
       on_tap={{self(), :add_title}}
     >
       <Spacer weight={1.0} />
@@ -908,7 +913,7 @@ defmodule Kati.Screens.Library do
         max_lines={1}
       />
       <Spacer weight={1.0} />
-    </Row>
+    </MishkaPill>
     """
   end
 
@@ -1059,15 +1064,44 @@ defmodule Kati.Screens.Library do
   one the board draws.
   """
   def menu(open?) do
-    Kati.UI.Menu.overflow(
-      Kati.Screens.Library.disc("more_horiz", :toggle_menu),
-      open?,
+    items =
       [
         Kati.UI.Menu.item("inbox", gettext("New releases"), :open_new_releases),
         Kati.UI.Menu.item("schedule", gettext("What fits?"), :open_what_fits),
         Kati.UI.Menu.item("checklist", gettext("Select titles"), :open_shelf_selection)
-      ],
-      dismiss: :close_menu
+      ]
+      |> Enum.map(&to_mishka/1)
+
+    Kati.Components.MishkaMenu.dropdown(
+      Kati.Screens.Library.disc("more_horiz", :toggle_menu),
+      open?,
+      items,
+      width: 250,
+      background: Palette.card(),
+      corner_radius: 18,
+      shadow: Kati.Theme.shadow_card(),
+      side: :bottom,
+      align: :end,
+      side_offset: 8,
+      on_dismiss: {self(), :close_menu},
+      item_height: 46,
+      item_padding_x: 12,
+      item_padding_y: 0,
+      item_icon_gap: 12,
+      item_text_size: 14,
+      item_font_weight: :semibold,
+      item_label_weight: 1.0,
+      item_corner_radius: 0,
+      item_text_color: :on_surface,
+      item_max_lines: 1
+    )
+  end
+
+  defp to_mishka(%{glyph: glyph, label: label, tag: tag} = item) do
+    Kati.Components.MishkaMenu.item(tag, label,
+      icon: Kati.UI.symbol(glyph, size: 18, color: Palette.ink_soft()),
+      danger: Map.get(item, :destructive, false),
+      on_tap: {self(), tag}
     )
   end
 
@@ -1090,41 +1124,38 @@ defmodule Kati.Screens.Library do
   def segments(active) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row
+      <MishkaSegmentedControl
+        value={active}
         fill_width={true}
         background={Palette.placeholder()}
         corner_radius={18}
-        padding={4}
-        align="center"
+        track_padding={4}
+        color={Palette.card()}
+        text_color={Palette.ink()}
+        label_color={Palette.segment_idle()}
+        text_size={13}
+        font_weight={:semibold}
+        selected_weight={:bold}
+        segment_height={38}
+        segment_radius={14}
+        segment_weight={1.0}
+        segment_align={:center}
+        padding={0}
+        segment_gap={4}
+        leading_size={17}
+        leading_family="symbols"
       >
         {Kati.Screens.Library.kept_segments(active)}
-      </Row>
+      </MishkaSegmentedControl>
       <Spacer size={18} />
     </Column>
     """
   end
 
-  # NOT Chelekom's Segmented Control, and it is worth writing down why so the
-  # next pass does not re-derive it. The component is otherwise a close fit —
-  # `track_padding`, `segment_height`, `segment_radius`, `font_weight` +
-  # `selected_weight`, `segment_weight` for the `flex:1` cells, even a
-  # `selected_shadow` — but two things the drawing does are not expressible:
-  #
-  #   1. **Each segment carries an icon.** `option/3` builds
-  #      `%{props: %{id:, label:, disabled:}}` and `segment/3` renders it as a
-  #      Box holding one `<Text>` the control paints itself. The drawing puts a
-  #      17px Material Symbol before each 13px label with a 6px gap
-  #      (`03.html:16-28`). There is no leading slot, and the label is a prop
-  #      rather than children precisely because the control owns that Text.
-  #   2. **`gap:4px` between segments.** `track/3` emits `<Row>{segments}</Row>`
-  #      with nothing interspersed and there is no `segment_gap` prop; the
-  #      segments would abut. Nor can the gap be smuggled in as a child —
-  #      `segmented_control/2` filters children to
-  #      `match?(%{type: :mishka_segmented_control_option}, &1)` and drops the
-  #      rest, so an interspersed `<Spacer>` is discarded rather than laid out.
-  #
-  # Either alone would move pixels, so the strip stays hand-rolled. Both are
-  # upstream asks: a leading slot on an option, and a gap between segments.
+  # Chelekom's Segmented Control: each segment's icon rides in the option's
+  # `leading` prop, and the drawing's 4pt between-segment gap is `segment_gap`.
+  # Those two were the props this control was missing when the strip was
+  # hand-rolled.
   @doc """
   One segment per section you kept.
 
@@ -1133,10 +1164,6 @@ defmodule Kati.Screens.Library do
   switcher that always offered three tabs was the shelf half of that rule going
   unenforced. Someone who kept only Screen was still offered Books and Music,
   both leading to a shelf that could never hold anything.
-
-  The separators are interspersed rather than written between fixed segments,
-  because with one section kept there is no gap to draw and with three there
-  are two.
 
   ## The active segment is always kept
 
@@ -1160,9 +1187,11 @@ defmodule Kati.Screens.Library do
       id == active or Kati.Sections.on?(Atom.to_string(id))
     end)
     |> Enum.map(fn {id, icon, label} ->
-      Kati.Screens.Library.segment(id, icon, label, active == id)
+      Kati.Components.MishkaSegmentedControl.option(id, label,
+        leading: Kati.Icons.glyph!(icon),
+        on_tap: String.to_atom("shelf_" <> Atom.to_string(id))
+      )
     end)
-    |> Enum.intersperse(Kati.Screens.Library.segment_gap())
   end
 
   @doc """
@@ -1181,36 +1210,6 @@ defmodule Kati.Screens.Library do
       {:books, "menu_book", gettext("Books")},
       {:music, "graphic_eq", gettext("Music")}
     ]
-  end
-
-  @doc false
-  def segment_gap, do: ~MOB"<Spacer size={4} />"
-
-  @doc false
-  def segment(key, icon, label, on?) do
-    tap = {self(), String.to_atom("shelf_" <> Atom.to_string(key))}
-    bg = if on?, do: Palette.card(), else: Palette.transparent()
-    fg = if on?, do: Palette.ink(), else: Palette.segment_idle()
-    weight = if on?, do: "bold", else: "semibold"
-
-    ~MOB"""
-    <Box weight={1.0}>
-      <Row
-        fill_width={true}
-        height={38}
-        corner_radius={14}
-        background={bg}
-        align="center"
-        on_tap={tap}
-      >
-        <Spacer weight={1.0} />
-        {Kati.UI.symbol(icon, size: 17, color: fg)}
-        <Spacer size={6} />
-        <Text text={label} text_size={13} font_weight={weight} text_color={fg} max_lines={1} />
-        <Spacer weight={1.0} />
-      </Row>
-    </Box>
-    """
   end
 
   @doc false
@@ -1307,8 +1306,8 @@ defmodule Kati.Screens.Library do
     tap = {self(), tag}
 
     ~MOB"""
-    <Box weight={1.0} on_tap={tap}>
-      <Column
+    <Box weight={1.0}>
+      <MishkaCard
         fill_width={true}
         background={Palette.card()}
         corner_radius={16}
@@ -1317,6 +1316,7 @@ defmodule Kati.Screens.Library do
         padding_right={11}
         padding_top={12}
         padding_bottom={12}
+        on_tap={tap}
       >
         <Row fill_width={true} align="center">
           {Kati.UI.symbol(icon, size: 19)}
@@ -1332,7 +1332,7 @@ defmodule Kati.Screens.Library do
           text_color={:on_surface}
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -1442,7 +1442,7 @@ defmodule Kati.Screens.Library do
   def chips(active, titles) do
     ~MOB"""
     <Column fill_width={true}>
-      <Scroll axis="horizontal">
+      <MishkaScrollArea orientation="horizontal">
         <Row>
           {Kati.Screens.Library.chip_counts(titles)
            |> Enum.map(fn {key, label, count} ->
@@ -1450,7 +1450,7 @@ defmodule Kati.Screens.Library do
            end)
            |> Enum.intersperse(Kati.Screens.Library.chip_gap())}
         </Row>
-      </Scroll>
+      </MishkaScrollArea>
       <Spacer size={20} />
     </Column>
     """
