@@ -57,10 +57,6 @@ defmodule Kati.Screens.Film do
 
   require Ash.Query
 
-  alias Kati.Components.MishkaActionIcon
-  alias Kati.Components.MishkaPill
-  alias Kati.Components.MishkaSeparator
-  alias Kati.Components.MishkaThemeIcon
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
@@ -1100,18 +1096,21 @@ defmodule Kati.Screens.Film do
   """
   @spec watched_pill(String.t()) :: map()
   def watched_pill(label) do
-    MishkaPill.pill(
-      [
-        background: Palette.card(),
-        corner_radius: 13,
-        height: 26,
-        padding: 0,
-        padding_left: 11,
-        padding_right: 11,
-        align: :center
-      ],
-      Kati.Screens.Film.watched_content(label)
-    )
+    assigns = %{content: Kati.Screens.Film.watched_content(label)}
+
+    ~MOB"""
+    <MishkaPill
+      background={Palette.card()}
+      corner_radius={13}
+      height={26}
+      padding={0}
+      padding_left={11}
+      padding_right={11}
+      align={:center}
+    >
+      {@content}
+    </MishkaPill>
+    """
   end
 
   @doc false
@@ -1194,20 +1193,28 @@ defmodule Kati.Screens.Film do
   """
   @spec back_pill(term(), non_neg_integer(), String.t(), String.t()) :: map()
   def back_pill(back, fill, lift, label \\ gettext("Library")) do
-    MishkaPill.pill(
-      [
-        background: fill,
-        shadow: lift,
-        corner_radius: 21,
-        height: 42,
-        padding: 0,
-        padding_left: 12,
-        padding_right: 16,
-        align: :center,
-        on_tap: back
-      ],
-      Kati.Screens.Film.back_content(label)
-    )
+    assigns = %{
+      content: Kati.Screens.Film.back_content(label),
+      back: back,
+      fill: fill,
+      lift: lift
+    }
+
+    ~MOB"""
+    <MishkaPill
+      background={@fill}
+      shadow={@lift}
+      corner_radius={21}
+      height={42}
+      padding={0}
+      padding_left={12}
+      padding_right={16}
+      align={:center}
+      on_tap={@back}
+    >
+      {@content}
+    </MishkaPill>
+    """
   end
 
   @doc false
@@ -1246,17 +1253,18 @@ defmodule Kati.Screens.Film do
   @spec more_disc(non_neg_integer(), String.t(), boolean()) :: map()
   def more_disc(fill, lift, menu?, f \\ %{}) do
     trigger =
-      MishkaActionIcon.action_icon(
-        [
-          size: 42,
-          shape: :circle,
-          variant: :filled,
-          background: fill,
-          shadow: lift,
-          on_tap: :toggle_menu
-        ],
-        [Kati.UI.symbol("more_horiz", size: 21)]
-      )
+      ~MOB"""
+      <MishkaActionIcon
+        size={42}
+        shape={:circle}
+        variant={:filled}
+        background={fill}
+        shadow={lift}
+        on_tap={:toggle_menu}
+      >
+        {Kati.UI.symbol("more_horiz", size: 21)}
+      </MishkaActionIcon>
+      """
 
     # This disc carried no tag at all — a ⋯ drawn on the still that answered
     # nothing. Screen 33 is the write path for the rating screen 08 displays,
@@ -1760,10 +1768,11 @@ defmodule Kati.Screens.Film do
     # Mishka's Action Icon with its box dropped: `size: :hug` wraps the glyph
     # instead of declaring a 40pt target, which is exactly the bare Box this
     # replaced — the pencil on a note card is a glyph with a tap, not a disc.
-    MishkaActionIcon.action_icon(
-      [size: :hug, on_tap: tap],
-      [Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())]
-    )
+    ~MOB"""
+    <MishkaActionIcon size={:hug} on_tap={tap}>
+      {Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}
+    </MishkaActionIcon>
+    """
   end
 
   @doc """
@@ -1780,10 +1789,11 @@ defmodule Kati.Screens.Film do
   """
   @spec where_badge(String.t()) :: map()
   def where_badge(badge) do
-    MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: Palette.paper(), size: 32, radius: 10],
-      [Kati.Screens.Film.where_mark(badge)]
-    )
+    ~MOB"""
+    <MishkaThemeIcon variant={:filled} color={Palette.paper()} size={32} radius={10}>
+      {Kati.Screens.Film.where_mark(badge)}
+    </MishkaThemeIcon>
+    """
   end
 
   # The badge is a service's own initial, so it is Latin on a Persian page for
@@ -1830,8 +1840,11 @@ defmodule Kati.Screens.Film do
   @spec hairline(boolean()) :: map()
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
-  def hairline(true),
-    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
+  def hairline(true) do
+    ~MOB"""
+    <MishkaSeparator color={Palette.hairline()} thickness={1} render={:box} />
+    """
+  end
 
   @doc false
   def actions(f) do

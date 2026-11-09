@@ -96,9 +96,7 @@ defmodule Kati.Screens.Library do
 
   require Ash.Query
 
-  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
-  alias Kati.Components.MishkaProgress
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
@@ -1107,17 +1105,18 @@ defmodule Kati.Screens.Library do
 
   @doc false
   def disc(icon, tag) do
-    MishkaActionIcon.action_icon(
-      [
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Theme.shadow_button(),
-        on_tap: tag
-      ],
-      [Kati.UI.symbol(icon, size: 21)]
-    )
+    ~MOB"""
+    <MishkaActionIcon
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Theme.shadow_button()}
+      on_tap={tag}
+    >
+      {Kati.UI.symbol(icon, size: 21)}
+    </MishkaActionIcon>
+    """
   end
 
   @doc false
@@ -2056,14 +2055,16 @@ defmodule Kati.Screens.Library do
   """
   @spec progress(float()) :: map()
   def progress(fraction) do
-    MishkaProgress.progress(
-      render: :box,
-      value: fraction,
-      max: 1,
-      height: 4,
-      color: Palette.accent(),
-      track_color: Palette.track_ink()
-    )
+    ~MOB"""
+    <MishkaProgress
+      render={:box}
+      value={fraction}
+      max={1}
+      height={4}
+      color={Palette.accent()}
+      track_color={Palette.track_ink()}
+    />
+    """
   end
 
   @impl true

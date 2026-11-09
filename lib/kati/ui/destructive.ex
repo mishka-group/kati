@@ -27,7 +27,6 @@ defmodule Kati.UI.Destructive do
 
   import Mob.Sigil
 
-  alias Kati.Components.MishkaPill
   alias Kati.Theme.Palette
 
   @doc """
@@ -94,31 +93,28 @@ defmodule Kati.UI.Destructive do
   @doc false
   @spec confirm_button(String.t(), term()) :: map()
   def confirm_button(label, tap) do
-    assigns = %{label: label}
+    assigns = %{label: label, tap: tap}
 
-    MishkaPill.pill(
-      [
-        height: 38,
-        corner_radius: 19,
-        background: Palette.ink_fill(),
-        padding: 0,
-        padding_left: 16,
-        padding_right: 16,
-        align: :center,
-        on_tap: tap
-      ],
-      [
-        ~MOB"""
-        <Text
-          text={@label}
-          text_size={12.5}
-          font_weight="bold"
-          text_color={Palette.on_ink()}
-          max_lines={1}
-        />
-        """
-      ]
-    )
+    ~MOB"""
+    <MishkaPill
+      height={38}
+      corner_radius={19}
+      background={Palette.ink_fill()}
+      padding={0}
+      padding_left={16}
+      padding_right={16}
+      align={:center}
+      on_tap={@tap}
+    >
+      <Text
+        text={@label}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={Palette.on_ink()}
+        max_lines={1}
+      />
+    </MishkaPill>
+    """
   end
 
   @doc false

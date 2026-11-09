@@ -196,8 +196,6 @@ defmodule Kati.Screens.Rating do
 
   require Ash.Query
 
-  alias Kati.Components.MishkaCloseButton
-  alias Kati.Components.MishkaPill
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
@@ -1228,17 +1226,18 @@ defmodule Kati.Screens.Rating do
   the enclosing Box centres the same rectangle it centred before.
   """
   def close_disc(tap) do
-    MishkaCloseButton.close_button(
-      %{
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Kati.Theme.shadow_button(),
-        on_tap: tap
-      },
-      [Kati.UI.symbol("close", size: 21)]
-    )
+    ~MOB"""
+    <MishkaCloseButton
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_button()}
+      on_tap={tap}
+    >
+      {Kati.UI.symbol("close", size: 21)}
+    </MishkaCloseButton>
+    """
   end
 
   @doc """
@@ -1264,20 +1263,22 @@ defmodule Kati.Screens.Rating do
   and its label would both have been near-black.
   """
   def save_pill(tap) do
-    MishkaPill.pill(
-      label: gettext("Save"),
-      background: Palette.ink_fill(),
-      color: Palette.on_ink(),
-      height: 38,
-      corner_radius: 19,
-      padding: 0,
-      padding_left: 16,
-      padding_right: 16,
-      text_size: 13,
-      font_weight: :bold,
-      align: :center,
-      on_tap: tap
-    )
+    ~MOB"""
+    <MishkaPill
+      label={gettext("Save")}
+      background={Palette.ink_fill()}
+      color={Palette.on_ink()}
+      height={38}
+      corner_radius={19}
+      padding={0}
+      padding_left={16}
+      padding_right={16}
+      text_size={13}
+      font_weight={:bold}
+      align={:center}
+      on_tap={tap}
+    />
+    """
   end
 
   @doc """
@@ -1399,19 +1400,23 @@ defmodule Kati.Screens.Rating do
     """
 
     gap = ~MOB"<Spacer size={5} />"
+    assigns = %{text: text, gap: gap}
 
-    MishkaPill.pill(
-      %{
-        background: Palette.paper(),
-        height: 24,
-        corner_radius: 12,
-        padding: 0,
-        padding_left: 10,
-        padding_right: 10,
-        align: :center
-      },
-      [Kati.UI.symbol("replay", size: 13, color: Palette.sub()), gap, text]
-    )
+    ~MOB"""
+    <MishkaPill
+      background={Palette.paper()}
+      height={24}
+      corner_radius={12}
+      padding={0}
+      padding_left={10}
+      padding_right={10}
+      align={:center}
+    >
+      {Kati.UI.symbol("replay", size: 13, color: Palette.sub())}
+      {@gap}
+      {@text}
+    </MishkaPill>
+    """
   end
 
   @doc """
@@ -2228,38 +2233,46 @@ defmodule Kati.Screens.Rating do
 
   @doc false
   def choice(label, tag, on?) do
-    MishkaPill.pill(
-      label: label,
-      background: if(on?, do: Palette.ink_fill(), else: Palette.paper()),
-      color: if(on?, do: Palette.on_ink(), else: Palette.eyebrow()),
-      height: 28,
-      corner_radius: 14,
-      padding: 0,
-      padding_left: 12,
-      padding_right: 12,
-      text_size: 11.5,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: {self(), String.to_atom(tag)}
-    )
+    assigns = %{label: label, on?: on?, tap: {self(), String.to_atom(tag)}}
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      background={if(@on?, do: Palette.ink_fill(), else: Palette.paper())}
+      color={if(@on?, do: Palette.on_ink(), else: Palette.eyebrow())}
+      height={28}
+      corner_radius={14}
+      padding={0}
+      padding_left={12}
+      padding_right={12}
+      text_size={11.5}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   @doc false
   def commit_pill(label, tag) do
-    MishkaPill.pill(
-      label: label,
-      background: Palette.ink_fill(),
-      color: Palette.on_ink(),
-      height: 34,
-      corner_radius: 17,
-      padding: 0,
-      padding_left: 15,
-      padding_right: 15,
-      text_size: 12,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: {self(), tag}
-    )
+    assigns = %{label: label, tap: {self(), tag}}
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      background={Palette.ink_fill()}
+      color={Palette.on_ink()}
+      height={34}
+      corner_radius={17}
+      padding={0}
+      padding_left={15}
+      padding_right={15}
+      text_size={12}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   # Row, not a wrapping field: the four chips measure ~315 inside the 360pt
@@ -2400,20 +2413,24 @@ defmodule Kati.Screens.Rating do
 
   @doc false
   def suggestion(label) do
-    MishkaPill.pill(
-      label: label,
-      background: Palette.paper(),
-      color: Palette.eyebrow(),
-      height: 26,
-      corner_radius: 13,
-      padding: 0,
-      padding_left: 11,
-      padding_right: 11,
-      text_size: 11,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: {self(), String.to_atom("use_tag_" <> label)}
-    )
+    assigns = %{label: label, tap: {self(), String.to_atom("use_tag_" <> label)}}
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      background={Palette.paper()}
+      color={Palette.eyebrow()}
+      height={26}
+      corner_radius={13}
+      padding={0}
+      padding_left={11}
+      padding_right={11}
+      text_size={11}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   # `pgettext/2` rather than a bare `Add`: the catalogue already holds `Add a
@@ -2450,24 +2467,31 @@ defmodule Kati.Screens.Rating do
   card. A chip cannot draw one, so a chip is not what this is.
   """
   def tag(label, live? \\ false) do
-    MishkaPill.pill(
+    assigns = %{
       label: label,
       # Tapping a tag removes it, which is the only gesture a token this size
       # can carry and the one every tag field in the world uses. Over the
       # drawing it carries none: `nil` is not tappable rather than broken.
-      on_tap: if(live?, do: {self(), String.to_atom("drop_tag_" <> label)}),
-      background: Palette.card(),
-      color: Palette.ink_soft(),
-      shadow: Kati.Theme.shadow_card_soft(),
-      height: 30,
-      corner_radius: 15,
-      padding: 0,
-      padding_left: 13,
-      padding_right: 13,
-      text_size: 12,
-      font_weight: :semibold,
-      align: :center
-    )
+      tap: if(live?, do: {self(), String.to_atom("drop_tag_" <> label)})
+    }
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      on_tap={@tap}
+      background={Palette.card()}
+      color={Palette.ink_soft()}
+      shadow={Kati.Theme.shadow_card_soft()}
+      height={30}
+      corner_radius={15}
+      padding={0}
+      padding_left={13}
+      padding_right={13}
+      text_size={12}
+      font_weight={:semibold}
+      align={:center}
+    />
+    """
   end
 
   @doc """
@@ -2488,29 +2512,26 @@ defmodule Kati.Screens.Rating do
   `border_width`.
   """
   def add_tag(live? \\ false) do
-    tap = if live?, do: {self(), :add_tag}
+    assigns = %{tap: if(live?, do: {self(), :add_tag})}
 
-    MishkaPill.pill(
-      # The `+` stays inside the msgid rather than being prefixed to a
-      # translated word: it is part of the affordance's name, and which side of
-      # the word it sits on is the bidi algorithm's answer rather than this
-      # file's — `+ برچسب` puts it at the start of the line, which under `rtl`
-      # is the right-hand edge, exactly where the Latin chip has it.
-      label: pgettext("the chip that opens the tag field", "+ tag"),
-      background: :transparent,
-      color: Palette.eyebrow(),
-      border_color: Palette.border_strong(),
-      border_width: 1.5,
-      height: 30,
-      corner_radius: 15,
-      padding: 0,
-      padding_left: 12,
-      padding_right: 12,
-      text_size: 12,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: tap
-    )
+    ~MOB"""
+    <MishkaPill
+      label={pgettext("the chip that opens the tag field", "+ tag")}
+      background={:transparent}
+      color={Palette.eyebrow()}
+      border_color={Palette.border_strong()}
+      border_width={1.5}
+      height={30}
+      corner_radius={15}
+      padding={0}
+      padding_left={12}
+      padding_right={12}
+      text_size={12}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}

@@ -109,8 +109,6 @@ defmodule Kati.Screens.Series do
   # here builds a `filter` expression. The one filter this screen needs — the
   # cache row a tracked title points at — is `Kati.Media.Release.cached_for/1`,
   # which is where that value-pair lookup already lives.
-  alias Kati.Components.MishkaActionIcon
-  alias Kati.Components.MishkaProgress
   alias Kati.Media.CachedEpisode
   alias Kati.Media.CachedSeason
   alias Kati.Media.CachedTitle
@@ -1617,17 +1615,18 @@ defmodule Kati.Screens.Series do
   @doc false
   def more_disc(fill, lift, menu?, s \\ %{}) do
     trigger =
-      MishkaActionIcon.action_icon(
-        [
-          size: 42,
-          shape: :circle,
-          variant: :filled,
-          background: fill,
-          shadow: lift,
-          on_tap: :toggle_menu
-        ],
-        [Kati.UI.symbol("more_horiz", size: 21)]
-      )
+      ~MOB"""
+      <MishkaActionIcon
+        size={42}
+        shape={:circle}
+        variant={:filled}
+        background={fill}
+        shadow={lift}
+        on_tap={:toggle_menu}
+      >
+        {Kati.UI.symbol("more_horiz", size: 21)}
+      </MishkaActionIcon>
+      """
 
     # The drawing puts a ⋯ here and never draws what it opens; three screens
     # were stranded behind it. `on_tap` used to go straight to screen 35, which
@@ -1830,15 +1829,17 @@ defmodule Kati.Screens.Series do
   """
   @spec season_bar(float()) :: map()
   def season_bar(pct) do
-    MishkaProgress.progress(
-      render: :box,
-      value: pct,
-      max: 1,
-      height: 6,
-      corner_radius: 3,
-      color: Palette.ink(),
-      track_color: Palette.track()
-    )
+    ~MOB"""
+    <MishkaProgress
+      render={:box}
+      value={pct}
+      max={1}
+      height={6}
+      corner_radius={3}
+      color={Palette.ink()}
+      track_color={Palette.track()}
+    />
+    """
   end
 
   # `test/design/screens/04.html:33` draws this button as `onClick="{{ markNext
@@ -1948,17 +1949,18 @@ defmodule Kati.Screens.Series do
   # behind it.
   @doc false
   def action_disc(icon, tap \\ nil, ink \\ nil) do
-    MishkaActionIcon.action_icon(
-      [
-        size: 46,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Theme.shadow_card_soft(),
-        on_tap: tap
-      ],
-      [Kati.UI.symbol(icon, size: 19, color: ink, fill: ink != nil)]
-    )
+    ~MOB"""
+    <MishkaActionIcon
+      size={46}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Theme.shadow_card_soft()}
+      on_tap={tap}
+    >
+      {Kati.UI.symbol(icon, size: 19, color: ink, fill: ink != nil)}
+    </MishkaActionIcon>
+    """
   end
 
   @doc """
