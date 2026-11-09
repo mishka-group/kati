@@ -29,6 +29,8 @@ defmodule Kati.Components.MishkaScrollArea do
   |------|--------|---------|---------|
   | `orientation` | `:vertical` `:horizontal` | `:vertical` | Scroll axis. |
   | `height` | number | `nil` | Viewport height. Required for a vertical scroller to scroll at all. |
+  | `lazy` | boolean | `false` | Let Mob's lazy list compose only the rows on screen. |
+  | `on_end_reached` | event tag | — | Sent when a lazy list reaches its end. |
   | `id` | string | `nil` | Registers the scroller so it can be scrolled by id. |
   | `background` | color token / ARGB int | `nil` | Viewport fill. |
   | `padding` | spacing token / number | `nil` | Padding inside the viewport. |
@@ -56,6 +58,8 @@ defmodule Kati.Components.MishkaScrollArea do
 
   import Mob.Sigil
 
+  alias Kati.Components.Event
+
   @doc "Composite expander (`<MishkaScrollArea>`). Children are the content."
   @spec expand(map(), [map()], map()) :: map()
   def expand(props, children, _ctx), do: scroll_area(props, children)
@@ -71,7 +75,9 @@ defmodule Kati.Components.MishkaScrollArea do
     props = Map.new(props)
 
     axis =
-      if (Map.get(props, :orientation) || :vertical) == :horizontal, do: "horizontal", else: nil
+      if Map.get(props, :orientation) in [:horizontal, "horizontal"],
+        do: "horizontal",
+        else: nil
 
     scroller =
       ~MOB"""
@@ -81,6 +87,8 @@ defmodule Kati.Components.MishkaScrollArea do
       """
       |> put(:axis, axis)
       |> put(:id, Map.get(props, :id))
+      |> put(:lazy, Map.get(props, :lazy))
+      |> put(:on_end_reached, Event.handler(Map.get(props, :on_end_reached)))
 
     wrap(scroller, props)
   end

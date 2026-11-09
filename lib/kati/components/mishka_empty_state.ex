@@ -42,6 +42,7 @@ defmodule Kati.Components.MishkaEmptyState do
   | `title_size` | text token / number | `:xl` | Heading size. |
   | `title_weight` | `:regular`, `:medium`, `:semibold`, `:bold`, … | unset | Heading weight. |
   | `title_line_height` | number | unset | Multiplier of `title_size`. |
+  | `title_letter_spacing` | number (sp) | unset | Tracking on the heading. |
   | `description` | string | `nil` | Supporting text. |
   | `align` | `:center` `:leading` `:left` | `:center` | Indicator above and centred, beside, or above and left-aligned. |
   | `indicator` | string | `nil` | A glyph or emoji shown above/beside the text. |
@@ -289,6 +290,7 @@ defmodule Kati.Components.MishkaEmptyState do
     %{}
     |> maybe(:font_weight, Map.get(props, :title_weight))
     |> maybe(:line_height, Map.get(props, :title_line_height))
+    |> maybe(:letter_spacing, Map.get(props, :title_letter_spacing))
   end
 
   # Uniform padding unless the caller names an edge. An edge-only call writes

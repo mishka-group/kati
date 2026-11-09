@@ -34,12 +34,15 @@ defmodule Kati.Components.MishkaRating do
   | `color` | color token / ARGB int | `:primary` | Full and half fill. |
   | `empty_color` | color token / ARGB int | `color` | The outline under an empty or half cell. |
   | `half` | boolean | `true` | Draw the half step when the value has one. |
+  | `tap_tags` | list of atoms | unset | One tag per half step, left then right — makes each cell report `{:tap, tag}`. |
   | `id` | string | unset | Native testTag on the row. |
 
   Children are ignored; the row is data.
   """
 
   import Mob.Sigil
+
+  alias Kati.Components.Event
 
   @doc "Composite expander (`<MishkaRating />`). Delegates to `rating/1`."
   @spec expand(map(), [map()], map()) :: map()
@@ -64,15 +67,22 @@ defmodule Kati.Components.MishkaRating do
 
     full = trunc(value)
     half_star? = half? and value - full >= 0.5
+    tags = Map.get(props, :tap_tags)
 
     cells =
       1..max
       |> Enum.map(fn i ->
-        cond do
-          i <= full -> star(:full, size, color, empty_color)
-          i == full + 1 and half_star? -> star(:half, size, color, empty_color)
-          true -> star(:empty, size, color, empty_color)
-        end
+        star(
+          cond do
+            i <= full -> :full
+            i == full + 1 and half_star? -> :half
+            true -> :empty
+          end,
+          size,
+          color,
+          empty_color
+        )
+        |> tappable(tags, i, size)
       end)
       |> Enum.intersperse(gap_node(gap))
 
@@ -106,6 +116,38 @@ defmodule Kati.Components.MishkaRating do
   end
 
   defp gap_node(gap), do: %{type: :box, props: %{width: gap, height: 1}, children: []}
+
+  # A tappable cell is the glyph with two invisible half-width targets over it,
+  # laid out exactly as `Kati.Screens.Rating` drew them before this component
+  # carried them: the targets sit last so Compose hit-tests them first, and the
+  # wrapper centres them on the taller glyph box.
+  defp tappable(node, nil, _index, _size), do: node
+
+  defp tappable(node, tags, index, size) do
+    left = Event.handler(Enum.at(tags, index * 2 - 2))
+    right = Event.handler(Enum.at(tags, index * 2 - 1))
+
+    %{
+      type: :box,
+      props: %{fill_width: false, align: :center},
+      children: [
+        node,
+        %{
+          type: :row,
+          props: %{width: size, height: size},
+          children: [
+            target(size / 2, size, left),
+            target(size / 2, size, right)
+          ]
+        }
+      ]
+    }
+  end
+
+  defp target(width, height, handler) do
+    %{type: :box, props: %{width: width, height: height}, children: []}
+    |> put(:on_tap, handler)
+  end
 
   defp put(node, _key, nil), do: node
   defp put(node, key, value), do: %{node | props: Map.put(node.props, key, value)}
