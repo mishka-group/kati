@@ -54,6 +54,7 @@ defmodule Kati.UI.Sheet do
 
   import Mob.Sigil
 
+  alias Kati.Components.MishkaPill
   alias Kati.Theme.Palette
 
   @doc """
@@ -194,27 +195,38 @@ defmodule Kati.UI.Sheet do
   def commit(label, tag, face \\ Kati.Locale.face_prop()) do
     assigns = %{label: label, tag: tag, face: face}
 
-    ~MOB"""
-    <Row
-      fill_width={true}
-      height={54}
-      corner_radius={27}
-      background={Palette.ink_fill()}
-      align="center"
-      on_tap={{self(), @tag}}
-    >
-      <Spacer weight={1.0} />
-      <Text
-        text={@label}
-        font_family={@face}
-        text_size={14.5}
-        font_weight="bold"
-        text_color={Palette.on_ink()}
-        max_lines={1}
-      />
-      <Spacer weight={1.0} />
-    </Row>
-    """
+    # Mishka's Pill carrying the sheet's one completion. `padding: 0` plus the
+    # content row filling is what keeps the label centred: the pill's own rows
+    # hug, so the two weighted Spacers only have space to share once
+    # `content_fill_width` puts the leftover width into the wrapper row. The
+    # root Box keeps the Row's geometry — 54 tall, radius 27, ink fill — and
+    # `align: :center` is the Row's vertical centring under another name.
+    MishkaPill.pill(
+      [
+        fill_width: true,
+        height: 54,
+        corner_radius: 27,
+        background: Palette.ink_fill(),
+        padding: 0,
+        align: :center,
+        content_fill_width: true,
+        on_tap: {self(), tag}
+      ],
+      [
+        ~MOB"<Spacer weight={1.0} />",
+        ~MOB"""
+        <Text
+          text={@label}
+          font_family={@face}
+          text_size={14.5}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
+        """,
+        ~MOB"<Spacer weight={1.0} />"
+      ]
+    )
   end
 
   @doc """

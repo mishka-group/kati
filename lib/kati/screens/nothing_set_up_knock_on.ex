@@ -234,7 +234,7 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
     # whose ascenders and descenders are not Plus Jakarta's.
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         fill_width={true}
         background={Palette.card()}
         corner_radius={20}
@@ -257,7 +257,7 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
         </Row>
         <Spacer size={14} />
         {Kati.Screens.NothingSetUpKnockOn.my_services_button(40, 12.5, tag)}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -279,9 +279,9 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
   @spec prompt_tile() :: map()
   def prompt_tile do
     ~MOB"""
-    <Box width={40} height={40} corner_radius={12} background={Palette.paper()} align="center">
+    <MishkaThemeIcon variant={:filled} color={Palette.paper()} size={40} radius={12}>
       {UI.symbol("subscriptions", size: 19, color: Palette.rail_idle())}
-    </Box>
+    </MishkaThemeIcon>
     """
   end
 
@@ -388,24 +388,27 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
     tap = {self(), tag}
 
     ~MOB"""
-    <Row
+    <MishkaPill
       fill_width={true}
       height={height}
       corner_radius={radius}
       background={Palette.ink_fill()}
+      padding={0}
       align="center"
       on_tap={tap}
     >
-      <Spacer weight={1.0} />
-      <Text
-        text={gettext("My services")}
-        text_size={text_size}
-        font_weight="bold"
-        text_color={Palette.on_ink()}
-        max_lines={1}
-      />
-      <Spacer weight={1.0} />
-    </Row>
+      <Row fill_width={true} height={height} align="center">
+        <Spacer weight={1.0} />
+        <Text
+          text={gettext("My services")}
+          text_size={text_size}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
+        <Spacer weight={1.0} />
+      </Row>
+    </MishkaPill>
     """
   end
 

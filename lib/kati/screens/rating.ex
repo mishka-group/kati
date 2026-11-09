@@ -1763,7 +1763,7 @@ defmodule Kati.Screens.Rating do
     right = {self(), Kati.Screens.Rating.star_tag(index * 2)}
 
     ~MOB"""
-    <Box fill_width={false}>
+    <Box fill_width={false} align="center">
       {glyph}
       <Row width={26} height={26}>
         <Box width={13} height={26} on_tap={left} />
@@ -1843,11 +1843,19 @@ defmodule Kati.Screens.Rating do
   # leaves measurement alone — so the two glyphs occupy one star's width, sit
   # in the same line box as their four neighbours, and 4.5 reads as four and a
   # half rather than as five.
+  #
+  # The Box carries the star's WIDTH and no height. A fixed `height` was the
+  # half star's own defect: the glyph's line box is taller than the square
+  # (Material Symbols' ascent + descent at 26 is ~31dp), so a 26dp cell was
+  # centred by the Row while its Text was laid out from the top of a squashed
+  # box — the half star's baseline landed ~2.5dp below its neighbours' and the
+  # glyph visibly dropped. Width is what the 50% crop needs; height must hug
+  # the line box, exactly as a bare star Text does.
   def star(:half) do
     ~MOB"""
-    <Box width={26} height={26}>
+    <Box width={26}>
       {Kati.UI.symbol("star", size: 26, color: Palette.sub())}
-      <Box width={26} height={26} clip_width={0.5}>
+      <Box width={26} clip_width={0.5}>
         {Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)}
       </Box>
     </Box>
