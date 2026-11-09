@@ -140,7 +140,6 @@ defmodule Kati.Components.MishkaLoadingOverlay do
   # bar: a loading overlay with nothing to report is a covered screen, and the
   # bar is chrome behind a caption rather than a claim about progress. A caller
   # that knows a fraction should pass one through rather than reach for this.
-  # KATI-STYLED: keep this edit when regenerating from Chelekom.
   @indeterminate_stand_in 1.0
 
   defp body(props, []) do
