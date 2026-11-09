@@ -39,6 +39,10 @@ mob.exs
 android/local.properties
 
 # ── Android build output ────────────────────────────────────────────────
+# Android Studio's project metadata, recreated by the IDE on demand.
+android/.idea/
+# Written by Gradle when Android Studio selects a daemon JVM.
+android/gradle/gradle-daemon-jvm.properties
 android/.gradle/
 android/build/
 android/app/build/
