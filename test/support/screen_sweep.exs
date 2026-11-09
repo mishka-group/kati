@@ -390,7 +390,8 @@ defmodule Kati.ScreenSweep do
   @spec render(module()) :: {:ok, Mob.Socket.t(), term()} | {:error, String.t()}
   def render(module) do
     with {:ok, socket} <- mount(module),
-         {:ok, tree} <- safely(fn -> module.render(socket.assigns) end) do
+         {:ok, tree} <-
+           safely(fn -> module.render(socket.assigns) |> Mob.Composite.expand(self()) end) do
       {:ok, socket, tree}
     end
   end

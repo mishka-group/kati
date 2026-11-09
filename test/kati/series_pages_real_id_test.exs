@@ -81,6 +81,7 @@ defmodule Kati.SeriesPagesRealIdTest do
 
     socket.assigns
     |> module.render()
+    |> Mob.Composite.expand(self())
     |> find_all(:text)
     |> Enum.map(&(&1.props[:text] || ""))
     |> Enum.reject(&(&1 == ""))

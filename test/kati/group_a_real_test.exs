@@ -182,7 +182,7 @@ defmodule Kati.GroupARealTest do
   defp render(module, params) do
     Kati.Locale.activate()
     {:ok, socket} = module.mount(params, %{}, Mob.Socket.new(module))
-    module.render(socket.assigns)
+    module.render(socket.assigns) |> Mob.Composite.expand(self())
   end
 
   defp honest_sentences do

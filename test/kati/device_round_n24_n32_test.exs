@@ -338,6 +338,8 @@ defmodule Kati.DeviceRoundN24N32Test do
 
   defp texts(view_or_tree) do
     view_or_tree
+    |> tree()
+    |> Mob.Composite.expand(self())
     |> flatten()
     |> Enum.flat_map(fn node ->
       case Map.get(node, :props) || %{} do
@@ -349,7 +351,7 @@ defmodule Kati.DeviceRoundN24N32Test do
 
   defp star_census(tree) do
     star = Kati.Icons.glyph!("star")
-    nodes = flatten(tree)
+    nodes = tree |> Mob.Composite.expand(self()) |> flatten()
     stars = Enum.filter(nodes, &(Map.get(&1.props || %{}, :text) == star))
 
     %{
