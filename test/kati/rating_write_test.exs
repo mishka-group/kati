@@ -103,7 +103,7 @@ defmodule Kati.RatingWriteTest do
   end
 
   defp tap_tags(tree) do
-    for node <- flatten(tree),
+    for node <- tree |> tree() |> Mob.Composite.expand(self()) |> flatten(),
         {_pid, tag} <- [Map.get(node.props || %{}, :on_tap)],
         is_atom(tag),
         do: tag

@@ -314,8 +314,10 @@ defmodule Kati.GroupBRealTest do
     assert leaked == [], "board words reached a reader's screen: #{inspect(leaked)}"
   end
 
+  defp expanded(view), do: view |> tree() |> Mob.Composite.expand(self())
+
   defp strings(view) do
-    for node <- flatten(view),
+    for node <- flatten(expanded(view)),
         key <- [:text, :placeholder, :label, :value],
         value = Map.get(node.props || %{}, key),
         is_binary(value),
@@ -324,12 +326,13 @@ defmodule Kati.GroupBRealTest do
 
   defp text_nodes(view) do
     view
+    |> expanded()
     |> flatten()
     |> Enum.filter(&(&1.type == :text and is_binary(Map.get(&1.props || %{}, :text))))
   end
 
   defp tap_tags(view) do
-    for node <- flatten(view),
+    for node <- view |> expanded() |> flatten(),
         handler <- [Map.get(node.props || %{}, :on_tap), Map.get(node.props || %{}, :on_change)],
         {_pid, tag} <- [handler],
         is_atom(tag),

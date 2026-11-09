@@ -136,10 +136,12 @@ defmodule Kati.ScreenRatingLogTest do
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 
   # Filled and outlined both: an empty star is an outline since #116.
-  defp stars(tree),
-    do:
-      find_all(tree, :text, font_family: "symbols_filled", text_size: 26) ++
-        find_all(tree, :text, font_family: "symbols", text_size: 26)
+  defp stars(tree) do
+    tree = tree |> tree() |> Mob.Composite.expand(self())
+
+    find_all(tree, :text, font_family: "symbols_filled", text_size: 26) ++
+      find_all(tree, :text, font_family: "symbols", text_size: 26)
+  end
 
   describe "nothing logged" do
     test "the sheet opens empty rather than on somebody else's watch" do
