@@ -73,6 +73,9 @@ defmodule Kati.Components.MishkaSegmentedControl do
   | `leading_size` | text token / number | `text_size` | A string option `leading` glyph's size. |
   | `leading_gap` | number | `6` | Space between a leading glyph and the label. |
   | `leading_family` | font family string | unset (inherited) | A string leading glyph's face. |
+  | `trailing_size` | text token / number | `text_size` | A string option `trailing` glyph's size. |
+  | `trailing_gap` | number | `0` | Space between the label and a trailing glyph. |
+  | `trailing_family` | font family string | unset (inherited) | A string trailing glyph's face. |
   | `heading_size` | text token / number | `:sm` | The `label` heading above the strip. |
   | `heading_color` | color token / ARGB int | `:muted` | That heading's colour. |
   | `heading_weight` | as `font_weight` | unset (regular) | That heading's weight. |
@@ -242,6 +245,7 @@ defmodule Kati.Components.MishkaSegmentedControl do
         label: label,
         disabled: Keyword.get(opts, :disabled, false),
         leading: Keyword.get(opts, :leading),
+        trailing: Keyword.get(opts, :trailing),
         on_tap: Keyword.get(opts, :on_tap)
       },
       children: []
@@ -296,7 +300,7 @@ defmodule Kati.Components.MishkaSegmentedControl do
     fill? = truthy?(Map.get(props, :fill_width, false))
 
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={fill?}>
       {heading(props, label)}
       {track(props, segments, fill?)}
     </Column>
@@ -401,56 +405,82 @@ defmodule Kati.Components.MishkaSegmentedControl do
     |> wire(tap(props, option, disabled?))
   end
 
-  # A leading glyph is painted by the control, so it follows the segment's ink
-  # and size; a node or list the caller supplies keeps its own.
+  # A glyph in either slot is painted by the control, so it follows the
+  # segment's ink and type; a node or list the caller supplies keeps its own.
   defp content(option, props, label, ink) do
-    case Map.get(option, :leading) do
-      nil -> label
-      leading -> leading_row(leading, props, label, ink)
+    leading = Map.get(option, :leading)
+    trailing = Map.get(option, :trailing)
+
+    if is_nil(leading) and is_nil(trailing) do
+      label
+    else
+      content_row(leading, trailing, props, label, ink)
     end
   end
 
-  # A centred segment centres its content the way the drawn strip does: a Row
-  # that fills the segment with a weighted Spacer either side. A hugging Row
-  # centred by the Box lands a fraction of a pixel off, which the text shows.
-  defp leading_row(leading, props, label, ink) do
-    gap = Map.get(props, :leading_gap) || 6
+  # A centred, stretched segment centres its content the way the drawn strip
+  # does: a Row that fills the segment with a weighted Spacer either side. A
+  # hugging Row centred by the Box lands a fraction of a pixel off, which the
+  # text shows. A hugging segment keeps a hugging row.
+  defp content_row(leading, trailing, props, label, ink) do
+    nodes =
+      leading_nodes(leading, props, ink) ++
+        [label] ++ trailing_nodes(trailing, props, ink)
 
-    case Map.get(props, :segment_align) do
-      align when align in [nil, :center, "center"] ->
-        ~MOB"""
-        <Row fill_width={true} align="center">
-          <Spacer weight={1.0} />
-          {leading_node(leading, props, ink)}
-          <Spacer size={gap} />
-          {label}
-          <Spacer weight={1.0} />
-        </Row>
-        """
-
-      _other ->
-        ~MOB"""
-        <Row>
-          {leading_node(leading, props, ink)}
-          <Spacer size={gap} />
-          {label}
-        </Row>
-        """
+    if stretched?(props) do
+      ~MOB"""
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        {nodes}
+        <Spacer weight={1.0} />
+      </Row>
+      """
+    else
+      ~MOB"""
+      <Row>
+        {nodes}
+      </Row>
+      """
     end
   end
 
-  defp leading_node(glyph, props, ink) when is_binary(glyph) do
+  defp stretched?(props),
+    do: Map.has_key?(props, :segment_weight) or Map.has_key?(props, :segment_width)
+
+  defp leading_nodes(nil, _props, _ink), do: []
+
+  defp leading_nodes(leading, props, ink),
+    do: [glyph_node(leading, :leading, props, ink), spacer(Map.get(props, :leading_gap) || 6)]
+
+  defp trailing_nodes(nil, _props, _ink), do: []
+
+  defp trailing_nodes(trailing, props, ink) do
+    case Map.get(props, :trailing_gap) || 0 do
+      0 -> [glyph_node(trailing, :trailing, props, ink)]
+      gap -> [spacer(gap), glyph_node(trailing, :trailing, props, ink)]
+    end
+  end
+
+  defp glyph_node(glyph, side, props, ink) when is_binary(glyph) do
     ~MOB"""
     <Text
       text={glyph}
-      text_size={Map.get(props, :leading_size) || Map.get(props, :text_size) || :base}
+      text_size={Map.get(props, glyph_size_key(side)) || Map.get(props, :text_size) || :base}
       text_color={ink}
     />
     """
-    |> merge_props(aliased(props, %{leading_family: :font_family}))
+    |> merge_props(aliased(props, %{glyph_family_key(side) => :font_family}))
   end
 
-  defp leading_node(nodes, _props, _ink), do: nodes
+  defp glyph_node(nodes, _side, _props, _ink), do: nodes
+
+  defp glyph_size_key(:leading), do: :leading_size
+  defp glyph_size_key(:trailing), do: :trailing_size
+
+  defp glyph_family_key(:leading), do: :leading_family
+  defp glyph_family_key(:trailing), do: :trailing_family
+
+  defp spacer(size), do: %{type: :spacer, props: %{size: size}, children: []}
 
   # A disabled selection is greyed rather than accented — the same rule the
   # toggle settled on, so a locked control reads as locked instead of live.

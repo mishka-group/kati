@@ -31,6 +31,8 @@ defmodule Kati.Components.MishkaScrollArea do
   | `height` | number | `nil` | Viewport height. Required for a vertical scroller to scroll at all. |
   | `lazy` | boolean | `false` | Let Mob's lazy list compose only the rows on screen. |
   | `on_end_reached` | event tag | — | Sent when a lazy list reaches its end. |
+  | `fill_width` | boolean | unset | The scroller spans its parent. |
+  | `accessibility_id` | string | unset | Native testTag on the scroller. |
   | `id` | string | `nil` | Registers the scroller so it can be scrolled by id. |
   | `background` | color token / ARGB int | `nil` | Viewport fill. |
   | `padding` | spacing token / number | `nil` | Padding inside the viewport. |
@@ -89,6 +91,8 @@ defmodule Kati.Components.MishkaScrollArea do
       |> put(:id, Map.get(props, :id))
       |> put(:lazy, Map.get(props, :lazy))
       |> put(:on_end_reached, Event.handler(Map.get(props, :on_end_reached)))
+      |> put(:fill_width, Map.get(props, :fill_width))
+      |> put(:accessibility_id, Map.get(props, :accessibility_id))
 
     wrap(scroller, props)
   end
