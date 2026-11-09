@@ -99,7 +99,7 @@ defmodule Kati.Screens.Rating do
   below is where a cursor lands when a line ends exactly at its edge. It was a
   picture of a caret in front of nothing that could type.
 
-  The body is a `<TextField>`, so the caret is real and the drawn one is gone.
+  The body is a `<MishkaTextInput>`, so the caret is real and the drawn one is gone.
   Two carets would have been one too many, and the drawn one is the one that
   cannot move.
 
@@ -1021,7 +1021,7 @@ defmodule Kati.Screens.Rating do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
-      <Scroll>
+      <MishkaScrollArea>
         <Column
           fill_width={true}
           padding_left={21}
@@ -1036,7 +1036,7 @@ defmodule Kati.Screens.Rating do
           {Kati.Screens.Rating.body(w, save_error)}
           {Kati.Screens.Rating.rewatch_door(is_binary(Map.get(assigns, :watch_id)))}
         </Column>
-      </Scroll>
+      </MishkaScrollArea>
     </Box>
     """
   end
@@ -1157,14 +1157,16 @@ defmodule Kati.Screens.Rating do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={18} />
-      <Row
+      <MishkaPill
         fill_width={true}
         height={44}
         corner_radius={22}
         background={Palette.card()}
         border_width={1}
         border_color={Palette.border()}
+        padding={0}
         align="center"
+        content_fill_width={true}
         on_tap={{self(), :log_rewatch}}
       >
         <Spacer weight={1.0} />
@@ -1178,7 +1180,7 @@ defmodule Kati.Screens.Rating do
           max_lines={1}
         />
         <Spacer weight={1.0} />
-      </Row>
+      </MishkaPill>
     </Column>
     """
   end
@@ -1456,7 +1458,7 @@ defmodule Kati.Screens.Rating do
   def rating_card(w) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         fill_width={true}
         background={Palette.card()}
         corner_radius={22}
@@ -1496,7 +1498,7 @@ defmodule Kati.Screens.Rating do
           text_color={Palette.muted()}
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1519,15 +1521,38 @@ defmodule Kati.Screens.Rating do
   def scale_toggle(live? \\ false) do
     active = Kati.Rating.Scale.current()
 
-    tiles =
+    options =
       scale_options()
-      |> Enum.map(&Kati.Screens.Rating.scale(Map.put(&1, :on, &1.scale == active), live?))
-      |> Enum.intersperse(Kati.Screens.Rating.scale_gap())
+      |> Enum.map(fn option ->
+        Kati.Components.MishkaSegmentedControl.option(option.scale, option.label,
+          trailing: if(option.star, do: Kati.Icons.glyph!("star")),
+          on_tap: if(live?, do: scale_tap(Map.get(option, :key, option.label)))
+        )
+      end)
 
     ~MOB"""
-    <Row background={Palette.paper()} corner_radius={11} padding={3} align="center">
-      {tiles}
-    </Row>
+    <MishkaSegmentedControl
+      value={active}
+      background={Palette.paper()}
+      corner_radius={11}
+      track_padding={3}
+      segment_gap={3}
+      segment_height={24}
+      segment_radius={8}
+      padding={0}
+      padding_left={10}
+      padding_right={10}
+      text_size={10.5}
+      font_weight={:semibold}
+      color={Palette.card()}
+      text_color={:on_surface}
+      label_color={Palette.eyebrow()}
+      selected_shadow="0 1 2 0 #1F1A1917"
+      trailing_size={11}
+      trailing_family="symbols_filled"
+    >
+      {options}
+    </MishkaSegmentedControl>
     """
   end
 
@@ -1556,70 +1581,6 @@ defmodule Kati.Screens.Rating do
     ]
   end
 
-  @doc false
-  def scale_gap, do: ~MOB"<Spacer size={3} />"
-
-  # Both tiles keep their tap, the lit one included, for the reason screen 35's
-  # status tiles and screen 34's order tiles do: pressing the scale you are
-  # already on is how somebody checks which one that is, and a tile that goes
-  # dead once chosen stops answering exactly when it is pressed to be sure.
-  @doc false
-  def scale(option, live? \\ false)
-
-  def scale(%{on: true} = option, live?) do
-    assigns = %{
-      tap: if(live?, do: Kati.Screens.Rating.scale_tap(Map.get(option, :key, option.label)))
-    }
-
-    ~MOB"""
-    <Row
-      height={24}
-      corner_radius={8}
-      background={Palette.card()}
-      shadow="0 1 2 0 #1F1A1917"
-      padding_left={10}
-      padding_right={10}
-      align="center"
-      on_tap={@tap}
-    >
-      <Text
-        text={option.label}
-        text_size={10.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
-      {Kati.Screens.Rating.scale_star(option.star, Palette.ink())}
-    </Row>
-    """
-  end
-
-  def scale(option, live?) do
-    assigns = %{
-      tap: if(live?, do: Kati.Screens.Rating.scale_tap(Map.get(option, :key, option.label)))
-    }
-
-    ~MOB"""
-    <Row
-      height={24}
-      corner_radius={8}
-      padding_left={10}
-      padding_right={10}
-      align="center"
-      on_tap={@tap}
-    >
-      <Text
-        text={option.label}
-        text_size={10.5}
-        font_weight="semibold"
-        text_color={Palette.eyebrow()}
-        max_lines={1}
-      />
-      {Kati.Screens.Rating.scale_star(option.star, Palette.eyebrow())}
-    </Row>
-    """
-  end
-
   @doc """
   A scale tile's tap, keyed by the tile's `key` — see `scale_options/0`.
 
@@ -1635,15 +1596,6 @@ defmodule Kati.Screens.Rating do
   def scale_from("5"), do: :stars
   def scale_from("10pt"), do: :points
   def scale_from(_other), do: nil
-
-  @doc false
-  def scale_star(false, _color), do: ~MOB"<Spacer size={0} />"
-
-  # No gap and no wrapping Row: the drawing's badge is a single text run, `5★`,
-  # and the 1dp Spacer that used to sit between them read as "5 ★". The pill's
-  # own Row is already align="center", so the glyph centres against the numeral
-  # without a second one.
-  def scale_star(true, color), do: Kati.UI.symbol("star", size: 11, color: color, fill: true)
 
   @doc """
   The number beside the stars, in the scale the row draws.
@@ -1763,7 +1715,7 @@ defmodule Kati.Screens.Rating do
   def review_card(w) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         fill_width={true}
         background={Palette.cream()}
         corner_radius={22}
@@ -1796,7 +1748,7 @@ defmodule Kati.Screens.Rating do
             max_lines={1}
           />
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1808,7 +1760,7 @@ defmodule Kati.Screens.Rating do
   It was a `<Text>` and a `<Box>` drawn to look like a caret — a picture of a
   focused input, on the one card in this design that exists to hold the user's
   own words. `Kati.Screens.AddTitle.field/1` records the belief that made that
-  seem reasonable, and it was false: `<TextField>` is in the pinned Mob and
+  seem reasonable, and it was false: `<MishkaTextInput>` is in the pinned Mob and
   `Kati.Screens.Backup` has used it for the passphrase all along.
 
   `accessibility_id` is not decoration. `Mob.Renderer` emits one automatically
@@ -1829,7 +1781,7 @@ defmodule Kati.Screens.Rating do
     change = {self(), :review}
 
     ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={review}
       placeholder={gettext("What did you make of it?")}
       multiline={true}
@@ -1874,10 +1826,16 @@ defmodule Kati.Screens.Rating do
   def spoiler_toggle(nil, false), do: ~MOB"<Spacer size={0} />"
 
   def spoiler_toggle(nil, true) do
-    assigns = %{tap: {self(), :toggle_spoilers}}
-
     ~MOB"""
-    <Row on_tap={@tap}>
+    <MishkaToggle
+      background={:transparent}
+      color={:transparent}
+      border_width={0}
+      padding={0}
+      corner_radius={0}
+      align="center"
+      on_change={:toggle_spoilers}
+    >
       {Kati.UI.symbol("visibility_off", size: 15, color: Palette.eyebrow())}
       <Spacer size={6} />
       <Text
@@ -1887,15 +1845,24 @@ defmodule Kati.Screens.Rating do
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
-    </Row>
+    </MishkaToggle>
     """
   end
 
   def spoiler_toggle(label, live?) do
-    assigns = %{label: label, tap: if(live?, do: {self(), :toggle_spoilers})}
+    assigns = %{label: label}
 
     ~MOB"""
-    <Row on_tap={@tap}>
+    <MishkaToggle
+      pressed={true}
+      background={:transparent}
+      color={:transparent}
+      border_width={0}
+      padding={0}
+      corner_radius={0}
+      align="center"
+      on_change={if(live?, do: :toggle_spoilers)}
+    >
       {Kati.UI.symbol("visibility_off", size: 15, color: Palette.gold_icon())}
       <Spacer size={6} />
       <Text
@@ -1905,7 +1872,7 @@ defmodule Kati.Screens.Rating do
         text_color={Palette.gold_text()}
         max_lines={1}
       />
-    </Row>
+    </MishkaToggle>
     """
   end
 
@@ -1951,7 +1918,18 @@ defmodule Kati.Screens.Rating do
 
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.card(body)}
+      <MishkaCard
+        fill_width={true}
+        background={Kati.Theme.card(Palette.mode())}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_left={15}
+        padding_right={15}
+        padding_top={4}
+        padding_bottom={4}
+      >
+        {Kati.UI.SettingsList.last_unruled(body)}
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -2098,7 +2076,7 @@ defmodule Kati.Screens.Rating do
     assigns = %{draft: draft, change: change}
 
     ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={@draft}
       placeholder={gettext("Who watched with you")}
       return_key="done"
@@ -2115,7 +2093,7 @@ defmodule Kati.Screens.Rating do
     assigns = %{draft: draft, change: change}
 
     ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={@draft}
       placeholder={pgettext("an example of a room a film was watched in", "living room")}
       return_key="done"
@@ -2135,11 +2113,11 @@ defmodule Kati.Screens.Rating do
     assigns = %{chips: Enum.intersperse(chips, ~MOB"<Spacer size={7} />"), id: id}
 
     ~MOB"""
-    <Scroll axis="horizontal" fill_width={true} accessibility_id={@id}>
+    <MishkaScrollArea orientation="horizontal" fill_width={true} accessibility_id={@id}>
       <Row align="center">
         {@chips}
       </Row>
-    </Scroll>
+    </MishkaScrollArea>
     """
   end
 
@@ -2339,7 +2317,7 @@ defmodule Kati.Screens.Rating do
           <Spacer size={10} />
           <Row fill_width={true} align="center">
             <Box weight={1.0}>
-              <TextField
+              <MishkaTextInput
                 value={@draft}
                 placeholder={gettext("rewatch, rainy sunday…")}
                 return_key="done"
