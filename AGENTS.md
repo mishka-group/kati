@@ -52,6 +52,20 @@ verified on device by killing `:mob_screen` and watching it come back.
   card to reflow without truncation. A `width={54}` time gutter wrapped
   "02:19" onto two lines; content-sized, it holds one line at every scale.
 
+## Components first
+
+- **When a Mishka Chelekom component can draw it, use the component tag** —
+  `<MishkaPill>`, `<MishkaCard>`, `<MishkaRating>`, `<MishkaChip>`,
+  `<MishkaScrollArea>` — not hand-built `Row`/`Column`/`Box` markup with the
+  same props. The function form (`MishkaMenu.dropdown/4`, `MishkaChip.chip/1`)
+  is for nodes assembled from data, where a tag cannot be written.
+- **A missing prop is added to the component, not to the call site.** If the
+  design needs a number the component cannot express, add the headless prop
+  there (and carry it upstream to mishka_chelekom); rebuilding the component's
+  tree at the call site is how the two copies drift.
+- Plain Mob nodes remain right for what no component models: layout, text runs,
+  artwork, gradients, and icon glyphs.
+
 ## Deploying
 
 - **`mix mob.deploy` does not sync `priv/`.** A migration change deployed by the
