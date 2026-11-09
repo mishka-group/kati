@@ -125,7 +125,10 @@ pub fn build(b: *std.Build) void {
     // referenced by MobRootView) compiles without editing this template.
     {
         const glob_io = b.graph.io;
-        var mob_ios = b.build_root.handle.openDir(glob_io, b.fmt("{s}/ios", .{mob_dir}), .{ .iterate = true }) catch @panic("mob ios dir not found");
+        // KATI-BEGIN(K-79 zig-sdk) mob_new=0.4.20
+        b.dependOnDirectoryContents(.{ .cwd_relative = b.fmt("{s}/ios", .{mob_dir}) });
+        var mob_ios = std.Io.Dir.openDirAbsolute(glob_io, b.fmt("{s}/ios", .{mob_dir}), .{ .iterate = true }) catch @panic("mob ios dir not found");
+        // KATI-END(K-79 zig-sdk)
         defer mob_ios.close(glob_io);
         var swift_entries = mob_ios.iterate();
         while (swift_entries.next(glob_io) catch @panic("mob ios dir iterate failed")) |entry| {
