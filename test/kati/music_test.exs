@@ -548,7 +548,7 @@ defmodule Kati.MusicTest do
     end
 
     test "the whole sheet renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(LogListen))
+      assert_renderable(mount_screen(LogListen) |> tree() |> Mob.Composite.expand(self()))
     end
   end
 
@@ -711,7 +711,7 @@ defmodule Kati.MusicTest do
       an_album!(an_artist!())
 
       assert Enum.all?(Music.page().listening.bars, &(elem(&1, 0) == 0.0))
-      assert_renderable(mount_screen(Music))
+      assert_renderable(mount_screen(Music) |> tree() |> Mob.Composite.expand(self()))
     end
 
     test "a write on screen 77 acts on the artist it was NAMED, not on the shelf's" do

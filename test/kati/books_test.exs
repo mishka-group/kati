@@ -625,7 +625,7 @@ defmodule Kati.BooksTest do
 
     test "the whole sheet renders a tree the native layer can draw" do
       a_book!()
-      assert_renderable(mount_screen(LogProgress))
+      assert_renderable(mount_screen(LogProgress) |> tree() |> Mob.Composite.expand(self()))
     end
   end
 end
