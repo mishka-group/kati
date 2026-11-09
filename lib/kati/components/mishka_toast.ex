@@ -79,6 +79,7 @@ defmodule Kati.Components.MishkaToast do
   | `close_icon` | string | `"✕"` | Glyph for the dismiss control. |
   | `padding` | spacing token / number | `:space_lg` | Padding around the stack. |
   | `space` | number | `10` | Gap between toasts. |
+  | `id` | string | `nil` | Test tags: `<id>-<toast id>` on a card, `-title` on its title and `-close` on its dismiss control. |
 
   Variants tint the accent bar: `:info` (default), `:success`, `:warning`,
   `:danger`.
@@ -88,6 +89,8 @@ defmodule Kati.Components.MishkaToast do
   and the `<:trigger>` slot, because this viewport is an overlay stretched over
   the whole page; a button inside it would sit under an invisible fill-size Box.
   Put the trigger on the page instead.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/toast
   """
 
   import Mob.Sigil
@@ -211,55 +214,86 @@ defmodule Kati.Components.MishkaToast do
         <Spacer size={12} />
         <Box weight={1}>
           <Column fill_width={true}>
-            {body(toast)}
+            {body(toast, tag(props, toast, "title"))}
           </Column>
         </Box>
-        {close(props, Map.get(toast, :id), close_content)}
+        {close(props, toast, close_content)}
       </Row>
     </Box>
     """
+    |> put(:id, tag(props, toast, nil))
   end
+
+  # A device test can read neither a glyph nor a position, so a viewport given an
+  # `id` tags each card by its toast's id: `<id>-<toast id>`, with `-title` and
+  # `-close` for the parts a test has to measure.
+  defp tag(props, toast, suffix) do
+    case Map.get(props, :id) do
+      nil -> nil
+      id -> [id, Map.get(toast, :id), suffix] |> Enum.reject(&is_nil/1) |> Enum.join("-")
+    end
+  end
+
+  defp put(node, _key, nil), do: node
+  defp put(node, key, value), do: %{node | props: Map.put(node.props, key, value)}
 
   # Content is the body, and title/description stay a header above it — a
   # `<MishkaToastItem title="...">` with children keeps its title rather than
   # silently losing it. Give no title and the content is the whole card, which is
   # the web `<:toast>` slot's own shape.
-  defp body(toast) do
+  defp body(toast, title_tag) do
     content = List.wrap(Map.get(toast, :content, []))
     titled? = is_binary(Map.get(toast, :title)) or is_binary(Map.get(toast, :description))
 
     cond do
-      content == [] -> [text_block(toast)]
-      titled? -> [text_block(toast), ~MOB(<Spacer size={6} />) | content]
+      content == [] -> [text_block(toast, title_tag)]
+      titled? -> [text_block(toast, title_tag), ~MOB(<Spacer size={6} />) | content]
       true -> content
     end
   end
 
-  defp text_block(toast) do
+  defp text_block(toast, title_tag) do
     title = Map.get(toast, :title)
     description = Map.get(toast, :description)
 
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={title} text_size={:base} text_color={:on_surface} :if={is_binary(title)} />
+      {title_text(title, title_tag)}
       <Spacer size={4} :if={is_binary(title) and is_binary(description)} />
       <Text text={description} text_size={:sm} text_color={:muted} :if={is_binary(description)} />
     </Column>
     """
   end
 
-  defp close(props, id, content) do
+  # A list, so a toast with no title contributes no node at all.
+  defp title_text(title, tag) when is_binary(title) do
+    node =
+      ~MOB"""
+      <Text text={title} text_size={:base} text_color={:on_surface} />
+      """
+      |> put(:id, tag)
+
+    [node]
+  end
+
+  defp title_text(_title, _tag), do: []
+
+  defp close(props, toast, content) do
     icon = Map.get(props, :close_icon) || "✕"
+    id = Map.get(toast, :id)
+    close_tag = tag(props, toast, "close")
 
     case Event.handler(Map.get(props, :on_dismiss)) do
       nil ->
         ~MOB(<Row />)
 
-      {pid, tag} when content == [] ->
-        MishkaActionIcon.action_icon(icon: icon, size: 32, on_tap: {pid, {tag, id}})
+      {pid, event} when content == [] ->
+        [icon: icon, size: 32, on_tap: {pid, {event, id}}]
+        |> MishkaActionIcon.action_icon()
+        |> put(:id, close_tag)
 
-      {pid, tag} ->
-        label(content, {pid, {tag, id}})
+      {pid, event} ->
+        content |> label({pid, {event, id}}) |> put(:id, close_tag)
     end
   end
 
@@ -279,4 +313,107 @@ defmodule Kati.Components.MishkaToast do
   @doc false
   @spec slot_types() :: [atom()]
   def slot_types, do: @slot_types
+end
+
+defmodule Kati.Components.MishkaToast.Queue do
+  @moduledoc """
+  The queue behaviour behind `Kati.Components.MishkaToast`, as pure
+  functions over a list of toasts.
+
+  The web component's JS engine owns this: it caps the visible count, drops
+  repeats and auto-dismisses on a timer. None of that is rendering, and a
+  component that started its own timers would fire one per render — so the
+  operations live here and the screen drives them, keeping the toast list in its
+  own assigns where it already belongs.
+
+  A toast is a plain map: `%{id:, title:, description:, variant:, at:,
+  duration:}`. `at` is a monotonic millisecond stamp used only by `expire/3`,
+  and `duration` overrides that call's default for this one toast — matching the
+  per-toast `duration` attr the web component's `<:toast>` slot declares.
+  """
+
+  @doc """
+  Add a toast, newest last.
+
+  Options: `:limit` (keep at most N, dropping the oldest) and `:dedup_key`
+  (a function or atom key; a new toast replaces an existing one with the same
+  key instead of stacking a duplicate).
+
+      iex> alias Kati.Components.MishkaToast.Queue
+      ...> Queue.push([], %{id: 1, title: "Saved"}) |> length()
+      1
+
+      iex> alias Kati.Components.MishkaToast.Queue
+      ...> [%{id: 2}, %{id: 3}] = Queue.push([%{id: 1}, %{id: 2}], %{id: 3}, limit: 2)
+      ...> :ok
+      :ok
+  """
+  @spec push([map()], map(), keyword()) :: [map()]
+  def push(toasts, toast, opts \\ []) do
+    toasts
+    |> dedup(toast, Keyword.get(opts, :dedup_key))
+    |> Kernel.++([toast])
+    |> cap(Keyword.get(opts, :limit))
+  end
+
+  @doc """
+  Remove a toast by id.
+
+      iex> Kati.Components.MishkaToast.Queue.dismiss([%{id: 1}, %{id: 2}], 1)
+      [%{id: 2}]
+  """
+  @spec dismiss([map()], term()) :: [map()]
+  def dismiss(toasts, id), do: Enum.reject(toasts, &(Map.get(&1, :id) == id))
+
+  @doc """
+  Drop every toast that has outlived its duration as of `now`.
+
+  `duration` is the default; a toast carrying its own `:duration` uses that
+  instead, which is how the web component's per-toast `duration` attr ports. Two
+  ways to make a message sticky, both matching the web behaviour: omit `:at`, or
+  give it `duration: 0` — the web engine reads `0` as "disables auto-dismiss".
+
+      iex> alias Kati.Components.MishkaToast.Queue
+      ...> Queue.expire([%{id: 1, at: 0}, %{id: 2, at: 5_000}], 4_000, now: 5_000)
+      [%{id: 2, at: 5000}]
+
+      iex> alias Kati.Components.MishkaToast.Queue
+      ...> queue = [%{id: 1, at: 0, duration: 500}, %{id: 2, at: 0, duration: 0}]
+      ...> Queue.expire(queue, 10_000, now: 1_000)
+      [%{id: 2, at: 0, duration: 0}]
+  """
+  @spec expire([map()], non_neg_integer(), keyword()) :: [map()]
+  def expire(toasts, duration, opts \\ []) do
+    now = Keyword.get_lazy(opts, :now, fn -> System.monotonic_time(:millisecond) end)
+
+    Enum.reject(toasts, fn toast ->
+      case {Map.get(toast, :at), Map.get(toast, :duration) || duration} do
+        {nil, _} -> false
+        {_at, sticky} when not is_integer(sticky) or sticky <= 0 -> false
+        {at, dur} -> now - at >= dur
+      end
+    end)
+  end
+
+  defp dedup(toasts, _toast, nil), do: toasts
+
+  defp dedup(toasts, toast, key) when is_atom(key) do
+    Enum.reject(toasts, &(Map.get(&1, key) != nil and Map.get(&1, key) == Map.get(toast, key)))
+  end
+
+  # Same nil guard as the atom clause. Without it a key function that returns nil
+  # for both toasts — `& &1[:group]` over two toasts with no `:group` — reads
+  # `nil == nil` as a match and silently drops an unrelated message.
+  defp dedup(toasts, toast, fun) when is_function(fun, 1) do
+    key = fun.(toast)
+
+    Enum.reject(toasts, fn existing ->
+      existing_key = fun.(existing)
+      existing_key != nil and existing_key == key
+    end)
+  end
+
+  defp cap(toasts, nil), do: toasts
+  defp cap(toasts, limit) when length(toasts) <= limit, do: toasts
+  defp cap(toasts, limit), do: Enum.take(toasts, -limit)
 end

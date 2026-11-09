@@ -50,6 +50,8 @@ defmodule Kati.Components.MishkaScrollArea do
   An `id` registers the native scroll view so a screen can move it without a
   finger — see `Kati.Components.MishkaScroller.nudge/3`, which is what the
   scroller's arrows call.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/scroll-area
   """
 
   import Mob.Sigil

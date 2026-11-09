@@ -71,6 +71,8 @@ defmodule Kati.Components.MishkaCheckboxGroup do
 
   Not ported: `name` (form plumbing), the `*_class` attrs, and the
   `indicator_icon` slot — the tick and dash are drawn by the Checkbox.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/checkbox-group
   """
 
   import Mob.Sigil

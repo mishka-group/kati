@@ -38,6 +38,15 @@ defmodule Kati.App do
     Kati.Runtime.configure()
     trace("configure")
 
+    # Composite tags (`<MishkaPill …>` in `~MOB`) are registered at runtime, so
+    # this must run before the root screen renders. It costs ~245ms of cold
+    # start — the number that kept it off the boot path while every call was a
+    # direct function call — and is now paid because markup uses the tags.
+    # `Kati.ComponentsTest` asserts both halves: every module is registered, and
+    # markup that uses a tag has this call at boot.
+    Kati.Components.register_all()
+    trace("components")
+
     # Re-point the stack root now that `Mob.State` is running.
     #
     # A fresh install has to run the first-run sequence — screens 53, 26 and
@@ -170,21 +179,12 @@ defmodule Kati.App do
         Kati.Import.Match.backfill()
       end)
 
-    # `Kati.Components.register_all/0` is deliberately NOT called here.
-    #
-    # It costs ~245ms of cold start on the emulator — measured, phase-traced —
-    # because it must `Code.ensure_loaded?/1` all 74 vendored components to ask
-    # what they export. That is 11% of a 2136ms median launch.
-    #
-    # And it buys nothing today: every component is used by DIRECT FUNCTION
-    # CALL, and zero `<MishkaX />` composite tags appear in any markup. The
-    # registry only matters for tag expansion.
-    #
-    # The hazard in leaving it out is real — an unregistered tag renders as
-    # NOTHING rather than raising — so it is a TEST rather than a comment:
-    # `Kati.ComponentsTest` fails if markup ever uses a composite tag while
-    # boot does not register. Whoever writes the first `<MishkaX />` gets a red
-    # suite naming this line, not a blank screen.
+    # `Kati.Components.register_all/0` now runs near the top of `on_start/0` —
+    # see the comment there. It used to be deliberately absent: it costs
+    # ~245ms of cold start (measured, phase-traced) because it must
+    # `Code.ensure_loaded?/1` every vendored component, and nothing used tags.
+    # Film's action pills are the first `<MishkaPill>` markup, so the cost is
+    # paid and `Kati.ComponentsTest` keeps both halves honest.
 
     # Ingest whatever KatiCalendarReader published. Before the permission is
     # granted this is a no-op returning {:ok, :no_data} — the normal state, not

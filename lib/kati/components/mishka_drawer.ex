@@ -68,7 +68,7 @@ defmodule Kati.Components.MishkaDrawer do
 
   ## Usage
 
-  Registered once at boot (see `MishkaMob.App.on_start/0`):
+  Registered once at boot (see your app's `on_start/0`):
 
       Mob.Composite.register(:mishka_drawer, {#{inspect(__MODULE__)}, :expand})
 
@@ -235,6 +235,8 @@ defmodule Kati.Components.MishkaDrawer do
   Also absent: focus trapping and `modal="trap-focus"` (there is no focus ring
   to trap), the iOS-style page indent behind an open drawer (it would mean
   wrapping the host's whole content tree), `aria-*` wiring, and `*_class`.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/drawer
   """
 
   require Logger
@@ -324,8 +326,16 @@ defmodule Kati.Components.MishkaDrawer do
   The thing that opens the drawer — the port of the web's `<:trigger>` slot, as
   a builder rather than only a tag.
 
-  Given a string it is a button; given a list of nodes it is a tappable Box
-  wrapped round them, for a trigger that is a row or a card rather than a label.
+  Given a string it is a tappable Box holding the label, drawn like a primary
+  button; given a list of nodes it is a tappable Box wrapped round them, for a
+  trigger that is a row or a card rather than a label.
+
+  The label is a Box and a Text, **not** a `:button`. Android's button gives its
+  label Material's own content padding (24dp a side) on top of the node's, so a
+  trigger sharing a Row with others, as five of them do in the gallery, had no
+  room left for its label: the buttons drew as blank dark slabs, and a wider one
+  clipped "Undismissable" to "Undismis…". A Box applies its padding once and its
+  label wraps nothing, so the label gets everything the cell has left.
 
       trigger("Open menu", on_open: :open_drawer, test_id: "menu-trigger")
       trigger([avatar(), name()], on_open: :open_drawer)
@@ -346,18 +356,35 @@ defmodule Kati.Components.MishkaDrawer do
   def trigger(label, opts) when is_binary(label) do
     props =
       %{
-        text: label,
         background: :primary,
-        text_color: :on_primary,
-        text_size: :base,
-        padding: :space_sm,
+        corner_radius: :radius_md,
+        align: :center,
+        padding_top: :space_md,
+        padding_bottom: :space_md,
+        padding_left: :space_sm,
+        padding_right: :space_sm,
         fill_width: Keyword.get(opts, :fill_width, true)
       }
       |> maybe_put(:weight, Keyword.get(opts, :weight))
       |> maybe_put(:on_tap, Event.handler(Keyword.get(opts, :on_open)))
       |> maybe_put(:id, Keyword.get(opts, :test_id))
 
-    %{type: :button, props: props, children: []}
+    # max_lines: 1 so a label that still does not fit is cut with an ellipsis
+    # rather than wrapped one letter per line, which is what a Text squeezed
+    # narrower than its content does.
+    text = %{
+      type: :text,
+      props: %{
+        text: label,
+        text_size: :base,
+        text_color: :on_primary,
+        font_weight: :medium,
+        max_lines: 1
+      },
+      children: []
+    }
+
+    %{type: :box, props: props, children: [text]}
   end
 
   def trigger(children, opts) when is_list(children) do
@@ -452,9 +479,10 @@ defmodule Kati.Components.MishkaDrawer do
           {%{open?: boolean(), snap: number() | nil}, map() | nil}
   def swipe(payload, grab, props \\ %{}) do
     props = Map.new(props)
-    at = coordinate(payload, axis(props))
+    gesture = Event.drag(payload)
+    at = Map.fetch!(gesture, axis(props))
 
-    case phase(payload) do
+    case gesture.phase do
       :began -> {state(props), %{at: at, snap: active_snap(props)}}
       :dragging -> {state(props), grab}
       :ended -> {settle(at, grab, props), nil}
@@ -957,26 +985,6 @@ defmodule Kati.Components.MishkaDrawer do
     else
       nearest
     end
-  end
-
-  # The NIF sends `phase` as an ATOM (:began / :dragging / :ended). Comparing it
-  # against "began" matches nothing and falls through to the :dragging default,
-  # so the anchor is never set and every gesture returns the state unchanged —
-  # the drawer looks completely dead while the arithmetic is fine. Strings are
-  # accepted too, because a payload that has crossed a wire may be either.
-  defp phase(payload) do
-    case payload[:phase] || payload["phase"] do
-      p when p in [:began, "began"] -> :began
-      p when p in [:ended, "ended"] -> :ended
-      _ -> :dragging
-    end
-  end
-
-  # Read x/y only, never dx/dy: on iOS those are cumulative translation and on
-  # Android per-sample deltas, so anything built on them behaves differently on
-  # each platform.
-  defp coordinate(payload, axis) do
-    (payload[axis] || payload[to_string(axis)] || 0) * 1.0
   end
 
   defp axis(props) do

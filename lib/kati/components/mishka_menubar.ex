@@ -40,6 +40,8 @@ defmodule Kati.Components.MishkaMenubar do
   Not ported: roving tabindex and the arrow-key/Home/End navigation, `loop`,
   `modal`, and `orientation: vertical` (a vertical menubar is a
   `Kati.Components.MishkaMenu`).
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/menubar
   """
 
   import Mob.Sigil
@@ -96,9 +98,15 @@ defmodule Kati.Components.MishkaMenubar do
     disabled? = disabled?(props) or truthy?(Map.get(menu, :disabled, false))
     ink = if disabled?, do: :muted, else: :on_surface
 
+    # fill_width={false} is load-bearing. A Box given neither a width nor this
+    # prop fills its parent, and its parent is the bar's Row: the first trigger
+    # would take the whole row, leave every later one zero wide, and Compose
+    # then wraps each of their labels one letter per line. That is the bar that
+    # drew only "File" and stood tall and empty.
     node =
       ~MOB"""
       <Box
+        fill_width={false}
         background={if(open?, do: :surface_raised, else: :transparent)}
         corner_radius={:radius_sm}
         padding={:space_sm}

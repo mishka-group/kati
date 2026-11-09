@@ -47,6 +47,20 @@ defmodule Kati.Components.MishkaFloatingWindow do
   lets `drag/3` decide whether a touch landed on the handle without asking the
   native side to measure anything.
 
+  ## Size the window to its body
+
+  The body is what the chrome leaves: `height - chrome_height/1`, and its own
+  `:space_md` padding (16dp at the default scale) comes out of the top **and**
+  the bottom of that. Content taller than what remains is **clipped at the
+  body's edge, not scrolled** — a 140dp window with the arrow row has 44dp of
+  body and 12dp of room for content, which cuts a line of text in half.
+
+  Budget it before picking a `height`: `chrome_height/1`, plus two paddings,
+  plus the content. On Material a line of body text is 24dp even at a small
+  `text_size` (unless the `Text` sets `line_height`), and a line that wraps
+  counts again. Nothing here can measure the content, so a window that is too
+  short stays too short.
+
   ## Moving it
 
   `on_move` carries both halves of what WCAG 2.5.7 asks for — the pointer drag,
@@ -88,7 +102,7 @@ defmodule Kati.Components.MishkaFloatingWindow do
   Children are the window's body, except for `<MishkaFloatingWindowHandle>` — the
   web's `<:handle>`, a title bar of your own in place of `label`:
 
-      <MishkaFloatingWindow width={240} height={110} id="custom">
+      <MishkaFloatingWindow width={240} height={136} id="custom">
         <MishkaFloatingWindowHandle>
           <Row align={:center}>
             <Box width={8} height={8} background={:primary} corner_radius={:radius_pill} />
@@ -116,6 +130,8 @@ defmodule Kati.Components.MishkaFloatingWindow do
   role or a label on), `class` / `handle_class` / `body_class` (no CSS), and
   Shift+Arrow's 1px step — there are no modifier keys on a touch screen, so
   `step` is the one increment.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/floating-window
   """
 
   import Mob.Sigil
@@ -234,9 +250,10 @@ defmodule Kati.Components.MishkaFloatingWindow do
   @spec drag(map(), map() | nil, map() | keyword()) :: {{number(), number()}, map() | nil}
   def drag(payload, grab, props \\ %{}) do
     props = Map.new(props)
-    at = point(payload)
+    %{phase: phase, x: x, y: y} = Event.drag(payload)
+    at = {x, y}
 
-    case phase(payload) do
+    case phase do
       :began -> {position(props), take_hold(at, props)}
       :dragging -> {follow(at, grab, props), grab}
       :ended -> {follow(at, grab, props), nil}
@@ -577,25 +594,6 @@ defmodule Kati.Components.MishkaFloatingWindow do
          Color.clamp(y, 0, max(h - height(props), 0))}
     end
   end
-
-  # The NIF sends `phase` as an ATOM (:began / :dragging / :ended). Comparing it
-  # against "began" matches nothing and falls through to the :dragging default,
-  # so the anchor is never set and every drag returns the position unchanged —
-  # the window looks completely dead while the arithmetic is fine. Strings are
-  # accepted too, because a payload that has crossed a wire may be either.
-  defp phase(payload) do
-    case payload[:phase] || payload["phase"] do
-      p when p in [:began, "began"] -> :began
-      p when p in [:ended, "ended"] -> :ended
-      _ -> :dragging
-    end
-  end
-
-  # x/y, never dx/dy: those are cumulative translation on iOS and per-sample
-  # deltas on Android, so a fold built on them drifts on exactly one platform.
-  defp point(payload), do: {coordinate(payload, :x), coordinate(payload, :y)}
-
-  defp coordinate(payload, key), do: (payload[key] || payload[to_string(key)] || 0) * 1.0
 
   # ── Props ──────────────────────────────────────────────────────────────────
 

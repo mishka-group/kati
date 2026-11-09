@@ -39,6 +39,8 @@ defmodule Kati.Components.MishkaAngleSlider do
 
   Not ported: `step` (keyboard nudging — snap in the screen with
   `Kati.Components.MishkaSlider.snap/2`), `disabled`, and `name`/`form`/`id`.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/angle-slider
   """
 
   import Mob.Sigil
