@@ -55,6 +55,7 @@ defmodule Kati.Components.MishkaTextInput do
   | `padding` / `padding_top` / `padding_right` / `padding_bottom` / `padding_left` | spacing token / number | `:space_sm` | Inner padding. |
   | `width` / `height` / `fill_width` | number / boolean | unset | Size. |
   | `accessibility_id` | string | unset | Native testTag. |
+  | `value_epoch` | integer | unset | Bump to replace the text the native field remembers. |
   | `on_change` / `on_submit` / `on_focus` / `on_blur` | event tag | — | `{:change, tag, value}`, `{:submit, tag}`, `{:focus, tag}`, `{:blur, tag}`. |
   """
 
@@ -68,7 +69,7 @@ defmodule Kati.Components.MishkaTextInput do
     placeholder_color font_family font_weight letter_spacing text_align
     background border_color border_width corner_radius padding padding_top
     padding_right padding_bottom padding_left width height fill_width
-    accessibility_id
+    accessibility_id value_epoch
   )a
 
   @events ~w(on_change on_submit on_focus on_blur)a
