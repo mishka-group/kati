@@ -608,23 +608,20 @@ defmodule Kati.Screens.DataSources do
     assigns = %{tap: tap}
 
     ~MOB"""
-    <Row
+    <MishkaPill
+      label={Kati.Screens.DataSources.save_label()}
       height={32}
       corner_radius={16}
       background={Kati.Theme.Palette.ink_fill()}
+      padding={0}
       padding_left={14}
       padding_right={14}
-      align="center"
+      align={:center}
+      text_size={12.5}
+      font_weight={:bold}
+      color={Kati.Theme.Palette.on_ink()}
       on_tap={@tap}
-    >
-      <Text
-        text={Kati.Screens.DataSources.save_label()}
-        text_size={12.5}
-        font_weight="bold"
-        text_color={Kati.Theme.Palette.on_ink()}
-        max_lines={1}
-      />
-    </Row>
+    />
     """
   end
 
