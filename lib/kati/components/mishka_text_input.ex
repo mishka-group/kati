@@ -66,7 +66,7 @@ defmodule Kati.Components.MishkaTextInput do
   | `width` / `height` / `fill_width` | number / boolean | unset | Size. |
   | `leading` / `trailing` | node or list of nodes | unset | Content beside the field. |
   | `slot_gap` | number | `8` | Space between a slot and the field. |
-  | `accessibility_id` | string | unset | Native testTag. |
+  | `id` / `accessibility_id` | string | unset | Native testTag. |
   | `on_change` / `on_submit` / `on_focus` / `on_blur` | event tag | — | `{:change, tag, value}`, `{:submit, tag}`, `{:focus, tag}`, `{:blur, tag}`. |
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/text-input
@@ -82,7 +82,7 @@ defmodule Kati.Components.MishkaTextInput do
     placeholder_color font_family font_weight letter_spacing text_align
     background border_color border_width corner_radius padding padding_top
     padding_right padding_bottom padding_left width height fill_width
-    accessibility_id value_epoch
+    accessibility_id value_epoch id
   )a
 
   @events ~w(on_change on_submit on_focus on_blur)a
@@ -102,13 +102,16 @@ defmodule Kati.Components.MishkaTextInput do
   @spec text_input(map() | keyword()) :: map()
   def text_input(props \\ %{}) do
     props = Map.new(props)
-    field = field_node(props)
     leading = Map.get(props, :leading)
     trailing = Map.get(props, :trailing)
 
     if leading == nil and trailing == nil do
-      field
+      field_node(props)
     else
+      # The field takes the space the slots leave. Without a weight a
+      # fill-width field inside a Row measures zero when it is empty, and the
+      # slots then sit against each other.
+      field = field_node(props, %{weight: 1.0})
       gap = Map.get(props, :slot_gap) || 8
 
       children =
@@ -123,12 +126,13 @@ defmodule Kati.Components.MishkaTextInput do
     end
   end
 
-  defp field_node(props) do
+  defp field_node(props, extra \\ %{}) do
     forwarded =
       props
       |> Map.take(@props)
       |> Enum.reject(fn {_key, value} -> is_nil(value) end)
       |> Map.new()
+      |> Map.merge(extra)
 
     %{~MOB(<TextField />) | props: Map.merge(forwarded, events(props))}
   end
