@@ -369,9 +369,28 @@ defmodule Kati.Screens.Day do
 
   @doc "The lane rows, in clock order."
   def timeline(clusters) do
-    clusters
-    |> Enum.sort_by(& &1.start_min)
-    |> Enum.map(&Kati.Screens.Day.cluster_block/1)
+    clusters =
+      clusters
+      |> Enum.sort_by(& &1.start_min)
+      |> Enum.map(fn cluster ->
+        %{
+          clash: Kati.Screens.Day.clash_label(cluster),
+          gutter: Kati.Screens.Day.gutter(cluster),
+          lanes: Kati.Screens.Day.lanes(cluster)
+        }
+      end)
+
+    assigns = %{clusters: clusters}
+
+    ~MOB"""
+    <MishkaCalendar
+      view={:day}
+      clusters={@clusters}
+      cluster_gap={14}
+      cluster_padding_left={21}
+      cluster_padding_right={21}
+    />
+    """
   end
 
   # `Kati.Locale.date/2`'s `:long` — `Thu 20 Aug`, and Shamsi under `:fa`.
@@ -693,20 +712,6 @@ defmodule Kati.Screens.Day do
   end
 
   def clash_label(_), do: ~MOB"<Spacer size={0} />"
-
-  @doc false
-  def cluster_block(cluster) do
-    ~MOB"""
-    <Column fill_width={true} padding_left={21} padding_right={21}>
-      {Kati.Screens.Day.clash_label(cluster)}
-      <Row align="top" fill_width={true}>
-        {Kati.Screens.Day.gutter(cluster)}
-        {Kati.Screens.Day.lanes(cluster)}
-      </Row>
-      <Spacer size={14} />
-    </Column>
-    """
-  end
 
   @doc """
   The time column.

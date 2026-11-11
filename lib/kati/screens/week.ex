@@ -233,93 +233,71 @@ defmodule Kati.Screens.Week do
 
   @doc false
   def lanes(week) do
-    columns =
-      week.lanes
-      |> Enum.map(fn lane -> Kati.Screens.Week.lane(lane) end)
-      |> Enum.intersperse(lane_gap())
+    lanes = Enum.map(week.lanes, &lane_data/1)
+
+    assigns = %{
+      lanes: lanes,
+      weekday_family: week.lanes |> hd() |> Map.fetch!(:name) |> Kati.Locale.mono_face()
+    }
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        {columns}
-      </Row>
+      <MishkaCalendar
+        view={:week}
+        lanes={@lanes}
+        week_gap={4}
+        weekday_size={9.5}
+        weekday_color={Palette.tertiary()}
+        weekday_font_family={@weekday_family}
+        weekday_letter_spacing={Kati.Locale.tracking(0.06)}
+        day_size={14}
+        day_color={:on_surface}
+        today_color={Palette.accent()}
+        lane_selected_background={Palette.card()}
+        lane_selected_shadow="0 1 2 0 #0D1A1917"
+        lane_corner_radius={12}
+        lane_header_padding_top={7}
+        lane_header_padding_bottom={9}
+        lane_day_gap={4}
+        block_gap={4}
+        block_background={Palette.card()}
+        block_text_color={Palette.eyebrow()}
+        block_text_size={10}
+        block_corner_radius={9}
+        block_rail_width={2.5}
+        block_padding={6}
+        block_padding_top={7}
+        block_padding_bottom={7}
+      />
       <Spacer size={24} />
     </Column>
     """
   end
 
-  @doc false
-  def lane_gap, do: ~MOB"<Spacer size={4} />"
-
-  @doc """
-  The tag a lane carries: `lane_<iso date>`.
-  """
-  @spec lane_tag(Date.t()) :: atom()
-  def lane_tag(%Date{} = date), do: String.to_atom("lane_" <> Date.to_iso8601(date))
-
-  @doc false
-  def lane(lane) do
-    tap = {self(), lane_tag(lane.date)}
-
-    ~MOB"""
-    <Column weight={1.0} on_tap={tap}>
-      {Kati.Screens.Week.lane_header(lane)}
-      <Spacer size={6} />
-      {Kati.Screens.Week.blocks(lane.blocks)}
-    </Column>
-    """
+  defp lane_data(lane) do
+    %{
+      weekday: lane.name,
+      day: lane.day,
+      today: lane.today?,
+      selected: lane.selected?,
+      tag: lane_tag(lane.date),
+      blocks: Enum.map(lane.blocks, &block_data/1)
+    }
   end
 
-  # The named lane's header sits on a card; the rest are bare paper. Today's
-  # number is set in the accent, so today stays findable after another lane is
-  # named. The face asks the NAME: `kati_mono.ttf` carries no Arabic-script
-  # glyph.
-  @doc false
-  def lane_header(lane) do
-    background = if lane.selected?, do: Palette.card(), else: Palette.transparent()
-    shadow = if lane.selected?, do: "0 1 2 0 #0D1A1917", else: nil
-    number = if lane.today?, do: Palette.accent(), else: :on_surface
+  defp block_data(block) do
+    style = style(block.section)
+    hour = Kati.Locale.number(block.hour)
 
-    ~MOB"""
-    <Column
-      fill_width={true}
-      corner_radius={12}
-      background={background}
-      shadow={shadow}
-      padding_top={7}
-      padding_bottom={9}
-    >
-      <Box fill_width={true} align="center">
-        <Text
-          text={lane.name}
-          font_family={Kati.Locale.mono_face(lane.name)}
-          text_size={9.5}
-          letter_spacing={Kati.Locale.tracking(0.06)}
-          text_color={Palette.tertiary()}
-          max_lines={1}
-        />
-      </Box>
-      <Spacer size={4} />
-      <Box fill_width={true} align="center">
-        <Text text={lane.day} text_size={14} font_weight="bold" text_color={number} max_lines={1} />
-      </Box>
-    </Column>
-    """
+    %{
+      label: hour,
+      height: block.height,
+      background: style.background,
+      rail: style.rule,
+      shadow: style.shadow,
+      font_family: Kati.Locale.mono_face(hour)
+    }
   end
-
-  @doc false
-  def blocks(blocks) do
-    ~MOB"""
-    <Column fill_width={true}>
-      {blocks
-       |> Enum.map(fn block -> Kati.Screens.Week.block_node(block) end)
-       |> Enum.intersperse(Kati.Screens.Week.block_gap())}
-    </Column>
-    """
-  end
-
-  @doc false
-  def block_gap, do: ~MOB"<Spacer size={4} />"
 
   @doc """
   The lane-block recipe for a section: fill, leading rule and lift. A screen
@@ -335,41 +313,11 @@ defmodule Kati.Screens.Week do
   def style(:personal),
     do: %{background: Palette.card(), rule: Palette.ink(), shadow: "0 1 2 0 #0D1A1917"}
 
-  # `border-left: 2.5px solid` is a real child, not a border prop: the bridge's
-  # border draws all four edges, and the drawing wants only the leading one.
-  # The hour goes through `Kati.Locale.number/1`, and its face follows the
-  # converted string.
-  @doc false
-  def block_node(block) do
-    style = style(block.section)
-    height = block.height
-    background = style.background
-    rule = style.rule
-    shadow = style.shadow
-    hour = Kati.Locale.number(block.hour)
-
-    ~MOB"""
-    <Row
-      fill_width={true}
-      height={height}
-      corner_radius={9}
-      background={background}
-      shadow={shadow}
-      align="top"
-    >
-      <Box width={2.5} height={height} background={rule} />
-      <Column padding_left={6} padding_right={6} padding_top={7} padding_bottom={7}>
-        <Text
-          text={hour}
-          font_family={Kati.Locale.mono_face(hour)}
-          text_size={10}
-          text_color={Palette.eyebrow()}
-          max_lines={1}
-        />
-      </Column>
-    </Row>
-    """
-  end
+  @doc """
+  The tag a lane carries: `lane_<iso date>`.
+  """
+  @spec lane_tag(Date.t()) :: atom()
+  def lane_tag(%Date{} = date), do: String.to_atom("lane_" <> Date.to_iso8601(date))
 
   @doc """
   The named day's rows, or screen 02's empty card for a day with none.

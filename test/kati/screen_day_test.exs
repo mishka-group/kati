@@ -317,7 +317,11 @@ defmodule Kati.ScreenDayTest do
   # The grouped card: the one node the drawing gives an 18pt radius. Every
   # other card on screen 09 is 16, so this cannot pick up a neighbour, and
   # scoping to it keeps the gutter's own "20:00" out of the member counts.
-  defp group_card(tree), do: find(tree, :column, corner_radius: 18)
+  defp group_card(tree) do
+    tree
+    |> Mob.Composite.expand(self())
+    |> find(:column, corner_radius: 18)
+  end
 
   # Three 34pt tiles overlapped to 22 apart, plus the 30pt count tile.
   defp poster_stack(nil), do: nil
@@ -325,6 +329,7 @@ defmodule Kati.ScreenDayTest do
 
   defp tapped_row(tree) do
     tree
+    |> Mob.Composite.expand(self())
     |> flatten()
     |> Enum.find(fn node ->
       props = Map.get(node, :props) || %{}
