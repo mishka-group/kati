@@ -40,7 +40,6 @@ defmodule Kati.Screens.Week do
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaSeparator
   alias Kati.Screens.Calendar, as: Schedule
   alias Kati.Theme
   alias Kati.Theme.Palette
@@ -481,8 +480,11 @@ defmodule Kati.Screens.Week do
 
   # `render: :box`: the component's default `:divider` is Material3's
   # antialiased `drawLine`, whose last pixel row lands lighter than the rule.
-  def hairline(true),
-    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
+  def hairline(true) do
+    ~MOB"""
+    <MishkaSeparator color={Palette.hairline()} thickness={1} render={:box} />
+    """
+  end
 
   # `touch_app` is a hand, not an arrow, so it means the same thing pointing
   # either way and is left as drawn.

@@ -115,9 +115,7 @@ defmodule Kati.Screens.Day do
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Calendar.Layout
-  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
-  alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Theme.Palette
 
@@ -1140,8 +1138,11 @@ defmodule Kati.Screens.Day do
   # pixel row of a 1dp rule lands at ~69% coverage — a hairline lighter than
   # the drawn one.
   @doc false
-  def group_rule,
-    do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
+  def group_rule do
+    ~MOB"""
+    <MishkaSeparator color={Palette.hairline_soft()} thickness={1} render={:box} />
+    """
+  end
 
   @doc """
   One member of an open group.
@@ -1241,17 +1242,20 @@ defmodule Kati.Screens.Day do
   """
   @spec density_disc() :: map()
   def density_disc do
-    MishkaActionIcon.action_icon(
-      [
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Kati.Theme.shadow_button(),
-        on_tap: :view_Agenda
-      ],
-      [Kati.UI.symbol("density_medium", size: 21)]
-    )
+    assigns = %{glyph: Kati.UI.symbol("density_medium", size: 21)}
+
+    ~MOB"""
+    <MishkaActionIcon
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_button()}
+      on_tap={:view_Agenda}
+    >
+      {@glyph}
+    </MishkaActionIcon>
+    """
   end
 
   @doc """
@@ -1269,10 +1273,13 @@ defmodule Kati.Screens.Day do
   """
   @spec chevron_disc(boolean()) :: map()
   def chevron_disc(open?) do
-    MishkaActionIcon.action_icon(
-      [size: 26, shape: :circle, variant: :filled, background: Palette.paper()],
-      [Kati.Screens.Day.chevron(open?)]
-    )
+    assigns = %{glyph: Kati.Screens.Day.chevron(open?)}
+
+    ~MOB"""
+    <MishkaActionIcon size={26} shape={:circle} variant={:filled} background={Palette.paper()}>
+      {@glyph}
+    </MishkaActionIcon>
+    """
   end
 
   # The collapse glyph is `expand_more` turned over, which is what the design

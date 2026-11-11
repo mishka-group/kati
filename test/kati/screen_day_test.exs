@@ -153,7 +153,7 @@ defmodule Kati.ScreenDayTest do
 
   describe "the open group" do
     test "draws every member, with its own poster, line and clock" do
-      card = opened() |> tree() |> group_card()
+      card = opened() |> tree() |> Mob.Composite.expand(self()) |> group_card()
 
       for {title, _meta, time, _seed} <- @members do
         assert length(find_all(card, :text, text: title)) == 1
@@ -169,7 +169,7 @@ defmodule Kati.ScreenDayTest do
     end
 
     test "the members sit under the drawn hairline, inside the card" do
-      card = opened() |> tree() |> group_card()
+      card = opened() |> tree() |> Mob.Composite.expand(self()) |> group_card()
 
       assert find(card, :box, height: 1, background: 0x141A1917) != nil,
              "the 8%-ink rule between the header and the members is missing"
@@ -184,7 +184,7 @@ defmodule Kati.ScreenDayTest do
     end
 
     test "the chevron is the same glyph, turned over" do
-      card = opened() |> tree() |> group_card()
+      card = opened() |> tree() |> Mob.Composite.expand(self()) |> group_card()
 
       assert find(card, :box, rotate: 180.0) != nil,
              "the open group still points its chevron down. There is no " <>
@@ -196,7 +196,7 @@ defmodule Kati.ScreenDayTest do
       # The render sweep never sees this tree: it renders each screen once,
       # from mount, and the group is closed there. An unrenderable node type
       # draws NOTHING on Android, with no crash and no log.
-      assert_renderable(opened())
+      assert_renderable(opened() |> tree() |> Mob.Composite.expand(self()))
     end
 
     test "opens in Persian too" do

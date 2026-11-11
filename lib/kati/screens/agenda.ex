@@ -37,7 +37,6 @@ defmodule Kati.Screens.Agenda do
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Screens.Calendar, as: Schedule
   alias Kati.Theme
@@ -350,8 +349,11 @@ defmodule Kati.Screens.Agenda do
   """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
-  def hairline(true),
-    do: MishkaSeparator.separator(render: :box, color: Palette.hairline(), thickness: 1)
+  def hairline(true) do
+    ~MOB"""
+    <MishkaSeparator render={:box} color={Palette.hairline()} thickness={1} />
+    """
+  end
 
   @doc false
   def footer(label) do

@@ -101,10 +101,7 @@ defmodule Kati.Screens.Calendar do
   """
   def add_sheet, do: {Kati.Screens.QuickAdd, %{}}
 
-  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
-  alias Kati.Components.MishkaSeparator
-  alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme
   alias Kati.Theme.Palette
 
@@ -545,17 +542,20 @@ defmodule Kati.Screens.Calendar do
 
   @doc false
   def disc(icon, tag) do
-    MishkaActionIcon.action_icon(
-      [
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Theme.shadow_button(),
-        on_tap: tag
-      ],
-      [Kati.UI.symbol(icon, size: 21)]
-    )
+    assigns = %{glyph: Kati.UI.symbol(icon, size: 21), tap: tag}
+
+    ~MOB"""
+    <MishkaActionIcon
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Theme.shadow_button()}
+      on_tap={@tap}
+    >
+      {@glyph}
+    </MishkaActionIcon>
+    """
   end
 
   # ## Why the month name caps and the day numbers do not (#79)
@@ -768,8 +768,11 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc false
-  def rule,
-    do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
+  def rule do
+    ~MOB"""
+    <MishkaSeparator color={Palette.hairline_soft()} thickness={1} render={:box} />
+    """
+  end
 
   @doc false
   def cell_gap, do: ~MOB"<Spacer size={2} />"
@@ -1037,10 +1040,13 @@ defmodule Kati.Screens.Calendar do
   # not there.
   @doc false
   def empty_tile(icon) do
-    MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: Palette.paper(), size: 30, radius: 9],
-      [Kati.UI.symbol(icon, size: 17, color: Palette.ink_soft())]
-    )
+    assigns = %{glyph: Kati.UI.symbol(icon, size: 17, color: Palette.ink_soft())}
+
+    ~MOB"""
+    <MishkaThemeIcon variant={:filled} color={Palette.paper()} size={30} radius={9}>
+      {@glyph}
+    </MishkaThemeIcon>
+    """
   end
 
   @doc false
@@ -1129,10 +1135,9 @@ defmodule Kati.Screens.Calendar do
         padding={17}
       >
         <Row fill_width={true} align="top">
-          {MishkaThemeIcon.theme_icon(
-            [variant: :filled, color: Palette.paper(), size: 36, radius: 12],
-            [Kati.UI.symbol("calendar_month", size: 19, color: Palette.ink_soft())]
-          )}
+          <MishkaThemeIcon variant={:filled} color={Palette.paper()} size={36} radius={12}>
+            {Kati.UI.symbol("calendar_month", size: 19, color: Palette.ink_soft())}
+          </MishkaThemeIcon>
           <Spacer size={12} />
           <Column weight={1.0}>
             <Text
@@ -1341,10 +1346,13 @@ defmodule Kati.Screens.Calendar do
   # #5C574F. `size` and `radius` take raw dp as readily as tokens.
   @doc false
   def payments_tile do
-    MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: Palette.placeholder(), size: 26, radius: 8],
-      [Kati.UI.symbol("payments", size: 15, color: Palette.ink_soft())]
-    )
+    assigns = %{glyph: Kati.UI.symbol("payments", size: 15, color: Palette.ink_soft())}
+
+    ~MOB"""
+    <MishkaThemeIcon variant={:filled} color={Palette.placeholder()} size={26} radius={8}>
+      {@glyph}
+    </MishkaThemeIcon>
+    """
   end
 
   # The two cards that carry a 3pt rule down their leading edge. `align-self:
@@ -1533,10 +1541,13 @@ defmodule Kati.Screens.Calendar do
   # glyph, which no `icon` shorthand can express.
   @doc false
   def chevron_tile(open?) do
-    MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: Palette.paper(), size: 28, radius: 14],
-      [Kati.Screens.Calendar.chevron(open?)]
-    )
+    assigns = %{glyph: Kati.Screens.Calendar.chevron(open?)}
+
+    ~MOB"""
+    <MishkaThemeIcon variant={:filled} color={Palette.paper()} size={28} radius={14}>
+      {@glyph}
+    </MishkaThemeIcon>
+    """
   end
 
   @doc false
