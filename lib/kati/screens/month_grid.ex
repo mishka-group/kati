@@ -245,32 +245,38 @@ defmodule Kati.Screens.MonthGrid do
       |> weekdays()
       |> Enum.map(&Kati.Screens.MonthGrid.weekday/1)
 
-    # `MishkaCalendar.calendar/1`, not the tag: the weeks are built from the
-    # month the screen read, which is the data-driven form of the component.
-    Kati.Components.MishkaCalendar.calendar(%{
+    assigns = %{
       weeks: weeks,
-      weekday_nodes: weekdays,
-      weekday_gap: 6,
-      gap: 2,
-      row_gap: 2,
-      corner_radius: 13,
-      cell_color: Palette.ink(),
-      cell_font_weight: :medium,
-      today_background: Palette.ink_fill(),
-      today_color: Palette.on_ink(),
-      today_marker_color: Palette.on_ink(),
-      selected_background: Palette.card(),
-      selected_color: Palette.ink(),
-      selected_shadow: @selected_shadow,
-      outside_color: Palette.rail_idle(),
-      label_size: 13.5,
-      label_gap: 4,
-      marker_band: 5,
-      marker_size: 5,
-      marker_radius: 3,
-      marker_gap: 2.5,
-      id: "month_grid"
-    })
+      weekdays: weekdays,
+      selected_shadow: @selected_shadow
+    }
+
+    ~MOB"""
+    <MishkaCalendar
+      id="month_grid"
+      weeks={@weeks}
+      weekday_nodes={@weekdays}
+      weekday_gap={6}
+      gap={2}
+      row_gap={2}
+      corner_radius={13}
+      cell_color={Palette.ink()}
+      cell_font_weight={:medium}
+      today_background={Palette.ink_fill()}
+      today_color={Palette.on_ink()}
+      today_marker_color={Palette.on_ink()}
+      selected_background={Palette.card()}
+      selected_color={Palette.ink()}
+      selected_shadow={@selected_shadow}
+      outside_color={Palette.rail_idle()}
+      label_size={13.5}
+      label_gap={4}
+      marker_band={5}
+      marker_size={5}
+      marker_radius={3}
+      marker_gap={2.5}
+    />
+    """
   end
 
   # The face asks the LETTER: `kati_mono.ttf` carries no Arabic-script glyph,
