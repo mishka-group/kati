@@ -148,7 +148,6 @@ defmodule Kati.Screens.HomeDark do
   use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
-  alias Kati.Components.MishkaProgress
   alias Kati.Screens.HomeDark.Sample
 
   # The drawing's dark palette stays as literals at each point of use, the way
@@ -446,18 +445,24 @@ defmodule Kati.Screens.HomeDark do
   did.
   """
   def disc(icon, tag) do
-    Kati.Components.MishkaActionIcon.action_icon(
-      [
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: 0xFF1E1D1B,
-        border_color: 0x0FF5F2EE,
-        border_width: 1,
-        on_tap: {self(), tag}
-      ],
-      [Kati.UI.symbol(icon, size: 21, color: 0xFFF5F2EE)]
-    )
+    assigns = %{
+      glyph: Kati.UI.symbol(icon, size: 21, color: 0xFFF5F2EE),
+      tap: {self(), tag}
+    }
+
+    ~MOB"""
+    <MishkaActionIcon
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={0xFF1E1D1B}
+      border_color={0x0FF5F2EE}
+      border_width={1}
+      on_tap={@tap}
+    >
+      {@glyph}
+    </MishkaActionIcon>
+    """
   end
 
   @doc false
@@ -851,15 +856,19 @@ defmodule Kati.Screens.HomeDark do
   """
   @spec watch_bar(float()) :: map()
   def watch_bar(progress) do
-    MishkaProgress.progress(
-      render: :box,
-      value: progress,
-      max: 1,
-      height: 4,
-      corner_radius: 2,
-      color: 0xFFF5F2EE,
-      track_color: 0xFF312F2C
-    )
+    assigns = %{progress: progress}
+
+    ~MOB"""
+    <MishkaProgress
+      render={:box}
+      value={@progress}
+      max={1}
+      height={4}
+      corner_radius={2}
+      color={0xFFF5F2EE}
+      track_color={0xFF312F2C}
+    />
+    """
   end
 
   # The card wants the 520x384 crop, not the 400x600 poster — the design shot
@@ -1000,8 +1009,11 @@ defmodule Kati.Screens.HomeDark do
   """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
-  def hairline(true),
-    do: Kati.Components.MishkaSeparator.separator(color: 0x12F5F2EE, render: :box)
+  def hairline(true) do
+    ~MOB"""
+    <MishkaSeparator color={0x12F5F2EE} render={:box} />
+    """
+  end
 
   # A fade to the page colour, not to paper. `Kati.UI.paper_fade/1` is
   # `#EFECE7` and would draw a pale band across the bottom of a near-black page.
@@ -1061,17 +1073,20 @@ defmodule Kati.Screens.HomeDark do
   and adds nothing to measure.
   """
   def fab do
-    Kati.Components.MishkaActionIcon.action_icon(
-      [
-        size: 64,
-        shape: :circle,
-        variant: :filled,
-        background: 0xFFF5F2EE,
-        shadow: "0 12 26 -10 #CC1A1917",
-        on_tap: {self(), :fab}
-      ],
-      [Kati.UI.symbol("add", size: 27, color: 0xFF16150F)]
-    )
+    assigns = %{glyph: Kati.UI.symbol("add", size: 27, color: 0xFF16150F)}
+
+    ~MOB"""
+    <MishkaActionIcon
+      size={64}
+      shape={:circle}
+      variant={:filled}
+      background={0xFFF5F2EE}
+      shadow="0 12 26 -10 #CC1A1917"
+      on_tap={{self(), :fab}}
+    >
+      {@glyph}
+    </MishkaActionIcon>
+    """
   end
 
   # The active disc is #0E0D0C — darker than the page, so it reads as a hole
