@@ -760,24 +760,27 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def search do
-    tap = {self(), :open_search}
-    card = Palette.card()
-    shadow = Theme.shadow_search()
+    assigns = %{
+      tap: {self(), :open_search},
+      leading: UI.symbol("search", size: 20, color: Palette.muted()),
+      trailing: UI.symbol("tune", size: 19)
+    }
 
     ~MOB"""
     <Column fill_width={true}>
-      <Box
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         height={52}
-        background={card}
+        background={Palette.card()}
         corner_radius={26}
-        shadow={shadow}
+        shadow={Theme.shadow_search()}
         padding_left={18}
         padding_right={18}
-        on_tap={tap}
+        align={:center}
+        on_tap={@tap}
       >
         <Row fill_width={true} fill_height={true} align="center">
-          {UI.symbol("search", size: 20, color: Palette.muted())}
+          {@leading}
           <Spacer size={11} />
           <Text
             text={gettext("Search films, shows, events…")}
@@ -787,9 +790,9 @@ defmodule Kati.Screens.Home do
             max_lines={1}
           />
           <Spacer size={11} />
-          {UI.symbol("tune", size: 19)}
+          {@trailing}
         </Row>
-      </Box>
+      </MishkaCard>
       <Spacer size={26} />
     </Column>
     """
@@ -1612,36 +1615,67 @@ defmodule Kati.Screens.Home do
     # The title takes `tracking/1` for the reason the cards above it do — board
     # 55 draws `گودال بلند — فصل ۲ قسمت ۶` at `letter-spacing:0`, and this row's
     # title is a read as well as a transcription.
+    assigns = %{
+      time: row.time,
+      title: row.title,
+      meta: row.meta,
+      accent: accent,
+      icon: icon,
+      tap: tap
+    }
+
+    leading = ~MOB"""
+    <Row align="center">
+      <Box width={40}>
+        <Text
+          text={@time}
+          font_family={Kati.Locale.mono_face(@time)}
+          text_size={12}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
+      </Box>
+      <Spacer size={14} />
+      <Box width={3} height={34} corner_radius={2} background={@accent} />
+    </Row>
+    """
+
+    body = [
+      ~MOB"""
+      <Text
+        text={@title}
+        text_size={14}
+        font_weight="semibold"
+        letter_spacing={Kati.Locale.tracking(-0.01)}
+        text_color={:on_surface}
+        max_lines={1}
+      />
+      """,
+      ~MOB"<Spacer size={3} />",
+      ~MOB"""
+      <Text text={@meta} text_size={12} text_color={Palette.sub()} max_lines={1} />
+      """
+    ]
+
+    row_node =
+      Kati.Components.MishkaListItem.list_item(
+        %{
+          leading: leading,
+          trailing: UI.symbol(icon, size: 20, color: Palette.rail_idle()),
+          gap: 14,
+          trailing_gap: 14,
+          padding_top: 14,
+          padding_bottom: 14,
+          on_tap: tap
+        },
+        body
+      )
+
+    assigns = Map.put(assigns, :row, row_node)
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14} on_tap={tap}>
-        <Box width={40}>
-          <Text
-            text={row.time}
-            font_family={Kati.Locale.mono_face(row.time)}
-            text_size={12}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
-        </Box>
-        <Spacer size={14} />
-        <Box width={3} height={34} corner_radius={2} background={accent} />
-        <Spacer size={14} />
-        <Column weight={1.0}>
-          <Text
-            text={row.title}
-            text_size={14}
-            font_weight="semibold"
-            letter_spacing={Kati.Locale.tracking(-0.01)}
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          <Spacer size={3} />
-          <Text text={row.meta} text_size={12} text_color={Palette.sub()} max_lines={1} />
-        </Column>
-        <Spacer size={14} />
-        {UI.symbol(icon, size: 20, color: Palette.rail_idle())}
-      </Row>
+      {@row}
       {Kati.Screens.Home.hairline(rule?)}
     </Column>
     """
