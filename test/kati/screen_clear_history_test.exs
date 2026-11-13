@@ -158,7 +158,8 @@ defmodule Kati.ScreenClearHistoryTest do
       tracked = shelve!()
       for _ <- 1..4, do: log!(tracked, %{})
 
-      words = text(ClearHistory.confirm(true, History.counts()))
+      words =
+        ClearHistory.confirm(true, History.counts()) |> Mob.Composite.expand(self()) |> text()
 
       assert words =~ "Clear 4 logs?"
       assert words =~ "Changes: every tick, rating and review, and every progress ring."

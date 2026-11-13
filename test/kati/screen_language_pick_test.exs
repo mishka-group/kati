@@ -244,8 +244,12 @@ defmodule Kati.ScreenLanguagePickTest do
   # screen; asserted rather than assumed, so a third one appearing cannot make
   # every helper below quietly read a different control.
   defp rows(view) do
+    # The option rows are `MishkaCard`s, so they are in the tree only once the
+    # composites are expanded.
     found =
       view
+      |> tree()
+      |> Mob.Composite.expand(self())
       |> flatten()
       |> Enum.filter(&(&1.type == :row and &1.props[:height] == 76))
 

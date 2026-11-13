@@ -137,7 +137,7 @@ defmodule Kati.ScreenBackupTest do
       for locale <- [:en, :fa], screen <- [Backup, Restore] do
         previous = Kati.Locale.current()
         Kati.Locale.put(locale)
-        assert_renderable(mount_screen(screen))
+        assert_renderable(mount_screen(screen) |> tree() |> Mob.Composite.expand(self()))
         Kati.Locale.put(previous)
       end
     end
@@ -329,7 +329,9 @@ defmodule Kati.ScreenBackupTest do
         |> render_info({:tap, :count_records})
 
       assert assigns(view).backup.encrypt?
-      assert find(tree(view), :text_field) != nil, "the passphrase field was not drawn"
+
+      assert view |> tree() |> Mob.Composite.expand(self()) |> find(:text_field) != nil,
+             "the passphrase field was not drawn"
 
       view = render_info(view, {:tap, :save_file})
       notice = assigns(view).backup.notice
@@ -442,7 +444,9 @@ defmodule Kati.ScreenBackupTest do
       tree = tree(view)
       assert drawn?(tree, "Encrypted — Kati cannot read it yet")
       refute drawn?(tree, "records across"), "a count was drawn for a file nobody has opened"
-      assert find(tree, :text_field) != nil, "no passphrase field for a locked backup"
+
+      assert tree |> Mob.Composite.expand(self()) |> find(:text_field) != nil,
+             "no passphrase field for a locked backup"
 
       # The count row draws no number, because a sealed file has answered no
       # number at all — see `Kati.Screens.Restore.count_cards/1`.
