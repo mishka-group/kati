@@ -72,6 +72,8 @@ jobs:
     # Switch to @ci-v1 once mishka-group/mishka_cms#77 is merged and tagged.
     uses: mishka-group/mishka_cms/.github/workflows/mishka-ci.yml@ci/shared-workflows
     with:
+      # mob_dev is dev-only: lib/mix/tasks/kati.e2e.stage.ex warns under MIX_ENV=test.
+      warnings-as-errors: false
       mix-audit: false
       dialyzer: false
       ex_dna: false
