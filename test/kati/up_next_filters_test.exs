@@ -307,7 +307,8 @@ defmodule Kati.UpNextFiltersTest do
       shelve!("Short", :tv, runtime: 22)
 
       view = mount_screen(Kati.Screens.UpNextFilters)
-      words = text(view)
+      # The Reset button is a `MishkaPill`, so its label is a `Text` only once expanded.
+      words = view |> tree() |> Mob.Composite.expand(self()) |> text()
 
       for label <- ["Sort & filter", "Recently touched", "Airing soonest", "Under 30m", "Reset"] do
         assert words =~ label
