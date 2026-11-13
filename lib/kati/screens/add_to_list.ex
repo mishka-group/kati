@@ -411,16 +411,15 @@ defmodule Kati.Screens.AddToList do
     assigns = %{tap: {self(), :new_list}}
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       height={48}
       corner_radius={14}
       background={Palette.card()}
       padding_left={15}
       padding_right={15}
-      align="center"
+      align={:center}
       on_tap={@tap}
-      accessibility_id="new_list"
     >
       {Kati.UI.symbol("add", size: 18, color: Kati.Theme.Palette.sub())}
       <Spacer size={11} />
@@ -430,7 +429,7 @@ defmodule Kati.Screens.AddToList do
         font_weight="semibold"
         text_color={Palette.sub()}
       />
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -454,15 +453,15 @@ defmodule Kati.Screens.AddToList do
     assigns = inner
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       height={48}
       corner_radius={14}
       background={Palette.card()}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
       padding_right={15}
-      align="center"
+      align={:center}
     >
       <TextField
         value={@name}
@@ -476,7 +475,7 @@ defmodule Kati.Screens.AddToList do
       />
       <Spacer size={10} />
       {Kati.UI.SettingsList.action_pill(@label, @save)}
-    </Row>
+    </MishkaCard>
     """
   end
 

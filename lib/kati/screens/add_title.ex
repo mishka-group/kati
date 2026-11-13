@@ -561,8 +561,8 @@ defmodule Kati.Screens.AddTitle do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         height={52}
         corner_radius={26}
         background={Palette.card()}
@@ -571,7 +571,7 @@ defmodule Kati.Screens.AddTitle do
         shadow={Kati.Theme.shadow_search()}
         padding_left={18}
         padding_right={18}
-        align="center"
+        align={:center}
       >
         {Kati.UI.symbol("search", size: 20)}
         <Spacer size={11} />
@@ -585,7 +585,7 @@ defmodule Kati.Screens.AddTitle do
           on_change={@on_change}
         />
         {Kati.Screens.AddTitle.clear_disc()}
-      </Row>
+      </MishkaCard>
       <Spacer size={16} />
     </Column>
     """
@@ -1281,8 +1281,8 @@ defmodule Kati.Screens.AddTitle do
     # and DM Mono has none of the ones `فیلم` needs.
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1290,7 +1290,7 @@ defmodule Kati.Screens.AddTitle do
         padding_right={13}
         padding_top={11}
         padding_bottom={11}
-        align="center"
+        align={:center}
         on_tap={Kati.Screens.AddTitle.preview_tap(r)}
       >
         {Kati.Screens.AddTitle.thumb(r)}
@@ -1317,7 +1317,7 @@ defmodule Kati.Screens.AddTitle do
         </Column>
         <Spacer size={13} />
         {Kati.Screens.AddTitle.add_button(r.added, r.position)}
-      </Row>
+      </MishkaCard>
     </Column>
     """
   end
@@ -1489,21 +1489,20 @@ defmodule Kati.Screens.AddTitle do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={17}
-        align="center"
+        align={:center}
       >
-        <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+        <MishkaActionIcon variant={:filled} size={48} corner_radius={15} background={Palette.paper()}>
           {Kati.UI.symbol(@icon, size: 22, color: Palette.rail_idle())}
-        </Box>
+        </MishkaActionIcon>
         <Spacer size={13} />
         <Text text={@headline} text_size={14} font_weight="bold" text_color={:on_surface} />
         {Kati.Screens.AddTitle.card_body(@body)}
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1609,19 +1608,20 @@ defmodule Kati.Screens.AddTitle do
     assigns = %{label: label}
 
     ~MOB"""
-    <Row
+    <MishkaPill
       fill_width={true}
       corner_radius={18}
+      background={:none}
       border_width={1.5}
       border_color={Palette.border()}
+      padding={0}
       padding_top={14}
       padding_bottom={14}
       padding_left={13}
       padding_right={13}
-      align="center"
+      align={:center}
       on_tap={{self(), :add_by_hand}}
     >
-      <Spacer weight={1.0} />
       {Kati.UI.symbol("edit_note", size: 18, color: Palette.sub())}
       <Spacer size={7} />
       <Text
@@ -1631,8 +1631,7 @@ defmodule Kati.Screens.AddTitle do
         text_color={Palette.ink_soft()}
         max_lines={1}
       />
-      <Spacer weight={1.0} />
-    </Row>
+    </MishkaPill>
     """
   end
 
@@ -1679,8 +1678,8 @@ defmodule Kati.Screens.AddTitle do
   @doc false
   def skeleton_row do
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -1688,7 +1687,7 @@ defmodule Kati.Screens.AddTitle do
       padding_right={13}
       padding_top={11}
       padding_bottom={11}
-      align="center"
+      align={:center}
     >
       <Box width={44} height={62} corner_radius={10} background={Palette.placeholder()} />
       <Spacer size={13} />
@@ -1699,7 +1698,7 @@ defmodule Kati.Screens.AddTitle do
         <Spacer size={9} />
         <Box width={120} height={10} corner_radius={5} background={Palette.placeholder()} />
       </Column>
-    </Row>
+    </MishkaCard>
     """
   end
 end

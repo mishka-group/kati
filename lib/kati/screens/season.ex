@@ -1250,22 +1250,19 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
-      <Box
+      <MishkaPill
+        label={@title}
         fill_width={true}
         height={34}
         corner_radius={12}
         background={Palette.card()}
+        color={:on_surface}
         shadow="0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
-        align="center"
-      >
-        <Text
-          text={@title}
-          text_size={12.5}
-          font_weight="bold"
-          text_color={:on_surface}
-          max_lines={1}
-        />
-      </Box>
+        padding={0}
+        align={:center}
+        text_size={12.5}
+        font_weight={:bold}
+      />
     </Box>
     """
   end
@@ -1278,15 +1275,18 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
-      <Box fill_width={true} height={34} corner_radius={12} align="center">
-        <Text
-          text={@title}
-          text_size={12.5}
-          font_weight="semibold"
-          text_color={Palette.segment_idle()}
-          max_lines={1}
-        />
-      </Box>
+      <MishkaPill
+        label={@title}
+        fill_width={true}
+        height={34}
+        corner_radius={12}
+        background={:none}
+        color={Palette.segment_idle()}
+        padding={0}
+        align={:center}
+        text_size={12.5}
+        font_weight={:semibold}
+      />
     </Box>
     """
   end

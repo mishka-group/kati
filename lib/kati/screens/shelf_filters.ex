@@ -300,13 +300,14 @@ defmodule Kati.Screens.ShelfFilters do
     assigns = %{label: label, rotate: if(desc?, do: 0.0, else: 180.0)}
 
     ~MOB"""
-    <Row
+    <MishkaPill
       height={28}
       corner_radius={14}
       background={Kati.Theme.paper(Palette.mode())}
-      align="center"
+      padding={0}
       padding_left={11}
       padding_right={11}
+      align={:center}
     >
       <Box width={15} height={15} rotate={@rotate} align="center">
         {UI.symbol("arrow_downward", size: 15, color: Palette.ink())}
@@ -319,7 +320,7 @@ defmodule Kati.Screens.ShelfFilters do
         text_color={Palette.ink_soft()}
         max_lines={1}
       />
-    </Row>
+    </MishkaPill>
     """
   end
 
@@ -539,8 +540,7 @@ defmodule Kati.Screens.ShelfFilters do
     }
 
     ~MOB"""
-    <Box
-      fill_width={true}
+    <MishkaCard
       background={Kati.Theme.card(Palette.mode())}
       corner_radius={20}
       padding={15}
@@ -565,7 +565,7 @@ defmodule Kati.Screens.ShelfFilters do
           />
         </Row>
       </Row>
-    </Box>
+    </MishkaCard>
     """
   end
 

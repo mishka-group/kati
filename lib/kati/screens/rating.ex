@@ -1746,7 +1746,7 @@ defmodule Kati.Screens.Rating do
         <Spacer size={10} />
         {Kati.Screens.Rating.review_field(w.review)}
         <Spacer size={14} />
-        <Box fill_width={true} height={1} background={Palette.cream_rule()} />
+        <MishkaSeparator thickness={1} color={Palette.cream_rule()} render={:box} />
         <Spacer size={13} />
         <Row fill_width={true} align="center">
           <Text

@@ -455,7 +455,7 @@ defmodule Kati.Screens.DropStates do
     ]
 
     ~MOB"""
-    <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
+    <MishkaCard background={Palette.cream()} corner_radius={20} padding={16}>
       <Row fill_width={true} align="top">
         {Kati.UI.symbol("help", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
@@ -463,7 +463,7 @@ defmodule Kati.Screens.DropStates do
           {Kati.UI.rich_text(runs)}
         </Column>
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -507,7 +507,7 @@ defmodule Kati.Screens.DropStates do
     ]
 
     ~MOB"""
-    <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
+    <MishkaCard background={Palette.cream()} corner_radius={20} padding={16}>
       <Row fill_width={true} align="top">
         {Kati.UI.symbol("replay", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
@@ -515,7 +515,7 @@ defmodule Kati.Screens.DropStates do
           {Kati.UI.rich_text(runs)}
         </Column>
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 end

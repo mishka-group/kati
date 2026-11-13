@@ -394,7 +394,7 @@ defmodule Kati.Screens.AnimeFilter do
       ])
 
     ~MOB"""
-    <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
+    <MishkaCard background={Palette.cream()} corner_radius={20} padding={16}>
       <Row fill_width={true} align="top">
         {Kati.UI.symbol("call_split", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
@@ -402,7 +402,7 @@ defmodule Kati.Screens.AnimeFilter do
           {text}
         </Column>
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -436,8 +436,7 @@ defmodule Kati.Screens.AnimeFilter do
     # `Kati.UI.eyebrow/2` already does all three for the eyebrows outside the
     # card — this is the one the board draws inside it.
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Kati.Theme.card(Palette.mode())}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -456,7 +455,7 @@ defmodule Kati.Screens.AnimeFilter do
           {chips}
         </Row>
       </Scroll>
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -603,7 +602,7 @@ defmodule Kati.Screens.AnimeFilter do
     assigns = %{n: Kati.Locale.number(n)}
 
     ~MOB"""
-    <Box width={22} height={22} corner_radius={11} background={Palette.ink()} align="center">
+    <MishkaActionIcon variant={:filled} size={22} shape={:circle} background={Palette.ink()}>
       <Text
         text={@n}
         font_family={Kati.Locale.mono_face(@n)}
@@ -611,7 +610,7 @@ defmodule Kati.Screens.AnimeFilter do
         text_color={Palette.on_ink()}
         max_lines={1}
       />
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
@@ -629,8 +628,7 @@ defmodule Kati.Screens.AnimeFilter do
     tap = {self(), :fix_misclassified}
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Kati.Theme.card(Palette.mode())}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -660,7 +658,7 @@ defmodule Kati.Screens.AnimeFilter do
           {SettingsList.action_pill(Kati.Screens.AnimeFilter.guess_pill_label(fixed?))}
         </Box>
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -701,8 +699,7 @@ defmodule Kati.Screens.AnimeFilter do
   @doc false
   def onboarding_card(pick, watches?) do
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Kati.Theme.card(Palette.mode())}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -724,7 +721,7 @@ defmodule Kati.Screens.AnimeFilter do
         )}
       </Row>
       {Kati.Screens.AnimeFilter.subchoice_block(pick, watches?)}
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -748,11 +745,11 @@ defmodule Kati.Screens.AnimeFilter do
     # its own background.
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
-      <Column fill_width={true} background={bg} corner_radius={18} shadow={shadow} padding={14}>
+      <MishkaCard background={bg} corner_radius={18} shadow={shadow} padding={14}>
         {Kati.UI.symbol(icon, size: 21, color: fg)}
         <Spacer size={12} />
         <Text text={label} text_size={14} font_weight="bold" text_color={fg} max_lines={1} />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -803,7 +800,7 @@ defmodule Kati.Screens.AnimeFilter do
       ])
 
     ~MOB"""
-    <Column fill_width={true} background={Palette.paper()} corner_radius={16} padding={14}>
+    <MishkaCard background={Palette.paper()} corner_radius={16} padding={14}>
       <Text
         text={gettext("Do you watch anime?")}
         text_size={13}
@@ -826,7 +823,7 @@ defmodule Kati.Screens.AnimeFilter do
           :watches_no
         )}
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 
