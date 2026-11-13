@@ -400,8 +400,7 @@ defmodule Kati.Screens.Stats do
   def nothing_yet do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         padding={17}
@@ -431,7 +430,7 @@ defmodule Kati.Screens.Stats do
           text_color={Palette.sub()}
         />
         <Spacer size={14} />
-      </Column>
+      </MishkaCard>
       <Spacer size={26} />
     </Column>
     """
@@ -468,8 +467,7 @@ defmodule Kati.Screens.Stats do
   def hero(year, grid) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_hero()}
@@ -514,7 +512,7 @@ defmodule Kati.Screens.Stats do
             max_lines={1}
           />
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -693,8 +691,7 @@ defmodule Kati.Screens.Stats do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -707,7 +704,7 @@ defmodule Kati.Screens.Stats do
         <Row fill_width={true} align="center">
           {@labels}
         </Row>
-      </Column>
+      </MishkaCard>
     </Column>
     """
   end
@@ -838,15 +835,14 @@ defmodule Kati.Screens.Stats do
     assigns = %{content: content}
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={17}
     >
       {@content}
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -1037,7 +1033,6 @@ defmodule Kati.Screens.Stats do
       title: title,
       n: Kati.Locale.number(n),
       fill: n / most,
-      rest: 1 - n / most,
       tap: {self(), String.to_atom("open_top_" <> to_string(id))}
     }
 
@@ -1057,10 +1052,15 @@ defmodule Kati.Screens.Stats do
         <Text text={@n} text_size={12.5} font_weight="bold" text_color={Palette.ink_soft()} />
       </Row>
       <Spacer size={6} />
-      <Row fill_width={true} height={5} corner_radius={3} background={Palette.track()}>
-        <Box weight={@fill} height={5} corner_radius={3} background={Palette.accent()} />
-        <Spacer weight={@rest} />
-      </Row>
+      <MishkaProgress
+        render={:box}
+        value={@fill}
+        max={1}
+        height={5}
+        color={Palette.accent()}
+        track_color={Palette.track()}
+        corner_radius={3}
+      />
     </Column>
     """
   end
@@ -1069,8 +1069,7 @@ defmodule Kati.Screens.Stats do
   def count_card(number, label) do
     ~MOB"""
     <Box weight={1.0}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card()}
@@ -1092,7 +1091,7 @@ defmodule Kati.Screens.Stats do
           text_color={Palette.muted()}
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -1100,15 +1099,14 @@ defmodule Kati.Screens.Stats do
   @doc false
   def breakdown(year) do
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
       padding={17}
     >
       {Enum.map(year.breakdown, fn row -> Kati.Screens.Stats.bar(row) end)}
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -1128,12 +1126,15 @@ defmodule Kati.Screens.Stats do
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
-          <Box fill_width={true} height={8} corner_radius={4} background={Palette.paper()}>
-            <Row fill_width={true}>
-              <Box weight={fraction} height={8} corner_radius={4} background={color} />
-              <Spacer weight={1.0 - fraction} />
-            </Row>
-          </Box>
+          <MishkaProgress
+            render={:box}
+            value={fraction}
+            max={1}
+            height={8}
+            color={color}
+            track_color={Palette.paper()}
+            corner_radius={4}
+          />
         </Box>
         <Spacer size={12} />
         <Column width={34}>
@@ -1180,8 +1181,7 @@ defmodule Kati.Screens.Stats do
     last = length(rows) - 1
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
@@ -1191,7 +1191,7 @@ defmodule Kati.Screens.Stats do
       padding_bottom={4}
     >
       {rows |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Stats.number_row(row, i < last) end)}
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -1556,9 +1556,13 @@ defmodule Kati.Screens.Stats do
 
   @doc false
   def recent_row(row) do
+    assigns = %{
+      thumb: Kati.Screens.Stats.recent_thumb(row),
+      stars: Kati.Screens.Stats.stars(row.stars)
+    }
+
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -1566,11 +1570,8 @@ defmodule Kati.Screens.Stats do
       padding_right={13}
       padding_top={10}
       padding_bottom={10}
-      align="center"
     >
-      {Kati.Screens.Stats.recent_thumb(row)}
-      <Spacer size={13} />
-      <Column weight={1.0}>
+      <MishkaListItem leading={@thumb} trailing={@stars} gap={13} trailing_gap={13}>
         <Text
           text={row.title}
           text_size={13.5}
@@ -1587,10 +1588,8 @@ defmodule Kati.Screens.Stats do
           text_color={Palette.muted()}
           max_lines={1}
         />
-      </Column>
-      <Spacer size={13} />
-      {Kati.Screens.Stats.stars(row.stars)}
-    </Row>
+      </MishkaListItem>
+    </MishkaCard>
     """
   end
 

@@ -451,17 +451,16 @@ defmodule Kati.Screens.Discover do
 
     ~MOB"""
     <Row align="center">
-      <Box
-        width={44}
-        height={44}
-        corner_radius={22}
+      <MishkaActionIcon
+        variant={:filled}
+        size={44}
+        shape={:circle}
         background={if @on?, do: Palette.ink_fill(), else: Palette.card()}
         shadow={Kati.Theme.shadow_button()}
-        align="center"
         on_tap={{self(), :open_filters}}
       >
         {Kati.UI.symbol("sort", size: 21, color: if(@on?, do: Palette.on_ink(), else: Palette.ink()))}
-      </Box>
+      </MishkaActionIcon>
       <Spacer size={9} />
     </Row>
     """
@@ -496,17 +495,16 @@ defmodule Kati.Screens.Discover do
         </Column>
         <Spacer size={9} />
         {@filters}
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
+        <MishkaActionIcon
+          variant={:filled}
+          size={44}
+          shape={:circle}
           background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
-          align="center"
           on_tap={@tap}
         >
           {Kati.UI.symbol("tune", size: 21)}
-        </Box>
+        </MishkaActionIcon>
       </Row>
       <Spacer size={20} />
     </Column>
@@ -653,8 +651,7 @@ defmodule Kati.Screens.Discover do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         padding={15}
@@ -663,9 +660,14 @@ defmodule Kati.Screens.Discover do
         <Spacer size={4} />
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+          <MishkaActionIcon
+            variant={:filled}
+            size={44}
+            corner_radius={14}
+            background={Palette.paper()}
+          >
             {UI.symbol(@icon, size: 21, color: Palette.rail_idle())}
-          </Box>
+          </MishkaActionIcon>
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={12} />
@@ -685,7 +687,7 @@ defmodule Kati.Screens.Discover do
           text_align="center"
         />
         <Spacer size={4} />
-      </Column>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -795,9 +797,9 @@ defmodule Kati.Screens.Discover do
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding={7} align="top">
         <Spacer weight={1.0} />
-        <Box width={26} height={26} corner_radius={13} background={Palette.ink_fill()} align="center">
+        <MishkaActionIcon variant={:filled} size={26} shape={:circle} background={Palette.ink_fill()}>
           {UI.symbol("check", size: 15, color: Palette.on_ink())}
-        </Box>
+        </MishkaActionIcon>
       </Row>
     </Box>
     """

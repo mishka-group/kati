@@ -274,24 +274,21 @@ defmodule Kati.Screens.DiscoverFilters do
     assigns = %{label: label, on?: on?, tap: {self(), tag}}
 
     ~MOB"""
-    <Row
-      height={32}
-      corner_radius={16}
+    <MishkaPill
+      label={@label}
       background={if @on?, do: Palette.ink_fill(), else: Palette.card()}
+      color={if @on?, do: Palette.on_ink(), else: Palette.ink_soft()}
+      corner_radius={16}
+      height={32}
       shadow={if @on?, do: nil, else: Kati.Theme.shadow_card_soft()}
+      padding={0}
       padding_left={15}
       padding_right={15}
-      align="center"
+      align={:center}
+      text_size={12.5}
+      font_weight={:semibold}
       on_tap={@tap}
-    >
-      <Text
-        text={@label}
-        text_size={12.5}
-        font_weight="semibold"
-        text_color={if @on?, do: Palette.on_ink(), else: Palette.ink_soft()}
-        max_lines={1}
-      />
-    </Row>
+    />
     """
   end
 
@@ -302,8 +299,7 @@ defmodule Kati.Screens.DiscoverFilters do
     assigns = %{line: Kati.Screens.DiscoverFilters.count_line(assigns.choice, assigns)}
 
     ~MOB"""
-    <Box
-      fill_width={true}
+    <MishkaCard
       background={Kati.Theme.card(Palette.mode())}
       corner_radius={20}
       padding={15}
@@ -322,7 +318,7 @@ defmodule Kati.Screens.DiscoverFilters do
           />
         </Row>
       </Row>
-    </Box>
+    </MishkaCard>
     """
   end
 
