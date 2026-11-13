@@ -34,7 +34,7 @@ defmodule Kati.MishkaCardTest do
     refute Map.has_key?(node.props, :border_width)
   end
 
-  test "direction row is a Row and carries align; a column drops align" do
+  test "direction row is a Row and carries align; a column carries it too" do
     row = expand(%{direction: "row", align: "center"}, [])
     column = expand(%{direction: :column, align: "center"}, [])
 
@@ -42,7 +42,8 @@ defmodule Kati.MishkaCardTest do
     assert row.props.align == "center"
 
     assert column.type == :column
-    refute Map.has_key?(column.props, :align)
+    assert column.props.align == "center"
+    refute Map.has_key?(expand(%{}, []).props, :align)
   end
 
   test "a title prop opens a body and puts the title first" do
