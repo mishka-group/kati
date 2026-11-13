@@ -303,8 +303,10 @@ defmodule Kati.SearchKeylessSectionTest do
     end)
   end
 
+  # The add disc sits in a MishkaListItem's trailing slot, so the taps are only
+  # in the tree once the composites are expanded.
   defp tap_tags(view) do
-    for node <- flatten(view),
+    for node <- flatten(view |> tree() |> Mob.Composite.expand(self())),
         {_pid, tag} <- [Map.get(Map.get(node, :props) || %{}, :on_tap)],
         is_atom(tag),
         do: tag
