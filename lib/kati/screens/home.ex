@@ -745,14 +745,16 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top_trailing">
       <Column padding_top={9} padding_right={10}>
-        <Box
-          width={12}
-          height={12}
-          corner_radius={6}
+        <MishkaActionIcon
+          variant={:filled}
+          size={12}
+          shape={:circle}
           background={Palette.accent()}
           border_width={2}
           border_color={Palette.card()}
-        />
+        >
+          <Spacer size={0} />
+        </MishkaActionIcon>
       </Column>
     </Box>
     """
@@ -1390,7 +1392,14 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def dot(nil), do: ~MOB"<Spacer size={0} />"
-  def dot(color), do: ~MOB"<Box width={6} height={6} corner_radius={3} background={color} />"
+
+  def dot(color) do
+    ~MOB"""
+    <MishkaActionIcon variant={:filled} size={6} shape={:circle} background={color}>
+      <Spacer size={0} />
+    </MishkaActionIcon>
+    """
+  end
 
   @doc false
   def tile_meta(nil), do: ~MOB"<Spacer size={0} />"

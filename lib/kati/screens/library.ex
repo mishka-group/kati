@@ -759,18 +759,21 @@ defmodule Kati.Screens.Library do
     ~MOB"""
     <Row fill_width={true} align="center" padding_bottom={12}>
       <Spacer weight={1.0} />
-      <Box
+      <MishkaPill
+        label={@label}
         height={34}
         corner_radius={17}
         background={Palette.card()}
+        color={Palette.ink_soft()}
         shadow={Theme.shadow_card_soft()}
+        padding={0}
         padding_left={16}
         padding_right={16}
-        align="center"
+        align={:center}
+        text_size={12.5}
+        font_weight={:semibold}
         on_tap={{self(), :more_titles}}
-      >
-        <Text text={@label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} />
-      </Box>
+      />
       <Spacer weight={1.0} />
     </Row>
     """
@@ -1639,8 +1642,7 @@ defmodule Kati.Screens.Library do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         padding={15}
@@ -1649,9 +1651,14 @@ defmodule Kati.Screens.Library do
         <Spacer size={4} />
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+          <MishkaActionIcon
+            variant={:filled}
+            size={44}
+            corner_radius={14}
+            background={Palette.paper()}
+          >
             {Kati.UI.symbol("movie", size: 21, color: Palette.rail_idle())}
-          </Box>
+          </MishkaActionIcon>
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={12} />
@@ -1671,7 +1678,7 @@ defmodule Kati.Screens.Library do
           text_align="center"
         />
         <Spacer size={4} />
-      </Column>
+      </MishkaCard>
     </Column>
     """
   end
@@ -1900,16 +1907,15 @@ defmodule Kati.Screens.Library do
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top_trailing" padding={7}>
-      <Box
-        width={28}
-        height={28}
-        corner_radius={14}
+      <MishkaActionIcon
+        variant={:filled}
+        size={28}
+        shape={:circle}
         background={@fill}
         shadow={Kati.Theme.shadow_button()}
-        align="center"
       >
         {Kati.UI.symbol(@glyph, size: 17, color: @color)}
-      </Box>
+      </MishkaActionIcon>
     </Box>
     """
   end
@@ -1924,18 +1930,17 @@ defmodule Kati.Screens.Library do
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top_trailing" padding={7}>
-      <Box
-        width={26}
-        height={26}
-        corner_radius={13}
+      <MishkaActionIcon
+        variant={:filled}
+        size={26}
+        shape={:circle}
         background={@fill}
         border_width={2}
         border_color={Palette.on_ink()}
         shadow={Kati.Theme.shadow_button()}
-        align="center"
       >
         {Kati.Screens.Library.pick_glyph(@glyph)}
-      </Box>
+      </MishkaActionIcon>
     </Box>
     """
   end
