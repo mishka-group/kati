@@ -75,6 +75,10 @@ jobs:
       # mob_dev is dev-only: lib/mix/tasks/kati.e2e.stage.ex warns under MIX_ENV=test.
       warnings-as-errors: false
       mix-audit: false
+      # mix.lock also locks the KATI_UI_GEN generator deps (mishka_chelekom and its tree).
+      unused-deps: false
+      # Never in CI: credo --strict reports 6 warnings and 4500+ suggestions today.
+      credo: false
       dialyzer: false
       ex_dna: false
       # The NIF chain test reads mob.exs (gitignored: it holds machine paths).
