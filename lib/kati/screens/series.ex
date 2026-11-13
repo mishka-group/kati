@@ -1564,25 +1564,30 @@ defmodule Kati.Screens.Series do
   # that is the glyph the drawing names.
   @doc false
   def chrome(menu?, label \\ gettext("Library"), s \\ %{}) do
-    back = {self(), :back}
     fill = Palette.card()
     lift = "0 6 16 -8 #991A1917"
-    assigns = %{back: label}
+
+    assigns = %{
+      back: label,
+      tap: {self(), :back},
+      glyph: Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)
+    }
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        <Row
+        <MishkaPill
           height={42}
           corner_radius={21}
           background={fill}
           shadow={lift}
+          padding={0}
           padding_left={12}
           padding_right={16}
-          align="center"
-          on_tap={back}
+          align={:center}
+          on_tap={@tap}
         >
-          {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
+          {@glyph}
           <Spacer size={6} />
           <Text
             text={@back}
@@ -1591,7 +1596,7 @@ defmodule Kati.Screens.Series do
             letter_spacing={-0.01}
             text_color={:on_surface}
           />
-        </Row>
+        </MishkaPill>
         <Spacer weight={1.0} />
         {Kati.Screens.Series.more_disc(fill, lift, menu?, s)}
       </Row>
@@ -2314,8 +2319,8 @@ defmodule Kati.Screens.Series do
 
     ~MOB"""
     <Column fill_width={true} padding_top={8} padding_bottom={8}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         on_tap={@tap}
         background={Palette.card()}
         corner_radius={16}
@@ -2329,7 +2334,7 @@ defmodule Kati.Screens.Series do
           text_color={:on_surface}
           weight={1.0}
         />
-      </Row>
+      </MishkaCard>
     </Column>
     """
   end
@@ -2345,17 +2350,16 @@ defmodule Kati.Screens.Series do
     }
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       padding={15}
       shadow={Kati.Theme.shadow_card_soft()}
     >
       <Row fill_width={true} align="center">
-        <Box width={38} height={38} corner_radius={12} background={Palette.paper()} align="center">
+        <MishkaActionIcon variant={:filled} size={38} corner_radius={12} background={Palette.paper()}>
           {Kati.UI.symbol("live_tv", size: 19, color: Palette.rail_idle())}
-        </Box>
+        </MishkaActionIcon>
         <Spacer size={13} />
         <Text
           text={Kati.Screens.Series.no_list_label()}
@@ -2367,7 +2371,7 @@ defmodule Kati.Screens.Series do
       </Row>
       <Spacer size={11} />
       <Text text={@note} text_size={12} line_height={1.55} text_color={Palette.sub()} />
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -2578,24 +2582,17 @@ defmodule Kati.Screens.Series do
   @doc false
   def check(true, _aired?) do
     ~MOB"""
-    <Box width={27} height={27} corner_radius={14} background={Palette.ink_fill()} align="center">
+    <MishkaActionIcon variant={:filled} size={27} corner_radius={14} background={Palette.ink_fill()}>
       {Kati.UI.symbol("check", size: 16, color: Palette.on_ink())}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
   def check(false, true) do
     ~MOB"""
-    <Box
-      width={27}
-      height={27}
-      corner_radius={14}
-      border_width={1}
-      border_color={Palette.sub()}
-      align="center"
-    >
+    <MishkaActionIcon size={27} corner_radius={14} border_width={1} border_color={Palette.sub()}>
       {Kati.UI.symbol("check", size: 16, color: Palette.sub())}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 

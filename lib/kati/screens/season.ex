@@ -1155,7 +1155,9 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Row
+        <MishkaCard
+          direction={:row}
+          fill_width={false}
           weight={1.0}
           background={Palette.placeholder()}
           corner_radius={16}
@@ -1163,7 +1165,7 @@ defmodule Kati.Screens.Season do
           align="center"
         >
           {@tiles}
-        </Row>
+        </MishkaCard>
         <Spacer size={9} />
         {Kati.Screens.Season.explain_disc(@help)}
       </Row>
@@ -1402,8 +1404,8 @@ defmodule Kati.Screens.Season do
 
   def episode_row(ep, bg, title_color, number_color, true, tap) do
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={bg}
       corner_radius={17}
@@ -1416,14 +1418,14 @@ defmodule Kati.Screens.Season do
       {Kati.Screens.Season.episode_body(ep, title_color, number_color)}
       {Kati.Screens.Season.rating_column(ep)}
       {Kati.Screens.Season.check(true)}
-    </Row>
+    </MishkaCard>
     """
   end
 
   def episode_row(ep, bg, title_color, number_color, false, tap) do
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={bg}
       corner_radius={17}
@@ -1437,7 +1439,7 @@ defmodule Kati.Screens.Season do
       {Kati.Screens.Season.episode_body(ep, title_color, number_color)}
       {Kati.Screens.Season.rating_column(ep)}
       {Kati.Screens.Season.check(false)}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -1606,8 +1608,8 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={8} />
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         corner_radius={18}
         border_width={1.5}
         border_color={Palette.border()}
@@ -1623,7 +1625,7 @@ defmodule Kati.Screens.Season do
           text_color={Palette.ink_soft()}
           weight={1.0}
         />
-      </Row>
+      </MishkaCard>
     </Column>
     """
   end
