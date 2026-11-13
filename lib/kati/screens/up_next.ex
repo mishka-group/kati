@@ -433,8 +433,7 @@ defmodule Kati.Screens.UpNext do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -442,9 +441,14 @@ defmodule Kati.Screens.UpNext do
       >
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+          <MishkaActionIcon
+            variant={:filled}
+            size={48}
+            corner_radius={15}
+            background={Palette.paper()}
+          >
             {Kati.UI.symbol("search", size: 22, color: Palette.rail_idle())}
-          </Box>
+          </MishkaActionIcon>
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={13} />
@@ -475,26 +479,23 @@ defmodule Kati.Screens.UpNext do
         <Spacer size={14} />
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Row
-            height={36}
-            corner_radius={18}
+          <MishkaPill
+            label={gettext("Clear the filters")}
             background={Palette.paper()}
-            align="center"
+            color={:on_surface}
+            corner_radius={18}
+            height={36}
+            padding={0}
             padding_left={16}
             padding_right={16}
+            align={:center}
+            text_size={12.5}
+            font_weight={:semibold}
             on_tap={@tap}
-          >
-            <Text
-              text={gettext("Clear the filters")}
-              text_size={12.5}
-              font_weight="semibold"
-              text_color={:on_surface}
-              max_lines={1}
-            />
-          </Row>
+          />
           <Spacer weight={1.0} />
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -505,8 +506,7 @@ defmodule Kati.Screens.UpNext do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -515,9 +515,14 @@ defmodule Kati.Screens.UpNext do
       >
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+          <MishkaActionIcon
+            variant={:filled}
+            size={48}
+            corner_radius={15}
+            background={Palette.paper()}
+          >
             {Kati.UI.symbol("play_arrow", size: 22, color: Palette.rail_idle())}
-          </Box>
+          </MishkaActionIcon>
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={13} />
@@ -537,7 +542,7 @@ defmodule Kati.Screens.UpNext do
           text_color={Palette.sub()}
           text_align="center"
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -1105,8 +1110,7 @@ defmodule Kati.Screens.UpNext do
   def hero(%{hero: nil}) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1115,9 +1119,14 @@ defmodule Kati.Screens.UpNext do
         <Spacer size={4} />
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+          <MishkaActionIcon
+            variant={:filled}
+            size={44}
+            corner_radius={14}
+            background={Palette.paper()}
+          >
             {UI.symbol("pause_circle", size: 21, color: Palette.rail_idle())}
-          </Box>
+          </MishkaActionIcon>
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={12} />
@@ -1137,7 +1146,7 @@ defmodule Kati.Screens.UpNext do
           text_align="center"
         />
         <Spacer size={4} />
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -1148,8 +1157,7 @@ defmodule Kati.Screens.UpNext do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1194,7 +1202,7 @@ defmodule Kati.Screens.UpNext do
             {Kati.Screens.UpNext.progress(h.progress)}
           </Box>
         </Box>
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -1242,22 +1250,20 @@ defmodule Kati.Screens.UpNext do
   @spec progress(float() | nil) :: map()
   def progress(nil), do: ~MOB"<Spacer size={0} />"
 
-  def progress(fraction) when fraction >= 1.0 do
-    ~MOB"""
-    <Box fill_width={true} height={3} background={Palette.accent()} />
-    """
-  end
-
   def progress(fraction) when fraction <= 0.0, do: ~MOB"<Spacer size={0} />"
 
   def progress(fraction) do
+    assigns = %{value: min(fraction, 1.0)}
+
     ~MOB"""
-    <Box fill_width={true} height={3} background={Palette.on_media_track()}>
-      <Row fill_width={true}>
-        <Box weight={fraction} height={3} background={Palette.accent()} />
-        <Spacer weight={1.0 - fraction} />
-      </Row>
-    </Box>
+    <MishkaProgress
+      render={:box}
+      value={@value}
+      max={1}
+      height={3}
+      color={Palette.accent()}
+      track_color={Palette.on_media_track()}
+    />
     """
   end
 
@@ -1305,11 +1311,23 @@ defmodule Kati.Screens.UpNext do
   # `mono_face/1` for `kati_mono.ttf`'s missing Persian glyphs.
   @doc false
   def ready_row(row) do
+    assigns = %{
+      tap: Kati.Screens.UpNext.row_tap(row),
+      thumb: Kati.Screens.UpNext.thumb(row),
+      disc:
+        Kati.Screens.UpNext.play_disc(
+          34,
+          19,
+          Palette.paper(),
+          Palette.ink(),
+          Kati.Screens.UpNext.open_tap(row)
+        )
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
-        on_tap={Kati.Screens.UpNext.row_tap(row)}
+      <MishkaCard
+        on_tap={@tap}
         background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1317,11 +1335,8 @@ defmodule Kati.Screens.UpNext do
         padding_right={13}
         padding_top={10}
         padding_bottom={10}
-        align="center"
       >
-        {Kati.Screens.UpNext.thumb(row)}
-        <Spacer size={12} />
-        <Column weight={1.0}>
+        <MishkaListItem leading={@thumb} trailing={@disc} gap={12} trailing_gap={12}>
           <Text
             text={row.title}
             text_size={13.5}
@@ -1338,10 +1353,8 @@ defmodule Kati.Screens.UpNext do
             text_color={Palette.muted()}
             max_lines={1}
           />
-        </Column>
-        <Spacer size={12} />
-        {Kati.Screens.UpNext.play_disc(34, 19, Palette.paper(), Palette.ink(), Kati.Screens.UpNext.open_tap(row))}
-      </Row>
+        </MishkaListItem>
+      </MishkaCard>
       <Spacer size={9} />
     </Column>
     """
@@ -1492,21 +1505,22 @@ defmodule Kati.Screens.UpNext do
 
   @doc false
   def cold_row(row) do
+    assigns = %{
+      thumb: Kati.Screens.UpNext.cold_thumb(row),
+      drop: Kati.Screens.UpNext.drop_pill(row.action, Kati.Screens.UpNext.drop_tap(row))
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
         background={Palette.card_settled()}
         corner_radius={18}
         padding_left={13}
         padding_right={13}
         padding_top={10}
         padding_bottom={10}
-        align="center"
       >
-        {Kati.Screens.UpNext.cold_thumb(row)}
-        <Spacer size={12} />
-        <Column weight={1.0}>
+        <MishkaListItem leading={@thumb} trailing={@drop} gap={12} trailing_gap={12}>
           <Text
             text={row.title}
             text_size={13.5}
@@ -1522,10 +1536,8 @@ defmodule Kati.Screens.UpNext do
             text_color={Palette.tertiary()}
             max_lines={1}
           />
-        </Column>
-        <Spacer size={12} />
-        {Kati.Screens.UpNext.drop_pill(row.action, Kati.Screens.UpNext.drop_tap(row))}
-      </Row>
+        </MishkaListItem>
+      </MishkaCard>
     </Column>
     """
   end
