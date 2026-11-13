@@ -297,7 +297,8 @@ defmodule Kati.ScreenStatsTest do
 
     test "draws one filled star per whole point of the night's rating" do
       # 10, 8 and 8 on the ten-point scale — five, four and four glyphs.
-      stars = find_all(tree(mount_screen(Stats)), :text, text: Kati.Icons.glyph("star"))
+      expanded = mount_screen(Stats) |> tree() |> Mob.Composite.expand(self())
+      stars = find_all(expanded, :text, text: Kati.Icons.glyph("star"))
 
       assert Enum.map(Stats.figures()[:recent], & &1.stars) == [5, 4, 4]
       assert length(stars) == 13

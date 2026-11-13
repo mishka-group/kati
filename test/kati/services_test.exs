@@ -449,7 +449,7 @@ defmodule Kati.ServicesTest do
   describe "the four screens render" do
     test "each one draws a tree the native layer can take" do
       for module <- [MyServices, CountryPicker, DataSources, Attribution] do
-        assert_renderable(mount_screen(module))
+        assert_renderable(mount_screen(module) |> tree() |> Mob.Composite.expand(self()))
       end
     end
   end
