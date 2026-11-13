@@ -465,13 +465,12 @@ defmodule Kati.Screens.InboxNotifications do
   def empty(%{now: [], later: [], held: []}) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         padding={19}
         shadow={Kati.Theme.shadow_card()}
-        align="center"
+        align={:center}
       >
         {Kati.UI.symbol("notifications_off", size: 26, color: Palette.tertiary())}
         <Spacer size={12} />
@@ -492,7 +491,7 @@ defmodule Kati.Screens.InboxNotifications do
         />
         <Spacer size={14} />
         {Kati.UI.SettingsList.action_pill(gettext("Notification settings"), {self(), :open_watcher})}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """

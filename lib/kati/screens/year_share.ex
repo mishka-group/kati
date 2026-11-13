@@ -483,9 +483,8 @@ defmodule Kati.Screens.YearShare do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         id="capture_year_card"
-        fill_width={true}
         background={Palette.card()}
         corner_radius={22}
         padding={19}
@@ -520,7 +519,7 @@ defmodule Kati.Screens.YearShare do
         {Kati.Screens.YearShare.top_face(@top, @titles_size)}
         {Kati.Screens.YearShare.field_face(@grid, @label_size)}
         {Kati.Screens.YearShare.hours_face_bars(@breakdown, @label_size)}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -534,9 +533,8 @@ defmodule Kati.Screens.YearShare do
   def nothing_counted do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         id="capture_year_card"
-        fill_width={true}
         background={Palette.card()}
         corner_radius={22}
         padding={19}
@@ -556,7 +554,7 @@ defmodule Kati.Screens.YearShare do
           line_height={1.6}
           text_color={Palette.sub()}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -925,15 +923,15 @@ defmodule Kati.Screens.YearShare do
   def actions do
     ~MOB"""
     <Column fill_width={true}>
-      <Row
+      <MishkaPill
         fill_width={true}
         height={52}
         corner_radius={26}
         background={Palette.ink_fill()}
-        align="center"
+        padding={0}
+        align={:center}
         on_tap={{self(), :save_image}}
       >
-        <Spacer weight={1.0} />
         <Text
           text={gettext("Save image")}
           text_size={15}
@@ -941,8 +939,7 @@ defmodule Kati.Screens.YearShare do
           letter_spacing={Kati.Locale.tracking(-0.01)}
           text_color={Palette.on_ink()}
         />
-        <Spacer weight={1.0} />
-      </Row>
+      </MishkaPill>
       <Spacer size={11} />
       <Row fill_width={true} align="center" on_tap={{self(), :share_image}}>
         <Spacer weight={1.0} />

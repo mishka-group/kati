@@ -815,14 +815,13 @@ defmodule Kati.Screens.Calendar do
 
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={bg}
         corner_radius={16}
         shadow={shadow}
         padding_top={9}
         padding_bottom={11}
-        align="center"
+        align={:center}
       >
         <Text
           text={name}
@@ -842,7 +841,7 @@ defmodule Kati.Screens.Calendar do
           text_color={num_color}
           text_align="center"
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -1013,8 +1012,8 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def empty_card(icon, title, lines) do
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -1022,7 +1021,7 @@ defmodule Kati.Screens.Calendar do
       padding_right={15}
       padding_top={17}
       padding_bottom={17}
-      align="top"
+      align={:top}
     >
       {Kati.Screens.Calendar.empty_tile(icon)}
       <Spacer size={13} />
@@ -1030,7 +1029,7 @@ defmodule Kati.Screens.Calendar do
         <Text text={title} text_size={13.5} font_weight="semibold" text_color={:on_surface} />
         {Enum.map(lines, fn line -> Kati.Screens.Calendar.empty_line(line) end)}
       </Column>
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -1127,8 +1126,7 @@ defmodule Kati.Screens.Calendar do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={22} />
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1166,7 +1164,7 @@ defmodule Kati.Screens.Calendar do
           text_align="center"
           text_color={Palette.muted()}
         />
-      </Column>
+      </MishkaCard>
     </Column>
     """
   end
@@ -1255,8 +1253,8 @@ defmodule Kati.Screens.Calendar do
     tap = Kati.Screens.Calendar.tap(row)
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={Palette.card_settled()}
       corner_radius={18}
@@ -1264,7 +1262,7 @@ defmodule Kati.Screens.Calendar do
       padding_right={15}
       padding_top={13}
       padding_bottom={13}
-      align="center"
+      align={:center}
     >
       {Kati.UI.symbol("radio_button_unchecked", size: 21, color: Palette.tertiary())}
       <Spacer size={12} />
@@ -1286,7 +1284,7 @@ defmodule Kati.Screens.Calendar do
         text_color={Palette.muted()}
         max_lines={1}
       />
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -1294,8 +1292,8 @@ defmodule Kati.Screens.Calendar do
     tap = Kati.Screens.Calendar.tap(row)
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={Palette.card_settled()}
       corner_radius={18}
@@ -1303,7 +1301,7 @@ defmodule Kati.Screens.Calendar do
       padding_right={15}
       padding_top={13}
       padding_bottom={13}
-      align="center"
+      align={:center}
     >
       {Kati.Screens.Calendar.payments_tile()}
       <Spacer size={12} />
@@ -1326,7 +1324,7 @@ defmodule Kati.Screens.Calendar do
         text_color={Palette.ink_soft()}
         max_lines={1}
       />
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -1366,9 +1364,14 @@ defmodule Kati.Screens.Calendar do
     bg = if done?, do: Palette.card_settled(), else: Palette.card()
     shadow = if done?, do: nil, else: Kati.Theme.shadow_card()
 
+    assigns = %{
+      rule_bar: ~MOB"<Box width={3} height={36} corner_radius={2} background={rule} />",
+      sub: Kati.Screens.Calendar.sub_line(row, done?),
+      trailing: Kati.Screens.Calendar.trailing(done?)
+    }
+
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
       on_tap={tap}
       background={bg}
       corner_radius={18}
@@ -1377,11 +1380,8 @@ defmodule Kati.Screens.Calendar do
       padding_right={15}
       padding_top={14}
       padding_bottom={14}
-      align="center"
     >
-      <Box width={3} height={36} corner_radius={2} background={rule} />
-      <Spacer size={12} />
-      <Column weight={1.0}>
+      <MishkaListItem leading={@rule_bar} trailing={@trailing} gap={12} trailing_gap={12}>
         <Text
           text={row.title}
           text_size={14}
@@ -1390,11 +1390,9 @@ defmodule Kati.Screens.Calendar do
           text_color={:on_surface}
           max_lines={1}
         />
-        {Kati.Screens.Calendar.sub_line(row, done?)}
-      </Column>
-      <Spacer size={12} />
-      {Kati.Screens.Calendar.trailing(done?)}
-    </Row>
+        {@sub}
+      </MishkaListItem>
+    </MishkaCard>
     """
   end
 
@@ -1444,14 +1442,14 @@ defmodule Kati.Screens.Calendar do
     tap = {self(), :toggle_airing}
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card()}
       padding={15}
-      align="center"
+      align={:center}
     >
       <Box width={3} height={48} corner_radius={2} background={Palette.accent()} />
       <Spacer size={12} />
@@ -1477,7 +1475,7 @@ defmodule Kati.Screens.Calendar do
       </Column>
       <Spacer size={12} />
       {Kati.Screens.Calendar.chevron_tile(open?)}
-    </Row>
+    </MishkaCard>
     """
     |> then(fn card -> Kati.Screens.Calendar.with_members(card, row, open?) end)
   end
@@ -1495,14 +1493,14 @@ defmodule Kati.Screens.Calendar do
     tap = Kati.Screens.Calendar.tap(row)
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card()}
       padding={15}
-      align="center"
+      align={:center}
     >
       <Box width={3} height={48} corner_radius={2} background={Palette.accent()} />
       <Spacer size={12} />
@@ -1530,7 +1528,7 @@ defmodule Kati.Screens.Calendar do
       </Column>
       <Spacer size={12} />
       {Kati.UI.SettingsList.chevron()}
-    </Row>
+    </MishkaCard>
     """
   end
 

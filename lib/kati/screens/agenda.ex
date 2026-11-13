@@ -280,8 +280,7 @@ defmodule Kati.Screens.Agenda do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.Agenda.kicker_row(group)}
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
@@ -293,7 +292,7 @@ defmodule Kati.Screens.Agenda do
         {group.rows
          |> Enum.with_index()
          |> Enum.map(fn {row, i} -> Kati.Screens.Agenda.row(row, i < last) end)}
-      </Column>
+      </MishkaCard>
       <Spacer size={20} />
     </Column>
     """

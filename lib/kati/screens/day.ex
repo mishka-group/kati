@@ -916,8 +916,8 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Box weight={weight}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={background}
         corner_radius={16}
         shadow={shadow}
@@ -925,7 +925,7 @@ defmodule Kati.Screens.Day do
         padding_right={pad_h}
         padding_top={pad_v}
         padding_bottom={pad_v}
-        align="center"
+        align={:center}
         on_tap={tap}
       >
         {Kati.Screens.Day.kind_rail(event, split?, meta)}
@@ -942,7 +942,7 @@ defmodule Kati.Screens.Day do
           {Kati.Screens.Day.card_meta(meta, meta_gap)}
         </Column>
         {Kati.Screens.Day.state_icon(event)}
-      </Row>
+      </MishkaCard>
     </Box>
     """
   end
@@ -1059,7 +1059,7 @@ defmodule Kati.Screens.Day do
   stack, the text and the disc — not on the disc, which is why the disc stays
   a plain `action_icon/2` with no tap of its own.
 
-  The card chrome (fill, radius, shadow, 14 of padding) lives on the `<Column>`
+  The card chrome (fill, radius, shadow, 14 of padding) lives on the `<MishkaCard>`
   so the members can sit inside it under the hairline. Collapsed, that Column
   holds one `fill_width` `<Row>` and measures exactly what the Row measured
   when it carried the chrome itself.
@@ -1071,43 +1071,48 @@ defmodule Kati.Screens.Day do
     open? = Map.get(cluster, :open?, false)
     tap = {self(), Map.fetch!(cluster, :tag)}
 
+    assigns = %{
+      rule: ~MOB"<Box width={3} height={48} corner_radius={2} background={Palette.accent()} />",
+      spacer: ~MOB"<Spacer size={12} />",
+      stack: Kati.Screens.Day.poster_stack(members),
+      chevron: Kati.Screens.Day.chevron_disc(open?),
+      members: Kati.Screens.Day.group_members(members, open?)
+    }
+
     ~MOB"""
     <Box weight={1.0}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={18}
         shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
         padding={14}
       >
-        <Row fill_width={true} on_tap={tap} align="center">
-          <Box width={3} height={48} corner_radius={2} background={Palette.accent()} />
-          <Spacer size={12} />
-          {Kati.Screens.Day.poster_stack(members)}
+        <MishkaListItem
+          leading={[@rule, @spacer, @stack]}
+          trailing={@chevron}
+          gap={4}
+          trailing_gap={12}
+          on_tap={tap}
+        >
+          <Text
+            text={title}
+            text_size={14}
+            font_weight="bold"
+            letter_spacing={Kati.Locale.tracking(-0.015)}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Column weight={1.0}>
-            <Text
-              text={title}
-              text_size={14}
-              font_weight="bold"
-              letter_spacing={Kati.Locale.tracking(-0.015)}
-              text_color={:on_surface}
-              max_lines={1}
-            />
-            <Spacer size={4} />
-            <Text
-              text={meta}
-              font_family={Kati.Locale.mono_face(meta)}
-              text_size={10.5}
-              text_color={Palette.sub()}
-              max_lines={1}
-            />
-          </Column>
-          <Spacer size={12} />
-          {Kati.Screens.Day.chevron_disc(open?)}
-        </Row>
-        {Kati.Screens.Day.group_members(members, open?)}
-      </Column>
+          <Text
+            text={meta}
+            font_family={Kati.Locale.mono_face(meta)}
+            text_size={10.5}
+            text_color={Palette.sub()}
+            max_lines={1}
+          />
+        </MishkaListItem>
+        {@members}
+      </MishkaCard>
     </Box>
     """
   end

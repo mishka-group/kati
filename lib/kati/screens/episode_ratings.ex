@@ -239,8 +239,8 @@ defmodule Kati.Screens.EpisodeRatings do
     title_color = if ep.watched, do: Palette.settled_ink(), else: :on_surface
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       background={bg}
       shadow={shadow}
       corner_radius={17}
@@ -248,7 +248,7 @@ defmodule Kati.Screens.EpisodeRatings do
       padding_right={15}
       padding_top={13}
       padding_bottom={13}
-      align="center"
+      align={:center}
     >
       <Column width={22}>
         <Text
@@ -281,7 +281,7 @@ defmodule Kati.Screens.EpisodeRatings do
       {Kati.Screens.Season.rating_column(ep)}
       <Spacer size={13} />
       {Kati.Screens.EpisodeRatings.check(ep.watched)}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -330,24 +330,17 @@ defmodule Kati.Screens.EpisodeRatings do
   @spec check(boolean()) :: map()
   def check(true) do
     ~MOB"""
-    <Box width={27} height={27} corner_radius={14} background={Palette.ink_fill()} align="center">
+    <MishkaActionIcon variant={:filled} size={27} corner_radius={14} background={Palette.ink_fill()}>
       {Kati.UI.symbol("check", size: 16, color: Palette.on_ink())}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
   def check(false) do
     ~MOB"""
-    <Box
-      width={27}
-      height={27}
-      corner_radius={14}
-      border_width={1.5}
-      border_color={Palette.border()}
-      align="center"
-    >
+    <MishkaActionIcon size={27} corner_radius={14} border_width={1.5} border_color={Palette.border()}>
       {Kati.UI.symbol("check", size: 16, color: Palette.ink_invisible())}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 end
