@@ -209,13 +209,13 @@ defmodule Kati.Screens.ReleaseWatcher do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.cream()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
-        align="center"
+        align={:center}
         on_tap={tap}
       >
         {Kati.UI.symbol("auto_awesome", size: 24, color: Palette.gold_icon())}
@@ -239,7 +239,7 @@ defmodule Kati.Screens.ReleaseWatcher do
         </Column>
         <Spacer size={13} />
         {SettingsList.switch(b.on)}
-      </Row>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -377,15 +377,15 @@ defmodule Kati.Screens.ReleaseWatcher do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.placeholder()}
         corner_radius={16}
         padding={4}
-        align="center"
+        align={:center}
       >
         {tiles}
-      </Row>
+      </MishkaCard>
       <Spacer size={14} />
       {Kati.Screens.ReleaseWatcher.check_now(w)}
       <Spacer size={22} />
@@ -412,15 +412,15 @@ defmodule Kati.Screens.ReleaseWatcher do
     }
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       height={56}
       corner_radius={20}
       background={Palette.card()}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
       padding_right={15}
-      align="center"
+      align={:center}
     >
       {Kati.UI.SettingsList.icon_tile("sync")}
       <Spacer size={13} />
@@ -429,7 +429,7 @@ defmodule Kati.Screens.ReleaseWatcher do
       </Column>
       <Spacer size={12} />
       {Kati.UI.SettingsList.action_pill(@label, @tap)}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -447,24 +447,25 @@ defmodule Kati.Screens.ReleaseWatcher do
     word = cadence_label(label)
     bg = if on?, do: Palette.card(), else: Palette.transparent()
     fg = if on?, do: Palette.ink(), else: Palette.segment_idle()
-    weight = if on?, do: "bold", else: "semibold"
+    weight = if on?, do: :bold, else: :semibold
     shadow = if on?, do: "0 1 2 0 #0F1A1917", else: "0 0 0 0 #00000000"
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row
+      <MishkaPill
+        label={word}
         fill_width={true}
         height={34}
         corner_radius={12}
         background={bg}
+        color={fg}
         shadow={shadow}
-        align="center"
+        padding={0}
+        align={:center}
+        text_size={12}
+        font_weight={weight}
         on_tap={tap}
-      >
-        <Spacer weight={1.0} />
-        <Text text={word} text_size={12} font_weight={weight} text_color={fg} max_lines={1} />
-        <Spacer weight={1.0} />
-      </Row>
+      />
     </Box>
     """
   end

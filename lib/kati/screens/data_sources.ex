@@ -541,25 +541,22 @@ defmodule Kati.Screens.DataSources do
     ~MOB"""
     <Row fill_width={true} padding_top={12} align="center">
       <Spacer weight={1.0} />
-      <Row
+      <MishkaPill
+        label={gettext("Cancel")}
         height={32}
         corner_radius={16}
         background={Palette.card()}
+        color={:on_surface}
         border_width={1}
         border_color={Palette.border()}
+        padding={0}
         padding_left={14}
         padding_right={14}
-        align="center"
+        align={:center}
+        text_size={12.5}
+        font_weight={:semibold}
         on_tap={{self(), :edit_cancel}}
-      >
-        <Text
-          text={gettext("Cancel")}
-          text_size={12.5}
-          font_weight="semibold"
-          text_color={:on_surface}
-          max_lines={1}
-        />
-      </Row>
+      />
       <Spacer size={8} />
       {Kati.Screens.DataSources.save_pill(save)}
     </Row>
@@ -591,7 +588,7 @@ defmodule Kati.Screens.DataSources do
     assigns = %{token: token, on_change: on_change, epoch: epoch}
 
     ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={@token}
       placeholder={Kati.Screens.DataSources.token_placeholder()}
       return_key="done"
@@ -661,13 +658,14 @@ defmodule Kati.Screens.DataSources do
   @spec not_in_v1() :: map()
   def not_in_v1 do
     ~MOB"""
-    <Row
+    <MishkaPill
       height={22}
       corner_radius={11}
       background={Palette.placeholder()}
+      padding={0}
       padding_left={9}
       padding_right={9}
-      align="center"
+      align={:center}
     >
       <Text
         text={Kati.UI.eyebrow_label(gettext("Not in v1"))}
@@ -677,7 +675,7 @@ defmodule Kati.Screens.DataSources do
         text_color={Palette.rail_idle()}
         max_lines={1}
       />
-    </Row>
+    </MishkaPill>
     """
   end
 
@@ -732,8 +730,7 @@ defmodule Kati.Screens.DataSources do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         padding={15}
@@ -767,7 +764,7 @@ defmodule Kati.Screens.DataSources do
           <Spacer size={8} />
           {@keep}
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={12} />
     </Column>
     """
@@ -834,8 +831,7 @@ defmodule Kati.Screens.DataSources do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         padding={17}
@@ -865,7 +861,7 @@ defmodule Kati.Screens.DataSources do
           {Kati.UI.SettingsList.action_pill(gettext("Clear"), {self(), :clear_cache})}
         </Row>
         {@notice}
-      </Column>
+      </MishkaCard>
       <Spacer size={12} />
       {Kati.UI.SettingsList.note("info", gettext("Kati refreshes anything older than six months on its own. That is a promise it keeps, not a limit it suffers."))}
     </Column>

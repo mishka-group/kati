@@ -383,8 +383,7 @@ defmodule Kati.Screens.ClearHistory do
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} align="center">
       <Column fill_width={true} padding_left={28} padding_right={28}>
-        <Column
-          fill_width={true}
+        <MishkaCard
           background={Palette.card()}
           corner_radius={22}
           padding={19}
@@ -421,7 +420,7 @@ defmodule Kati.Screens.ClearHistory do
           />
           <Spacer size={17} />
           {Kati.Screens.ClearHistory.confirm_buttons()}
-        </Column>
+        </MishkaCard>
       </Column>
     </Box>
     """
@@ -441,36 +440,32 @@ defmodule Kati.Screens.ClearHistory do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
+      <MishkaPill
+        label={@clear}
         fill_width={true}
         height={46}
         corner_radius={23}
         background={Palette.red()}
-        align="center"
+        color={Palette.on_ink()}
+        padding={0}
+        align={:center}
+        text_size={13.5}
+        font_weight={:bold}
         on_tap={{self(), :clear}}
-      >
-        <Spacer weight={1.0} />
-        <Text
-          text={@clear}
-          text_size={13.5}
-          font_weight="bold"
-          text_color={Palette.on_ink()}
-          max_lines={1}
-        />
-        <Spacer weight={1.0} />
-      </Row>
+      />
       <Spacer size={9} />
-      <Row fill_width={true} height={44} align="center" on_tap={{self(), :keep}}>
-        <Spacer weight={1.0} />
-        <Text
-          text={@keep}
-          text_size={13}
-          font_weight="semibold"
-          text_color={Palette.sub()}
-          max_lines={1}
-        />
-        <Spacer weight={1.0} />
-      </Row>
+      <MishkaPill
+        label={@keep}
+        fill_width={true}
+        height={44}
+        background={:none}
+        color={Palette.sub()}
+        padding={0}
+        align={:center}
+        text_size={13}
+        font_weight={:semibold}
+        on_tap={{self(), :keep}}
+      />
     </Column>
     """
   end

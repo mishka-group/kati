@@ -216,22 +216,22 @@ defmodule Kati.Screens.Language do
   def language(l, true) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         border_width={2}
         border_color={Palette.ink()}
         padding={14}
-        align="center"
+        align={:center}
       >
         {Kati.Screens.Language.code_tile(l)}
         <Spacer size={13} />
         {Kati.Screens.Language.language_body(l)}
         <Spacer size={13} />
         {Kati.Screens.Language.selected_mark()}
-      </Row>
+      </MishkaCard>
       <Spacer size={10} />
     </Column>
     """
@@ -244,13 +244,13 @@ defmodule Kati.Screens.Language do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={14}
-        align="center"
+        align={:center}
         on_tap={tap}
       >
         {Kati.Screens.Language.code_tile(l)}
@@ -258,7 +258,7 @@ defmodule Kati.Screens.Language do
         {Kati.Screens.Language.language_body(l)}
         <Spacer size={13} />
         {Kati.Screens.Language.unselected_mark()}
-      </Row>
+      </MishkaCard>
       <Spacer size={10} />
     </Column>
     """
@@ -457,13 +457,13 @@ defmodule Kati.Screens.Language do
     sub = a.sub
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       corner_radius={20}
       border_width={1.5}
       border_color={Palette.border()}
       padding={14}
-      align="center"
+      align={:center}
       on_tap={tap}
     >
       {Kati.Screens.Language.tile(Kati.UI.symbol("add", size: 18, color: Palette.sub()))}
@@ -481,7 +481,7 @@ defmodule Kati.Screens.Language do
       </Column>
       <Spacer size={13} />
       {Kati.UI.SettingsList.chevron()}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -594,13 +594,13 @@ defmodule Kati.Screens.Language do
     text = Page.note()
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       corner_radius={18}
       border_width={1.5}
       border_color={Palette.border()}
       padding={15}
-      align="top"
+      align={:top}
     >
       {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
@@ -611,7 +611,7 @@ defmodule Kati.Screens.Language do
         text_color={Palette.ink_soft()}
         weight={1.0}
       />
-    </Row>
+    </MishkaCard>
     """
   end
 

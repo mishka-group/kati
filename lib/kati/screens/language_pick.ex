@@ -349,16 +349,16 @@ defmodule Kati.Screens.LanguagePick do
        String.to_atom("choose_" <> Atom.to_string(Kati.Screens.LanguagePick.locale_of(option)))}
 
     ~MOB"""
-    <Row
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
-      fill_width={true}
       height={76}
       background={Palette.ink_fill()}
       corner_radius={22}
       shadow="0 14 28 -14 #E61A1917"
       padding_left={17}
       padding_right={17}
-      align="center"
+      align={:center}
     >
       {Kati.Screens.LanguagePick.badge_tile(option, Palette.on_ink_veil(), Palette.on_ink_glyph())}
       <Spacer size={14} />
@@ -375,7 +375,7 @@ defmodule Kati.Screens.LanguagePick do
       </Column>
       <Spacer size={14} />
       {Kati.Screens.LanguagePick.chosen_mark()}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -385,16 +385,16 @@ defmodule Kati.Screens.LanguagePick do
        String.to_atom("choose_" <> Atom.to_string(Kati.Screens.LanguagePick.locale_of(option)))}
 
     ~MOB"""
-    <Row
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
-      fill_width={true}
       height={76}
       background={Palette.card()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={17}
       padding_right={17}
-      align="center"
+      align={:center}
     >
       {Kati.Screens.LanguagePick.badge_tile(option, Palette.paper(), Palette.ink())}
       <Spacer size={14} />
@@ -411,7 +411,7 @@ defmodule Kati.Screens.LanguagePick do
       </Column>
       <Spacer size={14} />
       {Kati.Screens.LanguagePick.unchosen_mark()}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -562,7 +562,13 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={18} />
-      <Row fill_width={true} background={Palette.cream()} corner_radius={18} padding={15} align="top">
+      <MishkaCard
+        direction={:row}
+        background={Palette.cream()}
+        corner_radius={18}
+        padding={15}
+        align={:top}
+      >
         {Kati.UI.symbol("info", size: 17, color: Palette.gold_icon())}
         <Spacer size={11} />
         <Text
@@ -572,7 +578,7 @@ defmodule Kati.Screens.LanguagePick do
           text_color={Palette.cream_body()}
           weight={1.0}
         />
-      </Row>
+      </MishkaCard>
     </Column>
     """
   end
@@ -589,26 +595,25 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={20} />
-      <Box
+      <MishkaPill
         on_tap={tap}
         fill_width={true}
         height={54}
         corner_radius={27}
         background={Palette.ink_fill()}
-        align="center"
+        padding={0}
+        align={:center}
       >
-        <Row align="center">
-          <Text
-            text={gettext("Continue")}
-            text_size={14.5}
-            font_weight="bold"
-            text_color={Palette.on_ink()}
-            max_lines={1}
-          />
-          <Spacer size={9} />
-          {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 19, color: Palette.on_ink())}
-        </Row>
-      </Box>
+        <Text
+          text={gettext("Continue")}
+          text_size={14.5}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
+        <Spacer size={9} />
+        {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 19, color: Palette.on_ink())}
+      </MishkaPill>
     </Column>
     """
   end

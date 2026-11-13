@@ -619,17 +619,16 @@ defmodule Kati.Screens.SeriesSettings do
   `Palette.on_ink/0`, the pair that inverts in dark rather than following the
   ground.
 
-  The three tiles stay hand-rolled: each is a `Column` with a 21pt glyph above
-  its label and its own layout weight, which no vendored segment, chip or pill
-  can lay out.
+  The three tiles are `MishkaCard` columns inside a weighted `Box`: each is a
+  21pt glyph above its label, which no segment, chip or pill can lay out, but a
+  card can hold.
   """
   def status(%{on: true} = s) do
     assigns = %{tap: Kati.Screens.SeriesSettings.status_tap(s)}
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         corner_radius={18}
         background={Palette.ink_fill()}
         shadow="0 12 24 -14 #E61A1917"
@@ -652,7 +651,7 @@ defmodule Kati.Screens.SeriesSettings do
           text_align="center"
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -662,8 +661,7 @@ defmodule Kati.Screens.SeriesSettings do
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         corner_radius={18}
         background={Palette.card()}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -686,7 +684,7 @@ defmodule Kati.Screens.SeriesSettings do
           text_align="center"
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end

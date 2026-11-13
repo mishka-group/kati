@@ -607,13 +607,13 @@ defmodule Kati.Screens.Settings do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={16}
-        align="center"
+        align={:center}
       >
         {Kati.Screens.Settings.avatar(a)}
         <Spacer size={14} />
@@ -635,7 +635,7 @@ defmodule Kati.Screens.Settings do
             max_lines={1}
           />
         </Column>
-      </Row>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -661,9 +661,9 @@ defmodule Kati.Screens.Settings do
   """
   def avatar(_a) do
     ~MOB"""
-    <Box width={52} height={52} corner_radius={26} background={Palette.placeholder()} align="center">
+    <MishkaActionIcon variant={:filled} size={52} shape={:circle} background={Palette.placeholder()}>
       {Kati.UI.symbol("person", size: 26, color: Palette.sub())}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
@@ -856,9 +856,16 @@ defmodule Kati.Screens.Settings do
       |> Enum.intersperse(Kati.Screens.Settings.segment_gap())
 
     ~MOB"""
-    <Row background={Palette.paper()} corner_radius={12} padding={3} align="center">
+    <MishkaCard
+      direction={:row}
+      fill_width={false}
+      background={Palette.paper()}
+      corner_radius={12}
+      padding={3}
+      align={:center}
+    >
       {tiles}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -873,23 +880,20 @@ defmodule Kati.Screens.Settings do
   @doc false
   def segment(label, true, _index) do
     ~MOB"""
-    <Row
+    <MishkaPill
+      label={label}
       height={26}
       corner_radius={9}
       background={Palette.card()}
+      color={:on_surface}
       shadow="0 1 2 0 #1F1A1917"
+      padding={0}
       padding_left={10}
       padding_right={10}
-      align="center"
-    >
-      <Text
-        text={label}
-        text_size={11}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
-    </Row>
+      align={:center}
+      text_size={11}
+      font_weight={:semibold}
+    />
     """
   end
 
@@ -902,22 +906,20 @@ defmodule Kati.Screens.Settings do
     tap = {self(), String.to_atom("theme_" <> Integer.to_string(index))}
 
     ~MOB"""
-    <Row
+    <MishkaPill
+      label={label}
       height={26}
       corner_radius={9}
+      background={:none}
+      color={Palette.eyebrow()}
+      padding={0}
       padding_left={10}
       padding_right={10}
-      align="center"
+      align={:center}
+      text_size={11}
+      font_weight={:semibold}
       on_tap={tap}
-    >
-      <Text
-        text={label}
-        text_size={11}
-        font_weight="semibold"
-        text_color={Palette.eyebrow()}
-        max_lines={1}
-      />
-    </Row>
+    />
     """
   end
 

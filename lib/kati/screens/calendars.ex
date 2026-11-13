@@ -401,7 +401,9 @@ defmodule Kati.Screens.Calendars do
   @doc false
   def swatch(color) do
     ~MOB"""
-    <Box width={12} height={12} corner_radius={4} background={color} />
+    <MishkaActionIcon variant={:filled} size={12} corner_radius={4} background={color}>
+      <Spacer size={0} />
+    </MishkaActionIcon>
     """
   end
 

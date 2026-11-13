@@ -485,12 +485,12 @@ defmodule Kati.Screens.Restore do
   def scan_card do
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.cream()}
         corner_radius={20}
         padding={16}
-        align="center"
+        align={:center}
       >
         {Kati.Screens.Restore.scan_tile()}
         <Spacer size={14} />
@@ -505,7 +505,7 @@ defmodule Kati.Screens.Restore do
           <Spacer size={5} />
           {Kati.Screens.Restore.scan_sub()}
         </Column>
-      </Row>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -543,18 +543,17 @@ defmodule Kati.Screens.Restore do
       |> Enum.intersperse(Kati.Screens.Restore.qr_gap())
 
     ~MOB"""
-    <Box
-      width={74}
-      height={74}
+    <MishkaActionIcon
+      variant={:filled}
+      size={74}
       corner_radius={14}
       background={Palette.card()}
       shadow="0 6 16 -8 #7378501E"
-      align="center"
     >
       <Column>
         {rows}
       </Column>
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
@@ -1060,25 +1059,20 @@ defmodule Kati.Screens.Restore do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
+      <MishkaPill
+        label={label}
         on_tap={tap}
         fill_width={true}
         height={54}
         corner_radius={27}
         background={Palette.ink_fill()}
+        color={Palette.on_ink()}
         shadow="0 14 28 -12 #801A1917"
-        align="center"
-      >
-        <Spacer weight={1.0} />
-        <Text
-          text={label}
-          text_size={14.5}
-          font_weight="bold"
-          text_color={Palette.on_ink()}
-          max_lines={1}
-        />
-        <Spacer weight={1.0} />
-      </Row>
+        padding={0}
+        align={:center}
+        text_size={14.5}
+        font_weight={:bold}
+      />
       <Spacer size={24} />
     </Column>
     """
@@ -1119,8 +1113,7 @@ defmodule Kati.Screens.Restore do
     body = Kati.Screens.Restore.replace_body(here)
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -1146,7 +1139,7 @@ defmodule Kati.Screens.Restore do
           />
         </Column>
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -1182,25 +1175,21 @@ defmodule Kati.Screens.Restore do
     tap = {self(), :mode_replace}
 
     ~MOB"""
-    <Row
+    <MishkaPill
+      label={gettext("Replace everything…")}
       on_tap={tap}
       fill_width={true}
       height={44}
       corner_radius={22}
+      background={:none}
+      color={Palette.red()}
       border_color={Palette.red_ring_strong()}
       border_width={1.5}
-      align="center"
-    >
-      <Spacer weight={1.0} />
-      <Text
-        text={gettext("Replace everything…")}
-        text_size={12.5}
-        font_weight="bold"
-        text_color={Palette.red()}
-        max_lines={1}
-      />
-      <Spacer weight={1.0} />
-    </Row>
+      padding={0}
+      align={:center}
+      text_size={12.5}
+      font_weight={:bold}
+    />
     """
   end
 
@@ -1403,7 +1392,7 @@ defmodule Kati.Screens.Restore do
     change = {self(), tag}
 
     input = ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={value}
       placeholder={placeholder}
       secure={true}

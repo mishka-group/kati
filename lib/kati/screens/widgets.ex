@@ -439,8 +439,7 @@ defmodule Kati.Screens.Widgets do
   """
   def preview(nil) do
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -465,7 +464,7 @@ defmodule Kati.Screens.Widgets do
         text_color={Palette.muted()}
       />
       <Spacer size={14} />
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -586,8 +585,7 @@ defmodule Kati.Screens.Widgets do
   def wide(w) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -611,7 +609,7 @@ defmodule Kati.Screens.Widgets do
            |> Enum.map(fn event -> Kati.Screens.Widgets.wide_event(event) end)
            |> Enum.intersperse(Kati.Screens.Widgets.wide_gap())}
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -662,8 +660,7 @@ defmodule Kati.Screens.Widgets do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -675,7 +672,7 @@ defmodule Kati.Screens.Widgets do
         {w.shortcuts
          |> Enum.with_index()
          |> Enum.map(fn {row, i} -> Kati.Screens.Widgets.shortcut_row(row, i, i < last) end)}
-      </Column>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -837,17 +834,23 @@ defmodule Kati.Screens.Widgets do
     s = w.share
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={16}
     >
       <Row fill_width={true} align="center" padding_bottom={13}>
-        <Box width={34} height={34} corner_radius={10} background={Palette.ink()} align="center">
-          <Box width={9} height={9} corner_radius={5} background={Kati.Theme.accent()} />
-        </Box>
+        <MishkaActionIcon variant={:filled} size={34} corner_radius={10} background={Palette.ink()}>
+          <MishkaActionIcon
+            variant={:filled}
+            size={9}
+            shape={:circle}
+            background={Kati.Theme.accent()}
+          >
+            <Spacer size={0} />
+          </MishkaActionIcon>
+        </MishkaActionIcon>
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
@@ -869,7 +872,7 @@ defmodule Kati.Screens.Widgets do
         line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.ink_soft()}
       />
-    </Column>
+    </MishkaCard>
     """
   end
 

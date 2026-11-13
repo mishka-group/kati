@@ -426,7 +426,9 @@ defmodule Kati.Screens.DataSourcesStates do
   @spec dot(pos_integer()) :: map()
   def dot(colour) do
     ~MOB"""
-    <Box width={7} height={7} corner_radius={4} background={colour} />
+    <MishkaActionIcon variant={:filled} size={7} shape={:circle} background={colour}>
+      <Spacer size={0} />
+    </MishkaActionIcon>
     """
   end
 
@@ -460,12 +462,12 @@ defmodule Kati.Screens.DataSourcesStates do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.cream()}
         corner_radius={20}
         padding={15}
-        align="center"
+        align={:center}
       >
         {UI.symbol("cloud_off", size: 20, color: Palette.gold_icon())}
         <Spacer size={12} />
@@ -480,7 +482,7 @@ defmodule Kati.Screens.DataSourcesStates do
           <Spacer size={3} />
           <Text text={@line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={2} />
         </Column>
-      </Row>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -569,22 +571,21 @@ defmodule Kati.Screens.DataSourcesStates do
     assigns = %{word: word}
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       padding={15}
       shadow={Kati.Theme.shadow_card_soft()}
     >
       {Kati.Screens.DataSourcesStates.key_label()}
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         height={44}
         corner_radius={14}
         background={Palette.paper()}
         padding_left={14}
         padding_right={14}
-        align="center"
+        align={:center}
       >
         <Box weight={1.0} height={11} corner_radius={6} background={Palette.track()} />
         <Spacer size={11} />
@@ -595,8 +596,8 @@ defmodule Kati.Screens.DataSourcesStates do
           text_color={Palette.sub()}
           max_lines={1}
         />
-      </Row>
-    </Column>
+      </MishkaCard>
+    </MishkaCard>
     """
   end
 
@@ -658,16 +659,15 @@ defmodule Kati.Screens.DataSourcesStates do
     # isolates the run so the mark resolves against the key instead. Screen 83's
     # licence notices are where this was found.
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       padding={15}
       shadow={Kati.Theme.shadow_card_soft()}
     >
       {Kati.Screens.DataSourcesStates.key_label()}
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         height={44}
         corner_radius={14}
         background={Palette.paper()}
@@ -675,7 +675,7 @@ defmodule Kati.Screens.DataSourcesStates do
         border_color={Palette.red()}
         padding_left={14}
         padding_right={14}
-        align="center"
+        align={:center}
       >
         <Text
           text={Kati.Locale.ltr("eyJhbGciOiJIUzI1…")}
@@ -684,7 +684,7 @@ defmodule Kati.Screens.DataSourcesStates do
           text_color={Palette.red()}
           max_lines={1}
         />
-      </Row>
+      </MishkaCard>
       <Spacer size={12} />
       <Row fill_width={true} align="top">
         {UI.symbol("error", size: 17, color: Palette.red())}
@@ -693,7 +693,7 @@ defmodule Kati.Screens.DataSourcesStates do
           {message}
         </Column>
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -745,8 +745,7 @@ defmodule Kati.Screens.DataSourcesStates do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         padding={15}
@@ -781,7 +780,7 @@ defmodule Kati.Screens.DataSourcesStates do
         </Row>
         <Spacer size={13} />
         {@bar}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -885,8 +884,7 @@ defmodule Kati.Screens.DataSourcesStates do
     }
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       padding={15}
@@ -920,7 +918,7 @@ defmodule Kati.Screens.DataSourcesStates do
         <Spacer size={8} />
         {keep}
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 

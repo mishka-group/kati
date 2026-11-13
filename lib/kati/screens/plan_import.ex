@@ -590,13 +590,13 @@ defmodule Kati.Screens.PlanImport do
   def source_card(plan) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
-        align="center"
+        align={:center}
       >
         {Kati.Screens.PlanImport.source_tile()}
         <Spacer size={13} />
@@ -619,7 +619,7 @@ defmodule Kati.Screens.PlanImport do
         </Column>
         <Spacer size={13} />
         {UI.symbol("check_circle", size: 20, color: Palette.green(), fill: true)}
-      </Row>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -698,8 +698,7 @@ defmodule Kati.Screens.PlanImport do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -725,7 +724,7 @@ defmodule Kati.Screens.PlanImport do
           text_align="center"
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -750,7 +749,7 @@ defmodule Kati.Screens.PlanImport do
   def conflict(c) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={15}>
+      <MishkaCard background={Palette.cream()} corner_radius={20} padding={15}>
         <Row fill_width={true} align="center">
           {Kati.Screens.PlanImport.conflict_tile(c.icon)}
           <Spacer size={12} />
@@ -781,7 +780,7 @@ defmodule Kati.Screens.PlanImport do
           text_align="center"
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -1072,13 +1071,19 @@ defmodule Kati.Screens.PlanImport do
       ])
 
     ~MOB"""
-    <Row fill_width={true} background={Palette.cream()} corner_radius={20} padding={16} align="top">
+    <MishkaCard
+      direction={:row}
+      background={Palette.cream()}
+      corner_radius={20}
+      padding={16}
+      align={:top}
+    >
       {UI.symbol("info", size: 18, color: Palette.gold_icon())}
       <Spacer size={11} />
       <Column weight={1.0}>
         {paragraph}
       </Column>
-    </Row>
+    </MishkaCard>
     """
   end
 end

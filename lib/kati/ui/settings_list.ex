@@ -847,7 +847,11 @@ defmodule Kati.UI.SettingsList do
   # content Row — wrapping them in a Row here would only add a level.
   defp status_content(label, color) do
     [
-      ~MOB"<Box width={5} height={5} corner_radius={3} background={color} />",
+      ~MOB"""
+      <MishkaActionIcon variant={:filled} size={5} shape={:circle} background={color}>
+        <Spacer size={0} />
+      </MishkaActionIcon>
+      """,
       ~MOB"<Spacer size={5} />",
       ~MOB"""
       <Text text={label} text_size={10.5} font_weight="semibold" text_color={color} max_lines={1} />
