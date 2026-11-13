@@ -183,7 +183,7 @@ defmodule Kati.ScreenSyncTest do
 
     test "the page is renderable and is a page, not chrome" do
       t = tree(page())
-      assert_renderable(t)
+      assert_renderable(Mob.Composite.expand(t, self()))
       assert length(texts(t)) > 12
     end
 

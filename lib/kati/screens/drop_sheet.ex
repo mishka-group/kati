@@ -729,8 +729,7 @@ defmodule Kati.Screens.DropSheet do
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">
         <Box fill_width={true} height={40} background={Palette.paper()} />
-        <Column
-          fill_width={true}
+        <MishkaCard
           background={Palette.paper()}
           corner_radius={22}
           padding_left={21}
@@ -740,7 +739,7 @@ defmodule Kati.Screens.DropSheet do
         >
           {Sheet.header(Kati.Screens.DropSheet.heading(s))}
           {Kati.Screens.DropSheet.body(s, assigns)}
-        </Column>
+        </MishkaCard>
       </Box>
     </Box>
     """
@@ -997,13 +996,13 @@ defmodule Kati.Screens.DropSheet do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={22}
         padding={17}
         shadow={Kati.Theme.shadow_card_soft()}
-        align="center"
+        align={:center}
       >
         <Column>
           <Text
@@ -1027,7 +1026,7 @@ defmodule Kati.Screens.DropSheet do
         </Column>
         <Spacer weight={1.0} />
         {Kati.Screens.DropSheet.change_pill()}
-      </Row>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1169,9 +1168,9 @@ defmodule Kati.Screens.DropSheet do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
-        align="top"
+      <MishkaCard
+        direction={:row}
+        align={:top}
         padding={15}
         corner_radius={18}
         border_width={1.5}
@@ -1182,7 +1181,7 @@ defmodule Kati.Screens.DropSheet do
         <Column weight={1.0}>
           {UI.rich_text(runs)}
         </Column>
-      </Row>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1235,20 +1234,20 @@ defmodule Kati.Screens.DropSheet do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={20}
         padding={15}
         shadow={Kati.Theme.shadow_card_soft()}
-        align="center"
+        align={:center}
       >
         {UI.symbol("check_circle", size: 20, color: Palette.green(), fill: true)}
         <Spacer size={12} />
         <Column weight={1.0}>
           {UI.rich_text(runs)}
         </Column>
-      </Row>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1296,12 +1295,14 @@ defmodule Kati.Screens.DropSheet do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Row
+        <MishkaPill
           weight={1.0}
           height={54}
           corner_radius={27}
           background={Palette.ink_fill()}
-          align="center"
+          padding={0}
+          align={:center}
+          content_fill_width={true}
           shadow="0 14 28 -12 #801A1917"
           on_tap={{self(), :drop}}
         >
@@ -1314,25 +1315,22 @@ defmodule Kati.Screens.DropSheet do
             max_lines={1}
           />
           <Spacer weight={1.0} />
-        </Row>
+        </MishkaPill>
         <Spacer size={10} />
-        <Row
+        <MishkaPill
+          label={pgettext("the second button on the drop sheet", "Still on it")}
           height={54}
           corner_radius={27}
           background={Palette.paper()}
-          align="center"
+          color={Palette.ink_soft()}
+          padding={0}
           padding_left={18}
           padding_right={18}
+          align={:center}
+          text_size={13}
+          font_weight={:semibold}
           on_tap={{self(), :keep}}
-        >
-          <Text
-            text={pgettext("the second button on the drop sheet", "Still on it")}
-            text_size={13}
-            font_weight="semibold"
-            text_color={Palette.ink_soft()}
-            max_lines={1}
-          />
-        </Row>
+        />
       </Row>
       <Spacer size={14} />
     </Column>
@@ -1397,15 +1395,15 @@ defmodule Kati.Screens.DropSheet do
       )
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       background={Palette.ink_fill()}
       corner_radius={20}
       padding_left={16}
       padding_right={16}
       padding_top={13}
       padding_bottom={13}
-      align="center"
+      align={:center}
     >
       {UI.symbol("undo", size: 19, color: Palette.on_ink())}
       <Spacer size={12} />
@@ -1418,7 +1416,7 @@ defmodule Kati.Screens.DropSheet do
       />
       <Spacer size={12} />
       {Kati.Screens.DropSheet.undo_action(live?)}
-    </Row>
+    </MishkaCard>
     """
   end
 

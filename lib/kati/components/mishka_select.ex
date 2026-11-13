@@ -85,6 +85,8 @@ defmodule Kati.Components.MishkaSelect do
   Not ported: `name`, `form`, `required`, `readonly` (form plumbing), `side`,
   `highlight_on_hover` (the list is in flow, and a touch screen has no hover)
   and the `*_class` attrs.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/select
   """
 
   import Mob.Sigil
@@ -262,18 +264,22 @@ defmodule Kati.Components.MishkaSelect do
       chosen = List.wrap(Map.get(props, :value))
       id = Map.get(props, :id)
 
-      items =
-        options
-        |> group_runs()
-        |> Enum.flat_map(fn {group, run} ->
-          heading = if is_binary(group), do: [MishkaMenu.label(group)], else: []
-          heading ++ Enum.map(run, &item(&1, chosen, id))
-        end)
+      items = options |> group_runs() |> Enum.flat_map(&group_items(&1, chosen, id))
 
       MishkaMenu.menu(%{open: true, on_select: Map.get(props, :on_select)}, items)
     else
       ~MOB(<Column />)
     end
+  end
+
+  # A named group is introduced by its heading; an ungrouped run is not.
+  defp group_items({group, run}, chosen, select_id) do
+    heading =
+      if is_binary(group),
+        do: [MishkaMenu.label(group, test_id: group_tag(select_id, group))],
+        else: []
+
+    heading ++ Enum.map(run, &item(&1, chosen, select_id))
   end
 
   defp item(option, chosen, select_id) do
@@ -288,6 +294,9 @@ defmodule Kati.Components.MishkaSelect do
       test_id: option_tag(select_id, option_id, picked?)
     )
   end
+
+  defp group_tag(nil, _group), do: nil
+  defp group_tag(select_id, group), do: "#{select_id}-group-#{group}"
 
   defp option_tag(nil, _option_id, _picked?), do: nil
 

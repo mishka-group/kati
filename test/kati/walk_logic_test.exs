@@ -192,7 +192,10 @@ defmodule Kati.WalkLogicTest do
       assert find(view, :text, text: "3.5") != nil, "the tapped stars are gone from the sheet"
 
       assert %{props: %{value: "Still typed."}} =
-               find(view, :text_field, accessibility_id: "review")
+               view
+               |> tree()
+               |> Mob.Composite.expand(self())
+               |> find(:text_field, accessibility_id: "review")
     end
   end
 
@@ -427,7 +430,7 @@ defmodule Kati.WalkLogicTest do
   end
 
   defp tap_tags(view) do
-    for node <- flatten(view),
+    for node <- view |> tree() |> Mob.Composite.expand(self()) |> flatten(),
         {_pid, tag} <- [Map.get(node.props || %{}, :on_tap)],
         is_atom(tag),
         do: tag
@@ -435,6 +438,8 @@ defmodule Kati.WalkLogicTest do
 
   defp texts(view) do
     view
+    |> tree()
+    |> Mob.Composite.expand(self())
     |> flatten()
     |> Enum.filter(&(&1.type == :text and is_binary(Map.get(&1.props || %{}, :text))))
   end

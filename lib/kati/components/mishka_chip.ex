@@ -55,13 +55,22 @@ defmodule Kati.Components.MishkaChip do
   | `corner_radius` | radius token / number | `:radius_pill` | Corner rounding. |
   | `text_size` | text-size token / number | `:base` | Label size. |
   | `font_weight` | `:medium` `:semibold` `:bold` `:light` `:thin` | `nil` — regular | Label weight. |
+  | `font_family` | font family string | `nil` — the inherited face | Label face, for a design whose chips are set in its mono. |
   | `max_lines` | integer | `nil` — unbounded | Caps the label. |
   | `align` | `:center` `:leading` `:trailing` … | `nil`, `:center` when sized | Where content sits in the box. |
   | `trailing` | string, node, or list | `nil` | Content after the label — a count, a ✕, an icon. |
   | `trailing_gap` | number (dp) | `0` | Space between label and `trailing`. |
+  | `id` | string | `nil` | Test tag. The chip is `<id>-checked` / `<id>-idle`, its label `<id>-label`. |
 
-  Not ported: `name`, `value` and `type` (HTML form plumbing) and the `id` /
-  `*_class` attrs.
+  Not ported: `name`, `value` and `type` (HTML form plumbing) and the `*_class`
+  attrs. `id` is not the DOM anchor the web means by it; it is the test tag.
+
+  ## `id` is for a device test
+
+  Whether a chip is checked is a fill colour and nothing else, and colour is not
+  in the accessibility tree, so the state goes into the tag the same way
+  `MishkaToggle` does it: `elixir-checked` becomes `elixir-idle` when it is
+  tapped. Address the chip by whichever state it is in now.
 
   ## Padding is applied before width and height
 
@@ -94,6 +103,8 @@ defmodule Kati.Components.MishkaChip do
 
   The composite tag ignores its children, as it always has; `trailing={…}` is
   how content gets in.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/chip
   """
 
   import Mob.Sigil
@@ -156,7 +167,39 @@ defmodule Kati.Components.MishkaChip do
     |> put(:height, Map.get(props, :height))
     |> put(:align, align(props))
     |> put(:on_tap, handler(props, disabled?))
+    |> put(:id, chip_tag(Map.get(props, :id), checked?))
   end
+
+  @doc """
+  The test tag on a chip, with its state folded in.
+
+  Checked differs from idle by fill colour alone, which a device test cannot
+  read, so the state rides in the tag.
+
+      iex> Kati.Components.MishkaChip.chip_tag("lang-elixir", true)
+      "lang-elixir-checked"
+      iex> Kati.Components.MishkaChip.chip_tag("lang-elixir", false)
+      "lang-elixir-idle"
+      iex> Kati.Components.MishkaChip.chip_tag(nil, true)
+      nil
+  """
+  @spec chip_tag(id :: String.t() | nil, checked? :: boolean()) :: String.t() | nil
+  def chip_tag(nil, _checked?), do: nil
+  def chip_tag(id, true), do: "#{id}-checked"
+  def chip_tag(id, _unchecked), do: "#{id}-idle"
+
+  @doc """
+  The test tag on a chip's label, which is what a device test measures to tell
+  that the label was laid out in full.
+
+      iex> Kati.Components.MishkaChip.label_tag("lang-elixir")
+      "lang-elixir-label"
+      iex> Kati.Components.MishkaChip.label_tag(nil)
+      nil
+  """
+  @spec label_tag(id :: String.t() | nil) :: String.t() | nil
+  def label_tag(nil), do: nil
+  def label_tag(id), do: "#{id}-label"
 
   # One padding shape or the other, never both: the uniform `padding` while
   # neither axis is overridden — the node the chip has always built — and four
@@ -216,7 +259,9 @@ defmodule Kati.Components.MishkaChip do
     />
     """
     |> put(:font_weight, Map.get(props, :font_weight))
+    |> put(:font_family, Map.get(props, :font_family))
     |> put(:max_lines, Map.get(props, :max_lines))
+    |> put(:id, label_tag(Map.get(props, :id)))
   end
 
   # `trailing` is a slot, so it takes a node as readily as a glyph string — a

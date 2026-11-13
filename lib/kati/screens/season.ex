@@ -1155,7 +1155,9 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Row
+        <MishkaCard
+          direction={:row}
+          fill_width={false}
           weight={1.0}
           background={Palette.placeholder()}
           corner_radius={16}
@@ -1163,7 +1165,7 @@ defmodule Kati.Screens.Season do
           align="center"
         >
           {@tiles}
-        </Row>
+        </MishkaCard>
         <Spacer size={9} />
         {Kati.Screens.Season.explain_disc(@help)}
       </Row>
@@ -1248,22 +1250,19 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
-      <Box
+      <MishkaPill
+        label={@title}
         fill_width={true}
         height={34}
         corner_radius={12}
         background={Palette.card()}
+        color={:on_surface}
         shadow="0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
-        align="center"
-      >
-        <Text
-          text={@title}
-          text_size={12.5}
-          font_weight="bold"
-          text_color={:on_surface}
-          max_lines={1}
-        />
-      </Box>
+        padding={0}
+        align={:center}
+        text_size={12.5}
+        font_weight={:bold}
+      />
     </Box>
     """
   end
@@ -1276,15 +1275,18 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
-      <Box fill_width={true} height={34} corner_radius={12} align="center">
-        <Text
-          text={@title}
-          text_size={12.5}
-          font_weight="semibold"
-          text_color={Palette.segment_idle()}
-          max_lines={1}
-        />
-      </Box>
+      <MishkaPill
+        label={@title}
+        fill_width={true}
+        height={34}
+        corner_radius={12}
+        background={:none}
+        color={Palette.segment_idle()}
+        padding={0}
+        align={:center}
+        text_size={12.5}
+        font_weight={:semibold}
+      />
     </Box>
     """
   end
@@ -1402,8 +1404,8 @@ defmodule Kati.Screens.Season do
 
   def episode_row(ep, bg, title_color, number_color, true, tap) do
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={bg}
       corner_radius={17}
@@ -1416,14 +1418,14 @@ defmodule Kati.Screens.Season do
       {Kati.Screens.Season.episode_body(ep, title_color, number_color)}
       {Kati.Screens.Season.rating_column(ep)}
       {Kati.Screens.Season.check(true)}
-    </Row>
+    </MishkaCard>
     """
   end
 
   def episode_row(ep, bg, title_color, number_color, false, tap) do
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       on_tap={tap}
       background={bg}
       corner_radius={17}
@@ -1437,7 +1439,7 @@ defmodule Kati.Screens.Season do
       {Kati.Screens.Season.episode_body(ep, title_color, number_color)}
       {Kati.Screens.Season.rating_column(ep)}
       {Kati.Screens.Season.check(false)}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -1606,8 +1608,8 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={8} />
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         corner_radius={18}
         border_width={1.5}
         border_color={Palette.border()}
@@ -1623,7 +1625,7 @@ defmodule Kati.Screens.Season do
           text_color={Palette.ink_soft()}
           weight={1.0}
         />
-      </Row>
+      </MishkaCard>
     </Column>
     """
   end

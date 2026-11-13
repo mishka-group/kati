@@ -155,13 +155,15 @@ defmodule Kati.Screens.MonthGrid do
       >
         {Kati.Screens.MonthGrid.header(month)}
         {Kati.Screens.MonthGrid.switcher()}
-        {Kati.Screens.MonthGrid.weekday_row(month)}
         <Column
           fill_width={true}
           on_swipe_left={{self(), :swipe_month_left}}
           on_swipe_right={{self(), :swipe_month_right}}
         >
-          {Kati.Screens.MonthGrid.grid(month)}
+          <Column fill_width={true}>
+            {Kati.Screens.MonthGrid.calendar(month)}
+            <Spacer size={18} />
+          </Column>
         </Column>
         {Kati.Screens.MonthGrid.legend(month.sections)}
         {UI.eyebrow(label)}
@@ -232,20 +234,48 @@ defmodule Kati.Screens.MonthGrid do
   end
 
   @doc false
-  def weekday_row(month) do
-    cells =
+  def calendar(month) do
+    weeks =
+      month.days
+      |> Enum.chunk_every(7)
+      |> Enum.map(fn row -> Enum.map(row, &Kati.Screens.MonthGrid.cell/1) end)
+
+    weekdays =
       month
       |> weekdays()
-      |> Enum.map(fn letter -> Kati.Screens.MonthGrid.weekday(letter) end)
-      |> Enum.intersperse(cell_gap())
+      |> Enum.map(&Kati.Screens.MonthGrid.weekday/1)
+
+    assigns = %{
+      weeks: weeks,
+      weekdays: weekdays,
+      selected_shadow: @selected_shadow
+    }
 
     ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center">
-        {cells}
-      </Row>
-      <Spacer size={6} />
-    </Column>
+    <MishkaCalendar
+      id="month_grid"
+      weeks={@weeks}
+      weekday_nodes={@weekdays}
+      weekday_gap={6}
+      gap={2}
+      row_gap={2}
+      corner_radius={13}
+      cell_color={Palette.ink()}
+      cell_font_weight={:medium}
+      today_background={Palette.ink_fill()}
+      today_color={Palette.on_ink()}
+      today_marker_color={Palette.on_ink()}
+      selected_background={Palette.card()}
+      selected_color={Palette.ink()}
+      selected_shadow={@selected_shadow}
+      outside_color={Palette.rail_idle()}
+      label_size={13.5}
+      label_gap={4}
+      marker_band={5}
+      marker_size={5}
+      marker_radius={3}
+      marker_gap={2.5}
+    />
     """
   end
 
@@ -267,38 +297,6 @@ defmodule Kati.Screens.MonthGrid do
     """
   end
 
-  @doc false
-  def cell_gap, do: ~MOB"<Spacer size={2} />"
-
-  @doc false
-  def grid(month) do
-    rows = Enum.chunk_every(month.days, 7)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {Enum.map(rows, fn row -> Kati.Screens.MonthGrid.grid_row(row) end)}
-      <Spacer size={18} />
-    </Column>
-    """
-  end
-
-  @doc false
-  def grid_row(row) do
-    cells =
-      row
-      |> Enum.map(fn day -> Kati.Screens.MonthGrid.day_cell(day) end)
-      |> Enum.intersperse(cell_gap())
-
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        {cells}
-      </Row>
-      <Spacer size={2} />
-    </Column>
-    """
-  end
-
   @doc """
   The tag a date cell carries: `day_<iso date>`, the shape screen 02's strip
   uses, so the handler reads the date straight off it.
@@ -306,101 +304,27 @@ defmodule Kati.Screens.MonthGrid do
   @spec day_tag(Date.t()) :: atom()
   def day_tag(%Date{} = date), do: String.to_atom("day_" <> Date.to_iso8601(date))
 
-  @doc """
-  How a cell is painted: `{background, shadow, number colour, weight, dot
-  colours}`.
-
-  Today is an ink card with its dots inverted to paper; the selected day, when
-  it is not today, a card-white tile with a hairline shadow; a date outside the
-  month is muted and carries no dots.
-  """
-  @spec paint(map()) :: {term(), term(), term(), String.t(), [term()]}
-  def paint(%{today?: true} = day),
-    do:
-      {Palette.ink_fill(), nil, Palette.on_ink(), "bold",
-       Enum.map(day.sections, fn _ -> Palette.on_ink() end)}
-
-  def paint(%{selected?: true} = day),
-    do:
-      {Palette.card(), @selected_shadow, Palette.ink(), "bold",
-       Enum.map(day.sections, &Schedule.section_color/1)}
-
-  def paint(%{in_month?: false}),
-    do: {Palette.transparent(), nil, Palette.rail_idle(), "medium", []}
-
-  def paint(day),
-    do:
-      {Palette.transparent(), nil, Palette.ink(), "medium",
-       Enum.map(day.sections, &Schedule.section_color/1)}
-
-  # The cell centres its stack with full-width Rows and weighted Spacers either
-  # side — a Column takes no horizontal alignment on this bridge — and the
-  # Box's align="center" puts the pair on the cell's vertical middle.
   @doc false
-  def day_cell(day) do
-    {background, shadow, color, weight, dots} = paint(day)
-    tap = {self(), day_tag(day.date)}
-
-    ~MOB"""
-    <Box
-      weight={1.0}
-      aspect_ratio={1.0}
-      corner_radius={13}
-      background={background}
-      shadow={shadow}
-      align="center"
-      on_tap={tap}
-    >
-      <Column fill_width={true}>
-        <Row fill_width={true} align="center">
-          <Spacer weight={1.0} />
-          <Text
-            text={day.label}
-            text_size={13.5}
-            font_weight={weight}
-            text_color={color}
-            max_lines={1}
-          />
-          <Spacer weight={1.0} />
-        </Row>
-        <Spacer size={4} />
-        <Row fill_width={true} align="center">
-          <Spacer weight={1.0} />
-          {Kati.Screens.MonthGrid.dots(dots)}
-          <Spacer weight={1.0} />
-        </Row>
-      </Column>
-    </Box>
-    """
+  def cell(day) do
+    %{
+      label: day.label,
+      tag: day_tag(day.date),
+      id: "day_" <> Date.to_iso8601(day.date),
+      state: state(day),
+      markers: markers(day)
+    }
   end
 
-  # An empty day still reserves the 5pt band, so a date with no dots sits at
-  # the same height as one with three.
-  @doc false
-  def dots([]), do: ~MOB"<Row height={5} />"
+  # Today outranks the selection, as the drawing does: the ink card is the one
+  # thing on the grid a reader can find without reading.
+  defp state(%{today?: true}), do: :today
+  defp state(%{selected?: true}), do: :selected
+  defp state(%{in_month?: false}), do: :outside
+  defp state(_day), do: :default
 
-  def dots(colors) do
-    children =
-      colors
-      |> Enum.map(fn color -> Kati.Screens.MonthGrid.dot(color) end)
-      |> Enum.intersperse(dot_gap())
-
-    ~MOB"""
-    <Row height={5} align="center">
-      {children}
-    </Row>
-    """
-  end
-
-  @doc false
-  def dot_gap, do: ~MOB"<Spacer size={2.5} />"
-
-  @doc false
-  def dot(color) do
-    ~MOB"""
-    <Box width={5} height={5} corner_radius={3} background={color} />
-    """
-  end
+  defp markers(%{today?: true} = day), do: Enum.map(day.sections, fn _ -> Palette.on_ink() end)
+  defp markers(%{in_month?: false}), do: []
+  defp markers(day), do: Enum.map(day.sections, &Schedule.section_color/1)
 
   @doc """
   The key under the grid: one entry per section that has anything this month,

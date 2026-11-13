@@ -503,9 +503,9 @@ defmodule Kati.Screens.MyServices do
     assigns = %{flag: flag}
 
     ~MOB"""
-    <Box width={40} height={40} corner_radius={12} background={Palette.paper()} align="center">
+    <MishkaActionIcon variant={:filled} size={40} corner_radius={12} background={Palette.paper()}>
       <Text text={@flag} text_size={20} text_align="center" />
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
@@ -521,15 +521,15 @@ defmodule Kati.Screens.MyServices do
   def search_field do
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         height={48}
         corner_radius={24}
         background={Palette.card()}
         shadow={Kati.Theme.shadow_search()}
         padding_left={17}
         padding_right={17}
-        align="center"
+        align={:center}
         on_tap={{self(), :search}}
       >
         {UI.symbol("search", size: 19, color: Palette.tertiary())}
@@ -541,7 +541,7 @@ defmodule Kati.Screens.MyServices do
           weight={1.0}
           max_lines={1}
         />
-      </Row>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -651,20 +651,20 @@ defmodule Kati.Screens.MyServices do
     assigns = %{icon: icon, field: field}
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       height={48}
       corner_radius={24}
       background={Palette.card()}
       shadow={Kati.Theme.shadow_search()}
       padding_left={17}
       padding_right={17}
-      align="center"
+      align={:center}
     >
       {UI.symbol(@icon, size: 19, color: Palette.tertiary())}
       <Spacer size={11} />
       {@field}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -1065,7 +1065,7 @@ defmodule Kati.Screens.MyServices do
     assigns = %{badge: badge}
 
     ~MOB"""
-    <Box width={40} height={40} corner_radius={12} background={Palette.paper()} align="center">
+    <MishkaActionIcon variant={:filled} size={40} corner_radius={12} background={Palette.paper()}>
       <Text
         text={@badge}
         text_size={15}
@@ -1073,7 +1073,7 @@ defmodule Kati.Screens.MyServices do
         text_align="center"
         text_color={Palette.ink_soft()}
       />
-    </Box>
+    </MishkaActionIcon>
     """
   end
 

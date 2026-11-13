@@ -1289,13 +1289,13 @@ defmodule Kati.Screens.Sync do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Kati.Theme.card(Palette.mode())}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
-        align="bottom"
+        align={:bottom}
       >
         <Column weight={1.0}>
           {waiting}
@@ -1306,7 +1306,7 @@ defmodule Kati.Screens.Sync do
         <Column weight={1.0}>
           {asking}
         </Column>
-      </Row>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """

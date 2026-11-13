@@ -127,6 +127,8 @@ defmodule Kati.ScreenRatingLogTest do
   # so a helper that read `:text` alone would report the user's own words as
   # absent from a tree they are the largest thing in.
   defp texts(tree) do
+    tree = tree |> tree() |> Mob.Composite.expand(self())
+
     (find_all(tree, :text) ++ find_all(tree, :text_field))
     |> Enum.map(&(&1.props[:text] || &1.props[:value] || ""))
   end
@@ -134,10 +136,12 @@ defmodule Kati.ScreenRatingLogTest do
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 
   # Filled and outlined both: an empty star is an outline since #116.
-  defp stars(tree),
-    do:
-      find_all(tree, :text, font_family: "symbols_filled", text_size: 26) ++
-        find_all(tree, :text, font_family: "symbols", text_size: 26)
+  defp stars(tree) do
+    tree = tree |> tree() |> Mob.Composite.expand(self())
+
+    find_all(tree, :text, font_family: "symbols_filled", text_size: 26) ++
+      find_all(tree, :text, font_family: "symbols", text_size: 26)
+  end
 
   describe "nothing logged" do
     test "the sheet opens empty rather than on somebody else's watch" do

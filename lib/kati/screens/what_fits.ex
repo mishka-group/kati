@@ -947,8 +947,7 @@ defmodule Kati.Screens.WhatFits do
   def window(t, live? \\ false) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -978,7 +977,7 @@ defmodule Kati.Screens.WhatFits do
            |> Enum.intersperse(Kati.Screens.WhatFits.gap())}
         </Row>
         {Kati.Screens.WhatFits.mood_row(t.moods)}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -1042,9 +1041,16 @@ defmodule Kati.Screens.WhatFits do
 
     ~MOB"""
     <Box weight={1.0} on_tap={@tap}>
-      <Box fill_width={true} height={36} corner_radius={12} background={bg} align="center">
+      <MishkaPill
+        fill_width={true}
+        height={36}
+        corner_radius={12}
+        background={bg}
+        padding={0}
+        align={:center}
+      >
         <Text text={l.label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      </Box>
+      </MishkaPill>
     </Box>
     """
   end
@@ -1194,12 +1200,25 @@ defmodule Kati.Screens.WhatFits do
   # `ف۳ · ق۲` and `۴۱ دقیقه` have no glyph in `kati_mono.ttf` and would be
   # handed to Android's own substitute face, while a Latin row keeps DM Mono.
   def fit_row(row, index \\ nil) do
-    assigns = %{tap: Kati.Screens.WhatFits.row_tap(row, index)}
+    assigns = %{
+      tap: Kati.Screens.WhatFits.row_tap(row, index),
+      thumb: Kati.Screens.WhatFits.thumb(row.seed),
+      where: Kati.Screens.WhatFits.where_line(row),
+      run: ~MOB"""
+      <Text
+        text={row.run}
+        font_family={Kati.Locale.mono_face(row.run)}
+        text_size={12}
+        font_weight="medium"
+        text_color={:on_surface}
+        max_lines={1}
+      />
+      """
+    }
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
         on_tap={@tap}
         background={Palette.card()}
         corner_radius={18}
@@ -1208,11 +1227,8 @@ defmodule Kati.Screens.WhatFits do
         padding_right={13}
         padding_top={10}
         padding_bottom={10}
-        align="center"
       >
-        {Kati.Screens.WhatFits.thumb(row.seed)}
-        <Spacer size={12} />
-        <Column weight={1.0}>
+        <MishkaListItem leading={@thumb} trailing={@run} gap={12} trailing_gap={12}>
           <Text
             text={row.title}
             text_size={13.5}
@@ -1228,18 +1244,9 @@ defmodule Kati.Screens.WhatFits do
             text_color={Palette.muted()}
             max_lines={1}
           />
-          {Kati.Screens.WhatFits.where_line(row)}
-        </Column>
-        <Spacer size={12} />
-        <Text
-          text={row.run}
-          font_family={Kati.Locale.mono_face(row.run)}
-          text_size={12}
-          font_weight="medium"
-          text_color={:on_surface}
-          max_lines={1}
-        />
-      </Row>
+          {@where}
+        </MishkaListItem>
+      </MishkaCard>
       <Spacer size={9} />
     </Column>
     """
@@ -1276,11 +1283,14 @@ defmodule Kati.Screens.WhatFits do
 
   def over(t) do
     row = t.over
-    assigns = %{tap: Kati.Screens.WhatFits.row_tap(row, :over)}
+
+    assigns = %{
+      tap: Kati.Screens.WhatFits.row_tap(row, :over),
+      thumb: Kati.Screens.WhatFits.thumb(row.seed)
+    }
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
       on_tap={@tap}
       background={Palette.card_settled()}
       corner_radius={18}
@@ -1288,11 +1298,8 @@ defmodule Kati.Screens.WhatFits do
       padding_right={13}
       padding_top={10}
       padding_bottom={10}
-      align="center"
     >
-      {Kati.Screens.WhatFits.thumb(row.seed)}
-      <Spacer size={12} />
-      <Column weight={1.0}>
+      <MishkaListItem leading={@thumb} gap={12}>
         <Text
           text={row.title}
           text_size={13.5}
@@ -1308,8 +1315,8 @@ defmodule Kati.Screens.WhatFits do
           text_color={Palette.tertiary()}
           max_lines={1}
         />
-      </Column>
-    </Row>
+      </MishkaListItem>
+    </MishkaCard>
     """
   end
 

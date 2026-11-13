@@ -222,17 +222,16 @@ defmodule Kati.Screens.Lists do
           />
         </Column>
         <Spacer size={9} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
+        <MishkaActionIcon
+          variant={:filled}
+          size={44}
+          shape={:circle}
           background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
-          align="center"
           on_tap={tap}
         >
           {Kati.UI.symbol("add", size: 21)}
-        </Box>
+        </MishkaActionIcon>
       </Row>
       <Spacer size={20} />
     </Column>
@@ -263,8 +262,7 @@ defmodule Kati.Screens.Lists do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -273,9 +271,14 @@ defmodule Kati.Screens.Lists do
       >
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+          <MishkaActionIcon
+            variant={:filled}
+            size={48}
+            corner_radius={15}
+            background={Palette.paper()}
+          >
             {UI.symbol("bookmarks", size: 22, color: Palette.rail_idle())}
-          </Box>
+          </MishkaActionIcon>
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={13} />
@@ -295,7 +298,7 @@ defmodule Kati.Screens.Lists do
           text_color={Palette.sub()}
           text_align="center"
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={12} />
     </Column>
     """
@@ -323,7 +326,11 @@ defmodule Kati.Screens.Lists do
     # rather than opening somebody else's.
     tap = if Map.get(row, :id), do: {self(), String.to_atom("open_list_" <> row.id)}
 
-    assigns = %{tap: tap}
+    assigns = %{
+      tap: tap,
+      seeds: Kati.Screens.Lists.stack(row.seeds),
+      badge: Kati.Screens.Lists.badge(row.badge)
+    }
 
     # `Kati.Locale.tracking/1` on the name and not a flat `-0.015`. A list's name
     # is the one string on this page the READER wrote, so it is the one most
@@ -334,18 +341,14 @@ defmodule Kati.Screens.Lists do
     # question is the READER's language and not this string's.
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={13}
-        align="center"
         on_tap={@tap}
       >
-        {Kati.Screens.Lists.stack(row.seeds)}
-        <Spacer size={14} />
-        <Column weight={1.0}>
+        <MishkaListItem leading={@seeds} trailing={@badge} gap={14} trailing_gap={14}>
           <Text
             text={row.title}
             text_size={14}
@@ -362,10 +365,8 @@ defmodule Kati.Screens.Lists do
             text_color={Palette.muted()}
             max_lines={1}
           />
-        </Column>
-        <Spacer size={14} />
-        {Kati.Screens.Lists.badge(row.badge)}
-      </Row>
+        </MishkaListItem>
+      </MishkaCard>
       <Spacer size={12} />
     </Column>
     """
@@ -495,8 +496,7 @@ defmodule Kati.Screens.Lists do
     last = length(l.kept) - 1
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -508,7 +508,7 @@ defmodule Kati.Screens.Lists do
       {l.kept
        |> Enum.with_index()
        |> Enum.map(fn {row, i} -> Kati.Screens.Lists.kept_row(row, i < last) end)}
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -613,7 +613,8 @@ defmodule Kati.Screens.Lists do
       <Column fill_width={true}>
         {@error}
         <Row fill_width={true} align="center">
-          <Row
+          <MishkaCard
+            direction={:row}
             weight={1.0}
             height={48}
             corner_radius={14}
@@ -621,7 +622,8 @@ defmodule Kati.Screens.Lists do
             shadow={Kati.Theme.shadow_card_soft()}
             padding_left={15}
             padding_right={15}
-            align="center"
+            align={:center}
+            fill_width={false}
           >
             <TextField
               value={@name}
@@ -633,7 +635,7 @@ defmodule Kati.Screens.Lists do
               on_submit={@on_submit}
               value_epoch={@epoch}
             />
-          </Row>
+          </MishkaCard>
           <Spacer size={9} />
           {Kati.UI.SettingsList.action_pill(@make, @save)}
         </Row>

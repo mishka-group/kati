@@ -372,8 +372,10 @@ defmodule Kati.TitlePreviewTest do
     :ok
   end
 
+  defp expanded(view), do: view |> tree() |> Mob.Composite.expand(self())
+
   defp tap_tags(view) do
-    for node <- flatten(view),
+    for node <- flatten(expanded(view)),
         {_pid, tag} <- [Map.get(Map.get(node, :props) || %{}, :on_tap)],
         is_atom(tag),
         do: tag
@@ -381,6 +383,7 @@ defmodule Kati.TitlePreviewTest do
 
   defp texts(view) do
     view
+    |> expanded()
     |> flatten()
     |> Enum.flat_map(fn node ->
       case Map.get(node, :props) || %{} do

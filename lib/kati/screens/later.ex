@@ -78,9 +78,13 @@ defmodule Kati.Screens.Later do
   def block(height) do
     assigns = %{height: height}
 
+    # Mishka's Skeleton at the loading frame's own geometry: full width, the
+    # page's declared height, card fill and the 18pt radius every block on
+    # these screens has always had. Its `:block` shape is a Box with exactly
+    # those props plus an invisible filler child, so the pixels are unchanged.
     ~MOB"""
     <Column fill_width={true}>
-      <Box fill_width={true} height={@height} corner_radius={18} background={Palette.card()} />
+      <MishkaSkeleton shape="block" height={@height} color={Palette.card()} corner_radius={18} />
       <Spacer size={10} />
     </Column>
     """

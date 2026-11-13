@@ -37,7 +37,6 @@ defmodule Kati.Screens.Agenda do
   use Kati.Screens.Root, root: :calendar
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Screens.Calendar, as: Schedule
   alias Kati.Theme
@@ -168,12 +167,64 @@ defmodule Kati.Screens.Agenda do
   end
 
   def body(agenda) do
+    sections = Enum.map(agenda.groups, &section/1)
+
+    assigns = %{
+      sections: sections,
+      footer: Kati.Screens.Agenda.footer(Kati.Screens.Agenda.footer_label(agenda.through))
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(agenda.groups, fn group -> Kati.Screens.Agenda.group(group) end)}
-      {Kati.Screens.Agenda.footer(Kati.Screens.Agenda.footer_label(agenda.through))}
+      <MishkaCalendar
+        view={:agenda}
+        sections={@sections}
+        section_gap={20}
+        card_background={Palette.card()}
+        card_radius={20}
+        card_shadow={Theme.shadow_card_soft()}
+        card_padding_left={15}
+        card_padding_right={15}
+        card_padding_top={4}
+        card_padding_bottom={4}
+        row_padding_top={13}
+        row_padding_bottom={13}
+        row_rail_height={30}
+        time_size={11}
+        time_color={Palette.muted()}
+        title_size={13}
+        title_color={:on_surface}
+        title_weight={:semibold}
+        meta_size={11.5}
+        meta_color={Palette.sub()}
+        rule_color={Palette.hairline()}
+        row_gap={12}
+      />
+      <Spacer size={20} />
+      {@footer}
     </Column>
     """
+  end
+
+  defp section(group) do
+    %{
+      header: Kati.Screens.Agenda.kicker_row(group),
+      items: Enum.map(group.rows, &row_data/1)
+    }
+  end
+
+  defp row_data(row) do
+    {_pid, tag} = Schedule.tap(row)
+
+    %{
+      time: row.time,
+      title: row.title,
+      meta: row.meta,
+      colour: row |> Schedule.section() |> Schedule.section_color(),
+      font_family: Kati.Locale.mono_face(row.time),
+      leading: Kati.Screens.Agenda.thumb(Map.get(row, :seed)),
+      tag: tag
+    }
   end
 
   @doc "The footer's sentence: how far ahead the list has looked."
@@ -229,8 +280,7 @@ defmodule Kati.Screens.Agenda do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.Agenda.kicker_row(group)}
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
@@ -242,7 +292,7 @@ defmodule Kati.Screens.Agenda do
         {group.rows
          |> Enum.with_index()
          |> Enum.map(fn {row, i} -> Kati.Screens.Agenda.row(row, i < last) end)}
-      </Column>
+      </MishkaCard>
       <Spacer size={20} />
     </Column>
     """
@@ -350,8 +400,11 @@ defmodule Kati.Screens.Agenda do
   """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
-  def hairline(true),
-    do: MishkaSeparator.separator(render: :box, color: Palette.hairline(), thickness: 1)
+  def hairline(true) do
+    ~MOB"""
+    <MishkaSeparator render={:box} color={Palette.hairline()} thickness={1} />
+    """
+  end
 
   @doc false
   def footer(label) do

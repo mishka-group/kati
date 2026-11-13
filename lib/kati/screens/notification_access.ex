@@ -221,8 +221,7 @@ defmodule Kati.Screens.NotificationAccess do
   def not_granted do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -262,7 +261,7 @@ defmodule Kati.Screens.NotificationAccess do
           text_color={Palette.muted()}
           text_align="center"
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
       {Sheet.insight("lock", Kati.Screens.NotificationAccess.not_folded_runs())}
       <Spacer size={20} />
@@ -359,15 +358,15 @@ defmodule Kati.Screens.NotificationAccess do
   @spec open_settings_button() :: map()
   def open_settings_button do
     ~MOB"""
-    <Row
+    <MishkaPill
       fill_width={true}
       height={44}
       corner_radius={22}
       background={Palette.ink_fill()}
-      align="center"
+      padding={0}
+      align={:center}
       on_tap={{self(), :open_settings}}
     >
-      <Spacer weight={1.0} />
       {UI.symbol("settings", size: 17, color: Palette.on_ink())}
       <Spacer size={8} />
       <Text
@@ -377,8 +376,7 @@ defmodule Kati.Screens.NotificationAccess do
         text_color={Palette.on_ink()}
         max_lines={1}
       />
-      <Spacer weight={1.0} />
-    </Row>
+    </MishkaPill>
     """
   end
 
@@ -392,8 +390,7 @@ defmodule Kati.Screens.NotificationAccess do
   def revoked(kept) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -428,7 +425,7 @@ defmodule Kati.Screens.NotificationAccess do
             {SettingsList.action_pill(gettext("Log by hand instead"))}
           </Column>
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={20} />
     </Column>
     """
@@ -562,13 +559,14 @@ defmodule Kati.Screens.NotificationAccess do
   """
   def not_in_v1_badge do
     ~MOB"""
-    <Row
+    <MishkaPill
       height={22}
       corner_radius={11}
       background={Palette.paper()}
+      padding={0}
       padding_left={8}
       padding_right={8}
-      align="center"
+      align={:center}
     >
       <Text
         text={UI.eyebrow_label(gettext("Not in v1"))}
@@ -578,7 +576,7 @@ defmodule Kati.Screens.NotificationAccess do
         text_color={Palette.sub()}
         max_lines={1}
       />
-    </Row>
+    </MishkaPill>
     """
   end
 

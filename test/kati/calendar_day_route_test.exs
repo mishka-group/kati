@@ -294,7 +294,7 @@ defmodule Kati.CalendarDayRouteTest do
                "screen 09 opened a different set of events from the ones screen 02 was " <>
                  "drawing under the cell that was tapped"
 
-        body = text(opened)
+        body = opened |> tree() |> Mob.Composite.expand(self()) |> text()
         refute body =~ "Nothing scheduled"
 
         for title <- titles(@today_rows) do
@@ -347,7 +347,7 @@ defmodule Kati.CalendarDayRouteTest do
         assert assigns(opened).date == date
         assert assigns(opened).occurrences == []
 
-        body = text(opened)
+        body = opened |> tree() |> Mob.Composite.expand(self()) |> text()
         assert body =~ "Nothing scheduled"
         refute body =~ "14 items · 2 clashes"
         refute body =~ "£22.98"
@@ -478,7 +478,7 @@ defmodule Kati.CalendarDayRouteTest do
     cell = find(resting(view_or_tree), :box, on_tap: {self(), tag})
     assert cell, "no day cell is tagged #{inspect(tag)}"
 
-    column = find(cell, :column)
+    column = cell |> Mob.Composite.expand(self()) |> find(:column)
     assert column, "the cell tagged #{inspect(tag)} holds no Column to be filled"
 
     column.props[:background]

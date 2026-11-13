@@ -68,7 +68,14 @@ defmodule Kati.Components.MishkaSegmentedControl do
   | `segment_height` | number | unset | A segment's exact height. |
   | `segment_align` | `:center`, `:leading`, … | `:center` | Where a label sits inside its segment. |
   | `segment_weight` | number | unset | Row weight per segment — equal widths. Android only; see below. |
+  | `segment_gap` | number | unset | Space between segments. |
   | `selected_shadow` | shadow spec string | unset | On the selected segment only. |
+  | `leading_size` | text token / number | `text_size` | A string option `leading` glyph's size. |
+  | `leading_gap` | number | `6` | Space between a leading glyph and the label. |
+  | `leading_family` | font family string | unset (inherited) | A string leading glyph's face. |
+  | `trailing_size` | text token / number | `text_size` | A string option `trailing` glyph's size. |
+  | `trailing_gap` | number | `0` | Space between the label and a trailing glyph. |
+  | `trailing_family` | font family string | unset (inherited) | A string trailing glyph's face. |
   | `heading_size` | text token / number | `:sm` | The `label` heading above the strip. |
   | `heading_color` | color token / ARGB int | `:muted` | That heading's colour. |
   | `heading_weight` | as `font_weight` | unset (regular) | That heading's weight. |
@@ -170,6 +177,8 @@ defmodule Kati.Components.MishkaSegmentedControl do
   can read.
 
   Not ported: `name` (form plumbing) and the `*_class` attrs.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/segmented-control
   """
 
   import Mob.Sigil
@@ -231,7 +240,14 @@ defmodule Kati.Components.MishkaSegmentedControl do
   def option(id, label, opts \\ []) do
     %{
       type: @option_type,
-      props: %{id: id, label: label, disabled: Keyword.get(opts, :disabled, false)},
+      props: %{
+        id: id,
+        label: label,
+        disabled: Keyword.get(opts, :disabled, false),
+        leading: Keyword.get(opts, :leading),
+        trailing: Keyword.get(opts, :trailing),
+        on_tap: Keyword.get(opts, :on_tap)
+      },
       children: []
     }
   end
@@ -272,7 +288,11 @@ defmodule Kati.Components.MishkaSegmentedControl do
       |> Enum.map(& &1.props)
 
     selected = selected(props, options)
-    segments = Enum.map(options, &segment(&1, props, Map.get(&1, :id) == selected))
+
+    segments =
+      options
+      |> Enum.map(&segment(&1, props, Map.get(&1, :id) == selected))
+      |> add_gaps(Map.get(props, :segment_gap))
 
     # The track and its Row must BOTH be told, or the strip stretches to the
     # screen edge around three short labels: a Box with no width fills, and a
@@ -280,7 +300,7 @@ defmodule Kati.Components.MishkaSegmentedControl do
     fill? = truthy?(Map.get(props, :fill_width, false))
 
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={fill?}>
       {heading(props, label)}
       {track(props, segments, fill?)}
     </Column>
@@ -308,6 +328,9 @@ defmodule Kati.Components.MishkaSegmentedControl do
 
     [merge_props(text, aliased(props, @heading_aliases)), gap]
   end
+
+  defp add_gaps(segments, nil), do: segments
+  defp add_gaps(segments, gap), do: Enum.intersperse(segments, ~MOB(<Spacer size={gap} />))
 
   defp track(props, segments, fill?) do
     # `border_color` arrives through @track_overrides, not the template.
@@ -344,7 +367,7 @@ defmodule Kati.Components.MishkaSegmentedControl do
       truthy?(Map.get(props, :disabled, false)) or truthy?(Map.get(option, :disabled, false))
 
     fill = segment_fill(props, selected?, disabled?)
-    text_color = segment_ink(props, selected?, disabled?)
+    ink = segment_ink(props, selected?, disabled?)
 
     # fill_width: false is what keeps a segment the size of its label. Without
     # it the first segment claims the whole strip and the others are pushed off
@@ -352,6 +375,16 @@ defmodule Kati.Components.MishkaSegmentedControl do
     # the device. It is also what makes the "content-sized" claim above true.
     # `segment_weight` is the deliberate way out of it, and stays off by default
     # because Mob's iOS mapping has no layout weight to honour.
+    label =
+      ~MOB"""
+      <Text
+        text={Map.get(option, :label) || ""}
+        text_size={Map.get(props, :text_size) || :base}
+        text_color={ink}
+      />
+      """
+      |> merge_props(Map.merge(overrides(props, @text_overrides), weight(props, selected?)))
+
     node = ~MOB"""
     <Box
       fill_width={false}
@@ -360,11 +393,7 @@ defmodule Kati.Components.MishkaSegmentedControl do
       padding={Map.get(props, :padding) || :space_sm}
       align={Map.get(props, :segment_align) || :center}
     >
-      <Text
-        text={Map.get(option, :label) || ""}
-        text_size={Map.get(props, :text_size) || :base}
-        text_color={text_color}
-      />
+      {content(option, props, label, ink)}
     </Box>
     """
 
@@ -372,10 +401,86 @@ defmodule Kati.Components.MishkaSegmentedControl do
     |> merge_props(overrides(props, @segment_overrides))
     |> merge_props(aliased(props, @segment_aliases))
     |> merge_props(selected_shadow(props, selected?))
-    |> restyle_label(Map.merge(overrides(props, @text_overrides), weight(props, selected?)))
     |> tag_state(Map.get(props, :id), Map.get(option, :id), selected?)
     |> wire(tap(props, option, disabled?))
   end
+
+  # A glyph in either slot is painted by the control, so it follows the
+  # segment's ink and type; a node or list the caller supplies keeps its own.
+  defp content(option, props, label, ink) do
+    leading = Map.get(option, :leading)
+    trailing = Map.get(option, :trailing)
+
+    if is_nil(leading) and is_nil(trailing) do
+      label
+    else
+      content_row(leading, trailing, props, label, ink)
+    end
+  end
+
+  # A centred, stretched segment centres its content the way the drawn strip
+  # does: a Row that fills the segment with a weighted Spacer either side. A
+  # hugging Row centred by the Box lands a fraction of a pixel off, which the
+  # text shows. A hugging segment keeps a hugging row.
+  defp content_row(leading, trailing, props, label, ink) do
+    nodes =
+      leading_nodes(leading, props, ink) ++
+        [label] ++ trailing_nodes(trailing, props, ink)
+
+    if stretched?(props) do
+      ~MOB"""
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        {nodes}
+        <Spacer weight={1.0} />
+      </Row>
+      """
+    else
+      ~MOB"""
+      <Row>
+        {nodes}
+      </Row>
+      """
+    end
+  end
+
+  defp stretched?(props),
+    do: Map.has_key?(props, :segment_weight) or Map.has_key?(props, :segment_width)
+
+  defp leading_nodes(nil, _props, _ink), do: []
+
+  defp leading_nodes(leading, props, ink),
+    do: [glyph_node(leading, :leading, props, ink), spacer(Map.get(props, :leading_gap) || 6)]
+
+  defp trailing_nodes(nil, _props, _ink), do: []
+
+  defp trailing_nodes(trailing, props, ink) do
+    case Map.get(props, :trailing_gap) || 0 do
+      0 -> [glyph_node(trailing, :trailing, props, ink)]
+      gap -> [spacer(gap), glyph_node(trailing, :trailing, props, ink)]
+    end
+  end
+
+  defp glyph_node(glyph, side, props, ink) when is_binary(glyph) do
+    ~MOB"""
+    <Text
+      text={glyph}
+      text_size={Map.get(props, glyph_size_key(side)) || Map.get(props, :text_size) || :base}
+      text_color={ink}
+    />
+    """
+    |> merge_props(aliased(props, %{glyph_family_key(side) => :font_family}))
+  end
+
+  defp glyph_node(nodes, _side, _props, _ink), do: nodes
+
+  defp glyph_size_key(:leading), do: :leading_size
+  defp glyph_size_key(:trailing), do: :trailing_size
+
+  defp glyph_family_key(:leading), do: :leading_family
+  defp glyph_family_key(:trailing), do: :trailing_family
+
+  defp spacer(size), do: %{type: :spacer, props: %{size: size}, children: []}
 
   # A disabled selection is greyed rather than accented — the same rule the
   # toggle settled on, so a locked control reads as locked instead of live.
@@ -410,13 +515,6 @@ defmodule Kati.Components.MishkaSegmentedControl do
 
   defp selected_shadow(_props, _selected?), do: %{}
 
-  # The label is the segment's only child, so it is reached by rebuilding that
-  # one child rather than by walking the tree.
-  defp restyle_label(node, extra) when map_size(extra) == 0, do: node
-
-  defp restyle_label(node, extra),
-    do: %{node | children: Enum.map(node.children, &merge_props(&1, extra))}
-
   defp wire(node, nil), do: node
   defp wire(node, handler), do: %{node | props: Map.put(node.props, :on_tap, handler)}
 
@@ -430,6 +528,11 @@ defmodule Kati.Components.MishkaSegmentedControl do
   end
 
   defp tap(_props, _option, true), do: nil
+
+  # An option may carry its own tag, which wins over the grouped `on_change` row
+  # — the same rule a menu row follows.
+  defp tap(_props, %{on_tap: on_tap}, _disabled) when not is_nil(on_tap),
+    do: Event.handler(on_tap)
 
   # Event.handler/2, not a hand-built {tag, id}: reached as a composite tag this
   # control's :on_change has ALREADY been widened to {screen_pid, tag}, and

@@ -348,8 +348,7 @@ defmodule Kati.Screens.Backup do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={bg}
         corner_radius={22}
         padding={17}
@@ -360,7 +359,7 @@ defmodule Kati.Screens.Backup do
           <Spacer size={12} />
           {glyph}
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -655,23 +654,20 @@ defmodule Kati.Screens.Backup do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Box
+      <MishkaPill
+        label={gettext("Save a backup")}
         on_tap={tap}
         fill_width={true}
         height={54}
         corner_radius={27}
         background={Palette.ink_fill()}
+        color={Palette.on_ink()}
         shadow="0 14 28 -12 #801A1917"
-        align="center"
-      >
-        <Text
-          text={gettext("Save a backup")}
-          text_size={14.5}
-          font_weight="bold"
-          text_color={Palette.on_ink()}
-          max_lines={1}
-        />
-      </Box>
+        padding={0}
+        align={:center}
+        text_size={14.5}
+        font_weight={:bold}
+      />
       <Spacer size={16} />
     </Column>
     """
@@ -1107,7 +1103,7 @@ defmodule Kati.Screens.Backup do
     change = {self(), tag}
 
     input = ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={value}
       placeholder={placeholder}
       secure={true}

@@ -103,7 +103,7 @@ defmodule Kati.RatingWriteTest do
   end
 
   defp tap_tags(tree) do
-    for node <- flatten(tree),
+    for node <- tree |> tree() |> Mob.Composite.expand(self()) |> flatten(),
         {_pid, tag} <- [Map.get(node.props || %{}, :on_tap)],
         is_atom(tag),
         do: tag
@@ -125,7 +125,7 @@ defmodule Kati.RatingWriteTest do
 
     test "the review is a field a device test can address" do
       a_logged_watch!()
-      tree = tree(mount_rating())
+      tree = mount_rating() |> tree() |> Mob.Composite.expand(self())
 
       # Without an `accessibility_id` the bridge's `K-35 test-tag` fence has
       # nothing to hang a `testTag` on — `Mob.Renderer` emits one for an atom

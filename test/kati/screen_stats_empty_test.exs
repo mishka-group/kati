@@ -108,7 +108,7 @@ defmodule Kati.ScreenStatsEmptyTest do
       assert length(find_all(tree, :text, text: Kati.Icons.glyph("bar_chart_4_bars"))) == 2
 
       # And the page is a whole renderable page, not a fragment.
-      assert_renderable(tree)
+      assert_renderable(Mob.Composite.expand(tree, self()))
     end
 
     test "draws none of the year the drawing invented" do

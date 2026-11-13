@@ -301,22 +301,21 @@ defmodule Kati.UI.SettingsList do
 
   @doc "The grouped card: `#FBFAF8` at radius 20, 4pt top and bottom, 15pt sides."
   def card(rows) do
-    rows = Kati.UI.SettingsList.last_unruled(rows)
-
-    ~MOB"""
-    <Column
-      fill_width={true}
-      background={Kati.Theme.card(Palette.mode())}
-      corner_radius={20}
-      shadow={Kati.Theme.shadow_card_soft()}
-      padding_left={15}
-      padding_right={15}
-      padding_top={4}
-      padding_bottom={4}
-    >
-      {rows}
-    </Column>
-    """
+    # `MishkaCard.card/2`, not the tag: the rows are nodes handed in by the
+    # caller, and a tag cannot carry arguments it has never seen. Same reason
+    # `MishkaMenu.dropdown/4` is a function — the content is data.
+    Kati.Components.MishkaCard.card(
+      %{
+        background: Kati.Theme.card(Palette.mode()),
+        corner_radius: 20,
+        shadow: Kati.Theme.shadow_card_soft(),
+        padding_left: 15,
+        padding_right: 15,
+        padding_top: 4,
+        padding_bottom: 4
+      },
+      List.wrap(Kati.UI.SettingsList.last_unruled(rows))
+    )
   end
 
   @doc """
@@ -365,16 +364,30 @@ defmodule Kati.UI.SettingsList do
     # every other caller passes.
     hold = Keyword.get(opts, :on_long_press)
 
+    # `trailing/1` already carries the 12pt gap between the body and the
+    # control, so the list item's own trailing gap is zero here — one owner for
+    # the number, and every caller that wraps its control keeps working.
+    #
+    # The list item is the function form: leading, body and trailing are nodes
+    # the caller built, which is exactly the data a tag cannot name.
+    row =
+      Kati.Components.MishkaListItem.list_item(
+        %{
+          leading: leading,
+          trailing: if(trailing == nil, do: nil, else: Kati.UI.SettingsList.trailing(trailing)),
+          gap: 13,
+          trailing_gap: 0,
+          padding_top: pad,
+          padding_bottom: pad
+        },
+        List.wrap(body)
+      )
+
+    assigns = %{row: row, tap: tap, hold: hold}
+
     ~MOB"""
-    <Column fill_width={true} on_tap={tap} on_long_press={hold}>
-      <Row fill_width={true} align="center" padding_top={pad} padding_bottom={pad}>
-        {leading}
-        <Spacer size={13} />
-        <Column weight={1.0}>
-          {body}
-        </Column>
-        {Kati.UI.SettingsList.trailing(trailing)}
-      </Row>
+    <Column fill_width={true} on_tap={@tap} on_long_press={@hold}>
+      {@row}
       {Kati.UI.SettingsList.hairline(rule?)}
     </Column>
     """
@@ -834,7 +847,11 @@ defmodule Kati.UI.SettingsList do
   # content Row — wrapping them in a Row here would only add a level.
   defp status_content(label, color) do
     [
-      ~MOB"<Box width={5} height={5} corner_radius={3} background={color} />",
+      ~MOB"""
+      <MishkaActionIcon variant={:filled} size={5} shape={:circle} background={color}>
+        <Spacer size={0} />
+      </MishkaActionIcon>
+      """,
       ~MOB"<Spacer size={5} />",
       ~MOB"""
       <Text text={label} text_size={10.5} font_weight="semibold" text_color={color} max_lines={1} />

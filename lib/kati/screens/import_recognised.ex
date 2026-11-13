@@ -522,8 +522,7 @@ defmodule Kati.Screens.ImportRecognised do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         padding={17}
@@ -539,7 +538,7 @@ defmodule Kati.Screens.ImportRecognised do
           </Column>
         </Row>
         {Kati.Screens.ImportRecognised.pick_again(@pick_again)}
-      </Column>
+      </MishkaCard>
       <Spacer size={18} />
     </Column>
     """
@@ -789,8 +788,7 @@ defmodule Kati.Screens.ImportRecognised do
   def file_card(job) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -823,7 +821,7 @@ defmodule Kati.Screens.ImportRecognised do
         {MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)}
         <Spacer size={13} />
         {Kati.Screens.ImportRecognised.recognition(job)}
-      </Column>
+      </MishkaCard>
       <Spacer size={11} />
     </Column>
     """
@@ -1121,7 +1119,7 @@ defmodule Kati.Screens.ImportRecognised do
   def matched_note(job) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
+      <MishkaCard background={Palette.cream()} corner_radius={20} padding={16}>
         <Row fill_width={true} align="top">
           {UI.symbol("auto_awesome", size: 18, color: Palette.gold_icon())}
           <Spacer size={11} />
@@ -1129,7 +1127,7 @@ defmodule Kati.Screens.ImportRecognised do
             {Kati.Screens.ImportRecognised.note(job)}
           </Column>
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={24} />
     </Column>
     """
@@ -1414,8 +1412,7 @@ defmodule Kati.Screens.ImportRecognised do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1440,7 +1437,7 @@ defmodule Kati.Screens.ImportRecognised do
           text_align="center"
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end

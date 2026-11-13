@@ -28,7 +28,7 @@ defmodule Kati.ComponentPolicyTest do
            "the prefix must be recorded, or a regeneration will not match"
   end
 
-  test "only Kati.UI.Menu reaches the :anchored node type" do
+  test "only the menu modules reach the :anchored node type" do
     # This was a flat ban, on the grounds that the published mob 0.7.20
     # renderer does not know `:anchored`: on Android the dispatch `when` has no
     # `else` arm, so the node draws NOTHING — no crash, no log — and on iOS it
@@ -39,11 +39,13 @@ defmodule Kati.ComponentPolicyTest do
     # floating window, and `Kati.UI.Menu` is built on it — the overflow menu
     # that makes seven otherwise-stranded screens reachable.
     #
-    # The allowance is deliberately one module wide. iOS is still the stock
-    # renderer (`ios/` has no Swift bridge), so every other use would be an
-    # accordion there, and the three library components stay quarantined: they
-    # are copied in so the set is complete, not so they can be rendered.
-    allowed = ~w(menu.ex)
+    # The allowance is deliberately narrow: `Kati.UI.Menu` and the dropdown
+    # added to `MishkaMenu` (`dropdown/4`). Both are the same Android-only
+    # floating surface; iOS is still the stock renderer (`ios/` has no Swift
+    # bridge), so every other use would be an accordion there. The three
+    # library components stay quarantined: they are copied in so the set is
+    # complete, not so they can be rendered.
+    allowed = ~w(menu.ex mishka_menu.ex)
     quarantined = ~w(mishka_popover.ex mishka_preview_card.ex mishka_tooltip.ex)
 
     offenders =
@@ -58,8 +60,9 @@ defmodule Kati.ComponentPolicyTest do
       end
 
     assert offenders == [],
-           "these call the :anchored node type. Only Kati.UI.Menu may — " <>
-             "everywhere else it is an accordion on iOS:\n" <> Enum.join(offenders, "\n")
+           "these call the :anchored node type. Only Kati.UI.Menu and " <>
+             "MishkaMenu.dropdown/4 may — everywhere else it is an accordion on iOS:\n" <>
+             Enum.join(offenders, "\n")
   end
 
   test "the bridge still renders the node Kati.UI.Menu depends on" do

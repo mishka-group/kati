@@ -13,9 +13,13 @@ defmodule Kati.Repo do
   @impl AshSqlite.Repo
   def installed_extensions, do: []
 
-  # Required by the AshSqlite.Repo behaviour and meaningless for SQLite.
+  # Required by the AshSqlite.Repo behaviour. The number is the SQLite that
+  # exqlite 0.43.0 bundles (`deps/exqlite/c_src/sqlite3.h`), and it is the same
+  # library on the host and on the device, so AshSqlite may use every feature
+  # this version has. Declaring the conservative 3.38.0 default would make it
+  # emit older SQL for no reason.
   @impl AshSqlite.Repo
-  def min_pg_version, do: %Version{major: 10, minor: 0, patch: 0}
+  def min_sqlite_version, do: %Version{major: 3, minor: 54, patch: 1}
 
   @impl Ecto.Repo
   def init(type, config) do

@@ -228,7 +228,7 @@ defmodule Kati.ScreenUpNextTest do
     end
 
     test "draws a poster for every row that has one" do
-      images = find_all(tree(mount_screen(UpNext)), :image)
+      images = mount_screen(UpNext) |> tree() |> Mob.Composite.expand(self()) |> find_all(:image)
 
       # The hero's 700x400 crop plus three 40x56 posters — two ready, one cold.
       assert length(images) == 4

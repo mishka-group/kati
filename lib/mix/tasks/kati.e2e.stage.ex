@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Kati.E2e.Stage do
   end
 
   defp refuse_without_crypto(otp) do
-    if MobDev.ReleaseAndroid.real_crypto_available?(otp) do
+    if MobDev.OtpDownloader.crypto_present?(otp) do
       :ok
     else
       {:error,

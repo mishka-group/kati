@@ -166,6 +166,8 @@ defmodule Kati.Components.MishkaTree do
   attrs, and the `<:node>` slot — that one renders a custom *label*, which is a
   different thing from the `<MishkaTreeNode>` above; a node's `:icon` and
   `:meta` keys are the parts of a custom label a row has room for.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/tree
   """
 
   import Mob.Sigil
@@ -465,13 +467,13 @@ defmodule Kati.Components.MishkaTree do
       ["a", "c"]
   """
   @spec expanded_values([map()]) :: [term()]
-  def expanded_values(nodes) do
-    Enum.flat_map(List.wrap(nodes), fn node ->
-      case children(node) do
-        [] -> if truthy?(Map.get(node, :has_children, false)), do: [node.value], else: []
-        kids -> [node.value | expanded_values(kids)]
-      end
-    end)
+  def expanded_values(nodes), do: Enum.flat_map(List.wrap(nodes), &branch_values/1)
+
+  defp branch_values(node) do
+    case children(node) do
+      [] -> if truthy?(Map.get(node, :has_children, false)), do: [node.value], else: []
+      kids -> [node.value | expanded_values(kids)]
+    end
   end
 
   @doc """

@@ -328,6 +328,8 @@ defmodule Kati.DeviceRoundN34N42Test do
 
   defp texts(view_or_tree) do
     view_or_tree
+    |> tree()
+    |> Mob.Composite.expand(self())
     |> flatten()
     |> Enum.flat_map(fn node ->
       case Map.get(node, :props) || %{} do
@@ -339,6 +341,8 @@ defmodule Kati.DeviceRoundN34N42Test do
 
   defp drawn_tag?(view_or_tree, tag) do
     view_or_tree
+    |> tree()
+    |> Mob.Composite.expand(self())
     |> flatten()
     |> Enum.any?(fn node ->
       Enum.any?(Map.get(node, :props) || %{}, fn

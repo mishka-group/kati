@@ -92,7 +92,11 @@ defmodule Kati.SectionsTest do
     test "the Library switcher offers only the shelves you kept" do
       :ok = Kati.Sections.put(["screen"])
 
-      tree = tree(mount_screen(Kati.Screens.Library))
+      tree =
+        Kati.Screens.Library
+        |> mount_screen()
+        |> tree()
+        |> Mob.Composite.expand(self())
 
       assert find(tree, :text, text: "Screen") != nil
 
@@ -132,7 +136,11 @@ defmodule Kati.SectionsTest do
     test "with everything kept, nothing is hidden" do
       :ok = Kati.Sections.put(Kati.Sections.all())
 
-      tree = tree(mount_screen(Kati.Screens.Library))
+      tree =
+        Kati.Screens.Library
+        |> mount_screen()
+        |> tree()
+        |> Mob.Composite.expand(self())
 
       for shelf <- ["Screen", "Books", "Music"] do
         assert find(tree, :text, text: shelf) != nil, "#{shelf} went missing"

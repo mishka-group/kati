@@ -87,9 +87,9 @@ defmodule Kati.Screens.RetiredReason do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+        <MishkaActionIcon variant={:filled} size={44} corner_radius={14} background={Palette.paper()}>
           {Kati.UI.symbol(@icon, size: 21, color: Kati.Theme.Palette.rail_idle())}
-        </Box>
+        </MishkaActionIcon>
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text
@@ -130,8 +130,7 @@ defmodule Kati.Screens.RetiredReason do
     assigns = %{label: label, body: body}
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -152,7 +151,7 @@ defmodule Kati.Screens.RetiredReason do
         line_height={Kati.Locale.leading(1.6)}
         text_color={Palette.ink_soft()}
       />
-    </Column>
+    </MishkaCard>
     """
   end
 

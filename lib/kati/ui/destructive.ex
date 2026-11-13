@@ -70,23 +70,7 @@ defmodule Kati.UI.Destructive do
         {Kati.UI.Destructive.clause(gettext("Does not change:"), @keeps)}
         <Spacer size={15} />
         <Row fill_width={true} align="center">
-          <Row
-            height={38}
-            corner_radius={19}
-            background={Palette.ink_fill()}
-            padding_left={16}
-            padding_right={16}
-            align="center"
-            on_tap={@confirm_tap}
-          >
-            <Text
-              text={@confirm_label}
-              text_size={12.5}
-              font_weight="bold"
-              text_color={Palette.on_ink()}
-              max_lines={1}
-            />
-          </Row>
+          {Kati.UI.Destructive.confirm_button(@confirm_label, @confirm_tap)}
           <Spacer size={14} />
           <Text
             text={@keep_label}
@@ -99,6 +83,37 @@ defmodule Kati.UI.Destructive do
         </Row>
       </Column>
     </Column>
+    """
+  end
+
+  # The filled half — Mishka's Pill at the drawing's 38pt lozenge. `padding: 0`
+  # plus the two edge paddings is the Row's 16/16 with no vertical padding, and
+  # the pill's root Box hugs exactly as the Row did, so the lozenge is still
+  # only as wide as its label.
+  @doc false
+  @spec confirm_button(String.t(), term()) :: map()
+  def confirm_button(label, tap) do
+    assigns = %{label: label, tap: tap}
+
+    ~MOB"""
+    <MishkaPill
+      height={38}
+      corner_radius={19}
+      background={Palette.ink_fill()}
+      padding={0}
+      padding_left={16}
+      padding_right={16}
+      align={:center}
+      on_tap={@tap}
+    >
+      <Text
+        text={@label}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={Palette.on_ink()}
+        max_lines={1}
+      />
+    </MishkaPill>
     """
   end
 

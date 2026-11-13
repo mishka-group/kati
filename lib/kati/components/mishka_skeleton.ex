@@ -30,9 +30,12 @@ defmodule Kati.Components.MishkaSkeleton do
   `Kati.Components.MishkaLoadingOverlay` already animate for free.
 
   (There is no animation plugin to reach for either: the `mob_*` packages
-  published as of mob 0.7 are capabilities — camera, location, biometric,
+  published as of mob 0.9 are capabilities — camera, location, biometric,
   scanner, bluetooth, nfc, vision, video, notify, photos, touch, screencast,
-  background, audio_capture — plus `mob_themes`, `mob_ash` and `mob_push`.)
+  background, audio_capture, sensors, speech, whisper, sms, midi, wake — plus
+  `mob_themes`, `mob_ash`, `mob_push`, `mob_deliver`, `mob_mishka`, and engines
+  for 3D scenes, physics and on-device ML: `mob_scene3d`, `mob_rapier`,
+  `mob_nx_eigen`.)
 
   ## Shapes
 
@@ -72,6 +75,8 @@ defmodule Kati.Components.MishkaSkeleton do
   | `color` | color token / ARGB int | `:surface_raised` | Placeholder fill. |
   | `corner_radius` | radius token / number | per shape | Override the shape's radius. |
   | `id` | string | — | A native testTag. `:text` numbers its bars `id-0`, `id-1`, … |
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/skeleton
   """
 
   import Mob.Sigil

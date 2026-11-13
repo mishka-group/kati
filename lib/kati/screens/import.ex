@@ -496,13 +496,13 @@ defmodule Kati.Screens.Import do
   def file_card(job) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
-        align="center"
+        align={:center}
       >
         {Kati.Screens.Import.file_tile()}
         <Spacer size={13} />
@@ -525,7 +525,7 @@ defmodule Kati.Screens.Import do
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Import.file_tick(job)}
-      </Row>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -575,15 +575,14 @@ defmodule Kati.Screens.Import do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
       >
         {@line}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -594,8 +593,7 @@ defmodule Kati.Screens.Import do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -607,7 +605,7 @@ defmodule Kati.Screens.Import do
         {job.columns
          |> Enum.with_index()
          |> Enum.map(fn {row, i} -> Kati.Screens.Import.map_row(row, i < last) end)}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -804,8 +802,7 @@ defmodule Kati.Screens.Import do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -829,7 +826,7 @@ defmodule Kati.Screens.Import do
           text_align="center"
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -869,7 +866,7 @@ defmodule Kati.Screens.Import do
     live? = Kati.Screens.Import.live?(job)
 
     ~MOB"""
-    <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={15}>
+    <MishkaCard background={Palette.cream()} corner_radius={20} padding={15}>
       <Row fill_width={true} align="center">
         {Kati.Screens.Import.conflict_poster(c)}
         <Spacer size={12} />
@@ -893,7 +890,7 @@ defmodule Kati.Screens.Import do
       </Row>
       <Spacer size={12} />
       {Kati.Screens.Import.apply_to_all(c, live?)}
-    </Column>
+    </MishkaCard>
     """
   end
 

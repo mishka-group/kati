@@ -99,7 +99,7 @@ defmodule Kati.Screens.Rating do
   below is where a cursor lands when a line ends exactly at its edge. It was a
   picture of a caret in front of nothing that could type.
 
-  The body is a `<TextField>`, so the caret is real and the drawn one is gone.
+  The body is a `<MishkaTextInput>`, so the caret is real and the drawn one is gone.
   Two carets would have been one too many, and the drawn one is the one that
   cannot move.
 
@@ -196,8 +196,6 @@ defmodule Kati.Screens.Rating do
 
   require Ash.Query
 
-  alias Kati.Components.MishkaCloseButton
-  alias Kati.Components.MishkaPill
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
@@ -1021,7 +1019,7 @@ defmodule Kati.Screens.Rating do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
-      <Scroll>
+      <MishkaScrollArea>
         <Column
           fill_width={true}
           padding_left={21}
@@ -1036,7 +1034,7 @@ defmodule Kati.Screens.Rating do
           {Kati.Screens.Rating.body(w, save_error)}
           {Kati.Screens.Rating.rewatch_door(is_binary(Map.get(assigns, :watch_id)))}
         </Column>
-      </Scroll>
+      </MishkaScrollArea>
     </Box>
     """
   end
@@ -1157,14 +1155,16 @@ defmodule Kati.Screens.Rating do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={18} />
-      <Row
+      <MishkaPill
         fill_width={true}
         height={44}
         corner_radius={22}
         background={Palette.card()}
         border_width={1}
         border_color={Palette.border()}
+        padding={0}
         align="center"
+        content_fill_width={true}
         on_tap={{self(), :log_rewatch}}
       >
         <Spacer weight={1.0} />
@@ -1178,7 +1178,7 @@ defmodule Kati.Screens.Rating do
           max_lines={1}
         />
         <Spacer weight={1.0} />
-      </Row>
+      </MishkaPill>
     </Column>
     """
   end
@@ -1226,17 +1226,18 @@ defmodule Kati.Screens.Rating do
   the enclosing Box centres the same rectangle it centred before.
   """
   def close_disc(tap) do
-    MishkaCloseButton.close_button(
-      %{
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Kati.Theme.shadow_button(),
-        on_tap: tap
-      },
-      [Kati.UI.symbol("close", size: 21)]
-    )
+    ~MOB"""
+    <MishkaCloseButton
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_button()}
+      on_tap={tap}
+    >
+      {Kati.UI.symbol("close", size: 21)}
+    </MishkaCloseButton>
+    """
   end
 
   @doc """
@@ -1262,20 +1263,22 @@ defmodule Kati.Screens.Rating do
   and its label would both have been near-black.
   """
   def save_pill(tap) do
-    MishkaPill.pill(
-      label: gettext("Save"),
-      background: Palette.ink_fill(),
-      color: Palette.on_ink(),
-      height: 38,
-      corner_radius: 19,
-      padding: 0,
-      padding_left: 16,
-      padding_right: 16,
-      text_size: 13,
-      font_weight: :bold,
-      align: :center,
-      on_tap: tap
-    )
+    ~MOB"""
+    <MishkaPill
+      label={gettext("Save")}
+      background={Palette.ink_fill()}
+      color={Palette.on_ink()}
+      height={38}
+      corner_radius={19}
+      padding={0}
+      padding_left={16}
+      padding_right={16}
+      text_size={13}
+      font_weight={:bold}
+      align={:center}
+      on_tap={tap}
+    />
+    """
   end
 
   @doc """
@@ -1397,19 +1400,23 @@ defmodule Kati.Screens.Rating do
     """
 
     gap = ~MOB"<Spacer size={5} />"
+    assigns = %{text: text, gap: gap}
 
-    MishkaPill.pill(
-      %{
-        background: Palette.paper(),
-        height: 24,
-        corner_radius: 12,
-        padding: 0,
-        padding_left: 10,
-        padding_right: 10,
-        align: :center
-      },
-      [Kati.UI.symbol("replay", size: 13, color: Palette.sub()), gap, text]
-    )
+    ~MOB"""
+    <MishkaPill
+      background={Palette.paper()}
+      height={24}
+      corner_radius={12}
+      padding={0}
+      padding_left={10}
+      padding_right={10}
+      align={:center}
+    >
+      {Kati.UI.symbol("replay", size: 13, color: Palette.sub())}
+      {@gap}
+      {@text}
+    </MishkaPill>
+    """
   end
 
   @doc """
@@ -1456,7 +1463,7 @@ defmodule Kati.Screens.Rating do
   def rating_card(w) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         fill_width={true}
         background={Palette.card()}
         corner_radius={22}
@@ -1496,7 +1503,7 @@ defmodule Kati.Screens.Rating do
           text_color={Palette.muted()}
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1519,15 +1526,38 @@ defmodule Kati.Screens.Rating do
   def scale_toggle(live? \\ false) do
     active = Kati.Rating.Scale.current()
 
-    tiles =
+    options =
       scale_options()
-      |> Enum.map(&Kati.Screens.Rating.scale(Map.put(&1, :on, &1.scale == active), live?))
-      |> Enum.intersperse(Kati.Screens.Rating.scale_gap())
+      |> Enum.map(fn option ->
+        Kati.Components.MishkaSegmentedControl.option(option.scale, option.label,
+          trailing: if(option.star, do: Kati.Icons.glyph!("star")),
+          on_tap: if(live?, do: scale_tap(Map.get(option, :key, option.label)))
+        )
+      end)
 
     ~MOB"""
-    <Row background={Palette.paper()} corner_radius={11} padding={3} align="center">
-      {tiles}
-    </Row>
+    <MishkaSegmentedControl
+      value={active}
+      background={Palette.paper()}
+      corner_radius={11}
+      track_padding={3}
+      segment_gap={3}
+      segment_height={24}
+      segment_radius={8}
+      padding={0}
+      padding_left={10}
+      padding_right={10}
+      text_size={10.5}
+      font_weight={:semibold}
+      color={Palette.card()}
+      text_color={:on_surface}
+      label_color={Palette.eyebrow()}
+      selected_shadow="0 1 2 0 #1F1A1917"
+      trailing_size={11}
+      trailing_family="symbols_filled"
+    >
+      {options}
+    </MishkaSegmentedControl>
     """
   end
 
@@ -1556,70 +1586,6 @@ defmodule Kati.Screens.Rating do
     ]
   end
 
-  @doc false
-  def scale_gap, do: ~MOB"<Spacer size={3} />"
-
-  # Both tiles keep their tap, the lit one included, for the reason screen 35's
-  # status tiles and screen 34's order tiles do: pressing the scale you are
-  # already on is how somebody checks which one that is, and a tile that goes
-  # dead once chosen stops answering exactly when it is pressed to be sure.
-  @doc false
-  def scale(option, live? \\ false)
-
-  def scale(%{on: true} = option, live?) do
-    assigns = %{
-      tap: if(live?, do: Kati.Screens.Rating.scale_tap(Map.get(option, :key, option.label)))
-    }
-
-    ~MOB"""
-    <Row
-      height={24}
-      corner_radius={8}
-      background={Palette.card()}
-      shadow="0 1 2 0 #1F1A1917"
-      padding_left={10}
-      padding_right={10}
-      align="center"
-      on_tap={@tap}
-    >
-      <Text
-        text={option.label}
-        text_size={10.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
-      {Kati.Screens.Rating.scale_star(option.star, Palette.ink())}
-    </Row>
-    """
-  end
-
-  def scale(option, live?) do
-    assigns = %{
-      tap: if(live?, do: Kati.Screens.Rating.scale_tap(Map.get(option, :key, option.label)))
-    }
-
-    ~MOB"""
-    <Row
-      height={24}
-      corner_radius={8}
-      padding_left={10}
-      padding_right={10}
-      align="center"
-      on_tap={@tap}
-    >
-      <Text
-        text={option.label}
-        text_size={10.5}
-        font_weight="semibold"
-        text_color={Palette.eyebrow()}
-        max_lines={1}
-      />
-      {Kati.Screens.Rating.scale_star(option.star, Palette.eyebrow())}
-    </Row>
-    """
-  end
-
   @doc """
   A scale tile's tap, keyed by the tile's `key` — see `scale_options/0`.
 
@@ -1635,15 +1601,6 @@ defmodule Kati.Screens.Rating do
   def scale_from("5"), do: :stars
   def scale_from("10pt"), do: :points
   def scale_from(_other), do: nil
-
-  @doc false
-  def scale_star(false, _color), do: ~MOB"<Spacer size={0} />"
-
-  # No gap and no wrapping Row: the drawing's badge is a single text run, `5★`,
-  # and the 1dp Spacer that used to sit between them read as "5 ★". The pill's
-  # own Row is already align="center", so the glyph centres against the numeral
-  # without a second one.
-  def scale_star(true, color), do: Kati.UI.symbol("star", size: 11, color: color, fill: true)
 
   @doc """
   The number beside the stars, in the scale the row draws.
@@ -1676,6 +1633,9 @@ defmodule Kati.Screens.Rating do
   catch-all, which is a dead control the compiler cannot see and
   `Kati.ScreenTapSweepTest` reports as inert. So the taps belong to the screen
   that asks for them, and the shared drawing stays a drawing.
+
+  The row is `Kati.Components.MishkaRating`; `tap_tags` is what makes it
+  interactive, one tag per point of the ten-point scale.
   """
   @spec stars(number() | nil, boolean()) :: map()
   def stars(value, tappable? \\ false)
@@ -1683,94 +1643,25 @@ defmodule Kati.Screens.Rating do
   def stars(nil, tappable?), do: stars(0, tappable?)
 
   def stars(value, tappable?) do
-    full = trunc(value)
-    half? = value - full >= 0.5
-
-    cells =
-      1..5
-      |> Enum.map(fn i ->
-        slot =
-          cond do
-            i <= full -> :full
-            i == full + 1 and half? -> :half
-            true -> :empty
-          end
-
-        Kati.Screens.Rating.star_cell(slot, i, tappable?)
-      end)
-      |> Enum.intersperse(Kati.Screens.Rating.star_gap())
+    assigns = %{value: value, tap_tags: if(tappable?, do: star_points())}
 
     ~MOB"""
-    <Row align="center">
-      {cells}
-    </Row>
+    <MishkaRating
+      value={@value}
+      max={5}
+      size={26}
+      gap={2}
+      color={Palette.accent()}
+      empty_color={Palette.sub()}
+      tap_tags={@tap_tags}
+    />
     """
   end
 
-  @doc """
-  One star, with the two tap targets the drawing's own caption promises.
-
-  `HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE` is printed under this row, and
-  until now it described nothing. It describes this: a transparent 13x26 `Box`
-  over each half of the glyph, the left one carrying the odd point and the
-  right one the even, so the five stars address `Kati.Media.Watch.rating`'s
-  **1..10** one target per point. Five targets would have made the ten-point
-  column reachable only at even values and quietly turned every half rating a
-  user had already stored into an unreachable one.
-
-  The targets are stacked over the glyph rather than replacing it, because a
-  half star is already two glyphs in one `Box` (see `star/1`) and the tap
-  geometry is not the paint geometry: the left target covers the left half of
-  the star whether that half is filled, outlined or empty. A `Box` renders its
-  children back to front and Compose hit-tests them front to back, so the
-  targets sit last.
-
-  No `background`, and it is not an oversight: `Modifier.clickable` makes a node
-  hit-testable by its bounds, not by its pixels, so an unpainted target is a
-  target. Painting one would put a rectangle over the star.
-
-  ## `fill_width={false}` on the wrapper, and no width — Dynamic Type
-
-  The obvious wrapper is `<Box width={26} height={26}>`, which is what
-  `star(:half)` already ships. It is also a cap: a `Box` coerces its children
-  into its own constraints, every `Text` in this bridge is built with
-  `TextOverflow.Ellipsis`, and `text_size` is **sp** while `width` is **dp** —
-  so at 235% Dynamic Type a 26sp glyph asks for ~61dp inside a 26dp box and is
-  ellipsised away to nothing. That is the failure `Kati.DynamicTypeTest` is
-  about, one step worse: not a truncated label, an absent star.
-
-  So the wrapper carries no width at all and hugs instead — `fill_width={false}`
-  is what makes a `Box` hug rather than fill (`K-17 box-hugs-when-told`;
-  without it a widthless Box takes the whole row and the rating card's stars
-  become five full-width rows). The glyph is then measured unbounded, exactly
-  as it was before it had a wrapper, and the cell is as wide as the star is at
-  whatever scale the phone is set to.
-
-  What is left is a tap area that does not grow with it: the two 13dp targets
-  stay 13dp, so at 235% they cover the leading half of a 61dp star rather than
-  all of it. Degraded, not broken — the halves are still in the right order and
-  still hit — and it is the honest end of what this bridge can express. Making
-  the targets track the glyph needs Compose's `matchParentSize`, which no Mob
-  prop reaches: `fill_width={true}` on the overlay would measure against the
-  card, not against its sibling, and blow the hugging `Box` out to full width.
-  """
-  @spec star_cell(:full | :half | :empty, 1..5, boolean()) :: map()
-  def star_cell(slot, _index, false), do: Kati.Screens.Rating.star(slot)
-
-  def star_cell(slot, index, true) do
-    glyph = Kati.Screens.Rating.star(slot)
-    left = {self(), Kati.Screens.Rating.star_tag(index * 2 - 1)}
-    right = {self(), Kati.Screens.Rating.star_tag(index * 2)}
-
-    ~MOB"""
-    <Box fill_width={false}>
-      {glyph}
-      <Row width={26} height={26}>
-        <Box width={13} height={26} on_tap={left} />
-        <Box width={13} height={26} on_tap={right} />
-      </Row>
-    </Box>
-    """
+  defp star_points do
+    Enum.flat_map(1..5, fn i ->
+      [Kati.Screens.Rating.star_tag(i * 2 - 1), Kati.Screens.Rating.star_tag(i * 2)]
+    end)
   end
 
   @doc """
@@ -1817,43 +1708,6 @@ defmodule Kati.Screens.Rating do
     end
   end
 
-  @doc false
-  def star_gap, do: ~MOB"<Spacer size={2} />"
-
-  @doc false
-  def star(:full), do: Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)
-  # An outline in `sub`, not a filled `star_empty` (#116): that fill was about
-  # 1.2:1 on the card in dark mode and 1.3:1 in light, so the sheet's one
-  # control read as a blank band. The outline is the film page's own unrated
-  # star, so an empty star means the same thing on both screens.
-  def star(:empty), do: Kati.UI.symbol("star", size: 26, color: Palette.sub())
-
-  # A real half star, drawn the way the design draws one: the empty star, with
-  # a filled star painted over it and CUT at 50%.
-  #
-  # This used to be an outlined accent star, because the icon subset carries no
-  # `star_half` and this bridge could not crop a glyph — a Box narrower than
-  # the text ellipsises it away, since every Text is built with
-  # TextOverflow.Ellipsis, and `corner_radius` clips painting only. Adding
-  # `star_half` to the subset would have meant re-subsetting from a source
-  # variable font that is not in this repo, for a glyph that is another glyph
-  # cut in half.
-  #
-  # Fence K-16 gave the bridge `clip_width` instead, which clips the DRAW and
-  # leaves measurement alone — so the two glyphs occupy one star's width, sit
-  # in the same line box as their four neighbours, and 4.5 reads as four and a
-  # half rather than as five.
-  def star(:half) do
-    ~MOB"""
-    <Box width={26} height={26}>
-      {Kati.UI.symbol("star", size: 26, color: Palette.sub())}
-      <Box width={26} height={26} clip_width={0.5}>
-        {Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)}
-      </Box>
-    </Box>
-    """
-  end
-
   # The one card on cream. Screen 08 does the same for its note, and for the
   # same reason: the user's own words are not metadata, so the palette warms up
   # around them.
@@ -1870,7 +1724,7 @@ defmodule Kati.Screens.Rating do
   def review_card(w) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
+      <MishkaCard
         fill_width={true}
         background={Palette.cream()}
         corner_radius={22}
@@ -1892,7 +1746,7 @@ defmodule Kati.Screens.Rating do
         <Spacer size={10} />
         {Kati.Screens.Rating.review_field(w.review)}
         <Spacer size={14} />
-        <Box fill_width={true} height={1} background={Palette.cream_rule()} />
+        <MishkaSeparator thickness={1} color={Palette.cream_rule()} render={:box} />
         <Spacer size={13} />
         <Row fill_width={true} align="center">
           <Text
@@ -1903,7 +1757,7 @@ defmodule Kati.Screens.Rating do
             max_lines={1}
           />
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -1915,7 +1769,7 @@ defmodule Kati.Screens.Rating do
   It was a `<Text>` and a `<Box>` drawn to look like a caret — a picture of a
   focused input, on the one card in this design that exists to hold the user's
   own words. `Kati.Screens.AddTitle.field/1` records the belief that made that
-  seem reasonable, and it was false: `<TextField>` is in the pinned Mob and
+  seem reasonable, and it was false: `<MishkaTextInput>` is in the pinned Mob and
   `Kati.Screens.Backup` has used it for the passphrase all along.
 
   `accessibility_id` is not decoration. `Mob.Renderer` emits one automatically
@@ -1936,7 +1790,7 @@ defmodule Kati.Screens.Rating do
     change = {self(), :review}
 
     ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={review}
       placeholder={gettext("What did you make of it?")}
       multiline={true}
@@ -1981,10 +1835,16 @@ defmodule Kati.Screens.Rating do
   def spoiler_toggle(nil, false), do: ~MOB"<Spacer size={0} />"
 
   def spoiler_toggle(nil, true) do
-    assigns = %{tap: {self(), :toggle_spoilers}}
-
     ~MOB"""
-    <Row on_tap={@tap}>
+    <MishkaToggle
+      background={:transparent}
+      color={:transparent}
+      border_width={0}
+      padding={0}
+      corner_radius={0}
+      align="center"
+      on_change={:toggle_spoilers}
+    >
       {Kati.UI.symbol("visibility_off", size: 15, color: Palette.eyebrow())}
       <Spacer size={6} />
       <Text
@@ -1994,15 +1854,24 @@ defmodule Kati.Screens.Rating do
         text_color={Palette.eyebrow()}
         max_lines={1}
       />
-    </Row>
+    </MishkaToggle>
     """
   end
 
   def spoiler_toggle(label, live?) do
-    assigns = %{label: label, tap: if(live?, do: {self(), :toggle_spoilers})}
+    assigns = %{label: label}
 
     ~MOB"""
-    <Row on_tap={@tap}>
+    <MishkaToggle
+      pressed={true}
+      background={:transparent}
+      color={:transparent}
+      border_width={0}
+      padding={0}
+      corner_radius={0}
+      align="center"
+      on_change={if(live?, do: :toggle_spoilers)}
+    >
       {Kati.UI.symbol("visibility_off", size: 15, color: Palette.gold_icon())}
       <Spacer size={6} />
       <Text
@@ -2012,7 +1881,7 @@ defmodule Kati.Screens.Rating do
         text_color={Palette.gold_text()}
         max_lines={1}
       />
-    </Row>
+    </MishkaToggle>
     """
   end
 
@@ -2058,7 +1927,18 @@ defmodule Kati.Screens.Rating do
 
     ~MOB"""
     <Column fill_width={true}>
-      {SettingsList.card(body)}
+      <MishkaCard
+        fill_width={true}
+        background={Kati.Theme.card(Palette.mode())}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_left={15}
+        padding_right={15}
+        padding_top={4}
+        padding_bottom={4}
+      >
+        {Kati.UI.SettingsList.last_unruled(body)}
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """
@@ -2205,7 +2085,7 @@ defmodule Kati.Screens.Rating do
     assigns = %{draft: draft, change: change}
 
     ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={@draft}
       placeholder={gettext("Who watched with you")}
       return_key="done"
@@ -2222,7 +2102,7 @@ defmodule Kati.Screens.Rating do
     assigns = %{draft: draft, change: change}
 
     ~MOB"""
-    <TextField
+    <MishkaTextInput
       value={@draft}
       placeholder={pgettext("an example of a room a film was watched in", "living room")}
       return_key="done"
@@ -2242,11 +2122,11 @@ defmodule Kati.Screens.Rating do
     assigns = %{chips: Enum.intersperse(chips, ~MOB"<Spacer size={7} />"), id: id}
 
     ~MOB"""
-    <Scroll axis="horizontal" fill_width={true} accessibility_id={@id}>
+    <MishkaScrollArea orientation="horizontal" fill_width={true} accessibility_id={@id}>
       <Row align="center">
         {@chips}
       </Row>
-    </Scroll>
+    </MishkaScrollArea>
     """
   end
 
@@ -2353,38 +2233,46 @@ defmodule Kati.Screens.Rating do
 
   @doc false
   def choice(label, tag, on?) do
-    MishkaPill.pill(
-      label: label,
-      background: if(on?, do: Palette.ink_fill(), else: Palette.paper()),
-      color: if(on?, do: Palette.on_ink(), else: Palette.eyebrow()),
-      height: 28,
-      corner_radius: 14,
-      padding: 0,
-      padding_left: 12,
-      padding_right: 12,
-      text_size: 11.5,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: {self(), String.to_atom(tag)}
-    )
+    assigns = %{label: label, on?: on?, tap: {self(), String.to_atom(tag)}}
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      background={if(@on?, do: Palette.ink_fill(), else: Palette.paper())}
+      color={if(@on?, do: Palette.on_ink(), else: Palette.eyebrow())}
+      height={28}
+      corner_radius={14}
+      padding={0}
+      padding_left={12}
+      padding_right={12}
+      text_size={11.5}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   @doc false
   def commit_pill(label, tag) do
-    MishkaPill.pill(
-      label: label,
-      background: Palette.ink_fill(),
-      color: Palette.on_ink(),
-      height: 34,
-      corner_radius: 17,
-      padding: 0,
-      padding_left: 15,
-      padding_right: 15,
-      text_size: 12,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: {self(), tag}
-    )
+    assigns = %{label: label, tap: {self(), tag}}
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      background={Palette.ink_fill()}
+      color={Palette.on_ink()}
+      height={34}
+      corner_radius={17}
+      padding={0}
+      padding_left={15}
+      padding_right={15}
+      text_size={12}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   # Row, not a wrapping field: the four chips measure ~315 inside the 360pt
@@ -2446,7 +2334,7 @@ defmodule Kati.Screens.Rating do
           <Spacer size={10} />
           <Row fill_width={true} align="center">
             <Box weight={1.0}>
-              <TextField
+              <MishkaTextInput
                 value={@draft}
                 placeholder={gettext("rewatch, rainy sunday…")}
                 return_key="done"
@@ -2525,20 +2413,24 @@ defmodule Kati.Screens.Rating do
 
   @doc false
   def suggestion(label) do
-    MishkaPill.pill(
-      label: label,
-      background: Palette.paper(),
-      color: Palette.eyebrow(),
-      height: 26,
-      corner_radius: 13,
-      padding: 0,
-      padding_left: 11,
-      padding_right: 11,
-      text_size: 11,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: {self(), String.to_atom("use_tag_" <> label)}
-    )
+    assigns = %{label: label, tap: {self(), String.to_atom("use_tag_" <> label)}}
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      background={Palette.paper()}
+      color={Palette.eyebrow()}
+      height={26}
+      corner_radius={13}
+      padding={0}
+      padding_left={11}
+      padding_right={11}
+      text_size={11}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   # `pgettext/2` rather than a bare `Add`: the catalogue already holds `Add a
@@ -2575,24 +2467,31 @@ defmodule Kati.Screens.Rating do
   card. A chip cannot draw one, so a chip is not what this is.
   """
   def tag(label, live? \\ false) do
-    MishkaPill.pill(
+    assigns = %{
       label: label,
       # Tapping a tag removes it, which is the only gesture a token this size
       # can carry and the one every tag field in the world uses. Over the
       # drawing it carries none: `nil` is not tappable rather than broken.
-      on_tap: if(live?, do: {self(), String.to_atom("drop_tag_" <> label)}),
-      background: Palette.card(),
-      color: Palette.ink_soft(),
-      shadow: Kati.Theme.shadow_card_soft(),
-      height: 30,
-      corner_radius: 15,
-      padding: 0,
-      padding_left: 13,
-      padding_right: 13,
-      text_size: 12,
-      font_weight: :semibold,
-      align: :center
-    )
+      tap: if(live?, do: {self(), String.to_atom("drop_tag_" <> label)})
+    }
+
+    ~MOB"""
+    <MishkaPill
+      label={@label}
+      on_tap={@tap}
+      background={Palette.card()}
+      color={Palette.ink_soft()}
+      shadow={Kati.Theme.shadow_card_soft()}
+      height={30}
+      corner_radius={15}
+      padding={0}
+      padding_left={13}
+      padding_right={13}
+      text_size={12}
+      font_weight={:semibold}
+      align={:center}
+    />
+    """
   end
 
   @doc """
@@ -2613,29 +2512,26 @@ defmodule Kati.Screens.Rating do
   `border_width`.
   """
   def add_tag(live? \\ false) do
-    tap = if live?, do: {self(), :add_tag}
+    assigns = %{tap: if(live?, do: {self(), :add_tag})}
 
-    MishkaPill.pill(
-      # The `+` stays inside the msgid rather than being prefixed to a
-      # translated word: it is part of the affordance's name, and which side of
-      # the word it sits on is the bidi algorithm's answer rather than this
-      # file's — `+ برچسب` puts it at the start of the line, which under `rtl`
-      # is the right-hand edge, exactly where the Latin chip has it.
-      label: pgettext("the chip that opens the tag field", "+ tag"),
-      background: :transparent,
-      color: Palette.eyebrow(),
-      border_color: Palette.border_strong(),
-      border_width: 1.5,
-      height: 30,
-      corner_radius: 15,
-      padding: 0,
-      padding_left: 12,
-      padding_right: 12,
-      text_size: 12,
-      font_weight: :semibold,
-      align: :center,
-      on_tap: tap
-    )
+    ~MOB"""
+    <MishkaPill
+      label={pgettext("the chip that opens the tag field", "+ tag")}
+      background={:transparent}
+      color={Palette.eyebrow()}
+      border_color={Palette.border_strong()}
+      border_width={1.5}
+      height={30}
+      corner_radius={15}
+      padding={0}
+      padding_left={12}
+      padding_right={12}
+      text_size={12}
+      font_weight={:semibold}
+      align={:center}
+      on_tap={@tap}
+    />
+    """
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}

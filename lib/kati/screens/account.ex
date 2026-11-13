@@ -350,8 +350,7 @@ defmodule Kati.Screens.Account do
   def storage(storage) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -371,7 +370,7 @@ defmodule Kati.Screens.Account do
           line_height={Kati.Locale.leading(1.5)}
           text_color={Palette.ink_soft()}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
       {Kati.Screens.Account.list(Enum.map(storage.rows, &Kati.Screens.Account.storage_row/1), 22, "storage_")}
     </Column>
@@ -455,8 +454,7 @@ defmodule Kati.Screens.Account do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -468,7 +466,7 @@ defmodule Kati.Screens.Account do
         {rows
          |> Enum.with_index()
          |> Enum.map(fn {row, i} -> Kati.Screens.Account.row(row, i < last, prefix, i) end)}
-      </Column>
+      </MishkaCard>
       <Spacer size={gap} />
     </Column>
     """
@@ -753,7 +751,13 @@ defmodule Kati.Screens.Account do
   def privacy(a) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.cream()} corner_radius={20} padding={16} align="top">
+      <MishkaCard
+        direction={:row}
+        background={Palette.cream()}
+        corner_radius={20}
+        padding={16}
+        align={:top}
+      >
         {Kati.UI.symbol("lock", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
         <Text
@@ -763,7 +767,7 @@ defmodule Kati.Screens.Account do
           text_color={Palette.cream_body()}
           weight={1.0}
         />
-      </Row>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """

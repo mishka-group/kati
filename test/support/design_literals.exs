@@ -328,6 +328,8 @@ defmodule Kati.DesignLiterals do
   def styling_props do
     [
       :align,
+      # `MishkaCard`'s row/column choice: a layout instruction, never a word.
+      :direction,
       :font_family,
       :font_weight,
       :shadow,

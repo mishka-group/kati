@@ -156,6 +156,7 @@ thing. Nothing mechanical can check that. This paragraph is the check.
 | `K-78 capture-node-import` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `drawLayer` and `asAndroidBitmap`. | Pairs with `K-78 capture-node`. |
 | `K-72 display-text-scale` | `android/app/src/main/java/com/example/kati/MainActivity.kt` | Text size (#119): reads the root node's `text_scale` (1.0, 1.15 or 1.3, `Kati.Accessibility`) and builds a `Density` whose `fontScale` is the phone's times that. A Text's own `max_font_scale` still caps the product. | Upstream-shaped: Mob's `type_scale` scales only named sizes, and Kati's are numbers. A root text-scale prop in Mob would retire it. |
 | `K-72 display-density` | `android/app/src/main/java/com/example/kati/MainActivity.kt` | The `LocalDensity provides density` line inside the root `CompositionLocalProvider`. | Pairs with `K-72 display-text-scale`. |
+| `K-79 zig-sdk` | `ios/build.zig`, `ios/build_device.zig` | Zig 0.17.0 removed `b.build_root`, which the Swift glob used to open `$mob_dir/ios`; both files failed `mix mob.doctor`. The block now registers the directory as a configure dependency (`dependOnDirectoryContents`) and opens it with `std.Io.Dir.openDirAbsolute`, per Mob 0.9.26's upgrading note. | Fixed in current mob_new's `ios/build.zig.eex`; retire when the native shell is regenerated. |
 
 ## Retired patches
 

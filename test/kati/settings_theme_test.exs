@@ -157,7 +157,8 @@ defmodule Kati.SettingsThemeTest do
     assert auto.props[:padding_left] == 10
     assert auto.props[:padding_right] == 10
     assert label_props(auto)[:text_size] == 11
-    assert label_props(auto)[:font_weight] == "semibold"
+    # `MishkaPill` writes the weight as an atom; the wire carries the same name.
+    assert to_string(label_props(auto)[:font_weight]) == "semibold"
     assert label_props(auto)[:text_color] == :on_surface
 
     for idle <- [light, dark] do
@@ -347,8 +348,12 @@ defmodule Kati.SettingsThemeTest do
   # these tests are about, and the resting-frame tests below still pin the exact
   # light number.
   defp trough(view) do
+    # The trough is a `MishkaCard` and each tile a `MishkaPill`, so both are
+    # only in the tree once the composites are expanded.
     troughs =
       view
+      |> tree()
+      |> Mob.Composite.expand(self())
       |> flatten()
       |> Enum.filter(&(&1.type == :row and &1.props[:background] in paper()))
 
@@ -363,7 +368,7 @@ defmodule Kati.SettingsThemeTest do
     view
     |> trough()
     |> flatten()
-    |> Enum.filter(&(&1.type == :row and &1.props[:corner_radius] == 9))
+    |> Enum.filter(&(&1.type in [:row, :box] and &1.props[:corner_radius] == 9))
   end
 
   defp labels(view), do: Enum.map(tiles(view), &label/1)

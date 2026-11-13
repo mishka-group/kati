@@ -35,6 +35,8 @@ defmodule Kati.Components.MishkaHueSlider do
   Not ported: `on_commit` (the bridge has no release event — see
   `Kati.Components.MishkaSlider`), `step`/`large_step` (keyboard nudging),
   and `name`/`form`/`id`.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/hue-slider
   """
 
   import Mob.Sigil

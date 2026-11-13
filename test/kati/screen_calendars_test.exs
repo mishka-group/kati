@@ -82,7 +82,9 @@ defmodule Kati.ScreenCalendarsTest do
 
   # The 12pt fills the group leads each row with, in the order they are drawn.
   defp swatches(tree) do
+    # Each swatch is a `MishkaActionIcon`, so it is a `Box` only once expanded.
     tree
+    |> Mob.Composite.expand(self())
     |> find_all(:box, width: 12, height: 12)
     |> Enum.map(& &1.props.background)
   end
@@ -123,7 +125,7 @@ defmodule Kati.ScreenCalendarsTest do
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Calendars))
+      assert_renderable(mount_screen(Calendars) |> tree() |> Mob.Composite.expand(self()))
     end
   end
 
@@ -204,7 +206,7 @@ defmodule Kati.ScreenCalendarsTest do
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Calendars))
+      assert_renderable(mount_screen(Calendars) |> tree() |> Mob.Composite.expand(self()))
     end
   end
 end

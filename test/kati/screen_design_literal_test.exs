@@ -1989,7 +1989,8 @@ defmodule Kati.ScreenDesignLiteralTest do
   defp render_in(module, state) do
     with {:ok, socket} <- ScreenSweep.mount(module),
          assigns = state.(socket.assigns),
-         {:ok, tree} <- ScreenSweep.safely(fn -> module.render(assigns) end) do
+         {:ok, tree} <-
+           ScreenSweep.safely(fn -> module.render(assigns) |> Mob.Composite.expand(self()) end) do
       {:ok, socket, tree}
     end
   end

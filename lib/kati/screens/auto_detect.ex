@@ -514,8 +514,7 @@ defmodule Kati.Screens.AutoDetect do
   def access_notice(_not_granted) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -546,7 +545,7 @@ defmodule Kati.Screens.AutoDetect do
           <Spacer size={8} />
           {SettingsList.action_pill(gettext("Log by hand instead"), {self(), :log_by_hand})}
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -589,13 +588,13 @@ defmodule Kati.Screens.AutoDetect do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.cream()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
-        align="center"
+        align={:center}
         on_tap={@tap}
       >
         {Kati.UI.symbol("sensors", size: 24, color: Palette.gold_icon())}
@@ -619,7 +618,7 @@ defmodule Kati.Screens.AutoDetect do
         </Column>
         <Spacer size={12} />
         {SettingsList.switch(@b.on)}
-      </Row>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -709,8 +708,7 @@ defmodule Kati.Screens.AutoDetect do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -759,7 +757,7 @@ defmodule Kati.Screens.AutoDetect do
             max_lines={1}
           />
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -895,8 +893,7 @@ defmodule Kati.Screens.AutoDetect do
       |> Enum.intersperse(Kati.Screens.AutoDetect.choice_gap())
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -916,7 +913,7 @@ defmodule Kati.Screens.AutoDetect do
       <Row fill_width={true} align="center">
         {buttons}
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 

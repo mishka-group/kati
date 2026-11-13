@@ -255,17 +255,25 @@ defmodule Kati.Shell do
     # .90, a different number. Using the palette here would have changed light.
     fill = Kati.Theme.chrome_fill(mode)
     add = {self(), :fab}
+    tabs = Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)
+
+    dock =
+      Kati.Components.MishkaDock.dock(
+        %{
+          background: fill,
+          padding_left: 18,
+          padding_right: 18,
+          padding_bottom: 30,
+          fab: Kati.Shell.fab(active, fab, glyph, add)
+        },
+        tabs
+      )
+
+    assigns = %{dock: dock}
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="bottom">
-      <Row fill_width={true} align="center" padding_left={18} padding_right={18} padding_bottom={30}>
-        <Box weight={1.0} height={64} background={fill} corner_radius={32} align="center">
-          <Row fill_width={true} fill_height={true} align="center">
-            {Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)}
-          </Row>
-        </Box>
-        {Kati.Shell.fab(active, fab, glyph, add)}
-      </Row>
+      {@dock}
     </Box>
     """
   end
@@ -289,12 +297,18 @@ defmodule Kati.Shell do
 
     # weight 1 per item is space-around: four equal segments, content centred.
     # No labels — screen 01's bar is icons only.
-    ~MOB"""
-    <Box weight={1.0} align="center" on_tap={tap}>
-      <Box width={46} height={46} background={disc} corner_radius={23} align="center">
-        {Kati.UI.symbol(root.icon, size: 22, color: tint, fill: on?)}
-      </Box>
-    </Box>
-    """
+    #
+    # The item is the function form: the root it draws is data (`roots/0`), so
+    # there is no tag to write at a call site that cannot see that list.
+    Kati.Components.MishkaDockItem.dock_item(%{
+      icon: Kati.Icons.glyph!(root.icon),
+      active: on?,
+      font_family: "symbols",
+      active_font_family: "symbols_filled",
+      icon_size: 22,
+      color: tint,
+      background: disc,
+      on_tap: tap
+    })
   end
 end

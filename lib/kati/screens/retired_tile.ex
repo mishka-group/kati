@@ -453,16 +453,15 @@ defmodule Kati.Screens.RetiredTile do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={58}
-          height={58}
+        <MishkaActionIcon
+          variant={:filled}
+          size={58}
           corner_radius={18}
           background={Palette.card()}
           shadow={Kati.Theme.shadow_card_soft()}
-          align="center"
         >
           {UI.symbol(subject.icon, size: 26, color: Palette.sub())}
-        </Box>
+        </MishkaActionIcon>
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={15} />
@@ -491,8 +490,7 @@ defmodule Kati.Screens.RetiredTile do
   def explainer(why, noun) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -500,7 +498,7 @@ defmodule Kati.Screens.RetiredTile do
       >
         {Kati.Screens.RetiredTile.why(why)}
         {Kati.Screens.RetiredTile.no_date(noun)}
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """

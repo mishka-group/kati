@@ -273,15 +273,15 @@ defmodule Kati.Screens.ShelfSelection do
 
     ~MOB"""
     <Column fill_width={true} padding_left={16} padding_right={16} padding_bottom={8}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.ink_fill()}
         corner_radius={20}
         padding_left={16}
         padding_right={8}
         padding_top={6}
         padding_bottom={6}
-        align="center"
+        align={:center}
       >
         {Kati.UI.symbol("delete", size: 19, color: Palette.on_ink())}
         <Spacer size={12} />
@@ -294,16 +294,20 @@ defmodule Kati.Screens.ShelfSelection do
           max_lines={2}
         />
         <Spacer size={8} />
-        <Row height={44} padding_left={14} padding_right={14} align="center" on_tap={{self(), :undo}}>
-          <Text
-            text={gettext("Undo")}
-            text_size={13}
-            font_weight="bold"
-            text_color={Palette.accent()}
-            max_lines={1}
-          />
-        </Row>
-      </Row>
+        <MishkaPill
+          label={gettext("Undo")}
+          height={44}
+          background={:none}
+          color={Palette.accent()}
+          padding={0}
+          padding_left={14}
+          padding_right={14}
+          align={:center}
+          text_size={13}
+          font_weight={:bold}
+          on_tap={{self(), :undo}}
+        />
+      </MishkaCard>
     </Column>
     """
   end
@@ -326,8 +330,7 @@ defmodule Kati.Screens.ShelfSelection do
 
     ~MOB"""
     <Column fill_width={true} padding_left={16} padding_right={16} padding_bottom={8}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -344,7 +347,7 @@ defmodule Kati.Screens.ShelfSelection do
             {chips}
           </Row>
         </Scroll>
-      </Column>
+      </MishkaCard>
     </Column>
     """
   end
@@ -375,15 +378,15 @@ defmodule Kati.Screens.ShelfSelection do
       padding_top={4}
       padding_bottom={12}
     >
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={Palette.card()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={8}
       >
         {buttons}
-      </Row>
+      </MishkaCard>
     </Column>
     """
   end
@@ -406,11 +409,19 @@ defmodule Kati.Screens.ShelfSelection do
     assigns = %{icon: icon, label: label, ink: ink, tap: {self(), tag}}
 
     ~MOB"""
-    <Column weight={1.0} height={58} align="center" padding_top={8} corner_radius={18} on_tap={@tap}>
+    <MishkaCard
+      weight={1.0}
+      height={58}
+      align={:center}
+      padding_top={8}
+      corner_radius={18}
+      on_tap={@tap}
+      fill_width={false}
+    >
       {Kati.UI.symbol(@icon, size: 21, color: @ink)}
       <Spacer size={4} />
       <Text text={@label} text_size={11.5} font_weight="semibold" text_color={@ink} max_lines={1} />
-    </Column>
+    </MishkaCard>
     """
   end
 

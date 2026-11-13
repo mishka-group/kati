@@ -130,7 +130,13 @@ defmodule Kati.ScreenFilmTest do
     tracked
   end
 
-  defp texts(tree), do: tree |> find_all(:text) |> Enum.map(&(&1.props[:text] || ""))
+  defp texts(tree) do
+    tree
+    |> tree()
+    |> Mob.Composite.expand(self())
+    |> find_all(:text)
+    |> Enum.map(&(&1.props[:text] || ""))
+  end
 
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 

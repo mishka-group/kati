@@ -117,7 +117,6 @@ defmodule Kati.Screens.HomeEmpty do
   use Kati.Screens.Root, root: :home
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -298,10 +297,13 @@ defmodule Kati.Screens.HomeEmpty do
     # painted with it disappears. 315's own note — *paper becomes a lifted tile
     # — a light tile on dark ground would be the loudest thing here* — is the
     # token's whole reason, and its light value is still paper to the byte.
-    MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Palette.empty_tile(), size: 64, radius: 20},
-      [UI.symbol("grid_view", size: 28, color: Palette.rail_idle())]
-    )
+    assigns = %{glyph: UI.symbol("grid_view", size: 28, color: Palette.rail_idle())}
+
+    ~MOB"""
+    <MishkaThemeIcon variant={:filled} color={Palette.empty_tile()} size={64} radius={20}>
+      {@glyph}
+    </MishkaThemeIcon>
+    """
   end
 
   @doc """

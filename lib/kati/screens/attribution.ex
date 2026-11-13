@@ -256,8 +256,7 @@ defmodule Kati.Screens.Attribution do
     # there. `Kati.Locale.mono_face/1` would answer `"mono"` for every one of
     # the five and only hide that this slot cannot hold Persian.
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       padding={17}
@@ -300,7 +299,7 @@ defmodule Kati.Screens.Attribution do
         <Spacer weight={1.0} />
         {Kati.UI.SettingsList.chevron()}
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -317,7 +316,7 @@ defmodule Kati.Screens.Attribution do
     assigns = %{initial: name |> String.first() |> String.upcase()}
 
     ~MOB"""
-    <Box width={40} height={40} corner_radius={10} background={Palette.paper()} align="center">
+    <MishkaActionIcon variant={:filled} size={40} corner_radius={10} background={Palette.paper()}>
       <Text
         text={@initial}
         text_size={15}
@@ -325,7 +324,7 @@ defmodule Kati.Screens.Attribution do
         text_align="center"
         text_color={Palette.sub()}
       />
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
@@ -337,13 +336,14 @@ defmodule Kati.Screens.Attribution do
 
     ~MOB"""
     <Row align="center">
-      <Row
+      <MishkaPill
         height={22}
         corner_radius={11}
         background={Kati.Theme.Palette.accent_wash()}
+        padding={0}
         padding_left={9}
         padding_right={9}
-        align="center"
+        align={:center}
       >
         <Text
           text={@label}
@@ -353,7 +353,7 @@ defmodule Kati.Screens.Attribution do
           text_color={Kati.Theme.Palette.gold_text()}
           max_lines={1}
         />
-      </Row>
+      </MishkaPill>
       <Spacer size={9} />
     </Row>
     """
@@ -452,7 +452,7 @@ defmodule Kati.Screens.Attribution do
     assigns = %{label: label}
 
     ~MOB"""
-    <Box width={40} height={40} corner_radius={12} background={Palette.paper()} align="center">
+    <MishkaActionIcon variant={:filled} size={40} corner_radius={12} background={Palette.paper()}>
       <Text
         text={@label}
         font_family="mono"
@@ -461,7 +461,7 @@ defmodule Kati.Screens.Attribution do
         text_color={Palette.ink_soft()}
         max_lines={1}
       />
-    </Box>
+    </MishkaActionIcon>
     """
   end
 

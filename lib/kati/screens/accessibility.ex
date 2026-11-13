@@ -277,13 +277,7 @@ defmodule Kati.Screens.Accessibility do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
-        background={Palette.card()}
-        corner_radius={22}
-        shadow={@shadow}
-        padding={18}
-      >
+      <MishkaCard background={Palette.card()} corner_radius={22} shadow={@shadow} padding={18}>
         <Text
           text={@label}
           font_family={Kati.Locale.mono_face(@label)}
@@ -307,7 +301,7 @@ defmodule Kati.Screens.Accessibility do
           line_height={Kati.Locale.leading(1.35)}
           text_color={Palette.ink_soft()}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -451,8 +445,7 @@ defmodule Kati.Screens.Accessibility do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={shadow}
@@ -463,7 +456,7 @@ defmodule Kati.Screens.Accessibility do
       >
         {rows}
         {Kati.Screens.Accessibility.system_row()}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -546,7 +539,7 @@ defmodule Kati.Screens.Accessibility do
     [
       Kati.Screens.Accessibility.quiet_eyebrow(gettext("TalkBack reads")),
       ~MOB"""
-      <Column fill_width={true} background={Palette.ink_fill()} corner_radius={20} padding={17}>
+      <MishkaCard background={Palette.ink_fill()} corner_radius={20} padding={17}>
         <Text
           text={@label}
           font_family={Kati.Locale.mono_face(@label)}
@@ -562,7 +555,7 @@ defmodule Kati.Screens.Accessibility do
           line_height={Kati.Locale.leading(1.6)}
           text_color={Palette.on_ink_glyph()}
         />
-      </Column>
+      </MishkaCard>
       """
     ]
   end

@@ -381,8 +381,7 @@ defmodule Kati.Screens.ImportSources do
   """
   def source_tile(source) do
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -407,7 +406,7 @@ defmodule Kati.Screens.ImportSources do
         line_height={1.5}
         text_color={Palette.sub()}
       />
-    </Column>
+    </MishkaCard>
     """
   end
 

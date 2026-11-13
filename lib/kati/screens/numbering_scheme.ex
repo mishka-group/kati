@@ -363,8 +363,7 @@ defmodule Kati.Screens.NumberingScheme do
     }
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Kati.Theme.card(Palette.mode())}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -373,7 +372,12 @@ defmodule Kati.Screens.NumberingScheme do
       <Row fill_width={true} align="top">
         {Kati.Screens.NumberingScheme.comparison_column(@left)}
         <Spacer size={12} />
-        <Box width={1} height={40} background={Palette.hairline_strong()} />
+        <MishkaSeparator
+          orientation={:vertical}
+          thickness={1}
+          length={40}
+          color={Palette.hairline_strong()}
+        />
         <Spacer size={12} />
         {Kati.Screens.NumberingScheme.comparison_column(@right)}
       </Row>
@@ -386,7 +390,7 @@ defmodule Kati.Screens.NumberingScheme do
         line_height={Kati.Locale.leading(1.65)}
         text_color={Palette.ink_soft()}
       />
-    </Column>
+    </MishkaCard>
     """
   end
 

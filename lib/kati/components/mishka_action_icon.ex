@@ -22,17 +22,29 @@ defmodule Kati.Components.MishkaActionIcon do
   | `icon` | string | `nil` | The glyph. Children override it. |
   | `on_tap` | event tag (atom) | — | Sent as `{:tap, tag}`. |
   | `disabled` | boolean | `false` | Wires no handler, mutes the glyph and drops a `:filled` fill to `:surface`. |
-  | `size` | number | `40` | Tap-target edge, not the glyph size. |
+  | `size` | number / `:hug` | `40` | Tap-target edge, not the glyph size. `:hug` drops the box's own size and decoration so it wraps the glyph — see "A bare glyph". |
   | `variant` | `:plain` `:filled` | `:plain` | Transparent, or on a raised surface. |
   | `shape` | `:rounded` `:circle` | `:rounded` | `:circle` uses an exact `size / 2` radius. |
+  | `corner_radius` | radius token / number | unset | Overrides the radius `shape` gives — a tile with the design's own rounding. |
   | `color` | color token / ARGB int | `:on_surface` | Glyph colour. |
   | `background` | color token / ARGB int | `:surface_raised` | Fill when `variant: :filled`. |
   | `shadow` | string | `nil` | Drop shadow on the tap target. See below. |
+  | `overlay` | node or list of nodes | `nil` | Drawn on top of the glyph, filling the target — a badge pinned to a corner. |
   | `border_color` | color token / ARGB int | `nil` | Hairline colour. Nothing draws unless you set it. |
   | `border_width` | number (dp) | `1` | Read only when `border_color` is set. |
 
   `label` is not ported: it is an `aria-label`, and Mob exposes no accessible
   name on a box. `type` (submit/reset) is form plumbing.
+
+  ## A bare glyph
+
+  `size: :hug` is for the other kind of icon button: a glyph that already sits
+  in a row and carries only a tap, with no disc, fill or fixed target around it.
+  The box then drops its `width`/`height`, its radius and its fill, and writes
+  `fill_width: false` so it wraps the glyph exactly as a hand-rolled
+  `<Box fill_width={false}>` did. `variant`, `shape` and `background` are
+  ignored — there is no painted surface left for them to describe. The tap
+  target is the glyph, which is the caller's explicit choice.
 
   ## A floating disc is defined by its shadow
 
@@ -72,6 +84,8 @@ defmodule Kati.Components.MishkaActionIcon do
   component's business. The container still reads as disabled (the fill drops to
   `:surface`, and no handler is wired), but a child that must look inert has to
   say so itself.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/action-icon
   """
 
   import Mob.Sigil
@@ -102,20 +116,38 @@ defmodule Kati.Components.MishkaActionIcon do
     disabled? = truthy?(Map.get(props, :disabled, false))
     size = Map.get(props, :size) || 40
 
-    node = ~MOB"""
-    <Box
-      width={size}
-      height={size}
-      align={:center}
-      corner_radius={radius(Map.get(props, :shape) || :rounded, size)}
-      background={background(props, disabled?)}
-    >
-      {glyph(props, content, disabled?)}
-    </Box>
-    """
+    node =
+      if hug?(size) do
+        ~MOB"""
+        <Box fill_width={false}>
+          {glyph(props, content, disabled?)}
+        </Box>
+        """
+      else
+        ~MOB"""
+        <Box
+          width={size}
+          height={size}
+          align={:center}
+          corner_radius={Map.get(props, :corner_radius) || radius(Map.get(props, :shape) || :rounded, size)}
+          background={background(props, disabled?)}
+        >
+          {glyph(props, content, disabled?)}
+          {overlay(Map.get(props, :overlay))}
+        </Box>
+        """
+      end
 
     %{node | props: Map.merge(node.props, container(props, disabled?))}
   end
+
+  defp hug?(size), do: size in [:hug, "hug"]
+
+  # `nil` is dropped by the sigil, so an icon without an overlay carries the
+  # same child list it always did. An overlay that fills the target — the
+  # badge idiom — is laid over the glyph because a Box stacks its children.
+  defp overlay(nil), do: nil
+  defp overlay(nodes), do: nodes
 
   @doc """
   The corner radius for a shape — a circle is `size / 2` so it stays round at

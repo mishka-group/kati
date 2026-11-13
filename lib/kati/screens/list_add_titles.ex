@@ -122,8 +122,7 @@ defmodule Kati.Screens.ListAddTitles do
           <Box fill_width={true} fill_height={true} align="bottom">
             <Box fill_width={true} height={40} background={Palette.paper()} />
           </Box>
-          <Column
-            fill_width={true}
+          <MishkaCard
             fill_height={true}
             background={Palette.paper()}
             corner_radius={26}
@@ -140,7 +139,7 @@ defmodule Kati.Screens.ListAddTitles do
                 {Kati.Screens.ListAddTitles.shelf(assigns.filter, assigns.titles)}
               </Column>
             </Scroll>
-          </Column>
+          </MishkaCard>
         </Box>
       </Column>
     </Box>

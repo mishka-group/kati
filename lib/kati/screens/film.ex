@@ -57,10 +57,6 @@ defmodule Kati.Screens.Film do
 
   require Ash.Query
 
-  alias Kati.Components.MishkaActionIcon
-  alias Kati.Components.MishkaPill
-  alias Kati.Components.MishkaSeparator
-  alias Kati.Components.MishkaThemeIcon
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
@@ -269,14 +265,14 @@ defmodule Kati.Screens.Film do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
-      <Scroll>
+      <MishkaScrollArea>
         <Column fill_width={true}>
           {Kati.Screens.Film.artwork(@f)}
           <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16}>
             {@blocks}
           </Column>
         </Column>
-      </Scroll>
+      </MishkaScrollArea>
       {Kati.Screens.Film.chrome(false, @back, @f)}
     </Box>
     """
@@ -794,7 +790,7 @@ defmodule Kati.Screens.Film do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
-      <Scroll>
+      <MishkaScrollArea>
         <Column fill_width={true}>
           {Kati.Screens.Film.artwork(@f)}
           <Column
@@ -809,7 +805,7 @@ defmodule Kati.Screens.Film do
             {Kati.Screens.Film.where_section(@f)}
           </Column>
         </Column>
-      </Scroll>
+      </MishkaScrollArea>
       {Kati.Screens.TitlePreview.chrome(@back)}
     </Box>
     """
@@ -842,17 +838,21 @@ defmodule Kati.Screens.Film do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={@identity}
     >
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
-        {Kati.UI.symbol("movie", size: 28, color: Palette.sub())}
-        <Spacer size={14} />
-        <Text
-          text={gettext("No films in your library yet")}
-          text_size={22}
-          font_weight="bold"
-          line_height={1.25}
-          text_color={:on_surface}
-        />
-      </Column>
+      <MishkaEmptyState
+        align="left"
+        padding_left={21}
+        padding_right={21}
+        padding_top={140}
+        title={gettext("No films in your library yet")}
+        title_size={22}
+        title_weight="bold"
+        title_line_height={1.25}
+      >
+        <MishkaEmptyStateIndicator>
+          {Kati.UI.symbol("movie", size: 28, color: Palette.sub())}
+          <Spacer size={14} />
+        </MishkaEmptyStateIndicator>
+      </MishkaEmptyState>
       <Box fill_width={true} fill_height={true} align="top">
         <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
           {Kati.Screens.Film.back_control(@back)}
@@ -926,17 +926,21 @@ defmodule Kati.Screens.Film do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={@identity}
     >
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={140}>
-        {Kati.UI.symbol("info", size: 28, color: Palette.sub())}
-        <Spacer size={14} />
-        <Text
-          text={gettext("This title is no longer in your library")}
-          text_size={22}
-          font_weight="bold"
-          line_height={1.25}
-          text_color={:on_surface}
-        />
-      </Column>
+      <MishkaEmptyState
+        align="left"
+        padding_left={21}
+        padding_right={21}
+        padding_top={140}
+        title={gettext("This title is no longer in your library")}
+        title_size={22}
+        title_weight="bold"
+        title_line_height={1.25}
+      >
+        <MishkaEmptyStateIndicator>
+          {Kati.UI.symbol("info", size: 28, color: Palette.sub())}
+          <Spacer size={14} />
+        </MishkaEmptyStateIndicator>
+      </MishkaEmptyState>
       <Box fill_width={true} fill_height={true} align="top">
         <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
           {Kati.Screens.Film.back_control(@back)}
@@ -959,7 +963,7 @@ defmodule Kati.Screens.Film do
       font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
-      <Scroll>
+      <MishkaScrollArea>
         <Column fill_width={true}>
           {Kati.Screens.Film.artwork(f)}
           <Column
@@ -981,7 +985,7 @@ defmodule Kati.Screens.Film do
             {Kati.Screens.Film.actions(f)}
           </Column>
         </Column>
-      </Scroll>
+      </MishkaScrollArea>
       {Kati.Screens.Film.chrome(assigns.menu?, Map.get(assigns, :back, gettext("Library")), f)}
     </Box>
     """
@@ -1092,18 +1096,21 @@ defmodule Kati.Screens.Film do
   """
   @spec watched_pill(String.t()) :: map()
   def watched_pill(label) do
-    MishkaPill.pill(
-      [
-        background: Palette.card(),
-        corner_radius: 13,
-        height: 26,
-        padding: 0,
-        padding_left: 11,
-        padding_right: 11,
-        align: :center
-      ],
-      Kati.Screens.Film.watched_content(label)
-    )
+    assigns = %{content: Kati.Screens.Film.watched_content(label)}
+
+    ~MOB"""
+    <MishkaPill
+      background={Palette.card()}
+      corner_radius={13}
+      height={26}
+      padding={0}
+      padding_left={11}
+      padding_right={11}
+      align={:center}
+    >
+      {@content}
+    </MishkaPill>
+    """
   end
 
   @doc false
@@ -1186,20 +1193,28 @@ defmodule Kati.Screens.Film do
   """
   @spec back_pill(term(), non_neg_integer(), String.t(), String.t()) :: map()
   def back_pill(back, fill, lift, label \\ gettext("Library")) do
-    MishkaPill.pill(
-      [
-        background: fill,
-        shadow: lift,
-        corner_radius: 21,
-        height: 42,
-        padding: 0,
-        padding_left: 12,
-        padding_right: 16,
-        align: :center,
-        on_tap: back
-      ],
-      Kati.Screens.Film.back_content(label)
-    )
+    assigns = %{
+      content: Kati.Screens.Film.back_content(label),
+      back: back,
+      fill: fill,
+      lift: lift
+    }
+
+    ~MOB"""
+    <MishkaPill
+      background={@fill}
+      shadow={@lift}
+      corner_radius={21}
+      height={42}
+      padding={0}
+      padding_left={12}
+      padding_right={16}
+      align={:center}
+      on_tap={@back}
+    >
+      {@content}
+    </MishkaPill>
+    """
   end
 
   @doc false
@@ -1238,22 +1253,30 @@ defmodule Kati.Screens.Film do
   @spec more_disc(non_neg_integer(), String.t(), boolean()) :: map()
   def more_disc(fill, lift, menu?, f \\ %{}) do
     trigger =
-      MishkaActionIcon.action_icon(
-        [
-          size: 42,
-          shape: :circle,
-          variant: :filled,
-          background: fill,
-          shadow: lift,
-          on_tap: :toggle_menu
-        ],
-        [Kati.UI.symbol("more_horiz", size: 21)]
-      )
+      ~MOB"""
+      <MishkaActionIcon
+        size={42}
+        shape={:circle}
+        variant={:filled}
+        background={fill}
+        shadow={lift}
+        on_tap={:toggle_menu}
+      >
+        {Kati.UI.symbol("more_horiz", size: 21)}
+      </MishkaActionIcon>
+      """
 
     # This disc carried no tag at all — a ⋯ drawn on the still that answered
     # nothing. Screen 33 is the write path for the rating screen 08 displays,
     # and it was reachable only from the gallery.
-    Kati.UI.Menu.overflow(
+    #
+    # `MishkaMenu.dropdown/4` keeps the trigger in the page and draws the panel
+    # in its own anchored window, which is what `Kati.UI.Menu` did. The panel
+    # and row props below are the design's own numbers: 250 wide, radius 18,
+    # card fill and card shadow, 6 above and below the rows, 46pt rows with 12
+    # of side padding, an 18pt glyph with 12 to the label, and a 14pt semibold
+    # label taking the remaining width.
+    Kati.Components.MishkaMenu.dropdown(
       trigger,
       menu?,
       [
@@ -1277,8 +1300,26 @@ defmodule Kati.Screens.Film do
         Kati.Screens.Film.kind_item(f),
         Kati.Screens.Film.remove_item(f)
       ]
-      |> Enum.reject(&(&1 == [])),
-      dismiss: :close_menu
+      |> Enum.reject(&(&1 == []))
+      |> Enum.map(&to_mishka/1),
+      width: 250,
+      background: Palette.card(),
+      corner_radius: 18,
+      shadow: Kati.Theme.shadow_card(),
+      side: :bottom,
+      align: :end,
+      side_offset: 8,
+      on_dismiss: {self(), :close_menu},
+      item_height: 46,
+      item_padding_x: 12,
+      item_padding_y: 0,
+      item_icon_gap: 12,
+      item_text_size: 14,
+      item_font_weight: :semibold,
+      item_label_weight: 1.0,
+      item_corner_radius: 0,
+      item_text_color: :on_surface,
+      item_max_lines: 1
     )
   end
 
@@ -1301,6 +1342,19 @@ defmodule Kati.Screens.Film do
       Map.get(f, :seen_count, 0) > 0 -> Kati.UI.Menu.item("edit", gettext("Edit your log"), tag)
       true -> Kati.UI.Menu.item("star", gettext("Log a watch"), tag)
     end
+  end
+
+  # `Kati.UI.Menu` still builds the shared Series menu, so the item helpers
+  # above stay in its shape. Film's own dropdown is `MishkaMenu`, and this is
+  # the one adapter between the two item shapes.
+  defp to_mishka(%{rule: true}), do: Kati.Components.MishkaMenu.separator()
+
+  defp to_mishka(%{glyph: glyph, label: label, tag: tag} = item) do
+    Kati.Components.MishkaMenu.item(tag, label,
+      icon: Kati.UI.symbol(glyph, size: 18, color: Palette.ink_soft()),
+      danger: Map.get(item, :destructive, false),
+      on_tap: {self(), tag}
+    )
   end
 
   @doc """
@@ -1354,7 +1408,8 @@ defmodule Kati.Screens.Film do
     # reader's own script, where the badge in `where_mark/1` is always a
     # provider's initial and has to be asked.
     ~MOB"""
-    <Row
+    <MishkaCard
+      direction="row"
       fill_width={true}
       background={Palette.card()}
       corner_radius={22}
@@ -1372,7 +1427,13 @@ defmodule Kati.Screens.Film do
           text_color={Palette.eyebrow()}
         />
         <Spacer size={7} />
-        {Kati.Screens.Film.stars(f.stars)}
+        <MishkaRating
+          value={f.stars}
+          size={22}
+          gap={2}
+          color={Palette.gold_icon()}
+          empty_color={Palette.gold_icon()}
+        />
       </Column>
       <Column weight={1.0}>
         <Row fill_width={true} align="center">
@@ -1399,7 +1460,7 @@ defmodule Kati.Screens.Film do
         </Row>
       </Column>
       {Kati.Screens.Film.card_chevron(tap)}
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -1471,10 +1532,14 @@ defmodule Kati.Screens.Film do
   def star(:empty), do: Kati.UI.symbol("star", size: 22, color: Palette.gold_icon())
 
   def star(:half) do
+    # Width only: the crop needs the star's width, and the glyph's line box is
+    # taller than the square. A fixed 22dp height centred a shorter cell and
+    # dropped this star's baseline below its neighbours — see
+    # `Kati.Screens.Rating.star/1`.
     ~MOB"""
-    <Box width={22} height={22}>
+    <Box width={22}>
       {Kati.UI.symbol("star", size: 22, color: Palette.gold_icon())}
-      <Box width={22} height={22} clip_width={0.5}>
+      <Box width={22} clip_width={0.5}>
         {Kati.UI.symbol("star", size: 22, color: Palette.gold_icon(), fill: true)}
       </Box>
     </Box>
@@ -1506,7 +1571,7 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={12} />
-      <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
+      <MishkaCard fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
         <Row fill_width={true} align="center">
           <Text
             text={Kati.UI.eyebrow_label(f.note_date)}
@@ -1525,7 +1590,7 @@ defmodule Kati.Screens.Film do
           line_height={Kati.Locale.leading(1.55)}
           text_color={Palette.cream_body()}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={26} />
     </Column>
     """
@@ -1603,7 +1668,7 @@ defmodule Kati.Screens.Film do
     last = length(f.where) - 1
 
     ~MOB"""
-    <Column
+    <MishkaCard
       fill_width={true}
       background={Palette.card()}
       corner_radius={20}
@@ -1614,7 +1679,7 @@ defmodule Kati.Screens.Film do
       padding_bottom={4}
     >
       {f.where |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Film.where_row(row, i < last) end)}
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -1698,12 +1763,15 @@ defmodule Kati.Screens.Film do
   def note_pencil(f) do
     # `:edit_note`, not `:log_watch` — see `rating_card/1` on why each door
     # onto screen 33 carries its own tag.
-    assigns = %{tap: if(Map.get(f, :tracked_id), do: {self(), :edit_note})}
+    tap = if(Map.get(f, :tracked_id), do: {self(), :edit_note})
 
+    # Mishka's Action Icon with its box dropped: `size: :hug` wraps the glyph
+    # instead of declaring a 40pt target, which is exactly the bare Box this
+    # replaced — the pencil on a note card is a glyph with a tap, not a disc.
     ~MOB"""
-    <Box on_tap={@tap} fill_width={false}>
+    <MishkaActionIcon size={:hug} on_tap={tap}>
       {Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
@@ -1721,10 +1789,11 @@ defmodule Kati.Screens.Film do
   """
   @spec where_badge(String.t()) :: map()
   def where_badge(badge) do
-    MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: Palette.paper(), size: 32, radius: 10],
-      [Kati.Screens.Film.where_mark(badge)]
-    )
+    ~MOB"""
+    <MishkaThemeIcon variant={:filled} color={Palette.paper()} size={32} radius={10}>
+      {Kati.Screens.Film.where_mark(badge)}
+    </MishkaThemeIcon>
+    """
   end
 
   # The badge is a service's own initial, so it is Latin on a Persian page for
@@ -1771,8 +1840,11 @@ defmodule Kati.Screens.Film do
   @spec hairline(boolean()) :: map()
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
-  def hairline(true),
-    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
+  def hairline(true) do
+    ~MOB"""
+    <MishkaSeparator color={Palette.hairline()} thickness={1} render={:box} />
+    """
+  end
 
   @doc false
   def actions(f) do
@@ -1805,25 +1877,29 @@ defmodule Kati.Screens.Film do
     # honest state until each has a destination.
     tap = if tag, do: {self(), tag}
 
+    assigns = %{icon: icon, ink: ink, label: label, tap: tap}
+
     ~MOB"""
-    <Box weight={1.0} on_tap={tap}>
-      <Box
+    <Box weight={1.0}>
+      <MishkaPill
         fill_width={true}
         height={52}
         corner_radius={20}
         background={Palette.card()}
         shadow={Kati.Theme.shadow_card_soft()}
         align="center"
+        padding={0}
+        on_tap={@tap}
       >
         <Column>
           <Row align="center">
             <Spacer weight={1.0} />
-            {Kati.UI.symbol(icon, size: 19, color: ink, fill: ink != nil)}
+            {Kati.UI.symbol(@icon, size: 19, color: @ink, fill: @ink != nil)}
             <Spacer weight={1.0} />
           </Row>
           <Spacer size={3} />
           <Text
-            text={label}
+            text={@label}
             text_size={10.5}
             font_weight="semibold"
             text_color={Palette.ink_soft()}
@@ -1831,7 +1907,7 @@ defmodule Kati.Screens.Film do
             text_align="center"
           />
         </Column>
-      </Box>
+      </MishkaPill>
     </Box>
     """
   end

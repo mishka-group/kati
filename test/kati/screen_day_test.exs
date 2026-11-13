@@ -153,7 +153,7 @@ defmodule Kati.ScreenDayTest do
 
   describe "the open group" do
     test "draws every member, with its own poster, line and clock" do
-      card = opened() |> tree() |> group_card()
+      card = opened() |> tree() |> Mob.Composite.expand(self()) |> group_card()
 
       for {title, _meta, time, _seed} <- @members do
         assert length(find_all(card, :text, text: title)) == 1
@@ -169,7 +169,7 @@ defmodule Kati.ScreenDayTest do
     end
 
     test "the members sit under the drawn hairline, inside the card" do
-      card = opened() |> tree() |> group_card()
+      card = opened() |> tree() |> Mob.Composite.expand(self()) |> group_card()
 
       assert find(card, :box, height: 1, background: 0x141A1917) != nil,
              "the 8%-ink rule between the header and the members is missing"
@@ -184,7 +184,7 @@ defmodule Kati.ScreenDayTest do
     end
 
     test "the chevron is the same glyph, turned over" do
-      card = opened() |> tree() |> group_card()
+      card = opened() |> tree() |> Mob.Composite.expand(self()) |> group_card()
 
       assert find(card, :box, rotate: 180.0) != nil,
              "the open group still points its chevron down. There is no " <>
@@ -196,7 +196,7 @@ defmodule Kati.ScreenDayTest do
       # The render sweep never sees this tree: it renders each screen once,
       # from mount, and the group is closed there. An unrenderable node type
       # draws NOTHING on Android, with no crash and no log.
-      assert_renderable(opened())
+      assert_renderable(opened() |> tree() |> Mob.Composite.expand(self()))
     end
 
     test "opens in Persian too" do
@@ -317,7 +317,11 @@ defmodule Kati.ScreenDayTest do
   # The grouped card: the one node the drawing gives an 18pt radius. Every
   # other card on screen 09 is 16, so this cannot pick up a neighbour, and
   # scoping to it keeps the gutter's own "20:00" out of the member counts.
-  defp group_card(tree), do: find(tree, :column, corner_radius: 18)
+  defp group_card(tree) do
+    tree
+    |> Mob.Composite.expand(self())
+    |> find(:column, corner_radius: 18)
+  end
 
   # Three 34pt tiles overlapped to 22 apart, plus the 30pt count tile.
   defp poster_stack(nil), do: nil
@@ -325,6 +329,7 @@ defmodule Kati.ScreenDayTest do
 
   defp tapped_row(tree) do
     tree
+    |> Mob.Composite.expand(self())
     |> flatten()
     |> Enum.find(fn node ->
       props = Map.get(node, :props) || %{}

@@ -828,8 +828,7 @@ defmodule Kati.Screens.RateEpisode do
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">
         <Box fill_width={true} height={40} background={Palette.paper()} />
-        <Column
-          fill_width={true}
+        <MishkaCard
           background={Palette.paper()}
           corner_radius={22}
           padding_left={21}
@@ -839,7 +838,7 @@ defmodule Kati.Screens.RateEpisode do
         >
           {Kati.Screens.RateEpisode.header(not Map.get(s, :empty?, false))}
           {Kati.Screens.RateEpisode.body(s, refusal, expanded?, Map.get(assigns, :open_row))}
-        </Column>
+        </MishkaCard>
       </Box>
     </Box>
     """
@@ -1007,8 +1006,7 @@ defmodule Kati.Screens.RateEpisode do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1044,7 +1042,7 @@ defmodule Kati.Screens.RateEpisode do
             max_lines={1}
           />
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={12} />
     </Column>
     """
@@ -1097,13 +1095,7 @@ defmodule Kati.Screens.RateEpisode do
     tap = {self(), :toggle_verdict}
 
     ~MOB"""
-    <Column
-      fill_width={true}
-      background={Palette.cream()}
-      corner_radius={20}
-      padding={16}
-      on_tap={tap}
-    >
+    <MishkaCard background={Palette.cream()} corner_radius={20} padding={16} on_tap={tap}>
       <Row fill_width={true} align="center">
         {Kati.Screens.RateEpisode.verdict_meta(previous)}
         <Spacer weight={1.0} />
@@ -1117,7 +1109,7 @@ defmodule Kati.Screens.RateEpisode do
         text_color={Palette.cream_body()}
         max_lines={if(expanded?, do: nil, else: 2)}
       />
-    </Column>
+    </MishkaCard>
     """
   end
 
@@ -1203,8 +1195,7 @@ defmodule Kati.Screens.RateEpisode do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1220,7 +1211,7 @@ defmodule Kati.Screens.RateEpisode do
         />
         <Spacer size={9} />
         {Kati.Screens.Rating.review_field(s.review)}
-      </Column>
+      </MishkaCard>
       <Spacer size={12} />
     </Column>
     """
@@ -1508,8 +1499,7 @@ defmodule Kati.Screens.RateEpisode do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1545,7 +1535,7 @@ defmodule Kati.Screens.RateEpisode do
           text_align="center"
           max_lines={1}
         />
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """

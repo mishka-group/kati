@@ -347,7 +347,7 @@ defmodule Kati.MealLibraryTest do
   describe "the three screens render" do
     test "each one draws a tree the native layer can take" do
       for module <- [MealLibrary, MealEdit, AddIngredient] do
-        assert_renderable(mount_screen(module))
+        assert_renderable(mount_screen(module) |> tree() |> Mob.Composite.expand(self()))
       end
     end
   end

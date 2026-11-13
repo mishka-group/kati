@@ -106,6 +106,8 @@ defmodule Kati.Components.MishkaCombobox do
 
   Not ported: `name` / `form` (form plumbing), `auto_highlight` (there is no
   focus ring to highlight) and the `*_class` attrs.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/combobox
   """
 
   import Mob.Sigil
@@ -276,13 +278,7 @@ defmodule Kati.Components.MishkaCombobox do
     chosen = List.wrap(Map.get(props, :value))
 
     if truthy?(Map.get(props, :multiple, false)) and chosen != [] do
-      labels =
-        Enum.map(chosen, fn id ->
-          case Enum.find(options, &(Map.get(&1, :id) == id)) do
-            nil -> {id, to_string(id)}
-            option -> {id, Map.get(option, :label)}
-          end
-        end)
+      labels = Enum.map(chosen, &chosen_label(&1, options))
 
       # Reuse the tags input's packing rule rather than inventing a second one:
       # wrap the LABELS, then cut the {id, label} list to the same row lengths.
@@ -309,6 +305,14 @@ defmodule Kati.Components.MishkaCombobox do
       {rows, used}
     else
       {[], 0}
+    end
+  end
+
+  # A chosen id with no matching option still gets a chip, labelled with the id.
+  defp chosen_label(id, options) do
+    case Enum.find(options, &(Map.get(&1, :id) == id)) do
+      nil -> {id, to_string(id)}
+      option -> {id, Map.get(option, :label)}
     end
   end
 
@@ -402,7 +406,8 @@ defmodule Kati.Components.MishkaCombobox do
         [] ->
           MishkaMenu.menu(%{open: true}, [
             MishkaMenu.item(:__empty__, Map.get(props, :empty_text) || "No matches",
-              disabled: true
+              disabled: true,
+              test_id: tag_id(Map.get(props, :id), "empty")
             )
           ])
 
@@ -421,7 +426,10 @@ defmodule Kati.Components.MishkaCombobox do
     matches
     |> MishkaSelect.group_runs()
     |> Enum.flat_map(fn {group, run} ->
-      heading = if is_binary(group), do: [MishkaMenu.label(group)], else: []
+      heading =
+        if is_binary(group),
+          do: [MishkaMenu.label(group, test_id: tag_id(id, "group-#{group}"))],
+          else: []
 
       heading ++
         Enum.map(run, fn option ->
@@ -465,6 +473,10 @@ defmodule Kati.Components.MishkaCombobox do
 
   defp tag(node, nil, _suffix), do: node
   defp tag(node, id, suffix), do: %{node | props: Map.put(node.props, :id, "#{id}-#{suffix}")}
+
+  # The same tag as a string, for the rows a menu builds from a test_id option.
+  defp tag_id(nil, _suffix), do: nil
+  defp tag_id(id, suffix), do: "#{id}-#{suffix}"
 
   defp widen(props, key, value, disabled?) do
     case handler(props, key, disabled?) do

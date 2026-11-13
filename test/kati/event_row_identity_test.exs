@@ -174,7 +174,7 @@ defmodule Kati.EventRowIdentityTest do
                "screen 09 drew the events of the day the clock is on rather than the day " <>
                  "the route handed it"
 
-        assert text(view) =~ hd(tomorrow).summary
+        assert view |> tree() |> Mob.Composite.expand(self()) |> text() =~ hd(tomorrow).summary
       end)
     end
 

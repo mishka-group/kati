@@ -115,9 +115,7 @@ defmodule Kati.Screens.Day do
   use Gettext, backend: Kati.Gettext
 
   alias Kati.Calendar.Layout
-  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
-  alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Theme.Palette
 
@@ -371,9 +369,28 @@ defmodule Kati.Screens.Day do
 
   @doc "The lane rows, in clock order."
   def timeline(clusters) do
-    clusters
-    |> Enum.sort_by(& &1.start_min)
-    |> Enum.map(&Kati.Screens.Day.cluster_block/1)
+    clusters =
+      clusters
+      |> Enum.sort_by(& &1.start_min)
+      |> Enum.map(fn cluster ->
+        %{
+          clash: Kati.Screens.Day.clash_label(cluster),
+          gutter: Kati.Screens.Day.gutter(cluster),
+          lanes: Kati.Screens.Day.lanes(cluster)
+        }
+      end)
+
+    assigns = %{clusters: clusters}
+
+    ~MOB"""
+    <MishkaCalendar
+      view={:day}
+      clusters={@clusters}
+      cluster_gap={14}
+      cluster_padding_left={21}
+      cluster_padding_right={21}
+    />
+    """
   end
 
   # `Kati.Locale.date/2`'s `:long` — `Thu 20 Aug`, and Shamsi under `:fa`.
@@ -696,20 +713,6 @@ defmodule Kati.Screens.Day do
 
   def clash_label(_), do: ~MOB"<Spacer size={0} />"
 
-  @doc false
-  def cluster_block(cluster) do
-    ~MOB"""
-    <Column fill_width={true} padding_left={21} padding_right={21}>
-      {Kati.Screens.Day.clash_label(cluster)}
-      <Row align="top" fill_width={true}>
-        {Kati.Screens.Day.gutter(cluster)}
-        {Kati.Screens.Day.lanes(cluster)}
-      </Row>
-      <Spacer size={14} />
-    </Column>
-    """
-  end
-
   @doc """
   The time column.
 
@@ -913,8 +916,8 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Box weight={weight}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         background={background}
         corner_radius={16}
         shadow={shadow}
@@ -922,7 +925,7 @@ defmodule Kati.Screens.Day do
         padding_right={pad_h}
         padding_top={pad_v}
         padding_bottom={pad_v}
-        align="center"
+        align={:center}
         on_tap={tap}
       >
         {Kati.Screens.Day.kind_rail(event, split?, meta)}
@@ -939,7 +942,7 @@ defmodule Kati.Screens.Day do
           {Kati.Screens.Day.card_meta(meta, meta_gap)}
         </Column>
         {Kati.Screens.Day.state_icon(event)}
-      </Row>
+      </MishkaCard>
     </Box>
     """
   end
@@ -1056,7 +1059,7 @@ defmodule Kati.Screens.Day do
   stack, the text and the disc — not on the disc, which is why the disc stays
   a plain `action_icon/2` with no tap of its own.
 
-  The card chrome (fill, radius, shadow, 14 of padding) lives on the `<Column>`
+  The card chrome (fill, radius, shadow, 14 of padding) lives on the `<MishkaCard>`
   so the members can sit inside it under the hairline. Collapsed, that Column
   holds one `fill_width` `<Row>` and measures exactly what the Row measured
   when it carried the chrome itself.
@@ -1068,43 +1071,48 @@ defmodule Kati.Screens.Day do
     open? = Map.get(cluster, :open?, false)
     tap = {self(), Map.fetch!(cluster, :tag)}
 
+    assigns = %{
+      rule: ~MOB"<Box width={3} height={48} corner_radius={2} background={Palette.accent()} />",
+      spacer: ~MOB"<Spacer size={12} />",
+      stack: Kati.Screens.Day.poster_stack(members),
+      chevron: Kati.Screens.Day.chevron_disc(open?),
+      members: Kati.Screens.Day.group_members(members, open?)
+    }
+
     ~MOB"""
     <Box weight={1.0}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={18}
         shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
         padding={14}
       >
-        <Row fill_width={true} on_tap={tap} align="center">
-          <Box width={3} height={48} corner_radius={2} background={Palette.accent()} />
-          <Spacer size={12} />
-          {Kati.Screens.Day.poster_stack(members)}
+        <MishkaListItem
+          leading={[@rule, @spacer, @stack]}
+          trailing={@chevron}
+          gap={4}
+          trailing_gap={12}
+          on_tap={tap}
+        >
+          <Text
+            text={title}
+            text_size={14}
+            font_weight="bold"
+            letter_spacing={Kati.Locale.tracking(-0.015)}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Column weight={1.0}>
-            <Text
-              text={title}
-              text_size={14}
-              font_weight="bold"
-              letter_spacing={Kati.Locale.tracking(-0.015)}
-              text_color={:on_surface}
-              max_lines={1}
-            />
-            <Spacer size={4} />
-            <Text
-              text={meta}
-              font_family={Kati.Locale.mono_face(meta)}
-              text_size={10.5}
-              text_color={Palette.sub()}
-              max_lines={1}
-            />
-          </Column>
-          <Spacer size={12} />
-          {Kati.Screens.Day.chevron_disc(open?)}
-        </Row>
-        {Kati.Screens.Day.group_members(members, open?)}
-      </Column>
+          <Text
+            text={meta}
+            font_family={Kati.Locale.mono_face(meta)}
+            text_size={10.5}
+            text_color={Palette.sub()}
+            max_lines={1}
+          />
+        </MishkaListItem>
+        {@members}
+      </MishkaCard>
     </Box>
     """
   end
@@ -1140,8 +1148,11 @@ defmodule Kati.Screens.Day do
   # pixel row of a 1dp rule lands at ~69% coverage — a hairline lighter than
   # the drawn one.
   @doc false
-  def group_rule,
-    do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
+  def group_rule do
+    ~MOB"""
+    <MishkaSeparator color={Palette.hairline_soft()} thickness={1} render={:box} />
+    """
+  end
 
   @doc """
   One member of an open group.
@@ -1241,17 +1252,20 @@ defmodule Kati.Screens.Day do
   """
   @spec density_disc() :: map()
   def density_disc do
-    MishkaActionIcon.action_icon(
-      [
-        size: 44,
-        shape: :circle,
-        variant: :filled,
-        background: Palette.card(),
-        shadow: Kati.Theme.shadow_button(),
-        on_tap: :view_Agenda
-      ],
-      [Kati.UI.symbol("density_medium", size: 21)]
-    )
+    assigns = %{glyph: Kati.UI.symbol("density_medium", size: 21)}
+
+    ~MOB"""
+    <MishkaActionIcon
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_button()}
+      on_tap={:view_Agenda}
+    >
+      {@glyph}
+    </MishkaActionIcon>
+    """
   end
 
   @doc """
@@ -1269,10 +1283,13 @@ defmodule Kati.Screens.Day do
   """
   @spec chevron_disc(boolean()) :: map()
   def chevron_disc(open?) do
-    MishkaActionIcon.action_icon(
-      [size: 26, shape: :circle, variant: :filled, background: Palette.paper()],
-      [Kati.Screens.Day.chevron(open?)]
-    )
+    assigns = %{glyph: Kati.Screens.Day.chevron(open?)}
+
+    ~MOB"""
+    <MishkaActionIcon size={26} shape={:circle} variant={:filled} background={Palette.paper()}>
+      {@glyph}
+    </MishkaActionIcon>
+    """
   end
 
   # The collapse glyph is `expand_more` turned over, which is what the design

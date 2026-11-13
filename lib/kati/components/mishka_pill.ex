@@ -34,6 +34,7 @@ defmodule Kati.Components.MishkaPill do
   | `padding_top` / `padding_right` / `padding_bottom` / `padding_left` | spacing token / number | unset | One edge, overriding `padding` on that side only. |
   | `width` | number | unset | Exact width. Unset, the pill hugs its label. |
   | `height` | number | unset | Exact height. Unset, the pill hugs its label. |
+  | `weight` | number | unset | Share of a parent `Row`/`Column`, as on any Mob node — two pills at `1.0` and `2.0` split a row one to two. Read by the parent off the root, so it works with `height` and `align` for a button that takes the leftover width. |
   | `fill_width` | boolean | `false` | Span the parent instead of hugging. |
   | `align` | `:center`, `:leading`, `:trailing`, … | unset (top-leading) | Where the content sits when `width` / `height` leave it room. |
   | `border_color` | color token / ARGB int | unset | Outline colour. Draws only alongside `border_width`. |
@@ -51,6 +52,7 @@ defmodule Kati.Components.MishkaPill do
   | `leading_size` | text token / number | whatever `text_size` is | A **string** `leading`'s size, when it should differ from the label's. Ignored by a node. |
   | `content_align` | `:top`, `:center`, `:bottom` | `:center` | Cross-axis alignment inside the pill's content row. See "The content row centres". |
   | `content_fill_width` | boolean | `false` | The content row spans the pill instead of hugging. See "A `weight` is read by the row above it". |
+  | `id` | string | unset | A native testTag on the pill, and `<id>-remove` on its ✕ — see "Test tags". |
 
   Every prop below `disabled_color` is a later addition and every one of them
   defaults to exactly what the pill drew before it existed: the ones with a
@@ -69,7 +71,15 @@ defmodule Kati.Components.MishkaPill do
   until a caller asks for the other thing.
 
   Not ported: `remove_label` (an `aria-label` for the ✕ — Mob exposes no
-  accessible name on a text node) and the `id` / `*_class` attrs.
+  accessible name on a text node) and the `*_class` attrs.
+
+  ## Test tags
+
+  `id` is a native testTag on the root Box, and the ✕ gets `<id>-remove`. A pill
+  draws text and a fill, so a device test that wants to know where it is, how wide
+  it came out, or which ✕ belongs to which token has nothing else to hold on to —
+  and "the ✕ next to Item 3" is a statement about geometry, not about the tree.
+  Like every key in `@box_overrides` it is left off the node when unset.
 
   ## Sizing: padding is applied BEFORE width and height
 
@@ -161,6 +171,24 @@ defmodule Kati.Components.MishkaPill do
   `fill_width` fills its parent, which made every pill a full-width bar. Pass
   `fill_width={true}` for a pill that really should span its container.
 
+  ## A pill does not shrink, so a row of them needs a budget
+
+  Hugging has a price: the pill is as wide as its content and has no way to be
+  narrower. A `Row` measures its children in order, each against what the
+  previous ones left, so when the pills in a row add up to more than the row,
+  the **last** pill is handed less than it needs — and inside it the last thing
+  to be measured, the ✕. The label has already taken its width, so it is the
+  glyph that is squeezed and clipped sideways, while the first pills in the row
+  look fine.
+
+  Nothing in a `Row` wraps, and Mob reports no geometry back, so the pill
+  cannot notice and the caller has to budget. A pill is `2 × padding`, plus the
+  label, plus `remove_gap`, plus the ✕ wide: at the default 16sp, "Item 0" with
+  a ✕ is about 86dp.
+  Declare the number per row from the narrowest phone you support (360dp, less
+  the page and card padding around the row), and shrink `text_size`,
+  `remove_gap` or `padding` before adding a pill to a row that is already tight.
+
   ## The content row centres, and `content_align` is how you stop it
 
   Everything inside the pill — the `leading` slot, the label, the ✕ — sits in
@@ -232,6 +260,8 @@ defmodule Kati.Components.MishkaPill do
   between the slot and the label. Unset, `leading` puts **nothing** in the tree
   — not an empty `Row`, nothing — so a pill that does not use it builds the
   two-child content row it always did.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/pill
   """
 
   import Mob.Sigil
@@ -241,7 +271,7 @@ defmodule Kati.Components.MishkaPill do
   # Root-Box props that must be ABSENT when the caller says nothing, rather than
   # present-and-nil. See `overrides/2` for why the difference is visible.
   @box_overrides ~w(
-    width height align shadow border_color border_width
+    id width height weight align shadow border_color border_width
     padding_top padding_right padding_bottom padding_left
   )a
 
@@ -482,11 +512,17 @@ defmodule Kati.Components.MishkaPill do
       </Row>
       """
 
-      wire(node, tap(props, disabled?, :on_remove))
+      node
+      |> merge_props(remove_tag(Map.get(props, :id)))
+      |> wire(tap(props, disabled?, :on_remove))
     else
       ~MOB(<Row />)
     end
   end
+
+  # The ✕ row is the tap target, so it is the row that carries the tag.
+  defp remove_tag(nil), do: %{}
+  defp remove_tag(id), do: %{id: "#{id}-remove"}
 
   defp glyph(props, disabled?) do
     ~MOB"""

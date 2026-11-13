@@ -297,8 +297,8 @@ defmodule Kati.Screens.AddByHand do
     }
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
+      direction={:row}
       height={48}
       corner_radius={14}
       background={Palette.card()}
@@ -307,7 +307,7 @@ defmodule Kati.Screens.AddByHand do
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
       padding_right={15}
-      align="center"
+      align={:center}
     >
       <TextField
         value={@value}
@@ -318,7 +318,7 @@ defmodule Kati.Screens.AddByHand do
         accessibility_id={@id}
         on_change={@on_change}
       />
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -401,13 +401,14 @@ defmodule Kati.Screens.AddByHand do
     }
 
     ~MOB"""
-    <Row
+    <MishkaPill
       height={38}
       corner_radius={19}
       background={if @on?, do: Palette.ink_fill(), else: Palette.card()}
+      padding={0}
       padding_left={14}
       padding_right={16}
-      align="center"
+      align={:center}
       on_tap={@tap}
     >
       {Kati.UI.symbol(@icon, size: 17, color: if(@on?, do: Palette.on_ink(), else: Palette.ink_soft()))}
@@ -420,7 +421,7 @@ defmodule Kati.Screens.AddByHand do
         text_color={if @on?, do: Palette.on_ink(), else: Palette.ink_soft()}
         max_lines={1}
       />
-    </Row>
+    </MishkaPill>
     """
   end
 
@@ -499,7 +500,13 @@ defmodule Kati.Screens.AddByHand do
     assigns = %{text: text, face: face}
 
     ~MOB"""
-    <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding={13} align="top">
+    <MishkaCard
+      direction={:row}
+      background={Palette.cream()}
+      corner_radius={16}
+      padding={13}
+      align={:top}
+    >
       {Kati.UI.symbol("info", size: 16, color: Palette.bronze())}
       <Spacer size={9} />
       <Column weight={1.0}>
@@ -511,7 +518,7 @@ defmodule Kati.Screens.AddByHand do
           text_color={Palette.ink_soft()}
         />
       </Column>
-    </Row>
+    </MishkaCard>
     """
   end
 
@@ -523,8 +530,7 @@ defmodule Kati.Screens.AddByHand do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         padding={17}
@@ -539,7 +545,7 @@ defmodule Kati.Screens.AddByHand do
             <Text text={@body} text_size={12.5} line_height={1.65} text_color={Palette.ink_soft()} />
           </Column>
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={14} />
     </Column>
     """

@@ -146,36 +146,32 @@ defmodule Kati.Screens.ListDetail do
   """
   def add_disc do
     ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      corner_radius={22}
+    <MishkaActionIcon
+      variant={:filled}
+      size={44}
+      shape={:circle}
       background={Palette.card()}
       shadow={Kati.Theme.shadow_button()}
-      align="center"
       on_tap={{self(), :add_titles}}
-      accessibility_id="add_titles"
     >
       {Kati.UI.symbol("add", size: 21)}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
   @doc false
   def menu_disc do
     ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      corner_radius={22}
+    <MishkaActionIcon
+      variant={:filled}
+      size={44}
+      shape={:circle}
       background={Palette.card()}
       shadow={Kati.Theme.shadow_button()}
-      align="center"
       on_tap={{self(), :toggle_menu}}
-      accessibility_id="toggle_menu"
     >
       {Kati.UI.symbol("more_horiz", size: 21)}
-    </Box>
+    </MishkaActionIcon>
     """
   end
 
@@ -193,8 +189,7 @@ defmodule Kati.Screens.ListDetail do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.eyebrow(gettext("Gone — not empty"), dash: Kati.Theme.Palette.placeholder())}
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -227,7 +222,7 @@ defmodule Kati.Screens.ListDetail do
           {SettingsList.action_pill(gettext("Your lists"), @tap)}
           <Spacer weight={1.0} />
         </Row>
-      </Column>
+      </MishkaCard>
     </Column>
     """
   end
@@ -301,15 +296,15 @@ defmodule Kati.Screens.ListDetail do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         height={48}
         corner_radius={14}
         background={Palette.card()}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
         padding_right={15}
-        align="center"
+        align={:center}
       >
         <TextField
           value={@name}
@@ -323,7 +318,7 @@ defmodule Kati.Screens.ListDetail do
         />
         <Spacer size={10} />
         {Kati.UI.SettingsList.action_pill(gettext("Rename"), @save)}
-      </Row>
+      </MishkaCard>
       <Spacer size={9} />
       <Text
         text={gettext("Cancel")}
@@ -361,8 +356,7 @@ defmodule Kati.Screens.ListDetail do
     assigns = %{title: list.empty_title, body: list.empty_body}
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -383,14 +377,13 @@ defmodule Kati.Screens.ListDetail do
         text_color={Palette.sub()}
         text_align="center"
       />
-    </Column>
+    </MishkaCard>
     """
   end
 
   def rows(%{list: %{titles: []}}) do
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -417,7 +410,7 @@ defmodule Kati.Screens.ListDetail do
         {SettingsList.action_pill(gettext("Add titles"), {self(), :add_titles})}
         <Spacer weight={1.0} />
       </Row>
-    </Column>
+    </MishkaCard>
     """
   end
 

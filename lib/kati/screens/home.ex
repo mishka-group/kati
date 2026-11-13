@@ -161,8 +161,6 @@ defmodule Kati.Screens.Home do
   use Kati.Screens.Root, root: :home, later: true
   use Gettext, backend: Kati.Gettext
 
-  alias Kati.Components.MishkaProgress
-  alias Kati.Components.MishkaSeparator
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -713,41 +711,30 @@ defmodule Kati.Screens.Home do
   # badge measures 12; Compose draws a border INWARD, so the box is stated as
   # 12 and the border eats back to the 8px the design shows.
   #
-  # NOT Chelekom's Action Icon, though screens 02, 03, 06 and 07 all draw their
-  # header discs with it now that `shadow` exists. This one has TWO children,
-  # and the component puts caller-supplied children in a `<Row>`:
-  #
-  #     defp glyph(_props, content, _disabled?), do: ~MOB(<Row>{content}</Row>)
-  #
-  # A Row lays out along its axis; a Box stacks. The badge is an overlay — a
-  # `fill_width`/`fill_height` Box that pins a 12pt dot to `top_trailing` of the
-  # 44pt disc — so through a Row it would sit BESIDE the bell rather than over
-  # its corner, and its two fills would have a hugging Row to fill rather than
-  # the disc. The unread dot is the only thing on this screen that says there is
-  # anything to open, so that is not a subtle regression.
-  #
-  # What it lacks, precisely: a way to say "stack these children", or a badge /
-  # overlay slot of its own. `<Row>` is right for the icon-plus-nothing case it
-  # was written for and wrong for every decorated one.
+  # The badge is an overlay: a `fill_width`/`fill_height` Box pinned to
+  # `top_trailing` of the disc. `MishkaActionIcon`'s `overlay` prop is what puts
+  # it over the glyph rather than beside it — Action Icon's children sit in a
+  # Row, and a Row lays out along its axis where this needs a Box that stacks.
   @doc false
   def disc(icon, badge?, tag) do
-    tap = {self(), tag}
-    card = Palette.card()
-    shadow = Theme.shadow_button()
+    assigns = %{
+      glyph: UI.symbol(icon, size: 21),
+      overlay: Kati.Screens.Home.badge(badge?),
+      tap: {self(), tag}
+    }
 
     ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={card}
-      corner_radius={22}
-      shadow={shadow}
-      align="center"
-      on_tap={tap}
+    <MishkaActionIcon
+      size={44}
+      shape={:circle}
+      variant={:filled}
+      background={Palette.card()}
+      shadow={Theme.shadow_button()}
+      on_tap={@tap}
+      overlay={@overlay}
     >
-      {UI.symbol(icon, size: 21)}
-      {Kati.Screens.Home.badge(badge?)}
-    </Box>
+      {@glyph}
+    </MishkaActionIcon>
     """
   end
 
@@ -758,14 +745,16 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top_trailing">
       <Column padding_top={9} padding_right={10}>
-        <Box
-          width={12}
-          height={12}
-          corner_radius={6}
+        <MishkaActionIcon
+          variant={:filled}
+          size={12}
+          shape={:circle}
           background={Palette.accent()}
           border_width={2}
           border_color={Palette.card()}
-        />
+        >
+          <Spacer size={0} />
+        </MishkaActionIcon>
       </Column>
     </Box>
     """
@@ -773,24 +762,27 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def search do
-    tap = {self(), :open_search}
-    card = Palette.card()
-    shadow = Theme.shadow_search()
+    assigns = %{
+      tap: {self(), :open_search},
+      leading: UI.symbol("search", size: 20, color: Palette.muted()),
+      trailing: UI.symbol("tune", size: 19)
+    }
 
     ~MOB"""
     <Column fill_width={true}>
-      <Box
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         height={52}
-        background={card}
+        background={Palette.card()}
         corner_radius={26}
-        shadow={shadow}
+        shadow={Theme.shadow_search()}
         padding_left={18}
         padding_right={18}
-        on_tap={tap}
+        align={:center}
+        on_tap={@tap}
       >
         <Row fill_width={true} fill_height={true} align="center">
-          {UI.symbol("search", size: 20, color: Palette.muted())}
+          {@leading}
           <Spacer size={11} />
           <Text
             text={gettext("Search films, shows, events…")}
@@ -800,9 +792,9 @@ defmodule Kati.Screens.Home do
             max_lines={1}
           />
           <Spacer size={11} />
-          {UI.symbol("tune", size: 19)}
+          {@trailing}
         </Row>
-      </Box>
+      </MishkaCard>
       <Spacer size={26} />
     </Column>
     """
@@ -825,13 +817,19 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def hero(summary) do
-    tap = {self(), :open_inbox}
-    fill = Palette.ink_fill()
+    assigns = %{
+      lines:
+        Enum.map(Kati.Screens.Home.headline_lines(summary.count), &Kati.Screens.Home.headline/1),
+      sub: Kati.Screens.Home.hero_sub(summary.sub),
+      posters: Kati.Screens.Home.hero_posters(summary.seeds),
+      checked: Kati.Screens.Home.hero_checked(summary.checked),
+      tap: {self(), :open_inbox},
+      fill: Palette.ink_fill()
+    }
 
     ~MOB"""
     <Column fill_width={true}>
-      <Box
-        fill_width={true}
+      <MishkaCard
         background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_hero()}
@@ -843,23 +841,23 @@ defmodule Kati.Screens.Home do
         <Column fill_width={true}>
           <Row fill_width={true} align="top">
             <Column weight={1.0}>
-              {Enum.map(Kati.Screens.Home.headline_lines(summary.count), fn line ->
-              Kati.Screens.Home.headline(line)
-            end)}
-              {Kati.Screens.Home.hero_sub(summary.sub)}
+              {@lines}
+              {@sub}
             </Column>
-            {Kati.Screens.Home.hero_posters(summary.seeds)}
+            {@posters}
           </Row>
           <Spacer size={17} />
           <Row align="center">
-            <Row
+            <MishkaPill
               height={40}
               corner_radius={20}
-              background={fill}
+              background={@fill}
+              padding={0}
               padding_left={18}
               padding_right={18}
-              align="center"
-              on_tap={tap}
+              align={:center}
+              content_align={:center}
+              on_tap={@tap}
             >
               <Text
                 text={gettext("Open inbox")}
@@ -869,11 +867,11 @@ defmodule Kati.Screens.Home do
               />
               <Spacer size={7} />
               {UI.symbol(Kati.Locale.forward_glyph(), size: 17, color: Palette.on_ink())}
-            </Row>
-            {Kati.Screens.Home.hero_checked(summary.checked)}
+            </MishkaPill>
+            {@checked}
           </Row>
         </Column>
-      </Box>
+      </MishkaCard>
       <Spacer size={26} />
     </Column>
     """
@@ -1099,15 +1097,18 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def watch_card(row) do
-    card = Palette.card()
-    shadow = Theme.shadow_card()
-
     # `Kati.Screens.Library.poster_tag/1` and not a tag of this screen's own:
     # a card and a grid tile are the same door onto the same row, and two
     # spellings of it would be two names for one destination. It answers
     # `open_series_<Title>` for a row with no `:kind` — which is every row of
     # `drawn_continue_watching/0`, and correct for both of them.
-    tap = {self(), Kati.Screens.Library.poster_tag(row)}
+    assigns = %{
+      tap: {self(), Kati.Screens.Library.poster_tag(row)},
+      still: Kati.Screens.Home.still(row.seed),
+      meta: Kati.Screens.Home.watch_meta(row.meta),
+      progress: row.progress || 0.0,
+      title: row.title
+    }
 
     # The title's `-.02em` is board 01's and board 55 draws `گودال بلند` at 0.
     # The card's title is a READ — `Kati.Media.CachedTitle`'s own name for the
@@ -1115,27 +1116,40 @@ defmodule Kati.Screens.Home do
     # ever showed one, which is what makes this tracking a device fault rather
     # than a fidelity one.
     ~MOB"""
-    <Box weight={1.0} on_tap={tap}>
-      <Box fill_width={true} background={card} corner_radius={20} shadow={shadow} padding={11}>
-        <Column fill_width={true}>
-          <Box fill_width={true} height={112} corner_radius={12} background={Palette.placeholder()}>
-            {Kati.Screens.Home.still(row.seed)}
-          </Box>
-          <Spacer size={11} />
-          <Text
-            text={row.title}
-            text_size={14.5}
-            font_weight="bold"
-            letter_spacing={Kati.Locale.tracking(-0.02)}
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          {Kati.Screens.Home.watch_meta(row.meta)}
-          <Spacer size={10} />
-          {Kati.Screens.Home.watch_bar(row.progress || 0.0)}
-        </Column>
-      </Box>
-    </Box>
+    <MishkaCard
+      weight={1.0}
+      background={Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card()}
+      padding={11}
+      on_tap={@tap}
+    >
+      <Column fill_width={true}>
+        <Box fill_width={true} height={112} corner_radius={12} background={Palette.placeholder()}>
+          {@still}
+        </Box>
+        <Spacer size={11} />
+        <Text
+          text={@title}
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={Kati.Locale.tracking(-0.02)}
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        {@meta}
+        <Spacer size={10} />
+        <MishkaProgress
+          render={:box}
+          value={@progress}
+          max={1}
+          height={4}
+          corner_radius={2}
+          color={Palette.ink()}
+          track_color={Palette.track()}
+        />
+      </Column>
+    </MishkaCard>
     """
   end
 
@@ -1186,15 +1200,19 @@ defmodule Kati.Screens.Home do
   """
   @spec watch_bar(float()) :: map()
   def watch_bar(progress) do
-    MishkaProgress.progress(
-      render: :box,
-      value: progress,
-      max: 1,
-      height: 4,
-      corner_radius: 2,
-      color: Palette.ink(),
-      track_color: Palette.track()
-    )
+    assigns = %{progress: progress}
+
+    ~MOB"""
+    <MishkaProgress
+      render={:box}
+      value={@progress}
+      max={1}
+      height={4}
+      corner_radius={2}
+      color={Palette.ink()}
+      track_color={Palette.track()}
+    />
+    """
   end
 
   # The 520x384 crop, which is what the design draws in these cards — a
@@ -1327,51 +1345,61 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def tile(%{icon: icon, title: title, meta: meta, dot: dot, tag: tag}) do
-    card = Palette.card()
-    shadow = Theme.shadow_card_soft()
-    tap = {self(), tag}
+    assigns = %{
+      glyph: UI.symbol(icon, size: 19),
+      title: title,
+      meta: Kati.Screens.Home.tile_meta(meta),
+      dot: Kati.Screens.Home.dot(dot),
+      tap: {self(), tag}
+    }
 
     # `وعده‌ها` and `عادت‌ها` are two of the three words on this band and both
     # are joined throughout, so the title's `-.01em` comes off under `:fa` the
     # way board 55 draws it. `max_lines={1}` was already here and stays: the
     # Persian words are shorter than the English ones, so nothing new wraps.
     ~MOB"""
-    <Box weight={1.0} on_tap={tap}>
-      <Box
-        fill_width={true}
-        background={card}
-        corner_radius={18}
-        shadow={shadow}
-        padding_left={12}
-        padding_right={12}
-        padding_top={13}
-        padding_bottom={13}
-      >
-        <Column fill_width={true}>
-          <Row fill_width={true} align="center">
-            {UI.symbol(icon, size: 19)}
-            <Spacer weight={1.0} />
-            {Kati.Screens.Home.dot(dot)}
-          </Row>
-          <Spacer size={10} />
-          <Text
-            text={title}
-            text_size={12.5}
-            font_weight="bold"
-            letter_spacing={Kati.Locale.tracking(-0.01)}
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          {Kati.Screens.Home.tile_meta(meta)}
-        </Column>
-      </Box>
-    </Box>
+    <MishkaCard
+      weight={1.0}
+      background={Palette.card()}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={12}
+      padding_right={12}
+      padding_top={13}
+      padding_bottom={13}
+      on_tap={@tap}
+    >
+      <Column fill_width={true}>
+        <Row fill_width={true} align="center">
+          {@glyph}
+          <Spacer weight={1.0} />
+          {@dot}
+        </Row>
+        <Spacer size={10} />
+        <Text
+          text={@title}
+          text_size={12.5}
+          font_weight="bold"
+          letter_spacing={Kati.Locale.tracking(-0.01)}
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        {@meta}
+      </Column>
+    </MishkaCard>
     """
   end
 
   @doc false
   def dot(nil), do: ~MOB"<Spacer size={0} />"
-  def dot(color), do: ~MOB"<Box width={6} height={6} corner_radius={3} background={color} />"
+
+  def dot(color) do
+    ~MOB"""
+    <MishkaActionIcon variant={:filled} size={6} shape={:circle} background={color}>
+      <Spacer size={0} />
+    </MishkaActionIcon>
+    """
+  end
 
   @doc false
   def tile_meta(nil), do: ~MOB"<Spacer size={0} />"
@@ -1503,12 +1531,9 @@ defmodule Kati.Screens.Home do
   """
   @spec rest_of_today([map()]) :: map()
   def rest_of_today([]) do
-    card = Palette.card()
-
     ~MOB"""
-    <Box
-      fill_width={true}
-      background={card}
+    <MishkaCard
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
       padding_left={15}
@@ -1522,18 +1547,23 @@ defmodule Kati.Screens.Home do
         line_height={1.55}
         text_color={Palette.sub()}
       />
-    </Box>
+    </MishkaCard>
     """
   end
 
   def rest_of_today(rows) do
-    card = Palette.card()
     last = length(rows) - 1
 
+    assigns = %{
+      rows:
+        rows
+        |> Enum.with_index()
+        |> Enum.map(fn {row, i} -> Kati.Screens.Home.timeline_row(row, i < last) end)
+    }
+
     ~MOB"""
-    <Box
-      fill_width={true}
-      background={card}
+    <MishkaCard
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
       padding_left={15}
@@ -1542,11 +1572,9 @@ defmodule Kati.Screens.Home do
       padding_bottom={5}
     >
       <Column fill_width={true}>
-        {rows |> Enum.with_index() |> Enum.map(fn {row, i} ->
-          Kati.Screens.Home.timeline_row(row, i < last)
-        end)}
+        {@rows}
       </Column>
-    </Box>
+    </MishkaCard>
     """
   end
 
@@ -1596,36 +1624,67 @@ defmodule Kati.Screens.Home do
     # The title takes `tracking/1` for the reason the cards above it do — board
     # 55 draws `گودال بلند — فصل ۲ قسمت ۶` at `letter-spacing:0`, and this row's
     # title is a read as well as a transcription.
+    assigns = %{
+      time: row.time,
+      title: row.title,
+      meta: row.meta,
+      accent: accent,
+      icon: icon,
+      tap: tap
+    }
+
+    leading = ~MOB"""
+    <Row align="center">
+      <Box width={40}>
+        <Text
+          text={@time}
+          font_family={Kati.Locale.mono_face(@time)}
+          text_size={12}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
+      </Box>
+      <Spacer size={14} />
+      <Box width={3} height={34} corner_radius={2} background={@accent} />
+    </Row>
+    """
+
+    body = [
+      ~MOB"""
+      <Text
+        text={@title}
+        text_size={14}
+        font_weight="semibold"
+        letter_spacing={Kati.Locale.tracking(-0.01)}
+        text_color={:on_surface}
+        max_lines={1}
+      />
+      """,
+      ~MOB"<Spacer size={3} />",
+      ~MOB"""
+      <Text text={@meta} text_size={12} text_color={Palette.sub()} max_lines={1} />
+      """
+    ]
+
+    row_node =
+      Kati.Components.MishkaListItem.list_item(
+        %{
+          leading: leading,
+          trailing: UI.symbol(icon, size: 20, color: Palette.rail_idle()),
+          gap: 14,
+          trailing_gap: 14,
+          padding_top: 14,
+          padding_bottom: 14,
+          on_tap: tap
+        },
+        body
+      )
+
+    assigns = Map.put(assigns, :row, row_node)
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14} on_tap={tap}>
-        <Box width={40}>
-          <Text
-            text={row.time}
-            font_family={Kati.Locale.mono_face(row.time)}
-            text_size={12}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
-        </Box>
-        <Spacer size={14} />
-        <Box width={3} height={34} corner_radius={2} background={accent} />
-        <Spacer size={14} />
-        <Column weight={1.0}>
-          <Text
-            text={row.title}
-            text_size={14}
-            font_weight="semibold"
-            letter_spacing={Kati.Locale.tracking(-0.01)}
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          <Spacer size={3} />
-          <Text text={row.meta} text_size={12} text_color={Palette.sub()} max_lines={1} />
-        </Column>
-        <Spacer size={14} />
-        {UI.symbol(icon, size: 20, color: Palette.rail_idle())}
-      </Row>
+      {@row}
       {Kati.Screens.Home.hairline(rule?)}
     </Column>
     """
@@ -1645,8 +1704,11 @@ defmodule Kati.Screens.Home do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
-  def hairline(true),
-    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
+  def hairline(true) do
+    ~MOB"""
+    <MishkaSeparator color={Palette.hairline()} thickness={1} render={:box} />
+    """
+  end
 
   @doc """
   `Sunday · 16 August` — the date line, in the reader's own calendar.

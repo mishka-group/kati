@@ -106,8 +106,7 @@ defmodule Kati.UI.TmdbPrompt do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Kati.Theme.Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -146,7 +145,7 @@ defmodule Kati.UI.TmdbPrompt do
           padding_right={4}
           align="center"
         >
-          <TextField
+          <MishkaTextInput
             value={@token}
             placeholder={Kati.Screens.DataSources.token_placeholder()}
             return_key="done"
@@ -166,7 +165,7 @@ defmodule Kati.UI.TmdbPrompt do
           <Spacer size={8} />
           {Kati.Screens.DataSources.save_pill({self(), :inline_save_token})}
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={18} />
     </Column>
     """
@@ -241,25 +240,22 @@ defmodule Kati.UI.TmdbPrompt do
   @doc false
   def skip_pill do
     ~MOB"""
-    <Row
+    <MishkaPill
+      label={gettext("Skip")}
       height={32}
       corner_radius={16}
       background={Kati.Theme.Palette.card()}
       border_width={1}
       border_color={Kati.Theme.Palette.border()}
+      padding={0}
       padding_left={14}
       padding_right={14}
-      align="center"
+      align={:center}
+      text_size={12.5}
+      font_weight={:semibold}
+      color={:on_surface}
       on_tap={{self(), :skip_tmdb_token}}
-    >
-      <Text
-        text={gettext("Skip")}
-        text_size={12.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
-    </Row>
+    />
     """
   end
 
@@ -271,8 +267,7 @@ defmodule Kati.UI.TmdbPrompt do
   def skipped_note do
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Kati.Theme.Palette.card()}
         corner_radius={18}
         padding_left={16}
@@ -302,7 +297,7 @@ defmodule Kati.UI.TmdbPrompt do
             max_lines={1}
           />
         </Row>
-      </Column>
+      </MishkaCard>
       <Spacer size={18} />
     </Column>
     """

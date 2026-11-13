@@ -818,8 +818,7 @@ defmodule Kati.Screens.SeriesMeta do
   def rating_card(r) do
     ~MOB"""
     <Box weight={1.0}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={16}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -850,7 +849,7 @@ defmodule Kati.Screens.SeriesMeta do
           />
           <Spacer weight={1.0} />
         </Row>
-      </Column>
+      </MishkaCard>
     </Box>
     """
   end
@@ -966,8 +965,7 @@ defmodule Kati.Screens.SeriesMeta do
     last = length(s.where) - 1
 
     ~MOB"""
-    <Column
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -979,31 +977,37 @@ defmodule Kati.Screens.SeriesMeta do
       {s.where
        |> Enum.with_index()
        |> Enum.map(fn {row, i} -> Kati.Screens.SeriesMeta.where_row(row, i < last) end)}
-    </Column>
+    </MishkaCard>
     """
   end
 
   @doc false
   def where_row(row, rule?) do
+    assigns = %{
+      badge: Kati.Screens.SeriesMeta.where_badge(row.badge),
+      price: Kati.Screens.SeriesMeta.price(row.price)
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        {Kati.Screens.SeriesMeta.where_badge(row.badge)}
-        <Spacer size={13} />
-        <Column weight={1.0}>
-          <Text
-            text={row.name}
-            text_size={13}
-            font_weight="semibold"
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          <Spacer size={2} />
-          <Text text={row.line} text_size={11} text_color={Palette.sub()} max_lines={1} />
-        </Column>
-        <Spacer size={13} />
-        {Kati.Screens.SeriesMeta.price(row.price)}
-      </Row>
+      <MishkaListItem
+        leading={@badge}
+        trailing={@price}
+        gap={13}
+        trailing_gap={13}
+        padding_top={13}
+        padding_bottom={13}
+      >
+        <Text
+          text={row.name}
+          text_size={13}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer size={2} />
+        <Text text={row.line} text_size={11} text_color={Palette.sub()} max_lines={1} />
+      </MishkaListItem>
       {Kati.Screens.SeriesMeta.hairline(rule?)}
     </Column>
     """

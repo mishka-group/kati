@@ -987,22 +987,26 @@ defmodule Kati.Screens.Search do
   # 19's word for a push that names no other.
   @doc false
   def back(label \\ gettext("Home")) do
-    tap = {self(), :back}
+    assigns = %{
+      tap: {self(), :back},
+      glyph: Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)
+    }
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Row
+        <MishkaPill
           height={44}
           corner_radius={22}
           background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
+          padding={0}
           padding_left={12}
           padding_right={16}
-          align="center"
-          on_tap={tap}
+          align={:center}
+          on_tap={@tap}
         >
-          {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
+          {@glyph}
           <Spacer size={6} />
           <Text
             text={label}
@@ -1012,7 +1016,7 @@ defmodule Kati.Screens.Search do
             text_color={:on_surface}
             max_lines={1}
           />
-        </Row>
+        </MishkaPill>
       </Row>
       <Spacer size={16} />
     </Column>
@@ -1062,8 +1066,8 @@ defmodule Kati.Screens.Search do
     # field at 235% holding `the long hollow estuary` in full.
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         min_height={52}
         corner_radius={26}
         background={Palette.card()}
@@ -1092,7 +1096,7 @@ defmodule Kati.Screens.Search do
         <Box on_tap={@clear} fill_width={false}>
           {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
         </Box>
-      </Row>
+      </MishkaCard>
       <Spacer size={18} />
     </Column>
     """
@@ -1385,8 +1389,8 @@ defmodule Kati.Screens.Search do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
+        direction={:row}
         corner_radius={18}
         background={Palette.card()}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -1408,7 +1412,7 @@ defmodule Kati.Screens.Search do
           weight={1.0}
         />
         {Kati.UI.symbol("chevron_right", size: 18, color: Palette.sub())}
-      </Row>
+      </MishkaCard>
       {Kati.Screens.Search.panel_note(@note)}
       <Spacer size={16} />
     </Column>
@@ -1518,31 +1522,27 @@ defmodule Kati.Screens.Search do
           n: Kati.Locale.number(count),
           scope: Kati.Search.scope_label(scope)
         ),
-      tap: {self(), String.to_atom("go_" <> Atom.to_string(scope))}
+      tap: {self(), String.to_atom("go_" <> Atom.to_string(scope))},
+      swap: Kati.UI.symbol("swap_horiz", size: 19, color: Kati.Theme.Palette.ink_soft()),
+      arrow: Kati.UI.symbol("arrow_forward", size: 17)
     }
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
         background={Kati.Theme.Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
-        align="center"
         on_tap={@tap}
       >
-        {Kati.UI.symbol("swap_horiz", size: 19, color: Kati.Theme.Palette.ink_soft())}
-        <Spacer size={12} />
-        <Column weight={1.0}>
+        <MishkaListItem leading={@swap} trailing={@arrow} gap={12} trailing_gap={12}>
           {Kati.UI.rich_text([
             {@lead, [text_size: 13, text_color: :on_surface, base: true]},
             {@over, :bold}
           ])}
-        </Column>
-        <Spacer size={12} />
-        {Kati.UI.symbol("arrow_forward", size: 17)}
-      </Row>
+        </MishkaListItem>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -1862,22 +1862,26 @@ defmodule Kati.Screens.Search do
 
   @doc false
   def more_pill(label, tap) do
-    assigns = %{label: label, tap: {self(), tap}}
+    assigns = %{
+      label: label,
+      tap: {self(), tap},
+      glyph: Kati.UI.symbol("expand_more", size: 18, color: Palette.sub())
+    }
 
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={12} />
-      <Row
+      <MishkaPill
         fill_width={true}
         height={44}
         corner_radius={22}
         background={Palette.card()}
         border_width={1}
         border_color={Palette.border()}
-        align="center"
+        padding={0}
+        align={:center}
         on_tap={@tap}
       >
-        <Spacer weight={1.0} />
         <Text
           text={@label}
           text_size={13}
@@ -1886,9 +1890,8 @@ defmodule Kati.Screens.Search do
           max_lines={1}
         />
         <Spacer size={4} />
-        {Kati.UI.symbol("expand_more", size: 18, color: Palette.sub())}
-        <Spacer weight={1.0} />
-      </Row>
+        {@glyph}
+      </MishkaPill>
     </Column>
     """
   end
@@ -1903,11 +1906,14 @@ defmodule Kati.Screens.Search do
   `tvmaze_add_` — because each section's positions start at 0.
   """
   def tmdb_row(row, open_prefix \\ "tmdb_open_", add_prefix \\ "add_") do
-    tap = {self(), String.to_atom(open_prefix <> Integer.to_string(row.position))}
+    assigns = %{
+      tap: {self(), String.to_atom(open_prefix <> Integer.to_string(row.position))},
+      thumb: Kati.Screens.AddTitle.thumb(row),
+      add: Kati.Screens.AddTitle.add_button(row.added, row.position, add_prefix)
+    }
 
     ~MOB"""
-    <Row
-      fill_width={true}
+    <MishkaCard
       background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -1915,12 +1921,9 @@ defmodule Kati.Screens.Search do
       padding_right={13}
       padding_top={11}
       padding_bottom={11}
-      align="center"
-      on_tap={tap}
+      on_tap={@tap}
     >
-      {Kati.Screens.AddTitle.thumb(row)}
-      <Spacer size={13} />
-      <Column weight={1.0}>
+      <MishkaListItem leading={@thumb} trailing={@add} gap={13} trailing_gap={13}>
         <Text
           text={row.title}
           text_size={14}
@@ -1937,10 +1940,8 @@ defmodule Kati.Screens.Search do
           text_color={Palette.muted()}
           max_lines={1}
         />
-      </Column>
-      <Spacer size={13} />
-      {Kati.Screens.AddTitle.add_button(row.added, row.position, add_prefix)}
-    </Row>
+      </MishkaListItem>
+    </MishkaCard>
     """
   end
 
@@ -2281,12 +2282,16 @@ defmodule Kati.Screens.Search do
   @doc false
   def title_row(row) do
     tag = Kati.Screens.Search.hit_tag(row)
-    tap = tag && {self(), tag}
+
+    assigns = %{
+      tap: tag && {self(), tag},
+      thumb: Kati.Screens.Search.thumb(row),
+      chevron: Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())
+    }
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -2294,12 +2299,9 @@ defmodule Kati.Screens.Search do
         padding_right={13}
         padding_top={10}
         padding_bottom={10}
-        align="center"
-        on_tap={tap}
+        on_tap={@tap}
       >
-        {Kati.Screens.Search.thumb(row)}
-        <Spacer size={12} />
-        <Column weight={1.0}>
+        <MishkaListItem leading={@thumb} trailing={@chevron} gap={12} trailing_gap={12}>
           <Text
             text={row.title}
             text_size={13.5}
@@ -2309,10 +2311,8 @@ defmodule Kati.Screens.Search do
           />
           <Spacer size={4} />
           <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={2} />
-        </Column>
-        <Spacer size={12} />
-        {Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())}
-      </Row>
+        </MishkaListItem>
+      </MishkaCard>
       <Spacer size={9} />
     </Column>
     """
@@ -2337,8 +2337,7 @@ defmodule Kati.Screens.Search do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
+      <MishkaCard
         background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
@@ -2350,7 +2349,7 @@ defmodule Kati.Screens.Search do
         {results.calendar
          |> Enum.with_index()
          |> Enum.map(fn {row, i} -> Kati.Screens.Search.calendar_row(row, i < last) end)}
-      </Column>
+      </MishkaCard>
       <Spacer size={22} />
     </Column>
     """
@@ -2451,7 +2450,7 @@ defmodule Kati.Screens.Search do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
+      <MishkaCard background={Palette.cream()} corner_radius={20} padding={16}>
         <Text
           text={note.eyebrow}
           font_family={Kati.Locale.mono_face(note.eyebrow)}
@@ -2490,7 +2489,7 @@ defmodule Kati.Screens.Search do
         </Row>
         {Kati.Screens.Search.note_leading()}
         <Text text={rest} text_size={13} line_height={1.55} text_color={Palette.cream_body()} />
-      </Column>
+      </MishkaCard>
       {Kati.Screens.Search.note_gap()}
     </Column>
     """
@@ -2603,20 +2602,29 @@ defmodule Kati.Screens.Search do
     color = if on?, do: Palette.on_ink(), else: Palette.ink_soft()
     icon = if on?, do: Palette.on_ink_count(), else: Palette.muted()
 
+    assigns = %{
+      tap: tap,
+      background: background,
+      color: color,
+      glyph: Kati.UI.symbol("history", size: 14, color: icon)
+    }
+
     ~MOB"""
-    <Row
+    <MishkaPill
+      label={label}
+      leading={@glyph}
+      leading_gap={6}
       height={30}
       corner_radius={15}
-      background={background}
+      background={@background}
+      color={@color}
+      padding={0}
       padding_left={12}
       padding_right={12}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol("history", size: 14, color: icon)}
-      <Spacer size={6} />
-      <Text text={label} text_size={12} text_color={color} max_lines={1} />
-    </Row>
+      align={:center}
+      text_size={12}
+      on_tap={@tap}
+    />
     """
   end
 end
