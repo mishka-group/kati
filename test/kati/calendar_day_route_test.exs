@@ -478,7 +478,7 @@ defmodule Kati.CalendarDayRouteTest do
     cell = find(resting(view_or_tree), :box, on_tap: {self(), tag})
     assert cell, "no day cell is tagged #{inspect(tag)}"
 
-    column = find(cell, :column)
+    column = cell |> Mob.Composite.expand(self()) |> find(:column)
     assert column, "the cell tagged #{inspect(tag)} holds no Column to be filled"
 
     column.props[:background]

@@ -185,7 +185,11 @@ defmodule Kati.NotificationsInboxTest do
     end
 
     test "it renders a tree the native layer can take" do
-      assert_renderable(mount_screen(InboxNotifications))
+      assert_renderable(
+        mount_screen(InboxNotifications)
+        |> tree()
+        |> Mob.Composite.expand(self())
+      )
     end
   end
 
