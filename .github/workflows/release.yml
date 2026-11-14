@@ -15,10 +15,11 @@ permissions:
   contents: read
 
 env:
-  ELIXIR_VERSION: "1.20.2"
-  OTP_VERSION: "29.0.2"
-  # Exact, not a floor: MobDev.Toolchain refuses any other zig.
-  ZIG_VERSION: "0.17.0-dev.269+ebff43698"
+  # The versions in .tool-versions, which CI tests with.
+  ELIXIR_VERSION: "1.20.5-otp-29"
+  OTP_VERSION: "29.1.2"
+  # Exact, not a floor: MobDev.Toolchain refuses any other zig (mob_dev 0.7.31 wants 0.17.0).
+  ZIG_VERSION: "0.17.0"
   ANDROID_NDK_VERSION: "27.2.12479018"
   JAVA_VERSION: "17"
 
@@ -66,9 +67,22 @@ jobs:
           echo "publish: $([ "${{ github.ref_type }}" = "tag" ] && echo yes || echo 'no (dry run)')" >> "$GITHUB_STEP_SUMMARY"
 
   test:
-    name: Unit tests
+    name: CI
     needs: version
-    uses: ./.github/workflows/test.yml
+    # Switch to @ci-v1 once mishka-group/mishka_cms#77 is merged and tagged.
+    uses: mishka-group/mishka_cms/.github/workflows/mishka-ci.yml@ci-v1
+    with:
+      # mob_dev is dev-only: lib/mix/tasks/kati.e2e.stage.ex warns under MIX_ENV=test.
+      warnings-as-errors: false
+      mix-audit: false
+      # mix.lock also locks the KATI_UI_GEN generator deps (mishka_chelekom and its tree).
+      unused-deps: false
+      # Never in CI: credo --strict reports 6 warnings and 4500+ suggestions today.
+      credo: false
+      dialyzer: false
+      ex_dna: false
+      # The NIF chain test reads mob.exs (gitignored: it holds machine paths).
+      pre-test: cp .github/mob.ci.exs mob.exs
 
   android:
     name: Android (arm64-v8a / armeabi-v7a / universal APKs + AAB)
