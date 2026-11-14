@@ -70,7 +70,7 @@ jobs:
     name: CI
     needs: version
     # Switch to @ci-v1 once mishka-group/mishka_cms#77 is merged and tagged.
-    uses: mishka-group/mishka_cms/.github/workflows/mishka-ci.yml@ci/shared-workflows
+    uses: mishka-group/mishka_cms/.github/workflows/mishka-ci.yml@ci-v1
     with:
       # mob_dev is dev-only: lib/mix/tasks/kati.e2e.stage.ex warns under MIX_ENV=test.
       warnings-as-errors: false
