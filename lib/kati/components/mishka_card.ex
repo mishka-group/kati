@@ -41,6 +41,8 @@ defmodule Kati.Components.MishkaCard do
 
   * `title_level` — Mob text nodes carry no heading role.
   * `href` / `navigate` / `patch` — `on_tap` is the native click target.
+  * `on_long_press` is a Mob prop, not a web one: a card that holds a row
+    action passes `{pid, tag}` and the screen receives `{:long_press, tag}`.
   * `class` and the `*_class` hooks — Mob styles through the props below.
 
   ## Slots
@@ -184,6 +186,10 @@ defmodule Kati.Components.MishkaCard do
       |> put_some(:border_color, Map.get(props, :border_color))
       |> put_some(:border_width, Map.get(props, :border_width))
       |> put_some(:on_tap, Map.get(props, :on_tap))
+      # The card is a surface people hold their finger on as often as they tap
+      # it — a row action hidden from the page (Remove, in Habits) lives here.
+      # Passed through as mob's own prop; the message is `{:long_press, tag}`.
+      |> put_some(:on_long_press, Map.get(props, :on_long_press))
       |> put_some(:id, Map.get(props, :id))
 
     base = put_some(base, :align, Map.get(props, :align))

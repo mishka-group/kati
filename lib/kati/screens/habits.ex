@@ -105,7 +105,6 @@ defmodule Kati.Screens.Habits do
     |> Mob.Socket.assign(:adding?, false)
     |> Mob.Socket.assign(:draft, "")
     |> Mob.Socket.assign(:save_error, nil)
-    |> Mob.Socket.assign(:menu, nil)
     |> Mob.Socket.assign(:confirming, nil)
     |> refresh()
   end
@@ -224,7 +223,7 @@ defmodule Kati.Screens.Habits do
   def body(assigns) do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.Habits.cards(assigns.habits, assigns.menu)}
+      {Kati.Screens.Habits.cards(assigns.habits)}
     </Column>
     """
   end
@@ -367,10 +366,10 @@ defmodule Kati.Screens.Habits do
   end
 
   @doc false
-  def cards(habits, menu \\ nil) do
+  def cards(habits) do
     children =
       habits
-      |> Enum.map(&card(&1, menu))
+      |> Enum.map(&card/1)
       |> Enum.intersperse(card_gap())
 
     ~MOB"""
@@ -385,58 +384,63 @@ defmodule Kati.Screens.Habits do
   def card_gap, do: ~MOB"<Spacer size={11} />"
 
   @doc false
-  def card(habit, menu \\ nil) do
+  def card(habit) do
     name = habit.name
     streak = streak_line(habit.streak)
     ruler = week_ruler()
 
-    ~MOB"""
-    <MishkaCard
-      id={"habit_" <> habit.id}
-      background={Palette.card()}
-      corner_radius={20}
-      shadow={Kati.Theme.shadow_card_soft()}
-      padding={15}
-      fill_width={true}
-    >
-      <Row fill_width={true} align="center">
-        <Column weight={1.0}>
+    press = long_press(habit)
+
+    node =
+      ~MOB"""
+      <MishkaCard
+        id={"habit_" <> habit.id}
+        background={Palette.card()}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={15}
+        fill_width={true}
+        on_long_press={press}
+      >
+        <Row fill_width={true} align="center">
+          <Column weight={1.0}>
+            <Text
+              text={name}
+              text_size={14}
+              font_weight="bold"
+              letter_spacing={Kati.Locale.tracking(-0.015)}
+              text_color={:on_surface}
+              max_lines={1}
+            />
+            <Spacer size={4} />
+            <Text
+              text={streak}
+              font_family={Kati.Locale.mono_face(streak)}
+              text_size={10.5}
+              text_color={Palette.muted()}
+              max_lines={1}
+            />
+          </Column>
+          <Spacer size={12} />
+          {Kati.Screens.Habits.today_button(habit.today, habit.id)}
+        </Row>
+        <Spacer size={13} />
+        <Row fill_width={true} align="center">
+          {Kati.Screens.Habits.week(habit)}
+          <Spacer weight={1.0} />
           <Text
-            text={name}
-            text_size={14}
-            font_weight="bold"
-            letter_spacing={Kati.Locale.tracking(-0.015)}
-            text_color={:on_surface}
+            text={ruler}
+            font_family={Kati.Locale.mono_face(ruler)}
+            text_size={9.5}
+            letter_spacing={Kati.Locale.tracking(0.08)}
+            text_color={Palette.rail_idle()}
             max_lines={1}
           />
-          <Spacer size={4} />
-          <Text
-            text={streak}
-            font_family={Kati.Locale.mono_face(streak)}
-            text_size={10.5}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
-        </Column>
-        <Spacer size={12} />
-        {Kati.Screens.Habits.menu(habit, menu)}
-        {Kati.Screens.Habits.today_button(habit.today, habit.id)}
-      </Row>
-      <Spacer size={13} />
-      <Row fill_width={true} align="center">
-        {Kati.Screens.Habits.week(habit)}
-        <Spacer weight={1.0} />
-        <Text
-          text={ruler}
-          font_family={Kati.Locale.mono_face(ruler)}
-          text_size={9.5}
-          letter_spacing={Kati.Locale.tracking(0.08)}
-          text_color={Palette.rail_idle()}
-          max_lines={1}
-        />
-      </Row>
-    </MishkaCard>
-    """
+        </Row>
+      </MishkaCard>
+      """
+
+    if press, do: node, else: %{node | props: Map.delete(node.props, :on_long_press)}
   end
 
   @doc """
@@ -558,49 +562,23 @@ defmodule Kati.Screens.Habits do
     """
   end
 
-  @doc """
-  A card's `more_horiz` disc and its one row: **Remove habit**.
-
-  The disc is only drawn on a real row. The drawing's fixture cards have ids
-  that name no record, and a menu that opens onto a Remove which cannot remove
-  anything is the kind of control the board never drew and this app should not
-  invent — `Kati.Screens.Habits.menu/2` answers an empty spacer for them.
-  """
-  def menu(%{id: id} = habit, open) do
-    if Map.get(habit, :real, false) do
-      trigger =
-        MishkaActionIcon.action_icon(
-          [
-            id: "habit_menu_" <> id,
-            size: 30,
-            shape: :circle,
-            variant: :filled,
-            background: Palette.paper(),
-            on_tap: {self(), {:open_menu, id}}
-          ],
-          [Kati.UI.symbol("more_horiz", size: 17, color: Palette.muted())]
-        )
-
-      Kati.Components.MishkaMenu.dropdown(
-        trigger,
-        open == id,
-        [
-          Kati.Components.MishkaMenu.item("remove", gettext("Remove habit"),
-            danger: true,
-            on_tap: {self(), {:remove_habit, id}}
-          )
-        ],
-        width: 210
-      )
-    else
-      ~MOB"<Spacer size={0} />"
-    end
+  # Holding a card is the only way in. A visible ⋯ on every card is a control
+  # the board never drew, and a row action people rarely use does not need to
+  # stand on the page — the drawing's card is a surface, and this is what a
+  # held surface answers.
+  #
+  # `nil` on the board's fixture cards: their ids name no row, and a hold that
+  # opens a Delete which cannot delete is the same lie a dead button is.
+  defp long_press(habit) do
+    if Map.get(habit, :real, false),
+      do: {self(), {:confirm_delete, habit.id}},
+      else: nil
   end
 
   @doc """
-  The confirmation an accidental tap cannot get past.
+  The confirmation a hold opens.
 
-  Removing a habit destroys its ticks — the streak, the week strip and the
+  Deleting a habit destroys its ticks — the streak, the week strip and the
   field's cells all go — so it takes a second, explicit choice. An alert
   dialog is the component for exactly that; it cannot be dismissed by tapping
   the backdrop (`Kati.Components.MishkaAlertDialog`'s own rule).
@@ -611,7 +589,7 @@ defmodule Kati.Screens.Habits do
 
     ~MOB"""
     <MishkaAlertDialog id="habit_delete" open={open?} on_close={{self(), :cancel_delete}}>
-      <MishkaDialogTitle text={gettext("Remove this habit?")} />
+      <MishkaDialogTitle text={gettext("Delete this habit?")} />
       <MishkaDialogDescription
         text={gettext("Its ticks and streak are deleted with it. This cannot be undone.")}
       />
@@ -621,7 +599,7 @@ defmodule Kati.Screens.Habits do
         on_tap={{self(), :cancel_delete}}
       />
       <MishkaAlertDialogAction
-        text={gettext("Remove")}
+        text={gettext("Delete")}
         id="habit_delete_go"
         variant={:danger}
         on_tap={{self(), :confirm_delete}}
@@ -679,6 +657,10 @@ defmodule Kati.Screens.Habits do
     {:noreply, Mob.Socket.assign(socket, :confirming, nil)}
   end
 
+  def handle_tap({:confirm_delete, habit_id}, socket) do
+    {:noreply, Mob.Socket.assign(socket, :confirming, habit_id)}
+  end
+
   def handle_tap(:confirm_delete, socket) do
     case socket.assigns.confirming do
       nil ->
@@ -690,7 +672,6 @@ defmodule Kati.Screens.Habits do
             {:noreply,
              socket
              |> Mob.Socket.assign(:confirming, nil)
-             |> Mob.Socket.assign(:menu, nil)
              |> refresh()}
 
           {:error, reason} ->
@@ -735,6 +716,10 @@ defmodule Kati.Screens.Habits do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  # A held card. mob delivers it apart from the tap stream, so it is routed to
+  # the same handler rather than given a second way to say the same thing.
+  def handle_info({:long_press, tag}, socket), do: handle_tap(tag, socket)
 
   def handle_info({:tap, tag}, socket) do
     Kati.Screens.Root.rescue_tap(__MODULE__, tag, socket)

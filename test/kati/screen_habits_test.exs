@@ -138,22 +138,20 @@ defmodule Kati.ScreenHabitsTest do
     end
   end
 
-  describe "removing a habit" do
+  describe "deleting a habit" do
     setup do
       {:ok, habit} = Habits.add(@prefix <> "Old")
       {:ok, _kept} = Habits.toggle(habit.id, Kati.Time.today())
       %{habit: habit}
     end
 
-    test "the menu opens and Remove asks before anything is destroyed", %{habit: habit} do
+    test "holding a card asks first, and Cancel destroys nothing", %{habit: habit} do
       view = mount_screen(Screen)
 
-      view = render_info(view, {:tap, {:open_menu, habit.id}})
-      assert assigns(view).menu == habit.id
+      assert assigns(view).confirming == nil
 
-      view = render_info(view, {:tap, {:remove_habit, habit.id}})
+      view = render_info(view, {:long_press, {:confirm_delete, habit.id}})
       assert assigns(view).confirming == habit.id
-      assert assigns(view).menu == nil
       assert length(Habits.list()) == 1
 
       view = render_info(view, {:tap, :cancel_delete})
@@ -161,10 +159,10 @@ defmodule Kati.ScreenHabitsTest do
       assert length(Habits.list()) == 1
     end
 
-    test "a confirmed Remove deletes the habit and its ticks", %{habit: habit} do
+    test "a confirmed Delete removes the habit and its ticks", %{habit: habit} do
       view =
         mount_screen(Screen)
-        |> render_info({:tap, {:remove_habit, habit.id}})
+        |> render_info({:long_press, {:confirm_delete, habit.id}})
         |> render_info({:tap, :confirm_delete})
 
       assert assigns(view).habits == []
@@ -175,11 +173,12 @@ defmodule Kati.ScreenHabitsTest do
              "the ticks were left behind, pointing at a habit that is gone"
     end
 
-    test "the menu closes on a second tap of the same disc", %{habit: habit} do
-      view = mount_screen(Screen) |> render_info({:tap, {:open_menu, habit.id}})
-      view = render_info(view, {:tap, {:open_menu, habit.id}})
-
-      assert assigns(view).menu == nil
+    test "the board's fixture cards have no hold" do
+      # The drawing's cards name no row, so nothing on them can be held into a
+      # Delete that cannot delete.
+      for card <- Screen.drawn_habits() do
+        refute Map.has_key?(Screen.card(card).props, :on_long_press)
+      end
     end
   end
 
