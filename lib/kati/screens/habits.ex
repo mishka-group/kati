@@ -105,6 +105,8 @@ defmodule Kati.Screens.Habits do
     |> Mob.Socket.assign(:adding?, false)
     |> Mob.Socket.assign(:draft, "")
     |> Mob.Socket.assign(:save_error, nil)
+    |> Mob.Socket.assign(:menu, nil)
+    |> Mob.Socket.assign(:confirming, nil)
     |> refresh()
   end
 
@@ -121,21 +123,24 @@ defmodule Kati.Screens.Habits do
       end
 
     ~MOB"""
-    <Scroll>
-      <Column
-        fill_width={true}
-        padding_left={21}
-        padding_right={21}
-        padding_top={64}
-        padding_bottom={40}
-      >
-        {Kati.Screens.Habits.back_gap()}
-        {Kati.Screens.Habits.header(habits)}
-        {Kati.Screens.Habits.composer(assigns)}
-        {Kati.Screens.Habits.body(assigns)}
-        {field_band}
-      </Column>
-    </Scroll>
+    <Box fill_width={true} fill_height={true}>
+      <Scroll fill_height={true}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.Habits.back_gap()}
+          {Kati.Screens.Habits.header(habits)}
+          {Kati.Screens.Habits.composer(assigns)}
+          {Kati.Screens.Habits.body(assigns)}
+          {field_band}
+        </Column>
+      </Scroll>
+      {Kati.Screens.Habits.confirm_dialog(assigns)}
+    </Box>
     """
   end
 
@@ -219,7 +224,7 @@ defmodule Kati.Screens.Habits do
   def body(assigns) do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.Habits.cards(assigns.habits)}
+      {Kati.Screens.Habits.cards(assigns.habits, assigns.menu)}
     </Column>
     """
   end
@@ -362,10 +367,10 @@ defmodule Kati.Screens.Habits do
   end
 
   @doc false
-  def cards(habits) do
+  def cards(habits, menu \\ nil) do
     children =
       habits
-      |> Enum.map(&card/1)
+      |> Enum.map(&card(&1, menu))
       |> Enum.intersperse(card_gap())
 
     ~MOB"""
@@ -380,7 +385,7 @@ defmodule Kati.Screens.Habits do
   def card_gap, do: ~MOB"<Spacer size={11} />"
 
   @doc false
-  def card(habit) do
+  def card(habit, menu \\ nil) do
     name = habit.name
     streak = streak_line(habit.streak)
     ruler = week_ruler()
@@ -414,6 +419,7 @@ defmodule Kati.Screens.Habits do
           />
         </Column>
         <Spacer size={12} />
+        {Kati.Screens.Habits.menu(habit, menu)}
         {Kati.Screens.Habits.today_button(habit.today, habit.id)}
       </Row>
       <Spacer size={13} />
@@ -552,6 +558,78 @@ defmodule Kati.Screens.Habits do
     """
   end
 
+  @doc """
+  A card's `more_horiz` disc and its one row: **Remove habit**.
+
+  The disc is only drawn on a real row. The drawing's fixture cards have ids
+  that name no record, and a menu that opens onto a Remove which cannot remove
+  anything is the kind of control the board never drew and this app should not
+  invent — `Kati.Screens.Habits.menu/2` answers an empty spacer for them.
+  """
+  def menu(%{id: id} = habit, open) do
+    if Map.get(habit, :real, false) do
+      trigger =
+        MishkaActionIcon.action_icon(
+          [
+            id: "habit_menu_" <> id,
+            size: 30,
+            shape: :circle,
+            variant: :filled,
+            background: Palette.paper(),
+            on_tap: {self(), {:open_menu, id}}
+          ],
+          [Kati.UI.symbol("more_horiz", size: 17, color: Palette.muted())]
+        )
+
+      Kati.Components.MishkaMenu.dropdown(
+        trigger,
+        open == id,
+        [
+          Kati.Components.MishkaMenu.item("remove", gettext("Remove habit"),
+            danger: true,
+            on_tap: {self(), {:remove_habit, id}}
+          )
+        ],
+        width: 210
+      )
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
+
+  @doc """
+  The confirmation an accidental tap cannot get past.
+
+  Removing a habit destroys its ticks — the streak, the week strip and the
+  field's cells all go — so it takes a second, explicit choice. An alert
+  dialog is the component for exactly that; it cannot be dismissed by tapping
+  the backdrop (`Kati.Components.MishkaAlertDialog`'s own rule).
+  """
+  def confirm_dialog(assigns) do
+    confirming = Map.get(assigns, :confirming)
+    open? = confirming != nil
+
+    ~MOB"""
+    <MishkaAlertDialog id="habit_delete" open={open?} on_close={{self(), :cancel_delete}}>
+      <MishkaDialogTitle text={gettext("Remove this habit?")} />
+      <MishkaDialogDescription
+        text={gettext("Its ticks and streak are deleted with it. This cannot be undone.")}
+      />
+      <MishkaAlertDialogAction
+        text={gettext("Cancel")}
+        id="habit_delete_cancel"
+        on_tap={{self(), :cancel_delete}}
+      />
+      <MishkaAlertDialogAction
+        text={gettext("Remove")}
+        id="habit_delete_go"
+        variant={:danger}
+        on_tap={{self(), :confirm_delete}}
+      />
+    </MishkaAlertDialog>
+    """
+  end
+
   # ── What a tap changes ────────────────────────────────────────────────────
 
   @impl true
@@ -584,6 +662,42 @@ defmodule Kati.Screens.Habits do
 
       {:error, reason} ->
         {:noreply, Mob.Socket.assign(socket, :save_error, save_message(reason))}
+    end
+  end
+
+  def handle_tap({:open_menu, habit_id}, socket) do
+    open = if socket.assigns.menu == habit_id, do: nil, else: habit_id
+    {:noreply, Mob.Socket.assign(socket, :menu, open)}
+  end
+
+  def handle_tap({:remove_habit, habit_id}, socket) do
+    {:noreply,
+     socket |> Mob.Socket.assign(:menu, nil) |> Mob.Socket.assign(:confirming, habit_id)}
+  end
+
+  def handle_tap(:cancel_delete, socket) do
+    {:noreply, Mob.Socket.assign(socket, :confirming, nil)}
+  end
+
+  def handle_tap(:confirm_delete, socket) do
+    case socket.assigns.confirming do
+      nil ->
+        {:noreply, socket}
+
+      habit_id ->
+        case Habits.delete(habit_id) do
+          :ok ->
+            {:noreply,
+             socket
+             |> Mob.Socket.assign(:confirming, nil)
+             |> Mob.Socket.assign(:menu, nil)
+             |> refresh()}
+
+          {:error, reason} ->
+            {:noreply,
+             socket
+             |> Mob.Socket.assign(:save_error, Kati.Write.message({:error, reason}))}
+        end
     end
   end
 
@@ -666,6 +780,7 @@ defmodule Kati.Screens.Habits do
     Enum.map(habits, fn habit ->
       %{
         id: habit.id,
+        real: true,
         name: habit.name,
         streak: Habits.streak(habit.id, today, kept?(ticks)),
         best: Habits.longest(habit.id, ticks),

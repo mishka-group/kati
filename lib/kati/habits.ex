@@ -149,6 +149,54 @@ defmodule Kati.Habits do
   end
 
   @doc """
+  Remove a habit, and every day it was kept with it.
+
+  The ticks go at the database: `habit_ticks`' reference carries
+  `on_delete: :delete`, so a habit destroyed here cannot leave a tick pointing
+  at nothing. That is the right shape for a delete — a tick with no habit is
+  not history, it is a row nobody can read.
+
+  Returns `:ok` or `{:error, reason}` so the screen can keep the confirmation
+  open and say what happened. `Kati.Write`'s contract: a write never answers a
+  bare `:ok` it did not earn.
+  """
+  @spec delete(term()) :: :ok | {:error, term()}
+  def delete(habit_id) do
+    with {:ok, habit} <- Ash.get(Kati.Habits.Habit, habit_id),
+         :ok <- delete_ticks(habit_id) do
+      case Ash.destroy(habit) do
+        :ok -> :ok
+        {:ok, _gone} -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  # Ticks go before the habit, not after. The reference carries
+  # `on_delete: :delete`, and a device migrated before that was written into
+  # the migration keeps a foreign key that only refuses — so the delete is done
+  # here in the order both schemas accept. An interrupted run leaves the habit
+  # in place with some ticks gone, never a tick pointing at nothing.
+  defp delete_ticks(habit_id) do
+    Kati.Habits.Tick
+    |> Ash.Query.filter(habit_id == ^habit_id)
+    |> Ash.read()
+    |> case do
+      {:ok, ticks} ->
+        Enum.reduce_while(ticks, :ok, fn tick, :ok ->
+          case Ash.destroy(tick) do
+            :ok -> {:cont, :ok}
+            {:ok, _gone} -> {:cont, :ok}
+            {:error, reason} -> {:halt, {:error, reason}}
+          end
+        end)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc """
   The streak ending today, or ending yesterday when today is not yet kept.
 
   Ending **yesterday** matters: an untapped today is a day that has not

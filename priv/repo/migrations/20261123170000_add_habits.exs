@@ -27,7 +27,8 @@ defmodule Kati.Repo.Migrations.AddHabits do
         references(:habits,
           column: :id,
           name: "habit_ticks_habit_id_fkey",
-          type: :uuid
+          type: :uuid,
+          on_delete: :delete_all
         ),
         null: false
       )

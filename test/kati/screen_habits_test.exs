@@ -138,6 +138,51 @@ defmodule Kati.ScreenHabitsTest do
     end
   end
 
+  describe "removing a habit" do
+    setup do
+      {:ok, habit} = Habits.add(@prefix <> "Old")
+      {:ok, _kept} = Habits.toggle(habit.id, Kati.Time.today())
+      %{habit: habit}
+    end
+
+    test "the menu opens and Remove asks before anything is destroyed", %{habit: habit} do
+      view = mount_screen(Screen)
+
+      view = render_info(view, {:tap, {:open_menu, habit.id}})
+      assert assigns(view).menu == habit.id
+
+      view = render_info(view, {:tap, {:remove_habit, habit.id}})
+      assert assigns(view).confirming == habit.id
+      assert assigns(view).menu == nil
+      assert length(Habits.list()) == 1
+
+      view = render_info(view, {:tap, :cancel_delete})
+      assert assigns(view).confirming == nil
+      assert length(Habits.list()) == 1
+    end
+
+    test "a confirmed Remove deletes the habit and its ticks", %{habit: habit} do
+      view =
+        mount_screen(Screen)
+        |> render_info({:tap, {:remove_habit, habit.id}})
+        |> render_info({:tap, :confirm_delete})
+
+      assert assigns(view).habits == []
+      assert assigns(view).confirming == nil
+      assert Habits.list() == []
+
+      assert Habits.ticks(Kati.Time.today(), Kati.Time.today()) == %{},
+             "the ticks were left behind, pointing at a habit that is gone"
+    end
+
+    test "the menu closes on a second tap of the same disc", %{habit: habit} do
+      view = mount_screen(Screen) |> render_info({:tap, {:open_menu, habit.id}})
+      view = render_info(view, {:tap, {:open_menu, habit.id}})
+
+      assert assigns(view).menu == nil
+    end
+  end
+
   describe "the field and the header" do
     test "one habit kept today is a one-day best and a full cell" do
       {:ok, habit} = Habits.add(@prefix <> "One")
