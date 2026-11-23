@@ -1976,7 +1976,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.Screens.AddMedication.refusal/0` is the same function the tap
       # sets, so the board's sentence and the screen's cannot drift.
       {"188", Kati.Screens.AddMedication,
-       &Map.put(&1, :save_error, Kati.Screens.AddMedication.refusal())}
+       &Map.put(&1, :save_error, Kati.Screens.AddMedication.refusal())},
+      # 22 is board 22's own four habits and 91-cell field, installed as
+      # assigns rather than stored: the page reads `Kati.Habits` now, and a
+      # device with nothing kept draws its empty card instead. This is the same
+      # tree the file compared before the migration, and
+      # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` holds the other half —
+      # that no device answers with it.
+      {"22", Kati.Screens.Habits, &Kati.Screens.Habits.drawn_state/1}
     ]
   end
 

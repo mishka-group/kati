@@ -124,7 +124,7 @@ defmodule Kati.Backup.Catalog do
   #     reminder, which is what every event was on that device.
   #   * **21** — `tracked_titles` gained `watch_on`: the service a title is
   #     watched on. A version-20 row takes `NULL`, a title nobody placed.
-  @schema_version 21
+  @schema_version 22
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -136,6 +136,7 @@ defmodule Kati.Backup.Catalog do
     Kati.Media,
     Kati.Meals,
     Kati.Goals,
+    Kati.Habits,
     Kati.Health,
     Kati.Lists,
     Kati.Money,
@@ -151,6 +152,12 @@ defmodule Kati.Backup.Catalog do
     %{table: "events", resource: Kati.Calendars.Event, drop: []},
     %{table: "event_occurrence_overrides", resource: Kati.Calendars.Override, drop: []},
     %{table: "sync_rejected_changes", resource: Kati.Sync.RejectedChange, drop: []},
+    # A habit is a name somebody wrote and a tick per day they kept it. Nothing
+    # regenerates either, and a streak is a count over those ticks — a restore
+    # that dropped them would reset every streak on screen 22 to nothing,
+    # silently, on the one operation the reader runs because they lost a phone.
+    %{table: "habits", resource: Kati.Habits.Habit, drop: []},
+    %{table: "habit_ticks", resource: Kati.Habits.Tick, drop: []},
     %{table: "tracked_titles", resource: Kati.Media.TrackedTitle, drop: []},
     %{table: "media_watches", resource: Kati.Media.Watch, drop: []},
     # Both are user-authored and neither is derivable. A content warning is

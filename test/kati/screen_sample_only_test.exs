@@ -69,34 +69,20 @@ defmodule Kati.ScreenSampleOnlyTest do
   alias Kati.DesignLiterals
   alias Kati.ScreenSweep
 
-  # The screens still on their Sample modules, by the design number their
-  # drawing is filed under.
+  # A screen still on its Sample module, by the design number its drawing is
+  # filed under.
   #
-  # 22 and 23 join the four for the same kind of reason, and each says which in
-  # its own moduledoc:
+  # **22 Habits left this list on 23 November 2026**, and it was the last one.
+  # It was the exemplar of a screen that could not move: no resource anywhere
+  # recorded a habit being kept, and every number it drew was a count over that
+  # missing history. `Kati.Habits` is that resource now — a habit and a per-day
+  # tick — so the page reads its own store, and a fresh install draws a sentence
+  # and a button rather than four habits with streaks nobody has. It is held by
+  # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` instead.
   #
-  #   * **22 Habits** — `Kati.Calendars.Event.kind` can say a repeating item is
-  #     a habit, and nothing anywhere records that one was **kept**.
-  #     `Kati.Calendars.Override.kind` is `:modified | :cancelled`, so an
-  #     occurrence can be called off and cannot be ticked. Every number the
-  #     screen draws — the streak, the seven squares, the 13-week field, the
-  #     header's best — is a count over that missing history.
-  #
-  # **23 Subscriptions left this list on 6 September.** Its reason was that no
-  # table held a price — `Kati.Services.Service.monthly_pence` does, and has
-  # since screen 92 could write one. What it was still missing was the HOURS,
-  # and `Kati.Media.CachedTitle.providers` supplies those without asking
-  # anybody to log where they watched something: a title is on the services
-  # JustWatch says it is on, and a watch of it is an hour spent on one of them.
-  # `Kati.Subscriptions` carries the argument and the defect.
-  #
-  # **18 Quick add left this list on 6 September.** Its reason was that it had
-  # no field, no parser and no writer. `Kati.QuickAdd.Parse` is the parser,
-  # `Kati.Calendars.Today.timed/1` is where the clash comes from, and
-  # `Kati.Screens.QuickAdd.commit/1` writes a `Kati.Calendars.Event`.
-  @on_sample [
-    {"22", Kati.Screens.Habits}
-  ]
+  # The list stays because the machinery is what a future screen joins: the
+  # moment one is drawn from a Sample and nothing else, it belongs here again.
+  @on_sample []
 
   # Ecto's own ledger and the DETS-replacing store Mob keeps screen state in.
   # Everything else in the schema is an Ash resource's table and gets emptied.

@@ -651,7 +651,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # aimed at a different album from the screen that opened it would rate the
     # wrong record.
     {"178", Kati.Screens.AddByHandRecord},
-    {"180", Kati.Screens.RateAlbum}
+    {"180", Kati.Screens.RateAlbum},
+    # 22 joined on 23 November 2026, when `Kati.Habits` gave it a store. It was
+    # the file's own exemplar of a screen that reads nothing — every number it
+    # drew was a count over a history no table held — so the entry that said
+    # so is gone and this one renders it against an empty database instead.
+    {"22", Kati.Screens.Habits}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -1054,6 +1059,19 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        "and 28 is a gallery board rather than a root — `Kati.AppReachabilityTest` files it " <>
        "as a colourway of 01, reached by changing the theme rather than by navigating",
      Kati.ScreenDarkWidgetsTest},
+    # 22 with nothing stored. No board in the 152 draws a Habits page with
+    # nothing on it, and the board's four habits with their four streaks are a
+    # claim about the reader's own week — #91's sentence, applied to the one
+    # page whose whole content is the reader's behaviour. A fresh install gets
+    # a sentence saying what a habit is and one button; the board's chrome is
+    # what survives, quoted below, and `Kati.ScreenDesignLiteralTest` installs
+    # `drawn_state/1` to compare the board itself.
+    {"22",
+     "no board draws a Habits page with nothing kept. The empty page says what a habit is " <>
+       "and offers the one button that starts one, because four sample habits with streaks " <>
+       "nobody has would be a claim about the reader's own week. What survives from board 22 " <>
+       "is its chrome, in @quoted, and its field is dropped with the data it drew",
+     Kati.ScreenHabitsTest},
     {"55",
      "board 158 draws a Persian Home with nothing kept, and board 317 is the ruling that 55 " <>
        "must USE it: `Kati.Onboarding.shell_root/1` answers `Kati.Screens.Home` in both languages, " <>
@@ -1128,6 +1146,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"05", "05", "New releases"},
     # 18 with nothing typed: the page's own headings survive the empty field.
     {"18", "18", "Kati read that as"},
+    # 22 with nothing kept: the page still names itself. The field's eyebrow is
+    # dropped WITH the field — a heading over ninety empty squares would label
+    # nothing — so the title is the honest quotation.
+    {"22", "22", "Habits"},
     {"18", "18", "Or file it as"},
     # N54: the placeholder all four quoted from board 87 is
     # `Kati.Search.placeholder/0`'s *Search your library* now — the board's
@@ -1295,6 +1317,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # everybody to fit one screen the design drew small would stop it catching
   # that. Named, with a number, so a page that shrinks further still fails.
   @small_empty_boards %{
+    # 22 with nothing stored is the page's own chrome — its title, a subtitle
+    # saying nothing is kept, the `+` disc, the back label — and the empty card's
+    # three parts: what a habit is, its description and the one button. Eight,
+    # and every one of them is the page rather than a quotation from board 22.
+    "22" => 8,
     # Eight since the `more_horiz` disc, which opened nothing, stopped being
     # drawn.
     "23" => 8,
@@ -1419,7 +1446,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(list_memberships lists event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes followed_authors book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending)
+  @tables ~w(list_memberships lists event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes followed_authors book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending habits habit_ticks)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.
@@ -1781,7 +1808,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # test that matched too much would answer `true` for it.
       assert reaches_store?(Kati.Screens.Film)
       assert reaches_store?(Kati.Screens.Home)
-      refute reaches_store?(Kati.Screens.Habits)
+      # 22 was the exemplar until 23 November 2026: it named `Kati.Habits.Sample`
+      # and read nothing, and this pair proved the detection could not be fooled
+      # by a mention. It reads `Kati.Habits` now, so it moved to the asserts —
+      # and the refute keeps Gallery, which draws a list of screens and touches
+      # no table.
+      assert reaches_store?(Kati.Screens.Habits)
       refute reaches_store?(Kati.Screens.Gallery)
     end
 
@@ -2710,6 +2742,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # for nothing.
       {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
        Kati.Screens.Subscriptions.empty_ledger(), &Kati.Screens.Subscriptions.drawn_ledger/0},
+      # 22 answers an empty page. It drew four habits, a twelve-day best and a
+      # 91-cell field of somebody else's history on every device, because no
+      # table held a habit being kept. `Kati.Habits` holds one now — a habit and
+      # a per-day tick — so what a device with nothing stored answers is `[]`,
+      # and the four drawn cards are only ever a test fixture.
+      {"22", Kati.Screens.Habits, &Kati.Screens.Habits.habits/0, [],
+       &Kati.Screens.Habits.drawn_habits/0},
       # 11 answers an empty feed. A recommendation is an answer to *because you
       # watched X*, and `Recommendations.seed/0` answers nil when there is no X.
       # It drew the WHOLE page from the fixture, subtitle included.

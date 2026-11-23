@@ -48,6 +48,9 @@ defmodule Kati.Backup.Upgrade do
     * **7 -> 8** — `health_medications`, `health_readings` and `health_doses`
       joined with screens 109 and 112.
 
+    * **21 -> 22** — `habits` and `habit_ticks` joined with screen 22. Two
+      members; a version-21 archive has neither table, and supplies them empty.
+
     * **9 -> 10** — `recipes` gained `bookmarked`, which is what screen 45's
       bookmark disc writes. Nothing moves, for the reason the step below it
       gives in full: a version-9 archive has every member a version-10 app
@@ -145,7 +148,11 @@ defmodule Kati.Backup.Upgrade do
       {19, 20, &unchanged/1},
       # `tracked_titles` gained `watch_on`. Nothing moves: a version-20 row
       # takes `NULL`, a title nobody has placed on a service.
-      {20, 21, &unchanged/1}
+      {20, 21, &unchanged/1},
+      # `habits` and `habit_ticks` joined with screen 22. Nothing moves for an
+      # older file: a version-21 archive recorded no habits because the app had
+      # no table to record them in, so both members are supplied as empty.
+      {21, 22, &add_habits/1}
     ]
 
   @doc """
@@ -214,6 +221,12 @@ defmodule Kati.Backup.Upgrade do
   # Two members, same `Map.put_new/3` reasoning as every step above.
   defp add_goals_and_expenses(rows) do
     rows |> Map.put_new("goals", []) |> Map.put_new("expenses", [])
+  end
+
+  # Two members, same `Map.put_new/3` reasoning as every step above. A habit
+  # and its ticks are the reader's own writing and cannot be regenerated.
+  defp add_habits(rows) do
+    rows |> Map.put_new("habits", []) |> Map.put_new("habit_ticks", [])
   end
 
   # Three members, same `Map.put_new/3` reasoning as every step above.

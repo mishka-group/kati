@@ -168,6 +168,8 @@ reproduce.
 | `Kati.Music.Listen` | `music_listens` | Each sitting: when, how long, how many tracks |
 | `Kati.Services.Service` | `services` | The streaming services you pay for, what they cost, and the ones you have said are not yours |
 | `Kati.Goals.Goal` | `goals` | A number you meant to reach by a date, and how far along you are |
+| `Kati.Habits.Habit` | `habits` | One habit somebody keeps, by name |
+| `Kati.Habits.Tick` | `habit_ticks` | One habit, kept on one calendar day |
 | `Kati.Money.Expense` | `expenses` | Things you bought, each with the section it belongs to |
 | `Kati.Health.Medication` | `health_medications` | What you take, the dose, and when it is due |
 | `Kati.Health.Reading` | `health_readings` | Weights you typed, in grams |
@@ -232,6 +234,7 @@ before any column is decoded.
 | 4 → 5 | `music_artists`, `music_albums`, `music_tracks` and `music_listens` joined the backup. | Supplies all four as empty members, the same way. |
 | 5 → 6 | `services` joined the backup with screen 92. | Supplies it as an empty member. A version-5 archive restores with no services, which is what it recorded. |
 | 6 → 7 | `goals` and `expenses` joined with screens 104 and 122. | Supplies both as empty members. |
+| 21 → 22 | `habits` and `habit_ticks` joined with screen 22. | Supplies both as empty members. |
 | 7 → 8 | `health_medications`, `health_readings` and `health_doses` joined with screens 109 and 112. | Supplies all three as empty members. |
 | 8 → 9 | `recipes` gained `slot_name` with screen 116. | **Nothing.** A version-8 archive has every member a version-9 app expects and its recipe rows simply lack one key, which takes the attribute default. The version still moved, because `schema_version` tracks the row shape — the step is here saying so rather than the chain having a hole in it. |
 | 12 → 13 | `media_title_aliases` joined the backup. | Supplied as an empty member. A version-12 file simply has none — the reader had not been asked yet — and Kati asks about a name the first time it hears it, which is what it would have done anyway. |
