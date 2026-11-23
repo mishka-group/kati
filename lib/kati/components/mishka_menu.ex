@@ -257,7 +257,10 @@ defmodule Kati.Components.MishkaMenu do
         side: Map.get(opts, :side) || :bottom,
         align: Map.get(opts, :align) || :end,
         side_offset: Map.get(opts, :side_offset) || 8,
-        on_dismiss: Map.get(opts, :on_dismiss)
+        # A function call does not pass through Mob.Composite, so a bare atom
+        # here was never widened to `{pid, tag}`; an already-wired tuple is
+        # returned unchanged by `Event.handler/1`.
+        on_dismiss: Event.handler(Map.get(opts, :on_dismiss))
       )
     else
       Anchored.closed(trigger)

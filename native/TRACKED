@@ -45,3 +45,7 @@ android/app/src/main/java/com/example/kati/KatiSecureStore.kt
 android/app/src/main/java/com/example/kati/KatiHostContext.kt
 android/app/src/main/java/com/example/kati/KatiRefreshWorker.kt
 android/app/src/main/java/com/example/kati/KatiReleaseCheck.kt
+
+# MobPermissionQueue.kt is new in mob_new 0.6.21: runtime permission requests
+# serialised one dialog at a time (MOB-391). Carried untouched.
+android/app/src/main/java/com/example/kati/MobPermissionQueue.kt

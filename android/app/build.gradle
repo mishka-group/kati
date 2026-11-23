@@ -3,6 +3,9 @@
 // Third-party code. Do not edit outside KATI-BEGIN/KATI-END fences.
 // Upgrade procedure: bin/mob_bridge_diff.sh — see native/README.md.
 // KATI-END(K-05 vendored-header)
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+
+// No kotlin-android plugin: AGP 9 compiles Kotlin itself (built-in Kotlin).
 plugins {
     id 'com.android.application'
     // KATI-BEGIN(K-32 agp9-builtin-kotlin) mob_new=0.4.20
@@ -41,7 +44,7 @@ def ertsVsn = new File(mobOtpRelease).listFiles()
     ?.find { it.name.startsWith('erts-') }?.name ?: 'erts-17.0'
 
 android {
-    namespace 'com.example.kati'
+    namespace = 'com.example.kati'
     // KATI-BEGIN(K-02 api36) mob_new=0.4.20
     // was: compileSdk 34 / targetSdk 34
     compileSdk 36
@@ -51,7 +54,7 @@ android {
     // namespace. NDK 27 / clang 18 produces ne180000; NDK 25 / clang 14
     // produces ne140000. Mismatch fails to link with undefined
     // __cxa_* symbols. Bumping this requires rebuilding the OTP tarballs.
-    ndkVersion '27.2.12479018'
+    ndkVersion = '27.2.12479018'
 
     defaultConfig {
         applicationId "com.example.kati"
@@ -61,7 +64,7 @@ android {
         // KATI-BEGIN(K-36 instrumentation-runner) mob_new=0.7.24
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // KATI-END(K-36 instrumentation-runner)
-        versionCode 2026100601
+        versionCode 2026112301
         versionName "0.0.1-alpha.5"
 
         // KATI-BEGIN(K-01 abi-filters) mob_new=0.4.20
@@ -87,7 +90,7 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/jni/CMakeLists.txt"
-            version "3.22.1"
+            version = "3.22.1"
         }
     }
 
@@ -106,7 +109,7 @@ android {
     // KATI-END(K-70 abi-splits)
 
     buildFeatures {
-        compose true
+        compose = true
     }
 
     // KATI-BEGIN(K-32 kotlin2-jvm17) mob_new=0.4.20
@@ -145,7 +148,7 @@ android {
             // extractNativeLibs=false (libs stay packed in the APK), which makes
             // the BEAM's dlopen fail with "library not found" on a Play-installed
             // split. useLegacyPackaging=true forces extraction.
-            useLegacyPackaging true
+            useLegacyPackaging = true
         }
     }
 
@@ -247,6 +250,15 @@ android {
         jniLibs { useLegacyPackaging = true }
     }
     // KATI-END(K-32 agp9-legacy-jnilibs)
+}
+
+// Strong skipping (on by default since Kotlin 2.0.20) changes which
+// composables recompose: an unstable parameter passed the same instance now
+// skips. Off keeps the recomposition behaviour the renderer was measured and
+// tested under (Kotlin 1.9 / Compose compiler 1.5). Turning it on is MOB-162,
+// which needs device measurement and a LocalSlotEpoch review first.
+composeCompiler {
+    featureFlags = [ComposeFeatureFlag.StrongSkipping.disabled()]
 }
 
 dependencies {

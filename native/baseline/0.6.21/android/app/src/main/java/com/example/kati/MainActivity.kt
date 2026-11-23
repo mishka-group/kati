@@ -2,7 +2,6 @@ package com.example.kati
 
 import android.app.Activity
 import android.content.Context
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
@@ -17,10 +16,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -29,11 +34,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -185,13 +194,11 @@ class MainActivity : ComponentActivity() {
     }
 
     // ── Permission result ─────────────────────────────────────────────────
+    // Forwarded as-is: MobBridge's permission queue matches the request code
+    // to the request in flight and ignores any other code.
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 9001) {
-            val granted = grantResults.isNotEmpty() &&
-                grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-            MobBridge.onPermissionResult(granted)
-        }
+        MobBridge.onPermissionResult(requestCode, permissions, grantResults)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -231,14 +238,16 @@ class MainActivity : ComponentActivity() {
             Log.i(TAG, "onCreate: MOB_DIST_PORT=$port")
         }
 
-        // A notification tap that launched this activity. Not when it is
-        // re-created from saved state or relaunched from Recents: both replay
-        // the original intent, which would deliver the same tap again now that
-        // mob delivers to a running BEAM instead of holding it for the next boot.
+        // A notification tap or deep link that launched this activity. Not when
+        // it is re-created from saved state or relaunched from Recents: both
+        // replay the original intent, which would deliver the same tap or link
+        // again now that mob delivers to a running BEAM instead of holding it
+        // for the next boot.
         if (savedInstanceState == null &&
             (intent.flags and android.content.Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0
         ) {
             deliverNotificationTap(intent)
+            deliverLink(intent)
         }
 
         // The BEAM outlives the Activity, and so do MobBridge's registries of
@@ -260,42 +269,11 @@ class MainActivity : ComponentActivity() {
 
             BackHandler(enabled = state.node != null) { MobBridge.nativeHandleBack() }
 
-            // Material 3 chrome (NavigationBar, Button, …) pulls its colours
-            // from `MaterialTheme.colorScheme`. We want those to match the
-            // BEAM-side `Mob.Theme` so the system widgets don't clash with
-            // mob's own primitives. `themeColors` updates via
-            // `:mob_nif.set_theme/1` whenever `Mob.Theme.set(...)` runs.
-            //
-            // There's a brief window at launch — Compose evaluates setContent
-            // before the BEAM finishes `mount/3` and pushes the first theme
-            // — so the null branch falls back to Material's stock dark
-            // scheme, which usually reads as a fine placeholder until the
-            // real palette arrives.
-            val colorScheme = themeColors?.let { tc ->
-                darkColorScheme(
-                    primary          = colorFromMap(tc, "primary",          0xFF6750A4),
-                    onPrimary        = colorFromMap(tc, "on_primary",       0xFFFFFFFF),
-                    secondary        = colorFromMap(tc, "secondary",        0xFF625B71),
-                    onSecondary      = colorFromMap(tc, "on_secondary",     0xFFFFFFFF),
-                    background       = colorFromMap(tc, "background",       0xFF1C1B1F),
-                    onBackground     = colorFromMap(tc, "on_background",    0xFFE6E1E5),
-                    surface          = colorFromMap(tc, "surface",          0xFF1C1B1F),
-                    onSurface        = colorFromMap(tc, "on_surface",       0xFFE6E1E5),
-                    // Mob's `surface_raised` / `muted` map onto Material 3's
-                    // surfaceVariant / onSurfaceVariant — same role.
-                    surfaceVariant   = colorFromMap(tc, "surface_raised",   0xFF49454F),
-                    onSurfaceVariant = colorFromMap(tc, "muted",            0xFFCAC4D0),
-                    outline          = colorFromMap(tc, "border",           0xFF938F99),
-                    error            = colorFromMap(tc, "error",            0xFFF2B8B5),
-                    onError          = colorFromMap(tc, "on_error",         0xFFFFFFFF),
-                )
-            } ?: darkColorScheme()
-
             // Every widget below can see which BEAM render it is looking at,
             // which is how a field tells "Elixir changed my value" apart from
             // "I recomposed because the user typed". See RootState.epoch.
             CompositionLocalProvider(LocalRenderEpoch provides state.epoch) {
-                MaterialTheme(colorScheme = colorScheme) {
+                MobTheme(themeColors) {
                     MobNavHost(state)
                 }
             }
@@ -397,11 +375,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // A notification tapped while this (singleTop) activity already exists.
+    // A notification tapped, or a link opened, while this (singleTop, or
+    // singleTask for deep links) activity already exists.
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         deliverNotificationTap(intent)
+        deliverLink(intent)
     }
 
     // Hands NotificationReceiver's tap payload to mob, which delivers it as
@@ -412,6 +392,26 @@ class MainActivity : ComponentActivity() {
         intent?.extras?.getString("mob_notification_json")?.let { json ->
             MobBridge.nativeDeliverNotification(io.mob.plugin.MobNotifyHub.notifyPid, json)
         }
+    }
+
+    // Hands a deep link (a VIEW intent for one of mob.exs's url_schemes) to mob,
+    // which delivers it as {:link, %{url: url, source: ...}} once: on a cold
+    // launch it holds the URL until the root screen has mounted. content: and
+    // file: URIs are documents shared into the app, Mob.Files'
+    // take_opened_document territory, not links. Any app can send a VIEW
+    // intent, so the URL is untrusted input for whatever handles {:link, ...}.
+    private fun deliverLink(intent: android.content.Intent?) {
+        if (intent?.action != android.content.Intent.ACTION_VIEW) return
+        val uri = intent.data ?: return
+        // Schemes are case-insensitive, and an intent addressed straight to this
+        // exported activity skips the intent-filter's matching.
+        val scheme = uri.scheme
+        if ("content".equals(scheme, ignoreCase = true) ||
+            "file".equals(scheme, ignoreCase = true)
+        ) {
+            return
+        }
+        MobBridge.nativeDeliverLink(uri.toString())
     }
 
     // Manifest declares `android:configChanges` including `uiMode`, so a
@@ -426,7 +426,14 @@ class MainActivity : ComponentActivity() {
 
         // Forward the new orientation to the BEAM so Mob.Device.orientation/0 and
         // the :display subscription reflect a rotation (mob_send_orientation_changed).
-        val orient = when (display?.rotation) {
+        // Activity.getDisplay() is API 30; minSdk is 28.
+        val rotation = if (android.os.Build.VERSION.SDK_INT >= 30) {
+            display?.rotation
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.rotation
+        }
+        val orient = when (rotation) {
             android.view.Surface.ROTATION_90 -> "landscape_left"
             android.view.Surface.ROTATION_270 -> "landscape_right"
             android.view.Surface.ROTATION_180 -> "portrait_upside_down"
@@ -453,13 +460,57 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    // Pulls an ARGB long out of the BEAM-pushed theme map, falling back to
-    // a Material 3 stock dark value when the key isn't present (e.g. a
-    // custom theme that doesn't define every Material 3 slot).
-    private fun colorFromMap(map: Map<String, Long>, key: String, fallback: Long): Color =
-        Color(map[key] ?: fallback)
 }
+
+// Material 3 chrome (NavigationBar, Button, …) pulls its colours from
+// `MaterialTheme.colorScheme`. We want those to match the BEAM-side
+// `Mob.Theme` so the system widgets don't clash with mob's own primitives.
+// `themeColors` updates via `:mob_nif.set_theme/1` whenever
+// `Mob.Theme.set(...)` runs.
+//
+// There's a brief window at launch — Compose evaluates setContent before the
+// BEAM finishes `mount/3` and pushes the first theme — so the null branch
+// falls back to Material's stock dark scheme, which usually reads as a fine
+// placeholder until the real palette arrives.
+//
+// MaterialTheme does not set `LocalContentColor`; only a Surface does, and the
+// root is a plain Box painted with `background`. Left alone it stays Compose's
+// default black, which is what a `Text` or `Icon` with no colour of its own
+// draws in: invisible on a dark theme (MOB-120). The content colour is the
+// theme's `on_surface`, the token mob's renderer gives styled text, and the
+// counterpart of iOS's adaptive `Color.primary` fallback.
+@Composable
+internal fun MobTheme(themeColors: Map<String, Long>?, content: @Composable () -> Unit) {
+    val colorScheme = themeColors?.let { tc ->
+        darkColorScheme(
+            primary          = colorFromMap(tc, "primary",          0xFF6750A4),
+            onPrimary        = colorFromMap(tc, "on_primary",       0xFFFFFFFF),
+            secondary        = colorFromMap(tc, "secondary",        0xFF625B71),
+            onSecondary      = colorFromMap(tc, "on_secondary",     0xFFFFFFFF),
+            background       = colorFromMap(tc, "background",       0xFF1C1B1F),
+            onBackground     = colorFromMap(tc, "on_background",    0xFFE6E1E5),
+            surface          = colorFromMap(tc, "surface",          0xFF1C1B1F),
+            onSurface        = colorFromMap(tc, "on_surface",       0xFFE6E1E5),
+            // Mob's `surface_raised` / `muted` map onto Material 3's
+            // surfaceVariant / onSurfaceVariant — same role.
+            surfaceVariant   = colorFromMap(tc, "surface_raised",   0xFF49454F),
+            onSurfaceVariant = colorFromMap(tc, "muted",            0xFFCAC4D0),
+            outline          = colorFromMap(tc, "border",           0xFF938F99),
+            error            = colorFromMap(tc, "error",            0xFFF2B8B5),
+            onError          = colorFromMap(tc, "on_error",         0xFFFFFFFF),
+        )
+    } ?: darkColorScheme()
+
+    MaterialTheme(colorScheme = colorScheme) {
+        CompositionLocalProvider(LocalContentColor provides colorScheme.onSurface, content = content)
+    }
+}
+
+// Pulls an ARGB long out of the BEAM-pushed theme map, falling back to a
+// Material 3 stock dark value when the key isn't present (e.g. a custom theme
+// that doesn't define every Material 3 slot).
+private fun colorFromMap(map: Map<String, Long>, key: String, fallback: Long): Color =
+    Color(map[key] ?: fallback)
 
 // ── Identity-preserving screen presentation (MOB-146) ──────────────────────
 //
@@ -591,6 +642,39 @@ private fun MobNavHost(state: RootState) {
                     RenderNode(node, modifier = Modifier.fillMaxSize().safeDrawingPadding())
                 }
             }
+            // Nothing rendered yet: show what the boot is doing, and why it
+            // stopped if it failed (mob_set_startup_error), instead of a blank
+            // screen.
+            if (state.node == null) StartupStatus()
+        }
+    }
+}
+
+// The boot screen, iOS MobRootView's startup ZStack: phase text and a spinner
+// while the BEAM starts, the error in the theme's error colour once boot fails.
+// Composed before Mob.Theme.set runs, so it sees MobTheme's stock dark scheme.
+@Composable
+private fun StartupStatus() {
+    val phase by MobBridge.startupPhase
+    val error by MobBridge.startupError
+
+    Column(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val failure = error
+        if (failure != null) {
+            Text("Startup Error", style = MaterialTheme.typography.titleLarge)
+            Text(
+                failure,
+                color = MaterialTheme.colorScheme.error,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Center,
+            )
+        } else {
+            CircularProgressIndicator()
+            Text(phase, textAlign = TextAlign.Center)
         }
     }
 }

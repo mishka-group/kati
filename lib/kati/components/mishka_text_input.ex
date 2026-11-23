@@ -51,7 +51,7 @@ defmodule Kati.Components.MishkaTextInput do
   | `lines` | integer | unset | Declared rows for a multiline field. |
   | `max_length` | integer | unset | Rejects edits that would exceed it. |
   | `secure` | boolean | `false` | Masks the text. |
-  | `keyboard_type` | `:default` `:email` `:number` `:phone` | unset | Keyboard variant. |
+  | `keyboard_type` / `keyboard` | `:default` `:email` `:number` `:phone`, atom or string | unset | Keyboard variant. Mob reads `keyboard`, so `keyboard_type` is sent to it as a string; `keyboard` wins when both are given. |
   | `return_key` | string | unset | The keyboard's return label. |
   | `caret` | `"end"` | unset | Pin the insertion point to the end. |
   | `underline` | boolean | bridge default | Material's indicator line (Android). |
@@ -76,9 +76,11 @@ defmodule Kati.Components.MishkaTextInput do
 
   alias Kati.Components.Event
 
+  # `keyboard` is the prop mob's text field reads; `keyboard_type` is translated
+  # to it by `keyboard/1` (see "Prop names").
   @props ~w(
     value placeholder multiline lines max_length secure enabled disabled
-    keyboard_type return_key caret underline text_size text_color
+    keyboard return_key caret underline text_size text_color
     placeholder_color font_family font_weight letter_spacing text_align
     background border_color border_width corner_radius padding padding_top
     padding_right padding_bottom padding_left width height fill_width
@@ -130,12 +132,23 @@ defmodule Kati.Components.MishkaTextInput do
     forwarded =
       props
       |> Map.take(@props)
+      |> Map.merge(translated(props))
       |> Enum.reject(fn {_key, value} -> is_nil(value) end)
       |> Map.new()
       |> Map.merge(extra)
 
     %{~MOB(<TextField />) | props: Map.merge(forwarded, events(props))}
   end
+
+  # Mob's text field reads `keyboard` as a string, not `keyboard_type`; the
+  # vendored bridge never read the old name, so every keyboard variant was
+  # silently the default keyboard. Mob's own spelling wins when both are given.
+  defp translated(props) do
+    %{keyboard: keyboard(Map.get(props, :keyboard) || Map.get(props, :keyboard_type))}
+  end
+
+  defp keyboard(nil), do: nil
+  defp keyboard(keyboard), do: to_string(keyboard)
 
   defp spacer(nil, _gap), do: nil
 

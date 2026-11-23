@@ -33,6 +33,7 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.speech.tts.TextToSpeech
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -61,12 +62,16 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.abs
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as ComposeSize
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -75,6 +80,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import android.graphics.Bitmap
@@ -127,6 +133,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -152,6 +159,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 // KATI-END(K-35 test-tag-imports)
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -241,6 +249,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
@@ -259,11 +268,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 // KATI-BEGIN(K-48 locale-face-import) mob_new=0.7.24
 import androidx.compose.runtime.staticCompositionLocalOf
 // KATI-END(K-48 locale-face-import)
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -312,6 +323,16 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Precision
+import androidx.compose.animation.core.animate
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.onSizeChanged
 import org.json.JSONObject
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
@@ -438,6 +459,28 @@ object MobBridge {
     // call `Color(it)` directly.
     private val _themeColors = mutableStateOf<Map<String, Long>?>(null)
     val themeColors: State<Map<String, Long>?> get() = _themeColors
+
+    // Boot status shown until the first render (see StartupStatus in
+    // MainActivity), the counterpart of iOS MobViewModel.startupPhase/Error.
+    // mob_nif.zig caches setStartupPhase/setStartupError by name and signature
+    // in mob_ui_cache_class and skips the call when either is missing, so a
+    // rename here makes a boot failure invisible again, with nothing raised.
+    private val _startupPhase = mutableStateOf("Starting…")
+    val startupPhase: State<String> get() = _startupPhase
+    private val _startupError = mutableStateOf<String?>(null)
+    val startupError: State<String?> get() = _startupError
+
+    /** Called from mob_nif.zig (mob_set_startup_phase) on the BEAM's boot thread. */
+    @JvmStatic
+    fun setStartupPhase(phase: String) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post { _startupPhase.value = phase }
+    }
+
+    /** Called from mob_nif.zig (mob_set_startup_error) when boot fails. */
+    @JvmStatic
+    fun setStartupError(error: String) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post { _startupError.value = error }
+    }
 
     // Ordered fallback font names from the last Mob.Theme.set/1 (already
     // resolved to this platform's names — see Mob.Theme.notify_native/1 in
@@ -856,11 +899,16 @@ object MobBridge {
      * Capture the activity window in-process and return PNG/JPEG bytes.
      * Called from nif_screenshot/3 via JNI. `scale` is a multiplier of native
      * resolution (1.0 = full, 0.5 = half). Returns null when there is no live
-     * window (e.g. backgrounded) so the NIF can report {:error, :no_window}.
+     * window (e.g. backgrounded, or covered by another activity) so the NIF
+     * can report {:error, :no_window}. SurfaceViews (a 3D viewport, a camera
+     * preview, video) are composited in, as the screen shows them.
      */
     @JvmStatic
-    fun screenshot(format: String, quality: Int, scale: Double): ByteArray? {
-        val activity = activityRef?.get() ?: return null
+    fun screenshot(format: String, quality: Int, scale: Double): ByteArray? =
+        activityRef?.get()?.let { screenshotOf(it, format, quality, scale) }
+
+    /** [screenshot] of a given activity. Waits on the main thread, so call it from another one. */
+    internal fun screenshotOf(activity: Activity, format: String, quality: Int, scale: Double): ByteArray? {
         val window = activity.window ?: return null
         val decor = window.decorView
         val w = decor.width
@@ -873,10 +921,18 @@ object MobBridge {
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            PixelCopy.request(window, src, { result ->
-                ok = result == PixelCopy.SUCCESS
-                latch.countDown()
-            }, handler)
+            // A window with no surface (another activity, say the camera an
+            // IMAGE_CAPTURE intent opened, covers it) throws instead of
+            // calling back: uncaught, that kills the app (MOB-426). null is
+            // reported as {:error, :no_window}.
+            try {
+                PixelCopy.request(window, src, { result ->
+                    ok = result == PixelCopy.SUCCESS
+                    latch.countDown()
+                }, handler)
+            } catch (e: IllegalArgumentException) {
+                return null
+            }
         } else {
             // Pre-O fallback: draw the decor view (misses SurfaceView/GL layers).
             handler.post {
@@ -892,16 +948,20 @@ object MobBridge {
 
         if (!latch.await(2, java.util.concurrent.TimeUnit.SECONDS) || !ok) return null
 
+        val full =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) withSurfaceViews(decor, src, handler)
+            else src
+
         val bmp =
             if (scale > 0.0 && scale != 1.0) {
                 Bitmap.createScaledBitmap(
-                    src,
+                    full,
                     (w * scale).toInt().coerceAtLeast(1),
                     (h * scale).toInt().coerceAtLeast(1),
                     true
                 )
             } else {
-                src
+                full
             }
 
         val out = java.io.ByteArrayOutputStream()
@@ -911,6 +971,82 @@ object MobBridge {
             bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
         }
         return out.toByteArray()
+    }
+
+    /**
+     * PixelCopy of a window copies the window's own surface only. A SurfaceView
+     * (a 3D viewport, a camera preview, video) has a surface of its own that
+     * the system composites underneath, through a transparent hole in the
+     * window: alone, the window copy has an empty hole there (MOB-422). Copies each
+     * visible SurfaceView, lays them out where they are, and the window over
+     * them, as the screen shows it. A SurfaceView set to draw on top of the
+     * window (setZOrderOnTop) punches no hole, so the window still covers it.
+     */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private fun withSurfaceViews(
+        decor: android.view.View,
+        window: Bitmap,
+        handler: android.os.Handler,
+    ): Bitmap {
+        // Each SurfaceView with [x, y, width, height] in window pixels, all
+        // read on the main thread, in the same layout.
+        val found = java.util.ArrayList<Pair<android.view.SurfaceView, IntArray>>()
+        val listed = java.util.concurrent.CountDownLatch(1)
+        handler.post {
+            try {
+                collectSurfaceViews(decor, found)
+            } finally {
+                listed.countDown()
+            }
+        }
+        if (!listed.await(1, java.util.concurrent.TimeUnit.SECONDS) || found.isEmpty()) return window
+
+        // Every copy is requested before any is waited for, so surfaces that
+        // never answer cost one timeout between them, not one each. A copy is
+        // published by its own callback, so one that lands after the timeout
+        // is either wholly there or not drawn.
+        val copies = java.util.concurrent.atomic.AtomicReferenceArray<Bitmap>(found.size)
+        val done = java.util.concurrent.CountDownLatch(found.size)
+        found.forEachIndexed { i, (view, frame) ->
+            val bmp = Bitmap.createBitmap(frame[2], frame[3], Bitmap.Config.ARGB_8888)
+            try {
+                PixelCopy.request(view, bmp, { result ->
+                    if (result == PixelCopy.SUCCESS) copies.set(i, bmp)
+                    done.countDown()
+                }, handler)
+            } catch (e: IllegalArgumentException) {
+                // The surface went away since it was listed.
+                done.countDown()
+            }
+        }
+        done.await(1, java.util.concurrent.TimeUnit.SECONDS)
+
+        val out = Bitmap.createBitmap(window.width, window.height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(out)
+        canvas.drawColor(android.graphics.Color.BLACK)
+        found.forEachIndexed { i, (_, frame) ->
+            copies.get(i)?.let { canvas.drawBitmap(it, frame[0].toFloat(), frame[1].toFloat(), null) }
+        }
+        canvas.drawBitmap(window, 0f, 0f, null)
+        return out
+    }
+
+    private fun collectSurfaceViews(
+        view: android.view.View,
+        out: MutableList<Pair<android.view.SurfaceView, IntArray>>,
+    ) {
+        if (view.visibility != android.view.View.VISIBLE) return
+        if (view is android.view.SurfaceView) {
+            if (view.width > 0 && view.height > 0 && view.holder.surface.isValid) {
+                val at = IntArray(2)
+                view.getLocationInWindow(at)
+                out.add(view to intArrayOf(at[0], at[1], view.width, view.height))
+            }
+            return
+        }
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) collectSurfaceViews(view.getChildAt(i), out)
+        }
     }
 
     /**
@@ -1132,7 +1268,7 @@ object MobBridge {
     fun tapXy(x: Float, y: Float): Boolean =
         onMain { activity ->
             val root = activity.window?.decorView
-            if (root == null) {
+            if (root == null || heldPress != null) {
                 false
             } else {
                 val cx = px(activity, x)
@@ -1152,7 +1288,7 @@ object MobBridge {
     fun longPressXy(x: Float, y: Float, durationMs: Long): Boolean =
         onMain(durationMs + 3000) { activity ->
             val root = activity.window?.decorView
-            if (root == null) {
+            if (root == null || heldPress != null) {
                 false
             } else {
                 val cx = px(activity, x)
@@ -1179,7 +1315,7 @@ object MobBridge {
     fun swipeXy(x1: Float, y1: Float, x2: Float, y2: Float): Boolean =
         onMain(5000) { activity ->
             val root = activity.window?.decorView
-            if (root == null) {
+            if (root == null || heldPress != null) {
                 false
             } else {
                 val sx = px(activity, x1)
@@ -1209,6 +1345,153 @@ object MobBridge {
                     }
                     motion(root, MotionEvent.ACTION_UP, ex, ey, down, SystemClock.uptimeMillis()) ||
                         handled
+                }
+            }
+        }
+
+    // ── Held press (MOB-380) ─────────────────────────────────────────────────
+    //
+    // A press that stays down across NIF calls, so a test can hold a finger on
+    // a node, look at the app, and only then lift it: press_down_xy,
+    // press_move_xy and press_up_xy in Mob.Test. long_press_xy cannot do that,
+    // since it holds and releases inside one call.
+    //
+    // State lives here, touched only on the main thread (every access is
+    // inside onMainCode or a mainScope coroutine). The other synthetic
+    // gestures refuse while a press is held: their DOWN would restart the view
+    // tree's gesture stream under the held finger, and both gestures would be
+    // garbage while both reported ok.
+    private class HeldPress(val root: View, val down: Long, var x: Float, var y: Float, val token: Long)
+
+    private var heldPress: HeldPress? = null
+    private var heldPressToken = 0L
+
+    // Result codes, decoded by mob_nif.zig (pressResult). Keep in sync.
+    private const val PRESS_OK = 0
+    private const val PRESS_DISPATCH_FAILED = 1
+    private const val PRESS_ALREADY_DOWN = 2
+    private const val PRESS_NO_WINDOW = 3
+    private const val PRESS_NOT_DOWN = 4
+    private const val PRESS_WINDOW_GONE = 5
+    private const val PRESS_TIMEOUT = 6
+
+    // onMain for calls that need to say more than yes/no. Same threading
+    // contract and the same gesture mutex, so a held press can never start in
+    // the middle of another gesture's MOVE stream. A false from onMain with an
+    // activity present means the UI thread didn't answer in time (another
+    // gesture holding the mutex, a busy looper) or the body threw: that is
+    // not "no window", and reporting it as one sends a test looking for the
+    // wrong problem.
+    private fun onMainCode(timeoutMs: Long = 2000, body: suspend (Activity) -> Int): Int {
+        if (activityRef?.get() == null) return PRESS_NO_WINDOW
+        var code = PRESS_TIMEOUT
+        val ran = onMain(timeoutMs) { activity ->
+            code = body(activity)
+            true
+        }
+        return if (ran) code else PRESS_TIMEOUT
+    }
+
+    /**
+     * Puts a finger down at (x, y) dp and leaves it there. A genuine held
+     * pointer: Compose's detectTapGestures sees onPress and is still waiting
+     * in tryAwaitRelease, on_press_in fires, and a long-press timeout runs
+     * on the looper as it would for a real finger.
+     *
+     * `maxHoldMs` bounds the hold. A test that dies between down and up would
+     * otherwise leave the app believing a finger is on the glass for the rest
+     * of the session; on expiry the press is CANCELLED (not released), so the
+     * app sees an aborted gesture rather than a tap or a long press.
+     */
+    @JvmStatic
+    fun pressDownXy(x: Float, y: Float, maxHoldMs: Long): Int =
+        onMainCode { activity ->
+            val root = activity.window?.decorView
+            when {
+                heldPress != null -> PRESS_ALREADY_DOWN
+                root == null -> PRESS_NO_WINDOW
+                else -> {
+                    val cx = px(activity, x)
+                    val cy = px(activity, y)
+                    val down = SystemClock.uptimeMillis()
+                    if (!motion(root, MotionEvent.ACTION_DOWN, cx, cy, down, down)) {
+                        // Nothing took the DOWN, so nothing is tracking this
+                        // pointer; close the stream rather than hold a finger
+                        // that no view will ever see lift.
+                        motion(root, MotionEvent.ACTION_CANCEL, cx, cy, down, SystemClock.uptimeMillis())
+                        PRESS_DISPATCH_FAILED
+                    } else {
+                        val token = ++heldPressToken
+                        heldPress = HeldPress(root, down, cx, cy, token)
+                        mainScope.launch {
+                            delay(maxHoldMs)
+                            val held = heldPress
+                            if (held != null && held.token == token) {
+                                Log.w("MobBridge", "held press exceeded ${maxHoldMs}ms; cancelling it")
+                                heldPress = null
+                                motion(held.root, MotionEvent.ACTION_CANCEL, held.x, held.y, held.down,
+                                    SystemClock.uptimeMillis())
+                            }
+                        }
+                        PRESS_OK
+                    }
+                }
+            }
+        }
+
+    /** Moves the held finger to (x, y) dp, in steps over real frames so slop can be crossed. */
+    @JvmStatic
+    fun pressMoveXy(x: Float, y: Float): Int =
+        onMainCode(5000) { activity ->
+            val held = heldPress
+            when {
+                held == null -> PRESS_NOT_DOWN
+                !held.root.isAttachedToWindow -> {
+                    heldPress = null
+                    PRESS_WINDOW_GONE
+                }
+                else -> {
+                    val ex = px(activity, x)
+                    val ey = px(activity, y)
+                    val sx = held.x
+                    val sy = held.y
+                    val steps = 8
+                    for (step in 1..steps) {
+                        delay(16)
+                        // The max-hold timer runs on this dispatcher too, and
+                        // may have cancelled the press between steps.
+                        if (heldPress !== held) return@onMainCode PRESS_NOT_DOWN
+                        val f = step.toFloat() / steps
+                        held.x = sx + (ex - sx) * f
+                        held.y = sy + (ey - sy) * f
+                        motion(held.root, MotionEvent.ACTION_MOVE, held.x, held.y, held.down,
+                            SystemClock.uptimeMillis())
+                    }
+                    PRESS_OK
+                }
+            }
+        }
+
+    /** Lifts the held finger at (x, y) dp, moving it there first if it is elsewhere. */
+    @JvmStatic
+    fun pressUpXy(x: Float, y: Float): Int =
+        onMainCode { activity ->
+            val held = heldPress
+            when {
+                held == null -> PRESS_NOT_DOWN
+                !held.root.isAttachedToWindow -> {
+                    heldPress = null
+                    PRESS_WINDOW_GONE
+                }
+                else -> {
+                    heldPress = null
+                    val ux = px(activity, x)
+                    val uy = px(activity, y)
+                    if (ux != held.x || uy != held.y) {
+                        motion(held.root, MotionEvent.ACTION_MOVE, ux, uy, held.down, SystemClock.uptimeMillis())
+                    }
+                    motion(held.root, MotionEvent.ACTION_UP, ux, uy, held.down, SystemClock.uptimeMillis())
+                    PRESS_OK
                 }
             }
         }
@@ -1281,6 +1564,7 @@ object MobBridge {
     @JvmStatic
     fun init(activity: Activity) {
         activityRef = WeakReference(activity)
+        ttsAppContext = activity.applicationContext
         // Thread-local and throws off a Looper thread, so it has to be taken
         // here rather than lazily from whichever thread samples first.
         mainHandler.post { mainChoreographer = android.view.Choreographer.getInstance() }
@@ -2585,6 +2869,23 @@ object MobBridge {
     external fun nativeSendTap(handle: Int)
 
     /**
+     * The tap of a node that also declares `on_press_in` / `on_press_out`
+     * (MOB-380). Such a node re-renders between the finger's down and up (the
+     * press itself usually changes the screen), so the lift fires a handle from
+     * the render before. This sender accepts it when the slot still holds the
+     * same pid and tag; [nativeSendTap] stays generation-strict so a stale
+     * positional tag (Mob.List's `{:select, id, index}`) is dropped rather than
+     * delivered to a row that moved. Pick one with [sendTapFor].
+     */
+    @JvmStatic
+    external fun nativeSendPressTap(handle: Int)
+
+    /** Sends a tap through [nativeSendPressTap] for a press node, else [nativeSendTap]. */
+    fun sendTapFor(handle: Int, pressNode: Boolean) {
+        if (pressNode) nativeSendPressTap(handle) else nativeSendTap(handle)
+    }
+
+    /**
      * Routes a sheet dismissal back to BEAM as `{:dismiss, tag}`.
      *
      * Deliberately separate from [nativeSendTap]: `Mob.UI.sheet/2` documents
@@ -2608,6 +2909,46 @@ object MobBridge {
 
     @JvmStatic
     external fun nativeSendDoubleTap(handle: Int)
+
+    /**
+     * `on_press_in` / `on_press_out` (MOB-380). Begin resolves both handles
+     * at touch-down (pass -1 for one the node doesn't declare), snapshots the
+     * press_out routing and then sends `{:press_in, tag}`; when both are
+     * declared and either can't be resolved, neither is sent. It returns a
+     * token for End, or -1 when there is no press_out to deliver. End sends
+     * `{:press_out, tag}` from the snapshot, once, so a re-render between the
+     * two (the press itself usually causes one) can't strand the press_out on
+     * a stale handle.
+     */
+    @JvmStatic
+    external fun nativePressBegin(pressInHandle: Int, pressOutHandle: Int): Int
+
+    @JvmStatic
+    external fun nativePressEnd(token: Int)
+
+    /**
+     * `on_touch` (MOB-518), one pointer at a time. Down resolves the node's
+     * handle, copies its routing natively, sends `{:touch, tag, %{phase:
+     * :down}}` and returns a token (-1 when nothing was sent). Move and End
+     * send from that copy, so the rest of the pointer's stream survives the
+     * re-render its down usually causes; Move is dropped natively unless the
+     * pointer's move throttle lets it through (`moveThrottleMs` < 0: moves
+     * off), and End sends `:up` or `:cancel` once. Positions and sizes are dp,
+     * `ts` the pointer change's `uptimeMillis`.
+     */
+    @JvmStatic
+    external fun nativeTouchDown(
+        handle: Int, pointerId: Long, x: Double, y: Double, w: Double, h: Double, ts: Long,
+        moveThrottleMs: Int, moveDelta: Double,
+    ): Int
+
+    @JvmStatic
+    external fun nativeTouchMove(token: Int, x: Double, y: Double, w: Double, h: Double, ts: Long)
+
+    @JvmStatic
+    external fun nativeTouchEnd(
+        token: Int, cancelled: Boolean, x: Double, y: Double, w: Double, h: Double, ts: Long,
+    )
 
     /**
      * Swipe. `nativeSendSwipe` carries the direction so a single handler can
@@ -2711,60 +3052,71 @@ object MobBridge {
     @JvmStatic external fun nativeDeliverFileResult(pid: Long, event: String, sub: String, json: String?)
     @JvmStatic external fun nativeDeliverPushToken(pid: Long, token: String)
     @JvmStatic external fun nativeDeliverNotification(pid: Long, json: String)
+    @JvmStatic external fun nativeDeliverLink(url: String)
     @JvmStatic external fun nativeDeliverWebViewMessage(pid: Long, json: String)
     @JvmStatic external fun nativeDeliverWebViewBlocked(pid: Long, url: String)
     @JvmStatic external fun nativeDeliverAlertAction(action: String)
 
     // ── Pending callback PIDs ──────────────────────────────────────────────
-    var pendingPermissionPid:  Long = 0
-    var pendingPermissionCap:  String = ""
     var pendingFilesPid:       Long = 0
 
     // ── Permissions ────────────────────────────────────────────────────────
+    // One system request at a time, each answered to its own pid: see
+    // MobPermissionQueue. Touched on the main thread only.
+    private val permissionQueue = MobPermissionQueue(
+        isGranted = { perm ->
+            val activity = activityRef?.get()
+            activity != null &&
+                ContextCompat.checkSelfPermission(activity, perm) == PackageManager.PERMISSION_GRANTED
+        },
+        // Returning false answers :denied and moves the queue on. Don't launch
+        // where no result would come back: never from a finishing or
+        // destroyed activity (its result is dropped), and never with nothing
+        // to ask — below API 33 androidx drops POST_NOTIFICATIONS and returns
+        // without any callback when that leaves the request empty.
+        launch = { perms, requestCode ->
+            val activity = activityRef?.get()?.takeUnless { it.isFinishing || it.isDestroyed }
+            val askable = perms.any {
+                android.os.Build.VERSION.SDK_INT >= 33 || it != android.Manifest.permission.POST_NOTIFICATIONS
+            }
+            if (activity != null && askable) ActivityCompat.requestPermissions(activity, perms, requestCode)
+            activity != null && askable
+        },
+        deliver = { pid, cap, granted ->
+            nativeDeliverAtom3(pid, "permission", cap, if (granted) "granted" else "denied")
+        },
+    )
+
     @JvmStatic
     fun request_permission(pid: Long, cap: String) {
-        pendingPermissionPid = pid
-        pendingPermissionCap = cap
-        val activity = activityRef?.get() ?: run {
-            nativeDeliverAtom3(pid, "permission", cap, "denied"); return
-        }
-        val perms = when (cap) {
-            "camera"        -> arrayOf(android.Manifest.permission.CAMERA)
-            "microphone"    -> arrayOf(android.Manifest.permission.RECORD_AUDIO)
-            "photo_library" -> if (android.os.Build.VERSION.SDK_INT >= 33)
-                arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO)
-            else arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-            "location"      -> arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
-            // KATI-BEGIN(K-26 calendar-permission) mob_new=0.4.20
-            // Not in the stock map, so Mob.Permissions.request(:calendar) fell
-            // through to the else arm and reported "denied" without ever asking.
-            "calendar"      -> arrayOf(android.Manifest.permission.READ_CALENDAR)
-            // KATI-END(K-26 calendar-permission)
-            // KATI-BEGIN(K-26 calendar-permission) mob_new=0.4.33
-            // Not in the stock map, so Mob.Permissions.request(:calendar) fell
-            // through to the else arm and reported "denied" without ever asking.
-            // Still Kati's: upstream's else arm now delegates to a plugin, and
-            // Kati activates none.
-            "calendar"      -> arrayOf(android.Manifest.permission.READ_CALENDAR)
-            // KATI-END(K-26 calendar-permission)
-            "notifications" -> if (android.os.Build.VERSION.SDK_INT >= 33)
-                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)
-            else { nativeDeliverAtom3(pid, "permission", "notifications", "granted"); return }
-            // Fall through to a plugin-supplied capability (e.g. mob_location
-            // once :location leaves core). Unknown -> denied.
-            else -> io.mob.plugin.MobPluginBootstrap.permissionsFor(cap)
-                ?: run { nativeDeliverAtom3(pid, "permission", cap, "denied"); return }
-        }
-        if (perms.all { ContextCompat.checkSelfPermission(activity, it) == PackageManager.PERMISSION_GRANTED }) {
-            nativeDeliverAtom3(pid, "permission", cap, "granted")
-        } else {
-            ActivityCompat.requestPermissions(activity, perms, PERM_REQUEST_CODE)
+        mainHandler.post {
+            val perms = when (cap) {
+                "camera"        -> arrayOf(android.Manifest.permission.CAMERA)
+                "microphone"    -> arrayOf(android.Manifest.permission.RECORD_AUDIO)
+                "photo_library" -> if (android.os.Build.VERSION.SDK_INT >= 33)
+                    arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO)
+                else arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                // KATI-BEGIN(K-26 calendar-permission) mob_new=0.6.21
+                // Not in the stock map, so Mob.Permissions.request(:calendar) fell
+                // through to the else arm and reported "denied" without ever asking.
+                "calendar"      -> arrayOf(android.Manifest.permission.READ_CALENDAR)
+                // KATI-END(K-26 calendar-permission)
+                "notifications" -> if (android.os.Build.VERSION.SDK_INT >= 33)
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)
+                else { nativeDeliverAtom3(pid, "permission", "notifications", "granted"); return@post }
+                // Fall through to a plugin-supplied capability (e.g. mob_location
+                // once :location leaves core). Unknown -> denied.
+                else -> io.mob.plugin.MobPluginBootstrap.permissionsFor(cap)
+                    ?: run { nativeDeliverAtom3(pid, "permission", cap, "denied"); return@post }
+            }
+            permissionQueue.request(pid, cap, perms)
         }
     }
 
+    /** Called from MainActivity.onRequestPermissionsResult (main thread). */
     @JvmStatic
-    fun onPermissionResult(granted: Boolean) {
-        nativeDeliverAtom3(pendingPermissionPid, "permission", pendingPermissionCap, if (granted) "granted" else "denied")
+    fun onPermissionResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        permissionQueue.onResult(requestCode, permissions, grantResults)
     }
 
     // ── File picker ───────────────────────────────────────────────────────
@@ -2798,26 +3150,51 @@ object MobBridge {
     @JvmStatic
     fun handleFilesResult(uris: List<Uri>) {
         val pid = pendingFilesPid
-        if (uris.isEmpty()) { nativeDeliverAtom2(pid, "files", "cancelled"); return }
-        val activity = activityRef?.get() ?: return
+        if (uris.isEmpty()) {
+            nativeDeliverAtom2(pid, "files", "cancelled")
+            return
+        }
+        val activity = activityRef?.get() ?: run {
+            nativeDeliverAtom2(pid, "files", "cancelled")
+            return
+        }
         Thread {
+            val copied = mutableListOf<File>()
             try {
                 val items = org.json.JSONArray()
                 uris.forEachIndexed { i, uri ->
-                    val name = katiDisplayName(activity, uri) ?: uri.lastPathSegment ?: "file_$i"
-                    val tmp = File(activity.cacheDir, "mob_file_${System.currentTimeMillis()}_$name")
-                    activity.contentResolver.openInputStream(uri)?.use { it.copyTo(tmp.outputStream()) }
+                    val name = activity.contentResolver.query(
+                        uri,
+                        arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+                        null,
+                        null,
+                        null,
+                    )?.use { cursor ->
+                        val column = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (column >= 0 && cursor.moveToFirst()) cursor.getString(column) else null
+                    } ?: "file_$i"
+                    // Document IDs can contain a whole path; never use one as a cache
+                    // filename. Keep a plain extension so the path still says its type.
+                    val ext = name.substringAfterLast('.', "")
+                        .takeIf { it.matches(Regex("[A-Za-z0-9]{1,10}")) }
+                    val tmp = File.createTempFile("mob_file_", if (ext != null) ".$ext" else ".tmp", activity.cacheDir)
+                    copied.add(tmp)
+                    val input = activity.contentResolver.openInputStream(uri)
+                        ?: throw java.io.IOException("The selected file could not be opened")
+                    input.use { source -> tmp.outputStream().use { source.copyTo(it) } }
                     val mime = activity.contentResolver.getType(uri) ?: "application/octet-stream"
                     items.put(
                         org.json.JSONObject()
                             .put("path", tmp.absolutePath)
                             .put("name", name)
                             .put("mime", mime)
-                            .put("size", tmp.length())
+                            .put("size", tmp.length()),
                     )
                 }
-                nativeDeliverFileResult(pid, "files", "picked", items.toString())
+                val json = items.toString()
+                nativeDeliverFileResult(pid, "files", "picked", json)
             } catch (e: Exception) {
+                copied.forEach { it.delete() }
                 nativeDeliverAtom2(pid, "files", "cancelled")
             }
         }.start()
@@ -3727,6 +4104,43 @@ object MobBridge {
     }
 
     /**
+     * The view hosting the text field that last took focus: the activity's
+     * compose view, or the separate window a `Mob.UI.sheet` or anchored popup
+     * renders into. Set by MobTextField on the UI thread; read by
+     * [dismissKeyboard] there.
+     */
+    internal var focusedFieldHost: WeakReference<View>? = null
+
+    /**
+     * Called from nif_dismiss_keyboard via JNI (`Mob.Keyboard.dismiss/1`) —
+     * hides the soft keyboard and clears focus on the UI thread.
+     * Fire-and-forget, like [haptic]. The NIF caches this with `cacheOptional`
+     * by name and `()V`, so a rename or signature change silently turns the
+     * call into a no-op.
+     *
+     * Clearing focus matches iOS, where dismissing resigns the first
+     * responder: the field's on_blur fires, and the next tap on it is a new
+     * focus. Hiding the IME alone left the field focused, with no blur, and
+     * a later tap on it sent no on_focus.
+     *
+     * Targets the focused field's own window. A field in a sheet lives in
+     * another window than `activity.currentFocus`, and the IME ignores a hide
+     * request carrying the wrong window's token.
+     */
+    @JvmStatic
+    fun dismissKeyboard() {
+        activityRef?.get()?.let { activity ->
+            activity.runOnUiThread {
+                val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                val focused = focusedFieldHost?.get()?.takeIf { it.isAttachedToWindow && it.hasFocus() }
+                    ?: activity.currentFocus
+                imm?.hideSoftInputFromWindow((focused ?: activity.window.decorView).windowToken, 0)
+                focused?.clearFocus()
+            }
+        }
+    }
+
+    /**
      * Called from nif_torch via JNI — toggles the rear-camera torch on ("on") or
      * off (any other value). Uses CameraManager.setTorchMode, so no capture
      * session and no CAMERA permission are needed. No-op on a device with no
@@ -3748,47 +4162,223 @@ object MobBridge {
     }
 
     // ── Text-to-speech ──────────────────────────────────────────────────────
-    // TextToSpeech initializes asynchronously; we keep one engine alive and
-    // queue the first utterance until onInit fires.
-    private var tts: TextToSpeech? = null
-    private var ttsReady = false
-    private var ttsPending: Pair<String, String>? = null
+    // TextToSpeech initializes asynchronously; we keep one engine alive, queue
+    // utterances until onInit fires, and let ttsVoices (called on a BEAM
+    // thread) wait on ttsInit. An engine that fails to start, or doesn't start
+    // within TTS_INIT_TIMEOUT_MS, is dropped so the next call tries again. All
+    // TTS work runs on mainHandler, not the Activity: the BEAM, and so speech,
+    // outlives it. tts, ttsGen and ttsPending change on the main thread only.
+    private class TtsUtterance(val pid: Long, val text: String, val optsJson: String)
 
-    /** Called from nif_tts_speak via JNI — speaks text via TextToSpeech.
-     *  optsJson may carry {"rate":Float,"pitch":Float,"voice":"en-US"} (all optional). */
-    @JvmStatic
-    fun ttsSpeak(text: String, optsJson: String) {
-        val activity = activityRef?.get() ?: return
-        activity.runOnUiThread {
-            if (tts == null) {
-                tts = TextToSpeech(activity.applicationContext) { status ->
-                    ttsReady = status == TextToSpeech.SUCCESS
-                    val pending = ttsPending
-                    ttsPending = null
-                    if (ttsReady && pending != null) speakNow(pending.first, pending.second)
-                }
+    @Volatile private var tts: TextToSpeech? = null
+    @Volatile private var ttsReady = false
+    @Volatile private var ttsInit = java.util.concurrent.CountDownLatch(1)
+    @Volatile private var ttsAppContext: android.content.Context? = null
+    private var ttsGen: Any? = null
+    private const val TTS_INIT_TIMEOUT_MS = 10_000L
+    private val ttsPending = ArrayList<TtsUtterance>()
+    private val ttsCallers = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private var ttsSeq = 0L
+    private val ttsVoiceCode = Regex("-x-([a-z0-9]+)")
+
+    // Utterance callbacks arrive on a binder thread. While the engine runs, each
+    // utterance ends in exactly one of these; the caller gets
+    // {:speech, :done | :cancelled | :failed}. An engine process that dies
+    // mid-utterance sends nothing.
+    private val ttsProgress = object : android.speech.tts.UtteranceProgressListener() {
+        override fun onStart(utteranceId: String) {}
+
+        override fun onDone(utteranceId: String) = ttsFinish(utteranceId, "done")
+
+        @Deprecated("Deprecated in Java")
+        override fun onError(utteranceId: String) = ttsFinish(utteranceId, "failed")
+
+        override fun onError(utteranceId: String, errorCode: Int) = ttsFinish(utteranceId, "failed")
+
+        override fun onStop(utteranceId: String, interrupted: Boolean) =
+            ttsFinish(utteranceId, "cancelled")
+    }
+
+    private fun ttsFinish(utteranceId: String, event: String) {
+        val pid = ttsCallers.remove(utteranceId) ?: return
+        nativeDeliverAtom2(pid, "speech", event)
+    }
+
+    private fun ttsNotify(u: TtsUtterance, event: String) {
+        if (u.pid != 0L) nativeDeliverAtom2(u.pid, "speech", event)
+    }
+
+    /** Starts the engine if there isn't one. Main thread. False when it can't start. */
+    private fun ttsEnsure(): Boolean {
+        if (tts != null) return true
+        // Set by init(); the application context outlives every Activity.
+        val context = ttsAppContext ?: return false
+        val gen = Any()
+        val latch = java.util.concurrent.CountDownLatch(1)
+        ttsGen = gen
+        ttsInit = latch
+        ttsReady = false
+        var engine: TextToSpeech? = null
+        val created = TextToSpeech(context) { status ->
+            if (ttsGen !== gen) return@TextToSpeech
+            if (status == TextToSpeech.SUCCESS) {
+                engine?.setOnUtteranceProgressListener(ttsProgress)
+                ttsReady = true
+                ttsPending.forEach { speakNow(it) }
+                ttsPending.clear()
+                latch.countDown()
+            } else {
+                ttsAbandon(gen)
             }
-            if (ttsReady) speakNow(text, optsJson) else ttsPending = text to optsJson
+        }
+        // With no engine installed, onInit(ERROR) runs inside the constructor.
+        if (ttsGen !== gen) {
+            created.shutdown()
+            return false
+        }
+        engine = created
+        tts = created
+        // An engine that never calls onInit would hold every utterance forever.
+        mainHandler.postDelayed({ if (ttsGen === gen && !ttsReady) ttsAbandon(gen) }, TTS_INIT_TIMEOUT_MS)
+        return true
+    }
+
+    // Drops the engine of generation gen, failing what waited on it. Main thread.
+    private fun ttsAbandon(gen: Any) {
+        if (ttsGen !== gen) return
+        val latch = ttsInit
+        ttsGen = null
+        ttsReady = false
+        tts?.shutdown()
+        tts = null
+        ttsPending.forEach { ttsNotify(it, "failed") }
+        ttsPending.clear()
+        latch.countDown()
+    }
+
+    /** Called from nif_tts_speak via JNI on mob older than 0.9.22: no caller to notify. */
+    @JvmStatic
+    fun ttsSpeak(text: String, optsJson: String) = ttsSpeakFor(0L, text, optsJson)
+
+    /** Called from nif_tts_speak via JNI — speaks text via TextToSpeech and tells pid
+     *  when it ends. optsJson may carry {"rate":Float,"pitch":Float,"voice":String}
+     *  (all optional); "voice" is a voice id from ttsVoices or a BCP-47 language tag. */
+    @JvmStatic
+    fun ttsSpeakFor(pid: Long, text: String, optsJson: String) {
+        val u = TtsUtterance(pid, text, optsJson)
+        mainHandler.post {
+            when {
+                !ttsEnsure() -> ttsNotify(u, "failed")
+                ttsReady -> speakNow(u)
+                else -> ttsPending.add(u)
+            }
         }
     }
 
-    private fun speakNow(text: String, optsJson: String) {
-        val engine = tts ?: return
+    private fun speakNow(u: TtsUtterance) {
+        val engine = tts ?: return ttsNotify(u, "failed")
+        val opts = try {
+            org.json.JSONObject(u.optsJson)
+        } catch (_: org.json.JSONException) {
+            org.json.JSONObject()
+        }
+        // The engine keeps its settings between calls; set each one so the
+        // options apply to this utterance only, as on iOS. Absent ones go back
+        // to the user's system defaults (Settings > Text-to-speech output).
+        engine.setSpeechRate(opts.optDouble("rate", ttsSystemDefault("tts_default_rate")).toFloat())
+        engine.setPitch(opts.optDouble("pitch", ttsSystemDefault("tts_default_pitch")).toFloat())
+        ttsSelectVoice(engine, opts.optString("voice", ""))
+        val id = "mob_tts_${++ttsSeq}"
+        if (u.pid != 0L) ttsCallers[id] = u.pid
+        if (engine.speak(u.text, TextToSpeech.QUEUE_ADD, null, id) != TextToSpeech.SUCCESS) {
+            ttsFinish(id, "failed")
+        }
+    }
+
+    // Settings.Secure.TTS_DEFAULT_RATE / TTS_DEFAULT_PITCH: percentages, 100 = normal.
+    private fun ttsSystemDefault(setting: String): Double {
+        val resolver = ttsAppContext?.contentResolver ?: return 1.0
+        return android.provider.Settings.Secure.getInt(resolver, setting, 100) / 100.0
+    }
+
+    // A voice id from ttsVoices first, then a BCP-47 language tag. Neither (or
+    // no "voice" at all) puts the engine back on its default voice.
+    private fun ttsSelectVoice(engine: TextToSpeech, voice: String) {
+        if (voice.isNotEmpty()) {
+            if (engine.voice?.name == voice) return
+            val byId = engine.voices?.firstOrNull { it.name == voice }
+            if (byId != null) {
+                engine.setVoice(byId)
+                return
+            }
+            val locale = java.util.Locale.forLanguageTag(voice)
+            if (locale.language.isNotEmpty() &&
+                engine.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE
+            ) {
+                engine.setLanguage(locale)
+                return
+            }
+        }
+        engine.defaultVoice?.let { engine.setVoice(it) }
+    }
+
+    /** Called from nif_tts_voices via JNI on a BEAM dirty thread. The installed
+     *  voices as a JSON array of {"id","name","language","quality","network"},
+     *  or null when the engine didn't start within 5 s. Voices whose data
+     *  isn't downloaded are left out. */
+    @JvmStatic
+    fun ttsVoices(): String? {
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        val ensured = java.util.concurrent.CountDownLatch(1)
+        var started = false
+        mainHandler.post {
+            started = ttsEnsure()
+            ensured.countDown()
+        }
+        // An exception escaping here would stay pending in the calling JNI thread.
         try {
-            val opts = org.json.JSONObject(optsJson)
-            if (opts.has("rate")) engine.setSpeechRate(opts.getDouble("rate").toFloat())
-            if (opts.has("pitch")) engine.setPitch(opts.getDouble("pitch").toFloat())
-            if (opts.has("voice"))
-                engine.setLanguage(java.util.Locale.forLanguageTag(opts.getString("voice")))
-        } catch (_: Exception) {
+            val ensureLeft = deadline - System.nanoTime()
+            if (!ensured.await(ensureLeft, java.util.concurrent.TimeUnit.NANOSECONDS) || !started) return null
+            val initLeft = deadline - System.nanoTime()
+            if (!ttsInit.await(initLeft, java.util.concurrent.TimeUnit.NANOSECONDS) || !ttsReady) return null
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            return null
         }
-        engine.speak(text, TextToSpeech.QUEUE_ADD, null, "mob_tts_${System.currentTimeMillis()}")
+        val engine = tts ?: return null
+        return try {
+            val out = org.json.JSONArray()
+            engine.voices.orEmpty()
+                .filter { TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
+                .forEach { v ->
+                    val code = ttsVoiceCode.find(v.name)?.groupValues?.get(1)
+                    val language = v.locale.displayName
+                    out.put(
+                        org.json.JSONObject()
+                            .put("id", v.name)
+                            .put("name", if (code != null) "$language $code" else language)
+                            .put("language", v.locale.toLanguageTag())
+                            .put("quality", v.quality)
+                            .put("network", v.isNetworkConnectionRequired),
+                    )
+                }
+            out.toString()
+        } catch (e: RuntimeException) {
+            Log.w("MobBridge", "ttsVoices failed: ${e.message}")
+            null
+        }
     }
 
-    /** Called from nif_tts_stop via JNI — stops any in-progress speech immediately. */
+    /** Called from nif_tts_stop via JNI — stops any in-progress speech. Runs on the UI
+     *  thread after any ttsSpeakFor posted before it, so speak-then-stop stops. */
     @JvmStatic
     fun ttsStop() {
-        tts?.stop()
+        mainHandler.post {
+            ttsPending.forEach { ttsNotify(it, "cancelled") }
+            ttsPending.clear()
+            // A failed stop leaves no onStop to come; end the callers' utterances here.
+            if (tts?.stop() == TextToSpeech.ERROR) ttsCallers.keys.toList().forEach { ttsFinish(it, "cancelled") }
+        }
     }
 
     /** Called from nif_clipboard_put via JNI — writes text to the system clipboard. */
@@ -3853,6 +4443,54 @@ object MobBridge {
                     putExtra(Intent.EXTRA_TEXT, text)
                 }
                 activity.startActivity(Intent.createChooser(intent, null))
+            }
+        }
+    }
+
+    /** Called from nif_share_file via JNI — opens the system share sheet for a local file. */
+    @JvmStatic
+    fun shareFile(pid: Long, path: String, mime: String, title: String) {
+        val activity = activityRef?.get()?.takeUnless { it.isFinishing || it.isDestroyed }
+            ?: run {
+                nativeDeliverAtom3(pid, "mob_share", "error", "no_activity")
+                return
+            }
+        activity.runOnUiThread {
+            if (activity.isFinishing || activity.isDestroyed) {
+                nativeDeliverAtom3(pid, "mob_share", "error", "no_activity")
+                return@runOnUiThread
+            }
+            val file = File(path)
+            if (!file.isFile || !file.canRead()) {
+                nativeDeliverAtom3(pid, "mob_share", "error", "not_found")
+                return@runOnUiThread
+            }
+            val uri = try {
+                FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", file)
+            } catch (e: IllegalArgumentException) {
+                Log.w("MobBridge", "shareFile failed to resolve FileProvider URI for $path", e)
+                nativeDeliverAtom3(pid, "mob_share", "error", "failed")
+                return@runOnUiThread
+            }
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = mime
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TITLE, title)
+                putExtra(Intent.EXTRA_SUBJECT, title)
+                clipData = ClipData.newUri(activity.contentResolver, title, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(send, title).apply {
+                clipData = send.clipData
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            try {
+                activity.startActivity(chooser)
+            } catch (e: ActivityNotFoundException) {
+                nativeDeliverAtom3(pid, "mob_share", "error", "no_app")
+            } catch (e: Exception) {
+                Log.w("MobBridge", "shareFile failed", e)
+                nativeDeliverAtom3(pid, "mob_share", "error", "failed")
             }
         }
     }
@@ -4481,6 +5119,45 @@ private fun ApplyThrottleConfig(props: Map<String, Any?>, handle: Int?, configKe
 /** Long-press / double-tap handles for one node, re-read each composition. */
 private data class MobPressHandles(val long: Int?, val double: Int?)
 
+/** on_press_in / on_press_out handles for one node, re-read each composition. */
+private data class MobPressInOutHandles(val pressIn: Int?, val pressOut: Int?)
+
+/**
+ * True when the node observes press in/out or on_touch (MOB-518), so its tap
+ * uses nativeSendPressTap: such a node re-renders between the finger's down
+ * and up, and its tap handle is from the render before.
+ */
+private fun mobIsPressNode(props: Map<String, Any?>): Boolean =
+    intProp(props, "on_press_in") != null || intProp(props, "on_press_out") != null ||
+        intProp(props, "on_touch") != null
+
+/**
+ * One node's on_touch handle and move rule (MOB-518), re-read each composition.
+ * Without a "touch_moves" prop moves are off, which the native side reads as a
+ * negative throttle.
+ */
+private data class MobTouchConfig(val handle: Int?, val moveThrottleMs: Int, val moveDelta: Double)
+
+private fun mobTouchConfig(props: Map<String, Any?>): MobTouchConfig {
+    // Nested props stay org.json objects — see MobJson's compatibility contract.
+    val moves = props["touch_moves"] as? JSONObject
+    return MobTouchConfig(
+        intProp(props, "on_touch"),
+        moves?.optInt("throttle_ms", 16) ?: -1,
+        moves?.optDouble("delta", 1.0) ?: 0.0,
+    )
+}
+
+/** A pointer down on an on_touch node: its native token and last position in dp. */
+private class MobTouchPointer(val token: Int, var x: Double, var y: Double)
+
+/**
+ * The touch observer's pointerInput key. Distinct from the press observer's
+ * `Unit`, so a node that swaps one prop for the other gets a fresh detector
+ * (and the old one's finally) rather than Compose reusing the old node.
+ */
+private object MobTouchKey
+
 /** Swipe handles for one node, re-read each composition. See MobScrollHandlers. */
 private data class MobSwipeHandlers(
     val any: Int?,
@@ -4613,6 +5290,11 @@ private fun MobScrollEvents(node: MobNode, scrollState: ScrollState, horizontal:
     val density = LocalDensity.current
 
     LaunchedEffect(scrollState, horizontal, density) {
+        // Start from the first measured position. Before the first layout
+        // maxValue is Int.MAX_VALUE, and an `anchor: "bottom"` scroll's value is
+        // still its Int.MAX_VALUE initial; the layout clamping it to the end
+        // would otherwise be reported as a scroll nobody made.
+        snapshotFlow { scrollState.maxValue }.first { it != Int.MAX_VALUE }
         var last = with(density) { scrollState.value.toDp().value }
         var lastTs = 0L
         var hasBegun = false
@@ -4686,6 +5368,61 @@ private fun MobScrollEvents(node: MobNode, scrollState: ScrollState, horizontal:
 }
 
 /**
+ * `anchor: "bottom"` on a vertical scroll (MOB-481). When the content grows or
+ * the viewport shrinks, the view follows to the new end if it was at the old
+ * end, or within [MOB_SCROLL_PIN_DP] of it. A user who has scrolled further
+ * away is left where they are. Opening at the end is not done here: the
+ * caller's ScrollState starts at Int.MAX_VALUE and the first layout clamps it.
+ */
+@Composable
+private fun MobScrollFollowEnd(scrollState: ScrollState) {
+    val pinPx = with(LocalDensity.current) { MOB_SCROLL_PIN_DP.dp.roundToPx() }
+    // Saved because the ScrollState is: restored into a smaller viewport, a
+    // view that was at the end has a restored offset short of the new end, and
+    // only this says it should follow. Defaults to true, so an anchor switched
+    // on at runtime moves to the end like a fresh scroll opens there.
+    var pinned by rememberSaveable { mutableStateOf(true) }
+    LaunchedEffect(scrollState, pinPx) {
+        // Not scrollState.maxValue: the first measured extent this effect sees
+        // must take the `pinned` branch below even when layout ran first.
+        var lastMax = Int.MAX_VALUE
+        var jumpPending = false
+        snapshotFlow { scrollState.value to scrollState.maxValue }.collect { (value, max) ->
+            if (max == Int.MAX_VALUE) return@collect
+            if (max != lastMax) {
+                // Judged by the offset now against the OLD end: a drag and a
+                // growth that land in one frame arrive here as one sample, and
+                // the drag must win. A jump not yet landed still counts as at
+                // the end, or a second growth right behind the first is missed.
+                val wasAtEnd = when (lastMax) {
+                    Int.MAX_VALUE -> pinned
+                    else -> jumpPending || lastMax - value <= pinPx
+                }
+                lastMax = max
+                if (wasAtEnd && value < max) {
+                    jumpPending = true
+                    pinned = true
+                    // In its own job: scrollTo loses to a drag in progress by
+                    // throwing CancellationException, which here would end the
+                    // collection and stop following for good. Not animated:
+                    // growth arriving mid-animation would find the offset far
+                    // from the old end and stop following.
+                    launch { scrollState.scrollTo(max) }
+                    return@collect
+                }
+            }
+            // No jump in flight from here: an offset-only sample is one landing
+            // (or the user scrolling), and a size change that needed none
+            // leaves nothing that would land and clear the flag later.
+            jumpPending = false
+            pinned = max - value <= pinPx
+        }
+    }
+}
+
+private const val MOB_SCROLL_PIN_DP = 32
+
+/**
  * Stable identities for a child list (MOB-127).
  *
  * Positional identity — a bare `forEach`, or `items()` without a `key` — means
@@ -4735,6 +5472,9 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     val longPressHandle = intProp(node.props, "on_long_press")
     val doubleTapHandle = intProp(node.props, "on_double_tap")
     val isDisabled = boolProp(node.props, "disabled") ?: false
+    // A node observing press in/out re-renders mid-touch; its tap resolves by
+    // identity (nativeSendPressTap). Every other tap stays strict.
+    val pressNode = mobIsPressNode(node.props)
     val accessibilityRole = node.props["accessibility_role"] as? String
     val isButton = node.type == "box" && accessibilityRole == "button"
     // The node types iOS actually attaches gestures to. MobRootView applies
@@ -4780,7 +5520,7 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
                 role = if (isButton) Role.Button else null,
                 onLongClick = longPressHandle?.let { h -> { MobBridge.nativeSendLongPress(h) } },
                 onDoubleClick = doubleTapHandle?.let { h -> { MobBridge.nativeSendDoubleTap(h) } }
-            ) { MobBridge.nativeSendTap(tapHandle) }
+            ) { MobBridge.sendTapFor(tapHandle, pressNode) }
 
         // Long press or double tap with NO on_tap: a raw detector, not
         // combinedClickable. combinedClickable would need an onClick, and
@@ -4817,15 +5557,14 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         // button role.
         isButton && tapHandle != null ->
             modifier.clickable(
-                // KATI-BEGIN(K-60 press-dim) mob_new=0.6.0
+                // KATI-BEGIN(K-60 press-dim) mob_new=0.6.21
                 interactionSource = pressSource,
                 indication = null,
                 // KATI-END(K-60 press-dim)
                 enabled = !isDisabled,
                 role = Role.Button
             ) {
-                MobBridge.nativeSendTap(tapHandle)
-            }
+                MobBridge.sendTapFor(tapHandle, pressNode)            }
 
         // `enabled = !isDisabled` here too, not just on the button arm above.
         // Without it a box with `disabled: true` and no explicit
@@ -4838,13 +5577,12 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         // meant for the trigger inside it.
         tapHandle != null && node.type != "button" && node.type != "anchored" ->
             modifier.clickable(
-                // KATI-BEGIN(K-60 press-dim) mob_new=0.6.0
+                // KATI-BEGIN(K-60 press-dim) mob_new=0.6.21
                 interactionSource = pressSource,
                 indication = null,
                 // KATI-END(K-60 press-dim)
                 enabled = !isDisabled
-            ) { MobBridge.nativeSendTap(tapHandle) }
-
+            ) { MobBridge.sendTapFor(tapHandle, pressNode) }
         else -> modifier
     }
     // KATI-BEGIN(K-60 press-dim) mob_new=0.6.0
@@ -4992,7 +5730,108 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         }
     }
 
-    val base = gestureModifier.then(nodeModifier(node.props))
+    // ── Per-pointer touch (MOB-518) ─────────────────────────────────────────
+    // Every pointer that lands on the node, with its position inside it, each
+    // its own down → moves → up/cancel. Observes without consuming on the
+    // Initial pass, like press in/out below, so on_tap, long press, swipe and
+    // an ancestor's scroll keep working and the down isn't delayed by any
+    // detector's slop or double-tap wait.
+    //
+    // Compose hit-tests a pointer once, at its down, and keeps sending that
+    // pointer's changes down the same path: a finger that slides onto another
+    // on_touch node stays this node's pointer, and the other node never hears
+    // of it. A plain loop rather than awaitEachGesture, which would ignore a new
+    // finger's down until every pointer had lifted.
+    //
+    // A lift that arrives already consumed is Compose's synthesised cancel
+    // (onCancelPointerInput marks every pointer up and consumed); nothing
+    // upstream of a node's Initial pass consumes a real lift. The finally
+    // cancels whatever is still down when the detector is torn down.
+    val touch = mobTouchConfig(node.props)
+    val liveTouch by rememberUpdatedState(touch)
+    val touchModifier =
+        if (touch.handle == null) gestureModifier
+        else gestureModifier.pointerInput(MobTouchKey) {
+            val pointers = HashMap<Long, MobTouchPointer>()
+            try {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val w = size.width.toDp().value.toDouble()
+                        val h = size.height.toDp().value.toDouble()
+                        for (change in event.changes) {
+                            val id = change.id.value
+                            val x = change.position.x.toDp().value.toDouble()
+                            val y = change.position.y.toDp().value.toDouble()
+                            if (change.pressed && !change.previousPressed) {
+                                val cfg = liveTouch
+                                val handle = cfg.handle ?: continue
+                                val token = MobBridge.nativeTouchDown(
+                                    handle, id, x, y, w, h, change.uptimeMillis,
+                                    cfg.moveThrottleMs, cfg.moveDelta,
+                                )
+                                if (token >= 0) pointers[id] = MobTouchPointer(token, x, y)
+                            } else if (change.pressed) {
+                                val pointer = pointers[id] ?: continue
+                                if (change.position == change.previousPosition) continue
+                                pointer.x = x
+                                pointer.y = y
+                                MobBridge.nativeTouchMove(pointer.token, x, y, w, h, change.uptimeMillis)
+                            } else if (change.previousPressed) {
+                                val pointer = pointers.remove(id) ?: continue
+                                MobBridge.nativeTouchEnd(
+                                    pointer.token, change.isConsumed, x, y, w, h, change.uptimeMillis,
+                                )
+                            }
+                        }
+                    }
+                }
+            } finally {
+                val ts = SystemClock.uptimeMillis()
+                val w = size.width.toDp().value.toDouble()
+                val h = size.height.toDp().value.toDouble()
+                for (pointer in pointers.values) {
+                    MobBridge.nativeTouchEnd(pointer.token, true, pointer.x, pointer.y, w, h, ts)
+                }
+                pointers.clear()
+            }
+        }
+
+    // ── Press in / out (MOB-380) ────────────────────────────────────────────
+    // Observes the finger without consuming anything, on every node type
+    // (button included): on_tap, long press, swipe and an ancestor's scroll
+    // all still see the same events. The Initial pass runs before the node's
+    // own detectors consume, though consumption would not hide the events
+    // from us anyway; it only marks them.
+    //
+    // Every press_in is paired with exactly one press_out: when the last
+    // pointer lifts, when the gesture is cancelled (Compose reports a cancel
+    // as every pointer going up), or when the detector itself is torn down
+    // mid-press (the finally). The handles are read live at touch-down, and
+    // press_out's routing is snapshotted natively then (nativePressBegin):
+    // the screen typically re-renders between the two (a "listening" label),
+    // and a handle from the earlier render would be dropped as stale.
+    val pressIn = intProp(node.props, "on_press_in")
+    val pressOut = intProp(node.props, "on_press_out")
+    val livePress by rememberUpdatedState(MobPressInOutHandles(pressIn, pressOut))
+    val pressModifier =
+        if (pressIn == null && pressOut == null) touchModifier
+        else touchModifier.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                val handles = livePress
+                val token = MobBridge.nativePressBegin(handles.pressIn ?: -1, handles.pressOut ?: -1)
+                try {
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                    } while (event.changes.any { it.pressed })
+                } finally {
+                    if (token >= 0) MobBridge.nativePressEnd(token)
+                }
+            }
+        }
+
+    val base = pressModifier.then(nodeModifier(node.props))
     // Track on-screen frame + set a testTag for any node carrying an :id, so the
     // agent can read positions (Mob.Test.element_frames) without a screenshot.
     val trackId = node.props["id"] as? String
@@ -5033,8 +5872,8 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
                 // Modifier.weight is resolved out here, in ColumnScope — forEachIndexed
                 // is inline so the scope survives, but key()'s block is a plain
                 // composable lambda and has no scope of its own.
-                val w = floatProp(child.props, "weight")
-                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.33
+                val w = mobChildWeight(child)
+                // KATI-BEGIN(K-15 zero-weight) mob_new=0.6.21
                 // `Modifier.weight(0f)` THROWS — "invalid weight 0.0; must be
                 // greater than zero" — and it is an uncaught IllegalArgument on
                 // the main thread, so it kills the activity outright. Zero share
@@ -5059,8 +5898,8 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         ) {
             val keys = mobChildKeys(node.children)
             node.children.forEachIndexed { i, child ->
-                val w = floatProp(child.props, "weight")
-                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.33
+                val w = mobChildWeight(child)
+                // KATI-BEGIN(K-15 zero-weight) mob_new=0.6.21
                 // `Modifier.weight(0f)` THROWS — "invalid weight 0.0; must be
                 // greater than zero" — an uncaught IllegalArgument on the main
                 // thread, so it kills the activity outright.
@@ -5128,17 +5967,28 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
             }
         }
         "scroll" -> {
-            // KATI-BEGIN(K-75 pager) mob_new=0.6.3
+            // KATI-BEGIN(K-75 pager) mob_new=0.6.21
             if (node.props["axis"] == "horizontal" && boolProp(node.props, "pager") == true) {
                 KatiPager(node, m)
             } else {
             // KATI-END(K-75 pager)
-            // Re-created per navigation, for the same reason MobLazyList's state
+            val horizontal = node.props["axis"] == "horizontal"
+            // `anchor: "bottom"` (MOB-481): vertical, non-lazy scrolls only, as
+            // on iOS. The ScrollState starts at Int.MAX_VALUE so the first
+            // layout clamps it to the end: the scroll opens there with no frame
+            // at the top first.
+            val anchorBottom = !horizontal &&
+                node.props["anchor"] == "bottom" &&
+                boolProp(node.props, "lazy") != true            // Re-created per navigation, for the same reason MobLazyList's state
             // is: `rememberScrollState()` is keyless, so with the composition
             // preserved across navigation (MOB-146) a scroll view landing in the
             // same slot would open the new screen at the old screen's offset.
-            val scrollState = key(MobBridge.LocalSlotEpoch.current) { rememberScrollState() }
-            val horizontal = node.props["axis"] == "horizontal"
+            val scrollState = key(MobBridge.LocalSlotEpoch.current) {
+                rememberScrollState(if (anchorBottom) Int.MAX_VALUE else 0)
+            }
+            // Keyed like the ScrollState, so its saved pinned flag is the
+            // screen's own and not the one this slot held before navigating.
+            if (anchorBottom) key(MobBridge.LocalSlotEpoch.current) { MobScrollFollowEnd(scrollState) }
 
             // Decided up front because it determines whether this node scrolls a
             // pixel ScrollState at all, and therefore whether the scroll event
@@ -5193,7 +6043,9 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
                 //
                 // A child carrying `weight` also forces the eager path: weight
                 // comes from ColumnScope, and LazyColumn items have no such
-                // scope, so it would be dropped without a trace.
+                // scope, so it would be dropped without a trace. A bare spacer's
+                // implicit weight (mobChildWeight) doesn't count: under a vertical
+                // scroll's unbounded height it resolves to 0, as a lazy item would.
                 // OPT-IN. `lazy: true` on the scroll node, nothing else.
                 //
                 // Laziness is not free of observable consequences: rows below
@@ -5272,7 +6124,17 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         "lazy_list"  -> MobLazyList(node, m)
         "video"          -> MobVideoPlayer(node, m)
         "web_view"       -> MobWebView(node, m)
-        "native_view"    -> MobNativeViewRegistry.render(node)
+        // The registry's factories take no modifier, so a native view never
+        // gets `m`. clip_width / clip_height go on a wrapper Box instead, and
+        // only when one is set: an unclipped native view lays out as before.
+        // propagateMinConstraints hands the parent's minimums on unchanged.
+        // The two calls are different composition groups, so a clip crossing 1
+        // remounts the native view, as on iOS (decisions/2026-11-20-clip-*).
+        "native_view"    -> {
+            val clip = mobFractionClip(node.props)
+            if (clip == Modifier) MobNativeViewRegistry.render(node)
+            else Box(modifier = clip, propagateMinConstraints = true) { MobNativeViewRegistry.render(node) }
+        }
         "canvas"         -> MobCanvas(node, m)
         "gpu_view"       -> MobGpuView(node, m)
         "sheet"          -> MobSheetSlot(node) { state -> MobSheet(node, state) }
@@ -5687,6 +6549,7 @@ private fun MobText(node: MobNode, modifier: Modifier) {
 private fun MobButton(node: MobNode, modifier: Modifier) {
     val label       = node.props["text"] as? String ?: ""
     val tapHandle   = intProp(node.props, "on_tap")
+    val pressNode   = mobIsPressNode(node.props)
     val bgColor     = colorProp(node.props, "background")
     val cornerRad   = floatProp(node.props, "corner_radius") ?: 0f
 
@@ -5700,7 +6563,7 @@ private fun MobButton(node: MobNode, modifier: Modifier) {
     // fill_width and corner_radius are driven by Elixir props (set in component
     // defaults but overridable per-node). Shape overrides M3's stadium default.
     Button(
-        onClick  = { tapHandle?.let { MobBridge.nativeSendTap(it) } },
+        onClick  = { tapHandle?.let { MobBridge.sendTapFor(it, pressNode) } },
         modifier = if (fillWidth) modifier.fillMaxWidth() else modifier,
         colors   = colors,
         shape    = RoundedCornerShape(cornerRad.dp),
@@ -5720,6 +6583,8 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     val submitHandle  = intProp(node.props, "on_submit")
     val placeholder   = node.props["placeholder"] as? String ?: ""
     val keyboardController = LocalSoftwareKeyboardController.current
+    // The window this field renders in, for MobBridge.dismissKeyboard().
+    val hostView = LocalView.current
 
     val isSecure = boolProp(node.props, "secure") ?: false
     // `secure: true` overrides any explicit `keyboard:` choice — Compose's
@@ -6217,9 +7082,18 @@ private fun MobDivider(node: MobNode, modifier: Modifier) {
     )
 }
 
+// A row/column child's flex weight: an explicit `weight`, else 1 for a spacer
+// without a positive `size`, which fills the free main-axis space as on iOS
+// (MobRootView treats a spacer of size <= 0 as a flexible Spacer()).
+private fun mobChildWeight(child: MobNode): Float? =
+    floatProp(child.props, "weight")
+        ?: if (child.type == "spacer" && mobSpacerSize(child) == null) 1f else null
+
+private fun mobSpacerSize(node: MobNode): Float? = floatProp(node.props, "size")?.takeIf { it > 0f }
+
 @Composable
 private fun MobSpacer(node: MobNode, modifier: Modifier) {
-    val size = floatProp(node.props, "size")
+    val size = mobSpacerSize(node)
     // size() sets both width and height so Spacer works as a gap in both Column and Row.
     Spacer(modifier = if (size != null) modifier.size(size.dp) else modifier)
 }
@@ -6270,11 +7144,186 @@ private fun MobImage(node: MobNode, modifier: Modifier) {
     if (fixedHeight != null) m = m.height(fixedHeight.dp)
     if (cornerRadius > 0f)   m = m.clip(RoundedCornerShape(cornerRadius.dp))
 
+    if (boolProp(node.props, "zoomable") == true) {
+        val maxZoom = (floatProp(node.props, "max_zoom") ?: 4f).coerceAtLeast(1f)
+        val doubleTapZoom = (floatProp(node.props, "double_tap_zoom") ?: 2.5f).coerceIn(1f, maxZoom)
+        MobZoomableImage(model, src, maxZoom, doubleTapZoom, m)
+        return
+    }
+
     AsyncImage(
         model              = model,
         contentDescription = null,
         contentScale       = contentScale,
         modifier           = m,
+    )
+}
+
+/**
+ * `zoomable: true` on :image. Pinch zooms about the pinch (1x..maxZoom), a
+ * double tap zooms to doubleTapZoom about the tapped point and a second one
+ * goes back to 1x, one finger pans while zoomed in. All native: a gesture that
+ * waited on the BEAM for every frame could not track a finger.
+ *
+ * The frame is the zoom viewport, so it fills the space it is offered (an
+ * unbounded axis follows the picture's aspect ratio, as AsyncImage's own
+ * sizing does); the picture is aspect-fitted inside it. The gesture detector
+ * sits BEFORE graphicsLayer in the chain, so pointer positions are in the
+ * frame's untransformed coordinates, and clipToBounds keeps the zoomed picture
+ * inside the frame.
+ *
+ * Contract with a parent scroll or pager: one-finger moves are consumed only
+ * while zoomed in, and only past touch slop, so at 1x a drag reaches the
+ * parent untouched. Downs and ups are never consumed, so an on_tap on the
+ * node or an ancestor (a clickable outside this one) still sees every tap,
+ * both taps of a double tap included.
+ */
+@Composable
+private fun MobZoomableImage(
+    model: Any?,
+    src: String?,
+    maxZoom: Float,
+    doubleTapZoom: Float,
+    modifier: Modifier,
+) {
+    // Zoom belongs to one picture: a new src starts again at 1x.
+    var scale by remember(src) { mutableStateOf(1f) }
+    var offset by remember(src) { mutableStateOf(Offset.Zero) }
+    // The decoded picture's size, for its aspect ratio. Unspecified until loaded.
+    var picture by remember(src) { mutableStateOf(ComposeSize.Unspecified) }
+    var frame by remember { mutableStateOf(IntSize.Zero) }
+    var zoomAnimation by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // Panning limit at zoom s: half of however far the zoomed, aspect-fitted
+    // picture overhangs the frame on each axis, so its edge never comes inside
+    // the frame's edge. Where it does not overhang, it stays centred.
+    fun clamp(o: Offset, s: Float): Offset {
+        val fw = frame.width.toFloat()
+        val fh = frame.height.toFloat()
+        if (fw <= 0f || fh <= 0f) return Offset.Zero
+        // Size.width throws on Unspecified, so test that first. A picture not
+        // loaded yet (or with no intrinsic size) clamps against the frame.
+        val known = picture != ComposeSize.Unspecified && picture.width > 0f && picture.height > 0f
+        val fit = if (known) minOf(fw / picture.width, fh / picture.height) else null
+        val cw = if (fit != null) picture.width * fit else fw
+        val ch = if (fit != null) picture.height * fit else fh
+        val maxX = ((cw * s - fw) / 2f).coerceAtLeast(0f)
+        val maxY = ((ch * s - fh) / 2f).coerceAtLeast(0f)
+        return Offset(o.x.coerceIn(-maxX, maxX), o.y.coerceIn(-maxY, maxY))
+    }
+
+    // graphicsLayer scales about the frame's centre c, so a frame point p is
+    // drawn at c + s * (p - c) + offset. Keeping the content under `focus`
+    // fixed while going from scale s to s' = s * z gives
+    // offset' = (focus - c) * (1 - z) + offset * z.
+    fun offsetFor(focus: Offset, newScale: Float): Offset {
+        val z = newScale / scale
+        val c = Offset(frame.width / 2f, frame.height / 2f)
+        return (focus - c) * (1f - z) + offset * z
+    }
+
+    fun toggleZoom(focus: Offset) {
+        val fromScale = scale
+        val fromOffset = offset
+        val toScale = if (scale > 1f) 1f else doubleTapZoom
+        val toOffset = if (toScale == 1f) Offset.Zero else clamp(offsetFor(focus, toScale), toScale)
+        zoomAnimation?.cancel()
+        zoomAnimation = scope.launch {
+            animate(0f, 1f) { f, _ ->
+                scale = fromScale + (toScale - fromScale) * f
+                // Clamped at every step: the bound is not linear in the scale,
+                // and an animation cut short by a new touch must leave the
+                // picture in range.
+                offset = clamp(fromOffset + (toOffset - fromOffset) * f, scale)
+            }
+        }
+    }
+
+    // Up to 4096 px on the long side, never upscaled (INEXACT): zooming in
+    // needs more pixels than the frame, which is all AsyncImage would otherwise
+    // decode, and 4096 x 4096 ARGB stays under the 100 MB a Canvas will draw.
+    val request = remember(model) {
+        ImageRequest.Builder(context)
+            .data(model)
+            .size(4096)
+            .precision(Precision.INEXACT)
+            .build()
+    }
+
+    AsyncImage(
+        model              = request,
+        contentDescription = null,
+        contentScale       = ContentScale.Fit,
+        onSuccess          = {
+            picture = it.painter.intrinsicSize
+            offset = clamp(offset, scale)
+        },
+        modifier           = modifier
+            .fillMaxSize()
+            .clipToBounds()
+            .onSizeChanged {
+                frame = it
+                offset = clamp(offset, scale)
+            }
+            .pointerInput(src, maxZoom, doubleTapZoom) {
+                // Uptime of the previous tap's up; 0 when the next tap cannot
+                // be the second of a double tap.
+                var lastTapUp = 0L
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    zoomAnimation?.cancel()
+                    var travel = Offset.Zero
+                    var panning = false
+                    var tap = true
+                    var upTime = down.uptimeMillis
+                    do {
+                        val event = awaitPointerEvent()
+                        val fingers = event.changes.count { it.pressed }
+                        if (fingers >= 2) {
+                            tap = false
+                            val newScale = (scale * event.calculateZoom()).coerceIn(1f, maxZoom)
+                            val focus = event.calculateCentroid(useCurrent = false)
+                            offset = clamp(offsetFor(focus, newScale) + event.calculatePan(), newScale)
+                            scale = newScale
+                            event.changes.forEach { if (it.positionChanged()) it.consume() }
+                        } else if (fingers == 1) {
+                            val pan = event.calculatePan()
+                            if (!panning) {
+                                travel += pan
+                                panning = travel.getDistance() > viewConfiguration.touchSlop
+                            }
+                            if (panning) tap = false
+                            if (panning && scale > 1f) {
+                                offset = clamp(offset + pan, scale)
+                                event.changes.forEach { if (it.positionChanged()) it.consume() }
+                            }
+                        }
+                        upTime = event.changes.firstOrNull()?.uptimeMillis ?: upTime
+                        // An up something else consumed, or the one Compose makes
+                        // up for a cancelled gesture, is not a tap.
+                        if (event.changes.any { !it.pressed && it.previousPressed && it.isConsumed }) tap = false
+                    } while (event.changes.any { it.pressed })
+
+                    val quick = upTime - down.uptimeMillis < viewConfiguration.longPressTimeoutMillis
+                    lastTapUp = when {
+                        !tap || !quick -> 0L
+                        lastTapUp != 0L &&
+                            down.uptimeMillis - lastTapUp <= viewConfiguration.doubleTapTimeoutMillis -> {
+                            toggleZoom(down.position)
+                            0L
+                        }
+                        else -> upTime
+                    }
+                }
+            }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = offset.x
+                translationY = offset.y
+            },
     )
 }
 
@@ -6296,7 +7345,10 @@ private fun MobIcon(node: MobNode, modifier: Modifier) {
     Icon(
         imageVector       = materialIconFor(name),
         contentDescription = description,
-        tint              = if (tint == Color.Unspecified) Color.Unspecified else tint,
+        // An unset tint has to be the content colour, not Unspecified: Icon
+        // reads Unspecified as "no tint", and the Material vectors are filled
+        // black, which vanishes on a dark theme like unstyled text did (MOB-120).
+        tint              = tint.takeOrElse { LocalContentColor.current },
         modifier          = baseMod.size(sizeDp),
     )
 }
@@ -7409,10 +8461,53 @@ private fun MobTabBar(node: MobNode, modifier: Modifier) {
 
 // ── Modifier helpers ──────────────────────────────────────────────────────────
 
-private fun nodeModifier(props: Map<String, Any?>): Modifier {
-    var m: Modifier = Modifier
+// The open side of a fraction clip: far enough out that whatever the node draws
+// past its bounds there stays visible, finite so it survives the canvas
+// transforms (Float.MAX_VALUE times a layer scale is infinity).
+private const val MOB_CLIP_UNBOUNDED = 1_000_000f
 
-    // KATI-BEGIN(K-35 test-tag) mob_new=0.7.24
+// clip_width / clip_height: the fraction f (0..1) of the node's own laid-out
+// width / height that stays visible. Each cuts at one line only: clip_width at
+// leading edge + f * width (leading = left in LTR, right in RTL), keeping
+// everything on the leading side of it, including what the node draws past its
+// leading bound; clip_height at top + f * height, keeping everything above it.
+// An axis with no prop is open on both sides. Both set: the intersection.
+// Absent or >= 1 adds nothing to the chain; <= 0 draws nothing.
+//
+// A clipRect around drawContent, not a layout change: the node still measures
+// and places at full size, so its parent and siblings are unaffected, and only
+// its drawing is cut (Android's RatingBar ClipDrawable does the same). It must
+// be first in nodeModifier so the content it wraps includes the background,
+// border and children. Draw-only, so hit testing is unchanged. layoutDirection
+// is the DrawScope's, which Compose takes from LocalLayoutDirection for the
+// node; nodeModifier is not composable and cannot read the local itself.
+private fun mobFractionClip(props: Map<String, Any?>): Modifier {
+    val keepWidth = floatProp(props, "clip_width")?.coerceIn(0f, 1f) ?: 1f
+    val keepHeight = floatProp(props, "clip_height")?.coerceIn(0f, 1f) ?: 1f
+    if (keepWidth >= 1f && keepHeight >= 1f) return Modifier
+    return Modifier.drawWithContent {
+        if (keepWidth <= 0f || keepHeight <= 0f) return@drawWithContent
+        var left = -MOB_CLIP_UNBOUNDED
+        var right = MOB_CLIP_UNBOUNDED
+        if (keepWidth < 1f) {
+            val visibleWidth = size.width * keepWidth
+            if (layoutDirection == LayoutDirection.Rtl) {
+                left = size.width - visibleWidth
+            } else {
+                right = visibleWidth
+            }
+        }
+        val bottom = if (keepHeight < 1f) size.height * keepHeight else MOB_CLIP_UNBOUNDED
+        clipRect(left = left, top = -MOB_CLIP_UNBOUNDED, right = right, bottom = bottom) {
+            this@drawWithContent.drawContent()
+        }
+    }
+}
+
+private fun nodeModifier(props: Map<String, Any?>): Modifier {
+    var m: Modifier = mobFractionClip(props)
+
+    // KATI-BEGIN(K-35 test-tag) mob_new=0.6.21
     // `accessibility_id` reaches the bridge and nothing reads it.
     //
     // `Mob.Renderer` emits the prop for every atom-tagged control — that is the
@@ -7444,7 +8539,6 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
         m = m.testTag(id)
     }
     // KATI-END(K-35 test-tag)
-
     val cornerRadius = floatProp(props, "corner_radius") ?: 0f
     val shape = if (cornerRadius > 0f) RoundedCornerShape(cornerRadius.dp) else null
 
@@ -7518,23 +8612,11 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
             else m.border(borderWidth.dp, borderColor)
     }
 
-    // KATI-BEGIN(K-06 clip-before-padding) mob_new=0.4.20
-    // Clip BEFORE padding. Compose applies modifiers outside-in, so
-    // `.padding().clip()` clips to the already-shrunk CONTENT box rather than
-    // the node: the rounded mask's left edge lands exactly on the text, and any
-    // glyph with negative left side bearing gets shaved. Measured: in a
-    // corner_radius card the leading "N" of "Nothing" and "w" of "whole" were
-    // visibly cut, while an otherwise identical card without corner_radius
-    // rendered them perfectly.
-    //
-    // The stock comment claimed the opposite of what the order does ("so the
-    // rounded mask covers the entire padded area, not just the inner content").
-    // Background is already drawn with `shape`, so moving the clip earlier
-    // keeps corners rounded and stops the mask biting into content.
-    //
-    // High impact for Kati: the design uses the rounded-card recipe 262 times.
+    // Clip children to the shape BEFORE padding, so the rounded mask is the
+    // node's outer edge, where iOS clips buttons and images (.clipShape after
+    // .padding). Clipping after padding rounded the inner content rect with
+    // the full radius and shaved the glyphs that sit in its corners.
     if (shape != null) m = m.clip(shape)
-    // KATI-END(K-06 clip-before-padding)
 
     val uniform = intProp(props, "padding")
     val top     = intProp(props, "padding_top")
@@ -8020,7 +9102,6 @@ class NotificationReceiver : BroadcastReceiver() {
             context, id.hashCode(), tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-        val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as NotificationManager
         val notif = NotificationCompat.Builder(context, io.mob.plugin.MobNotifyHub.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
@@ -8035,13 +9116,30 @@ class NotificationReceiver : BroadcastReceiver() {
             .setSmallIcon(R.drawable.kati_mark)
             // KATI-END(K-74 notify-group)
             .build()
-        nm.notify(id.hashCode(), notif)
+        postIfPermitted(context, id.hashCode(), notif)
 
-        // KATI-BEGIN(K-01 notify-forget) mob_new=0.4.20
+        // KATI-BEGIN(K-01 notify-forget) mob_new=0.6.21
         // A one-shot alarm that has fired must not be restored at next boot.
         KatiNotificationStore.forget(context, id)
         // KATI-END(K-01 notify-forget)
 
+    }
+
+    // POST_NOTIFICATIONS comes from the mob_notify plugin (the one that
+    // schedules these alarms), merged into the manifest only when it's
+    // installed; without it lint's NotificationPermission fires here. The
+    // runtime check makes the post run only with the grant on API 33+, where
+    // the system would drop it otherwise anyway.
+    @android.annotation.SuppressLint("NotificationPermission")
+    private fun postIfPermitted(context: android.content.Context, id: Int, notif: android.app.Notification) {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(id, notif)
     }
 
     // KATI-BEGIN(K-74 notify-group-key) mob_new=0.6.3

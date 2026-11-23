@@ -24,51 +24,49 @@
 # skeleton-first pages use. 0.9.13's native change is app-written init
 # arguments and 0.9.16's is iOS node naming; Kati uses neither, so the 0.6.3
 # shell and mob_dev 0.7.16 stay.
+#
+# mob 0.9.32 (23 November): `clip_width` / `clip_height` on every node, and
+# Mob.Share.file/3. The 0.6.21 template is NOT merged: Kati's MobBridge.kt
+# already draws `clip_width` in its own KATI fence (the half star has used it
+# since the rating sheet), so the only native requirement of 0.9.32 is already
+# met, while a 0.6.3 -> 0.6.21 merge would re-add the camera, Firebase, media3
+# and location dependencies and the AGP 9 DSL that Kati pruned in K-30/K-31.
+# Mob.Share.file/3 reports `:unsupported` on a host without the newer bridge,
+# which is the intended answer for an app that ships K-20's own file transport.
 
-mob_new=0.6.3
-mob=0.9.17
-mob_dev=0.7.16
+mob_new=0.6.21
+mob=0.9.32
+mob_dev=0.7.31
 ndk=27.2.12479018
 zig=0.17.0-dev.269+ebff43698
 erts=17.0
-generated=2026-10-02
+generated=2026-11-23
 
-# sha256 of each PRISTINE baseline file under native/baseline/0.6.3/.
+# sha256 of each PRISTINE baseline file under native/baseline/0.6.21/.
 # These describe upstream, not Kati's edited copies. A mismatch means the
 # baseline was tampered with, which silently corrupts the three-way merge.
-#
 # An EMPTY file (e3b0c442… is sha256 of nothing) means upstream generates no
-# such file, so the whole of Kati's copy is Kati's. Seven of those are Kati's
-# own Kotlin, tracked so an edit to them is a deliberate act. The eighth is
-# new at 0.4.33: BeamForegroundService.kt WAS generated at 0.4.20 and is not
-# any more — Mob.Background left core, and the service is now referenced only
-# by Kati's own manifest and by two comments in MobBridge.kt. It is carried
-# rather than deleted because deleting a declared <service> is a separate
-# decision from a template merge.
-#
-# MobScannerActivity.kt and MobFirebaseService.kt had rows here at 0.4.20 and
-# have none now: #75 deleted both files, and 0.4.33 no longer generates either
-# (they moved to the mob_scanner and mob_notify plugins).
+# such file, so the whole of Kati's copy is Kati's.
 
-851d34c0a3ed7b84d01bf43f40b62e9e6d1901963d91790d42b50582f033aea2  android/app/src/main/java/com/example/kati/MobBridge.kt
-2f9943e266eb53428403762e59c8e2a707b2039086361b185ed90cae3324ae1f  android/app/src/main/java/com/example/kati/MainActivity.kt
+aea2d6ad4410f1ab7b426fd00a0d7105a2d38a14403e8093109b265de6bec071  android/app/src/main/java/com/example/kati/MobBridge.kt
+9433953dadf930700fdaa5de00330a63d56b629e34aa69f3135f79d33fd726b3  android/app/src/main/java/com/example/kati/MainActivity.kt
 0f116c4bb3fa9e31a15e6c46a72f4850cfa616b7e361939083da0dddd76115b3  android/app/src/main/java/com/example/kati/MobNode.kt
 cf4b7a4ddce15b4487b6a8fa473442ea8facbe04e51980209bd2dc76c9c80041  android/app/src/main/java/com/example/kati/MobJson.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/BeamForegroundService.kt
-b67929b57b2776c8fa26b6edd01df8de261b324a203d20b0c6dd815fa02dac99  android/app/src/main/AndroidManifest.xml
-a09ccb6b20abb2bb1b17b20e17063df5ef8ff5390b7a02972d91b40082b0ef9c  android/app/build.gradle
-814b24514334bcdbd8392fac6d12214c5ef01a40f079f79b12232412a4cdcd8d  android/build.gradle
+810bcd3e6a911f4dec13f99a4bf7426309131081e0d4283229cb486dda6a24d3  android/app/src/main/AndroidManifest.xml
+e369ee7cb3eaf5920e0bb4dfc7e9767c765172efdcd6d0bcfa2c455f2a93b1d4  android/app/build.gradle
+97a64c33e2f9dc4e390c8eca83950a7bfd3ae2626480c57d1fef22a6cf31c40f  android/build.gradle
 4b919cfffaed71637d1ee9c89f21f4247273e14eb8433afdcd0672eba906b41f  android/settings.gradle
 09b6c2b77952a6c23f720425f00a908e73326d103f9455110c97d00533415688  android/gradle.properties
-750a8095df99592cfd30060ef970947fda2da9e23710a51ca1f028636c2569b3  android/gradle/wrapper/gradle-wrapper.properties
-ec09d037fc8adc64f904dad9922e03c05a6c967f294819d6aac426d0541e70de  android/app/src/main/jni/build.zig
-cf270ea5d2f6dce31db413bcf300c045f31c1fcda9fb9c79e6fd602e2d46f8c8  android/app/src/main/jni/CMakeLists.txt
-662b5f234c3867c3af1ed41b7ae1fa1a49b97cea40d284b052509c54d12f6b3b  android/app/src/main/jni/beam_jni.c
+fc913ffa0625b544190844a506086ca0b93c4361986e820e10dd64c088257bf7  android/gradle/wrapper/gradle-wrapper.properties
+0eaaf3ab2022b9311b636e627ca33618361c5b815737da47756ea1e94f39e304  android/app/src/main/jni/build.zig
+9d466b848de239e0f21c8b1ed4be8f44552519cdd7bb330b184ee052aabe2336  android/app/src/main/jni/CMakeLists.txt
+49a92018a4a0747c78d6b3bfaf928a4c82cef871f292eb998b0e79a80edc8049  android/app/src/main/jni/beam_jni.c
 f761e37fb947cbb83f36c0f969785b4ad820d1d6b0b3a8d230593c0015f812fc  ios/beam_main.m
-815c789abab771f25e58eec2d70618c92c7f7eb59b20c0bda5554d2ca20c33cc  ios/AppDelegate.m
-28367d3950e63ae85d102215bdcc67cc56a9bdfbbe8e772b6b6ae286ff4b8abb  ios/Info.plist
-7669f29fe0ebffc26ce76aaaf696629dfaab7b63c37483c4adff5b1a7c2224f2  ios/build.zig
-f41180e2471954960e89b48d3122a44e417aa34d3df709f01c5d492b1e08006c  ios/build_device.zig
+842c8fa8de8b09d9e8d98db9e84c1ff157ece0ff6951a0b9e20b6340367d5543  ios/AppDelegate.m
+01c551568e99104a9aaa00f3c751f9b93cd0952c94803477734397906c5a0438  ios/Info.plist
+87e4527760b826c79c03eb53398f2dee6187bf984b56ebdbc0ba305cf6254b91  ios/build.zig
+2423a516bdc00e3e5914d1f90d94d3ad53995b7316b76759ff2001978c902edb  ios/build_device.zig
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiDeviceZone.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiBootScreen.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiBootReceiver.kt
@@ -77,6 +75,8 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/sr
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiSecureStore.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiHostContext.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiRefreshWorker.kt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiReleaseCheck.kt
+4c2000fb886a519f31c84065bc72ff12c1490a99558f64b0e6456b26c0e20abd  android/app/src/main/java/com/example/kati/MobPermissionQueue.kt
 
 # ── Upstream pull-request candidates ──────────────────────────────────────────
 # Kati edits that are Mob's problem rather than Kati's, kept here so a patch

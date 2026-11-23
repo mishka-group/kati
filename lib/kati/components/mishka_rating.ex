@@ -15,13 +15,15 @@ defmodule Kati.Components.MishkaRating do
   clips the draw and leaves measurement alone, so the pair occupies one star's
   line box and the row does not grow.
 
-  The two glyphs are siblings in a Box with the cell's **width and no height**.
-  The width is what the 50% crop needs; the height must hug the glyph's line
-  box, which at `size: 22` is a few dp taller than 22. A fixed `size × size`
-  Box made this one cell shorter than its neighbours: the Row centred a 22dp
-  box against the other stars' taller text boxes and the half star's baseline
-  dropped below the line. Removing the height puts it back in the same line
-  box, exactly as a bare star is.
+  Every cell hugs its glyph and centres it (`fill_width: false`, no width or
+  height). `size` is a text size, not a cell width: Android draws it in sp,
+  which grows with the system font scale, and a cell a fixed `size` wide would
+  cut the outline at a large scale. The filled glyph sits in an overlay Box
+  that hugs it and carries the clip, so `clip_width: 0.5` is half of the
+  glyph's own advance at any scale. The half cell hugs the wider of the two and
+  centres both; `★` and `☆` come from the same font, so the centred glyphs
+  coincide and the cut lands on the star's centre. No height either: a cell
+  keeps its glyph's line box, so the Row centres every star on the same line.
 
   ## Props
 
@@ -95,23 +97,34 @@ defmodule Kati.Components.MishkaRating do
   end
 
   defp star(:full, size, color, _empty_color),
-    do: Kati.UI.symbol("star", size: size, color: color, fill: true)
+    do: cell_box(%{}, Kati.UI.symbol("star", size: size, color: color, fill: true))
 
   defp star(:empty, size, _color, empty_color),
-    do: Kati.UI.symbol("star", size: size, color: empty_color)
+    do: cell_box(%{}, Kati.UI.symbol("star", size: size, color: empty_color))
 
   defp star(:half, size, color, empty_color) do
+    empty = Kati.UI.symbol("star", size: size, color: empty_color)
+
+    filled =
+      cell_box(
+        %{clip_width: 0.5},
+        Kati.UI.symbol("star", size: size, color: color, fill: true)
+      )
+
+    cell_box(%{}, [empty, filled])
+  end
+
+  # A cell hugs its glyph and centres it. `size` is a text size, not a cell
+  # width: at a large font scale Android grows the glyph in sp, and a cell a
+  # fixed `size` wide would cut the outline. No height either, so the row
+  # centres every star on the same line box. `clip_width` is a fraction of the
+  # overlay's own laid-out width, so the half cut stays on the glyph's centre
+  # at any scale. The vendored bridge treats `fill_width: false` as intrinsic.
+  defp cell_box(extra, children) do
     %{
       type: :box,
-      props: %{width: size},
-      children: [
-        Kati.UI.symbol("star", size: size, color: empty_color),
-        %{
-          type: :box,
-          props: %{width: size, clip_width: 0.5},
-          children: [Kati.UI.symbol("star", size: size, color: color, fill: true)]
-        }
-      ]
+      props: Map.merge(%{fill_width: false, align: :center}, extra),
+      children: List.wrap(children)
     }
   end
 

@@ -121,6 +121,14 @@ Java_com_example_kati_MobBridge_nativeSendTap(JNIEnv* env, jclass cls, jint hand
     mob_send_tap((int)handle);
 }
 
+// Called from MobBridge.nativeSendPressTap(handle): the tap of a node that also
+// declares on_press_in / on_press_out (MOB-380). Identity-tolerant, because the
+// press re-renders the node before the finger lifts; plain taps stay strict.
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendPressTap(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_press_tap((int)handle);
+}
+
 // Called from MobBridge.nativeSendLongPress(handle) / nativeSendDoubleTap.
 // The senders have existed on this platform all along; what was missing was any
 // Kotlin path to them, so `on_long_press` and `on_double_tap` were registered by
@@ -133,6 +141,45 @@ Java_com_example_kati_MobBridge_nativeSendLongPress(JNIEnv* env, jclass cls, jin
 JNIEXPORT void JNICALL
 Java_com_example_kati_MobBridge_nativeSendDoubleTap(JNIEnv* env, jclass cls, jint handle) {
     mob_send_double_tap((int)handle);
+}
+
+// on_press_in / on_press_out (MOB-380). Begin snapshots press_out's routing at
+// touch-down and sends {:press_in, tag}; it returns the token End delivers
+// {:press_out, tag} from, or -1 when there is no press_out to deliver.
+JNIEXPORT jint JNICALL
+Java_com_example_kati_MobBridge_nativePressBegin(JNIEnv* env, jclass cls, jint in_handle,
+                                                   jint out_handle) {
+    return (jint)mob_press_begin((int)in_handle, (int)out_handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativePressEnd(JNIEnv* env, jclass cls, jint token) {
+    mob_press_end((int)token);
+}
+
+// on_touch (MOB-518). Down copies the node's routing and sends {:touch, tag,
+// %{phase: :down}}, returning the token Move and End send from (-1: nothing
+// sent). Move is throttled per pointer natively; End sends :up or :cancel once.
+JNIEXPORT jint JNICALL
+Java_com_example_kati_MobBridge_nativeTouchDown(JNIEnv* env, jclass cls, jint handle,
+                                                  jlong pointer_id, jdouble x, jdouble y,
+                                                  jdouble w, jdouble h, jlong ts,
+                                                  jint move_throttle_ms, jdouble move_delta) {
+    return (jint)mob_touch_down((int)handle, (int64_t)pointer_id, x, y, w, h, (int64_t)ts,
+                                (int)move_throttle_ms, move_delta);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeTouchMove(JNIEnv* env, jclass cls, jint token, jdouble x,
+                                                  jdouble y, jdouble w, jdouble h, jlong ts) {
+    mob_touch_move((int)token, x, y, w, h, (int64_t)ts);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeTouchEnd(JNIEnv* env, jclass cls, jint token,
+                                                 jboolean cancelled, jdouble x, jdouble y,
+                                                 jdouble w, jdouble h, jlong ts) {
+    mob_touch_end((int)token, cancelled ? 1 : 0, x, y, w, h, (int64_t)ts);
 }
 
 // Swipe. nativeSendSwipe carries the direction string through to
@@ -371,6 +418,13 @@ Java_com_example_kati_MobBridge_nativeDeliverNotification(JNIEnv* env, jclass cl
     const char* cj = (*env)->GetStringUTFChars(env, json, NULL);
     mob_deliver_notification(pid, cj);
     (*env)->ReleaseStringUTFChars(env, json, cj);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeDeliverLink(JNIEnv* env, jclass cls, jstring url) {
+    const char* cu = (*env)->GetStringUTFChars(env, url, NULL);
+    mob_deliver_link(cu);
+    (*env)->ReleaseStringUTFChars(env, url, cu);
 }
 
 JNIEXPORT void JNICALL

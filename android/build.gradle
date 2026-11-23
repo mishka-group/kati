@@ -6,26 +6,14 @@
 buildscript {
     repositories { google(); mavenCentral() }
     dependencies {
-        // KATI-BEGIN(K-02 agp-api36) mob_new=0.4.20
-        // was: com.android.tools.build:gradle:8.2.0
-        // AGP 8.2 cannot compile against API 36, which Play requires for new
-        // apps and updates from 2026-08-31. 8.13.2 is the last 8.x line;
-        // AGP 9.x is a major with DSL breakage and is deliberately not taken
-        // in the same step as an API bump against a CMake+zig build.
+        // AGP 9.4.1 compiles against API 36, which Play requires. AGP 9
+        // compiles Kotlin itself, but its built-in KGP is only a 2.2.10 floor.
+        // Declaring KGP here raises it: anything below 2.4.20 carries
+        // CVE-2026-53914 (build-cache metadata deserialization RCE). The
+        // Compose compiler plugin ships with Kotlin and must match it exactly.
         classpath 'com.android.tools.build:gradle:9.4.1'
-        // KATI-END(K-02 agp-api36)
-        // KATI-BEGIN(K-32 kotlin2) mob_new=0.4.20
-        // was: org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22
-        //
-        // Kotlin 2.x moves the Compose compiler out of AGP's
-        // `composeOptions { kotlinCompilerExtensionVersion }` and into its own
-        // Gradle plugin, versioned with the compiler rather than separately —
-        // which is why the plugin classpath below is pinned to the same
-        // 2.4.20. Keeping the old block alongside it is not an option: AGP
-        // fails the build if both are present.
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20'
-        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.20'
-        // KATI-END(K-32 kotlin2)
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21'
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.21'
     }
 }
 allprojects { repositories { google(); mavenCentral() } }
