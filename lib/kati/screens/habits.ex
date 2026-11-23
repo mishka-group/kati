@@ -500,6 +500,31 @@ defmodule Kati.Screens.Habits do
   end
 
   @doc """
+  The field's cells, each one tappable.
+
+  The field is the only place a day older than this week is visible, so it is
+  also where a forgotten day gets fixed: a tap says the whole day was kept or
+  that it was not, and `Kati.Habits.toggle_all/1` applies that to every habit
+  that existed then. The date is in the cell's id, which is what makes the tap
+  name a day rather than a position.
+  """
+  def field_cells(tones, today) do
+    count = length(tones)
+
+    tones
+    |> Enum.with_index()
+    |> Enum.map(fn {tone, index} ->
+      date = Date.add(today, -(count - 1 - index))
+
+      %{
+        color: Sample.cell_tone(tone),
+        id: "habit_field_" <> Date.to_iso8601(date),
+        on_tap: {self(), {:toggle_day_all, Date.to_iso8601(date)}}
+      }
+    end)
+  end
+
+  @doc """
   The seven letters opposite a habit's week.
 
   `Kati.Locale.pick/2` and **not** a msgid: `M T W T F S S` and `ش ی د س چ پ ج`
@@ -521,6 +546,7 @@ defmodule Kati.Screens.Habits do
   def consistency(assigns) do
     fields = assigns.field
     columns = @field_columns
+    today = assigns.today
     {month, hit} = captions(assigns)
 
     ~MOB"""
@@ -533,7 +559,7 @@ defmodule Kati.Screens.Habits do
     >
       <MishkaHeatmap
         id="habit_field"
-        cells={Enum.map(fields, &Sample.cell_tone/1)}
+        cells={Kati.Screens.Habits.field_cells(fields, today)}
         columns={columns}
         cell_size={8}
         gap={4}
@@ -686,6 +712,23 @@ defmodule Kati.Screens.Habits do
     toggle(socket, habit_id, socket.assigns.today)
   end
 
+  def handle_tap({:toggle_day_all, iso}, socket) do
+    case Date.from_iso8601(iso) do
+      {:ok, date} ->
+        case Habits.toggle_all(date) do
+          {:ok, _kept?} ->
+            {:noreply, socket |> Mob.Socket.assign(:save_error, nil) |> refresh()}
+
+          {:error, reason} ->
+            {:noreply,
+             Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+        end
+
+      _bad ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_tap({:toggle_day, habit_id, iso}, socket) do
     case Date.from_iso8601(iso) do
       {:ok, date} ->
@@ -828,26 +871,15 @@ defmodule Kati.Screens.Habits do
   def month_caption(date), do: Kati.Locale.month_name(date, :long)
 
   @doc """
-  The hit rate under the field: days on which every habit that existed was
-  kept, as a share of the days that had a habit.
-
-  A habit that did not exist on a date does not count against it — a field that
-  counted November's fourth habit against July would call three months missed
-  that were simply before their time.
+  The hit rate under the field: days on which every habit was kept, as a share
+  of the field's ninety-one days.
   """
   @spec hit_caption(Date.t(), [Kati.Habits.Habit.t()], map()) :: String.t()
   def hit_caption(today, habits, ticks) do
     days = for offset <- (@field_days - 1)..0//-1, do: Date.add(today, -offset)
 
-    days =
-      Enum.filter(days, fn date ->
-        Enum.any?(habits, fn habit ->
-          Date.compare(DateTime.to_date(habit.inserted_at), date) != :gt
-        end)
-      end)
-
     percent =
-      case days do
+      case habits do
         [] ->
           0
 

@@ -109,7 +109,7 @@ defmodule Kati.HabitsTest do
   end
 
   describe "fraction/3 and field/4" do
-    test "a habit that did not exist yet does not count against the day" do
+    test "the fraction is over the habits there are now" do
       born = %{id: "a", inserted_at: ~U[2026-11-20 09:00:00Z]}
 
       assert Habits.fraction(~D[2026-11-19], [born], %{}) == 0.0

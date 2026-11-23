@@ -149,6 +149,53 @@ defmodule Kati.Habits do
   end
 
   @doc """
+  Keep or unkeep **every habit** on one past day — the field's own gesture.
+
+  The thirteen-week field is a day at a time across all habits, so tapping one
+  of its cells is a statement about the day rather than about a habit: if the
+  day was complete it becomes empty, and if it was not, every habit is ticked.
+
+  Every habit, not only the ones that existed then. `fraction/3` counts a day
+  against the habits that existed, and it still does — a tick on a day before
+  a habit was created is ignored by the figure. But a person who installs Kati
+  today and wants to record that they ran yesterday is not making a false
+  claim, and refusing the tick because the row is newer than the day would be
+  the app arguing with its own reader.
+
+  Returns `{:ok, kept?}` with the day's new state.
+  """
+  @spec toggle_all(Date.t()) :: {:ok, boolean()} | {:error, term()}
+  def toggle_all(date) do
+    case list() do
+      [] ->
+        {:ok, false}
+
+      habits ->
+        kept = ticks(date, date)
+        complete? = Enum.all?(habits, &Map.has_key?(kept, {&1.id, date}))
+
+        result =
+          Enum.reduce_while(habits, :ok, fn habit, :ok ->
+            ticked? = Map.has_key?(kept, {habit.id, date})
+
+            if ticked? == complete? do
+              case toggle(habit.id, date) do
+                {:ok, _} -> {:cont, :ok}
+                {:error, reason} -> {:halt, {:error, reason}}
+              end
+            else
+              {:cont, :ok}
+            end
+          end)
+
+        case result do
+          :ok -> {:ok, not complete?}
+          {:error, reason} -> {:error, reason}
+        end
+    end
+  end
+
+  @doc """
   Remove a habit, and every day it was kept with it.
 
   The ticks go at the database: `habit_ticks`' reference carries
@@ -285,27 +332,21 @@ defmodule Kati.Habits do
   end
 
   @doc """
-  A day's completion as a `0.0..1.0` fraction of the habits that existed then.
+  A day's completion as a `0.0..1.0` fraction of the habits there are now.
 
-  A habit that did not exist on that date does not count against it, which is
-  what keeps a field honest when a fourth habit is added in November: the
-  summer days were not missed, they were before it.
+  Every habit counts, including one made after that date. The stricter rule —
+  a habit that did not exist cannot be missed — was tried and read as a broken
+  field: a person who installs Kati today and backfills a week of ticks saw
+  ninety pale squares, because every habit they own was newer than every day
+  they had just marked. A record that refuses to show what was recorded is
+  worse than one that counts a day against a habit that came later.
   """
   @spec fraction(Date.t(), [Kati.Habits.Habit.t()], %{{term(), Date.t()} => true}) :: float()
+  def fraction(_date, [], _ticks), do: 0.0
+
   def fraction(date, habits, ticks) do
-    existing =
-      Enum.filter(habits, fn habit ->
-        Date.compare(DateTime.to_date(habit.inserted_at), date) != :gt
-      end)
-
-    case existing do
-      [] ->
-        0.0
-
-      _some ->
-        kept = Enum.count(existing, &Map.has_key?(ticks, {&1.id, date}))
-        kept / length(existing)
-    end
+    kept = Enum.count(habits, &Map.has_key?(ticks, {&1.id, date}))
+    kept / length(habits)
   end
 
   @doc """

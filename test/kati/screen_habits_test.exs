@@ -130,6 +130,25 @@ defmodule Kati.ScreenHabitsTest do
       assert Map.has_key?(Habits.ticks(yesterday, yesterday), {habit.id, yesterday})
     end
 
+    test "a field cell fills the whole day, and empties it again", %{habit: habit} do
+      yesterday = Date.add(Kati.Time.today(), -1)
+      iso = Date.to_iso8601(yesterday)
+      view = mount_screen(Screen)
+
+      view = render_info(view, {:tap, {:toggle_day_all, iso}})
+
+      # Yesterday is Sunday, so it is in LAST week's strip — the field is the
+      # only place it shows, which is exactly why it is the field that gets the
+      # tap. The streak is the visible answer.
+      assert [%{streak: 1}] = assigns(view).habits
+      assert Map.has_key?(Habits.ticks(yesterday, yesterday), {habit.id, yesterday})
+
+      view = render_info(view, {:tap, {:toggle_day_all, iso}})
+      assert [%{streak: 0}] = assigns(view).habits
+      assert Habits.ticks(yesterday, yesterday) == %{}
+      _ = habit
+    end
+
     test "the week strip marks today's square as kept", %{habit: habit} do
       view = mount_screen(Screen) |> render_info({:tap, {:toggle_today, habit.id}})
 
