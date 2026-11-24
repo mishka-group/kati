@@ -44,10 +44,15 @@ defmodule Kati.MixProject do
       {:mob, "== 0.9.32"},
       {:mob_dev, "== 0.7.31", only: :dev, runtime: false},
       {:ecto_sqlite3, "~> 0.26.0"},
+      # Transitive under ecto_sql and ash_sqlite, and the only way to hold it
+      # at the release that closes EEF-CVE-2026-133555 (a forged Stream struct
+      # reaching the :log option). Remove the override when ecto_sql's own
+      # floor is at 2.10.3.
+      {:db_connection, "== 2.10.3", override: true},
       # Ash is the data layer for the whole system. Pinned exactly: Kati appears
       # to be the first public user of AshSqlite on a device BEAM, so a silent
       # minor bump is not something to discover on a user's phone.
-      {:ash, "== 3.38.0"},
+      {:ash, "== 3.38.1"},
       {:ash_sqlite, "== 0.3.1"},
       # Timezone database. `tz` compiles IANA data into modules at BUILD time;
       # `tzdata` downloads at runtime into a writable directory, which a
