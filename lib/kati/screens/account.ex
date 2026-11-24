@@ -44,9 +44,11 @@ defmodule Kati.Screens.Account do
   row now says *Checking…*, and `settle/2` and `handle_kati/3` render the page
   again — once after the first frame, and whenever the reader comes back.
 
-  Chevron rows carry no tap. A chevron means *leads elsewhere*, and there is
-  nowhere yet for a device or Delete everything to lead — the rule
-  `Kati.Screens.Series.episode/1` applies to an unaired episode.
+  Chevron rows lead elsewhere. *Move to a new phone* opens the backup screen,
+  which is the only thing that sentence can honestly mean on a phone with no
+  server: the file has to be carried. *Delete everything* asks first and then
+  deletes every row the backup catalogue lists, in one transaction — it used to
+  flip a picture of a control and write nothing.
 
   ## Audited: drawn copy, and one derivable number left alone on purpose
 
@@ -92,7 +94,11 @@ defmodule Kati.Screens.Account do
   def load(socket) do
     account = Sample.account()
     :ok = Kati.Screens.Account.settle(account.permissions)
-    Mob.Socket.assign(socket, :account, account)
+
+    socket
+    |> Mob.Socket.assign(:account, account)
+    |> Mob.Socket.assign(:confirming_wipe, false)
+    |> Mob.Socket.assign(:wipe_error, nil)
   end
 
   @doc """
@@ -152,27 +158,72 @@ defmodule Kati.Screens.Account do
     a = assigns.account
 
     ~MOB"""
-    <Scroll>
-      <Column
-        fill_width={true}
-        padding_left={21}
-        padding_right={21}
-        padding_top={64}
-        padding_bottom={40}
-      >
-        {Kati.Screens.Account.header()}
-        {Kati.Screens.Account.title()}
-        {UI.eyebrow(gettext("Your data lives here"))}
-        {Kati.Screens.Account.storage(a.storage)}
-        {UI.eyebrow(gettext("What Kati is allowed to do"))}
-        {Kati.Screens.Account.list(Kati.Screens.Account.permission_rows(a.permissions), 22, "perm_")}
-        {Kati.Screens.Account.quiet_eyebrow(gettext("What it asks for by being installed"))}
-        {Kati.Screens.Account.list(a.install, 22, "install_")}
-        {Kati.Screens.Account.quiet_eyebrow(gettext("Privacy"))}
-        {Kati.Screens.Account.privacy(a)}
-        {Kati.Screens.Account.list(a.data, 0, "data_")}
-      </Column>
-    </Scroll>
+    <Box fill_width={true} fill_height={true}>
+      <Scroll fill_height={true}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.Account.header()}
+          {Kati.Screens.Account.title()}
+          {UI.eyebrow(gettext("Your data lives here"))}
+          {Kati.Screens.Account.storage(a.storage)}
+          {UI.eyebrow(gettext("What Kati is allowed to do"))}
+          {Kati.Screens.Account.list(Kati.Screens.Account.permission_rows(a.permissions), 22, "perm_")}
+          {Kati.Screens.Account.quiet_eyebrow(gettext("What it asks for by being installed"))}
+          {Kati.Screens.Account.list(a.install, 22, "install_")}
+          {Kati.Screens.Account.quiet_eyebrow(gettext("Privacy"))}
+          {Kati.Screens.Account.privacy(a)}
+          {Kati.Screens.Account.list(a.data, 0, "data_")}
+        </Column>
+      </Scroll>
+      {Kati.Screens.Account.confirm_wipe(assigns)}
+    </Box>
+    """
+  end
+
+  @doc """
+  The confirmation *Delete everything* opens.
+
+  This is the page's one destructive control and it says so before it does
+  anything: the dialog names what goes — every shelf, every log, every note —
+  and that there is no copy anywhere to put it back from.
+  """
+  def confirm_wipe(assigns) do
+    open? = Map.get(assigns, :confirming_wipe, false)
+    notice = wipe_notice(Map.get(assigns, :wipe_error))
+
+    ~MOB"""
+    <MishkaAlertDialog id="account_wipe" open={open?} on_close={{self(), :cancel_wipe}}>
+      <MishkaDialogTitle text={gettext("Delete everything?")} />
+      <MishkaDialogDescription
+        text={gettext("Every film, book, note, meal, habit and expense on this phone is deleted. There is no copy anywhere else, and this cannot be undone.")}
+      />
+      {notice}
+      <MishkaAlertDialogAction
+        text={gettext("Cancel")}
+        id="account_wipe_cancel"
+        on_tap={{self(), :cancel_wipe}}
+      />
+      <MishkaAlertDialogAction
+        text={gettext("Delete everything")}
+        id="account_wipe_go"
+        variant={:danger}
+        on_tap={{self(), :confirm_wipe}}
+      />
+    </MishkaAlertDialog>
+    """
+  end
+
+  @doc false
+  def wipe_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def wipe_notice(message) do
+    ~MOB"""
+    <Text text={message} text_size={12} text_color={Kati.Theme.red()} max_lines={3} />
     """
   end
 
@@ -929,8 +980,6 @@ defmodule Kati.Screens.Account do
   """
   @impl true
   def handle_tap(tag, socket) do
-    a = socket.assigns.account
-
     case Atom.to_string(tag) do
       # The Allow pill, which until now flipped a `Kati.Account.Sample` row that
       # `permission_rows/1` then threw away: that function rebuilds every row
@@ -947,12 +996,53 @@ defmodule Kati.Screens.Account do
       "perm_" <> i ->
         {:noreply, Kati.Screens.Account.ask(socket, i)}
 
-      "data_" <> i ->
-        rows = Kati.Screens.Account.flip(a.data, i)
-        {:noreply, Mob.Socket.assign(socket, :account, %{a | data: rows})}
+      # The third storage row. It carried a chevron and no tap — this page's
+      # own rule says a chevron means *leads elsewhere* — and nowhere is
+      # exactly where it led. It opens the backup screen, which is the action
+      # the card above it describes: moving to a new phone means moving the
+      # file.
+      "storage_2" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Backup)}
+
+      # *Delete everything*, which used to flip a picture of a toggle. The
+      # confirm comes first; `:confirm_wipe` below is the only thing that
+      # deletes.
+      "data_0" ->
+        {:noreply, Mob.Socket.assign(socket, :confirming_wipe, true)}
+
+      "data_" <> _i ->
+        {:noreply, socket}
+
+      "cancel_wipe" ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:confirming_wipe, false)
+         |> Mob.Socket.assign(:wipe_error, nil)}
+
+      "confirm_wipe" ->
+        {:noreply, Kati.Screens.Account.confirm_wipe_action(socket)}
 
       _ ->
         {:noreply, socket}
+    end
+  end
+
+  @doc """
+  The delete itself, behind the dialog's own button.
+
+  One transaction in `Kati.Account.wipe!/0`, and Home on success: the page has
+  nothing left to draw, and a screen still listing the shelf that was just
+  deleted would be a picture of a phone that no longer exists.
+  """
+  def confirm_wipe_action(socket) do
+    case Kati.Account.wipe!() do
+      :ok ->
+        Mob.Socket.reset_to(socket, Kati.Screens.Home)
+
+      {:error, reason} ->
+        socket
+        |> Mob.Socket.assign(:confirming_wipe, true)
+        |> Mob.Socket.assign(:wipe_error, Kati.Write.message({:error, reason}))
     end
   end
 end
