@@ -185,9 +185,16 @@ defmodule Kati.ScreenBookDetailPersianTest do
       assert words =~ e.warnings
       assert words =~ "ثبت نشده"
 
-      # The other three caption DATA, and a caption over nothing is a promise
-      # the app has not kept.
-      refute words =~ e.notes
+      # هشدار محتوا's fold again, one round later: یادداشتها و نقلقولها is a
+      # CONTROL now — the band carries the only Add in the app that writes a
+      # `Kati.Books.Note`, and a book nobody has written about is exactly the
+      # one whose Add has to be reachable. The cream card below it still goes
+      # with the notes it drew.
+      assert words =~ e.notes
+      assert words =~ "افزودن"
+
+      # The other two caption DATA, and a caption over nothing is a promise the
+      # app has not kept.
       refute words =~ e.series
       refute words =~ e.history
     end

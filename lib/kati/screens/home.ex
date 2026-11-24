@@ -529,6 +529,10 @@ defmodule Kati.Screens.Home do
   defp section_tile("books"), do: tile_for("books", "menu_book", gettext("Books"), :open_books)
   defp section_tile("music"), do: tile_for("music", "graphic_eq", gettext("Music"), :open_music)
   defp section_tile("habits"), do: tile_for("habits", "bolt", gettext("Habits"), :open_habits)
+
+  defp section_tile("notes"),
+    do: tile_for("notes", "sticky_note_2", gettext("Notes"), :open_notes)
+
   defp section_tile("money"), do: tile_for("money", "payments", gettext("Money"), :open_money)
   defp section_tile(_no_page), do: nil
 
@@ -1830,6 +1834,12 @@ defmodule Kati.Screens.Home do
 
   def handle_tap(:open_habits, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+
+  # The section that had no page: `Kati.Sections` offered Notes in the first
+  # run and `section_tile/1` answered nil for it, so the choice removed nothing
+  # and added nothing.
+  def handle_tap(:open_notes, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Notes)}
 
   # Screen 19, opened empty, which is the one search page every door opens. It
   # pushed screen 86, a second page drawn like it whose *Clear* and results

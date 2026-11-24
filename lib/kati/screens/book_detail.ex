@@ -108,6 +108,7 @@ defmodule Kati.Screens.BookDetail do
   # separate is what lets a write refuse: named-and-missing is `nil` from
   # `Ash.get/2` and a refusal, where named-nothing is still the shelf's newest
   # and still correct.
+  @impl true
   def load(socket) do
     named = Map.get(socket.assigns.params || %{}, :book_id)
 
@@ -124,6 +125,9 @@ defmodule Kati.Screens.BookDetail do
     # a person to hear about the book you do not have yet.
     |> Mob.Socket.assign(:following, FollowedAuthor.following?(shaped[:author]))
     |> Mob.Socket.assign(:save_error, nil)
+    |> Mob.Socket.assign(:note_open?, false)
+    |> Mob.Socket.assign(:note_draft, %{kind: :note, body: "", page: ""})
+    |> Mob.Socket.assign(:note_error, nil)
   end
 
   @doc """
@@ -530,7 +534,7 @@ defmodule Kati.Screens.BookDetail do
         {Kati.Screens.BookDetail.edition(b)}
         {UI.eyebrow(gettext("Content warnings"))}
         {Kati.Screens.BookDetail.warnings(b)}
-        {Kati.Screens.BookDetail.notes_section(b)}
+        {Kati.Screens.BookDetail.notes_band(assigns)}
         {Kati.Screens.BookDetail.series_section(b)}
         {Kati.Screens.BookDetail.history_section(b)}
         {Kati.Screens.BookDetail.save_notice(save_error)}
@@ -1045,7 +1049,8 @@ defmodule Kati.Screens.BookDetail do
   end
 
   @doc """
-  The cream card, or nothing at all.
+  The cream card, or nothing at all — the band the dark twin and the states
+  sheet draw.
 
   Same rule as `Kati.Screens.Film.note/1`: cream marks the user's own words,
   so a book nobody has written about has no warm rectangle waiting for one.
@@ -1057,21 +1062,207 @@ defmodule Kati.Screens.BookDetail do
         []
 
       notes ->
-        rows =
-          notes
-          |> Enum.map(&Kati.Screens.BookDetail.note_row/1)
-          |> Enum.intersperse(~MOB"<Spacer size={14} />")
-
         ~MOB"""
         <Column fill_width={true}>
           {Kati.UI.eyebrow(gettext("Your notes and quotes"))}
-          <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
-            {rows}
-          </Column>
+          {Kati.Screens.BookDetail.notes_card(notes)}
           <Spacer size={24} />
         </Column>
         """
     end
+  end
+
+  @doc """
+  The band this page draws: the eyebrow, the Add control, the composer when it
+  is open, and the cream card when there is something in it.
+
+  Screen 66 is the only writer of `Kati.Books.Note` in the app, so the control
+  lives here rather than in `notes_section/1`, which the dark colourway and the
+  states sheet also draw — a second copy of a composer on a screen that does
+  not own the write would be the drift this file avoids everywhere else.
+  """
+  @spec notes_band(map()) :: map()
+  def notes_band(assigns) do
+    notes = Map.get(assigns.book, :notes, Sample.notes())
+    action = add_note_pill()
+    composer = if Map.get(assigns, :note_open?, false), do: composer_card(assigns), else: []
+    card = notes_card(notes)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center">
+        {Kati.UI.eyebrow(gettext("Your notes and quotes"))}
+        <Spacer weight={1.0} />
+        {action}
+      </Row>
+      <Spacer size={12} />
+      {composer}
+      {card}
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  defp add_note_pill do
+    Kati.Components.MishkaPill.pill(
+      id: "book_add_note",
+      label: gettext("Add"),
+      background: Palette.paper(),
+      color: :on_surface,
+      corner_radius: 14,
+      height: 30,
+      padding: 0,
+      padding_left: 13,
+      padding_right: 13,
+      text_size: 11.5,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: {self(), :add_note}
+    )
+  end
+
+  @doc false
+  def notes_card([]), do: []
+
+  @doc false
+  def notes_card(notes) do
+    rows =
+      notes
+      |> Enum.map(&Kati.Screens.BookDetail.note_row/1)
+      |> Enum.intersperse(~MOB"<Spacer size={14} />")
+
+    ~MOB"""
+    <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
+      {rows}
+    </Column>
+    """
+  end
+
+  # Two fields and a kind: enough to record a quote or a thought, and no more.
+  # The page is optional because a thought about a book is not always a thought
+  # about a page — `Kati.Books.Note` says so at the column.
+  defp composer_card(assigns) do
+    draft = assigns.note_draft
+    notice = note_error_line(assigns.note_error)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <MishkaCard
+        background={Palette.card()}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={15}
+        fill_width={true}
+      >
+        <Row fill_width={true} align="center">
+          {Kati.Screens.BookDetail.kind_chip(gettext("Note"), :kind_note, draft.kind == :note)}
+          <Spacer size={8} />
+          {Kati.Screens.BookDetail.kind_chip(gettext("Quote"), :kind_quote, draft.kind == :quote)}
+        </Row>
+        <Spacer size={12} />
+        <MishkaTextInput
+          id="note_body"
+          value={draft.body}
+          placeholder={gettext("Write it down")}
+          multiline={true}
+          lines={3}
+          on_change={{self(), :note_body}}
+          background={Palette.paper()}
+          corner_radius={14}
+          padding={12}
+          text_size={14}
+          fill_width={true}
+        />
+        <Spacer size={10} />
+        <MishkaTextInput
+          id="note_page"
+          value={draft.page}
+          placeholder={gettext("Page (optional)")}
+          keyboard={:number}
+          on_change={{self(), :note_page}}
+          background={Palette.paper()}
+          corner_radius={14}
+          padding_left={12}
+          padding_right={12}
+          padding_top={9}
+          padding_bottom={9}
+          text_size={13}
+          width={150}
+        />
+        <Spacer size={10} />
+        {notice}
+        <Row fill_width={true} align="center">
+          {Kati.Screens.BookDetail.save_note_pill()}
+          <Spacer size={8} />
+          {Kati.Screens.BookDetail.cancel_note_pill()}
+        </Row>
+      </MishkaCard>
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def kind_chip(label, tag, on?) do
+    Kati.Components.MishkaChip.chip(
+      label: label,
+      checked: on?,
+      on_toggle: {self(), tag},
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft(),
+      height: 30
+    )
+  end
+
+  @doc false
+  def save_note_pill do
+    Kati.Components.MishkaPill.pill(
+      id: "note_save",
+      label: gettext("Save note"),
+      background: Palette.ink_fill(),
+      color: Palette.on_ink(),
+      corner_radius: 15,
+      height: 34,
+      padding: 0,
+      padding_left: 16,
+      padding_right: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: {self(), :save_note}
+    )
+  end
+
+  @doc false
+  def cancel_note_pill do
+    Kati.Components.MishkaPill.pill(
+      id: "note_cancel",
+      label: gettext("Cancel"),
+      background: Palette.paper(),
+      color: :on_surface,
+      corner_radius: 15,
+      height: 34,
+      padding: 0,
+      padding_left: 16,
+      padding_right: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: {self(), :cancel_note}
+    )
+  end
+
+  defp note_error_line(nil), do: ~MOB"<Spacer size={0} />"
+
+  defp note_error_line(message) do
+    ~MOB"""
+    <Column>
+      <Text text={message} text_size={12} text_color={Kati.Theme.red()} max_lines={2} />
+      <Spacer size={10} />
+    </Column>
+    """
   end
 
   @doc false
@@ -1361,6 +1552,7 @@ defmodule Kati.Screens.BookDetail do
   def member(_drawn), do: nil
 
   @doc false
+  @impl true
   def handle_tap(:log_progress, socket),
     do:
       {:noreply,
@@ -1474,6 +1666,32 @@ defmodule Kati.Screens.BookDetail do
     end
   end
 
+  # ── Writing a note ────────────────────────────────────────────────────────
+  #
+  # The one writer in the app for `Kati.Books.Note`. It lives here because a
+  # note is about a book and the page is where the book is — a global composer
+  # would have to ask which book first, and that question is already answered.
+
+  def handle_tap(:add_note, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:note_open?, true)
+     |> Mob.Socket.assign(:note_error, nil)}
+  end
+
+  def handle_tap(:cancel_note, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:note_open?, false)
+     |> Mob.Socket.assign(:note_draft, empty_draft())
+     |> Mob.Socket.assign(:note_error, nil)}
+  end
+
+  def handle_tap(:kind_note, socket), do: {:noreply, set_kind(socket, :note)}
+  def handle_tap(:kind_quote, socket), do: {:noreply, set_kind(socket, :quote)}
+
+  def handle_tap(:save_note, socket), do: save_note(socket)
+
   # Everything that is not a chip: the series row and the lending row. Answered
   # rather than left dead, because a dead tap is a defect
   # `Kati.Screens.Root.rescue_tap/3` reports by name and this is not one — both
@@ -1509,6 +1727,72 @@ defmodule Kati.Screens.BookDetail do
         end
     end
   end
+
+  defp set_kind(socket, kind) do
+    Mob.Socket.assign(socket, :note_draft, %{socket.assigns.note_draft | kind: kind})
+  end
+
+  @doc false
+  def empty_draft, do: %{kind: :note, body: "", page: ""}
+
+  # A note with no words is not a note, and a page that is not a number is not a
+  # page. Both refusals keep the composer open with what was typed intact — the
+  # same contract `Kati.Write` states for every save in the app.
+  defp save_note(socket) do
+    assigns = socket.assigns
+    draft = assigns.note_draft
+    body = String.trim(draft.body)
+    book_id = target(assigns)
+
+    cond do
+      is_nil(book_id) ->
+        {:noreply, Mob.Socket.assign(socket, :note_error, gettext("Open a book first."))}
+
+      body == "" ->
+        {:noreply, Mob.Socket.assign(socket, :note_error, gettext("Write something first."))}
+
+      true ->
+        page =
+          case Integer.parse(Map.get(draft, :page) || "") do
+            {n, _rest} when n > 0 -> n
+            _none -> nil
+          end
+
+        case Ash.create(Note, %{book_id: book_id, body: body, kind: draft.kind, page: page}) do
+          {:ok, _note} ->
+            {:noreply,
+             socket
+             |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book(book_id))
+             |> Mob.Socket.assign(:note_open?, false)
+             |> Mob.Socket.assign(:note_draft, empty_draft())
+             |> Mob.Socket.assign(:note_error, nil)}
+
+          {:error, reason} ->
+            {:noreply, Mob.Socket.assign(socket, :note_error, Write.message({:error, reason}))}
+        end
+    end
+  end
+
+  @impl true
+  def handle_info({:change, :note_body, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     Mob.Socket.assign(socket, :note_draft, Map.put(socket.assigns.note_draft, :body, typed))}
+  end
+
+  def handle_info({:change, :note_page, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     Mob.Socket.assign(socket, :note_draft, Map.put(socket.assigns.note_draft, :page, typed))}
+  end
+
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:long_press, tag}, socket), do: handle_tap(tag, socket)
+
+  def handle_info({:tap, tag}, socket) do
+    Kati.Screens.Root.rescue_tap(__MODULE__, tag, socket)
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   @doc """
   The attribute a chip tag sets, or `nil` for a tag that is not a chip.

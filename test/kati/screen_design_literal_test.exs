@@ -198,6 +198,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     # both locales, the screen behind it, and the defect it replaces, all in one
     # frame. Same treatment as 330 and 333.
     Kati.Screens.MoreSources,
+    # The Notes section's page, and no board in the 152 draws it: the section
+    # was offered by the first run and had no page at all until 24 November
+    # 2026. `Kati.ScreenNotesTest` holds what it draws.
+    Kati.Screens.Notes,
     Kati.Screens.NotificationsHelp,
     # No board draws it. Board 24 draws a Privacy row that opened
     # nothing; this is the page behind it, and every sentence on it is a claim

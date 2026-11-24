@@ -337,6 +337,10 @@ defmodule Kati.Screens.Gallery do
   # Delete an entry the moment its drawing lands, and add it to `@screens` with
   # the number it was filed under.
   @undrawn [
+    # The Notes section's page. No board in the 152 draws it — the section was
+    # offered by the first run and had no page at all — and it is reached from
+    # Home's Sections row, which is the card that opened nothing until now.
+    {:open_undrawn_notes, "Notes", Kati.Screens.Notes},
     # Board 267 — Clear watch history. A states board (the page and its
     # confirmation in one frame), so it has no artboard the literal sweep can
     # compare it against; it is reached from Settings → Data → Clear watch

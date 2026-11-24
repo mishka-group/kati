@@ -232,6 +232,19 @@ defmodule Kati.Settings.Sample do
         title: gettext("Money"),
         sub: gettext("Calendar feed"),
         control: {:switch, false}
+      },
+      # The sixth section the first run offers, and until 24 November 2026 the
+      # only one this page could not draw: `Kati.Screens.Notes` did not exist,
+      # so `kept_after/2` carried a Notes choice through every switch here
+      # without ever showing it. It has a page now, and a section that can be
+      # chosen only on first run and never again is the same one-way door the
+      # setting was written to avoid.
+      %{
+        id: "notes",
+        icon: "sticky_note_2",
+        title: gettext("Notes"),
+        sub: gettext("Home card"),
+        control: {:switch, true}
       }
     ]
   end

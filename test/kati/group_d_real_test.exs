@@ -44,6 +44,7 @@ defmodule Kati.GroupDRealTest do
                  :open_music,
                  :open_habits,
                  :open_money,
+                 :open_notes,
                  :open_settings
                ]
     end
@@ -55,7 +56,8 @@ defmodule Kati.GroupDRealTest do
             {:open_books, Kati.Screens.Books},
             {:open_music, Kati.Screens.Music},
             {:open_habits, Kati.Screens.Habits},
-            {:open_money, Kati.Screens.Money}
+            {:open_money, Kati.Screens.Money},
+            {:open_notes, Kati.Screens.Notes}
           ] do
         {:noreply, moved} = Home.handle_tap(tag, socket)
         assert {:push, ^module, _params} = moved.__mob__.nav_action

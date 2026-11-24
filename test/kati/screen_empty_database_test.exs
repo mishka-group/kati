@@ -1250,6 +1250,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # a module here that stops reading the store, or that acquires a drawing and
   # joins `Kati.Screens.Gallery`'s registry, fails.
   @undrawn [
+    # The Notes section's page has no board, so there is no drawing to compare
+    # an empty store with — but it reaches the store and this file still
+    # renders it. `Kati.ScreenNotesTest` holds the empty sentence and the
+    # writes.
+    Kati.Screens.Notes,
     # Board 267's screen. It reads `Kati.Media.Watch` to count what a clear
     # would remove, and an empty store is the ordinary case rather than a
     # fallback: four zeroes is the true answer to "how much have you logged"
@@ -1438,6 +1443,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # Named with a number, so a page that shrinks further still fails.
   @small_undrawn %{
+    # Notes with nothing stored is its chrome and its empty card: the title, the
+    # "0 notes · 0 books" line, the empty sentence, its one button and the back
+    # label. Eight, and the card is what makes it a page rather than chrome.
+    Kati.Screens.Notes => 8,
     # Board 333's empty sheet is five strings and nothing else: the header, the
     # sentence, its second line, the field's placeholder and the pill. The
     # board drops the kept card here on purpose — *"it is inert here"* — so
