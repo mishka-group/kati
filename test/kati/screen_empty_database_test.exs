@@ -750,6 +750,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # control that reads `Kati.Settings.Watcher`, the store, and draws the same
     # on an empty database as on a full one.
     "25" => [],
+    # 122 → no board for the recurring card any more: it reads the services
+    # somebody pays for, and a reader with none gets a sentence and a way to
+    # add them. The months above it still fall back — `fallbacks/0` gates
+    # `months/0` — so the page is its own chrome and the card, not the board's
+    # four invented subscriptions.
+    "122" => [],
     # 14 → no board either: no title, no synopsis, no cast, no ratings and no
     # where-to-watch rows, so board 14's own series has nothing left to compare.
     "14" => [],
@@ -1317,6 +1323,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # everybody to fit one screen the design drew small would stop it catching
   # that. Named, with a number, so a page that shrinks further still fails.
   @small_empty_boards %{
+    # 122 with nothing stored: the page's chrome, its own title and subtitle,
+    # the hero's label and dash, the Recurring eyebrow and the one sentence
+    # that offers My services. No months, no subscriptions, no suggestion —
+    # they all belong to somebody else.
+    "122" => 12,
     # 22 with nothing stored is the page's own chrome — its title, a subtitle
     # saying nothing is kept, the `+` disc, the back label — and the empty card's
     # three parts: what a habit is, its description and the one button. Eight,
@@ -2524,8 +2535,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # catching.
       {"106", Kati.Screens.NewGoal, &Kati.Screens.Goals.goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
-      {"122", Kati.Screens.Money, &Kati.Screens.Money.months/0,
-       &Kati.Screens.Money.drawn_months/0},
       # 124 and 125 both write to a store and read one value back — the
       # currency — which is `Mob.State` rather than the database and is
       # therefore the same on an empty one. Gated on 122's reader for the same
@@ -2740,6 +2749,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 23 answers an empty ledger with nothing subscribed. It drew `5 active`,
       # `£46.47`, `Up £4.00` and four services — a bill, to a reader who pays
       # for nothing.
+      # 122 answers an empty page: no months, no recurring rows, a hero reading
+      # "—" and a one-sentence card offering My services. It drew four
+      # subscriptions, two months of expenses and £46.47 on every device.
+      {"122", Kati.Screens.Money, &Kati.Screens.Money.live_months/0, [],
+       &Kati.Screens.Money.drawn_months/0},
       {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
        Kati.Screens.Subscriptions.empty_ledger(), &Kati.Screens.Subscriptions.drawn_ledger/0},
       # 22 answers an empty page. It drew four habits, a twelve-day best and a

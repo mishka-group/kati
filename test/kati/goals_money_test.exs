@@ -297,6 +297,18 @@ defmodule Kati.GoalsMoneyTest do
     end
 
     test "dismissing the suggestion takes it off the page and writes nothing" do
+      # The card is offered off the reader's own ledger now, and a reader with
+      # nothing subscribed has no cost per watched hour to be advised about.
+      # One service is enough for `Kati.Subscriptions.ledger/0` to answer.
+      on_exit(fn ->
+        Kati.Repo.query!("DELETE FROM services WHERE name LIKE 'goal-money-test-%'")
+      end)
+
+      Ash.create!(Kati.Services.Service, %{
+        name: "goal-money-test-Cinema",
+        monthly_pence: 1200
+      })
+
       view = mount_screen(MoneyScreen)
       assert MoneyScreen.suggestion(false) != []
 

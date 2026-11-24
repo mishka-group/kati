@@ -1983,7 +1983,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # tree the file compared before the migration, and
       # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` holds the other half —
       # that no device answers with it.
-      {"22", Kati.Screens.Habits, &Kati.Screens.Habits.drawn_state/1}
+      {"22", Kati.Screens.Habits, &Kati.Screens.Habits.drawn_state/1},
+      # 122's recurring card reads the services somebody pays for now. The board
+      # is still compared with itself, by installing the drawing's four — the
+      # empty screen is the sentence a reader with none gets, and
+      # `Kati.ScreenEmptyDatabaseTest`'s `@empty_boards` holds that half.
+      {"122", Kati.Screens.Money, &Kati.Screens.Money.drawn_state/1},
+      # 127 is the same page under `:fa` since mishka-group/kati#103, so the
+      # same state in the other script — one entry, not a transcription.
+      {"127", Kati.Screens.Money, &Kati.Screens.Money.drawn_state/1}
     ]
   end
 
