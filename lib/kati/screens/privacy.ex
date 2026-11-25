@@ -28,10 +28,12 @@ defmodule Kati.Screens.Privacy do
       `Kati.Media.Artwork`, to those services' image servers for posters.
       Nothing about the reader goes to AniList or TVmaze beyond the words
       searched and the ids of titles opened. `Kati.Sources`' moduledoc says the same — Open Library and
-      MusicBrainz are named there and called nowhere. CalDAV has a transport,
-      `Kati.Sync.Adapter.CalDAV.Transport`, and nothing in the app drives it:
-      no screen adds a CalDAV account and nothing calls `Kati.Sync.Engine.sync/3`.
-      The day something does, this page gains a row.
+      MusicBrainz are named there and called nowhere. CalDAV is the fourth,
+      and only when a reader has connected an account: `Kati.Sync.Runner`
+      syncs every calendar on foreground, and a calendar whose account is a
+      CalDAV one is pulled from **that account's own server** through
+      `Kati.Sync.Adapter.CalDAV.Transport`. The address is the one typed into
+      the account; Kati has no server of its own.
     * **Backups only when the reader makes one.** `Kati.Backup.Transport` is
       reached from the Save and Share buttons of `Kati.Screens.Backup` (and
       Save on its dark colourway, `Kati.Screens.BackupDark`) and from nowhere

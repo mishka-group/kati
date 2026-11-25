@@ -178,7 +178,7 @@ defmodule Kati.ScreenSyncTest do
       # with no rows must draw no controls — a Retry or a Keep mine with
       # nothing behind it would be answered by `handle_tap/2` and do nothing,
       # which is precisely the shape `Kati.ScreenTapSweepTest` cannot see.
-      assert tags(tree(page())) == [:back]
+      assert tags(tree(page())) == [:sync_now, :back]
     end
 
     test "the page is renderable and is a page, not chrome" do
@@ -333,7 +333,7 @@ defmodule Kati.ScreenSyncTest do
       assert says?(t, "trying again cannot fix this on its own")
       assert says?(t, "Blocked")
       refute says?(t, "Retry")
-      assert tags(t) == [:back]
+      assert tags(t) == [:sync_now, :back]
     end
 
     test "an entry blocked behind a conflict points at the question instead" do
@@ -657,7 +657,7 @@ defmodule Kati.ScreenSyncTest do
       assert says?(t, "this event is mirrored, so the calendar's version won")
       assert says?(t, "Kept")
       refute says?(t, "Re-apply")
-      assert tags(t) == [:back]
+      assert tags(t) == [:sync_now, :back]
     end
 
     test "a kept edit whose event is gone says so rather than half-working" do

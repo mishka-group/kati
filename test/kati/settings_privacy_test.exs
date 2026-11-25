@@ -160,15 +160,18 @@ defmodule Kati.SettingsPrivacyTest do
       assert sub =~ "AniList" and sub =~ "TVmaze"
     end
 
-    test "nothing in the app drives a sync, so the CalDAV transport sends nothing" do
+    test "one process drives a sync, and the page names the calendar server" do
       drivers =
         for path <- Path.wildcard("lib/**/*.ex"),
             path != "lib/kati/sync/engine.ex",
             File.read!(path) =~ ~r/Engine\.sync\(/,
             do: path
 
-      assert drivers == [],
-             "#{inspect(drivers)} now runs a sync; the privacy page must name the calendar server"
+      assert drivers == ["lib/kati/sync/runner.ex"],
+             "the foreground sync must have exactly one driver: #{inspect(drivers)}"
+
+      # And the page says so in the place a reader looks.
+      assert File.read!("lib/kati/screens/privacy.ex") =~ "that account's own server"
     end
   end
 

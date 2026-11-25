@@ -61,7 +61,11 @@ defmodule Kati.Supervisor do
           # the platform's alarms against the plan on boot, on a foreground
           # refresh and every quarter hour, and tells the root screen when the
           # plan moved. See `Kati.Notifications.Runner`.
-          Kati.Notifications.Runner
+          Kati.Notifications.Runner,
+
+          # The foreground sync (#54). Boot once, then on demand; never a timer
+          # — see `Kati.Sync.Runner`.
+          Kati.Sync.Runner
 
           # Arriving with their own tickets, each of which must live here rather
           # than in a screen because it outlives any single screen:

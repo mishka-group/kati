@@ -95,16 +95,113 @@ defmodule Kati.Screens.Calendars do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  require Ash.Query
+
   @impl true
   def load(socket) do
+    accounts = account_list()
+
     Mob.Socket.assign(socket, :calendars, %{
-      connected: Sample.connected(),
-      accounts: Sample.accounts(),
+      connected: connected_line(accounts),
+      accounts: accounts,
       add_account: Sample.add_account(),
       calendars: calendar_list(),
       write_back: Sample.write_back(),
       note: Sample.note()
     })
+  end
+
+  @doc """
+  The accounts Kati actually holds, or the drawing's three.
+
+  `Kati.Calendars.Account` has been a table since the calendar domain landed and
+  this group drew iCloud, Google and CalDAV on every phone. A device account is
+  written by the provider import, so a reader with a calendar on their phone has
+  a row to show and no longer sees somebody else's mail address.
+
+  A store that cannot be read answers the drawing, the same all-or-nothing gate
+  the calendar list below keeps.
+  """
+  @spec account_list() :: [map()]
+  def account_list do
+    case stored_accounts() do
+      [] -> Sample.accounts()
+      rows -> rows
+    end
+  end
+
+  defp stored_accounts do
+    Account
+    |> Ash.read!()
+    |> Enum.map(&account_from/1)
+  rescue
+    _error -> []
+  end
+
+  defp account_from(account) do
+    %{
+      icon: account_icon(account.provider),
+      title: account.display_name || account.account_name || provider_label(account.provider),
+      sub: account_sub(account),
+      status: account_status(account.state),
+      state: account.state
+    }
+  end
+
+  defp account_icon(:android_provider), do: "phone_iphone"
+  defp account_icon(:caldav), do: "cloud"
+  defp account_icon(:local), do: "phone_iphone"
+  defp account_icon(:google), do: "mail"
+  defp account_icon(_other), do: "dns"
+
+  defp provider_label(:android_provider), do: "This phone"
+  defp provider_label(:caldav), do: "CalDAV"
+  defp provider_label(:local), do: "This device"
+  defp provider_label(:google), do: "Google"
+  defp provider_label(:graph), do: "Microsoft"
+  defp provider_label(_other), do: "Account"
+
+  # The line is Kati's own sentence about the account, and the count is a real
+  # read of the calendars under it rather than a number in a stored string.
+  defp account_sub(account) do
+    count = calendars_under(account)
+    n = ngettext("%{n} calendar", "%{n} calendars", count, n: Kati.Locale.number(count))
+
+    case account.last_sync_at do
+      nil ->
+        n
+
+      at ->
+        n <>
+          " · " <>
+          gettext("last sync %{when}",
+            when: at |> DateTime.to_date() |> Kati.Locale.date(:short)
+          )
+    end
+  end
+
+  defp calendars_under(account) do
+    Calendar
+    |> Ash.Query.filter(account_id == ^account.id)
+    |> Ash.count()
+    |> case do
+      {:ok, count} -> count
+      _error -> 0
+    end
+  rescue
+    _error -> 0
+  end
+
+  defp account_status(:live), do: "Live"
+  defp account_status(:stale), do: "Stale"
+  defp account_status(:error), do: "Error"
+  defp account_status(_other), do: "Off"
+
+  defp connected_line(accounts) do
+    case length(accounts) do
+      3 -> Sample.connected()
+      n -> ngettext("%{n} connected", "%{n} connected", n, n: Kati.Locale.number(n))
+    end
   end
 
   @doc """

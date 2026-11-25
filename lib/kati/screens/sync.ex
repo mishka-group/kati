@@ -178,6 +178,7 @@ defmodule Kati.Screens.Sync do
   alias Kati.Sync.OutboxEntry
   alias Kati.Sync.Ownership
   alias Kati.Sync.RejectedChange
+  alias Kati.Components.MishkaPill
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -1208,7 +1209,30 @@ defmodule Kati.Screens.Sync do
 
   # ── Drawing ────────────────────────────────────────────────────────────────
 
-  @doc false
+  @doc """
+  The page's one control, and it was missing for the reason the moduledoc gave:
+  nothing called the engine. It reads every calendar through its account's
+  adapter — the device provider for the phone's own, CalDAV for a connected
+  account — and redraws when it is done.
+  """
+  def sync_pill do
+    MishkaPill.pill(
+      id: "sync_now",
+      label: gettext("Sync now"),
+      background: Palette.ink_fill(),
+      color: Palette.on_ink(),
+      corner_radius: 15,
+      height: 32,
+      padding: 0,
+      padding_left: 15,
+      padding_right: 15,
+      text_size: 12,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: {self(), :sync_now}
+    )
+  end
+
   def content(assigns) do
     s = assigns.sync
     message = assigns.message
@@ -1225,6 +1249,7 @@ defmodule Kati.Screens.Sync do
       >
         {SettingsList.chrome(nil, 42)}
         {SettingsList.title(gettext("Sync"), subtitle)}
+        {Kati.Screens.Sync.sync_pill()}
         {Kati.Screens.Sync.tallies(s)}
         {Kati.Screens.Sync.notice(message)}
         {Kati.Screens.Sync.footnote("shield", Kati.Screens.Sync.ownership_note())}
@@ -1900,6 +1925,22 @@ defmodule Kati.Screens.Sync do
   # ── Answering ──────────────────────────────────────────────────────────────
 
   @impl true
+  def handle_tap(:sync_now, socket) do
+    parent = self()
+
+    case Process.whereis(Kati.TaskSupervisor) do
+      nil ->
+        {:noreply, Mob.Socket.assign(socket, :message, gettext("Kati cannot sync right now."))}
+
+      supervisor ->
+        Task.Supervisor.start_child(supervisor, fn ->
+          send(parent, {:kati_sync_done, Kati.Sync.Runner.sync_now()})
+        end)
+
+        {:noreply, Mob.Socket.assign(socket, :message, gettext("Syncing…"))}
+    end
+  end
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "retry_" <> index ->
@@ -1921,6 +1962,44 @@ defmodule Kati.Screens.Sync do
         {:noreply, socket}
     end
   end
+
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, tag}, socket) do
+    Kati.Screens.Root.rescue_tap(__MODULE__, tag, socket)
+  end
+
+  @impl true
+  def handle_info({:kati_sync_done, results}, socket) do
+    failures = Enum.count(results, fn {_id, result} -> match?({:error, _}, result) end)
+
+    message =
+      case {map_size(results), failures} do
+        {0, _} ->
+          gettext("No calendars to sync yet.")
+
+        {n, 0} ->
+          ngettext("Synced %{n} calendar", "Synced %{n} calendars", n, n: Kati.Locale.number(n))
+
+        {n, f} ->
+          gettext("Synced %{n} of %{total} — %{failed} could not be reached.",
+            n: Kati.Locale.number(n - f),
+            total: Kati.Locale.number(n),
+            failed: Kati.Locale.number(f)
+          )
+      end
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:message, message)
+     |> Mob.Socket.assign(:sync, Kati.Screens.Sync.state())}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_kati(:sync, _payload, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :sync, Kati.Screens.Sync.state())}
 
   @doc """
   Run `fun` over the row `index` names in `list`, then re-read the page.
