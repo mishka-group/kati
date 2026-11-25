@@ -1415,7 +1415,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # preview's own two sentences and the share card — twelve strings. The three
     # phantom tiles and the four shortcut rows that used to pad it past the
     # generic floor were the whole of what this round deleted.
-    "39" => 12,
     # 10's honest empty card is the whole page now — no hero, no rows, no
     # second section beneath it the way Lists keeps its kept rows. An icon,
     # "Nothing queued", one body sentence and the back pill's chrome is

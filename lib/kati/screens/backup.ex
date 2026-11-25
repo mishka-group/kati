@@ -1333,33 +1333,16 @@ defmodule Kati.Screens.Backup do
     Kati.Screens.Backup.save_as(socket.assigns.backup.format, socket)
   end
 
-  @doc false
-  def save_as(:json, socket) do
-    Kati.Screens.Backup.hand_off(:save, Kati.Screens.Backup.count(socket))
-  end
+  @doc """
+  Save, in the chosen format.
 
-  def save_as(format, socket) do
-    row = Enum.find(Sample.formats(), &(&1.tag == format))
-
-    # `Everything (JSON)` was written into this sentence as a literal and is now
-    # read off the row it names. Both halves of the notice quote a format's
-    # title, and one of them quoting a hardcoded copy of it is exactly the drift
-    # `Kati.Backup.Sample`'s moduledoc exists to prevent — the row's title is
-    # translated by the module that owns it, and a second English copy frozen in
-    # this msgid would leave one format spelled two ways on one card.
-    json = Enum.find(Sample.formats(), &(&1.tag == :json))
-
-    Kati.Screens.Backup.put_notice(socket, %{
-      tone: :info,
-      icon: "info",
-      title: gettext("%{format} is not built yet", format: row.title),
-      body:
-        gettext(
-          "Kati can only write the full %{format} file today — the one that " <>
-            "restores. Choose it above and Save a backup again.",
-          format: json.title
-        )
-    })
+  All three are real now: `:json` is the backup, `:csv` a zip of one CSV per
+  table, `:ics` one calendar file. The screen used to answer *"not built yet"*
+  for two of them, which was honest while it was true and is not any more.
+  """
+  def save_as(_format, socket) do
+    socket = Kati.Screens.Backup.count(socket)
+    Kati.Screens.Backup.hand_off(:save, socket)
   end
 
   @doc """
@@ -1392,7 +1375,9 @@ defmodule Kati.Screens.Backup do
 
   @doc false
   def hand_off_now(call, socket, s) do
-    opts = Kati.Screens.Backup.passphrase_opts(s.encrypt?, s.passphrase)
+    opts =
+      Kati.Screens.Backup.passphrase_opts(s.encrypt?, s.passphrase)
+      |> Keyword.put(:format, Map.get(s, :format, :json))
 
     result =
       case call do

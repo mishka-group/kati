@@ -72,7 +72,10 @@ defmodule Kati.Screens.Widgets do
   user's or every value is the drawing's. The set moves when a habit completion
   exists to count.
 
-  The **shortcut switches** flip locally and are stored nowhere, honestly:
+  The **shortcut switches** are stored in `Kati.Widgets.Shortcuts`, where the
+  theme and the sections live — a switch that forgets itself is a picture of a
+  switch. (They used to flip an assign and nothing else, and the section was
+  not even drawn: `shortcuts/1` was defined and never called.)
   there is no voice layer in `lib/` at all, so *"Hey Siri, what's next?"* is
   describing a surface Kati does not yet have rather than a setting it keeps.
   A stored boolean would arm nothing.
@@ -153,6 +156,7 @@ defmodule Kati.Screens.Widgets do
   def load(socket) do
     Mob.Socket.assign(socket, :widgets, %{
       up_next: Kati.Screens.Widgets.up_next_now(),
+      shortcuts: Kati.Widgets.Shortcuts.apply(Sample.shortcuts()),
       share: Sample.share()
     })
   end
@@ -205,6 +209,8 @@ defmodule Kati.Screens.Widgets do
         {Kati.Screens.Widgets.title()}
         {UI.eyebrow(gettext("On your home screen"))}
         {Kati.Screens.Widgets.preview(w.up_next)}
+        {UI.eyebrow(gettext("Shortcuts"))}
+        {Kati.Screens.Widgets.shortcuts(w)}
         {Kati.Screens.Widgets.quiet_eyebrow(gettext("Share sheet"))}
         {Kati.Screens.Widgets.share(w)}
       </Column>
@@ -921,10 +927,7 @@ defmodule Kati.Screens.Widgets do
 
     case Atom.to_string(tag) do
       "shortcut_" <> i ->
-        rows =
-          List.update_at(w.shortcuts, String.to_integer(i), fn row ->
-            %{row | toggle: not row.toggle}
-          end)
+        rows = Kati.Widgets.Shortcuts.toggle(w.shortcuts, String.to_integer(i))
 
         {:noreply, Mob.Socket.assign(socket, :widgets, %{w | shortcuts: rows})}
 

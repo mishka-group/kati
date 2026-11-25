@@ -66,6 +66,7 @@ defmodule Kati.Backup do
   alias Kati.Backup.Envelope
   alias Kati.Backup.Error
   alias Kati.Backup.Export
+  alias Kati.Backup.Exports
   alias Kati.Backup.Restore
   alias Kati.Backup.Verify
 
@@ -81,14 +82,26 @@ defmodule Kati.Backup do
   Dated, because a user with three backups needs to know which is which, and
   the date is the only thing they will recognise.
   """
-  @spec suggested_filename(Date.t()) :: String.t()
-  def suggested_filename(date \\ Date.utc_today()) do
-    "kati-backup-#{Date.to_iso8601(date)}#{@extension}"
+  @spec suggested_filename(Date.t(), :json | :csv | :ics) :: String.t()
+  def suggested_filename(date \\ Date.utc_today(), format \\ :json) do
+    "kati-backup-#{Date.to_iso8601(date)}#{Exports.extension(format)}"
   end
 
-  @doc "Read every backed-up table into a bundle. See `Kati.Backup.Export`."
+  @doc """
+  Read every backed-up table into a bundle in the chosen format.
+
+  `:format` is `:json` (the backup), `:csv` (a zip of one CSV per table) or
+  `:ics` (one calendar file). Only `:json` restores; the other two are exports
+  for other programs and say so on the screen.
+  """
   @spec export(keyword()) :: Bundle.t()
-  defdelegate export(opts \\ []), to: Export, as: :bundle
+  def export(opts \\ []) do
+    case Keyword.get(opts, :format, :json) do
+      :csv -> Exports.bundle(:csv)
+      :ics -> Exports.bundle(:ics)
+      _json -> Export.bundle(opts)
+    end
+  end
 
   @doc "Zip a bundle. The bytes a caller hands to a Save As… or a Share sheet."
   @spec to_binary(Bundle.t()) :: binary()

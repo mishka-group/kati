@@ -88,7 +88,11 @@ defmodule Kati.Backup.Transport do
     dir = staging_dir(opts)
     _swept = sweep(opts)
 
-    filename = Backup.suggested_filename(Keyword.get(opts, :date, Date.utc_today()))
+    format = Keyword.get(opts, :format, :json)
+
+    filename =
+      Backup.suggested_filename(Keyword.get(opts, :date, Date.utc_today()), format)
+
     path = Path.join(dir, filename)
 
     with {:ok, summary} <- Backup.export_to_file(path, opts) do
