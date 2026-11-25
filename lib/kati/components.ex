@@ -61,7 +61,29 @@ defmodule Kati.Components do
   directory of 3000+ BEAMs.
   """
   @spec modules() :: [module()]
-  def modules, do: @components
+  def modules, do: runtime_modules() || @components
+
+  # Read from the SOURCE tree when there is one — a laptop, CI, the test suite —
+  # and fall back to the compile-time list on the device, whose flat `-pa`
+  # directory has no sources. The compile-time list is derived from the same
+  # wildcard, but a component file ADDED after this module was last compiled
+  # does not mark it external, so a cached build could answer with yesterday's
+  # registry; `Kati.ComponentsTest` caught exactly that in CI. On a device the
+  # build is always from a complete tree, so the constant is right.
+  defp runtime_modules do
+    if File.dir?(@source_dir) do
+      @source_dir
+      |> Path.join("mishka_*.ex")
+      |> Path.wildcard()
+      |> Enum.map(&Path.basename(&1, ".ex"))
+      |> Enum.map(&Macro.camelize/1)
+      |> Enum.filter(&String.starts_with?(&1, "Mishka"))
+      |> Enum.map(&Module.concat(Kati.Components, &1))
+      |> Enum.sort()
+    end
+  rescue
+    _error -> nil
+  end
 
   @doc "The `~MOB` tag a module answers to: `MishkaChip` -> `:mishka_chip`."
   @spec tag(module()) :: atom()
