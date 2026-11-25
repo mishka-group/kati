@@ -314,7 +314,20 @@ defmodule Kati.DesignLiterals do
   literal absent.
   """
   @spec content_props() :: [atom()]
-  def content_props, do: [:text, :placeholder, :label, :value, :hint, :content_description]
+  def content_props,
+    do: [
+      :text,
+      :placeholder,
+      :label,
+      :value,
+      :hint,
+      :content_description,
+      # A notification preview's own three strings: `title` and `body` are what
+      # a reader reads on a push, and `app` is the name beside its clock.
+      :title,
+      :body,
+      :app
+    ]
 
   @doc """
   String props that are styling rather than copy: colours, families, alignments,
@@ -332,6 +345,8 @@ defmodule Kati.DesignLiterals do
       :direction,
       :font_family,
       :font_weight,
+      :title_weight,
+      :app_font,
       :shadow,
       :content_mode,
       :src,

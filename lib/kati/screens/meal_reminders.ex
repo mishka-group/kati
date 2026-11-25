@@ -315,27 +315,29 @@ defmodule Kati.Screens.MealReminders do
     body = copy(n.body)
 
     ~MOB"""
-    <Column fill_width={true} background={ground} corner_radius={16} padding={14}>
-      <Row fill_width={true} align="center">
-        {Kati.Screens.MealReminders.app_icon()}
-        <Spacer size={9} />
-        <Text
-          text={from}
-          font_family={Kati.Locale.mono_face(from)}
-          text_size={9.5}
-          letter_spacing={Kati.Locale.tracking(0.1)}
-          text_color={label_color}
-          max_lines={1}
-        />
-      </Row>
-      <Spacer size={9} />
-      <Text text={title} text_size={13.5} font_weight="bold" text_color={:on_surface} />
-      <Spacer size={5} />
-      <Text
-        text={body}
-        text_size={12.5}
-        line_height={Kati.Locale.leading(1.45)}
-        text_color={body_color}
+    <Column fill_width={true}>
+      <MishkaNotificationPreview
+        layout={:stacked}
+        icon={Kati.Screens.MealReminders.app_icon()}
+        app={from}
+        app_size={9.5}
+        app_font={Kati.Locale.mono_face(from)}
+        app_letter_spacing={Kati.Locale.tracking(0.1)}
+        app_color={label_color}
+        icon_gap={9}
+        line_gap={9}
+        title={title}
+        title_size={13.5}
+        title_weight="bold"
+        title_color={:on_surface}
+        body={body}
+        body_size={12.5}
+        body_line_height={Kati.Locale.leading(1.45)}
+        body_color={body_color}
+        body_gap={5}
+        background={ground}
+        corner_radius={16}
+        padding={14}
       />
       {Kati.Screens.MealReminders.preview_actions(n)}
     </Column>
