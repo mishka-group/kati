@@ -446,8 +446,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"80", Kati.Screens.DataSources},
     {"92", Kati.Screens.MyServices},
     {"94", Kati.Screens.CountryPicker},
+    {"51", Kati.Screens.MealReminders},
     {"104", Kati.Screens.Goals},
     {"106", Kati.Screens.NewGoal},
+    {"51", Kati.Screens.MealReminders},
     {"122", Kati.Screens.Money},
     {"124", Kati.Screens.QuickAddExpense},
     {"125", Kati.Screens.Currency},
@@ -2541,6 +2543,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # is a constant of the build. Its gate is 104's, because a sheet whose
       # types disagreed with the page that opened it would be the defect worth
       # catching.
+      {"51", Kati.Screens.MealReminders, &Kati.Screens.MealReminders.state/0,
+       &Kati.Screens.MealReminders.drawn_state/0},
       {"106", Kati.Screens.NewGoal, &Kati.Screens.Goals.goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
       # 124 and 125 both write to a store and read one value back — the

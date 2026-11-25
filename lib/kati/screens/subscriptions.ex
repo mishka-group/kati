@@ -49,9 +49,12 @@ defmodule Kati.Screens.Subscriptions do
   a drawing that never had to show this state.
 
   **Nothing is actually scheduled.** `Kati.Notifications.Scheduler` is a
-  planned child of `Kati.Supervisor` (#59) and is not built, so `:remind`
-  records that you asked and nothing more. When the scheduler lands this is
-  where it gets called; until then the button must not claim otherwise.
+  built and supervised now (`Kati.Notifications.Runner`), and the renewal
+  reminder this card offers is armed by the money source for every subscribed
+  service that has a renewal date. `:remind` therefore names the day the
+  reminder will arrive rather than pretending to create one — see
+  `confirm_label/2`, and `Kati.Notifications.Sources.Money.lead_days/0` for the
+  arithmetic both sides share.
 
   Both states start off, so the resting screen is the drawing exactly.
 

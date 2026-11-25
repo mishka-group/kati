@@ -69,7 +69,78 @@ defmodule Kati.Screens.MealReminders do
   alias Kati.UI.SettingsList
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :reminders, SampleReminders.reminders())
+  def load(socket), do: Mob.Socket.assign(socket, :reminders, state())
+
+  @doc "The drawing's own values, unconditionally."
+  @spec drawn_state() :: map()
+  def drawn_state, do: SampleReminders.reminders()
+
+  @doc """
+  The page's state: the active plan's two reminder columns, over the drawing's
+  copy.
+
+  Screen 51 had no writer at all — seven controls, and not one wrote. Two of
+  them are columns the scheduler already reads, so they are the two this page
+  wires: the evening preview (`evening_preview_at`, whose absence is off) and
+  the on-the-day reminders (`reminders_enabled`). With no active plan there is
+  nothing to write to, and the drawing is what the page shows.
+  """
+  @spec state() :: map()
+  def state do
+    case Kati.Notifications.Sources.Meals.active_plan() do
+      nil -> drawn_state()
+      plan -> apply_plan(SampleReminders.reminders(), plan)
+    end
+  end
+
+  defp apply_plan(r, plan) do
+    %{
+      r
+      | subtitle: plan.name,
+        day_before:
+          r.day_before
+          |> Map.put(:on, plan.evening_preview_at != nil)
+          |> Map.put(:tag, :toggle_day_before),
+        on_the_day:
+          r.on_the_day
+          |> Map.put(:on, plan.reminders_enabled)
+          |> Map.put(:tag, :toggle_on_the_day)
+    }
+  end
+
+  @impl true
+  def handle_tap(:toggle_day_before, socket) do
+    case Kati.Notifications.Sources.Meals.active_plan() do
+      nil ->
+        {:noreply, socket}
+
+      plan ->
+        value = if plan.evening_preview_at, do: nil, else: ~T[20:00:00]
+        write(socket, plan, %{evening_preview_at: value})
+    end
+  end
+
+  def handle_tap(:toggle_on_the_day, socket) do
+    case Kati.Notifications.Sources.Meals.active_plan() do
+      nil -> {:noreply, socket}
+      plan -> write(socket, plan, %{reminders_enabled: not plan.reminders_enabled})
+    end
+  end
+
+  def handle_tap(_tag, socket), do: {:noreply, socket}
+
+  defp write(socket, plan, changes) do
+    case Ash.update(plan, changes) do
+      {:ok, _plan} ->
+        Kati.Notifications.Reminders.sync_later()
+        {:noreply, Mob.Socket.assign(socket, :reminders, state())}
+
+      {:error, reason} ->
+        {:noreply,
+         Mob.Socket.assign(socket, :reminders, state())
+         |> Mob.Socket.assign(:error, Kati.Write.message({:error, reason}))}
+    end
+  end
 
   @doc false
   def content(assigns) do
@@ -198,9 +269,26 @@ defmodule Kati.Screens.MealReminders do
         />
       </Column>
       <Spacer size={13} />
-      {Kati.UI.SettingsList.switch(card.on)}
+      {Kati.Screens.MealReminders.switch(card)}
     </Row>
     """
+  end
+
+  @doc "A card's switch, tappable when the card names what it toggles."
+  def switch(card) do
+    node = Kati.UI.SettingsList.switch(card.on)
+
+    case Map.get(card, :tag) do
+      nil ->
+        node
+
+      tag ->
+        ~MOB"""
+        <Box on_tap={{self(), tag}}>
+          {node}
+        </Box>
+        """
+    end
   end
 
   @doc """

@@ -460,6 +460,14 @@ defmodule Kati.DesignLiterals do
   @spec retired_lines() :: [{String.t(), String.t()}]
   def retired_lines do
     [
+      # Board 51 draws Eaten / Skip / Snooze as notification actions, and #71
+      # retired all three: Mob has no notification actions on either platform,
+      # the notification deep-links into the meal instead, and
+      # `Kati.Meals.SampleReminders` carries `actions: []` with the argument.
+      {"51", "eaten"},
+      {"51", "skip"},
+      {"51", "snooze"},
+      {"51", "tick it straight from the notification — no need to open the app"},
       # N52-B: board 13's `Tomorrow` pill deferred a film to a day nothing
       # records, and board 36's Apple TV, Chromecast and browser-extension
       # rows, and its *Ask before ticking* and *Ignore trailers* rules, are
