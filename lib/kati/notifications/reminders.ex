@@ -90,7 +90,53 @@ defmodule Kati.Notifications.Reminders do
         do: Kati.Notifications.Sources.Rewatch.candidates(),
         else: []
 
-    scheduled ++ rewatch
+    scheduled ++ rewatch ++ domain_candidates(now)
+  end
+
+  # The four domains whose reminders are a property of their own rows: a meal
+  # plan with reminders on, a medication still being taken, a service with a
+  # renewal date, a calendar item of kind `:habit`. Each source answers `[]`
+  # when its own gate is off, so nothing here needs a second switch — and each
+  # returns a `:suppressed` candidate where the reason matters (*this plan has
+  # its reminders off*, *this medication has no times*), which the inbox shows.
+  defp domain_candidates(now) do
+    zone = Kati.Time.device_zone()
+    day = now |> Kati.Time.in_zone(zone) |> DateTime.to_date()
+
+    meals =
+      case Kati.Notifications.Sources.Meals.active_plan() do
+        nil -> []
+        plan -> Kati.Notifications.Sources.Meals.candidates(plan, slots(plan, day), day, zone: zone)
+      end
+
+    health =
+      Kati.Notifications.Sources.Health.candidates(
+        Kati.Notifications.Sources.Health.active(),
+        day,
+        zone: zone
+      )
+
+    money =
+      Kati.Notifications.Sources.Money.candidates(
+        Kati.Notifications.Sources.Money.subscribed(),
+        day,
+        zone: zone
+      )
+
+    habits =
+      Kati.Notifications.Sources.Habits.candidates(
+        Kati.Notifications.Sources.Habits.events(day, zone),
+        day,
+        zone: zone
+      )
+
+    meals ++ health ++ money ++ habits
+  end
+
+  defp slots(plan, day) do
+    Kati.Notifications.Sources.Meals.slots(plan, day)
+  rescue
+    _error -> []
   end
 
   @doc false
@@ -184,7 +230,18 @@ defmodule Kati.Notifications.Reminders do
   @doc "Sync off the caller's process: a screen's save must not wait on it."
   @spec sync_later() :: :ok
   def sync_later do
-    Task.Supervisor.start_child(Kati.TaskSupervisor, fn -> Kati.Notifications.Reminders.sync() end)
+    case Process.whereis(Kati.Notifications.Runner) do
+      nil ->
+        # The host suite never starts `Kati.Supervisor`, so a screen still gets
+        # its reconcile there; on a device the runner owns the cadence and a
+        # cast is cheaper than a task per save.
+        Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+          Kati.Notifications.Reminders.sync()
+        end)
+
+      _runner ->
+        Kati.Notifications.Runner.refresh()
+    end
 
     :ok
   catch

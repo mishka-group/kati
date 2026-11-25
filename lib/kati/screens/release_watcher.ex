@@ -51,6 +51,11 @@ defmodule Kati.Screens.ReleaseWatcher do
     Mob.Socket.assign(socket, :watcher, Kati.Screens.ReleaseWatcher.watcher())
   end
 
+  # The plan is reconciled off-process every quarter hour and after every
+  # write that changes it; this redraws when the runner says it moved.
+  @impl true
+  def handle_kati(:notifications, _payload, socket), do: {:noreply, load(socket)}
+
   @doc """
   Everything the page draws, read from the store.
 

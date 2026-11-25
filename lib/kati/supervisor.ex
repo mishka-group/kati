@@ -55,11 +55,16 @@ defmodule Kati.Supervisor do
             type: :worker
           },
           Kati.Widgets.Refresher,
-          Kati.Native.TapRelay
+          Kati.Native.TapRelay,
+
+          # The notification loop (#59). It owns no screen state: it reconciles
+          # the platform's alarms against the plan on boot, on a foreground
+          # refresh and every quarter hour, and tells the root screen when the
+          # plan moved. See `Kati.Notifications.Runner`.
+          Kati.Notifications.Runner
 
           # Arriving with their own tickets, each of which must live here rather
           # than in a screen because it outlives any single screen:
-          #   Kati.Notifications.Scheduler  (#59) — owns the whole pending set
           #   Kati.Jobs.Runner              (#59) — the on-device scheduler
           #   Kati.Sync.Engine              (#54) — outbox, retries, backoff
           #   Kati.Net.Throttle             (#58) — per-source rate limits

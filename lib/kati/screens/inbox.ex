@@ -111,6 +111,11 @@ defmodule Kati.Screens.Inbox do
     |> Mob.Socket.assign(:save_error, nil)
   end
 
+  # The plan is reconciled off-process every quarter hour and after every
+  # write that changes it; this redraws when the runner says it moved.
+  @impl true
+  def handle_kati(:notifications, _payload, socket), do: {:noreply, load(socket)}
+
   @doc """
   Whether opening the page should look for news first: something is followed,
   the watcher is on, and the last check is older than the cadence the reader

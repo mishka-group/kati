@@ -82,6 +82,7 @@ defmodule Kati.Screens.InboxNotifications do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  @impl true
   def load(socket) do
     # #125: alarms whose time has passed are history now, and opening this
     # page is reading them.
@@ -93,6 +94,11 @@ defmodule Kati.Screens.InboxNotifications do
     |> Mob.Socket.assign(:plan, plan())
     |> Mob.Socket.assign(:recent, recent)
   end
+
+  # The plan is reconciled off-process every quarter hour and after every
+  # write that changes it; this redraws when the runner says it moved.
+  @impl true
+  def handle_kati(:notifications, _payload, socket), do: {:noreply, load(socket)}
 
   @doc """
   The plan this screen shows.
@@ -292,13 +298,19 @@ defmodule Kati.Screens.InboxNotifications do
   """
   @spec row(Candidate.t(), :armed | :held) :: map()
   def row(%Candidate{} = candidate, kind) do
+    # `nil`, not `SettingsList.trailing(nil)`: a held row has no time, and the
+    # wrapped empty node became a trailing slot that took the body's width with
+    # it — the row drew its icon and nothing else. `SettingsList.row/4` already
+    # answers a `nil` trailing with no slot at all.
+    trailing = Kati.Screens.InboxNotifications.trailing(candidate, kind)
+
     SettingsList.row(
       SettingsList.icon_tile(Inbox.domain_icon(candidate.domain)),
       SettingsList.body(
         Inbox.title(candidate),
         Kati.Screens.InboxNotifications.sub(candidate, kind)
       ),
-      SettingsList.trailing(Kati.Screens.InboxNotifications.trailing(candidate, kind)),
+      if(trailing == nil, do: nil, else: SettingsList.trailing(trailing)),
       # The candidate, not `candidate.domain`. The row knows which reminder it is
       # drawing and threw that away one field before the tap was built, so ten
       # calendar reminders drew ten identical taps.
@@ -613,6 +625,7 @@ defmodule Kati.Screens.InboxNotifications do
   end
 
   @doc false
+  @impl true
   def handle_tap(:open_watcher, socket),
     do:
       {:noreply,
