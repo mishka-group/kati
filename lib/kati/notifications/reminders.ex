@@ -105,8 +105,11 @@ defmodule Kati.Notifications.Reminders do
 
     meals =
       case Kati.Notifications.Sources.Meals.active_plan() do
-        nil -> []
-        plan -> Kati.Notifications.Sources.Meals.candidates(plan, slots(plan, day), day, zone: zone)
+        nil ->
+          []
+
+        plan ->
+          Kati.Notifications.Sources.Meals.candidates(plan, slots(plan, day), day, zone: zone)
       end
 
     health =
