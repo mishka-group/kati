@@ -9,6 +9,13 @@ defmodule Kati.Components.MishkaProgress do
   nodes instead, for a design that specifies its own — see "Material's bar is
   Material's bar" below.
 
+  ## Copied from `mishka_chelekom`
+
+  The code is `MishkaMob.Components.MishkaProgress` with the namespace rewritten
+  and nothing else changed, so it can be diffed against its origin and a fix can
+  travel back. It arrived with the first drawn rails Kati needed; the segments
+  prop is the one addition since, and it travelled upstream with this copy.
+
   ## Range translation
 
   Chelekom expresses `value` inside `[min, max]`; the native widget wants a
@@ -32,6 +39,7 @@ defmodule Kati.Components.MishkaProgress do
   | `show_value` | boolean | `false` | Render a readout beside the label. |
   | `value_text` | string | `nil` | Overrides the readout (default is a rounded percentage). |
   | `color` | color token / ARGB int | platform default (`:primary`) | Indicator colour. In `render={:box}` it fills the bar. |
+  | `segments` | list of colours / `{share, colour}` | unset | Splits the **filled** part into bands, first colour at the start of the bar. `:box` only. |
   | `height` | number | platform default (~4); `4` under `render={:box}` | Bar thickness. |
   | `render` | `:progress` `:box` | `:progress` | Which primitive draws the bar — Material's indicator, or a track `Box` with a fill `Box` in it. See "Material's bar is Material's bar" below. |
   | `width` | number | `nil` | Bar width in dp/pt. `nil` fills the parent, as before. Honoured in both modes on Android; on iOS only by `:box` (see "Platform note"). |
@@ -289,6 +297,7 @@ defmodule Kati.Components.MishkaProgress do
       height: Map.get(props, :height) || @drawn_height,
       radius: Map.get(props, :corner_radius),
       fill: Map.get(props, :color) || @drawn_fill,
+      segments: segments(props),
       track: Map.get(props, :track_color) || @drawn_track,
       id: Map.get(props, :id)
     }
@@ -338,7 +347,16 @@ defmodule Kati.Components.MishkaProgress do
   defp fixed_fill(width, _geometry) when width <= 0, do: nil
 
   defp fixed_fill(width, geometry) do
-    ~MOB(<Box width={width} height={geometry.height} background={geometry.fill} />)
+    assigns = %{
+      width: width,
+      height: geometry.height,
+      fill: geometry.fill,
+      segments: segment_cells(geometry.segments, width, geometry.height)
+    }
+
+    ~MOB(<Box width={@width} height={@height} background={@fill}>
+  {@segments}
+</Box>)
     |> shape(geometry.radius)
     |> tag(fill_tag(geometry.id))
   end
@@ -365,13 +383,81 @@ defmodule Kati.Components.MishkaProgress do
   defp weighted_fill(fraction, _geometry) when fraction <= 0, do: nil
 
   defp weighted_fill(fraction, geometry) do
-    ~MOB(<Box height={geometry.height} background={geometry.fill} weight={fraction} />)
+    assigns = %{
+      height: geometry.height,
+      fill: geometry.fill,
+      segments: segment_cells(geometry.segments, nil, geometry.height),
+      fraction: fraction
+    }
+
+    ~MOB(<Box height={@height} background={@fill} weight={@fraction}>
+  {@segments}
+</Box>)
     |> shape(geometry.radius)
     |> tag(fill_tag(geometry.id))
   end
 
+  # A cell per band: a declared width when the bar has one, a weight when the
+  # bar is fluid. The parent fill box carries `corner_radius`, which clips the
+  # cells to the bar's shape, so a pill bar of four bands is still a pill.
+  defp segment_cells(nil, _width, _height), do: []
+
+  defp segment_cells(segments, width, height) do
+    cells =
+      Enum.map(segments, fn {share, color} ->
+        cell_box(%{
+          width: width && width * share,
+          height: height,
+          color: color,
+          share: if(width, do: nil, else: share)
+        })
+      end)
+
+    assigns = %{cells: cells, height: height}
+
+    ~MOB"""
+    <Row fill_width={true} height={@height}>
+      {@cells}
+    </Row>
+    """
+  end
+
+  defp cell_box(%{width: width, height: height, color: color, share: share}) do
+    assigns = %{width: width, height: height, color: color, share: share}
+
+    ~MOB(<Box width={@width} height={@height} background={@color} weight={@share} />)
+    |> drop_unset(:width, width)
+    |> drop_unset(:weight, share)
+  end
+
+  # `segments` accepts a plain list of colours (evenly divided) or `{share,
+  # colour}` pairs, which are normalised so the bands always fill the bar.
+  defp segments(props) do
+    case Map.get(props, :segments) do
+      list when is_list(list) and list != [] -> normalise_segments(list)
+      _none -> nil
+    end
+  end
+
+  defp normalise_segments(list) do
+    pairs =
+      Enum.map(list, fn
+        {share, color} when is_number(share) -> {share, color}
+        color -> {1, color}
+      end)
+
+    total = pairs |> Enum.map(&elem(&1, 0)) |> Enum.sum()
+    if total <= 0, do: nil, else: Enum.map(pairs, fn {share, color} -> {share / total, color} end)
+  end
+
   defp remainder(fraction) when fraction >= 1, do: nil
   defp remainder(fraction), do: ~MOB(<Spacer weight={1 - fraction} />)
+
+  # A prop left unset is omitted rather than sent as nil: a present-but-nil
+  # `font_family` already made the bridge resolve the fallback face, so a nil is
+  # never a safe thing to put on a node.
+  defp drop_unset(node, _key, value) when not is_nil(value), do: node
+  defp drop_unset(node, key, _value), do: %{node | props: Map.delete(node.props, key)}
 
   defp shape(node, radius), do: put_prop(node, :corner_radius, radius)
   defp tag(node, id), do: put_prop(node, :id, id)
