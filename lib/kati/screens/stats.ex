@@ -1038,24 +1038,24 @@ defmodule Kati.Screens.Stats do
 
     ~MOB"""
     <Column fill_width={true} padding_top={5} padding_bottom={5} on_tap={@tap}>
-      <Row fill_width={true} align="center">
-        <Text text={@rank} text_size={12} font_weight="bold" text_color={Palette.muted()} />
-        <Spacer size={10} />
-        <Text
-          text={@title}
-          text_size={13.5}
-          font_weight="semibold"
-          text_color={:on_surface}
-          max_lines={1}
-          weight={1.0}
-        />
-        <Text text={@n} text_size={12.5} font_weight="bold" text_color={Palette.ink_soft()} />
-      </Row>
-      <Spacer size={6} />
-      <MishkaProgress
-        render={:box}
+      <MishkaStatBar
+        leading={@rank}
+        leading_size={12}
+        leading_color={Palette.muted()}
+        leading_weight="bold"
+        leading_gap={10}
+        label={@title}
+        label_size={13.5}
+        label_color={:on_surface}
+        label_font_weight="semibold"
+        label_flex={1.0}
+        label_gap={0}
         value={@fill}
-        max={1}
+        value_text={@n}
+        value_size={12.5}
+        value_color={Palette.ink_soft()}
+        value_weight="bold"
+        gap={6}
         height={5}
         color={Palette.accent()}
         track_color={Palette.track()}
