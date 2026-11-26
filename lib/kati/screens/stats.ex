@@ -2244,10 +2244,17 @@ defmodule Kati.Screens.Stats do
       "open_top_" <> id ->
         {:noreply, Kati.Screens.Stats.open_title(socket, id)}
 
+      # The push carries *‹ Stats* explicitly. These screens each declare the
+      # door they were first written for — Subscriptions says *‹ My services*,
+      # Habits *‹ Stats* — and this page is the other door for all of them, so
+      # without it the pill named a room the reader had not come from.
       "go_" <> id ->
         case Map.fetch(@destinations, id) do
-          {:ok, module} -> {:noreply, Mob.Socket.push_screen(socket, module)}
-          :error -> {:noreply, socket}
+          {:ok, module} ->
+            {:noreply, Mob.Socket.push_screen(socket, module, %{back: gettext("Stats")})}
+
+          :error ->
+            {:noreply, socket}
         end
 
       _ ->

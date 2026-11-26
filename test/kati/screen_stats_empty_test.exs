@@ -226,7 +226,9 @@ defmodule Kati.ScreenStatsEmptyTest do
           ] do
         {:noreply, moved} = Stats.handle_tap(String.to_atom("go_#{id}"), socket)
 
-        assert moved.__mob__.nav_action == {:push, module, %{}},
+        # The label travels with the push: these screens declare the door they
+        # were first written for, and Stats is the other one.
+        assert moved.__mob__.nav_action == {:push, module, %{back: "Stats"}},
                "the #{id} row does not open #{inspect(module)} on an empty database"
       end
     end
