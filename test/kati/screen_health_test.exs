@@ -233,42 +233,54 @@ defmodule Kati.ScreenHealthTest do
   end
 
   describe "with nothing planned" do
-    test "the day is the drawing's, block for block" do
-      assert Health.day(@today) == Health.drawn_day()
+    # A device with no plan and no log used to draw board 42 whole: *Sunday 16
+    # August*, `1,480 / 2,100 kcal`, *Miso salmon, greens, rice · 620 kcal* and a
+    # *Cutting v3 · week 6* tile. That is the #91 defect on the one page whose
+    # whole job is counting — a figure nobody entered, in the shape of their own.
+    # It answers `empty_day/1` now, and these four tests are what says so.
 
+    test "the day is the reader's own, not the drawing's" do
       day = Health.day(@today)
 
-      assert day.day_line == Sample.day_line()
-      assert day.eaten == Sample.eaten()
-      assert day.next_meal == Sample.next_meal()
-      assert day.sections == Sample.sections()
+      assert day == Health.empty_day(@today)
+      refute day == Health.drawn_day()
+
+      assert day.day_line == Kati.Locale.date(@today, :full)
+      assert day.eaten.calories == "0"
+      assert day.next_meal == nil
     end
 
-    test "every figure the drawing prints reaches the tree" do
+    test "none of the drawing's figures reaches the tree" do
       tree = tree(mount_screen(Health))
-      e = Sample.eaten()
 
-      for value <- [e.calories, e.target, e.meals, e.grams, Sample.day_line()] do
-        assert find(tree, :text, text: value) != nil,
-               "#{inspect(value)} is nowhere in the tree"
+      for value <- ["1,480", "2,100", "3 of 5", "118P · 163C · 41F", "Sunday 16 August"] do
+        assert find(tree, :text, text: value) == nil,
+               "#{inspect(value)} is the drawing's, and an empty device drew it"
       end
 
-      assert find(tree, :text, text: Sample.next_meal().title) != nil
-      assert find(tree, :text, text: Sample.next_meal().line) != nil
+      assert find(tree, :text, text: "0") != nil, "the hero does not say 0 kcal"
     end
 
-    test "the macro bar draws the drawing's own three shares" do
-      assert segments(tree(mount_screen(Health))) ==
-               Enum.map(Sample.eaten().macros, fn {_name, share, _tone} -> share end)
+    test "the macro bar has no shares to draw" do
+      # A zero-weight segment is not emitted at all — Compose refuses
+      # `weight: 0.0` — so the bar is empty rather than three empty thirds.
+      assert segments(tree(mount_screen(Health))) == []
     end
 
-    test "all six sections are drawn with the drawing's lines" do
+    test "each section says what it really is" do
       tree = tree(mount_screen(Health))
 
       for section <- Sample.sections() do
         assert find(tree, :text, text: section.name) != nil
-        assert find(tree, :text, text: section.line) != nil
       end
+
+      # Meals, Sleep, Workouts, Weight and Medication have nothing behind them
+      # here; Habits counts this device's own, which is none.
+      lines = tree |> find_all(:text, text_size: 11) |> Enum.map(& &1.props.text)
+
+      assert Enum.count(lines, &(&1 == "Not set up")) == 5
+      assert Enum.count(lines, &(&1 == "Nothing kept yet")) == 1
+      assert line_of(tree, "Cutting v3") == nil, "the drawing's plan name is on the tile"
     end
 
     test "renders a tree the native layer can draw" do

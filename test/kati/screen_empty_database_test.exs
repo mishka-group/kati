@@ -720,6 +720,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     "58" => [],
     # 08 → no board either, and for the same reason as 04.
     "08" => [],
+    # 42 → no board either: it counts the day from `Kati.Meals` now, and with no
+    # plan and no log it draws `empty_day/1` — today's date, nothing eaten, no
+    # next meal and each section saying what it really is. It used to answer
+    # board 42 whole, which put *Sunday 16 August* and a dinner nobody entered
+    # on a brand-new install. The board is still compared —
+    # `Kati.ScreenDesignLiteralTest` installs `drawn_state/1` for exactly that.
+    "42" => [],
     # 143 → no board either (N52-A): no season means no rows, so board 143's
     # own six episodes have nothing left on this screen to be held to.
     "143" => [],
@@ -2620,11 +2627,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.Goals.drawn_goals/0},
       {"110", Kati.Screens.WeightStates, &Kati.Screens.Weight.entries/0,
        &Kati.Screens.Weight.drawn_entries/0},
-      {"113", Kati.Screens.HealthEmptyStates, fn -> Kati.Screens.Health.day(today) end,
+      # 113 and 114 borrow 42's tile helpers rather than its day: the sheet and
+      # the board draw the same tiles whatever the plan says, so their pair is
+      # the drawing on both sides now that `Health.day/1` counts a real plan.
+      {"113", Kati.Screens.HealthEmptyStates, &Kati.Screens.Health.drawn_day/0,
        &Kati.Screens.Health.drawn_day/0},
       {"107", Kati.Screens.GoalStates, &Kati.Screens.Goals.goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
-      {"114", Kati.Screens.RetiredTile, fn -> Kati.Screens.Health.day(today) end,
+      {"114", Kati.Screens.RetiredTile, &Kati.Screens.Health.drawn_day/0,
        &Kati.Screens.Health.drawn_day/0},
       {"117", Kati.Screens.MealLibraryEmpty, &Kati.Screens.MealLibrary.meals/0,
        &Kati.Screens.MealLibrary.drawn_meals/0},
@@ -2636,8 +2646,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # 127 draws 122's months.
       {"121", Kati.Screens.WeekImage, fn -> Kati.Screens.MealPlan.plan(today) end,
        &Kati.Screens.MealPlan.drawn_plan/0},
-      {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
-       &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
        &Kati.Screens.MealsToday.drawn_day/0},
       {"44", Kati.Screens.MealPlan, fn -> Kati.Screens.MealPlan.plan(today) end,
@@ -2702,6 +2710,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # said `418 titles` on every phone (A1); over an empty store they count
       # none, and say there is nothing to merge with or delete.
       {"129", Kati.Screens.Restore, &Kati.Screens.Restore.records_on_device/0, 0, fn -> 418 end},
+      # 42 counts the day now. With no plan and no log it used to answer the
+      # drawing's own Sunday — a plan name, a dinner and a calorie figure
+      # nobody had entered. It answers an empty day instead, and the board is
+      # installed by `Kati.ScreenDesignLiteralTest` to compare the frame.
+      {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
+       Kati.Screens.Health.empty_day(today), &Kati.Screens.Health.drawn_day/0},
       {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
       {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,

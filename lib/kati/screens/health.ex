@@ -179,8 +179,54 @@ defmodule Kati.Screens.Health do
          true <- slots != %{} or logs != [] do
       logged_day(plan, date, Map.get(slots, Date.day_of_week(date), []), logs)
     else
-      _ -> drawn_day()
+      _ -> empty_day(date)
     end
+  end
+
+  @doc """
+  Board 42 installed as assigns, for the frame comparison.
+
+  The screen reads a plan now, and a device with none draws `empty_day/1`, so
+  the board is compared through this instead — the same move
+  `Kati.Screens.Habits.drawn_state/1` and `Kati.Screens.Money.drawn_state/1`
+  make.
+  """
+  @spec drawn_state(map()) :: map()
+  def drawn_state(assigns), do: Map.put(assigns, :today, drawn_day())
+
+  @doc """
+  The day a device with no plan and no log has: nothing eaten, nothing planned,
+  and each section saying what it really is.
+
+  It used to answer `drawn_day/0`, and a brand-new install then read
+  *Sunday 16 August · 1,480 / 2,100 kcal · Miso salmon, greens, rice · 620 kcal*
+  — a plan name and a dinner nobody had entered, above a *Cutting v3 · week 6*
+  tile. Screen 42's board is still what `drawn_day/0` returns, and
+  `Kati.ScreenDesignLiteralTest` installs it to compare the frame; what a
+  reader sees on an empty device is this.
+
+  The hero keeps its shape and loses its claims: `0` kcal with no target,
+  because there is no plan to borrow one from, no `N of M` pill, because there
+  are no meals to count against, and no next-meal row at all — `next_meal/1`
+  already draws nothing for `nil`.
+  """
+  @spec empty_day(Date.t()) :: map()
+  def empty_day(date) do
+    zero = %{protein_mg: 0, carbs_mg: 0, fat_mg: 0}
+
+    %{
+      day_line: Kati.Locale.date(date, :full),
+      eaten: %{
+        label: gettext("Eaten today"),
+        calories: Kati.Locale.number(0),
+        target: target_run(nil),
+        meals: nil,
+        macros: macro_split(zero),
+        grams: grams_line(zero)
+      },
+      next_meal: nil,
+      sections: sections_for(nil, date)
+    }
   end
 
   @doc """
@@ -427,11 +473,46 @@ defmodule Kati.Screens.Health do
   # label — the argument `Kati.Screens.MealsToday.tile_taps/0` makes: an icon is
   # a Material Symbols identifier and is never translated, where a label one day
   # will be, and a lookup that missed would fail silently.
+  defp sections_for(nil, _date), do: Enum.map(Sample.sections(), &honest_section/1)
+
   defp sections_for(plan, date) do
     Enum.map(Sample.sections(), fn
       %{icon: "restaurant"} = tile -> %{tile | line: plan_line(plan, date)}
       tile -> tile
     end)
+  end
+
+  # A tile's line with no plan behind it. Meals says so, Habits counts the
+  # reader's own, Weight shows the last weighing; Sleep, Workouts and Medication
+  # are still unbuilt and say `Not set up` in the one wording the grid and
+  # screen 42's own empty band both use.
+  defp honest_section(%{id: :meals} = tile),
+    do: %{tile | line: gettext("Not set up"), on?: false}
+
+  defp honest_section(%{id: :habits} = tile) do
+    habits = Kati.Habits.list()
+    %{tile | line: Kati.Screens.Habits.subtitle(habits), on?: habits != []}
+  end
+
+  defp honest_section(%{id: :weight} = tile) do
+    case latest_weight() do
+      nil ->
+        %{tile | line: gettext("Not set up"), on?: false}
+
+      grams ->
+        %{tile | line: Kati.Health.Reading.display(grams, Kati.Health.unit()), on?: true}
+    end
+  end
+
+  defp honest_section(tile), do: %{tile | line: gettext("Not set up"), on?: false}
+
+  defp latest_weight do
+    case Kati.Health.Reading |> Ash.Query.for_read(:recent) |> Ash.read_one() do
+      {:ok, %{grams: grams}} -> grams
+      _none -> nil
+    end
+  rescue
+    _error -> nil
   end
 
   defp plan_line(plan, date) do
@@ -643,7 +724,7 @@ defmodule Kati.Screens.Health do
           </Column>
           <Spacer size={12} />
           <Column>
-            {Kati.Screens.Health.meals_pill(e.meals)}
+            {Kati.Screens.Health.meals_pill_or_nothing(e.meals)}
             <Spacer size={5} />
           </Column>
         </Row>
@@ -666,6 +747,11 @@ defmodule Kati.Screens.Health do
     </Column>
     """
   end
+
+  @doc false
+  def meals_pill_or_nothing(nil), do: ~MOB"<Spacer size={0} />"
+
+  def meals_pill_or_nothing(label), do: meals_pill(label)
 
   @doc """
   The "3 of 5 logged" badge, green at 16% on cream.

@@ -1987,6 +1987,9 @@ defmodule Kati.ScreenDesignLiteralTest do
       # tree the file compared before the migration, and
       # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` holds the other half —
       # that no device answers with it.
+      # 42 counts the day from `Kati.Meals` now; with no plan it answers an
+      # empty day. The board is installed here so the frame is still compared.
+      {"42", Kati.Screens.Health, &Kati.Screens.Health.drawn_state/1},
       {"22", Kati.Screens.Habits, &Kati.Screens.Habits.drawn_state/1},
       # 122's recurring card reads the services somebody pays for now. The board
       # is still compared with itself, by installing the drawing's four — the
