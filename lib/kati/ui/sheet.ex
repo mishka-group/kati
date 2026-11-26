@@ -70,6 +70,14 @@ defmodule Kati.UI.Sheet do
       title: title,
       content: content,
       screen: screen,
+      # The header clears the phone's status bar. A sheet is bottom-aligned and
+      # grows upward, so a tall one — *Sort & filter* is five rows — reaches the
+      # top of the window, where its close button sat half under the system
+      # icons: tappable only if the finger hit the lower half of the circle.
+      # The design draws its own status bar inside the screens' 64pt top
+      # padding; a sheet has no such padding, so it gets the same clearance
+      # here, once, rather than in every sheet's own content.
+      top: 40,
       # `face: "fa"` for a Persian sheet. Without it the title is left in a
       # Latin face and Android substitutes its own Arabic one — which renders,
       # in a typeface that is not Kati's, beside sentences that are.
@@ -97,7 +105,7 @@ defmodule Kati.UI.Sheet do
           corner_radius={26}
           padding_left={21}
           padding_right={21}
-          padding_top={18}
+          padding_top={@top}
           padding_bottom={34}
         >
           {Kati.UI.Sheet.header(@title, @face)}

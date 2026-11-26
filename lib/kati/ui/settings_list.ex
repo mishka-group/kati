@@ -391,7 +391,23 @@ defmodule Kati.UI.SettingsList do
       {Kati.UI.SettingsList.hairline(rule?)}
     </Column>
     """
+    |> Kati.UI.SettingsList.drop_unset(:on_tap, tap)
+    |> Kati.UI.SettingsList.drop_unset(:on_long_press, hold)
   end
+
+  @doc """
+  Drop a prop that has no value instead of sending it as `nil`.
+
+  A present-but-nil prop is not the same node as an absent one: a nil
+  `on_tap` reaches the bridge as a handle with nothing behind it, and the
+  Language screen's *Follows the language* rows drew their icon and their
+  hairline and no words at all — every other row of the same list, whose
+  controls carry a value, drew fine. Found on the phone, not in a test: the
+  render tree is identical either way.
+  """
+  @spec drop_unset(map(), atom(), term()) :: map()
+  def drop_unset(node, _key, value) when not is_nil(value), do: node
+  def drop_unset(node, key, _value), do: %{node | props: Map.delete(node.props, key)}
 
   @doc false
   def trailing(nil), do: ~MOB"<Spacer size={0} />"

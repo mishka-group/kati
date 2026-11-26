@@ -1821,26 +1821,34 @@ defmodule Kati.Screens.Home do
   def handle_tap(:open_library, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
 
+  # The label each of these carries is the door it was opened from. Every one of
+  # them declares a back label for its common entrance — Books and Music under
+  # the Library, Money and Habits under Stats — and the Home tile is the other
+  # entrance, so without this the pill offered the wrong room: *‹ Stats* on a
+  # screen reached from Home. `Kati.Screens.Pushed.back_label/2` prefers the
+  # push's own label for exactly this.
   def handle_tap(:open_books, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books, %{back: gettext("Home")})}
 
   def handle_tap(:open_music, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music, %{back: gettext("Home")})}
 
   def handle_tap(:open_money, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Money)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Money, %{back: gettext("Home")})}
 
   def handle_tap(:open_meals, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.MealsToday, %{back: gettext("Home")})}
 
   def handle_tap(:open_habits, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits, %{back: gettext("Home")})}
 
   # The section that had no page: `Kati.Sections` offered Notes in the first
   # run and `section_tile/1` answered nil for it, so the choice removed nothing
   # and added nothing.
   def handle_tap(:open_notes, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Notes)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Notes, %{back: gettext("Home")})}
 
   # Screen 19, opened empty, which is the one search page every door opens. It
   # pushed screen 86, a second page drawn like it whose *Clear* and results

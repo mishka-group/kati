@@ -559,7 +559,7 @@ defmodule Kati.Screens.Language do
   def control(control, _tap), do: Kati.Screens.Language.control(control)
 
   @doc false
-  def control_none, do: ~MOB"<Spacer size={0} />"
+  def control_none, do: nil
 
   @doc false
   def control(:chevron), do: SettingsList.chevron()
