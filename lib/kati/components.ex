@@ -56,12 +56,39 @@ defmodule Kati.Components do
   @doc """
   Every vendored component module.
 
-  Resolved at COMPILE time from the source files, because
-  `:code.all_available/0` at runtime on the device walks a flat `-pa`
-  directory of 3000+ BEAMs.
+  Three answers, in order: the source tree when there is one (a laptop, CI),
+  the app's own module list (the device), and the compile-time constant as a
+  last resort. The middle one is what stopped a stale registry from shipping:
+  a component file added after this module was last compiled does not mark it
+  external, Mix decides by content hash rather than mtime, so `touch` does not
+  recompile it either — and the whole app then renders that component as
+  nothing. `Application.spec/2` lists what was actually built, so it cannot be
+  a build behind.
   """
   @spec modules() :: [module()]
-  def modules, do: runtime_modules() || @components
+  def modules, do: runtime_modules() || app_modules() || @components
+
+  # The modules this app was built with — the .app file's own list, so nothing
+  # has to guess and no directory is walked. Filtered rather than enumerated:
+  # the spec is every module in Kati, about 90 of them.
+  defp app_modules do
+    case Application.spec(:kati, :modules) do
+      modules when is_list(modules) ->
+        modules
+        |> Enum.filter(&component_module?/1)
+        |> Enum.sort()
+
+      _none ->
+        nil
+    end
+  end
+
+  defp component_module?(module) do
+    case Module.split(module) do
+      ["Kati", "Components", name] -> String.starts_with?(name, "Mishka")
+      _other -> false
+    end
+  end
 
   # Read from the SOURCE tree when there is one — a laptop, CI, the test suite —
   # and fall back to the compile-time list on the device, whose flat `-pa`

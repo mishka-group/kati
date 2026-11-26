@@ -127,7 +127,7 @@ defmodule Kati.ScreenStatsTest do
     end
 
     test "renders every figure frame 07 draws" do
-      words = text(tree(mount_screen(Stats)))
+      words = words(Stats)
       figures = Stats.figures()
       year = figures[:year]
 
@@ -251,7 +251,7 @@ defmodule Kati.ScreenStatsTest do
       # `Kati.Habits` is a Sample module and nothing else, and `Nutrition`'s
       # `Cutting v3 · 86%` is a diet plan no column holds — so those two draw
       # no second line rather than somebody else's numbers.
-      words = text(tree(mount_screen(Stats)))
+      words = words(Stats)
 
       for row <- Sample.more_numbers(),
           row.title not in ["Recently watched", "Activity log"] do
@@ -269,7 +269,7 @@ defmodule Kati.ScreenStatsTest do
     end
 
     test "and counts the Activity row, which is the one it can" do
-      words = text(tree(mount_screen(Stats)))
+      words = words(Stats)
 
       # Five watches are written in this block's setup.
       assert words =~ "5 entries"
@@ -279,7 +279,7 @@ defmodule Kati.ScreenStatsTest do
     end
 
     test "renders the computed figures, and none of the drawn ones" do
-      words = text(tree(mount_screen(Stats)))
+      words = words(Stats)
 
       assert words =~ "4h 16m"
       assert words =~ "129%"
@@ -564,5 +564,15 @@ defmodule Kati.ScreenStatsTest do
       assert words =~ "MONTH BY MONTH"
       assert words =~ "WATCHED MOST"
     end
+  end
+
+  # Every visible word on the screen, with the component tags expanded first.
+  #
+  # `Mob.ScreenCase.text/1` reads `:text` nodes, and a composite tag that carries
+  # its data as props — the bar chart's rows, a preview's title — has none until
+  # `Mob.Composite.expand/2` runs. The screen really does draw those words; the
+  # unexpanded tree is the thing that cannot see them.
+  defp words(module) do
+    module |> mount_screen() |> tree() |> Mob.Composite.expand(self()) |> text()
   end
 end

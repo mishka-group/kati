@@ -677,11 +677,7 @@ defmodule Kati.Screens.ArtistDetailStates do
   def dark(artist, albums) do
     top = albums |> Enum.map(& &1.plays) |> Enum.max(fn -> 0 end)
 
-    bars =
-      albums
-      |> Enum.with_index()
-      |> Enum.map(fn {album, rank} -> dark_bar(album, top, rank) end)
-      |> Enum.intersperse(~MOB"<Spacer size={13} />")
+    assigns = %{bars: dark_rows(albums), top: top}
 
     ~MOB"""
     <Column fill_width={true} background={Palette.paper(:dark)} corner_radius={22} padding={16}>
@@ -695,7 +691,24 @@ defmodule Kati.Screens.ArtistDetailStates do
         border_color={Palette.card_hairline(:dark)}
         padding={17}
       >
-        {bars}
+        <MishkaBarChart
+          rows={@bars}
+          max={@top}
+          label_width={84}
+          label_size={12}
+          label_weight="semibold"
+          label_color={Palette.ink(:dark)}
+          label_gap={12}
+          value_width={22}
+          value_size={11}
+          value_color={Palette.muted(:dark)}
+          value_gap={12}
+          bar_size={8}
+          corner_radius={4}
+          gap={13}
+          track_color={Palette.placeholder(:dark)}
+          show_values={true}
+        />
       </Column>
     </Column>
     """
@@ -760,65 +773,34 @@ defmodule Kati.Screens.ArtistDetailStates do
     """
   end
 
-  # One chart row: an 84pt label gutter, the bar, and the count right-aligned in
-  # a 22pt column. `text_align="right"` makes a Text fill its parent's width on
-  # this bridge, so both ends have to be columns of declared width or the row
-  # collapses — the defect screen 08's rating card was flattened by.
+  # One chart row, in the chart's own shape: an 84pt label gutter, the bar, and
+  # the count right-aligned in a 22pt column.
   #
   # Scaled against the loudest album rather than a round number, which is
   # `Kati.Screens.ArtistDetail.chart/0`'s decision and has to stay the same one:
   # two drawings of the same chart that disagreed about their axis would not be
   # the same chart.
-  defp dark_bar(album, top, rank) do
-    fraction = if top > 0, do: album.plays / top, else: 0.0
+  #
+  # The count is the reader's own numerals: board 79 draws ۴۱, ۲۸ and ۱۹ down
+  # this same gutter, which settles it — the axis is the drawing's and the digits
+  # are the reader's. Its face then follows the string rather than the design,
+  # because `kati_mono.ttf` carries none of U+06F0–U+06F9: `۴۱` in DM Mono is
+  # handed to Android's own substitute face, while `41` keeps the mono the
+  # drawing sets it in. `Kati.Locale.mono_face/1` asks exactly that.
+  defp dark_rows(albums) do
+    albums
+    |> Enum.with_index()
+    |> Enum.map(fn {album, rank} ->
+      plays = Kati.Locale.number(album.plays)
 
-    # The count is the reader's own numerals: board 79 draws ۴۱, ۲۸ and ۱۹ down
-    # this same gutter, which settles it — the axis is the drawing's and the
-    # digits are the reader's. Its face then follows the string rather than the
-    # design, because `kati_mono.ttf` carries none of U+06F0–U+06F9: `۴۱` in DM
-    # Mono is handed to Android's own substitute face, while `41` keeps the mono
-    # the drawing sets it in. `Kati.Locale.mono_face/1` asks exactly that.
-    plays = Kati.Locale.number(album.plays)
-
-    rail =
-      Kati.Components.MishkaProgress.progress(
-        render: :box,
-        value: fraction,
-        max: 1,
-        height: 8,
-        corner_radius: 4,
-        color: dark_bar_tone(rank),
-        track_color: Palette.placeholder(:dark)
-      )
-
-    ~MOB"""
-    <Row fill_width={true} align="center">
-      <Column width={84}>
-        <Text
-          text={album.title}
-          text_size={12}
-          font_weight="semibold"
-          text_color={Palette.ink(:dark)}
-          max_lines={1}
-        />
-      </Column>
-      <Spacer size={12} />
-      <Column weight={1.0}>
-        {rail}
-      </Column>
-      <Spacer size={12} />
-      <Column width={22}>
-        <Text
-          text={plays}
-          font_family={Kati.Locale.mono_face(plays)}
-          text_size={11}
-          text_color={Palette.muted(:dark)}
-          text_align="right"
-          max_lines={1}
-        />
-      </Column>
-    </Row>
-    """
+      %{
+        label: album.title,
+        value: album.plays,
+        value_text: plays,
+        value_font: Kati.Locale.mono_face(plays),
+        color: dark_bar_tone(rank)
+      }
+    end)
   end
 
   # The dark chart gives each bar its own step down the neutral ladder, where

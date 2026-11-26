@@ -750,9 +750,9 @@ defmodule Kati.Screens.YearShare do
     assigns = %{
       label_size: label_size,
       year: Kati.Screens.YearShare.year(),
-      # `bar/1` and not `breakdown/1`: that one wraps the rows in their own
-      # card, and here they are already inside one.
-      bars: Enum.map(breakdown, &Kati.Screens.Stats.bar/1)
+      # The rows without their card: `breakdown_chart/1` draws the same four
+      # the Stats screen draws, and this one is already inside a card.
+      bars: Kati.Screens.Stats.breakdown_chart(breakdown)
     }
 
     ~MOB"""

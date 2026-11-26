@@ -1098,6 +1098,8 @@ defmodule Kati.Screens.Stats do
 
   @doc false
   def breakdown(year) do
+    assigns = %{chart: breakdown_chart(year.breakdown)}
+
     ~MOB"""
     <MishkaCard
       background={Palette.card()}
@@ -1105,52 +1107,63 @@ defmodule Kati.Screens.Stats do
       shadow={Kati.Theme.shadow_card()}
       padding={17}
     >
-      {Enum.map(year.breakdown, fn row -> Kati.Screens.Stats.bar(row) end)}
+      {@chart}
     </MishkaCard>
     """
   end
 
-  @doc false
-  def bar({name, fraction, value, color}) do
+  @doc """
+  The four `Where the hours went` rows, as one bar chart, with the 13pt the
+  last row used to carry under it.
+
+  Public because screen 98 draws the same rows inside its own card: the two
+  used to call `bar/1` one row at a time and the gutter, the rail and the
+  reading were stated twice.
+
+  `max={1}` rather than the loudest row: these fractions are already of their
+  own scale, and a share card whose loudest genre is 0.6 must not draw a full
+  bar for it.
+  """
+  @spec breakdown_chart([{String.t(), float(), String.t(), term()}]) :: map()
+  def breakdown_chart(breakdown) do
+    assigns = %{rows: breakdown_rows(breakdown)}
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center">
-        <Column width={88}>
-          <Text
-            text={name}
-            text_size={12.5}
-            font_weight="semibold"
-            text_color={:on_surface}
-            max_lines={1}
-          />
-        </Column>
-        <Spacer size={12} />
-        <Box weight={1.0}>
-          <MishkaProgress
-            render={:box}
-            value={fraction}
-            max={1}
-            height={8}
-            color={color}
-            track_color={Palette.paper()}
-            corner_radius={4}
-          />
-        </Box>
-        <Spacer size={12} />
-        <Column width={34}>
-          <Text
-            text={value}
-            font_family={Kati.Locale.mono_face(value)}
-            text_size={11}
-            text_color={Palette.muted()}
-            text_align="right"
-            max_lines={1}
-          />
-        </Column>
-      </Row>
+      <MishkaBarChart
+        rows={@rows}
+        max={1}
+        label_width={88}
+        label_size={12.5}
+        label_weight="semibold"
+        label_gap={12}
+        value_width={34}
+        value_size={11}
+        value_gap={12}
+        bar_size={8}
+        corner_radius={4}
+        gap={13}
+        track_color={Palette.paper()}
+        show_values={true}
+      />
       <Spacer size={13} />
     </Column>
     """
+  end
+
+  # The chart's rows. The face of each reading follows its string rather than
+  # the design: `6h` is ASCII and stays in DM Mono, a Persian numeral would not
+  # be, and `kati_mono.ttf` carries none of U+06F0–U+06F9.
+  defp breakdown_rows(breakdown) do
+    Enum.map(breakdown, fn {name, fraction, value, color} ->
+      %{
+        label: name,
+        value: fraction,
+        value_text: value,
+        value_font: Kati.Locale.mono_face(value),
+        color: color
+      }
+    end)
   end
 
   @doc """
