@@ -51,7 +51,10 @@ defmodule Kati.UI.MealsEmpty do
         Keyword.get(
           opts,
           :subtitle,
-          Kati.UI.eyebrow_label(gettext("No plan yet"))
+          # The family's own eyebrow, not the card's heading again: the page's
+          # title says where the reader is, the mono line names the section,
+          # and the card says what is missing.
+          Kati.UI.eyebrow_label(gettext("Meals"))
         ),
       tap: {self(), @tag}
     }
