@@ -520,7 +520,7 @@ msgstr ""
 #: lib/kati/health/sample.ex:223
 #: lib/kati/notifications/inbox.ex:114
 #: lib/kati/screens/calendars.ex:678
-#: lib/kati/screens/goals.ex:631
+#: lib/kati/screens/goals.ex:649
 #: lib/kati/screens/habits.ex:161
 #: lib/kati/screens/home.ex:532
 #: lib/kati/screens/home.ex:629
@@ -546,9 +546,9 @@ msgstr ""
 #: lib/kati/screens/home.ex:1846
 #: lib/kati/screens/home.ex:1852
 #: lib/kati/screens/pushed.ex:193
-#: lib/kati/screens/search.ex:157
-#: lib/kati/screens/search.ex:339
-#: lib/kati/screens/search.ex:989
+#: lib/kati/screens/search.ex:167
+#: lib/kati/screens/search.ex:364
+#: lib/kati/screens/search.ex:1173
 #: lib/kati/shell.ex:80
 #, elixir-autogen, elixir-format
 msgid "Home"
@@ -1167,9 +1167,9 @@ msgstr ""
 #: lib/kati/screens/home.ex:570
 #: lib/kati/screens/home.ex:1464
 #: lib/kati/screens/onboarding.ex:218
-#: lib/kati/screens/search.ex:234
-#: lib/kati/screens/search.ex:258
-#: lib/kati/screens/search.ex:279
+#: lib/kati/screens/search.ex:251
+#: lib/kati/screens/search.ex:275
+#: lib/kati/screens/search.ex:296
 #: lib/kati/screens/search_large.ex:490
 #, elixir-autogen, elixir-format
 msgid "The Long Hollow"
@@ -1990,7 +1990,7 @@ msgstr ""
 msgid "Repeat"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:619
+#: lib/kati/screens/goals.ex:637
 #, elixir-autogen, elixir-format
 msgid "Repeat each period — a yearly goal restarts on 1 January, indefinitely"
 msgstr ""
@@ -2000,7 +2000,7 @@ msgstr ""
 msgid "Too early to say."
 msgstr ""
 
-#: lib/kati/screens/goals.ex:632
+#: lib/kati/screens/goals.ex:650
 #, elixir-autogen, elixir-format
 msgid "“Read every day” is a habit. “Read 52 books” is a goal."
 msgstr ""
@@ -2816,7 +2816,7 @@ msgstr ""
 msgid "Albums, artists, cover art"
 msgstr ""
 
-#: lib/kati/sources.ex:181
+#: lib/kati/sources.ex:196
 #, elixir-autogen, elixir-format
 msgid "Artwork, absolute ordering"
 msgstr ""
@@ -2852,7 +2852,7 @@ msgid_plural "Cleared %{n} cached rows."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/sources.ex:169
+#: lib/kati/sources.ex:184
 #, elixir-autogen, elixir-format
 msgid "Community book ratings"
 msgstr ""
@@ -2877,7 +2877,7 @@ msgstr ""
 msgid "Disconnect everything and wipe tokens"
 msgstr ""
 
-#: lib/kati/sources.ex:172
+#: lib/kati/sources.ex:187
 #, elixir-autogen, elixir-format
 msgid "Hardcover’s ratings are read with your own token, so your reading is not attributed to anyone else."
 msgstr ""
@@ -2902,7 +2902,7 @@ msgstr ""
 msgid "Kati would have to read it from the phone's own health store, and that is a permission this app has not asked for. Everything Kati holds today, you typed."
 msgstr ""
 
-#: lib/kati/sources.ex:160
+#: lib/kati/sources.ex:175
 #, elixir-autogen, elixir-format
 msgid "ListenBrainz needs your own token because it writes to your account, not Kati’s. Nothing is shared between users."
 msgstr ""
@@ -3036,7 +3036,7 @@ msgstr ""
 msgid "Scrobbles, as they happen."
 msgstr ""
 
-#: lib/kati/sources.ex:153
+#: lib/kati/sources.ex:168
 #, elixir-autogen, elixir-format
 msgid "Scrobbles, listening history"
 msgstr ""
@@ -3094,7 +3094,7 @@ msgstr ""
 msgid "The same permission Sleep needs, and the same answer. A workout log you type by hand is a worse version of an app you already have."
 msgstr ""
 
-#: lib/kati/sources.ex:183
+#: lib/kati/sources.ex:198
 #, elixir-autogen, elixir-format
 msgid "TheTVDB issues a per-user key you can revoke from your own account page."
 msgstr ""
@@ -3104,12 +3104,12 @@ msgstr ""
 msgid "This device has no keystore Kati can reach, so the token sits unencrypted on the filesystem like every other. Kati sends it only to TMDB, and you can revoke it from your TMDB account at any time."
 msgstr ""
 
-#: lib/kati/sources.ex:232
+#: lib/kati/sources.ex:247
 #, elixir-autogen, elixir-format
 msgid "Tokens are held in this device’s secure store. Kati sends each one only to the service it belongs to. Kati never asks for a password — only for tokens you can revoke from the provider’s own site."
 msgstr ""
 
-#: lib/kati/sources.ex:238
+#: lib/kati/sources.ex:253
 #, elixir-autogen, elixir-format
 msgid "Tokens sit unencrypted on this device, because the platform gives Kati no secure store yet. Kati sends each one only to the service it belongs to. Kati never asks for a password — only for tokens you can revoke from the provider’s own site."
 msgstr ""
@@ -4023,8 +4023,8 @@ msgstr ""
 
 #: lib/kati/library/sample.ex:251
 #: lib/kati/music/sample.ex:276
-#: lib/kati/screens/search.ex:243
-#: lib/kati/screens/search.ex:266
+#: lib/kati/screens/search.ex:260
+#: lib/kati/screens/search.ex:283
 #, elixir-autogen, elixir-format
 msgid "Hollow Season"
 msgstr ""
@@ -4513,7 +4513,7 @@ msgstr ""
 msgid "Undertow"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1521
+#: lib/kati/screens/search.ex:1705
 #: lib/kati/screens/search_result_states.ex:738
 #, elixir-autogen, elixir-format
 msgid "%{n} match in %{scope}"
@@ -4521,35 +4521,35 @@ msgid_plural "%{n} matches in %{scope}"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/search.ex:257
+#: lib/kati/screens/search.ex:274
 #, elixir-autogen, elixir-format
 msgid "%{title} S%{s}E%{e} airs"
 msgstr ""
 
-#: lib/kati/screens/search.ex:266
+#: lib/kati/screens/search.ex:283
 #, elixir-autogen, elixir-format
 msgid "%{title} — watched"
 msgstr ""
 
-#: lib/kati/screens/search.ex:245
+#: lib/kati/screens/search.ex:262
 #: lib/kati/screens/search_large.ex:511
 #, elixir-autogen, elixir-format
 msgid "Episode · S%{s}E%{e} · watched %{date}"
 msgstr ""
 
-#: lib/kati/screens/search.ex:277
+#: lib/kati/screens/search.ex:294
 #: lib/kati/search/query.ex:778
 #, elixir-autogen, elixir-format
 msgid "Note · %{date} · %{title}"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1519
+#: lib/kati/screens/search.ex:1703
 #: lib/kati/screens/search_result_states.ex:736
 #, elixir-autogen, elixir-format
 msgid "Nothing in %{scope}. "
 msgstr ""
 
-#: lib/kati/screens/search.ex:236
+#: lib/kati/screens/search.ex:253
 #, elixir-autogen, elixir-format
 msgid "Series · S%{n} · %{status}"
 msgstr ""
@@ -4594,8 +4594,8 @@ msgstr ""
 msgid "every cream card in the app"
 msgstr ""
 
-#: lib/kati/screens/search.ex:230
-#: lib/kati/screens/search.ex:283
+#: lib/kati/screens/search.ex:247
+#: lib/kati/screens/search.ex:300
 #, elixir-autogen, elixir-format
 msgid "hollow"
 msgstr ""
@@ -4605,7 +4605,7 @@ msgstr ""
 msgid "ingredients"
 msgstr ""
 
-#: lib/kati/screens/search.ex:284
+#: lib/kati/screens/search.ex:301
 #, elixir-autogen, elixir-format
 msgid "is a character, not a place. Watch E1 again before S3."
 msgstr ""
@@ -4677,7 +4677,7 @@ msgstr ""
 msgid "your tags"
 msgstr ""
 
-#: lib/kati/screens/search.ex:282
+#: lib/kati/screens/search.ex:299
 #, elixir-autogen, elixir-format
 msgid "…the"
 msgstr ""
@@ -4730,7 +4730,7 @@ msgctxt "search scope"
 msgid "Screen"
 msgstr ""
 
-#: lib/kati/screens/search.ex:2554
+#: lib/kati/screens/search.ex:2911
 #, elixir-autogen, elixir-format
 msgid "Recent"
 msgstr ""
@@ -16560,23 +16560,23 @@ msgstr ""
 msgid "Your library, ratings and the posters already saved stay as they are."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1775
-#: lib/kati/screens/search.ex:2105
+#: lib/kati/screens/search.ex:1967
+#: lib/kati/screens/search.ex:2297
 #, elixir-autogen, elixir-format
 msgid "Add “%{query}” by hand?"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1632
+#: lib/kati/screens/search.ex:1824
 #, elixir-autogen, elixir-format
 msgid "Not in your library"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1752
+#: lib/kati/screens/search.ex:1944
 #, elixir-autogen, elixir-format
 msgid "Nothing on TMDB for “%{query}”"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1672
+#: lib/kati/screens/search.ex:1864
 #, elixir-autogen, elixir-format
 msgid "On TMDB"
 msgstr ""
@@ -16586,7 +16586,7 @@ msgstr ""
 msgid "Search your library"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1731
+#: lib/kati/screens/search.ex:1923
 #, elixir-autogen, elixir-format
 msgid "TMDB found nothing beyond what you already keep."
 msgstr ""
@@ -16617,7 +16617,7 @@ msgstr ""
 msgid "%{source} answered %{status}. Nothing was saved."
 msgstr ""
 
-#: lib/kati/screens/search.ex:2057
+#: lib/kati/screens/search.ex:2249
 #, elixir-autogen, elixir-format
 msgid "%{source} found nothing beyond the titles above."
 msgstr ""
@@ -16657,17 +16657,17 @@ msgstr ""
 msgid "Loading from %{source}…"
 msgstr ""
 
-#: lib/kati/screens/search.ex:2048
+#: lib/kati/screens/search.ex:2240
 #, elixir-autogen, elixir-format
 msgid "Nothing on %{source} for “%{query}”"
 msgstr ""
 
-#: lib/kati/screens/search.ex:2023
+#: lib/kati/screens/search.ex:2215
 #, elixir-autogen, elixir-format
 msgid "On AniList"
 msgstr ""
 
-#: lib/kati/screens/search.ex:2024
+#: lib/kati/screens/search.ex:2216
 #, elixir-autogen, elixir-format
 msgid "On TVmaze"
 msgstr ""
@@ -16697,13 +16697,13 @@ msgstr ""
 msgid "Searches and title details come from TMDB, using the token you gave Kati. Without a token, searches go to AniList and TVmaze, which need none. Posters come from the same services’ image servers. No other service is contacted."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1844
+#: lib/kati/screens/search.ex:2036
 #, elixir-autogen, elixir-format
 msgid "Couldn’t load more · Try again"
 msgstr ""
 
 #: lib/kati/screens/library.ex:757
-#: lib/kati/screens/search.ex:1847
+#: lib/kati/screens/search.ex:2039
 #, elixir-autogen, elixir-format
 msgid "Show more"
 msgstr ""
@@ -17454,43 +17454,38 @@ msgstr ""
 msgid "Showing %{n} of %{total}. Type more of the name to find the rest."
 msgstr ""
 
-#: lib/kati/screens/search.ex:1355
+#: lib/kati/screens/search.ex:1539
 #, elixir-autogen, elixir-format
 msgid "Add a book by hand"
 msgstr ""
 
 #: lib/kati/screens/meals_today.ex:137
-#: lib/kati/screens/search.ex:1369
+#: lib/kati/screens/search.ex:1553
 #, elixir-autogen, elixir-format
 msgid "Add a meal"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1363
+#: lib/kati/screens/search.ex:1547
 #, elixir-autogen, elixir-format
 msgid "Add an album by hand"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1372
+#: lib/kati/screens/search.ex:1556
 #, elixir-autogen, elixir-format
 msgid "Add an expense"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1377
+#: lib/kati/screens/search.ex:1561
 #, elixir-autogen, elixir-format
 msgid "Add to your calendar"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1378
+#: lib/kati/screens/search.ex:1562
 #, elixir-autogen, elixir-format
 msgid "Add “%{sentence}” to your calendar"
 msgstr ""
 
-#: lib/kati/screens/search.ex:1357
-#, elixir-autogen, elixir-format
-msgid "Searching for books is coming. Until then, add one with its title and author."
-msgstr ""
-
-#: lib/kati/screens/search.ex:1365
+#: lib/kati/screens/search.ex:1549
 #, elixir-autogen, elixir-format
 msgid "Searching for music is coming. Until then, add an album with its artist."
 msgstr ""
@@ -18078,4 +18073,29 @@ msgstr ""
 #: lib/kati/screens/goals.ex:270
 #, elixir-autogen, elixir-format
 msgid "left in %{month}."
+msgstr ""
+
+#: lib/kati/sources.ex:149
+#, elixir-autogen, elixir-format
+msgid "Albums, artists, release years"
+msgstr ""
+
+#: lib/kati/sources.ex:143
+#, elixir-autogen, elixir-format
+msgid "Books, authors, page counts, covers"
+msgstr ""
+
+#: lib/kati/screens/search.ex:2366
+#, elixir-autogen, elixir-format
+msgid "MusicBrainz could not be reached."
+msgstr ""
+
+#: lib/kati/screens/search.ex:2365
+#, elixir-autogen, elixir-format
+msgid "MusicBrainz is busy — try again in a moment."
+msgstr ""
+
+#: lib/kati/screens/search.ex:1541
+#, elixir-autogen, elixir-format
+msgid "Search Open Library above, or add one by hand with its title and author."
 msgstr ""
