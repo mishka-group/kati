@@ -618,6 +618,26 @@ defmodule Kati.Screens.NotificationsHelp do
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 
+  # The answer arrives after `ask/1` has already read the status — the dialog is
+  # the system's, not ours — so reading it again here is what makes the row
+  # follow the grant. Without it the page kept saying *Allow* after the reader
+  # had allowed, which is the same one-way door the calendar had.
+  #
+  # The `super` clause is NOT decoration: `Kati.Screens.Pushed` marks
+  # `handle_info/2` overridable, so the first `handle_info` a screen defines
+  # REPLACES every clause the macro wrote — the back tap, the tap, the `:kati`
+  # topics and the catch-all. Without it this page lost all four, and the tap
+  # that had just asked for the permission arrived with no clause to match:
+  # a `FunctionClauseError`, six restarts, and the reader dropped on the Inbox
+  # underneath. Found on the phone; `Kati.Screens.Calendar` has had its `super`
+  # line since it grew a `{:permission, :calendar, _}` clause, which is why that
+  # one kept working.
+  def handle_info({:permission, :notifications, _result}, socket) do
+    {:noreply, Mob.Socket.assign(socket, :notifications, Permissions.status(:notifications))}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
   @doc """
   Raise the system dialog, note that it was asked, and re-read.
 

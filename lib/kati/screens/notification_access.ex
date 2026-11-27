@@ -119,6 +119,14 @@ defmodule Kati.Screens.NotificationAccess do
     Mob.Socket.assign(socket, :access, Kati.Screens.NotificationAccess.status())
   end
 
+  # The pill on this page opens the system's notification-access list, and the
+  # reader comes back having changed the answer. Reading it once on mount left
+  # the page saying NOT GRANTED over a grant the phone had already recorded —
+  # found on the phone, where the return from Settings is the whole point of
+  # the button.
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
   @doc """
   The phone's own state of this permission, from the grant and the store.
 
