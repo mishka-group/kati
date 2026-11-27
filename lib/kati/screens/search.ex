@@ -142,8 +142,18 @@ defmodule Kati.Screens.Search do
     if tmdb.status == :pending or Keyless.waiting?(keyless),
       do: Kati.Media.SearchDebounce.ask(self(), String.trim(query))
 
+    # A query handed to this screen (a `+` that opened it, a recent search) is
+    # already committed, so the catalogue is asked at once.
+    books =
+      if String.trim(query) == "",
+        do: Mob.Socket.assign(socket, :book_epoch, 0),
+        else: socket
+
+    books = Kati.Screens.Search.ask_books(books, query)
+    books = Kati.Screens.Search.ask_music(books, query)
+
     {:ok,
-     Mob.Socket.assign(socket,
+     Mob.Socket.assign(books,
        query: query,
        results: results,
        filter: Kati.Screens.Search.opening_filter(params),
@@ -158,6 +168,13 @@ defmodule Kati.Screens.Search do
        history: Kati.Search.Recent.all(),
        tmdb: tmdb,
        tmdb_epoch: 0,
+       # Open Library's answer for the books section — empty until a committed
+       # query asks, and keyed by the epoch that asked so a late answer to an
+       # older query is dropped (`Kati.Search.Keyless` makes the same move).
+       book_hits: [],
+       book_epoch: 0,
+       music_hits: [],
+       music_epoch: 0,
        tmdb_ready: tmdb_ready,
        keyless: keyless
      )}
@@ -327,7 +344,15 @@ defmodule Kati.Screens.Search do
   def chunk(queries), do: Enum.chunk_every(queries, 3)
 
   def render(assigns) do
-    results = assigns.results
+    # The books section reads one map, as it did when every hit was local: the
+    # catalogue's rows are handed in under their own key rather than growing a
+    # second parameter through `visible_groups/2`, `body/2` and `books/1`.
+    results =
+      assigns.results
+      |> Map.put(:book_hits, Map.get(assigns, :book_hits, []))
+      |> Map.put(:music_hits, Map.get(assigns, :music_hits, []))
+      |> Map.put(:music_error, Map.get(assigns, :music_error))
+
     filter = assigns.filter
     recent = assigns.recent
     query = Map.get(assigns, :query, results.query)
@@ -418,7 +443,12 @@ defmodule Kati.Screens.Search do
         {:noreply,
          socket
          |> Kati.Screens.Search.settle_tmdb(query)
-         |> Kati.Screens.Search.settle_keyless(query)},
+         |> Kati.Screens.Search.settle_keyless(query)
+         # The two book-and-music catalogues go out on the same pause, not per
+         # keystroke: MusicBrainz allows one request a second, and a reader
+         # typing *tide ledger* would spend seven of them.
+         |> Kati.Screens.Search.ask_books(query)
+         |> Kati.Screens.Search.ask_music(query)},
       else: {:noreply, socket}
   end
 
@@ -557,6 +587,45 @@ defmodule Kati.Screens.Search do
      |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
   end
 
+  # Open Library's answer, kept only if it is still the query on screen — the
+  # keyless sections' rule, and the reason the epoch rides with it.
+  def handle_info({:book_answer, epoch, query, result}, socket) do
+    if epoch == Map.get(socket.assigns, :book_epoch, 0) and
+         query == Map.get(socket.assigns, :query, "") do
+      hits =
+        case result do
+          {:ok, rows} -> rows
+          _error -> []
+        end
+
+      {:noreply, Mob.Socket.assign(socket, :book_hits, hits)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # MusicBrainz's answer, under the same epoch rule as the books one.
+  def handle_info({:music_answer, epoch, query, result}, socket) do
+    if epoch == Map.get(socket.assigns, :music_epoch, 0) and
+         query == Map.get(socket.assigns, :query, "") do
+      case result do
+        {:ok, rows} ->
+          {:noreply, Mob.Socket.assign(socket, :music_hits, rows)}
+
+        {_tag, reason} ->
+          # Named rather than swallowed: a section that silently has no rows
+          # over a query that matched is indistinguishable from a catalogue
+          # with nothing to say, and the reader cannot tell which happened.
+          {:noreply,
+           socket
+           |> Mob.Socket.assign(:music_hits, [])
+           |> Mob.Socket.assign(:music_error, reason)}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   # A section's own way in, from its panel under the chips.
   def handle_info({:tap, :add_book}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHandBook)}
@@ -588,6 +657,50 @@ defmodule Kati.Screens.Search do
 
       "go_" <> key ->
         {:noreply, Mob.Socket.assign(socket, :filter, String.to_existing_atom(key))}
+
+      # A catalogue row: write the book, then open the page it just created.
+      # The row is resolved against the hits the section drew — the same rule
+      # `open_hit/2` follows — so a tag from a stale frame cannot add a book
+      # nobody asked for.
+      "shelf_book_" <> work ->
+        case Enum.find(Map.get(socket.assigns, :book_hits, []), &(work_id(&1) == work)) do
+          nil ->
+            {:noreply, socket}
+
+          row ->
+            case Kati.Screens.Search.add_book(row) do
+              {:ok, book} ->
+                {:noreply,
+                 socket
+                 |> Kati.Screens.Search.commit()
+                 |> Mob.Socket.push_screen(
+                   Kati.Screens.BookDetail,
+                   Kati.Screens.BookDetail.params_for(book)
+                 )}
+
+              _error ->
+                {:noreply, socket}
+            end
+        end
+
+      # A MusicBrainz row: the artist, the album, and its page.
+      "shelf_album_" <> work ->
+        case Enum.find(Map.get(socket.assigns, :music_hits, []), &(work_id(&1) == work)) do
+          nil ->
+            {:noreply, socket}
+
+          row ->
+            case Kati.Screens.Search.add_album(row) do
+              {:ok, album} ->
+                {:noreply,
+                 socket
+                 |> Kati.Screens.Search.commit()
+                 |> Mob.Socket.push_screen(Kati.Screens.AlbumDetail, %{album_id: album.id})}
+
+              _error ->
+                {:noreply, socket}
+            end
+        end
 
       # A Calendar hit, by its own event. Screen 31 answers an id that names
       # nothing with its own drawing rather than a crash, which is what makes
@@ -812,7 +925,8 @@ defmodule Kati.Screens.Search do
 
   @doc """
   Put `query` in the field as a committed query: the field redrawn with it,
-  the library searched, TMDB asked at once, and the shelf told.
+  the library searched, TMDB asked at once, the catalogue asked for books, and
+  the shelf told.
   """
   @spec run_committed(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def run_committed(socket, query) do
@@ -822,6 +936,76 @@ defmodule Kati.Screens.Search do
     |> Mob.Socket.assign(:results, Kati.Search.Query.run(query))
     |> Kati.Screens.Search.commit()
     |> Kati.Screens.Search.ask_tmdb(query, :now)
+    |> Kati.Screens.Search.ask_books(query)
+    |> Kati.Screens.Search.ask_music(query)
+  end
+
+  @doc "`ask_books/2` for MusicBrainz, with its own epoch and mailbox tag."
+  @spec ask_music(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def ask_music(socket, query) do
+    epoch = Map.get(socket.assigns, :music_epoch, 0) + 1
+    socket = Mob.Socket.assign(socket, :music_epoch, epoch)
+
+    if String.length(String.trim(query)) >= 2 do
+      pid = self()
+
+      work = fn ->
+        result =
+          try do
+            Kati.Media.MusicBrainz.search(query)
+          rescue
+            error -> {:raised, error}
+          end
+
+        send(pid, {:music_answer, epoch, query, result})
+      end
+
+      try do
+        Task.Supervisor.start_child(Kati.TaskSupervisor, work)
+      catch
+        :exit, _reason -> work.()
+      end
+    end
+
+    socket
+  end
+
+  @doc """
+  Ask Open Library for `query`, off this process, answering
+  `{:book_answer, epoch, query, result}` — `Kati.Search.Keyless.fetch/4`'s
+  arrangement, and under its supervisor for the same reason: a fetch outlives
+  the keystroke that asked for it, never the screen.
+
+  The epoch is bumped even when nothing is sent, so an answer for the previous
+  query cannot land in the section drawn for this one.
+  """
+  @spec ask_books(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def ask_books(socket, query) do
+    epoch = Map.get(socket.assigns, :book_epoch, 0) + 1
+    socket = Mob.Socket.assign(socket, :book_epoch, epoch)
+
+    if String.length(String.trim(query)) >= 2 do
+      pid = self()
+
+      work = fn ->
+        send(pid, {:book_answer, epoch, query, Kati.Media.OpenLibrary.search(query)})
+      end
+
+      # The live screen runs the fetch off its own process; the host suite has
+      # no `Kati.TaskSupervisor`, and `Kati.Search.Keyless.fetch/4` answers the
+      # same way — inline, in the test process, where the mailbox is the one
+      # `render_info/2` reads.
+      try do
+        Task.Supervisor.start_child(Kati.TaskSupervisor, work)
+      catch
+        # No supervisor (the host suite): answer in the caller's process, where
+        # the mailbox `render_info/2` reads is the one the answer lands in.
+        # Live, only the running app reaches this branch, and it has one.
+        :exit, _reason -> work.()
+      end
+    end
+
+    socket
   end
 
   @doc """
@@ -1354,7 +1538,7 @@ defmodule Kati.Screens.Search do
       Kati.Screens.Search.panel(
         gettext("Add a book by hand"),
         :add_book,
-        gettext("Searching for books is coming. Until then, add one with its title and author.")
+        gettext("Search Open Library above, or add one by hand with its title and author.")
       )
 
   def section_panel(:music, _query),
@@ -1582,13 +1766,21 @@ defmodule Kati.Screens.Search do
 
   @doc false
   @spec blank?(map(), atom()) :: boolean()
+  def blank?(results, :books),
+    do: (Map.get(results, :books) || []) == [] and (Map.get(results, :book_hits) || []) == []
+
+  def blank?(results, :music),
+    do:
+      (Map.get(results, :music) || []) == [] and (Map.get(results, :music_hits) || []) == [] and
+        is_nil(Map.get(results, :music_error))
+
   def blank?(results, key), do: (Map.get(results, key) || []) == []
 
   @doc "Whether a result set matched nothing at all."
   @spec empty?(map()) :: boolean()
   def empty?(results) do
     Enum.all?(
-      [:titles, :books, :calendar, :notes, :music, :meals, :money],
+      [:titles, :book_hits, :books, :calendar, :notes, :music, :meals, :money],
       &((Map.get(results, &1) || []) == [])
     )
   end
@@ -2159,6 +2351,34 @@ defmodule Kati.Screens.Search do
   def body(results, :books), do: Kati.Screens.Search.books(results)
   def body(results, :calendar), do: Kati.Screens.Search.calendar(results)
   def body(results, :notes), do: Kati.Screens.Search.notes(results)
+
+  def body(results, :music) do
+    hits = (Map.get(results, :music_hits) || []) ++ (Map.get(results, :music) || [])
+
+    # A catalogue that could not answer says so: an empty section over a query
+    # that matched is indistinguishable from a catalogue with nothing to say,
+    # and MusicBrainz's 503 (one anonymous request a second) is the case that
+    # found this.
+    if hits == [] and Map.get(results, :music_error) do
+      line =
+        case Map.get(results, :music_error) do
+          :rate_limited -> gettext("MusicBrainz is busy — try again in a moment.")
+          _other -> gettext("MusicBrainz could not be reached.")
+        end
+
+      assigns = %{line: line}
+
+      ~MOB"""
+      <Column fill_width={true}>
+        <Text text={@line} text_size={13} text_color={Palette.sub()} />
+        <Spacer size={13} />
+      </Column>
+      """
+    else
+      Kati.Screens.Search.rows(hits)
+    end
+  end
+
   def body(results, key), do: Kati.Screens.Search.rows(Map.get(results, key) || [])
 
   @doc "A group of plain hits: music, meals, money."
@@ -2216,7 +2436,12 @@ defmodule Kati.Screens.Search do
   says films.
   """
   def books(results) do
-    assigns = %{rows: Map.get(results, :books) || []}
+    # The catalogue's rows come first — they are what the query went to find —
+    # and the shelf's own hits follow, so a book already owned still appears
+    # under the same heading it always did.
+    assigns = %{
+      rows: (Map.get(results, :book_hits) || []) ++ (Map.get(results, :books) || [])
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -2225,6 +2450,114 @@ defmodule Kati.Screens.Search do
     </Column>
     """
   end
+
+  @doc """
+  A catalogue row written onto the shelf.
+
+  `source: :open_library` and Open Library's own work key as `source_id`, so
+  the same search twice offers the book it already owns rather than a second
+  copy — `Kati.Books.Book` keeps the key as a value for exactly this read.
+  """
+  @spec add_book(map()) :: {:ok, term()} | {:error, term()}
+  def add_book(row) do
+    case shelved_book(row) do
+      %{} = book ->
+        {:ok, book}
+
+      nil ->
+        Kati.Books.Book
+        |> Ash.Changeset.for_create(:create, %{
+          title: row.title,
+          author: Map.get(row, :author),
+          source: :open_library,
+          source_id: Map.get(row, :source_id),
+          cover_seed: Map.get(row, :seed),
+          published_year: Map.get(row, :year),
+          isbn: Map.get(row, :isbn),
+          page_count: Map.get(row, :pages),
+          status: :not_started,
+          format: :paperback
+        })
+        |> Ash.create()
+        |> Kati.Write.note("add a book from Open Library #{row.title}")
+    end
+  end
+
+  @doc """
+  A MusicBrainz row written onto the shelf: the album, and the artist it names.
+
+  Found by `source_id` first, so searching twice does not make a second copy;
+  the artist is found by name or created, which is the rule
+  `Kati.Screens.AddByHandRecord.write/3` already follows for a typed album.
+  """
+  @spec add_album(map()) :: {:ok, term()} | {:error, term()}
+  def add_album(row) do
+    case shelved_album(row) do
+      %{} = album ->
+        {:ok, album}
+
+      nil ->
+        with {:ok, artist_id} <- artist_id(row) do
+          Kati.Music.Album
+          |> Ash.Changeset.for_create(:create, %{
+            title: row.title,
+            artist_id: artist_id,
+            released_year: Map.get(row, :year),
+            source: :musicbrainz,
+            source_id: Map.get(row, :source_id),
+            art_seed: Map.get(row, :seed)
+          })
+          |> Ash.create()
+          |> Kati.Write.note("add an album from MusicBrainz #{row.title}")
+        end
+    end
+  end
+
+  defp shelved_album(%{source_id: source_id}) when is_binary(source_id) do
+    require Ash.Query
+
+    Kati.Music.Album
+    |> Ash.Query.filter(source == :musicbrainz and source_id == ^source_id)
+    |> Ash.read_one!()
+  rescue
+    _error -> nil
+  end
+
+  defp shelved_album(_row), do: nil
+
+  defp artist_id(%{artist: name}) when is_binary(name) and name != "" do
+    require Ash.Query
+
+    case Kati.Music.Artist |> Ash.Query.filter(name == ^name) |> Ash.read_one!() do
+      %{id: id} ->
+        {:ok, id}
+
+      nil ->
+        Kati.Music.Artist
+        |> Ash.Changeset.for_create(:create, %{name: name, source: :musicbrainz, source_id: name})
+        |> Ash.create()
+        |> case do
+          {:ok, artist} -> {:ok, artist.id}
+          error -> error
+        end
+    end
+  rescue
+    _error -> {:ok, nil}
+  end
+
+  defp artist_id(_row), do: {:ok, nil}
+
+  defp shelved_book(%{source_id: source_id}) when is_binary(source_id) do
+    require Ash.Query
+
+    Kati.Books.Book
+    |> Ash.Query.filter(source == :open_library and source_id == ^source_id)
+    |> Ash.read_one!()
+  rescue
+    _error -> nil
+  end
+
+  defp shelved_book(_row), do: nil
 
   @doc """
   One hit's tag, or `nil` for a hit with nowhere to go.
@@ -2252,6 +2585,30 @@ defmodule Kati.Screens.Search do
     # never shelved — has a kind and no row to open, and drawing it with a
     # chevron meant a tap onto the fixture branch of screen 04 or 08: a
     # chevron on one title that opened a page about another.
+    # A catalogue row is not on the shelf yet: its tag adds it, and the id in
+    # the tag is the work key's own last segment (`OL123W`), resolved against
+    # the rows the section drew rather than parsed back into anything.
+    case {Map.get(row, :kind), Map.get(row, :source)} do
+      {:book, :open_library} -> ("shelf_book_" <> work_id(row)) |> String.to_atom()
+      {:album, :musicbrainz} -> ("shelf_album_" <> work_id(row)) |> String.to_atom()
+      _shelf -> shelf_hit_tag(row)
+    end
+  end
+
+  # The catalogue's own key as the tag's id: the work key's last segment, or
+  # a release group's mbid, with everything a tag cannot hold folded to `_` —
+  # so `OL123W` stays, and `7f2b…-…` becomes one stable atom per album rather
+  # than a fresh atom per search result.
+  defp work_id(row) do
+    row
+    |> Map.get(:source_id, "")
+    |> to_string()
+    |> String.split("/")
+    |> List.last()
+    |> String.replace(~r/[^A-Za-z0-9]/, "_")
+  end
+
+  defp shelf_hit_tag(row) do
     case {Map.get(row, :kind), Map.get(row, :id)} do
       # An episode's `:id` is the id of the TITLE it belongs to — screen 04 is
       # where an episode lives and Kati has no episode page — so the tag has to

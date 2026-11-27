@@ -260,7 +260,15 @@ defmodule Kati.DeviceRoundN34N42Test do
       assert "TMDB" in drawn
       assert "AniList" in drawn and "TVmaze" in drawn
       assert "بدون تنظیم کار می‌کند" in drawn
-      refute Enum.any?(drawn, &(&1 =~ "ListenBrainz" or &1 =~ "MusicBrainz"))
+
+      # MusicBrainz is listed now because it is CALLED now
+      # (`Kati.Media.MusicBrainz`, mishka-group/kati#101): the list promises
+      # only sources the app touches, which is the rule this line was written
+      # to keep — it refuted the name while nothing asked it. The tier-2
+      # clients that still do not exist (ListenBrainz, Hardcover, TheTVDB)
+      # stay off the page.
+      assert "MusicBrainz" in drawn
+      refute Enum.any?(drawn, &(&1 =~ "ListenBrainz"))
     end
   end
 

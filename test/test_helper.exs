@@ -65,7 +65,13 @@ Kati.Components.register_all()
 # adapter and puts `Kati.TestOffline.options/0` back when it is done.
 defmodule Kati.TestOffline do
   @moduledoc false
-  @keys [:anilist_req_options, :tvmaze_req_options, :artwork_req_options]
+  @keys [
+    :anilist_req_options,
+    :tvmaze_req_options,
+    :artwork_req_options,
+    :open_library_req_options,
+    :music_brainz_req_options
+  ]
 
   def run(request), do: {request, Req.Response.new(status: 503, body: "")}
 

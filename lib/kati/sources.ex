@@ -132,6 +132,21 @@ defmodule Kati.Sources do
         icon: "live_tv",
         name: "TVmaze",
         supplies: gettext("Series, seasons, episodes, air dates")
+      },
+      # The row appears because the client does: `Kati.Media.OpenLibrary` is
+      # what makes the books search real (mishka-group/kati#100), and this
+      # list promises only sources the app actually touches (N41).
+      %{
+        id: :open_library,
+        icon: "menu_book",
+        name: "Open Library",
+        supplies: gettext("Books, authors, page counts, covers")
+      },
+      %{
+        id: :musicbrainz,
+        icon: "graphic_eq",
+        name: "MusicBrainz",
+        supplies: gettext("Albums, artists, release years")
       }
     ]
   end

@@ -38,6 +38,9 @@ defmodule Kati.Supervisor do
         [
           # Anything Kati spawns for one-off work. Kept here so a crashing task
           # cannot take a screen with it.
+          # One request a second to the catalogues that ask for it — see
+          # `Kati.Media.RateLimit`.
+          Kati.Media.RateLimit,
           {Task.Supervisor, name: Kati.TaskSupervisor},
 
           # Every live screen process, for a change all of them show (#112).
