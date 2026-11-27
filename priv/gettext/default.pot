@@ -520,7 +520,7 @@ msgstr ""
 #: lib/kati/health/sample.ex:223
 #: lib/kati/notifications/inbox.ex:114
 #: lib/kati/screens/calendars.ex:678
-#: lib/kati/screens/goals.ex:623
+#: lib/kati/screens/goals.ex:631
 #: lib/kati/screens/habits.ex:161
 #: lib/kati/screens/home.ex:532
 #: lib/kati/screens/home.ex:629
@@ -1928,7 +1928,7 @@ msgstr ""
 msgid "%{count} active · %{span}"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:381
+#: lib/kati/screens/goals.ex:389
 #, elixir-autogen, elixir-format
 msgid "%{count} active · to %{date}"
 msgstr ""
@@ -1954,7 +1954,7 @@ msgid "Behind"
 msgstr ""
 
 #: lib/kati/screens/goal_states.ex:265
-#: lib/kati/screens/goals.ex:314
+#: lib/kati/screens/goals.ex:322
 #: lib/kati/screens/goals_empty.ex:359
 #: lib/kati/stats/sample.ex:91
 #, elixir-autogen, elixir-format
@@ -1985,12 +1985,12 @@ msgstr ""
 msgid "Recently watched"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:314
+#: lib/kati/screens/goals.ex:322
 #, elixir-autogen, elixir-format
 msgid "Repeat"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:611
+#: lib/kati/screens/goals.ex:619
 #, elixir-autogen, elixir-format
 msgid "Repeat each period — a yearly goal restarts on 1 January, indefinitely"
 msgstr ""
@@ -2000,7 +2000,7 @@ msgstr ""
 msgid "Too early to say."
 msgstr ""
 
-#: lib/kati/screens/goals.ex:624
+#: lib/kati/screens/goals.ex:632
 #, elixir-autogen, elixir-format
 msgid "“Read every day” is a habit. “Read 52 books” is a goal."
 msgstr ""
@@ -2051,6 +2051,7 @@ msgid "Dropped shows keep the hours they earned. Nothing is taken back."
 msgstr ""
 
 #: lib/kati/goals/sample.ex:35
+#: lib/kati/screens/goals.ex:273
 #, elixir-autogen, elixir-format
 msgid "by"
 msgstr ""
@@ -5462,7 +5463,7 @@ msgstr ""
 msgid "%{name} already exists. Nothing was made — open it from the list above."
 msgstr ""
 
-#: lib/kati/screens/retired_tile.ex:430
+#: lib/kati/screens/retired_tile.ex:435
 #, elixir-autogen, elixir-format
 msgid "%{name} isn’t in this version"
 msgstr ""
@@ -5484,7 +5485,7 @@ msgstr ""
 msgid "%{tier} · paused"
 msgstr ""
 
-#: lib/kati/screens/retired_tile.ex:593
+#: lib/kati/screens/retired_tile.ex:598
 #, elixir-autogen, elixir-format
 msgid ". When Kati can read the data properly, this %{noun} turns on."
 msgstr ""
@@ -5723,7 +5724,7 @@ msgstr ""
 msgid "The watcher is running"
 msgstr ""
 
-#: lib/kati/screens/retired_tile.ex:586
+#: lib/kati/screens/retired_tile.ex:591
 #, elixir-autogen, elixir-format
 msgid "There is no date for it"
 msgstr ""
@@ -18067,4 +18068,14 @@ msgstr ""
 #: lib/kati/screens/meal_plan.ex:288
 #, elixir-autogen, elixir-format
 msgid "%{day} · %{meals}"
+msgstr ""
+
+#: lib/kati/screens/goals.ex:262
+#, elixir-autogen, elixir-format
+msgid "%{projected} of %{target}"
+msgstr ""
+
+#: lib/kati/screens/goals.ex:270
+#, elixir-autogen, elixir-format
+msgid "left in %{month}."
 msgstr ""

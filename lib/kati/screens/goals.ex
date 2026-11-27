@@ -255,14 +255,22 @@ defmodule Kati.Screens.Goals do
   end
 
   defp projection(%Goal{}, nil, _today), do: nil
-  defp projection(%Goal{target: target}, projected, _today), do: "#{projected} of #{target}"
+
+  defp projection(%Goal{target: target}, projected, _today) do
+    # `of` is a word and both figures are the reader's digits: the sentence ran
+    # `0 of 120 by 31 December` in English inside a Persian paragraph.
+    gettext("%{projected} of %{target}",
+      projected: Kati.Locale.number(projected),
+      target: Kati.Locale.number(target)
+    )
+  end
 
   defp projection_tail(%Goal{progress: progress, target: target} = goal, _projected)
        when progress >= target,
-       do: "left in #{Calendar.strftime(goal.ends_on, "%B")}."
+       do: gettext("left in %{month}.", month: Kati.Locale.month_name(goal.ends_on))
 
   defp projection_tail(%Goal{}, nil), do: nil
-  defp projection_tail(%Goal{period: :year}, _projected), do: "by"
+  defp projection_tail(%Goal{period: :year}, _projected), do: gettext("by")
   defp projection_tail(%Goal{}, _projected), do: projection_tail_word()
 
   defp projection_date(%Goal{progress: progress, target: target}, _projected)
@@ -270,7 +278,7 @@ defmodule Kati.Screens.Goals do
        do: nil
 
   defp projection_date(%Goal{period: :year} = goal, projected) when not is_nil(projected),
-    do: Calendar.strftime(goal.ends_on, "%-d %B")
+    do: Kati.Locale.date(goal.ends_on, :day_month)
 
   defp projection_date(%Goal{}, _projected), do: nil
 
@@ -547,14 +555,32 @@ defmodule Kati.Screens.Goals do
     strong = [font_weight: "semibold", text_color: Palette.ink(), text_size: 13]
 
     runs =
-      [{goal.projection_lead, body}]
-      |> maybe(goal.projection, [{" ", body}, {goal.projection, strong}])
-      |> maybe(goal.projection_tail, [{lead_space(goal.projection_tail), body}])
-      |> maybe(goal.projection_date, [
-        {" ", body},
-        {goal.projection_date || "", strong},
-        {".", body}
-      ])
+      if Kati.Locale.direction(Kati.Locale.current()) == :rtl and
+           is_binary(goal.projection_date) do
+        # Persian puts the deadline where the English puts it, but the count
+        # follows it and the sentence closes with a verb: *با این روند تا ۳۱
+        # دسامبر، ۰ از ۱۲۰ می‌رسید.* Splicing the English order through the
+        # translated words produced "… until 0 of 120 to 31 December", which is
+        # not a sentence in either language.
+        [
+          {goal.projection_lead, body},
+          {" ", body},
+          {goal.projection_date, strong},
+          {"، ", body},
+          {goal.projection || "", strong},
+          {" ", body},
+          {projection_tail_word(), body}
+        ]
+      else
+        [{goal.projection_lead, body}]
+        |> maybe(goal.projection, [{" ", body}, {goal.projection, strong}])
+        |> maybe(goal.projection_tail, [{lead_space(goal.projection_tail), body}])
+        |> maybe(goal.projection_date, [
+          {" ", body},
+          {goal.projection_date || "", strong},
+          {".", body}
+        ])
+      end
 
     UI.rich_text(runs)
   end

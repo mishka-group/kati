@@ -523,7 +523,7 @@ msgstr "حذف شده — خالی نیست"
 #: lib/kati/health/sample.ex:223
 #: lib/kati/notifications/inbox.ex:114
 #: lib/kati/screens/calendars.ex:678
-#: lib/kati/screens/goals.ex:623
+#: lib/kati/screens/goals.ex:631
 #: lib/kati/screens/habits.ex:161
 #: lib/kati/screens/home.ex:532
 #: lib/kati/screens/home.ex:629
@@ -1931,7 +1931,7 @@ msgstr "٪"
 msgid "%{count} active · %{span}"
 msgstr "%{span}"
 
-#: lib/kati/screens/goals.ex:381
+#: lib/kati/screens/goals.ex:389
 #, elixir-autogen, elixir-format
 msgid "%{count} active · to %{date}"
 msgstr "%{count} فعال · تا %{date}"
@@ -1957,7 +1957,7 @@ msgid "Behind"
 msgstr "عقب‌تر"
 
 #: lib/kati/screens/goal_states.ex:265
-#: lib/kati/screens/goals.ex:314
+#: lib/kati/screens/goals.ex:322
 #: lib/kati/screens/goals_empty.ex:359
 #: lib/kati/stats/sample.ex:91
 #, elixir-autogen, elixir-format
@@ -1988,12 +1988,12 @@ msgstr "طبق برنامه"
 msgid "Recently watched"
 msgstr "اخیراً تماشا شده"
 
-#: lib/kati/screens/goals.ex:314
+#: lib/kati/screens/goals.ex:322
 #, elixir-autogen, elixir-format
 msgid "Repeat"
 msgstr "تکرار"
 
-#: lib/kati/screens/goals.ex:611
+#: lib/kati/screens/goals.ex:619
 #, elixir-autogen, elixir-format
 msgid "Repeat each period — a yearly goal restarts on 1 January, indefinitely"
 msgstr "هر دوره تکرار می‌شود — یک هدف سالانه در آغاز سال دوباره شروع می‌شود"
@@ -2003,7 +2003,7 @@ msgstr "هر دوره تکرار می‌شود — یک هدف سالانه در
 msgid "Too early to say."
 msgstr "هنوز زود است."
 
-#: lib/kati/screens/goals.ex:624
+#: lib/kati/screens/goals.ex:632
 #, elixir-autogen, elixir-format
 msgid "“Read every day” is a habit. “Read 52 books” is a goal."
 msgstr "«هر روز بخوان» عادت است. «۵۲ کتاب بخوان» هدف است."
@@ -2054,6 +2054,7 @@ msgid "Dropped shows keep the hours they earned. Nothing is taken back."
 msgstr "سریال‌های رهاشده ساعت‌هایی که گرفته‌اند را نگه می‌دارند. چیزی پس گرفته نمی‌شود."
 
 #: lib/kati/goals/sample.ex:35
+#: lib/kati/screens/goals.ex:273
 #, elixir-autogen, elixir-format
 msgid "by"
 msgstr "به"
@@ -5465,7 +5466,7 @@ msgstr "%{day} %{month}، %{time}"
 msgid "%{name} already exists. Nothing was made — open it from the list above."
 msgstr "%{name} از قبل وجود دارد. چیزی ساخته نشد — از همین بالا بازش کنید."
 
-#: lib/kati/screens/retired_tile.ex:430
+#: lib/kati/screens/retired_tile.ex:435
 #, elixir-autogen, elixir-format
 msgid "%{name} isn’t in this version"
 msgstr "%{name} در این نسخه نیست"
@@ -5487,7 +5488,7 @@ msgstr "%{out} منتشرشده · %{up} در راه"
 msgid "%{tier} · paused"
 msgstr "%{tier} · متوقف"
 
-#: lib/kati/screens/retired_tile.ex:593
+#: lib/kati/screens/retired_tile.ex:598
 #, elixir-autogen, elixir-format
 msgid ". When Kati can read the data properly, this %{noun} turns on."
 msgstr ". وقتی کاتی بتواند این داده را درست بخواند، این %{noun} روشن می‌شود."
@@ -5726,7 +5727,7 @@ msgstr "چیپ بخش واحد را عوض می‌کند، نه چیدمان ر�
 msgid "The watcher is running"
 msgstr "پایشگر در حال کار است"
 
-#: lib/kati/screens/retired_tile.ex:586
+#: lib/kati/screens/retired_tile.ex:591
 #, elixir-autogen, elixir-format
 msgid "There is no date for it"
 msgstr "تاریخی برای آن تعیین نشده است"
@@ -17340,7 +17341,7 @@ msgstr "پولش را می‌دهم"
 #: lib/kati/screens/my_services.ex:699
 #, elixir-autogen, elixir-format
 msgid "Price a month, like 10.99 (optional)"
-msgstr "قیمت ماهانه، مثلاً 10.99 (اختیاری)"
+msgstr "قیمت ماهانه، مثلاً ۱۰٫۹۹ (اختیاری)"
 
 #: lib/kati/screens/my_services.ex:1542
 #, elixir-autogen, elixir-format
@@ -17355,7 +17356,7 @@ msgstr "نام سرویس — نتفلیکس یا هر سرویس دیگری"
 #: lib/kati/screens/my_services.ex:1566
 #, elixir-autogen, elixir-format
 msgid "The price has to be a number, like 10.99."
-msgstr "قیمت باید عدد باشد، مثلاً 10.99."
+msgstr "قیمت باید عدد باشد، مثلاً ۱۰٫۹۹."
 
 #: lib/kati/screens/my_services.ex:434
 #, elixir-autogen, elixir-format
@@ -17419,7 +17420,7 @@ msgstr "این ماه چیزی اینجا تماشا نشده"
 #: lib/kati/screens/service.ex:269
 #, elixir-autogen, elixir-format
 msgid "Price a month, like 10.99"
-msgstr "قیمت ماهانه، مثلاً 10.99"
+msgstr "قیمت ماهانه، مثلاً ۱۰٫۹۹"
 
 #: lib/kati/screens/service.ex:247
 #, elixir-autogen, elixir-format
@@ -18071,3 +18072,13 @@ msgstr "%{count} وعده"
 #, elixir-autogen, elixir-format
 msgid "%{day} · %{meals}"
 msgstr "%{day} · %{meals}"
+
+#: lib/kati/screens/goals.ex:262
+#, elixir-autogen, elixir-format
+msgid "%{projected} of %{target}"
+msgstr "%{projected} از %{target}"
+
+#: lib/kati/screens/goals.ex:270
+#, elixir-autogen, elixir-format
+msgid "left in %{month}."
+msgstr "%{month} باقی مانده."

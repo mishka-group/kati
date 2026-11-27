@@ -309,6 +309,9 @@ defmodule Kati.Locale do
         case style do
           :dated -> :long
           :short_padded -> :short
+          # `۶ دی`: the day and the month, no weekday and no year — a
+          # projection's own date.
+          :day_month -> :short
           other -> other
         end
       )
@@ -323,6 +326,9 @@ defmodule Kati.Locale do
         :short_padded -> Calendar.strftime(date, "%d %b")
         :dated -> Calendar.strftime(date, "%-d %b %Y")
         :numeric -> Calendar.strftime(date, "%Y/%m/%d")
+        # `31 December`, the date a projection names: day and month spelled
+        # out, no weekday (board 108's sentence has no room for one).
+        :day_month -> Calendar.strftime(date, "%-d %B")
       end
     end
   end

@@ -99,20 +99,39 @@ defmodule Kati.UI.Sheet do
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">
         <Box fill_width={true} height={40} background={Palette.paper()} />
-        <Column
-          fill_width={true}
-          background={Palette.paper()}
-          corner_radius={26}
-          padding_left={21}
-          padding_right={21}
-          padding_top={@top}
-          padding_bottom={34}
-        >
-          {Kati.UI.Sheet.header(@title, @face)}
-          {@content}
-        </Column>
+        {Kati.UI.Sheet.frame(@title, @content, @top, @face)}
       </Box>
     </Box>
+    """
+  end
+
+  # The sheet's own frame: the paper, the header and the body, inside a scroll.
+  #
+  # A bottom-aligned Column that hugged its content was right until a sheet got
+  # taller than the window — the Persian *New goal* sheet on a 2340px phone,
+  # whose commit button was laid out past the bottom edge and never drawn, so a
+  # goal could not be saved at all. A `Scroll` reports `min(content, available)`
+  # and scrolls the rest, which is the same drawing on every sheet that fits and
+  # a reachable commit on the one that does not.
+  @doc false
+  def frame(title, content, top, face) do
+    assigns = %{title: title, content: content, top: top, face: face}
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        background={Palette.paper()}
+        corner_radius={26}
+        padding_left={21}
+        padding_right={21}
+        padding_top={@top}
+        padding_bottom={34}
+      >
+        {Kati.UI.Sheet.header(@title, @face)}
+        {@content}
+      </Column>
+    </Scroll>
     """
   end
 
