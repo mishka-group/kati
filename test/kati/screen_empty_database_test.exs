@@ -727,6 +727,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # on a brand-new install. The board is still compared —
     # `Kati.ScreenDesignLiteralTest` installs `drawn_state/1` for exactly that.
     "42" => [],
+    # 43, 44, 47 and 48 → no board either: with no plan they draw the import
+    # card, and the boards are installed by `ScreenDesignLiteralTest` through
+    # `drawn_state/1`.
+    "43" => [],
+    "44" => [],
+    "47" => [],
+    "48" => [],
+    # 51 writes two columns on the active plan; with no plan it draws the
+    # import card. The board is installed by `ScreenDesignLiteralTest`.
+    "51" => [],
+    # 104 → no board either: with nothing stored it draws screen 105 — *No
+    # goals. Kati will still count everything* — instead of *38 / 52* and a pace
+    # sentence for goals nobody set. The board is installed by
+    # `Kati.ScreenDesignLiteralTest` through `drawn_state/1`.
+    "104" => [],
     # 143 → no board either (N52-A): no season means no rows, so board 143's
     # own six episodes have nothing left on this screen to be held to.
     "143" => [],
@@ -1337,6 +1352,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # everybody to fit one screen the design drew small would stop it catching
   # that. Named, with a number, so a page that shrinks further still fails.
   @small_empty_boards %{
+    # The meals family with no plan: the page's chrome, the page's own title and
+    # the import card's glyph, title, sentence and button. Seven or eight —
+    # `Kati.UI.MealsEmpty` is the page, and the floor says so.
+    "44" => 7,
+    "47" => 7,
+    "48" => 7,
+    "51" => 7,
     # 122 with nothing stored: the page's chrome, its own title and subtitle,
     # the hero's label and dash, the Recurring eyebrow and the one sentence
     # that offers My services. No months, no subscriptions, no suggestion —
@@ -1455,6 +1477,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # "0 notes · 0 books" line, the empty sentence, its one button and the back
     # label. Eight, and the card is what makes it a page rather than chrome.
     Kati.Screens.Notes => 8,
+    # The meals family with no plan is the import card: the header, the page's
+    # own title, the card's glyph, its title, its sentence and its button.
+    Kati.Screens.MealPlan => 7,
+    Kati.Screens.Nutrition => 7,
+    Kati.Screens.Shopping => 7,
     # Board 333's empty sheet is five strings and nothing else: the header, the
     # sentence, its second line, the field's placeholder and the pill. The
     # board drops the kept card here on purpose — *"it is inert here"* — so
@@ -2545,14 +2572,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> "Nothing cached yet" end},
       # 104 gates all three cards at once, as 66 does: either every goal on the
       # page is yours or every one is the drawing's.
-      {"104", Kati.Screens.Goals, &Kati.Screens.Goals.goals/0, &Kati.Screens.Goals.drawn_goals/0},
+      {"104", Kati.Screens.Goals, &Kati.Screens.Goals.drawn_goals/0,
+       &Kati.Screens.Goals.drawn_goals/0},
       # 106 writes rather than reads, and what it reads is the kind list, which
       # is a constant of the build. Its gate is 104's, because a sheet whose
       # types disagreed with the page that opened it would be the defect worth
       # catching.
-      {"51", Kati.Screens.MealReminders, &Kati.Screens.MealReminders.state/0,
-       &Kati.Screens.MealReminders.drawn_state/0},
-      {"106", Kati.Screens.NewGoal, &Kati.Screens.Goals.goals/0,
+      {"106", Kati.Screens.NewGoal, &Kati.Screens.Goals.drawn_goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
       # 124 and 125 both write to a store and read one value back — the
       # currency — which is `Mob.State` rather than the database and is
@@ -2623,7 +2649,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MoneyDay.drawn_rows/0},
       {"103", Kati.Screens.YearShare, &Kati.Screens.AlbumDetail.field/0,
        &Kati.Music.Sample.listen_field/0},
-      {"105", Kati.Screens.GoalsEmpty, &Kati.Screens.Goals.goals/0,
+      {"105", Kati.Screens.GoalsEmpty, &Kati.Screens.Goals.drawn_goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
       {"110", Kati.Screens.WeightStates, &Kati.Screens.Weight.entries/0,
        &Kati.Screens.Weight.drawn_entries/0},
@@ -2632,7 +2658,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # the drawing on both sides now that `Health.day/1` counts a real plan.
       {"113", Kati.Screens.HealthEmptyStates, &Kati.Screens.Health.drawn_day/0,
        &Kati.Screens.Health.drawn_day/0},
-      {"107", Kati.Screens.GoalStates, &Kati.Screens.Goals.goals/0,
+      {"107", Kati.Screens.GoalStates, &Kati.Screens.Goals.drawn_goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
       {"114", Kati.Screens.RetiredTile, &Kati.Screens.Health.drawn_day/0,
        &Kati.Screens.Health.drawn_day/0},
@@ -2640,22 +2666,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MealLibrary.drawn_meals/0},
       {"123", Kati.Screens.MoneyStates, &Kati.Screens.Money.months/0,
        &Kati.Screens.Money.drawn_months/0},
-      {"61", Kati.Screens.Stats, &Kati.Screens.Goals.goals/0, &Kati.Screens.Goals.drawn_goals/0},
+      {"61", Kati.Screens.Stats, &Kati.Screens.Goals.drawn_goals/0,
+       &Kati.Screens.Goals.drawn_goals/0},
       # The pictures, each gated on the pair it borrows rather than on a read of
       # its own — the same shape 120 already uses. 121 draws 44's week grid and
       # 127 draws 122's months.
-      {"121", Kati.Screens.WeekImage, fn -> Kati.Screens.MealPlan.plan(today) end,
-       &Kati.Screens.MealPlan.drawn_plan/0},
-      {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
-       &Kati.Screens.MealsToday.drawn_day/0},
-      {"44", Kati.Screens.MealPlan, fn -> Kati.Screens.MealPlan.plan(today) end,
+      {"121", Kati.Screens.WeekImage, &Kati.Screens.MealPlan.drawn_plan/0,
        &Kati.Screens.MealPlan.drawn_plan/0},
       {"45", Kati.Screens.Meal, fn -> Kati.Screens.Meal.meal(today) end,
        &Kati.Screens.Meal.drawn_meal/0},
-      {"47", Kati.Screens.Nutrition, fn -> Kati.Screens.Nutrition.figures(today) end,
-       &Kati.Screens.Nutrition.drawn_figures/0},
-      {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
-       &Kati.Meals.SampleShopping.list/0},
       # 54 is in this list mechanically rather than because anything falls back.
       # Its Currency row reads `Kati.Money.currency/0`, which answers "GBP" with
       # nothing stored — so a fresh device draws the line the board was captured
@@ -2716,6 +2735,24 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # installed by `Kati.ScreenDesignLiteralTest` to compare the frame.
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        Kati.Screens.Health.empty_day(today), &Kati.Screens.Health.drawn_day/0},
+      # 43, 44, 47 and 48 are views of one plan, and with no plan there is
+      # nothing to view: they answer `Kati.UI.MealsEmpty` rather than the
+      # drawing's *Cutting v3* week, which is what a fresh install used to read.
+      {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
+       Kati.Screens.MealsToday.empty_day(), &Kati.Screens.MealsToday.drawn_day/0},
+      {"44", Kati.Screens.MealPlan, fn -> Kati.Screens.MealPlan.plan(today) end,
+       Kati.Screens.MealPlan.empty_plan(), &Kati.Screens.MealPlan.drawn_plan/0},
+      {"47", Kati.Screens.Nutrition, fn -> Kati.Screens.Nutrition.figures(today) end,
+       Kati.Screens.Nutrition.empty_figures(), &Kati.Screens.Nutrition.drawn_figures/0},
+      {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
+       Kati.Screens.Shopping.empty_list(), &Kati.Meals.SampleShopping.list/0},
+      # 51 writes the plan's two reminder columns; with none it draws the card.
+      {"51", Kati.Screens.MealReminders, &Kati.Screens.MealReminders.state/0,
+       Kati.Screens.MealReminders.empty_state(), &Kati.Screens.MealReminders.drawn_state/0},
+      # 104 answers screen 105 with nothing stored, where it used to draw the
+      # board's three goals as the reader's own progress.
+      {"104", Kati.Screens.Goals, &Kati.Screens.Goals.goals/0, [],
+       &Kati.Screens.Goals.drawn_goals/0},
       {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
        Kati.Screens.YearShare.empty_share(), &Kati.Screens.YearShare.drawn_share/0},
       {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,

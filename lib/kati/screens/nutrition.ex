@@ -103,16 +103,42 @@ defmodule Kati.Screens.Nutrition do
   def load(socket) do
     figures = figures(Kati.Time.today())
 
+    # With no plan the read answers `empty_figures/0`, which carries the marker
+    # and nothing else — there are no windows to file, and reading `.periods`
+    # off it is what a KeyError looked like the first time round.
     Mob.Socket.assign(socket,
       period: "Week",
-      plan_line: figures.plan_line,
-      periods: figures.periods
+      empty?: Map.get(figures, :empty?, false),
+      plan_line: Map.get(figures, :plan_line),
+      periods: Map.get(figures, :periods, %{})
     )
   end
 
   @doc false
   def content(assigns) do
     period = assigns.period
+
+    if assigns.empty? do
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.Nutrition.back_gap()}
+          {Kati.UI.MealsEmpty.card(title: gettext("Nutrition"))}
+        </Column>
+      </Scroll>
+      """
+    else
+      content_with_period(assigns, period)
+    end
+  end
+
+  defp content_with_period(assigns, period) do
     data = Map.fetch!(assigns.periods, period)
 
     # The field names its own window in its own eyebrow, and the window is
@@ -146,6 +172,17 @@ defmodule Kati.Screens.Nutrition do
     """
   end
 
+  @doc "Board 47 installed as assigns, for the frame comparison."
+  @spec drawn_state(map()) :: map()
+  def drawn_state(assigns) do
+    figures = drawn_figures()
+    Map.merge(assigns, %{empty?: false, plan_line: figures.plan_line, periods: figures.periods})
+  end
+
+  @doc "The screen with no plan behind it — a marker, and the card `content/1` draws."
+  @spec empty_figures() :: map()
+  def empty_figures, do: %{empty?: true}
+
   @doc """
   Everything on this screen that comes off the database, decided once.
 
@@ -177,7 +214,7 @@ defmodule Kati.Screens.Nutrition do
         }
       }
     else
-      _ -> drawn_figures()
+      _ -> empty_figures()
     end
   end
 
@@ -1233,6 +1270,7 @@ defmodule Kati.Screens.Nutrition do
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "period_" <> key -> {:noreply, Mob.Socket.assign(socket, :period, key)}
+      "open_plan_import" -> {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
       _ -> {:noreply, socket}
     end
   end

@@ -88,10 +88,21 @@ defmodule Kati.Screens.MealReminders do
   @spec state() :: map()
   def state do
     case Kati.Notifications.Sources.Meals.active_plan() do
-      nil -> drawn_state()
+      nil -> empty_state()
       plan -> apply_plan(SampleReminders.reminders(), plan)
     end
   end
+
+  @doc """
+  The page with no plan to write to.
+
+  These seven controls write two columns on the active plan, and with no plan
+  there is nothing to write — the page used to answer the drawing's own values
+  under the drawing's own plan name instead. It answers the import card, like
+  the four meal screens beside it.
+  """
+  @spec empty_state() :: map()
+  def empty_state, do: %{empty?: true}
 
   defp apply_plan(r, plan) do
     %{
@@ -109,6 +120,9 @@ defmodule Kati.Screens.MealReminders do
   end
 
   @impl true
+  def handle_tap(:open_plan_import, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
+
   def handle_tap(:toggle_day_before, socket) do
     case Kati.Notifications.Sources.Meals.active_plan() do
       nil ->
@@ -144,6 +158,27 @@ defmodule Kati.Screens.MealReminders do
 
   @doc false
   def content(assigns) do
+    if Map.get(assigns.reminders, :empty?, false) do
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {SettingsList.chrome("more_horiz")}
+          {Kati.UI.MealsEmpty.card(title: gettext("Reminders"))}
+        </Column>
+      </Scroll>
+      """
+    else
+      content_with_reminders(assigns)
+    end
+  end
+
+  defp content_with_reminders(assigns) do
     r = assigns.reminders
 
     # The page's own two words, bound out here rather than written into the

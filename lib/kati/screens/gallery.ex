@@ -441,6 +441,10 @@ defmodule Kati.Screens.Gallery do
   # a real route in, and every scenario under it passing on the device. The
   # commit that retires it says which route was walked.
   @routed [
+    # 45 and 46 were here as finished and are not: 43 draws a meal card only
+    # when a plan is stored, so with none there is no door to a meal or to its
+    # swap. `Kati.AppReachabilityTest` caught it the day 43 started drawing the
+    # import card instead of the drawing's day.
     # Series → ⋯ → Show details. 5915c2a.
     "14",
     # Series → ⋯ → Show settings, which now carries the show it was opened
@@ -630,12 +634,9 @@ defmodule Kati.Screens.Gallery do
     # Meals today → the Week tile, or the calendar_view_week disc
     #   (meals_today.ex:1377,1382).
     "44",
-    # Meals today → any meal card on the day's timeline
-    #   (meals_today.ex:1220,1481).
-    "45",
-    # Meals today → a meal card's Swap button (meals_today.ex:1200,1419); also
-    #   Meal → the swap disc.
-    "46",
+    # 45 and 46 are NOT routed: 43 draws a meal card only when a plan is
+    # stored, so an empty phone has no door to either. `Kati.AppReachabilityTest`
+    # is what keeps that true, and this list is what the gallery reads.
     # Meals today → the Nutrition tile (meals_today.ex:1432).
     "47",
     # Meals today → the Shop tile (meals_today.ex:1386).

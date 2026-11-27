@@ -240,6 +240,18 @@ defmodule Kati.ScreenParamsSweepTest do
     # file, with conflicts and a merge, which is the page 120 was drawn as.
     # `%{}` is the right argument here, not a missing one.
     {Kati.Screens.Plans, :import_plan, Kati.Screens.PlanImport},
+    # ── The empty meals pages' *Import a plan* card.
+    #
+    # 43, 44, 47 and 48 draw `Kati.UI.MealsEmpty` when there is no plan, and its
+    # one control pushes 120 with no argument. 120's `:from` defaults to a file
+    # — conflicts, a merge and the page it was drawn as — which is the right
+    # arrival for a reader who has never imported anything. Same reason as the
+    # row above, from a different door.
+    {Kati.Screens.MealsToday, :open_plan_import, Kati.Screens.PlanImport},
+    {Kati.Screens.MealPlan, :open_plan_import, Kati.Screens.PlanImport},
+    {Kati.Screens.Nutrition, :open_plan_import, Kati.Screens.PlanImport},
+    {Kati.Screens.Shopping, :open_plan_import, Kati.Screens.PlanImport},
+    {Kati.Screens.MealReminders, :open_plan_import, Kati.Screens.PlanImport},
     # Board 260's ink action, and it hands nothing for the same reason screen
     # 03's empty card does one line up: the sheet's argument is a QUERY, and an
     # empty inbox has no word to search for. It is an invitation to type rather
@@ -340,7 +352,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # pushes `Kati.Screens.MealEdit.params_for(meal)`, which is the fix for
     # exactly the defect its own comment describes: *tap the third meal, edit
     # the first*.
-    {Kati.Screens.MealLibrary, :add, Kati.Screens.MealEdit},
+    {Kati.Screens.MealLibrary, :add, Kati.Screens.MealEdit}
 
     # ── Screen 43's `Swap`, ON THE DRAWN DAY, which is the only day this
     # sweep sees. Bare because the board has no slot, not because the screen
@@ -368,7 +380,9 @@ defmodule Kati.ScreenParamsSweepTest do
     # back to that. `Kati.MealSwapTest` drives that door directly, and
     # `Kati.MealsTodayWriteTest` drives the per-card tags. Moving it onto the
     # push would be changing the door screen 46 was built around.
-    {Kati.Screens.MealsToday, :swap, Kati.Screens.MealSwap}
+    # `:swap` left this list with the five meal cards: with no plan 43 draws the
+    # import card, so the door is not drawn at all. `Kati.MealSwapTest` drives
+    # the hand-over directly.
 
     # ── Screen 151's `Log by hand`, and why it is no longer here.
     #
@@ -457,24 +471,12 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.MealLibrary, :open_meal_4, Kati.Screens.MealEdit},
     {Kati.Screens.MealLibrary, :open_meal_5, Kati.Screens.MealEdit},
 
-    # ── Screen 43's five timeline cards.
+    # ── Screen 43's timeline cards are no longer listed.
     #
-    # `Kati.Screens.MealsToday.open_meal/2` finds the row back by rebuilding
-    # every row's own tag and pushes `Kati.Screens.Meal.params_for(meal)`. With
-    # no plan stored the day is `Kati.Meals.SampleToday`'s and no sample row has
-    # a `:slot_id`, which `Kati.Screens.MealsToday.tag/2` states in its own doc,
-    # so `Kati.Screens.Meal.params_for/1` answers `%{}`.
-    #
-    # `:swap` on the same screen is in `@bare_pushes` for a related reason and
-    # not the same one: these five carry an argument that is empty, and that
-    # one has no argument to carry. Both come off the same fixture, which is
-    # why one domain's rows will clear all six lines at once — and neither is
-    # fixable from the push.
-    {Kati.Screens.MealsToday, :meal_0, Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :meal_4, Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :meal_2, Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :meal_1, Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :meal_3, Kati.Screens.Meal},
+    # With no plan 43 draws the import card and no meal row at all, so the five
+    # `meal_*` doors stopped being drawn — and a backlog entry is only worth
+    # keeping while the door still exists. A planned day's cards carry a real
+    # `:slot_id`, which is what made them empty here in the first place.
 
     # ── Screen 118's `Add an ingredient` row and its five ingredient chevrons,
     # and this is the one that is empty for a borrowed reason.

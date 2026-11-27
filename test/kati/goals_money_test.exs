@@ -169,7 +169,9 @@ defmodule Kati.GoalsMoneyTest do
     test "a goal whose period has closed is not on the page" do
       a_goal!(%{starts_on: ~D[2020-01-01], ends_on: ~D[2020-12-31]})
 
-      assert Goals.goals() == Goals.drawn_goals()
+      # Nothing live, so nothing on the page — and no drawing standing in for
+      # it either: 104 answers screen 105 when `goals/0` is empty.
+      assert Goals.goals() == []
     end
 
     # `repeat writes through to every live goal` stood here and asserted the
@@ -180,8 +182,9 @@ defmodule Kati.GoalsMoneyTest do
     # SECOND row and asserts the first is untouched, which is the assertion the
     # old test could not have made.
 
-    test "with nothing stored the drawing renders, whole" do
-      assert Goals.goals() == Goals.drawn_goals()
+    test "with nothing stored the page is screen 105" do
+      assert Goals.goals() == []
+      assert text(tree(mount_screen(Goals))) =~ "No goals"
     end
   end
 

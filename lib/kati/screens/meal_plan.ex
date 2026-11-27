@@ -65,29 +65,54 @@ defmodule Kati.Screens.MealPlan do
   def content(assigns) do
     plan = assigns.plan
 
-    ~MOB"""
-    <Scroll>
-      <Column
-        fill_width={true}
-        padding_left={21}
-        padding_right={21}
-        padding_top={64}
-        padding_bottom={40}
-      >
-        {Kati.Screens.MealPlan.header()}
-        {Kati.Screens.MealPlan.title(plan)}
-        {Kati.Screens.MealPlan.segments()}
-        {Kati.Screens.MealPlan.matrix(plan)}
-        {UI.eyebrow(plan.day_line)}
-        {Kati.Screens.MealPlan.day_list(plan.day)}
-        {Kati.UI.SettingsList.note("swap_horiz", Kati.Screens.MealPlan.week_note())}
-        <Spacer size={18} />
-        {Kati.Screens.MealPlan.muted_eyebrow(gettext("Repeat rule"))}
-        {Kati.Screens.MealPlan.repeat_rule(plan.repeat_rule)}
-      </Column>
-    </Scroll>
-    """
+    if Map.get(plan, :empty?, false) do
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.MealPlan.header()}
+          {Kati.UI.MealsEmpty.card(title: gettext("Your week"))}
+        </Column>
+      </Scroll>
+      """
+    else
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.MealPlan.header()}
+          {Kati.Screens.MealPlan.title(plan)}
+          {Kati.Screens.MealPlan.segments()}
+          {Kati.Screens.MealPlan.matrix(plan)}
+          {UI.eyebrow(plan.day_line)}
+          {Kati.Screens.MealPlan.day_list(plan.day)}
+          {Kati.UI.SettingsList.note("swap_horiz", Kati.Screens.MealPlan.week_note())}
+          <Spacer size={18} />
+          {Kati.Screens.MealPlan.muted_eyebrow(gettext("Repeat rule"))}
+          {Kati.Screens.MealPlan.repeat_rule(plan.repeat_rule)}
+        </Column>
+      </Scroll>
+      """
+    end
   end
+
+  @doc "Board 44 installed as assigns, for the frame comparison."
+  @spec drawn_state(map()) :: map()
+  def drawn_state(assigns), do: Map.merge(assigns, %{plan: drawn_plan(), empty?: false})
+
+  @doc "The week with no plan behind it — a marker, and the card `content/1` draws."
+  @spec empty_plan() :: map()
+  def empty_plan, do: %{empty?: true}
 
   @doc """
   The week this screen draws: the active plan's, or the drawing's.
@@ -107,7 +132,7 @@ defmodule Kati.Screens.MealPlan do
          [_ | _] = slots <- plan_slots(row) do
       planned_week(row, slots, date)
     else
-      _ -> drawn_plan()
+      _ -> empty_plan()
     end
   end
 
@@ -882,6 +907,9 @@ defmodule Kati.Screens.MealPlan do
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @impl true
+  def handle_tap(:open_plan_import, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
+
   def handle_tap(:edit_plan, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
 

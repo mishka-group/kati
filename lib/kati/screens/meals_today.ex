@@ -78,28 +78,62 @@ defmodule Kati.Screens.MealsToday do
   def content(assigns) do
     day = assigns.day
 
-    ~MOB"""
-    <Scroll>
-      <Column
-        fill_width={true}
-        padding_left={21}
-        padding_right={21}
-        padding_top={64}
-        padding_bottom={40}
-      >
-        {Kati.Screens.MealsToday.header(assigns.menu?)}
-        {Kati.Screens.MealsToday.title(day)}
-        {Kati.Screens.MealsToday.week_strip(day.week)}
-        {Kati.Screens.MealsToday.tiles()}
-        {UI.eyebrow(day.intake_line)}
-        {Kati.Screens.MealsToday.macro_card(day)}
-        {Kati.Screens.MealsToday.timeline(day.meals)}
-        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Tomorrow — needs prep tonight")))}
-        {Kati.Screens.MealsToday.prep()}
-      </Column>
-    </Scroll>
-    """
+    if Map.get(day, :empty?, false) do
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.MealsToday.header(assigns.menu?)}
+          {Kati.UI.MealsEmpty.card(title: gettext("Today"))}
+          <Spacer size={18} />
+          {Kati.Screens.MealsToday.tiles()}
+        </Column>
+      </Scroll>
+      """
+    else
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.MealsToday.header(assigns.menu?)}
+          {Kati.Screens.MealsToday.title(day)}
+          {Kati.Screens.MealsToday.week_strip(day.week)}
+          {Kati.Screens.MealsToday.tiles()}
+          {UI.eyebrow(day.intake_line)}
+          {Kati.Screens.MealsToday.macro_card(day)}
+          {Kati.Screens.MealsToday.timeline(day.meals)}
+          {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Tomorrow — needs prep tonight")))}
+          {Kati.Screens.MealsToday.prep()}
+        </Column>
+      </Scroll>
+      """
+    end
   end
+
+  @doc "Board 43 installed as assigns, for the frame comparison."
+  @spec drawn_state(map()) :: map()
+  def drawn_state(assigns), do: Map.merge(assigns, %{day: drawn_day(), empty?: false})
+
+  @doc """
+  The day with no plan behind it: a marker, and the card `content/1` draws.
+
+  A device that has never been given a plan used to be handed the drawing's own
+  — *Cutting v3*, a miso salmon dinner and `1,480 kcal` — which is #91 on the
+  page whose whole job is counting what was eaten. The card names the one way a
+  plan arrives today.
+  """
+  @spec empty_day() :: map()
+  def empty_day, do: %{empty?: true}
 
   @doc """
   The day this screen draws: the active plan's own, or the drawing's.
@@ -125,7 +159,7 @@ defmodule Kati.Screens.MealsToday do
          true <- slots != %{} or logs != [] do
       planned_day(plan, date, slots, logs)
     else
-      _ -> drawn_day()
+      _ -> empty_day()
     end
   end
 
@@ -1446,6 +1480,9 @@ defmodule Kati.Screens.MealsToday do
   # the same `calendar_view_week` glyph, so they are one affordance drawn twice
   # and they go to one place.
   @impl true
+  def handle_tap(:open_plan_import, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
+
   def handle_tap(:open_meal, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
 

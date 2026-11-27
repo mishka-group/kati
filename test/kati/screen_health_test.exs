@@ -349,14 +349,14 @@ defmodule Kati.ScreenHealthTest do
       assert line_of(tree(mount_screen(Health)), @prefix) == "#{@prefix} plan · week 6"
     end
 
-    test "the Habits tile is still the drawing's, and that is the honest state" do
-      # There is no resource anywhere that records a habit being kept — see
-      # `Kati.Screens.Habits` — so this line has no source and stays the
-      # drawing's. When one lands, this assertion is what says so.
+    test "the Habits tile counts this device, not the drawing" do
+      # `Kati.Habits` is the resource, and this fixture has none: the tile says
+      # so rather than quoting the drawing's `4 active · 12-day best`. The same
+      # call is what the Habits page's own subtitle uses.
       tree = tree(mount_screen(Health))
-      habits = Enum.find(Sample.sections(), &(&1.icon == "bolt"))
 
-      assert find(tree, :text, text: habits.line) != nil
+      assert find(tree, :text, text: "Nothing kept yet") != nil
+      assert find(tree, :text, text: "4 active · 12-day best") == nil
     end
 
     test "renders a tree the native layer can draw" do

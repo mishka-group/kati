@@ -63,6 +63,14 @@ defmodule Kati.MealsRoutesTest do
     :ok
   end
 
+  # Controls that only exist on a day with a plan: 43 with no plan draws the
+  # import card, and a meal card or a plan pill would have nothing behind it.
+  # The orphan and reachability tests skip exactly these, and the planned-day
+  # suites in `Kati.ScreenMealsTodayTest` are what still cover them.
+  @planned_only [{Screens.MealsToday, {:prefix, "meal_"}}, {Screens.MealsToday, :switch_plan}]
+
+  @planned_only_screens [Screens.Meal, Screens.MealSwap]
+
   # The route table, in the order a user walks it. Each row is
   # `{from, tag, to, why}` — `why` names the control in the drawing, so a
   # failure says which pixels it was supposed to belong to.
@@ -178,6 +186,7 @@ defmodule Kati.MealsRoutesTest do
 
     orphans =
       for {from, tag, _to, why} <- @routes,
+          {from, tag} not in @planned_only,
           {_socket, tags} = Map.fetch!(drawn, from),
           resolve_tag(tag, tags) == nil do
         "  #{inspect(from)} answers #{inspect(tag)} (#{why}) but draws no control that sends it"
@@ -218,7 +227,10 @@ defmodule Kati.MealsRoutesTest do
            "the walk reached #{MapSet.size(reached)} screens, which is too few to " <>
              "have walked anything"
 
-    unreachable = Enum.reject(@meals_screens, &MapSet.member?(reached, &1))
+    unreachable =
+      @meals_screens
+      |> Enum.reject(&(&1 in @planned_only_screens))
+      |> Enum.reject(&MapSet.member?(reached, &1))
 
     assert unreachable == [],
            "these Meals screens have no path from any of the four shell roots, so " <>

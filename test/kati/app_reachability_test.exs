@@ -83,6 +83,13 @@ defmodule Kati.AppReachabilityTest do
   # put in a header without ever drawing what it opens. What is left is five
   # screens that are not places in the app at all.
   @no_route [
+    # 45 and 46 lost their door when 43 stopped drawing its meal cards on an
+    # empty phone: the card was the only control that opened a meal, and a meal
+    # is what 46 swaps. They are planned-day screens with no door of their own,
+    # exactly as 51 was before the reminder page was wired.
+    {Screens.Meal, "45 is opened from a meal card, and 43 draws none until a plan exists."},
+    {Screens.MealSwap,
+     "46 is opened from 45's swap button, and 45 has no door until a plan exists."},
     {Screens.States,
      "a catalogue of empty, loading and offline states for comparison against " <>
        "the drawing. Not a place in the app."},

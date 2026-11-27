@@ -101,14 +101,10 @@ defmodule Kati.PersianFontTest do
       {Kati.Screens.LanguagePick, "Picking فارسی flips the whole interface"},
       {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"},
       {Kati.Screens.Settings, "English · فارسی"},
-      {Kati.Screens.SearchSpec, "Typing ي finds ی."},
-      # Board 44's own note about board 60. The sentence names the other
-      # language BY name — *In فارسی the same grid starts on Saturday* — because
-      # the two grids are different weeks rather than one mirrored, and a reader
-      # who has seen the other needs telling once. Mostly Latin, so it keeps the
-      # Latin face. mishka-group/kati#103.
-      {Kati.Screens.MealPlan,
-       "The columns start on Monday. In فارسی the same grid starts on Saturday, from the right."}
+      {Kati.Screens.SearchSpec, "Typing ي finds ی."}
+      # Board 44's note about board 60 has gone with the board's own week: a
+      # device with no plan draws `Kati.UI.MealsEmpty` now, and the sentence
+      # naming فارسی survives only in the installed frame.
     ],
     fa: [
       {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"}

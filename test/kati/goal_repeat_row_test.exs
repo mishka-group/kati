@@ -201,36 +201,17 @@ defmodule Kati.GoalRepeatRowTest do
   end
 
   describe "with nothing stored" do
-    test "the page is the drawing, and the drawing's rows are tagged apart" do
+    # A device with no goals draws screen 105 — *No goals. Kati will still count
+    # everything* — since `Goals.goals/0` stopped answering the drawing's three.
+    # The drawn rows' switches were the old empty state's only real behaviour;
+    # they are covered where they still exist, in
+    # `Kati.ScreenEmptyDatabaseTest`'s board install.
+    test "the page is screen 105, not the drawing's three goals" do
       view = mount_screen(Goals)
-      tags = row_tags(view)
 
-      assert Goals.goals() == Goals.drawn_goals()
-      assert length(tags) == 3
-      assert Enum.uniq(tags) == tags
-      assert Enum.all?(tags, &is_atom/1)
-    end
-
-    test "a drawn row's switch moves and writes nothing" do
-      view = mount_screen(Goals)
-      [_first_tag, second_tag | _rest] = row_tags(view)
-
-      toggled = render_info(view, {:tap, second_tag})
-
-      # The switch moved, and only the second one.
-      assert [true, false, true] = Enum.map(assigns(toggled).goals, & &1.repeat)
-
-      # And a sample is not a row: nothing was created to carry the change.
-      assert Ash.read!(Goal) == []
-    end
-
-    test "a drawn row cannot be mistaken for a stored one" do
-      # The two namespaces are held apart on purpose: a device test that waits
-      # for `goal_repeat_drawn_2` is waiting for the empty state, and one that
-      # waits for `goal_repeat_<uuid>` is waiting for a goal.
-      for tag <- row_tags(mount_screen(Goals)) do
-        assert String.starts_with?(Atom.to_string(tag), "goal_repeat_drawn_")
-      end
+      assert row_tags(view) == []
+      assert assigns(view).goals == []
+      assert Enum.any?(text_nodes(view), &(&1 =~ "No goals"))
     end
   end
 

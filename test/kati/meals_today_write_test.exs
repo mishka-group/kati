@@ -257,19 +257,17 @@ defmodule Kati.MealsTodayWriteTest do
       assert {:push, Kati.Screens.MealSwap, _} = moved.__mob__.nav_action
     end
 
-    test "the drawn day keeps the bare tag and hands nothing over at all" do
-      drawn = Kati.Screens.MealsToday.drawn_day()
-      meal = Enum.find(drawn.meals, &(&1.state == :next))
-
-      assert Kati.Screens.MealsToday.tag("swap", meal) == :swap
-
+    test "with nothing planned there is no swap to hand over" do
+      # 43 draws the import card with no plan, so no meal card carries `:swap`.
+      # The bare tag still answers — `MealSwap` is handed nothing — and the page
+      # it pushes says it has no plan either.
       view = mount_screen(Kati.Screens.MealsToday)
-      assert assigns(view).day == drawn, "expected the drawing with nothing planned"
+      assert assigns(view).day == Kati.Screens.MealsToday.empty_day()
 
       {:noreply, moved} = Kati.Screens.MealsToday.handle_info({:tap, :swap}, view.socket)
 
       assert Kati.Screens.MealSwap.handed_over() == nil,
-             "a page drawing a board named a slot it does not have"
+             "a page with no plan named a slot it does not have"
 
       assert {:push, Kati.Screens.MealSwap, _} = moved.__mob__.nav_action
     end
@@ -462,9 +460,9 @@ defmodule Kati.MealsTodayWriteTest do
 
       assert Ash.read!(MealLog) == [], "an orphan log survived a slot that was gone"
 
-      # And with the plan now empty the page is honest again: the drawing,
-      # whole, rather than a blank timeline.
-      assert moved.assigns.day == Kati.Screens.MealsToday.drawn_day()
+      # And with the plan now empty the page is honest again: the import card,
+      # rather than the drawing's miso salmon.
+      assert moved.assigns.day == Kati.Screens.MealsToday.empty_day()
     end
 
     test "screen 45 named a slot that is gone draws the fixture and refuses its write" do
@@ -532,15 +530,15 @@ defmodule Kati.MealsTodayWriteTest do
       assert moved.assigns.day == assigns(view).day
     end
 
-    test "nothing planned is the drawing whole, and its Mark eaten writes nothing" do
+    test "nothing planned draws the import card, and Mark eaten writes nothing" do
       view = mount_screen(Kati.Screens.MealsToday)
 
-      assert assigns(view).day == Kati.Screens.MealsToday.drawn_day()
+      assert assigns(view).day == Kati.Screens.MealsToday.empty_day()
 
       {:noreply, moved} = Kati.Screens.MealsToday.handle_info({:tap, :mark_eaten}, view.socket)
 
       assert Ash.read!(MealLog) == []
-      assert moved.assigns.day == Kati.Screens.MealsToday.drawn_day()
+      assert moved.assigns.day == Kati.Screens.MealsToday.empty_day()
     end
   end
 

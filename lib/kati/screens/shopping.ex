@@ -133,9 +133,18 @@ defmodule Kati.Screens.Shopping do
          [_ | _] = items <- week_items(plan, monday) do
       shopping_list(items, monday)
     else
-      _ -> SampleShopping.list()
+      _ -> empty_list()
     end
   end
+
+  @doc "Board 48 installed as assigns, for the frame comparison."
+  @spec drawn_state(map()) :: map()
+  def drawn_state(assigns),
+    do: Map.merge(assigns, %{list: Map.put(SampleShopping.list(), :empty?, false)})
+
+  @doc "The list with no plan behind it — a marker, and the card `content/1` draws."
+  @spec empty_list() :: map()
+  def empty_list, do: %{empty?: true}
 
   defp shopping_list(items, monday) do
     count = length(items)
@@ -286,6 +295,28 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def content(assigns) do
     list = assigns.list
+
+    if Map.get(list, :empty?, false) do
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {SettingsList.chrome("more_horiz")}
+          {Kati.UI.MealsEmpty.card(title: gettext("Shopping"))}
+        </Column>
+      </Scroll>
+      """
+    else
+      content_with_list(list)
+    end
+  end
+
+  defp content_with_list(list) do
     subtitle = Kati.Screens.Shopping.subtitle(list.subtitle)
 
     ~MOB"""
@@ -968,6 +999,7 @@ defmodule Kati.Screens.Shopping do
   def handle_tap(tag, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
       "tick_" <> id -> {:noreply, Kati.Screens.Shopping.toggle(socket, id)}
+      "open_plan_import" -> {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
       _other -> {:noreply, socket}
     end
   end

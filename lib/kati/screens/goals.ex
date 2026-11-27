@@ -84,14 +84,17 @@ defmodule Kati.Screens.Goals do
 
   def load(socket), do: Mob.Socket.assign(socket, :goals, goals())
 
-  @doc "The live goals: what is stored, or the drawing's three."
+  @doc """
+  The goals this device has, and nothing when it has none.
+
+  It used to answer `drawn_goals/0` when the store was empty, and a brand-new
+  phone showed *38 / 52* and *on pace to finish 48 of 52 by 31 December* — a
+  progress bar for a goal nobody set. `content/1` draws screen 105's own empty
+  page when this answers `[]`; the drawing's three are still what the gates
+  compare against, through `drawn_goals/0` and `drawn_state/1`.
+  """
   @spec goals() :: [map()]
-  def goals do
-    case stored() do
-      [] -> drawn_goals()
-      goals -> Enum.map(goals, &shaped(&1, Kati.Time.today()))
-    end
-  end
+  def goals, do: Enum.map(stored(), &shaped(&1, Kati.Time.today()))
 
   @doc """
   The drawing's three, unconditionally.
@@ -301,25 +304,33 @@ defmodule Kati.Screens.Goals do
 
   @doc false
   def content(assigns) do
-    ~MOB"""
-    <Scroll>
-      <Column
-        fill_width={true}
-        padding_left={21}
-        padding_right={21}
-        padding_top={64}
-        padding_bottom={40}
-      >
-        {Kati.Screens.Goals.chrome()}
-        {SettingsList.title(gettext("Goals"), Kati.Screens.Goals.subtitle())}
-        {Kati.Screens.Goals.shamsi_note()}
-        {Kati.Screens.Goals.cards(assigns.goals)}
-        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Repeat")))}
-        {Kati.Screens.Goals.repeat_group(assigns.goals)}
-      </Column>
-    </Scroll>
-    """
+    if assigns.goals == [] do
+      Kati.Screens.GoalsEmpty.content(assigns)
+    else
+      ~MOB"""
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.Goals.chrome()}
+          {SettingsList.title(gettext("Goals"), Kati.Screens.Goals.subtitle())}
+          {Kati.Screens.Goals.shamsi_note()}
+          {Kati.Screens.Goals.cards(assigns.goals)}
+          {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Repeat")))}
+          {Kati.Screens.Goals.repeat_group(assigns.goals)}
+        </Column>
+      </Scroll>
+      """
+    end
   end
+
+  @doc "Board 104 installed as assigns, for the frame comparison."
+  @spec drawn_state(map()) :: map()
+  def drawn_state(assigns), do: Map.put(assigns, :goals, drawn_goals())
 
   @doc """
   The back-pill row, with the add disc on the right.

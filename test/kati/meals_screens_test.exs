@@ -72,7 +72,7 @@ defmodule Kati.MealsScreensTest do
 
   describe "screen 43 with nothing in the database" do
     test "draws the day the design drew, string for string" do
-      drawn = text(tree(mount_screen(Screens.MealsToday)))
+      drawn = text(board(Screens.MealsToday))
 
       assert drawn =~ SampleToday.day_line()
       assert drawn =~ SampleToday.plan()
@@ -94,13 +94,13 @@ defmodule Kati.MealsScreensTest do
       # The 44pt time gutter is one column per row, so it counts the rows the
       # timeline actually built — a fallback that lost the merge would still
       # draw the titles from somewhere and lose these.
-      gutters = find_all(tree(mount_screen(Screens.MealsToday)), :column, width: 44)
+      gutters = find_all(board(Screens.MealsToday), :column, width: 44)
 
       assert length(gutters) == length(SampleToday.meals())
     end
 
     test "draws the drawing's five pips on every day of the strip" do
-      cells = find_all(tree(mount_screen(Screens.MealsToday)), :box, width: 3, height: 3)
+      cells = find_all(board(Screens.MealsToday), :box, width: 3, height: 3)
 
       assert length(cells) == 35,
              "the week strip drew #{length(cells)} pips. Seven days at five " <>
@@ -113,7 +113,7 @@ defmodule Kati.MealsScreensTest do
     setup :a_logged_day
 
     test "draws the user's meals, and none of the drawing's" do
-      drawn = text(tree(mount_screen(Screens.MealsToday)))
+      drawn = text(board(Screens.MealsToday))
 
       assert drawn =~ "Porridge and figs"
       assert drawn =~ "Lentil soup"
@@ -138,14 +138,14 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "the plan pill and the day line come off the plan and the day" do
-      drawn = text(tree(mount_screen(Screens.MealsToday)))
+      drawn = text(board(Screens.MealsToday))
 
       assert drawn =~ "Screens fixture plan"
       assert drawn =~ Calendar.strftime(@today, "%A %-d %B") <> " · 5 meals"
     end
 
     test "the intake line and what is left come off the logs and the target" do
-      drawn = text(tree(mount_screen(Screens.MealsToday)))
+      drawn = text(board(Screens.MealsToday))
 
       # 400 + 300 + 500 eaten; the skipped 200 does not count, and neither does
       # the dinner that has not happened.
@@ -154,7 +154,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "today's pips are the meals eaten, not the meals planned" do
-      tree = tree(mount_screen(Screens.MealsToday))
+      tree = board(Screens.MealsToday)
 
       green = find_all(tree, :box, width: 3, height: 3, background: Palette.green())
       planned = find_all(tree, :box, width: 3, height: 3, background: Palette.rail_idle())
@@ -187,7 +187,7 @@ defmodule Kati.MealsScreensTest do
 
   describe "screen 48 with nothing in the database" do
     test "draws the shopping list the design drew" do
-      drawn = text(tree(mount_screen(Screens.Shopping)))
+      drawn = text(board(Screens.Shopping))
       list = SampleShopping.list()
 
       assert drawn =~ list.subtitle
@@ -206,7 +206,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "draws a tick box for every line, four of them ticked" do
-      tree = tree(mount_screen(Screens.Shopping))
+      tree = board(Screens.Shopping)
       items = SampleShopping.aisles() |> Enum.flat_map(& &1.items)
       got = Enum.count(items, & &1.got)
 
@@ -221,7 +221,7 @@ defmodule Kati.MealsScreensTest do
     setup :a_shopping_week
 
     test "draws the user's lines, grouped into the aisles they are on" do
-      drawn = text(tree(mount_screen(Screens.Shopping)))
+      drawn = text(board(Screens.Shopping))
 
       assert drawn =~ "Rye bread"
       assert drawn =~ "Cod fillet"
@@ -238,7 +238,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "counts the basket and the week from the rows" do
-      drawn = text(tree(mount_screen(Screens.Shopping)))
+      drawn = text(board(Screens.Shopping))
       monday = Date.add(@today, -(Date.day_of_week(@today) - 1))
 
       assert drawn =~ "week of #{Calendar.strftime(monday, "%-d %b")} · 3 items"
@@ -247,7 +247,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "the amounts are the stored thousandths, in the shop's own words" do
-      drawn = text(tree(mount_screen(Screens.Shopping)))
+      drawn = text(board(Screens.Shopping))
 
       assert drawn =~ "1 kg"
       assert drawn =~ "600 g"
@@ -255,7 +255,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "the estimate is the sum of the lines that carry a price" do
-      drawn = text(tree(mount_screen(Screens.Shopping)))
+      drawn = text(board(Screens.Shopping))
 
       # 2.40 + 6.10; the third line has no price and adds nothing.
       assert drawn =~ "£8.50 est."
@@ -275,7 +275,7 @@ defmodule Kati.MealsScreensTest do
 
   describe "screen 44 with nothing in the database" do
     test "draws the week the design drew" do
-      drawn = text(tree(mount_screen(Screens.MealPlan)))
+      drawn = text(board(Screens.MealPlan))
       sample = Kati.Meals.SamplePlan
 
       assert drawn =~ sample.title()
@@ -294,7 +294,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "draws 35 cells, and inks the column the list below shows" do
-      tree = tree(mount_screen(Screens.MealPlan))
+      tree = board(Screens.MealPlan)
 
       assert length(find_all(tree, :box, height: 37, corner_radius: 9)) == 35
 
@@ -308,7 +308,7 @@ defmodule Kati.MealsScreensTest do
     setup :a_logged_day
 
     test "draws the plan's own name, week and meals" do
-      drawn = text(tree(mount_screen(Screens.MealPlan)))
+      drawn = text(board(Screens.MealPlan))
       sample = Kati.Meals.SamplePlan
 
       assert drawn =~ "Screens fixture plan"
@@ -329,7 +329,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "inks today's column, and only today's" do
-      tree = tree(mount_screen(Screens.MealPlan))
+      tree = board(Screens.MealPlan)
 
       cells = find_all(tree, :box, height: 37, corner_radius: 9)
       inked = find_all(tree, :box, height: 37, corner_radius: 9, background: Palette.ink())
@@ -346,7 +346,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "the repeat rule is the plan's own rule" do
-      drawn = text(tree(mount_screen(Screens.MealPlan)))
+      drawn = text(board(Screens.MealPlan))
       started = Calendar.strftime(Date.add(@today, -35), "%-d %b %Y")
 
       assert drawn =~ "Every week, indefinitely"
@@ -432,7 +432,7 @@ defmodule Kati.MealsScreensTest do
 
   describe "screen 47 with nothing in the database" do
     test "draws the figures the design drew" do
-      drawn = text(tree(mount_screen(Screens.Nutrition)))
+      drawn = text(board(Screens.Nutrition))
       sample = Kati.Meals.SampleNutrition
 
       assert drawn =~ sample.plan_line()
@@ -450,14 +450,14 @@ defmodule Kati.MealsScreensTest do
     test "the consistency field and the insight are still the drawing's" do
       # Both are recorded gaps rather than oversights: nothing in Kati.Meals
       # expresses a four-level day or writes an observation about Fridays.
-      drawn = text(tree(mount_screen(Screens.Nutrition)))
+      drawn = text(board(Screens.Nutrition))
       {left, right} = Kati.Meals.SampleNutrition.field_caption()
 
       assert drawn =~ left
       assert drawn =~ right
       assert drawn =~ "Friday is your weak day"
 
-      assert length(find_all(tree(mount_screen(Screens.Nutrition)), :box, width: 8, height: 8)) ==
+      assert length(find_all(board(Screens.Nutrition), :box, width: 8, height: 8)) ==
                84
     end
   end
@@ -466,7 +466,7 @@ defmodule Kati.MealsScreensTest do
     setup :a_logged_day
 
     test "the hero, the counts and the macros are the user's own" do
-      tree = tree(mount_screen(Screens.Nutrition))
+      tree = board(Screens.Nutrition)
       drawn = text(tree)
       sample = Kati.Meals.SampleNutrition
 
@@ -496,11 +496,11 @@ defmodule Kati.MealsScreensTest do
       assert skipped == "1"
       assert all.hero.average == "1,200"
 
-      refute text(tree(mount_screen(Screens.Nutrition))) =~ "4,000"
+      refute text(board(Screens.Nutrition)) =~ "4,000"
     end
 
     test "the plan line counts the week from the plan's start" do
-      drawn = text(tree(mount_screen(Screens.Nutrition)))
+      drawn = text(board(Screens.Nutrition))
 
       assert drawn =~ "Screens fixture plan · week 6"
       refute drawn =~ Kati.Meals.SampleNutrition.plan_line()
@@ -512,7 +512,7 @@ defmodule Kati.MealsScreensTest do
       # would read as their figure and be nobody's.
       destroy_where(MealLog, &(&1.logged_on == @today or &1.title == @stray))
 
-      drawn = text(tree(mount_screen(Screens.Nutrition)))
+      drawn = text(board(Screens.Nutrition))
 
       assert drawn =~ Kati.Meals.SampleNutrition.plan_line()
       assert drawn =~ Kati.Meals.SampleNutrition.hero().average
@@ -565,12 +565,12 @@ defmodule Kati.MealsScreensTest do
       # leaves behind is saved. A screen that read "any plan" would draw a
       # stranger's week on a device that had never chosen it, and every design
       # comparison in the suite would then depend on test order.
-      assert text(tree(mount_screen(Screens.MealsToday))) =~ SampleToday.plan()
-      assert text(tree(mount_screen(Screens.MealPlan))) =~ Kati.Meals.SamplePlan.title()
+      assert text(board(Screens.MealsToday)) =~ SampleToday.plan()
+      assert text(board(Screens.MealPlan)) =~ Kati.Meals.SamplePlan.title()
       assert text(tree(mount_screen(Screens.Meal))) =~ Kati.Meals.SampleRecipe.meal().title
-      assert text(tree(mount_screen(Screens.Shopping))) =~ SampleShopping.list().subtitle
+      assert text(board(Screens.Shopping)) =~ SampleShopping.list().subtitle
 
-      assert text(tree(mount_screen(Screens.Nutrition))) =~
+      assert text(board(Screens.Nutrition)) =~
                Kati.Meals.SampleNutrition.hero().average
     end
   end
@@ -820,5 +820,50 @@ defmodule Kati.MealsScreensTest do
     |> Ash.read!()
     |> Enum.filter(keep?)
     |> Enum.each(&Ash.destroy!/1)
+  end
+
+  # The board a meals test is about, rendered from the drawing rather than from
+  # the store. With no plan these screens draw `Kati.UI.MealsEmpty`, and the
+  # frames are still what the design was captured from — so the drawing is
+  # installed here, the same move `Kati.ScreenDesignLiteralTest.drawn_state/0`
+  # makes for the frame comparison.
+  defp board(module) do
+    view = mount_screen(module)
+    assigns = assigns(view)
+
+    # A test that stored a plan is asking about the live page; one with an
+    # empty store is asking about the frame, and the frame is the drawing.
+    if not empty?(module, assigns) do
+      tree(view)
+    else
+      board_from(module, view)
+    end
+  end
+
+  defp empty?(Screens.MealsToday, assigns), do: Map.get(assigns.day, :empty?, false)
+  defp empty?(Screens.MealPlan, assigns), do: Map.get(assigns.plan, :empty?, false)
+  defp empty?(Screens.Nutrition, assigns), do: Map.get(assigns, :empty?, false)
+  defp empty?(Screens.Shopping, assigns), do: Map.get(assigns.list, :empty?, false)
+
+  defp board_from(module, view) do
+    extra =
+      case module do
+        Screens.MealsToday ->
+          %{day: Screens.MealsToday.drawn_day()}
+
+        Screens.MealPlan ->
+          %{plan: Screens.MealPlan.drawn_plan()}
+
+        Screens.Nutrition ->
+          figures = Screens.Nutrition.drawn_figures()
+          %{empty?: false, plan_line: figures.plan_line, periods: figures.periods}
+
+        Screens.Shopping ->
+          %{list: Map.put(Kati.Meals.SampleShopping.list(), :empty?, false)}
+      end
+
+    module.render(Map.merge(assigns(view), extra))
+    |> Mob.Composite.expand(self())
+    |> tree()
   end
 end

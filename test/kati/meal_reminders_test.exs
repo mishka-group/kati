@@ -45,14 +45,19 @@ defmodule Kati.MealRemindersTest do
     assert Ash.get!(MealPlan, plan.id).reminders_enabled == false
   end
 
-  test "with no plan the page draws, and a tap writes nothing" do
+  test "with no plan the page offers the importer, and a tap writes nothing" do
     delete_rows!()
 
     view = mount_screen(MealReminders)
-    refute Map.has_key?(assigns(view).reminders.day_before, :tag)
+    assert assigns(view).reminders == Kati.Screens.MealReminders.empty_state()
 
+    # The switches belong to a plan; the card is what a device without one gets,
+    # and its one control goes to the importer rather than writing anything.
     view = render_info(view, {:tap, :toggle_day_before})
-    assert Ash.read!(MealPlan) == []
+
+    # Scoped to this file's own plans: the suite stores plans of its own, and
+    # `== []` was asserting about those too.
+    assert Enum.all?(Ash.read!(MealPlan), &(not String.starts_with?(&1.name, @prefix)))
     _ = view
   end
 

@@ -478,7 +478,7 @@ defmodule Kati.Screens.Health do
   defp sections_for(plan, date) do
     Enum.map(Sample.sections(), fn
       %{icon: "restaurant"} = tile -> %{tile | line: plan_line(plan, date)}
-      tile -> tile
+      tile -> honest_section(tile)
     end)
   end
 
@@ -501,6 +501,26 @@ defmodule Kati.Screens.Health do
 
       grams ->
         %{tile | line: Kati.Health.Reading.display(grams, Kati.Health.unit()), on?: true}
+    end
+  end
+
+  # The medication tile used to keep the drawing's `4 doses today` on every
+  # phone that had a plan, whatever was in the cabinet. It counts the doses the
+  # medication page counts, and says `Not set up` when there is nothing there.
+  defp honest_section(%{id: :medication} = tile) do
+    case Kati.Notifications.Sources.Health.active() do
+      [] ->
+        %{tile | line: gettext("Not set up"), on?: false}
+
+      _medications ->
+        doses = length(Kati.Screens.Medication.doses())
+
+        %{
+          tile
+          | line:
+              ngettext("%{n} dose today", "%{n} doses today", doses, n: Kati.Locale.number(doses)),
+            on?: true
+        }
     end
   end
 

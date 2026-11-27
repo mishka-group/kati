@@ -1990,6 +1990,24 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 42 counts the day from `Kati.Meals` now; with no plan it answers an
       # empty day. The board is installed here so the frame is still compared.
       {"42", Kati.Screens.Health, &Kati.Screens.Health.drawn_state/1},
+      # 104 draws screen 105 when nothing is stored; the board is installed
+      # here so the frame is still compared.
+      {"104", Kati.Screens.Goals, &Kati.Screens.Goals.drawn_state/1},
+      {"108", Kati.Screens.Goals, &Kati.Screens.Goals.drawn_state/1},
+      # 43, 44, 47 and 48 draw the import card when there is no plan; their
+      # boards are installed here so the frames are still compared.
+      {"43", Kati.Screens.MealsToday, &Kati.Screens.MealsToday.drawn_state/1},
+      # 59 is 43 under `:fa`, the same page in the other script.
+      {"59", Kati.Screens.MealsToday, &Kati.Screens.MealsToday.drawn_state/1},
+      {"44", Kati.Screens.MealPlan, &Kati.Screens.MealPlan.drawn_state/1},
+      # 60 and 108 are those two pages under `:fa`.
+      {"60", Kati.Screens.MealPlan, &Kati.Screens.MealPlan.drawn_state/1},
+      {"47", Kati.Screens.Nutrition, &Kati.Screens.Nutrition.drawn_state/1},
+      {"48", Kati.Screens.Shopping, &Kati.Screens.Shopping.drawn_state/1},
+      # 51's drawn state is a bare map, not an assigns transform, and with no
+      # plan the page draws the import card — so the board is installed here.
+      {"51", Kati.Screens.MealReminders,
+       fn assigns -> Map.put(assigns, :reminders, Kati.Screens.MealReminders.drawn_state()) end},
       {"22", Kati.Screens.Habits, &Kati.Screens.Habits.drawn_state/1},
       # 122's recurring card reads the services somebody pays for now. The board
       # is still compared with itself, by installing the drawing's four — the

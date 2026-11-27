@@ -136,6 +136,16 @@ defmodule Kati.Screens.Calendar do
     {:noreply, Kati.Screens.Calendar.browse(socket, Kati.Screens.Calendar.week_turn(page))}
   end
 
+  # The platform's answer to the Allow button.
+  #
+  # `load/1` re-reads the calendar permission and the device's events, so the
+  # *Kati cannot see your calendar* card goes away and the day fills in. Without
+  # this clause nothing reloaded: the answer arrived, no one listened, and the
+  # granted permission looked exactly like a button that did nothing — the card
+  # stayed until the app was restarted.
+  def handle_info({:permission, :calendar, _result}, socket),
+    do: {:noreply, Kati.Screens.Calendar.load(socket)}
+
   def handle_info(message, socket), do: super(message, socket)
 
   @impl true

@@ -370,7 +370,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Meal, :save},
     {Kati.Screens.MealSwap, :swap_once},
     {Kati.Screens.MealSwap, :swap_forever},
-    {Kati.Screens.MealsToday, :mark_eaten},
     # (The comment that stood here described screen 05's **Mark all** as having
     # joined this group "the round it was wired", and the audit
     # pointed out that it was orphaned: the control had no tap at all, so the
@@ -863,7 +862,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Books, :open_books},
     {Kati.Screens.Music, :segment_music},
     {Kati.Screens.MealsDay, :filter_All},
-    {Kati.Screens.Nutrition, :period_Week},
     {Kati.Screens.ReleaseWatcher, :"cadence_Every 6h"},
     {Kati.Screens.Search, :filter_all},
     # Board 167's resting sort, and it is an artefact of how this sweep walks
@@ -909,15 +907,15 @@ defmodule Kati.ScreenTapSweepTest do
     # dead. Struck off as this list's own header asks.)
     {Kati.Screens.Language, :add_language},
     # Screen 43's **Done prepping**. `Kati.Meals.Recipe` stores a method, a
-    # duration and an oven temperature, and nothing anywhere records that a
-    # prep was DONE — screen 43's own moduledoc says the card stays on
-    # `Kati.Meals.SampleToday.prep/0` rather than being faked for exactly that
-    # reason. The button is drawn because the board draws it; it marks nothing
-    # because there is no column to mark, and inventing one to quiet a sweep is
-    # what this list exists to prevent.
-    {Kati.Screens.MealsToday, :done_prepping},
     {Kati.Screens.Meal, :more},
-    {Kati.Screens.Nutrition, :share}
+    # Screen 105's counted rows. They name what Kati counts when no goal is set
+    # — *34 books*, *84 films*, *418 albums* — and the design draws them as
+    # evidence rather than as doors; the section they name is one dock tap away,
+    # and a row here that opened one would be the page's argument turning into a
+    # menu.
+    {Kati.Screens.Goals, :open_albums},
+    {Kati.Screens.Goals, :open_books},
+    {Kati.Screens.Goals, :open_films}
     # (`{Kati.Screens.Rating, :add_tag}` was here, filed under Backlog as *a
     # sheet that never opens*. It was struck off, and there is
     # still no sheet: a tag is one short word, so the field opens under the
