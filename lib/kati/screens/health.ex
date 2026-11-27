@@ -88,6 +88,13 @@ defmodule Kati.Screens.Health do
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :today, day(Kati.Time.today()))
 
+  # Every tile here is a door to a page that writes — Sleep, Workouts, Meals —
+  # and the tile's line is the answer. A popped-to screen never re-mounts
+  # (`Kati.Screens.Resume`), so without this the Sleep tile said `7h 0m` after
+  # a night was saved, which is exactly how it was found on the phone.
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
   @doc false
   def content(assigns) do
     today = assigns.today
@@ -524,6 +531,25 @@ defmodule Kati.Screens.Health do
     end
   end
 
+  # A tile that switches on needs a dot: `tile/1` reads `section.dot` for the
+  # filled state, and the two outline tiles never carried one. It is the same
+  # green the Habits tile uses for "there is something behind this".
+  #
+  # `Map.put/3` and not `%{tile | …}`: the outline tiles carry no `:dot` key at
+  # all, and an update syntax over a key that is not there raises `KeyError`.
+  # Found on the phone — the tile crash the dot was added to fix came back as a
+  # different crash in the same function, and every tap on the Stats row that
+  # opens Health died in `day/1` with the page never appearing.
+  defp honest_section(%{id: :sleep} = tile) do
+    line = Kati.Screens.Sleep.line()
+    Map.put(%{tile | line: line, on?: line != gettext("Not set up")}, :dot, Palette.green())
+  end
+
+  defp honest_section(%{id: :workouts} = tile) do
+    line = Kati.Screens.Workouts.line()
+    Map.put(%{tile | line: line, on?: line != gettext("Not set up")}, :dot, Palette.green())
+  end
+
   defp honest_section(tile), do: %{tile | line: gettext("Not set up"), on?: false}
 
   defp latest_weight do
@@ -616,6 +642,7 @@ defmodule Kati.Screens.Health do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
+            text_align="start"
             letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
             max_lines={1}
@@ -1167,6 +1194,8 @@ defmodule Kati.Screens.Health do
   defp base_tag("Habits"), do: :open_habits
   defp base_tag("Weight"), do: :open_weight
   defp base_tag("Medication"), do: :open_medication
+  defp base_tag("Sleep"), do: :open_sleep
+  defp base_tag("Workouts"), do: :open_workouts
 
   # Sleep and Workouts are still unbuilt, and now they say so out loud: screen
   # 114 is the explainer behind a tile that reads `Not set up`, which is a
@@ -1217,8 +1246,16 @@ defmodule Kati.Screens.Health do
   it — it lists exactly the sections that are not built — so it is a predicate
   rather than an accident of the tap map.
   """
-  @spec built?(String.t()) :: boolean()
-  def built?(name), do: name in ["Meals", "Habits", "Weight", "Medication"]
+  @spec built?(String.t() | atom()) :: boolean()
+  def built?(name) when is_binary(name),
+    do: name in ["Meals", "Habits", "Weight", "Medication", "Sleep", "Workouts"]
+
+  # The drawn name is translated, so screen 114 asks with the section itself —
+  # see `section_key/1` for the defect the name key was.
+  def built?(%{id: id}), do: built?(id)
+
+  def built?(id) when is_atom(id),
+    do: id in [:meals, :habits, :weight, :medication, :sleep, :workouts]
 
   @doc false
   def tile(%{on?: true} = section) do
@@ -1331,6 +1368,20 @@ defmodule Kati.Screens.Health do
 
   defp tile_key(section), do: section.name
 
+  @doc """
+  What the grid calls a section: the English key its tag and sheet are built
+  from, whatever script its `name` is drawn in.
+
+  `sample.sections()` has translated its names since mishka-group/kati#103, so
+  a lookup keyed on the drawn name stopped matching in Persian — the grid
+  looked for `"Sleep"` and was handed **خواب**. Everything that used a name as
+  a key — `built?/1`, screen 114's list and subject, the `why`/`instead` copy —
+  asks this instead. The tag is unchanged in both scripts because the key is
+  the English one.
+  """
+  @spec section_key(map()) :: String.t()
+  def section_key(section), do: tile_key(section)
+
   # `Kati.Locale.leading/1` on the one real paragraph the screen draws.
   # Vazirmatn's metrics are not Plus Jakarta's — its ascenders carry the marks
   # that sit above the line — so 1.55 measured against the Latin board sets the
@@ -1435,6 +1486,12 @@ defmodule Kati.Screens.Health do
   # about that section rather than about the one it was drawn for.
   #
   # Below the named clauses, above the catch-all.
+  def handle_tap(:open_sleep, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Sleep)}
+
+  def handle_tap(:open_workouts, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Workouts)}
+
   def handle_tap(tag, socket) when is_atom(tag) do
     case retired_section(tag) do
       nil ->

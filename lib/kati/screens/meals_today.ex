@@ -74,6 +74,16 @@ defmodule Kati.Screens.MealsToday do
   def load(socket),
     do: Mob.Socket.assign(socket, day: day(Kati.Time.today()), menu?: false)
 
+  # Both forms on this page write and pop: *Start a plan* and *Add a meal*. A
+  # popped-to screen never re-mounts (see `Kati.Screens.Resume`), so without
+  # this the hero still says what the empty store said until the reader leaves
+  # the stack. `menu?` is the reader's own toggle and is kept.
+  @impl true
+  def handle_kati(:resumed, _payload, socket) do
+    reloaded = load(socket)
+    {:noreply, Mob.Socket.assign(reloaded, :menu?, socket.assigns.menu?)}
+  end
+
   @doc false
   def content(assigns) do
     day = assigns.day
@@ -112,12 +122,64 @@ defmodule Kati.Screens.MealsToday do
           {UI.eyebrow(day.intake_line)}
           {Kati.Screens.MealsToday.macro_card(day)}
           {Kati.Screens.MealsToday.timeline(day.meals)}
-          {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Tomorrow — needs prep tonight")))}
-          {Kati.Screens.MealsToday.prep()}
+          {Kati.Screens.MealsToday.add_meal_row()}
+          {Kati.Screens.MealsToday.tomorrow_block(day)}
         </Column>
       </Scroll>
       """
     end
+  end
+
+  @doc "The one control a plan with an empty day needs: log what was eaten."
+  def add_meal_row do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={6} />
+      {Kati.Components.MishkaPill.pill(
+        id: "add_meal",
+        label: gettext("Add a meal"),
+        background: Palette.paper(),
+        color: :on_surface,
+        corner_radius: 15,
+        height: 34,
+        padding: 0,
+        padding_left: 16,
+        padding_right: 16,
+        text_size: 12.5,
+        font_weight: :semibold,
+        align: :center,
+        on_tap: {self(), :add_meal}
+      )}
+    </Column>
+    """
+  end
+
+  @doc """
+  The tomorrow block: the drawing's own card, or the plan's count, or nothing.
+
+  With no plan the page already says so; with a plan and nothing tomorrow there
+  is no card, rather than the drawing's *Soak the oats*.
+  """
+  def tomorrow_block(%{tomorrow: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def tomorrow_block(%{tomorrow: %{sample?: true}}) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Tomorrow — needs prep tonight")))}
+      {Kati.Screens.MealsToday.prep()}
+    </Column>
+    """
+  end
+
+  def tomorrow_block(%{tomorrow: %{meals: n}}) do
+    assigns = %{line: gettext("%{count} meals planned", count: Kati.Locale.number(n))}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Tomorrow")))}
+      <Text text={@line} text_size={13} text_color={Palette.sub()} />
+    </Column>
+    """
   end
 
   @doc "Board 43 installed as assigns, for the frame comparison."
@@ -155,8 +217,7 @@ defmodule Kati.Screens.MealsToday do
   def day(date) do
     with plan when not is_nil(plan) <- active_plan(),
          slots = plan_slots(plan),
-         logs = logs_on(date),
-         true <- slots != %{} or logs != [] do
+         logs = logs_on(date) do
       planned_day(plan, date, slots, logs)
     else
       _ -> empty_day()
@@ -179,7 +240,8 @@ defmodule Kati.Screens.MealsToday do
       intake_line: Sample.intake_line(),
       macros: Sample.macros(),
       remaining: Sample.remaining(),
-      meals: Sample.meals()
+      meals: Sample.meals(),
+      tomorrow: %{sample?: true}
     }
   end
 
@@ -195,8 +257,21 @@ defmodule Kati.Screens.MealsToday do
       intake_line: intake_line(intake.kcal, target),
       macros: macro_split(intake),
       remaining: remaining(intake.kcal, target),
-      meals: meals
+      meals: meals,
+      tomorrow: tomorrow(slots, date)
     }
+  end
+
+  # *Tomorrow — needs prep tonight* was the drawing's card on every phone. It
+  # counts the plan's own slots for tomorrow now, and there is no prep flag to
+  # count, so the line says what it knows: how many meals are planned.
+  defp tomorrow(slots, date) do
+    day = date |> Date.add(1) |> Date.day_of_week()
+
+    case Enum.count(Map.get(slots, day, []), &(&1.state == :planned)) do
+      0 -> nil
+      n -> %{meals: n}
+    end
   end
 
   # The day in clock order: the plan's slots for this weekday, with a log laid
@@ -325,19 +400,35 @@ defmodule Kati.Screens.MealsToday do
   # eaten, and the skipped 16:00 and the unstarted 19:30 are both still hollow.
   defp week(date, slots, logs) do
     eaten = Enum.count(logs, &(&1.state == :eaten))
-    monday = Date.add(date, -(Date.day_of_week(date) - 1))
+    # Monday in English and Saturday in Persian, the app's one answer to where
+    # a week begins — the same function screens 02 and 22 ask.
+    start = Kati.Screens.Stats.week_start_on(date)
 
     Enum.map(0..6, fn offset ->
-      on = Date.add(monday, offset)
+      on = Date.add(start, offset)
       day_slots = Map.get(slots, Date.day_of_week(on), [])
 
       %{
-        dow: Calendar.strftime(on, "%a"),
-        day: Calendar.strftime(on, "%-d"),
+        dow: weekday_label(on),
+        # `%-d` is the Gregorian number in Latin digits — board 56's strip ran
+        # 16 17 18 where the board draws ۲۴ ۲۵ ۲۶. `day_of_month/1` answers the
+        # reader's own calendar and digits.
+        day: Kati.Locale.day_of_month(on),
         today?: on == date,
         dots: dots(day_slots, on == date, eaten)
       }
     end)
+  end
+
+  # The design's strip labels a day `Mon`; Persian's are single letters by
+  # nature, and `Kati.Locale.weekday_initial/1` is what every other seven-column
+  # axis in the app draws (ش ی د س چ پ ج).
+  defp weekday_label(date) do
+    if Kati.Locale.direction(Kati.Locale.current()) == :rtl do
+      Kati.Locale.weekday_initial(date)
+    else
+      Calendar.strftime(date, "%a")
+    end
   end
 
   defp dots(slots, true, eaten) do
@@ -354,8 +445,24 @@ defmodule Kati.Screens.MealsToday do
       List.duplicate(Palette.star_empty(), length(slots) - planned)
   end
 
-  defp day_line(date, 1), do: Calendar.strftime(date, "%A %-d %B") <> " · 1 meal"
-  defp day_line(date, count), do: Calendar.strftime(date, "%A %-d %B") <> " · #{count} meals"
+  # The day line is a sentence, so both halves go through the reader's own
+  # script: `Calendar.strftime/2`'s `%A %-d %B` is English-only and said
+  # "Friday 27 November" over a Persian week grid, and `5 meals` was Latin
+  # digits inside a Persian sentence. `Kati.Locale.date/2` answers the Shamsi
+  # date in :fa and the same Gregorian one in :en.
+  defp day_line(date, 1),
+    do:
+      gettext("%{date} · %{count} meal",
+        date: Kati.Locale.date(date, :full),
+        count: Kati.Locale.number(1)
+      )
+
+  defp day_line(date, count) do
+    gettext("%{date} · %{count} meals",
+      date: Kati.Locale.date(date, :full),
+      count: Kati.Locale.number(count)
+    )
+  end
 
   defp intake_line(kcal, 0),
     do: gettext("Today · %{eaten} kcal", eaten: Kati.Locale.number(group(kcal)))
@@ -368,7 +475,12 @@ defmodule Kati.Screens.MealsToday do
       )
 
   defp remaining(_kcal, 0), do: ""
-  defp remaining(kcal, target), do: "#{group(max(target - kcal, 0))} kcal left"
+
+  defp remaining(kcal, target),
+    do:
+      gettext("%{count} kcal left",
+        count: Kati.Locale.number(group(max(target - kcal, 0)))
+      )
 
   # The drawing declares 31/44/25 rather than deriving it, and says so. What is
   # derived here is the same three shares from the same three macros, by the
@@ -382,9 +494,9 @@ defmodule Kati.Screens.MealsToday do
     total = protein + carbs + fat
 
     [
-      {"Protein", share(protein, total), Palette.ink()},
-      {"Carbs", share(carbs, total), Palette.bronze()},
-      {"Fat", share(fat, total), Palette.bar_gold()}
+      {gettext("Protein"), share(protein, total), Palette.ink()},
+      {gettext("Carbs"), share(carbs, total), Palette.bronze()},
+      {gettext("Fat"), share(fat, total), Palette.bar_gold()}
     ]
   end
 
@@ -524,6 +636,7 @@ defmodule Kati.Screens.MealsToday do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
+            text_align="start"
             letter_spacing={-0.03}
             text_color={:on_surface}
           />
@@ -1036,7 +1149,7 @@ defmodule Kati.Screens.MealsToday do
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
-          text={Kati.UI.eyebrow_label(meal.slot)}
+          text={Kati.UI.eyebrow_label(Kati.Meals.Slot.label(meal.slot))}
           font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.14}
@@ -1101,7 +1214,7 @@ defmodule Kati.Screens.MealsToday do
     >
       <Column weight={1.0}>
         <Text
-          text={Kati.UI.eyebrow_label(meal.slot)}
+          text={Kati.UI.eyebrow_label(Kati.Meals.Slot.label(meal.slot))}
           font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.14}
@@ -1164,7 +1277,7 @@ defmodule Kati.Screens.MealsToday do
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text={Kati.UI.eyebrow_label(meal.slot)}
+            text={Kati.UI.eyebrow_label(Kati.Meals.Slot.label(meal.slot))}
             font_family={Kati.Locale.mono_face()}
             text_size={9.5}
             letter_spacing={0.14}
@@ -1480,6 +1593,12 @@ defmodule Kati.Screens.MealsToday do
   # the same `calendar_view_week` glyph, so they are one affordance drawn twice
   # and they go to one place.
   @impl true
+  def handle_tap(:add_meal, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogMeal)}
+
+  def handle_tap(:start_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NewPlan)}
+
   def handle_tap(:open_plan_import, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
 

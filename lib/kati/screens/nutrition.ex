@@ -204,7 +204,7 @@ defmodule Kati.Screens.Nutrition do
   @spec figures(Date.t()) :: %{plan_line: String.t(), periods: %{String.t() => map()}}
   def figures(date) do
     with plan when not is_nil(plan) <- active_plan(),
-         [_ | _] = logs <- plan_logs(plan, Date.add(date, -83), date) do
+         logs <- plan_logs(plan, Date.add(date, -83), date) do
       %{
         plan_line: plan.name <> week_of(plan, date),
         periods: %{
@@ -647,6 +647,7 @@ defmodule Kati.Screens.Nutrition do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
+            text_align="start"
             letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
             max_lines={1}
@@ -1271,6 +1272,7 @@ defmodule Kati.Screens.Nutrition do
     case Atom.to_string(tag) do
       "period_" <> key -> {:noreply, Mob.Socket.assign(socket, :period, key)}
       "open_plan_import" -> {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
+      "start_plan" -> {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NewPlan)}
       _ -> {:noreply, socket}
     end
   end

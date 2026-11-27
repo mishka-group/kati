@@ -283,6 +283,18 @@ defmodule Kati.ScreenHealthTest do
       assert line_of(tree, "Cutting v3") == nil, "the drawing's plan name is on the tile"
     end
 
+    test "the Sleep and Workouts tiles carry the dot the filled tile draws" do
+      # Found on the phone: the outline tiles carry no `:dot` key, and the
+      # clauses that read the two pages wrote it with `%{tile | dot: …}`, which
+      # raises KeyError on a key that is not there. Every tap on the Stats row
+      # that opens this page died in `day/1` and the page never appeared.
+      sections = Health.empty_day(@today).sections
+
+      for id <- [:sleep, :workouts] do
+        assert %{dot: 0xFF4E9A73} = Enum.find(sections, &(&1.id == id))
+      end
+    end
+
     test "renders a tree the native layer can draw" do
       assert_renderable(mount_screen(Health))
     end

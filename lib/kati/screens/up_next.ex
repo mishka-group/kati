@@ -964,6 +964,7 @@ defmodule Kati.Screens.UpNext do
           text_size={28}
           max_font_scale={1.6}
           font_weight="bold"
+          text_align="start"
           letter_spacing={Kati.Locale.tracking(-0.03)}
           max_lines={1}
           text_color={:on_surface}
@@ -1078,6 +1079,7 @@ defmodule Kati.Screens.UpNext do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
+        text_align="start"
         letter_spacing={Kati.Locale.tracking(-0.03)}
         max_lines={1}
         text_color={:on_surface}

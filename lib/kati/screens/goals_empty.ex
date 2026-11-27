@@ -135,10 +135,15 @@ defmodule Kati.Screens.GoalsEmpty do
   # reader chose. `Kati.Goals.Goal.unit/1`'s doc states the same rule about
   # `@kinds`, and for the same reason keeps its English in the table and its
   # words in function clauses.
+  # What this device has, not what the drawing had. The three rows are the
+  # board's own claim — *Kati will still count everything* — so a figure here
+  # that nobody owns is the one place on the page that would call the claim
+  # false. Each reads through a `rescue` to zero, because an un-upgraded
+  # database answers with nothing rather than with an error worth showing.
   @counted [
-    {:books, "34", "menu_book", :open_books},
-    {:films, "84", "movie", :open_films},
-    {:albums, "418", "graphic_eq", :open_albums}
+    {:books, "menu_book", :open_books},
+    {:films, "movie", :open_films},
+    {:albums, "graphic_eq", :open_albums}
   ]
 
   @doc """
@@ -155,14 +160,72 @@ defmodule Kati.Screens.GoalsEmpty do
   """
   @spec counted() :: [map()]
   def counted do
-    Enum.map(@counted, fn {kind, count, glyph, tag} ->
+    figures = figures()
+
+    Enum.map(@counted, fn {kind, glyph, tag} ->
+      count = Map.fetch!(figures, kind)
       # `Kati.Locale.number/1` because `Goal.unit/1` answers «کتاب» under `:fa`
       # and `34 کتاب` would be one word in each script.
       title = "#{Kati.Locale.number(count)} #{Goal.unit(kind)}"
 
-      %{title: title, detail: detail(kind), glyph: glyph, tag: tag}
+      %{title: title, detail: detail(kind, figures), glyph: glyph, tag: tag}
     end)
   end
+
+  @doc """
+  What each row counts, read from the shelves.
+
+  `books` is the shelf and the pages read this year; `films` is what has been
+  watched and how many watches fell in this year; `albums` is the shelf and the
+  albums first heard this year. Every read rescues to zero — a phone with no
+  rows is the ordinary case here, and the page exists to say so.
+  """
+  @spec figures() :: %{
+          books: non_neg_integer(),
+          films: non_neg_integer(),
+          albums: non_neg_integer()
+        }
+  def figures do
+    %{books: books(), films: films(), albums: albums()}
+  end
+
+  defp books do
+    Kati.Books.Book |> Ash.Query.for_read(:shelf) |> Ash.read!() |> length()
+  rescue
+    _error -> 0
+  end
+
+  defp films do
+    Kati.Media.Watch |> Ash.read!() |> Enum.count(&(&1.kind == :movie))
+  rescue
+    _error -> 0
+  end
+
+  defp albums do
+    Kati.Music.Album |> Ash.Query.for_read(:shelf) |> Ash.read!() |> length()
+  rescue
+    _error -> 0
+  end
+
+  @doc "The drawing's own three counts, for the frame comparison."
+  @spec drawn_counted() :: [map()]
+  def drawn_counted do
+    counts = %{books: 34, films: 84, albums: 418}
+    details = %{books: "11,480", films: "312", albums: "61"}
+
+    Enum.map(@counted, fn {kind, glyph, tag} ->
+      %{
+        title: "#{Kati.Locale.number(Map.fetch!(counts, kind))} #{Goal.unit(kind)}",
+        detail: drawn_detail(kind, Map.fetch!(details, kind)),
+        glyph: glyph,
+        tag: tag
+      }
+    end)
+  end
+
+  @doc "Board 105 installed as assigns, for the frame comparison."
+  @spec drawn_state(map()) :: map()
+  def drawn_state(assigns), do: Map.put(assigns, :counted, drawn_counted())
 
   # A row's second line, at the drawing's own figures and in the reader's own
   # words and digits.
@@ -186,26 +249,73 @@ defmodule Kati.Screens.GoalsEmpty do
   # moduledoc's *Every figure is the drawing's* says which of the three could
   # be answered today and why one live row beside two fixtures would be worse
   # than three fixtures.
-  defp detail(:books) do
+  defp detail(:books, _figures) do
+    gettext("%{count} %{unit} this year",
+      count: Kati.Locale.number(pages_this_year()),
+      unit: Goal.unit(:pages)
+    )
+  end
+
+  defp detail(:films, _figures) do
+    gettext("%{count} watched this year", count: Kati.Locale.number(watches_this_year()))
+  end
+
+  defp detail(:albums, _figures) do
+    gettext("%{count} heard this year", count: Kati.Locale.number(albums_this_year()))
+  end
+
+  defp drawn_detail(:books, "11,480") do
     gettext("%{count} %{unit} this year",
       count: Kati.Locale.number("11,480"),
       unit: Goal.unit(:pages)
     )
   end
 
-  defp detail(:films) do
+  defp drawn_detail(:films, _none) do
     gettext("%{hours} watched",
       hours: gettext("%{h}h %{m}m", h: Kati.Locale.number(312), m: Kati.Locale.number(40))
     )
   end
 
-  defp detail(:albums) do
+  defp drawn_detail(:albums, "61") do
     gettext("%{hours} listened", hours: gettext("%{n}h", n: Kati.Locale.number(61)))
+  end
+
+  defp pages_this_year do
+    year = Kati.Time.today().year
+
+    Kati.Books.ReadingSession
+    |> Ash.read!()
+    |> Enum.filter(&(&1.read_on.year == year))
+    |> Enum.map(&(&1.to_page - &1.from_page))
+    |> Enum.sum()
+  rescue
+    _error -> 0
+  end
+
+  defp watches_this_year do
+    year = Kati.Time.today().year
+
+    Kati.Media.Watch
+    |> Ash.read!()
+    |> Enum.count(&((&1.kind == :movie and &1.watched_on) && &1.watched_on.year == year))
+  rescue
+    _error -> 0
+  end
+
+  defp albums_this_year do
+    year = Kati.Time.today().year
+
+    Kati.Music.Album
+    |> Ash.read!()
+    |> Enum.count(&(&1.first_heard_on && &1.first_heard_on.year == year))
+  rescue
+    _error -> 0
   end
 
   @doc false
   @spec content(map()) :: map()
-  def content(_assigns) do
+  def content(assigns) do
     ~MOB"""
     <Scroll>
       <Column
@@ -219,7 +329,7 @@ defmodule Kati.Screens.GoalsEmpty do
         {Kati.Screens.GoalsEmpty.title()}
         {Kati.Screens.GoalsEmpty.invitation()}
         {SettingsList.eyebrow_muted(gettext("What Kati counts anyway"))}
-        {Kati.Screens.GoalsEmpty.counted_list(Kati.Screens.GoalsEmpty.counted())}
+        {Kati.Screens.GoalsEmpty.counted_list(Map.get(assigns, :counted) || Kati.Screens.GoalsEmpty.counted())}
       </Column>
     </Scroll>
     """
@@ -253,6 +363,7 @@ defmodule Kati.Screens.GoalsEmpty do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
+        text_align="start"
         letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
         max_lines={1}

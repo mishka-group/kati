@@ -164,7 +164,7 @@ defmodule Kati.Screens.Subscriptions do
     %{
       active_line: Kati.Subscriptions.active_line([]),
       monthly: %{
-        label: "Every month",
+        label: gettext("Every month"),
         total: "—",
         change_lead: nil,
         change_amount: nil,
@@ -300,6 +300,7 @@ defmodule Kati.Screens.Subscriptions do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
+        text_align="start"
         letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
         max_lines={1}

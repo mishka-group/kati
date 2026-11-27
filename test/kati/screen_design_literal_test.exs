@@ -163,6 +163,10 @@ defmodule Kati.ScreenDesignLiteralTest do
   # 146's destructive pill — and its own moduledoc lists which, so the day 12's
   # detail board lands there is one file to change and no resource to move.
   @undesigned [
+    # The two screens the Meals section gained when a plan became something a
+    # reader can start: a plan form and a manual meal log. The drawings have an
+    # importer and a plan's *Mark eaten*, not either of these, so there is no
+    # board to compare them with — their own suites carry the assertions.
     # Boards 330-333 and 335 draw the two Lists screens, but each is a STATE
     # CATALOGUE — 330 stacks four states in one frame, 333 is 1249pt of them in
     # an 806pt sheet — so neither can be compared literal-for-literal against a
@@ -197,7 +201,9 @@ defmodule Kati.ScreenDesignLiteralTest do
     # Board 328 draws it, and 328 is a state catalogue too: the summary row in
     # both locales, the screen behind it, and the defect it replaces, all in one
     # frame. Same treatment as 330 and 333.
+    Kati.Screens.LogMeal,
     Kati.Screens.MoreSources,
+    Kati.Screens.NewPlan,
     # The Notes section's page, and no board in the 152 draws it: the section
     # was offered by the first run and had no page at all until 24 November
     # 2026. `Kati.ScreenNotesTest` holds what it draws.
@@ -221,7 +227,9 @@ defmodule Kati.ScreenDesignLiteralTest do
     # cannot be compared literal-for-literal against one.
     # `Kati.ScreenServiceTest` holds what it does draw.
     Kati.Screens.Service,
-    Kati.Screens.Sync
+    Kati.Screens.Sleep,
+    Kati.Screens.Sync,
+    Kati.Screens.Workouts
   ]
 
   # Screens 55-62 are the Persian mirrors and hold their Persian copy literally,
@@ -1993,6 +2001,9 @@ defmodule Kati.ScreenDesignLiteralTest do
       # 104 draws screen 105 when nothing is stored; the board is installed
       # here so the frame is still compared.
       {"104", Kati.Screens.Goals, &Kati.Screens.Goals.drawn_state/1},
+      # 105's three counted rows read the shelves; the board's figures are
+      # installed here so the frame is still compared.
+      {"105", Kati.Screens.GoalsEmpty, &Kati.Screens.GoalsEmpty.drawn_state/1},
       {"108", Kati.Screens.Goals, &Kati.Screens.Goals.drawn_state/1},
       # 43, 44, 47 and 48 draw the import card when there is no plan; their
       # boards are installed here so the frames are still compared.

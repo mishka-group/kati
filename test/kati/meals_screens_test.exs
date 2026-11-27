@@ -273,6 +273,23 @@ defmodule Kati.MealsScreensTest do
     end
   end
 
+  describe "screen 48 with a plan and nothing planned on it" do
+    # Found on the phone: *Start a plan* writes a plan with no meals on it, and
+    # the quick tile that opens Shopping raised `ArithmeticError` on `0 / 0`
+    # (the basket's progress), so a live tile answered nothing at all. A page
+    # with no lines is a page, not a crash.
+    test "draws an empty list rather than raising on the basket's share" do
+      _plan = plan!(%{name: "Empty week", target_kcal: 2000})
+
+      list = Screens.Shopping.list(@today)
+
+      assert list.basket == "0 of 0 in the basket"
+      assert list.aisles == []
+      assert list.progress == 0.0
+      assert_renderable(mount_screen(Screens.Shopping))
+    end
+  end
+
   describe "screen 44 with nothing in the database" do
     test "draws the week the design drew" do
       drawn = text(board(Screens.MealPlan))
@@ -506,17 +523,18 @@ defmodule Kati.MealsScreensTest do
       refute drawn =~ Kati.Meals.SampleNutrition.plan_line()
     end
 
-    test "the header and the figures are decided by the same question" do
-      # A plan whose window holds no log at all falls back — and falls back
-      # whole. Titling the drawing's 2,040 kcal with the user's own plan name
-      # would read as their figure and be nobody's.
+    test "a plan with no log in the window draws its own name and zeros" do
+      # It used to fall back to the drawing whole, on the argument that a
+      # drawing's figure under a reader's plan name is nobody's. With a plan a
+      # reader can now make by hand, the honest page is their plan's name over
+      # honest zeros — the same answer a plan with nothing logged has.
       destroy_where(MealLog, &(&1.logged_on == @today or &1.title == @stray))
 
       drawn = text(board(Screens.Nutrition))
 
-      assert drawn =~ Kati.Meals.SampleNutrition.plan_line()
-      assert drawn =~ Kati.Meals.SampleNutrition.hero().average
-      refute drawn =~ "Screens fixture plan"
+      assert drawn =~ "Screens fixture plan"
+      refute drawn =~ Kati.Meals.SampleNutrition.plan_line()
+      refute drawn =~ Kati.Meals.SampleNutrition.hero().average
     end
 
     test "a day under the tolerance band is drawn as under, not as on target" do

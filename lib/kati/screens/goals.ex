@@ -84,6 +84,10 @@ defmodule Kati.Screens.Goals do
 
   def load(socket), do: Mob.Socket.assign(socket, :goals, goals())
 
+  # *New goal* writes and pops; the page it returns to never re-mounts — see
+  # `Kati.Screens.Resume` — so the goal just set would not be listed.
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
   @doc """
   The goals this device has, and nothing when it has none.
 

@@ -293,7 +293,7 @@ defmodule Kati.Theme.PaletteTest do
     0xFFEFECE7 => {:collision, ~w(states)},
     0xFFFBFAF8 =>
       {:collision,
-       ~w(habits language_pick meals_day meals_today notes onboarding pick_sections states)},
+       ~w(habits language_pick log_meal meals_day meals_today new_plan notes onboarding pick_sections sleep states workouts)},
 
     # ── The value has a token; the token means something else ────────────
     # `0xA6FFFFFF` is `rgba(255,255,255,.65)`, which is `lock_ink_65`. On

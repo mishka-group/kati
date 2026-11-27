@@ -178,6 +178,7 @@ defmodule Kati.Screens.AddByHand do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
+        text_align="start"
         letter_spacing={-0.03}
         text_color={:on_surface}
       />

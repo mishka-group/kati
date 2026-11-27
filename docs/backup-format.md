@@ -174,6 +174,8 @@ reproduce.
 | `Kati.Health.Medication` | `health_medications` | What you take, the dose, and when it is due |
 | `Kati.Health.Reading` | `health_readings` | Weights you typed, in grams |
 | `Kati.Health.Dose` | `health_doses` | Each dose, and whether it was taken or skipped |
+| `Kati.Health.SleepNight` | `sleep_nights` | One night's minutes, on the morning it ended |
+| `Kati.Health.Workout` | `workouts` | One workout: its title, its minutes and its day |
 
 ### Not in the backup
 

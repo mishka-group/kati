@@ -235,7 +235,9 @@ defmodule Kati.Backup.Catalog do
     # losing them in a restore would lose the whole record.
     %{table: "health_medications", resource: Kati.Health.Medication, drop: []},
     %{table: "health_readings", resource: Kati.Health.Reading, drop: []},
-    %{table: "health_doses", resource: Kati.Health.Dose, drop: []}
+    %{table: "health_doses", resource: Kati.Health.Dose, drop: []},
+    %{table: "sleep_nights", resource: Kati.Health.SleepNight, drop: []},
+    %{table: "workouts", resource: Kati.Health.Workout, drop: []}
   ]
 
   @excluded [

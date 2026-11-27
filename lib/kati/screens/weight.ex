@@ -138,7 +138,11 @@ defmodule Kati.Screens.Weight do
         change = newest.grams - oldest.grams
 
         %{
-          label: "Latest · " <> Kati.Screens.Weight.when_label(newest.taken_on),
+          # One msgid, not a concatenation: `"Latest · " <> when_label(…)`
+          # assembled an English lead onto a word and no catalogue could
+          # translate the result (found on the Persian board).
+          label:
+            gettext("Latest · %{when}", when: Kati.Screens.Weight.when_label(newest.taken_on)),
           figure: Reading.figure(newest.grams, unit),
           unit: Reading.unit_label(unit),
           direction: if(change <= 0, do: :down, else: :up),
@@ -169,9 +173,10 @@ defmodule Kati.Screens.Weight do
   @spec when_label(Date.t()) :: String.t()
   def when_label(%Date{} = on) do
     case Date.diff(Kati.Time.today(), on) do
-      0 -> "today"
-      1 -> "yesterday"
-      _older -> Calendar.strftime(on, "%-d %b")
+      0 -> gettext("today")
+      1 -> gettext("yesterday")
+      # The reader's own calendar and digits: `%-d %b` is Gregorian and Latin.
+      _older -> Kati.Locale.date(on, :short)
     end
   end
 

@@ -481,6 +481,27 @@ defmodule Kati.Locale do
   end
 
   @doc """
+  The weekday's whole name, in the reader's own calendar and script.
+
+      iex> Kati.Locale.weekday_name(~D[2026-09-12])
+      "Saturday"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.weekday_name(~D[2026-09-12]) end)
+      "شنبه"
+
+  `Calendar.strftime/2`'s `%A` is English in every locale, so a heading that
+  wanted "Friday · 3 meals" said the English word over a Persian week.
+  """
+  @spec weekday_name(Date.t()) :: String.t()
+  def weekday_name(%Date{} = date) do
+    if direction(current()) == :rtl do
+      Kati.Calendar.Shamsi.weekday_name(Kati.Calendar.Shamsi.weekday_index(date))
+    else
+      Kati.Time.day_name(date)
+    end
+  end
+
+  @doc """
   A quotation, in the marks the reader's own typography uses.
 
       iex> Kati.Locale.quoted("The tide keeps its own ledger.")

@@ -742,6 +742,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # sentence for goals nobody set. The board is installed by
     # `Kati.ScreenDesignLiteralTest` through `drawn_state/1`.
     "104" => [],
+    # 105 → no board either: its three counted rows read the shelves now, so an
+    # empty phone draws zeros rather than the drawing's 34/84/418. The board is
+    # installed by `Kati.ScreenDesignLiteralTest` through `drawn_state/1`.
+    "105" => [],
     # 143 → no board either (N52-A): no season means no rows, so board 143's
     # own six episodes have nothing left on this screen to be held to.
     "143" => [],
@@ -1274,6 +1278,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # a module here that stops reading the store, or that acquires a drawing and
   # joins `Kati.Screens.Gallery`'s registry, fails.
   @undrawn [
+    # The two Meals screens with no drawing: a plan form that writes one and a
+    # manual meal log. Both read the store and both are rendered by the sweep;
+    # neither has a board to be held to.
+    Kati.Screens.NewPlan,
+    Kati.Screens.LogMeal,
+    Kati.Screens.Sleep,
+    Kati.Screens.Workouts,
     # The Notes section's page has no board, so there is no drawing to compare
     # an empty store with — but it reaches the store and this file still
     # renders it. `Kati.ScreenNotesTest` holds the empty sentence and the
@@ -1473,6 +1484,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # Named with a number, so a page that shrinks further still fails.
   @small_undrawn %{
+    # The two Meals pages with no board: a plan form and a meal log. Each is its
+    # chrome and three fields — the title, the mono line, two placeholders, the
+    # slot pills or the hint, and the two actions.
+    Kati.Screens.NewPlan => 7,
+    Kati.Screens.LogMeal => 10,
+    Kati.Screens.Sleep => 7,
+    Kati.Screens.Workouts => 7,
     # Notes with nothing stored is its chrome and its empty card: the title, the
     # "0 notes · 0 books" line, the empty sentence, its one button and the back
     # label. Eight, and the card is what makes it a page rather than chrome.
@@ -1501,7 +1519,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(list_memberships lists event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes followed_authors book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending habits habit_ticks)
+  @tables ~w(list_memberships lists event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes followed_authors book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending habits habit_ticks sleep_nights workouts)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.

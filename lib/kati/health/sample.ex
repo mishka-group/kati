@@ -195,15 +195,15 @@ defmodule Kati.Health.Sample do
   #
   # So the word stays here as a key and the word a reader reads comes off
   # `Kati.Screens.RetiredTile.label/1`, which is keyed on `id` and is already
-  # Persian. The one place still short is screen 42's own grid, which draws
-  # `section.name` straight — six Latin section names on a Persian board until
-  # that lookup moves to `id` as well.
+  # Persian. The grid's six names came through this last: `Kati.Screens.Health`
+  # draws `section.name` straight, so a literal here was six Latin section names
+  # on a Persian board until the names were looked up like every other string.
   def sections do
     [
       %{
         id: :meals,
         icon: "restaurant",
-        name: "Meals",
+        name: gettext("Meals"),
         # `Kati.Screens.Health.plan_line/2` joins a real plan's name to its
         # derived week with this middot, and this is that line with the
         # drawing's plan in it. `Cutting v3` is already in the catalogue as
@@ -220,7 +220,7 @@ defmodule Kati.Health.Sample do
       %{
         id: :habits,
         icon: "bolt",
-        name: "Habits",
+        name: gettext("Habits"),
         # `Kati.Screens.Habits.subtitle/1`'s msgid exactly, with the drawing's
         # two figures where the derived ones go. The screen that owns the
         # sentence and the tile that quotes it cannot drift apart, and both
@@ -238,7 +238,13 @@ defmodule Kati.Health.Sample do
       # `Kati.Screens.HealthEmptyStates.nothing_set_up/0` overwrites this line
       # with the same words for its own band, which is the point: an outline
       # says *not set up* in one wording wherever it is drawn.
-      %{id: :sleep, icon: "bedtime", name: "Sleep", line: gettext("Not set up"), on?: false},
+      %{
+        id: :sleep,
+        icon: "bedtime",
+        name: gettext("Sleep"),
+        line: gettext("Not set up"),
+        on?: false
+      },
       # Weight and Medication stopped being outlines when screens 109 and 112
       # landed. Both now carry a real line and a dot, which is what `on?` has
       # always meant on this grid: switching a section on is a state change, not
@@ -246,7 +252,7 @@ defmodule Kati.Health.Sample do
       %{
         id: :weight,
         icon: "monitor_weight",
-        name: "Weight",
+        name: gettext("Weight"),
         # The figure and the change are `Kati.Health.WeightSample.latest/0`'s
         # own two numbers, said in one line rather than in a hero and a pill.
         # `kg` sits inside the msgid because the word is what moves —
@@ -265,14 +271,14 @@ defmodule Kati.Health.Sample do
       %{
         id: :workouts,
         icon: "fitness_center",
-        name: "Workouts",
+        name: gettext("Workouts"),
         line: gettext("Not set up"),
         on?: false
       },
       %{
         id: :medication,
         icon: "medication",
-        name: "Medication",
+        name: gettext("Medication"),
         # `ngettext/4` rather than a frozen `4 doses today`: the fixture's four
         # is a number the day could answer differently, and English inflects
         # the noun after it. Persian does not, so both forms are the same

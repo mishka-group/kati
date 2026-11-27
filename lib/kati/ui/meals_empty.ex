@@ -29,11 +29,16 @@ defmodule Kati.UI.MealsEmpty do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  @tag :open_plan_import
+  @tag :start_plan
+  @import_tag :open_plan_import
 
-  @doc "The tag the button sends, and the one every host screen maps to the importer."
+  @doc "The tag the primary button sends, and the one every host maps to the plan form."
   @spec tag() :: atom()
   def tag, do: @tag
+
+  @doc "The tag of the secondary link, which every host maps to the importer."
+  @spec import_tag() :: atom()
+  def import_tag, do: @import_tag
 
   @doc """
   The card.
@@ -56,7 +61,8 @@ defmodule Kati.UI.MealsEmpty do
           # and the card says what is missing.
           Kati.UI.eyebrow_label(gettext("Meals"))
         ),
-      tap: {self(), @tag}
+      tap: {self(), @tag},
+      import_tap: {self(), @import_tag}
     }
 
     ~MOB"""
@@ -66,7 +72,8 @@ defmodule Kati.UI.MealsEmpty do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
+        text_align="start"
         text_color={:on_surface}
       />
       <Spacer size={5} />
@@ -103,7 +110,7 @@ defmodule Kati.UI.MealsEmpty do
         />
         <Spacer size={7} />
         <Text
-          text={gettext("Kati counts meals from a plan. Import one and today, the week and the shopping list fill in from it.")}
+          text={gettext("Kati counts meals from a plan. Start one with its daily target, and today, the week and the shopping list fill in from it.")}
           text_size={13}
           line_height={Kati.Locale.leading(1.5)}
           text_color={Palette.sub()}
@@ -119,10 +126,20 @@ defmodule Kati.UI.MealsEmpty do
           on_tap={@tap}
         >
           <Text
-            text={gettext("Import a plan")}
+            text={gettext("Start a plan")}
             text_size={14}
             font_weight="semibold"
             text_color={Palette.paper()}
+            text_align="center"
+            fill_width={true}
+          />
+        </Row>
+        <Spacer size={10} />
+        <Row fill_width={true} align="center" on_tap={@import_tap}>
+          <Text
+            text={gettext("or import one you already have")}
+            text_size={12.5}
+            text_color={Palette.sub()}
             text_align="center"
             fill_width={true}
           />

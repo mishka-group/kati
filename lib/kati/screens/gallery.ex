@@ -337,6 +337,17 @@ defmodule Kati.Screens.Gallery do
   # Delete an entry the moment its drawing lands, and add it to `@screens` with
   # the number it was filed under.
   @undrawn [
+    # The two Meals screens with no board: starting a plan by hand and logging a
+    # meal. The drawings have an importer and a plan's *Mark eaten*; these are
+    # the pages that make a plan something a reader can own, and Home → Health →
+    # Meals is what opens them.
+    {:open_undrawn_new_plan, "Start a plan", Kati.Screens.NewPlan},
+    {:open_undrawn_log_meal, "Log a meal", Kati.Screens.LogMeal},
+    # The two health sections screen 42 drew as outlines: last night's sleep and
+    # a workout. Reached from Health's own tiles, which is the door the grid
+    # was missing.
+    {:open_undrawn_sleep, "Sleep", Kati.Screens.Sleep},
+    {:open_undrawn_workouts, "Workouts", Kati.Screens.Workouts},
     # The Notes section's page. No board in the 152 draws it — the section was
     # offered by the first run and had no page at all — and it is reached from
     # Home's Sections row, which is the card that opened nothing until now.
@@ -879,6 +890,7 @@ defmodule Kati.Screens.Gallery do
           text_size={28}
           max_font_scale={1.6}
           font_weight="bold"
+          text_align="start"
           letter_spacing={Kati.Locale.tracking(-0.03)}
           text_color={:on_surface}
           max_lines={1}

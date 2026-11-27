@@ -460,9 +460,11 @@ defmodule Kati.MealsTodayWriteTest do
 
       assert Ash.read!(MealLog) == [], "an orphan log survived a slot that was gone"
 
-      # And with the plan now empty the page is honest again: the import card,
-      # rather than the drawing's miso salmon.
-      assert moved.assigns.day == Kati.Screens.MealsToday.empty_day()
+      # The plan is still there with nothing on it, so the page is the plan's
+      # own empty day — no cards, no drawing's miso salmon — rather than the
+      # import card that only a phone with no plan draws.
+      assert moved.assigns.day.meals == []
+      refute moved.assigns.day == Kati.Screens.MealsToday.drawn_day()
     end
 
     test "screen 45 named a slot that is gone draws the fixture and refuses its write" do

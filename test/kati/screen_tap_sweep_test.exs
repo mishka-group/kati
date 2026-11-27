@@ -915,7 +915,10 @@ defmodule Kati.ScreenTapSweepTest do
     # menu.
     {Kati.Screens.Goals, :open_albums},
     {Kati.Screens.Goals, :open_books},
-    {Kati.Screens.Goals, :open_films}
+    {Kati.Screens.Goals, :open_films},
+    # The meal log's slot pills. Tapping the one already chosen changes nothing
+    # because it is already the answer; the other three do assign.
+    {Kati.Screens.LogMeal, :slot_breakfast}
     # (`{Kati.Screens.Rating, :add_tag}` was here, filed under Backlog as *a
     # sheet that never opens*. It was struck off, and there is
     # still no sheet: a tag is one short word, so the field opens under the

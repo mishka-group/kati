@@ -37,6 +37,8 @@ defmodule Kati.Health do
     resource Kati.Health.Reading
     resource Kati.Health.Medication
     resource Kati.Health.Dose
+    resource Kati.Health.SleepNight
+    resource Kati.Health.Workout
   end
 
   @unit_key :kati_weight_unit

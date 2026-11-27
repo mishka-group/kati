@@ -370,7 +370,7 @@ defmodule Kati.Screens.RetiredTile do
   """
   @spec unbuilt() :: [map()]
   def unbuilt do
-    Enum.filter(Sample.sections(), fn section -> not Health.built?(section.name) end)
+    Enum.filter(Sample.sections(), fn section -> not Health.built?(section) end)
   end
 
   @doc """
@@ -400,24 +400,33 @@ defmodule Kati.Screens.RetiredTile do
   end
 
   defp section_subject(name) do
+    # By `section_key/1` and not by `.name`: the drawn name is translated, and
+    # the key screen 114 is pushed with — "Sleep", "Workouts" — stays Latin in
+    # both scripts. Matched on the name, a Persian reader's sheet found no
+    # section at all and `label/1` raised on nil; found on the id, the sheet is
+    # the same eight lines in either language.
+    # Asked of every section, not only the unbuilt ones: screen 114's subject
+    # is a parameter, and a screen that has since been built still has a name,
+    # a glyph and a headline. Looking in `unbuilt/0` first meant a built
+    # subject fell through to the drawn one — `subject("Workouts")` answered
+    # *Sleep* once Workouts had a page.
     section =
-      Enum.find(unbuilt(), &(&1.name == name)) ||
-        Enum.find(Sample.sections(), &(&1.name == @drawn))
+      Enum.find(Sample.sections(), &(Health.section_key(&1) == name)) ||
+        Enum.find(Sample.sections(), &(Health.section_key(&1) == @drawn))
 
     # Bound once and read twice, because the name is drawn twice — in the
     # sheet's header and again inside the headline — and `label/1` asks gettext
-    # each time it is called. The lookups below keep taking `section.name`: that
-    # is the key half of the same string and it must not follow the label into
-    # Persian, or a Persian reader gets the sheet with no paragraph on it.
+    # each time it is called.
     label = label(section)
+    key = Health.section_key(section)
 
     %{
       name: label,
       icon: section.icon,
       headline: headline(label),
       noun: noun(:tile),
-      why: why_for(section.name),
-      instead: instead_for(section.name)
+      why: why_for(key),
+      instead: instead_for(key)
     }
   end
 

@@ -405,6 +405,7 @@ defmodule Kati.Screens.HomeDark do
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
+            text_align="start"
             letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={0xFFF5F2EE}
             max_lines={1}

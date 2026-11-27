@@ -818,13 +818,17 @@ defmodule Kati.SheetRowIdentityTest do
   # with nothing on the screen to say which you were looking at. The head of a
   # one-row list again, only here the list is a two-tile grid.
   describe "screen 114 is about the tile you pressed" do
-    test "each dashed tile pushes its own section" do
-      for name <- ["Sleep", "Workouts"] do
+    test "each tile pushes its own section" do
+      # Sleep and Workouts are pages of their own since the two resources
+      # landed; the explainer still answers every unbuilt section (workouts'
+      # glyph is the one the sheet was drawn for), and the second test below is
+      # what still holds that sheet to its subject.
+      for {name, screen} <- [{"Sleep", Kati.Screens.Sleep}, {"Workouts", Kati.Screens.Workouts}] do
         {_pid, tag} = Kati.Screens.Health.tile_tap(name)
 
         view = Kati.Screens.Health |> mount_screen() |> render_info({:tap, tag})
 
-        assert {:push, Kati.Screens.RetiredTile, %{section: ^name}} = pushed(view)
+        assert {:push, ^screen, _params} = pushed(view)
       end
     end
 

@@ -130,7 +130,7 @@ defmodule Kati.Screens.Shopping do
     monday = Date.add(date, -(Date.day_of_week(date) - 1))
 
     with plan when not is_nil(plan) <- active_plan(),
-         [_ | _] = items <- week_items(plan, monday) do
+         items <- week_items(plan, monday) do
       shopping_list(items, monday)
     else
       _ -> empty_list()
@@ -168,7 +168,10 @@ defmodule Kati.Screens.Shopping do
           count: Kati.Locale.number(count)
         ),
       estimate: estimate(items),
-      progress: got / count,
+      # A plan with no meals on it has an empty list, and `0 / 0` is an
+      # ArithmeticError — found by tapping Shopping from a hand-made plan on
+      # the phone, where the raise made a live tile answer nothing.
+      progress: if(count == 0, do: 0.0, else: got / count),
       # The three groupings are a control, not data: nothing in
       # `Kati.Meals.ShoppingListItem` records which chip is chosen, and the
       # screen has never wired one. They stay the drawing's until there is a
@@ -1000,6 +1003,7 @@ defmodule Kati.Screens.Shopping do
     case Atom.to_string(tag) do
       "tick_" <> id -> {:noreply, Kati.Screens.Shopping.toggle(socket, id)}
       "open_plan_import" -> {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
+      "start_plan" -> {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NewPlan)}
       _other -> {:noreply, socket}
     end
   end

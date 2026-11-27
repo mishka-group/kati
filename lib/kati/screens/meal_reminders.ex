@@ -71,6 +71,11 @@ defmodule Kati.Screens.MealReminders do
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :reminders, state())
 
+  # *Start a plan* and plain *import* both leave this page and write; the
+  # screen underneath has to re-read when it comes back — `Kati.Screens.Resume`.
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
   @doc "The drawing's own values, unconditionally."
   @spec drawn_state() :: map()
   def drawn_state, do: SampleReminders.reminders()
@@ -120,6 +125,9 @@ defmodule Kati.Screens.MealReminders do
   end
 
   @impl true
+  def handle_tap(:start_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NewPlan)}
+
   def handle_tap(:open_plan_import, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
 

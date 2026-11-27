@@ -61,6 +61,11 @@ defmodule Kati.Screens.MealPlan do
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :plan, plan(Kati.Time.today()))
 
+  # *Start a plan* writes and pops. A popped-to screen never re-mounts — see
+  # `Kati.Screens.Resume` — so the empty card would still say *No plan yet*.
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
   @doc false
   def content(assigns) do
     plan = assigns.plan
@@ -129,7 +134,7 @@ defmodule Kati.Screens.MealPlan do
   @spec plan(Date.t()) :: map()
   def plan(date) do
     with row when not is_nil(row) <- active_plan(),
-         [_ | _] = slots <- plan_slots(row) do
+         slots <- plan_slots(row) do
       planned_week(row, slots, date)
     else
       _ -> empty_plan()
@@ -165,13 +170,15 @@ defmodule Kati.Screens.MealPlan do
       subtitle: subtitle(row),
       today: today - 1,
       matrix: matrix_rows(slots, today),
-      day_line: "#{Calendar.strftime(date, "%A")} · #{meals(length(day))}",
+      day_line: day_line(date, length(day)),
       day: day,
       repeat_rule: repeat_rows(row)
     }
   end
 
-  defp subtitle(%{repeat: :weekly}), do: "repeats every week"
+  # Translated, and per call rather than in a module attribute — the family's
+  # compile-time trap (`Kati.Screens.RetiredTile.why_for/1`).
+  defp subtitle(%{repeat: :weekly}), do: gettext("repeats every week")
 
   # Five rows of seven, from 35 rows that are stored one per cell. `position`
   # is what makes a row a row — two snacks share a name and differ only there —
@@ -271,8 +278,15 @@ defmodule Kati.Screens.MealPlan do
     )
   end
 
-  defp meals(1), do: "1 meal"
-  defp meals(count), do: "#{count} meals"
+  defp meals(1), do: gettext("%{count} meal", count: Kati.Locale.number(1))
+
+  defp meals(count), do: gettext("%{count} meals", count: Kati.Locale.number(count))
+
+  # `%A` is English in every locale; `Kati.Locale.date/2` answers the reader's
+  # own day name and script.
+  defp day_line(date, count) do
+    gettext("%{day} · %{meals}", day: Kati.Locale.weekday_name(date), meals: meals(count))
+  end
 
   defp clock(nil), do: ""
   defp clock(time), do: Calendar.strftime(time, "%H:%M")
@@ -352,6 +366,7 @@ defmodule Kati.Screens.MealPlan do
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
+        text_align="start"
         letter_spacing={-0.03}
         text_color={:on_surface}
         max_lines={1}
@@ -907,6 +922,9 @@ defmodule Kati.Screens.MealPlan do
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @impl true
+  def handle_tap(:start_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NewPlan)}
+
   def handle_tap(:open_plan_import, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
 
